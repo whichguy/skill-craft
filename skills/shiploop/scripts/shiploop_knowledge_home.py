@@ -17,6 +17,10 @@ A later run starts from these files.
                                      system-tests.md, release-plan.md, outcome.md
     docs/shiploop/features/README.md ShipLoop's list of the folders above (FEATURE_LIST)
 
+The four fact files (spec, environment, architecture, test strategy) have named sections (``SECTIONS``).  At the same four
+closes ShipLoop prints one counted notice line per file that exists and lacks a section or leaves one empty, naming each
+(``section_notices``); it is a notice, never a refusal.
+
 At handoff the run's feature spec.md is checked against the living spec (every requirement ID it names must be there)
 and, when the run's commits reach the user's branch, removed in a commit of its own (``retire``); the last committed
 version stays in Git, in that commit's parent (a squash merge of the branch drops it).
@@ -49,6 +53,18 @@ ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), t
 FEATURE_LIST = HOME + "/features/README.md"
 
 LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE)
+# The named sections of the four living files that hold the product's facts, as the headings a packet quotes and the section
+# notice (``section_notices``) looks for.  A heading is the text after the ``#`` marks; a spec's acceptance criteria stay inside
+# each requirement, with no heading of their own.  ARCHITECTURE_HOLDS above says what the architecture file holds in prose; a
+# test pins that every heading it names is here, and another that every heading a packet duty or loop text names for one of
+# these files is here too.  ``Skills`` is the repository's local skill directory: step-plan's per-step skills and
+# carry-forward's skill decision read it.
+SECTIONS: Dict[str, Tuple[str, ...]] = {
+    "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
+    "environment.md": ("Targets and runtimes", "Commands", "Skills", "Access and accounts", "Platform facts"),
+    ARCHITECTURE: ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions", "Superseded"),
+    "test-strategy.md": ("Harnesses and suites", "Commands", "ID convention", "Real-boundary checks"),
+}
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
     "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE,
@@ -60,15 +76,24 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 }
 # What each stage writes or updates.  A close's other required files (above) were written by earlier stages
 # (``required_earlier``); its packet lists them apart, with the refusal they carry.
+# A stage that finds a command, a platform fact or a decision keeps the file it belongs in: research, step-plan,
+# validate-existing, implement and test find commands and facts (environment.md); step-plan and implement may add a
+# decision (an AD-<n> for a deviation); carry-forward records the run's decisions and what they superseded.  verify reads the
+# architecture and writes nothing, so it has no entry.  A key that is no stage of the graph is a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "intake": ("README.md",),
     "discovery": ("environment.md",),
+    "research": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
     "plan": ("{feature}/plan.md", "README.md", ARCHITECTURE),
     "prepare": ("environment.md",),
-    "step-plan": ("{feature}/plan.md", ARCHITECTURE),
+    "step-plan": ("{feature}/plan.md", ARCHITECTURE, "environment.md"),
     "test-spec": ("{feature}/test-spec.md",),
+    "validate-existing": ("environment.md",),
+    "implement": ("environment.md", ARCHITECTURE),
+    "test": ("environment.md",),
+    "carry-forward": (ARCHITECTURE, "environment.md"),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
     "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
@@ -108,14 +133,19 @@ def _ids(text: str) -> List[str]:
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
 
 
+# One markdown heading syntax: one to four marks, a space, the text.  ``_sections`` reads levels one to three (the outcome file's
+# sections); ``section_notices`` reads one to four.
+_HEADING = re.compile(r"^(#{1,4})\s+(.+?)\s*$")
+
+
 def _sections(text: str) -> Dict[str, str]:
     """Markdown ``## <heading>`` sections by heading."""
     found: Dict[str, str] = {}
     current: Optional[str] = None
     for line in text.splitlines():
-        heading = re.match(r"^#{1,3}\s+(.+?)\s*$", line)
-        if heading:
-            current = heading.group(1).strip()
+        heading = _HEADING.match(line)
+        if heading and len(heading.group(1)) <= 3:
+            current = heading.group(2).strip()
             found[current] = ""
         elif current is not None:
             found[current] += line + "\n"
@@ -318,6 +348,101 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
             refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
                             + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
     return "\n".join(refusals)
+
+
+# --- the sections check: a counted notice -------------------------------------------------------------------------
+
+# Every notice line starts with this, so a reader or the harness counts them by occurrence (grep -o: the host events log a call's
+# whole stdout as one line).  A line is one file, so the count is files; the headings are the quoted names before the line's
+# first semicolon (references/project-knowledge.md gives both commands).  Distinct from the "ShipLoop knowledge: " lines (a commit,
+# a kept file), which a count of those must not pick up.
+NOTICE_PREFIX = "ShipLoop knowledge notice: "
+# Said in every line: a model that reads the lines alone, after the close, learns that the close did not fail.
+_ACCEPTED = "(this close is accepted)"
+# The one fix, the same words for a missing heading and an empty one.  'none' under a heading is text, so a heading that
+# legitimately has nothing can clear its own line.
+_FIX = ("for each, write its content under a '## <heading>' (add the heading if missing), "
+        "or write 'none' there if it does not apply.")
+# A fence opens as CommonMark says: up to three spaces, then three or more backticks or tildes; the text after a backtick run holds
+# no backtick (so a line that starts with inline code, ```npm test``` is it, opens nothing).  A line that opens a fence by
+# mistake would hide every later heading.
+_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")
+
+
+def _outline(lines: Sequence[str]) -> List[Tuple[int, int, str]]:
+    """``(line index, level, title)`` of each markdown heading (one to four marks) that is not inside a fenced code block."""
+    found: List[Tuple[int, int, str]] = []
+    fence = ""
+    for index, line in enumerate(lines):
+        opening = _FENCE.match(line)
+        if fence:
+            rest = line.strip()
+            if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(rest):
+                fence = ""
+            continue
+        if opening:
+            fence = opening.group(1)
+            continue
+        heading = _HEADING.match(line)
+        if heading:
+            found.append((index, len(heading.group(1)), heading.group(2).strip()))
+    return found
+
+
+def _section_state(lines: Sequence[str], outline: Sequence[Tuple[int, int, str]], heading: str) -> str:
+    """``present``, ``empty`` or ``missing``: the section named ``heading`` in a file, by the notice's rule.
+
+    A heading line whose text starts with the name, in any case, is the section.  It is present when a non-blank line follows
+    it before the next heading of the same or a higher level (a deeper heading line is a non-blank line), empty when every
+    heading that matches has nothing, missing when none matches.
+    """
+    found = False
+    for position, (index, level, title) in enumerate(outline):
+        if not title.lower().startswith(heading.lower()):
+            continue
+        found = True
+        end = next((later for later, deeper, _ in outline[position + 1:] if deeper <= level), len(lines))
+        if any(line.strip() for line in lines[index + 1:end]):
+            return "present"
+    return "empty" if found else "missing"
+
+
+def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
+    """Notice lines for the named sections a living file lacks, at a close; [] at any other stage.
+
+    A counted notice, not a refusal: on the saved homes the headings are nearly absent (docs/shiploop-knowledge-sections-journal-
+    2026-10-10.md), so a refusal would fire at nearly every first close until packets quote the headings.  One line per file in
+    ``SECTIONS`` that exists, has text and has anything to report (so four at most), in the table's order; an absent or blank
+    file gives none (the close's own refusal asks for it).  A line is ``NOTICE_PREFIX``, the file's absolute path as the next
+    word, ``has no '<A>', '<B>' section`` for the headings missing and ``an empty '<C>' section`` for those with nothing under
+    them (both joined by ``and``, each list in the table's order), that the close is accepted, and the one fix; the architecture
+    file's line ends with what the file holds (``ARCHITECTURE_HOLDS``), once in the block.  It reads files only and never
+    raises: a file that cannot be read gives no line.
+    """
+    if stage not in CLOSES:
+        return []
+    repo = Path(str(state["repo"]))
+    notices: List[str] = []
+    for name, headings in SECTIONS.items():
+        path = repo / HOME / name
+        if not _filled(path):
+            continue
+        try:
+            # utf-8-sig: a mark that Notepad or Windows PowerShell puts before a first-line heading is no part of the heading.
+            lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+        except OSError:
+            continue
+        outline = _outline(lines)
+        found = {heading: _section_state(lines, outline, heading) for heading in headings}
+        said = []
+        for state_name, lead in (("missing", "no "), ("empty", "an empty ")):
+            quoted = ["'" + heading + "'" for heading in headings if found[heading] == state_name]
+            if quoted:
+                said.append(lead + ", ".join(quoted) + " section")
+        if said:
+            notices.append(NOTICE_PREFIX + str(path) + " has " + " and ".join(said) + " " + _ACCEPTED + "; " + _FIX
+                           + (" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else ""))
+    return notices
 
 
 def knowledge_subject(state: Mapping[str, Any], stage: str) -> str:
@@ -728,7 +853,9 @@ __all__ = ("ARCHITECTURE",
            "KEPT_AFTER_ROUTE",
            "KNOWLEDGE",
            "LEARNING_SECTIONS",
+           "NOTICE_PREFIX",
            "Retired",
+           "SECTIONS",
            "check",
            "commit",
            "earlier_features",
@@ -747,6 +874,7 @@ __all__ = ("ARCHITECTURE",
            "retire",
            "retire_subject",
            "retired_by",
+           "section_notices",
            "spec_pin",
            "stage_lines",
            "write_feature_list")

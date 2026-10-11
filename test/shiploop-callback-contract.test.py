@@ -40,6 +40,7 @@ import shiploop_test_loop as test_loop  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
 TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
@@ -545,6 +546,103 @@ class RefusalRouteTests(RealCliCase):
         # folder exists (docs/shiploop/features/README.md): nothing else rides in the commit.
         self.assertEqual(sorted(self.git(repo, "show", "--name-only", "--format=", "HEAD").split()),
                          ["docs/shiploop/architecture.md", "docs/shiploop/features/README.md"])
+
+    def accept_a_prepare_with_files(self, sectioned: bool) -> tuple:
+        """A run at prepare whose refusal's files are written (with every named section, or as prose), then accepted.
+
+        Returns the run, the accepted command's CLI result, and the action id.
+        """
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
+            file = Path(named)
+            file.parent.mkdir(parents=True, exist_ok=True)
+            living = file.parent == repo / knowledge.HOME and file.name in knowledge.SECTIONS
+            file.write_text(knowledge_support.sections(file.name) if sectioned and living else "What this file records.\n",
+                            encoding="utf-8")
+        result = self.run_printed(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return run, result, action
+
+    @staticmethod
+    def named_in(line: str) -> list:
+        """The headings a printed notice line names: the quoted words between the prefix and the first semicolon."""
+        return re.findall(r"'([^']+)'", line[len(knowledge.NOTICE_PREFIX):].split(";", 1)[0])
+
+    def test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_file(self) -> None:
+        # The notice is not a refusal: prose files that the refusal asked for are accepted by the same command, and the
+        # lines are on stdout, each starting with the fixed prefix, the file's absolute path first.
+        run, result, action = self.accept_a_prepare_with_files(sectioned=False)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
+        self.assertEqual(len(found), len(knowledge.SECTIONS))
+        self.assertEqual(found, knowledge.section_notices(self.state(run), "prepare"))
+        self.assertEqual([row.split(" ")[3] for row in found],
+                         [str(self.repo_of(run) / knowledge.HOME / name) for name in knowledge.SECTIONS])
+        self.assertEqual([heading for row in found for heading in self.named_in(row)],
+                         [heading for headings in knowledge.SECTIONS.values() for heading in headings])
+        self.assertEqual("".join(row for row in result.stdout.splitlines(True) if row.startswith(knowledge.NOTICE_PREFIX)),
+                         "".join(row + "\n" for row in found))
+        self.assertEqual(result.stdout.count(knowledge.ARCHITECTURE_HOLDS), 1)
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stderr)
+        self.assertTrue(self.git(self.repo_of(run), "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
+
+    def test_the_fix_a_notice_names_applied_to_its_file_silences_that_heading_and_only_that_heading(self) -> None:
+        # The notice is no gate, so the way out is read from the printed line itself: the headings it names, the '## ' it says.
+        run, result, action = self.accept_a_prepare_with_files(sectioned=False)
+        printed = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
+        line = next(row for row in printed if " " + str(self.repo_of(run) / knowledge.HOME / "environment.md") + " has " in row)
+        self.assertIn("'Commands'", line.split(";", 1)[0])
+        self.assertIn("add the heading if missing", line)
+        file = Path(line.split(" ")[3])
+        file.write_text(file.read_text(encoding="utf-8") + "\n## Commands\n\nnpm test\n", encoding="utf-8")
+        again = knowledge.section_notices(self.state(run), "prepare")
+        self.assertEqual(len(again), len(printed))
+        self.assertEqual([row for row in again if row != again[printed.index(line)]], [row for row in printed if row != line])
+        expected = [heading for heading in self.named_in(line) if heading != "Commands"]
+        self.assertEqual(self.named_in(again[printed.index(line)]), expected)
+        self.assertNotIn("'Commands'", again[printed.index(line)].split(";", 1)[0])
+
+    def test_a_close_whose_files_have_every_named_section_is_accepted_and_prints_no_notice(self) -> None:
+        run, result, action = self.accept_a_prepare_with_files(sectioned=True)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout + result.stderr)
+
+    def test_the_test_spec_close_prints_its_notice_although_the_script_records_validate_existing_after_it(self) -> None:
+        # The common route: test-spec is accepted and, in the same call, the script records validate-existing (every
+        # expectation matches), so the new history rows end with a stage that is no close.  The count must still be there.
+        run, head = self.new_run("test-spec", **{"planning-review": "none"})
+        command, path, action = printed_callback(head)
+        repo, state = self.repo_of(run), self.state(run)
+        home = repo / knowledge.HOME
+        (repo / knowledge.feature_dir(state)).mkdir(parents=True, exist_ok=True)
+        (repo / knowledge.feature_dir(state) / "plan.md").write_text("The plan.\n", encoding="utf-8")
+        for name in knowledge.SECTIONS:
+            (home / name).parent.mkdir(parents=True, exist_ok=True)
+            (home / name).write_text("What this file records.\n", encoding="utf-8")
+        write_block(path, self.fill_done(head))
+        before = len(state["history"])
+        result = self.run_printed(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        rows = [(row["stage"], row["outcome"]) for row in self.state(run)["history"][before:]]
+        self.assertEqual(rows, [("test-spec", "done"), ("validate-existing", "done")], "the route under test")
+        found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
+        self.assertEqual(len(found), len(knowledge.SECTIONS))
+        self.assertEqual(found, knowledge.section_notices(self.state(run), "test-spec"))
+
+    def test_a_stage_that_is_no_close_prints_no_notice_although_a_file_lacks_its_sections(self) -> None:
+        run, head = self.new_run("intake")
+        command, path, action = printed_callback(head)
+        home = self.repo_of(run) / knowledge.HOME
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "environment.md").write_text("# Environment\n\nNode 22.\n", encoding="utf-8")
+        write_block(path, self.fill_done(head))
+        result = self.run_printed(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout + result.stderr)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
 
     def test_a_dropped_decision_id_is_refused_with_its_exit_on_line_1_and_the_exit_is_accepted(self) -> None:
         # A later run's prepare, on a repository whose home an earlier run committed with two decisions.  Line 1 is the

@@ -356,6 +356,9 @@ product repository up to date: `README.md` (index), `spec.md` (the living spec,
 stable `R-<n>` IDs), `environment.md` (targets by alias, working commands,
 platform facts), `test-strategy.md`, `architecture.md` (stack, structure, conventions,
 interfaces and numbered `AD-<n>` decisions), and this run's `features/<slug>/` record.
+The four fact files have named sections (`knowledge_home.SECTIONS`); at the closes
+ShipLoop prints one `ShipLoop knowledge notice:` line per file that lacks sections,
+naming them (a count, never a refusal).
 At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
 refuses `done` until that close's files exist, screens them for credentials,
 refuses a living spec or architecture whose uncommitted version drops an earlier committed
