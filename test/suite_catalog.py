@@ -176,6 +176,7 @@ _DURATION_SECONDS = {
     "test/shiploop-packet-completeness.test.py": 0.1,
     "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
     "test/shiploop-reference.test.py": 0.5,  # measured locally 2026-10-10
+    "test/shiploop-handoff.test.py": 9.0,  # measured locally 2026-10-11: 36 tests, two of them through the real CLI
     "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
