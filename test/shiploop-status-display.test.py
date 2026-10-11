@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_status_hook as hook  # noqa: E402
@@ -299,12 +300,18 @@ class StatusBlockTests(unittest.TestCase):
                              text=True, capture_output=True, timeout=30)
         self.assertEqual(nxt.returncode, 0, nxt.stderr)
         # An active-state `next` now writes the full packet to packets/<action>.md
-        # and prints only a head that points at it; that file is the one
-        # intended new write, and every other existing file is untouched.
+        # and prints only a head that points at it. At an inner stage reached
+        # without a transition it also writes that stage's Until Loop contract
+        # (rebuilt from state). Those are the intended new writes, and every
+        # other existing file is untouched.
         after = files()
         packet_path = navigator.packet_path(root, state)
-        self.assertEqual(set(after) - set(before), {packet_path})
-        self.assertEqual({path: data for path, data in after.items() if path != packet_path}, before)
+        intended = {packet_path}
+        cursor = loops.cursor(state)
+        if cursor is not None:
+            intended.add(root / loops.contract_path(cursor[1]))
+        self.assertEqual(set(after) - set(before), intended)
+        self.assertEqual({path: data for path, data in after.items() if path not in intended}, before)
         self.assertIn(f"Full packet: {packet_path}", nxt.stdout)
         written = packet_path.read_text(encoding="utf-8")
         self.assertEqual(written.count(BEGIN), 1)

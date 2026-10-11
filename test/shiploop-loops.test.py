@@ -445,5 +445,39 @@ class DutyTests(unittest.TestCase):
         self.assertIn("do not write or edit it", loops.RECEIPT_LINE)
 
 
+
+class MissingContractTests(unittest.TestCase):
+    """A run that reached an inner stage without a transition (a seeded run; a recovery after the file was lost) gets the
+    stage's contract when ShipLoop prints its packet. The first live step slices on the 8 stages (2026-10-10) stopped at
+    step-plan with "The loop contract is missing; report outcome blocked": the seed records the earlier stages in state,
+    so no complete wrote the contract."""
+
+    def test_next_writes_the_contract_of_a_run_seeded_at_step_plan(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="shiploop-missing-contract-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            run = Path(temp).resolve() / "run"
+            run.mkdir()
+            state = nav.new_state(str(repo), "Build a thing.", delegation="inline")
+            while nav.current_stage(state) != "step-plan":
+                here, action = nav.current_stage(state), nav.current_action(state)["id"]
+                extra = {"work_items": [{"id": "W1", "title": "one", "context": "c"}]} if here == "plan" else {}
+                state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, action, {"summary": "Synthetic review"})
+            nav.save(run, state)
+            action = nav.current_action(state)["id"]
+            contract = run / loops.contract_path(action)
+            self.assertFalse(contract.exists())
+            printed = subprocess.run([sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "next",
+                                      "--run-dir", str(run)], capture_output=True, text=True,
+                                     env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
+            self.assertEqual(printed.returncode, 0, printed.stderr)
+            self.assertTrue(contract.is_file())
+            self.assertEqual(json.loads(contract.read_text()), loops.contract(run, state, action))
+            self.assertNotIn("The loop contract is missing", (run / "packets" / (action + ".md")).read_text())
+
+
 if __name__ == "__main__":
     unittest.main()
