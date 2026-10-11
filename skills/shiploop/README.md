@@ -187,7 +187,8 @@ script gates on a draft result without completing it.
   commits that fix on accept as its own preparatory commit.
 - `implement` runs once per step, gated by lint on every step, and an Improve
   child reviews each accepted step (in both planning review modes).
-- `test` writes the specified tests. ShipLoop then runs them on the item's base
+- `test` writes the specified tests after the build, each asserting its case's
+  oracle. ShipLoop then runs them on the item's base
   (no new test ID may pass there unless `red_na` names it; `shiploop red-check`
   runs this check on demand) and on the candidate, holding each command to its
   floor (`retired_tests` declares a deliberate removal).
@@ -247,10 +248,13 @@ the selected Until Loop runtime remains child-execution authority.
 
 ### Current Improve and Until Loop binding
 
-The canonical Improve package bundles Until Loop **0.5.0**, pinned to
-upstream commit `5df2a2feef4d80b93ca3c8a749d7d265c082d376`. Its default child uses
-`scripts/until_loop_ephemeral.py`; the package provenance manifest records the
-copied source hashes. The selected card (the explicit `--improve-skill`, else the card installed
+The canonical Improve package bundles Until Loop **0.7.0**, pinned to
+upstream commit `80e6caca28aaeb9038e7c209809cc2071aab22ac`
+(`skills/improve/runtime/until-loop/PROVENANCE.json`). Its default child uses
+`scripts/until_loop_ephemeral.py`, and its card (`ADAPTER.md`) can be invoked by
+the model and starts a parent-written contract file unchanged, which is how
+every inner stage's loop starts; the provenance manifest records the copied
+source hashes. The selected card (the explicit `--improve-skill`, else the card installed
 beside ShipLoop and recorded at `init`) determines this binding. An
 ambient same-named skill or an older `scripts/until-loop` on `PATH` cannot select
 the child runtime. Changing an external Until Loop installation alone does not
