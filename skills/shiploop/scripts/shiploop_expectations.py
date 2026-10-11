@@ -76,10 +76,10 @@ FAILED_KEYS = frozenset(("id", "actual", "route"))
 CHECK_TIMEOUT_SECONDS = 60.0
 OUTPUT_LIMIT = 64 * 1024
 SCHEMA = "shiploop-expectations/v1"
-# ShipLoop's knowledge home and repository index: validate-existing may record an environment fix there, and the
-# knowledge commit owns them, so they are neither refused nor returned as preparatory paths.
+# ShipLoop's knowledge home: validate-existing may record an environment fix there, and the knowledge commit owns it, so
+# it is neither refused nor returned as a preparatory path.  The repository index at the root is the host's file: a change
+# to it here is a stray path like any other.
 KNOWLEDGE_PREFIX = "docs/shiploop/"
-KNOWLEDGE_INDEX = "SHIPLOOP.md"
 DONE_WHEN_PREPARATORY = "each preparatory fix touches only its expectation's paths; ShipLoop commits it on accept"
 # The preparatory commit ShipLoop made for an item (the navigator writes it on accept); the test stage's base run and
 # re-entry checks start from it.
@@ -702,7 +702,7 @@ def result_lines(root: Path, state: Mapping[str, Any]) -> List[str]:
 
 
 def _knowledge(path: str) -> bool:
-    return path.startswith(KNOWLEDGE_PREFIX) or path == KNOWLEDGE_INDEX
+    return path.startswith(KNOWLEDGE_PREFIX)
 
 
 def check_preparatory_changes(repo: Path, base: Optional[Mapping[str, Any]],

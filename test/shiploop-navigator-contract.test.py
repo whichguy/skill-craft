@@ -3939,7 +3939,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         # No preparatory commit: every commit since the base is the knowledge home's.
         changed = self.git("log", "--format=", "--name-only", "HEAD~" + str(int(self.git(
             "rev-list", "--count", "HEAD").strip()) - 1) + "..HEAD").split()
-        self.assertTrue(all(path.startswith("docs/shiploop/") or path == "SHIPLOOP.md" for path in changed), changed)
+        self.assertTrue(all(path.startswith("docs/shiploop/") for path in changed), changed)
 
     def test_validate_existing_packet_lists_a_mismatch_and_its_preparatory_fix_is_committed_on_accept(self) -> None:
         (self.repo / "status.txt").write_text("fail\n")

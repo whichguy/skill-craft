@@ -127,8 +127,9 @@ request and exact run. Coordinate an active prior run's overlapping work without
 advancing it on behalf of the new request.
 Follow [cross-run knowledge reuse](references/project-knowledge.md): discover
 README, AGENTS, existing environment/decision documents and prior-run references,
-then plan the new delta. Keep the repository's `SHIPLOOP.md` knowledge index and
-its linked documents useful across runs. Old one-off approvals and receipts in
+then plan the new delta. Read the repository's `SHIPLOOP.md` knowledge index if
+present (it is the host's file; ShipLoop never commits it) and keep its linked
+documents useful across runs. Old one-off approvals and receipts in
 run state are not imported; a current applicable user-approved standing policy
 may be reused only after [delivery-authority revalidation](references/delivery-authority.md).
 During discovery, research, and spec, apply
@@ -351,27 +352,28 @@ review needs no `final_result`: ShipLoop reuses the submitted result.
 
 ### Repository knowledge home
 
-Planning knowledge outlives the run. Planning stages keep `docs/shiploop/` in the
-product repository up to date: `README.md` (index), `spec.md` (the living spec,
-stable `R-<n>` IDs), `environment.md` (targets by alias, working commands,
-platform facts), `test-strategy.md`, `architecture.md` (stack, structure, conventions,
-interfaces and numbered `AD-<n>` decisions), and this run's `features/<slug>/` record.
-The four fact files have named sections (`knowledge_home.SECTIONS`); at the closes
-ShipLoop prints one `ShipLoop knowledge notice:` line per file that lacks sections,
-naming them (a count, never a refusal).
-At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
+Planning knowledge outlives the run. Stages keep three living files in
+`docs/shiploop/` in the product repository up to date: `spec.md` (the living spec,
+stable `R-<n>` IDs), `environment.md` (targets by alias, working commands, harnesses
+and suites, the test-ID convention, platform facts, the standing release procedure)
+and `architecture.md` (stack, structure, conventions, interfaces, real-boundary checks
+and numbered `AD-<n>` decisions). A run's other records are fields of its stage
+results, quoted to the stages that consume them. The three files have named sections
+(`knowledge_home.SECTIONS`); at the closes ShipLoop prints one
+`ShipLoop knowledge notice:` line per file that lacks sections, naming them (a count,
+never a refusal). An older home's `README.md`, `test-strategy.md` and `features/`
+folders are left in place and no longer required, written or named.
+At `prepare`, `release-plan` and `release-verify`, ShipLoop
 refuses `done` until that close's files exist, screens them for credentials,
 refuses a living spec or architecture whose uncommitted version drops an earlier committed
 ID (an edit a review already committed through `improve-commit` is not seen), and commits exactly
 `docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
 ShipLoop runs the same credential and ID checks and commits it too, so never
-commit it yourself. The `release-verify` commit's message is the feature
-`outcome.md`'s `Learned`, `Key considerations` and `Open for the next run`
-sections, and intake and discovery packets quote the last three commit messages
-as inherited learnings. At the final handoff ShipLoop checks that each requirement ID
-in the run's `features/<slug>/spec.md` is in the living spec and, when the run's
-commits reach the user's branch, removes that file in a commit of its own (it stays
-after a working-tree return); `features/README.md` lists the feature folders. The
+commit it yourself. The `release-verify` commit is always made: its body is the
+result's `lessons` (`Learned`, `Key considerations`, `Open for the next run`) and the
+open items still left. Intake and discovery packets quote the last three commit
+messages and that lessons commit, found by its subject. After a working-tree return
+that commit is not on your branch: the report prints its exact message to commit. The
 next run starts from these files; see
 [repository knowledge home](references/project-knowledge.md#repository-knowledge-home).
 

@@ -253,7 +253,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, i
     a submitted command list with the longest values a run may have."""
     values = {"run": str(root), "action": action_id, "repo": repo, "feature": feature}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
-             f"{feature}/ and docs/shiploop/ where this stage writes them. Preserve every other change.")
+             "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
         _need(step is not None, f"work item {item} has no implement step left in its accepted step plan")
         values["step"] = str(step.get("id"))
@@ -267,8 +267,8 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, i
             scope = (f"Workspace {repo}. Step {step.get('id')} of work item {item}: only its paths: "
                      f"{_paths_text(step.get('paths') or ())}. No later step's work. Preserve every other change.")
     elif stage == "step-plan":
-        scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft, "
-                 f"{feature}/ and docs/shiploop/. Change no product file.")
+        scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft and "
+                 "docs/shiploop/. Change no product file.")
     work = _fill(WORK[stage], values)
     if stage == "test" and commands:
         work += "\n" + COMMANDS_HEAD + "\n" + command_listing(commands)
@@ -289,15 +289,11 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, i
          "locator": str(root / "notes" / (action_id + ".md"))},
         {"purpose": "living spec", "locator": str(home / "spec.md")},
         {"purpose": "architecture", "locator": str(home / "architecture.md")},
-        {"purpose": "environment and working commands", "locator": str(home / "environment.md")},
-        {"purpose": "test strategy", "locator": str(home / "test-strategy.md")},
-        {"purpose": "this run's feature plan", "locator": feature + "/plan.md"},
+        {"purpose": "environment, working commands, harnesses and suites", "locator": str(home / "environment.md")},
     ]
     if plan_action is not None:
         resources.append({"purpose": "accepted step plan: steps, criteria, paths, commands and expectations",
                           "locator": str(root / "results" / (plan_action + ".md"))})
-    if stage in ("test-spec", "test", "verify"):
-        resources.append({"purpose": "this item's test spec", "locator": feature + "/test-spec.md"})
     if stage == "verify":
         resources += [
             {"purpose": "Code craft rubric the review applies", "locator": str(root / RUBRIC_PATH)},
@@ -336,6 +332,8 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
+    # ``feature`` fills the {feature} token the inner-loop session's WORK texts still use; removed after the renderer
+    # swap (consumer contract 4c), with the token.
     return _build(root, stage, action_id, repo=repo, feature=str(Path(repo) / knowledge_home.feature_dir(state)),
                   item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)

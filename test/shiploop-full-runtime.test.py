@@ -358,8 +358,22 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self._git(source, "commit", "-qm", "baseline")
         return source
 
-    def _start_workspace(self, *, delivery_contract: bool = False) -> tuple[Path, Path, Path]:
+    # An earlier ShipLoop version's knowledge home (consumer contract section 8): left in place, never required, written or
+    # named by a run on the current version.
+    OLD_HOME = {"docs/shiploop/README.md": "# Knowledge home\n", "docs/shiploop/test-strategy.md": "# Test strategy\n",
+                "docs/shiploop/features/README.md": "# Features\n\nShipLoop writes this list from the folders beside it\n",
+                **{"docs/shiploop/features/old-run-aaaaaa/" + name: "# " + name + "\n" for name in
+                   ("spec.md", "plan.md", "test-spec.md", "system-tests.md", "release-plan.md", "outcome.md")},
+                "SHIPLOOP.md": "# The host's index\n"}
+
+    def _start_workspace(self, *, delivery_contract: bool = False, old_home: bool = False) -> tuple[Path, Path, Path]:
         source = self._new_source_repository("workspace composition")
+        if old_home:
+            for relative, text in self.OLD_HOME.items():
+                (source / relative).parent.mkdir(parents=True, exist_ok=True)
+                (source / relative).write_text(text, encoding="utf-8")
+            self._git(source, "add", "-A")
+            self._git(source, "commit", "-qm", "an earlier ShipLoop version's knowledge home")
         workspace = self.base / "workspace composition" / "isolated"
         command: list[object] = [
             "workspace", "start", "--repo", source, "--workspace-root", workspace,
@@ -760,11 +774,6 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 "id": "E1", "state": "works" if exists else "absent", "steps": ["S1"], "paths": [DELIVERED],
                 "statement": DELIVERED + (" exists from an earlier item." if exists else " does not exist yet."),
                 "check": ("test -f " if exists else "test ! -e ") + DELIVERED}])
-        elif stage == "test-spec":
-            spec_file = repo / knowledge_support.knowledge.feature_dir(self._state(run)) / "test-spec.md"
-            spec_file.parent.mkdir(parents=True, exist_ok=True)
-            spec_file.write_text("# Test spec\n\n### " + FOCUSED_ID + "\n\nThe focused check passes.\n",
-                                 encoding="utf-8")
         elif stage == "test":
             # The synthetic focused command passes without the change, so declare it and let ShipLoop check it ran.
             result.setdefault("red_na", [{"id": FOCUSED_ID, "reason": "synthetic fixture: the focused command "
@@ -967,9 +976,12 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertFalse((source / ".shiploop-improve").exists())
 
     def test_full_v3_runtime_composition_and_recovery_variants(self) -> None:
-        """Exercise all stages, then a delayed contract correction and recovery."""
+        """Exercise all stages, then a delayed contract correction and recovery.
+
+        The source holds an earlier version's knowledge home (consumer contract 4c): the run completes, makes no retire
+        commit, and leaves every old file as it was."""
         self.assertEqual(len(EXPECTED_STAGES), 24)
-        source, workspace, run = self._start_workspace(delivery_contract=True)
+        source, workspace, run = self._start_workspace(delivery_contract=True, old_home=True)
         repo = workspace / "worktree"
         state = self._state(run)
         self.assertEqual(state["delivery_contract_version"], 1)
@@ -1024,13 +1036,17 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIsNotNone(checkpoint)
         self.assertEqual(state["status"], "done")
         self.assertEqual(len(state["history"]), 24)
-        # The run was returned by fast-forward before its handoff, so the terminal close removed the feature spec in a commit of
-        # its own (owner decision D3) and the knowledge follow-up carried that commit to the source branch.
-        feature = knowledge_support.knowledge.feature_dir(state)
-        self.assertEqual(self._git(source, "log", "-1", "--format=%s").stdout.strip(),
-                         knowledge_support.knowledge.retire_subject(state))
-        self.assertFalse((source / feature / "spec.md").exists())
-        self.assertTrue((source / feature / "plan.md").is_file())
+        # test_a_run_on_a_repository_with_every_old_file_completes_and_leaves_them_untouched and
+        # test_handoff_makes_no_retire_commit (consumer contract 4c), on this run's own fast-forward return: no commit of the
+        # run is a retire, no stage wrote a feature folder, and every old file is as it was.
+        subjects = self._git(source, "log", "--format=%s").stdout.splitlines()
+        self.assertFalse([subject for subject in subjects if subject.startswith("docs(shiploop): retire ")], subjects)
+        self.assertEqual(sorted(path.name for path in (source / "docs/shiploop/features").iterdir()),
+                         ["README.md", "old-run-aaaaaa"])
+        for relative, text in self.OLD_HOME.items():
+            self.assertEqual((source / relative).read_text(encoding="utf-8"), text, relative)
+        self.assertEqual(self._git(source, "log", "-1", "--format=%H", "--", "SHIPLOOP.md").stdout.strip(),
+                         self._git(source, "log", "--format=%H", "--grep=an earlier ShipLoop version").stdout.strip())
         # Only the planning/contract stages, the one implement step and the run's single end-of-work
         # carry-forward review actually bind an Improve child.
         first_pass_checkpoints = [s for s in EXPECTED_STAGES if s in CHECKPOINT_STAGES or s == "carry-forward"]

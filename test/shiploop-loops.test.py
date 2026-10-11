@@ -152,6 +152,28 @@ class ContractTests(Synthetic):
         with self.assertRaisesRegex(loops.LoopError, "no implement step left"):
             loops.contract(self.root, state, "A-implement")
 
+    def test_no_contract_resource_or_scope_names_a_feature_folder_test_strategy_or_test_spec(self):
+        """Consumer contract 4b: the engine's part of every inner contract (scope and resources) names only the living files.
+
+        The work texts are the inner-loop session's packet text (``WORK``); they move with its renderer swap."""
+        for stage in stage_spec.INNER:
+            with self.subTest(stage=stage):
+                value = loops.contract(self.root, self.state_for(stage), "A-" + stage)
+                engine = json.dumps({"scope": value["context"]["scope"], "resources": value["context"]["resources"]})
+                for removed in ("/features/", "test-strategy", "/test-spec.md", "test spec", "feature plan"):
+                    self.assertNotIn(removed, engine)
+
+    def test_resources_are_packet_pass_log_three_living_files_and_step_plan(self):
+        home = self.repo / "docs" / "shiploop"
+        for stage in stage_spec.INNER:
+            with self.subTest(stage=stage):
+                resources = loops.contract(self.root, self.state_for(stage), "A-" + stage)["context"]["resources"]
+                self.assertEqual([row["locator"] for row in resources[:6]], [
+                    str(self.root / "packets" / ("A-" + stage + ".md")), str(self.root / "notes" / ("A-" + stage + ".md")),
+                    str(home / "spec.md"), str(home / "architecture.md"), str(home / "environment.md"),
+                    str(self.root / "results" / "A-sp.md")])
+                self.assertEqual(len(resources), 9 if stage == "verify" else 6)
+
     def test_a_contract_is_only_for_the_current_inner_action(self):
         with self.assertRaisesRegex(loops.LoopError, "not the current inner action"):
             loops.contract(self.root, self.state_for("test"), "A-other")

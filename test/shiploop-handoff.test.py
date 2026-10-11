@@ -11,6 +11,7 @@ Expected tables are written out by hand here, never read back from READS or CONS
 from __future__ import annotations
 
 import contextlib
+import html
 import io
 import os
 import subprocess
@@ -357,6 +358,7 @@ import types  # noqa: E402
 
 import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_workspace as workspace  # noqa: E402
 import shiploop_unverified as unverified  # noqa: E402
 
 CASE = {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "GET /api/new returns a game id",
@@ -903,6 +905,237 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         after = store.read_record(run / "state.md")
         self.assertIsNone(after["active_improve"])
         self.assertEqual(after["accepted"][self.action]["follows"], [])
+
+
+class ReportTests(RepoCase):
+    """Consumer contract 4d (section 6.1): the completion report shows every hand-off a reader of the run needs.
+
+    The run is walked with ``navigator.apply`` (pure, shape-checked) so each stage carries exactly the fields under test;
+    expected values are literals written from section 6.1.
+    """
+
+    CASE = {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "GET /api/new returns a game",
+            "red": "fails on the base", "green": "200 with a game id"}
+    SYSTEM = {"command": "npm run e2e", "suite": "regression", "ids": ["ST-1"]}
+    LESSONS = {"learned": "Board state lives in one Map.", "considerations": "Keep the server stateless.",
+               "open_next": "Add a second player."}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "living spec")
+        (self.root / knowledge.RUN_BASELINE).write_text(git(self.repo, "rev-parse", "HEAD"), encoding="utf-8")
+        self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n- R-2: Fire <a> shot & see it.\n")
+
+    def walk(self, fields: dict, *, until: str = "done") -> dict:
+        state = navigator.new_state(str(self.repo), "Add a Fleet command tab.", delegation="inline")
+        for _ in range(120):
+            here = navigator.current_stage(state)
+            if here == until or state["status"] == "done":
+                return state
+            extra = dict(fields.get(here, {}))
+            if here == "plan":
+                extra.setdefault("work_items", [{"id": "W1", "title": "one", "context": "context"}])
+                extra.setdefault("assumptions", [])
+            if here == "step-plan":
+                extra.setdefault("steps", [{"id": "S1", "task": "Make it.", "paths": ["src/**"], "criteria": ["C1"],
+                                            "skills": []}])
+                extra.setdefault("criteria", [{"id": "C1", "text": "It works. Confirm by: the focused command"}])
+                extra.setdefault("test_commands", [{"command": "node --test", "suite": "focused", "ids": ["TC-1"],
+                                                    "criteria": ["C1"]}])
+            action = navigator.current_action(state)["id"]
+            state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+            if state.get("active_improve") is not None:
+                state = navigator.finish_improve(state, action, {"summary": "Synthetic review"})
+        self.fail("the walk did not reach " + until)
+
+    FULL = {
+        "step-plan": {"follows": ["R-1"]},
+        "test-spec": {"test_cases": [CASE], "assumptions": [
+            {"id": "A1", "assumption": "the deploy target accepts <html>", "disposition": "open",
+             "check": "deploy and load the page", "reason": "no target here", "consumer": "release",
+             "owner": "Dana"}]},
+        "implement": {"not_covered": [{"behaviour": "the helper rejects an empty board", "reason": "internal"}]},
+        "system-test-author": {"system_commands": [SYSTEM]},
+        "release-verify": {"lessons": LESSONS},
+    }
+
+    def section(self, report: str, heading: str) -> str:
+        start = report.index("<h2>" + heading + "</h2>")
+        end = report.find("<h2>", start + 1)
+        return report[start:end if end != -1 else len(report)]
+
+    def test_the_report_shows_spec_diff_item_handoffs_open_items_system_tests_and_lessons(self) -> None:
+        state = self.walk(self.FULL, until="release")
+        report = navigator._render_report(state, self.root)
+        baseline = (self.root / knowledge.RUN_BASELINE).read_text().strip()
+        diff = self.section(report, "Spec and architecture changes")
+        self.assertIn("baseline " + baseline[:12], diff)
+        self.assertIn("+- R-2: Fire &lt;a&gt; shot &amp; see it.", diff)
+        items = self.section(report, "Work item hand-offs")
+        self.assertIn("<h3>W1 one</h3>", items)
+        self.assertIn("Follows: R-1", items)
+        self.assertIn("<td>TC-1</td><td>C1</td><td>R-1</td><td>GET /api/new returns a game</td><td>fails on the base</td>"
+                      "<td>200 with a game id</td>", items)
+        self.assertIn("Not covered by a test case (W1 implement S1): the helper rejects an empty board (internal)", items)
+        opened = self.section(report, "Open items")
+        self.assertIn("<td>test-spec W1</td><td>A1</td><td>the deploy target accepts &lt;html&gt;</td>"
+                      "<td>deploy and load the page</td><td>no target here</td><td>release</td><td>Dana</td>", opened)
+        system = self.section(report, "System tests")
+        self.assertIn("<td>npm run e2e</td><td>regression</td><td>ST-1</td>", system)
+        self.assertNotIn("<h2>Lessons</h2>", report)            # release-verify has not run yet: omitted
+        done = self.walk(self.FULL)
+        lessons = self.section(navigator._render_report(done, self.root), "Lessons")
+        for label, key in (("Learned", "learned"), ("Key considerations", "considerations"),
+                           ("Open for the next run", "open_next")):
+            self.assertIn(label + "\n" + self.LESSONS[key], lessons)
+
+    def test_a_stage_that_ran_without_the_field_says_not_recorded_and_one_that_never_ran_is_omitted(self) -> None:
+        early = navigator._render_report(self.walk({}, until="step-plan"), self.root)
+        for heading in ("Work item hand-offs", "System tests", "Lessons"):
+            self.assertNotIn("<h2>" + heading + "</h2>", early)
+        report = navigator._render_report(self.walk({}, until="handoff"), self.root)
+        items = self.section(report, "Work item hand-offs")
+        self.assertIn("Follows: not recorded", items)
+        self.assertIn("Test cases: not recorded", items)
+        self.assertIn("Not covered by a test case (W1 implement S1): not recorded", items)
+        self.assertIn("System tests: not recorded", self.section(report, "System tests"))
+        self.assertIn("Lessons: not recorded", self.section(report, "Lessons"))
+        self.assertIn("None open.", self.section(report, "Open items"))
+
+    def test_every_value_is_escaped(self) -> None:
+        hostile = "<script>alert(1)</script>"
+        fields = {"step-plan": {"follows": ["R-1"]},
+                  "test-spec": {"test_cases": [dict(self.CASE, oracle=hostile)], "assumptions": []},
+                  "implement": {"not_covered": [{"behaviour": hostile, "reason": hostile}]},
+                  "system-test-author": {"system_commands": [dict(self.SYSTEM, command="echo " + hostile)]},
+                  "release-verify": {"lessons": dict(self.LESSONS, learned=hostile)}}
+        report = navigator._render_report(self.walk(fields), self.root)
+        self.assertNotIn(hostile, report)
+        self.assertIn(html.escape(hostile), report)
+
+
+_return_review = _load("shiploop_return_review_for_handoff", "shiploop-return-review.test.py")
+import shiploop_store as store  # noqa: E402
+
+
+class LessonsReturnTests(_return_review.ReturnReviewCase):
+    """The release-verify lessons commit reaches the user's branch on an isolated run (X1), through the real CLI."""
+
+    LIVING = "# Living spec\n\n- R-1 one\n- R-2 two\n"
+
+    def return_all(self, root: Path) -> None:
+        self.plan_return(root)
+        self.review(root, "--keep", *self.dispositions(root))
+        self.do_return(root)
+
+    def complete(self, run: Path, code: int = 0):
+        state = store.read_record(run / "state.md")
+        action = navigator.current_action(state)
+        result = run / "inbox" / f"{action['id']}.md"
+        store.write_record(result, {"outcome": "done", "summary": "Handed off."}, "ShipLoop navigator result")
+        return self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=code)
+
+    def test_an_isolated_release_verify_that_changes_no_home_file_returns_its_lessons_commit_and_hands_off(self) -> None:
+        """Consumer contract X1 end to end (moved from the retired shiploop-retire suite): the lessons commit is empty when
+        release-verify changed no home file; the follow-up return still carries it to the source branch, so handoff sees a
+        current receipt and the next run's intake finds the lessons there."""
+        root, worktree = self.start("empty lessons")
+        self.write(worktree, "app.js", "product\n")
+        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
+        self.commit(worktree, "work item and knowledge")
+        run = self.at(root, "release")
+        self.return_all(root)
+        state = store.read_record(run / "state.md")
+        state = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Released."})
+        lessons = {"learned": "The empty commit still travels.", "considerations": "none", "open_next": "none"}
+        before = state
+        after = navigator.apply(state, navigator.current_action(state)["id"], {
+            "outcome": "done", "summary": "Verified.", "lessons": lessons, "assumptions": []})
+        navigator.save(run, after)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            navigator._knowledge_close(before, after, run)                 # what dispatch runs after the save
+        self.assertIn("returned the knowledge commit with the earlier work (fast-forward-merge)", printed.getvalue())
+        head = self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip()
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
+        self.assertEqual(self.git("show", "--name-only", "--format=", head).stdout.strip(), "")   # an empty commit
+        found = knowledge.last_lessons(self.repo)
+        self.assertEqual((found.commit, found.body), (head, knowledge.lessons_body(lessons)))
+        navigator.save(run, navigator.apply(after, navigator.current_action(after)["id"],
+                                            {"outcome": "done", "summary": "Operations ready."}))
+        self.assertEqual(navigator.current_stage(store.read_record(run / "state.md")), "handoff")
+        done = self.complete(run)                                          # no stale-return refusal
+        self.assertNotIn("stale", done.stderr)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+
+    def test_a_working_tree_return_reaches_done_and_the_report_prints_the_lessons_commit_message_to_commit(self) -> None:
+        """Consumer contract X2: a working-tree return applies files, not commits, so the lessons commit never reaches the
+        source branch.  The completion report prints the exact message and tells the user to commit it."""
+        root, worktree = self.start("working tree lessons")
+        self.write(worktree, "app.js", "product\n")
+        self.write(worktree, "scratch.log", "run-local\n")
+        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
+        self.commit(worktree, "work item and knowledge")
+        run = self.at(root, "release")
+        self.plan_return(root)
+        self.review(root, "--keep", *[path for path in self.dispositions(root) if path != "scratch.log"])
+        self.review(root, "--exclude", "scratch.log")
+        self.do_return(root)
+        self.assertEqual(workspace.return_kind(root), "working-tree-return")
+        state = store.read_record(run / "state.md")
+        state = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Released."})
+        lessons = {"learned": "A working-tree return carries <files>, not commits.", "considerations": "none",
+                   "open_next": "none"}
+        before = state
+        after = navigator.apply(state, navigator.current_action(state)["id"], {
+            "outcome": "done", "summary": "Verified.", "lessons": lessons, "assumptions": []})
+        navigator.save(run, after)
+        with contextlib.redirect_stdout(io.StringIO()):
+            navigator._knowledge_close(before, after, run)
+        message = self.git("log", "-1", "--format=%B", cwd=worktree).stdout.strip()
+        self.assertTrue(message.startswith(knowledge.knowledge_subject(after, "release-verify")), message)
+        self.assertNotIn(message.splitlines()[0], self.git("log", "--format=%s").stdout)   # not on the source branch
+        navigator.save(run, navigator.apply(after, navigator.current_action(after)["id"],
+                                            {"outcome": "done", "summary": "Operations ready."}))
+        self.complete(run)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+        report = (run / "report.html").read_text(encoding="utf-8")
+        self.assertIn("This run&#x27;s commits did not reach main (working-tree return). Commit the returned files, or make "
+                      "an empty commit when there are none, with exactly this message, so the next run&#x27;s intake "
+                      "quotes the lessons:", report)
+        self.assertIn("<pre>" + html.escape(message) + "</pre>", report)
+
+    def test_handoff_makes_no_retire_commit_and_leaves_an_old_feature_folder_untouched(self) -> None:
+        """Consumer contract 4c: the retire step is gone.  An earlier version's feature folder in the repository is history:
+        handoff neither removes nor rewrites it, and no commit after the return is ShipLoop's retire."""
+        old = {"docs/shiploop/features/old-run-aaaaaa/spec.md": "Adds: R-1.\n",
+               "docs/shiploop/features/README.md": "# Features\n\nShipLoop writes this list from the folders beside it\n",
+               "docs/shiploop/test-strategy.md": "# Test strategy\n", "docs/shiploop/README.md": "# Home\n"}
+        for relative, text in old.items():
+            path = self.repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "an earlier ShipLoop version's home")
+        root, worktree = self.start("no retire")
+        own = "docs/shiploop/features/" + knowledge.run_label(store.read_record(root / "run" / "state.md")) + "/spec.md"
+        self.write(worktree, "app.js", "product\n")
+        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
+        self.write(worktree, own, "Adds: R-1.\n")       # what an earlier version's retire would have removed at handoff
+        self.commit(worktree, "work item and knowledge")
+        old[own] = "Adds: R-1.\n"
+        run = self.at(root, "handoff")
+        self.return_all(root)
+        self.write(worktree, "docs/shiploop/environment.md", "# Environment\n")   # a knowledge commit at the handoff
+        done = self.complete(run)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+        self.assertNotIn("feature spec", done.stdout + done.stderr)
+        subjects = self.git("log", "--format=%s").stdout.splitlines()
+        self.assertFalse([subject for subject in subjects if subject.startswith("docs(shiploop): retire ")], subjects)
+        for relative, text in old.items():
+            self.assertEqual((self.repo / relative).read_text(encoding="utf-8"), text)
 
 
 if __name__ == "__main__":
