@@ -315,6 +315,34 @@ class ReportTests(unittest.TestCase):
             self.assertTrue((out / "synthetic.md").read_text().startswith("# Packet anatomy: synthetic"))
 
 
+BASELINES = ROOT / "docs" / "experiments" / "packet-anatomy-20261010"
+
+
+class StageModelGroupTests(unittest.TestCase):
+    """A 17-stage run is grouped as the committed baselines were (STAGE_GROUPS_V4), an 8-stage run with the 8-stage groups."""
+
+    def test_the_committed_17_stage_baselines_regroup_row_for_row(self):
+        for label in ("checkers-1", "battleship-1"):
+            with self.subTest(label):
+                report = json.loads((BASELINES / f"{label}.json").read_text(encoding="utf-8"))
+                committed = (BASELINES / f"{label}.md").read_text(encoding="utf-8")
+                groups = anatomy.stage_groups(row["stage"] for row in report["rows"])
+                self.assertIs(groups, anatomy.STAGE_GROUPS_V4)
+                group_of = {stage: group for group, stages in groups for stage in stages}
+                self.assertEqual([row["group"] for row in report["rows"]], [group_of[row["stage"]] for row in report["rows"]])
+                for kind in ("producer", "improve"):
+                    self.assertIn(anatomy.group_table(report, kind), committed, kind)
+        report = json.loads((BASELINES / "checkers-1.json").read_text(encoding="utf-8"))
+        self.assertEqual((report["packets"], report["totalBytes"], report["unclassifiedBytes"]), (45, 1_799_188, 0))
+
+    def test_an_8_stage_run_keeps_the_8_stage_groups(self):
+        self.assertIs(anatomy.stage_groups(["plan", "step-plan", "test-spec", "validate-existing", "test"]), anatomy.STAGE_GROUPS)
+        self.assertIs(anatomy.stage_groups(["plan", "step-plan", "baseline"]), anatomy.STAGE_GROUPS_V4)
+        self.assertEqual(anatomy.V4_ONLY_STAGES, {"get-next-work-item", "select-work", "test-author", "baseline", "skill-assess",
+                                                 "skill-validate", "test-red", "test-green", "test-refine", "regression",
+                                                 "static-checks", "integrate", "integration-verify"})
+
+
 class CurrentEngineTests(unittest.TestCase):
     """Packets the current engine renders (no model, no worktree) stay readable by the classifier."""
 

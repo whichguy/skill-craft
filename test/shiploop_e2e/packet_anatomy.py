@@ -359,6 +359,28 @@ STAGE_GROUPS = (
     ("handoff", ("handoff",)), ("done", ("done",)),
 )
 GROUP_OF = {stage: group for group, stages in STAGE_GROUPS for stage in stages}
+# The groups of the 17-stage inner loop (ShipLoop state version 4 and earlier), as the committed checkers-1 and battleship-1
+# baselines (docs/experiments/packet-anatomy-20261010/) were grouped: a run of that loop is grouped with these, so its table
+# stays comparable row by row with those baselines. A run is a 17-stage one when any packet names a stage only that loop had.
+STAGE_GROUPS_V4 = (
+    ("intake", ("intake",)), ("discovery/research", ("discovery", "research")), ("spec/test-strategy", ("spec", "test-strategy")),
+    ("plan", ("plan",)), ("prepare", ("prepare",)), ("get-next-work-item", ("get-next-work-item",)),
+    ("step-plan", ("step-plan",)), ("test-spec/test-author", ("test-spec", "test-author")),
+    ("baseline/skill-assess/skill-validate", ("baseline", "skill-assess", "skill-validate")),
+    ("test-red/green/refine/regression", ("test-red", "test-green", "test-refine", "regression")),
+    ("implement", ("implement",)), ("document/static-checks/verify", ("document", "static-checks", "verify")),
+    ("integrate/integration-verify/carry-forward", ("integrate", "integration-verify", "carry-forward")),
+    ("system-test-author/system-test/product-acceptance", ("system-test-author", "system-test", "product-acceptance")),
+    ("release-plan", ("release-plan",)), ("release-check/release/release-verify/operations",
+                                           ("release-check", "release", "release-verify", "operations")),
+    ("handoff", ("handoff",)), ("done", ("done",)),
+)
+V4_ONLY_STAGES = frozenset(s for _, stages in STAGE_GROUPS_V4 for s in stages) - frozenset(GROUP_OF) | {"select-work"}
+
+
+def stage_groups(stages) -> tuple:
+    """The stage groups of the run these stages come from: the 17-stage loop's when any of them only that loop had."""
+    return STAGE_GROUPS_V4 if any(stage in V4_ONLY_STAGES for stage in stages) else STAGE_GROUPS
 
 
 def packet_kind(name: str) -> str:
@@ -407,6 +429,7 @@ def measure(packets: list[dict], label: str) -> dict:
     for kind, indexes in by_kind.items():
         sub = shared_lines([packets[k] for k in indexes])
         shared_group.update({indexes[j]: value for j, value in sub.items()})
+    group_of = {stage: group for group, stages in stage_groups(p["stage"] for p in packets) for stage in stages}
     rows = []
     all_paths: list[str] = []
     unclassified_by_line: Counter = Counter()
@@ -419,7 +442,7 @@ def measure(packets: list[dict], label: str) -> dict:
         for size, line in unclassified_lines(text):
             unclassified_by_line[_normal(PATH.sub("<path>", line))[:110]] += size
         rows.append({"file": packet["file"], "kind": packet["kind"], "stage": packet["stage"],
-                     "group": GROUP_OF.get(packet["stage"], packet["stage"]), "bytes": packet["bytes"],
+                     "group": group_of.get(packet["stage"], packet["stage"]), "bytes": packet["bytes"],
                      "sections": sections, "pathBytes": paths["bytes"], "pathOccurrences": paths["occurrences"],
                      "sharedAll80Bytes": shared_all[k], "sharedKind80Bytes": shared_group[k]})
     total = sum(row["bytes"] for row in rows)
@@ -459,7 +482,7 @@ def group_table(report: dict, kind: str = "producer", top: int = 12) -> str:
     rows = [r for r in report["rows"] if r["kind"] == kind or (kind == "improve" and r["kind"] == "improve-bind")]
     if not rows:
         return f"(no {kind} packets)\n"
-    order = [group for group, _ in STAGE_GROUPS]
+    order = [group for group, _ in stage_groups(r["stage"] for r in report["rows"])]
     groups: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
         groups[r["group"]].append(r)

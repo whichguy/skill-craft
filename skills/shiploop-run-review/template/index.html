@@ -456,7 +456,7 @@ function improveByDesign(run,stage){return planningReview(run)==="none"&&PLANNIN
    recorded its planning_review option says which; a run that did not reads as it always did. */
 function headerFacts(run){
   function phrase(name,one){var t=countText(run,name);return t==="not measured"?name+" not measured":(one?plural(+t,one,name):t+" "+name);}
-  var mode=planningReview(run),parts=[run.release,run.time];
+  var mode=planningReview(run),sm=stageModelText(stageModel(run)),parts=[run.release+(sm?" ("+sm+")":""),run.time];
   if(mode)parts.push("planning review: "+mode);
   return parts.join(" | ");
 }
@@ -756,17 +756,44 @@ var STAGE_FLOW=[["Understand",["intake","discovery","research"]],["Specify",["sp
   ["Carry forward",["carry-forward"]],
   ["System test",["system-test-author","system-test","product-acceptance"]],
   ["Release",["release-plan","release-check","release","release-verify","operations","handoff"]]];
-/* Read-only names for saved evidence: the engine refuses a saved run that carries a removed stage name, so a new run never
-   needs this. It is here so committed history (exports of runs of the 17-stage inner loop and of select-work, the database,
-   old run directories) places an old visit in the phase of the stage that replaced it. The first name is canonical. Resolved
-   by stageNames only; a test keeps it equal to the exporter's STAGE_ALIASES. */
+/* Which 8-stage stage replaced each removed name: the common bucket for comparing a 17-stage visit with an 8-stage one. A
+   17-stage run never reads through it (it has its own flow and aliases below), and the engine refuses a saved run with a
+   removed name, so an 8-stage run never needs it either. The first name is canonical; a test keeps it equal to the exporter's
+   STAGE_ALIASES. */
 var STAGE_ALIASES=[["step-plan","get-next-work-item","select-work"],["validate-existing","baseline"],
   ["test","test-author","test-red","test-green","test-refine","regression"],
   ["verify","static-checks","integrate","integration-verify"],["carry-forward","skill-assess","skill-validate"]];
-function stageNames(stage){for(var i=0;i<STAGE_ALIASES.length;i++)if(STAGE_ALIASES[i].indexOf(stage)>=0)return STAGE_ALIASES[i];return [stage];}
-function phaseOfStage(stage,previous){
-  var names=stageNames(stage);
-  for(var i=0;i<STAGE_FLOW.length;i++)for(var j=0;j<names.length;j++)if(STAGE_FLOW[i][1].indexOf(names[j])>=0)return i;
+/* The 17-stage inner loop (ShipLoop state version 4 and earlier), as 54bcb54d's page had it: its phases and its one alias. A
+   17-stage run reads with these, its catalog (config/stages-v4) and its phase texts, so its visits keep the purposes, exit
+   checks and phases its engine had. A test keeps them equal to defaults/stages-v4.json. */
+var STAGE_FLOW_V4=[["Understand",["intake","discovery","research"]],["Specify",["spec","test-strategy"]],
+  ["Plan",["plan","prepare","get-next-work-item","step-plan"]],
+  ["Build",["test-spec","baseline","test-author","test-red","implement","test-green","test-refine"]],
+  ["Prove",["regression","document","skill-assess","skill-validate","static-checks","verify"]],
+  ["Integrate",["integrate","integration-verify","carry-forward"]],
+  ["System test",["system-test-author","system-test","product-acceptance"]],
+  ["Release",["release-plan","release-check","release","release-verify","operations","handoff"]]];
+var STAGE_ALIASES_V4=[["get-next-work-item","select-work"]];
+function flowNames(flow,aliases){var o={};flow.forEach(function(p){p[1].forEach(function(s){o[s]=true;});});aliases.forEach(function(g){g.forEach(function(s){o[s]=true;});});return o;}
+var V4_NAMES=flowNames(STAGE_FLOW_V4,STAGE_ALIASES_V4),V5_NAMES=flowNames(STAGE_FLOW,[]);
+/* A run's stage model: "v4" (17 inner stages) or "v5" (8), the export's stageModel; for a document exported before that field
+   existed, "v4" when a stage name only the 17-stage loop had is among its visits (or the stage it ended in), "v5" when one only
+   the 8-stage loop has is, else "" (unknown: read with the 8-stage tables). */
+function stageModel(run){
+  if(run&&(run.stageModel==="v4"||run.stageModel==="v5"))return run.stageModel;
+  var names=(run&&Array.isArray(run.stages)?run.stages:[]).map(function(r){return r&&r.stage;});
+  if(run&&run.ending&&typeof run.ending.stage==="string")names.push(run.ending.stage);
+  if(names.some(function(s){return typeof s==="string"&&V4_NAMES[s]&&!V5_NAMES[s];}))return "v4";
+  return names.some(function(s){return typeof s==="string"&&V5_NAMES[s]&&!V4_NAMES[s];})?"v5":"";
+}
+function stageFlow(model){return model==="v4"?STAGE_FLOW_V4:STAGE_FLOW;}
+/* The header's words for a stage model, next to the run's release. */
+function stageModelText(model){return model==="v4"?"17-stage run":model==="v5"?"8-stage run":"";}
+function stageNames(stage,model){var a=model==="v4"?STAGE_ALIASES_V4:STAGE_ALIASES;
+  for(var i=0;i<a.length;i++)if(a[i].indexOf(stage)>=0)return a[i];return [stage];}
+function phaseOfStage(stage,previous,model){
+  var names=stageNames(stage,model),flow=stageFlow(model);
+  for(var i=0;i<flow.length;i++)for(var j=0;j<names.length;j++)if(flow[i][1].indexOf(names[j])>=0)return i;
   return previous;
 }
 /* Where a finding sits in a run: one cell per visit in order, coloured by outcome (a letter under each cell that did
@@ -774,11 +801,12 @@ function phaseOfStage(stage,previous){
    "" when the finding has no phase or the run has no stage rows. Needs no authored data. */
 function whereStrip(run,finding){
   var rows=run&&run.stages;
-  if(!rows||!rows.length||!finding||!isCount(finding.phase)||finding.phase<0||finding.phase>=STAGE_FLOW.length)return "";
-  var n=rows.length,pitch=14,cw=12,pad=8,top=26,ch=20,W=pad*2+n*pitch,title=STAGE_FLOW[finding.phase][0];
+  var model=stageModel(run),flow=stageFlow(model);
+  if(!rows||!rows.length||!finding||!isCount(finding.phase)||finding.phase<0||finding.phase>=flow.length)return "";
+  var n=rows.length,pitch=14,cw=12,pad=8,top=26,ch=20,W=pad*2+n*pitch,title=flow[finding.phase][0];
   var prev=-1,hits=[],cells=[],marks=[],counts={};
   rows.forEach(function(r,i){
-    prev=phaseOfStage(r.stage,prev);
+    prev=phaseOfStage(r.stage,prev,model);
     var out=String(r.outcome||"done"),x=pad+i*pitch,hl=prev===finding.phase,skip=r.skipped===true||r.seeded===true;
     if(hl)hits.push(i);
     if(out!=="done")counts[out]=(counts[out]||0)+1;
@@ -1019,7 +1047,7 @@ function deliveredModel(run){
   /* No return plan means no file list for any kind: say so once, in one row, not once per row. */
   var src=kept("source");if(f)rows.push(["Implemented",src.join("\n")]);else rows.push(["Files kept",why("files")]);
   var tf=kept("tests"),t=d.tests&&typeof d.tests==="object"&&isCount(d.tests.ran)?d.tests:null;
-  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":""):"Last run: "+why("tests");
+  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":"")+(t.stage==="test-red"&&stageModel(run)!=="v5"?": the new tests are meant to fail here":""):"Last run: "+why("tests");
   rows.push(["Tests",(tf?tf:[]).concat([ran]).join("\n")]);
   var df=kept("docs"),kf=kept("knowledge"),docLines=df?df.slice():[];
   if(kf&&f&&isCount(f.knowledge.count))docLines.push("ShipLoop records: "+(f.knowledge.count===0?"none kept":plural(f.knowledge.count,"file")+" under docs/shiploop (the run's own planning, outcome and release records)"));
@@ -1281,14 +1309,14 @@ function kpiCards(run,loops){
 function sequenceModel(run,opts){
   opts=opts||{};
   var rows=(run&&Array.isArray(run.stages))?run.stages:[],win=run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null;
-  var cols=[],prev=-1,last=null;
+  var cols=[],prev=-1,last=null,model=stageModel(run);
   rows.forEach(function(r,i){
-    var kind=kindOf(r);prev=phaseOfStage(r&&r.stage,prev);
+    var kind=kindOf(r);prev=phaseOfStage(r&&r.stage,prev,model);
     if(kind==="skipped"&&last&&last.kind==="skipped"){last.last=i;last.rows.push(r);if(last.phases.indexOf(prev)<0)last.phases.push(prev);return;}
     last={kind:kind,first:i,last:i,rows:[r],phases:[prev]};cols.push(last);
   });
   var tail=tailOf(run);  /* the stage the run never accepted: one more column, outside the visits and outside the scale */
-  if(tail)cols.push({kind:"tail",first:rows.length,last:rows.length,rows:[],phases:[phaseOfStage(tail.stage,prev)],tail:tail});
+  if(tail)cols.push({kind:"tail",first:rows.length,last:rows.length,rows:[],phases:[phaseOfStage(tail.stage,prev,model)],tail:tail});
   var maxMin=0,tallest=null;
   cols.forEach(function(c,k){
     var r=c.rows[0]||{},mins=c.rows.map(function(x){return x&&x.min;}).filter(isCount);
@@ -1422,11 +1450,12 @@ function packetMeta(d){
    'validate-existing' reads 'Validate existing'. The raw name stays as a tooltip and, when it differs, as secondary text. */
 function stageLabel(stage){var s=typeof stage==="string"?stage.replace(/-/g," "):"";return s.charAt(0).toUpperCase()+s.slice(1);}
 function rawShown(stage){return typeof stage==="string"&&stage!==""&&stageLabel(stage).toLowerCase()!==stage;}
-/* The stage catalog (config/stages.stages, derived from the engine's stage table) entry of a stage, found under either name of
-   an alias; null when the database has no catalog or no entry. */
-function stageInfo(catalog,stage){
+/* The stage catalog entry of a stage, found under either name of an alias of the run's stage model; null when the database has
+   no catalog or no entry. `catalog` is the one of the run's model: config/stages (derived from the engine's stage table) for an
+   8-stage run, config/stages-v4 (frozen) for a 17-stage run. */
+function stageInfo(catalog,stage,model){
   if(!Array.isArray(catalog))return null;
-  var names=stageNames(stage);
+  var names=stageNames(stage,model);
   for(var i=0;i<catalog.length;i++)if(catalog[i]&&names.indexOf(catalog[i].stage)>=0)return catalog[i];
   return null;
 }
@@ -1440,7 +1469,9 @@ function exitCheckOf(info,run){
 /* One sentence saying what the exit check is for this stage, from the catalog's own fields. */
 function exitCheckWhy(info,run){
   var kind=exitCheckOf(info,run);
-  if(kind==="script-run")return "ShipLoop runs "+(Array.isArray(info.completeRuns)&&info.completeRuns.length?info.completeRuns.join(", "):"a check")+" before it accepts done.";
+  if(kind==="script-run")return "ShipLoop runs "+(Array.isArray(info.completeRuns)&&info.completeRuns.length?info.completeRuns.join(", "):"a check")+" before it accepts done"+
+    (info.improve==="step"?", and an Improve child reviews each step's result.":info.improve==="last-item"?". An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
+     :info.improve==="always"&&!improveByDesignInfo(info,run)?", and an Improve child reviews the result before the graph advances.":".");
   if(kind==="review loop")return info.improve==="last-item"?"An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
     :"An Improve child reviews this result before the graph advances.";
   if(kind==="model judgement")return improveByDesignInfo(info,run)?"planning_review none: no Improve child starts after this stage, so the model's own judgement against its done-when list ends it."
@@ -1450,9 +1481,9 @@ function exitCheckWhy(info,run){
 function improveByDesignInfo(info,run){return planningReview(run)==="none"&&info&&info.planningChoice===true;}
 /* The stages that declare reading this stage's result (the inverse of every entry's `reads`), [{stage, item}] in graph order;
    `item` is true when the reader reads this work item's result. null when there is no catalog (unknown, never "none"). */
-function readersOf(catalog,stage){
+function readersOf(catalog,stage,model){
   if(!Array.isArray(catalog))return null;
-  var names=stageNames(stage),out=[];
+  var names=stageNames(stage,model),out=[];
   catalog.forEach(function(e){
     if(!e||typeof e.stage!=="string"||!Array.isArray(e.reads))return;
     var hit=false,item=false;
@@ -1510,11 +1541,12 @@ function packetHeadLines(text,n){
 }
 /* One visit as a stage card: {visit, title, stage, kind, purpose, check:{kind,why}|null, outcome,
    sent:{bytes,note,carried,carriedNote,packet}, done:{lines}, written:{summary,truncated,lines,readers,observed}}. Every part may
-   be absent (an older export): the card names only what exists and nothing as zero. `catalog` is config/stages.stages or null. */
+   be absent (an older export): the card names only what exists and nothing as zero. `catalog` is the catalog of the run's stage
+   model (stageCatalog) or null. */
 function stageCard(run,i,catalog){
-  var rows=run&&Array.isArray(run.stages)?run.stages:[],r=rows[i];
+  var rows=run&&Array.isArray(run.stages)?run.stages:[],r=rows[i],model=stageModel(run);
   if(!r||typeof r!=="object")return null;
-  var kind=kindOf(r),info=stageInfo(catalog,r.stage),check=exitCheckOf(info,run),out=String(r.outcome||"done");
+  var kind=kindOf(r),info=stageInfo(catalog,r.stage,model),check=exitCheckOf(info,run),out=String(r.outcome||"done");
   var wall=run&&isCount(run.wallMin)&&run.wallMin>0?run.wallMin:0;
   var purpose=info&&typeof info.purpose==="string"&&info.purpose?info.purpose.charAt(0).toUpperCase()+info.purpose.slice(1):"";
   /* sent: the packet */
@@ -1554,7 +1586,7 @@ function stageCard(run,i,catalog){
   if(r.resultFile===false)written.push(["Result file","none: the accepted result is read from state.md"]);
   else if(r.resultFile===true||isCount(r.resultBytes))written.push(["Result file","written"+(isCount(r.resultBytes)?", "+kbText(r.resultBytes):"")]);
   if(Array.isArray(r.unverified))written.push(["Left unverified (owner, due stage)",unverifiedText(r.unverified)]);
-  var readers=readersOf(catalog,r.stage);
+  var readers=readersOf(catalog,r.stage,model);
   if(kind!=="skipped"&&kind!=="seeded"&&readers!==null)written.push(["Read by (declared by the stage spec)",readersText(readers)]);
   return {visit:i+1,title:"Visit "+(i+1)+": "+stageLabel(r.stage),stage:String(r.stage||""),label:stageLabel(r.stage),rawShown:rawShown(r.stage),kind:kind,purpose:purpose,
     check:check?{kind:check,why:exitCheckWhy(info,run)}:null,
@@ -1565,9 +1597,10 @@ function stageCard(run,i,catalog){
 /* The list of stage cards: one row per column of the picture, so a tap selects the same visit as a tap on the picture. A run of
    skipped visits is one row "xN skipped". Sizes and counts print only when the export has them. */
 function cardRows(model,run,catalog){
+  var sm=stageModel(run);
   return ((model&&model.columns)||[]).map(function(c,k){
-    var r=c.rows[0]||{},many=c.n>1,info=many?null:stageInfo(catalog,c.stage),check=many?"":exitCheckOf(info,run);
-    var rd=many||c.kind!=="work"?null:readersOf(catalog,c.stage);
+    var r=c.rows[0]||{},many=c.n>1,info=many?null:stageInfo(catalog,c.stage,sm),check=many?"":exitCheckOf(info,run);
+    var rd=many||c.kind!=="work"?null:readersOf(catalog,c.stage,sm);
     return {col:k,visit:c.kind==="tail"?"end":many?(c.first+1)+" to "+(c.last+1):String(c.first+1),
       stage:many?"x"+c.n+" skipped":stageLabel(c.stage),raw:many?"":c.stage,rawShown:many?false:rawShown(c.stage),
       purpose:info&&typeof info.purpose==="string"?info.purpose.charAt(0).toUpperCase()+info.purpose.slice(1):"",
@@ -1846,8 +1879,18 @@ function fmt(iso){try{return new Date(iso).toLocaleDateString(undefined,{month:"
 function byOrder(a,b){return(a.order||0)-(b.order||0);}
 function docsOf(kind){return Object.keys(data.exp).map(function(k){return Object.assign({key:k},data.exp[k]);}).filter(function(d){return d.kind===kind;}).sort(byOrder);}
 function phases(){return docsOf("phase");}
-function phaseAt(order){return phases().filter(function(p){return p.order===order;})[0];}
-function phaseName(order){var p=phaseAt(order);return p?p.title:"Any stage";}
+/* The phase documents as a run reads them. A 17-stage run reads phase-3 to phase-5 as its loop had them: title, short and text
+   from config/stages-v4.phaseTexts (the frozen 54bcb54d expectations), the title from its own flow when that document is
+   absent; the page's own documents describe the 8-stage loop. `v4text` marks a phase whose expectation is the 17-stage one. */
+function phasesFor(run){
+  if(stageModel(run)!=="v4")return phases();
+  var t=cfgOf("stages-v4").phaseTexts;t=t&&typeof t==="object"?t:{};
+  return phases().map(function(p){var o=t[p.key],f=STAGE_FLOW_V4[p.order];
+    if(o&&typeof o==="object")return Object.assign({},p,{title:o.title,short:o.short,v4text:o.text});
+    return f&&f[0]!==p.title?Object.assign({},p,{title:f[0]}):p;});
+}
+function phaseAt(order,run){return (run?phasesFor(run):phases()).filter(function(p){return p.order===order;})[0];}
+function phaseName(order,run){var p=phaseAt(order,run);return p?p.title:"Any stage";}
 function cfgOf(id){return data.cfg[id]||{};}
 function promptCfg(k,fb){var v=cfgOf("prompt")[k];return typeof v==="string"&&v?v:fb;}
 function runName(k){var r=data.runs.filter(function(x){return x.key===k;})[0];return k==="any"?"All runs":(r?r.name:k);}
@@ -1942,7 +1985,7 @@ function renderFlow(){
   var o=runOf(),sel=byId("runsel");clear(sel);
   o.rs.forEach(function(r){var op=h("option","",r.name);op.value=r.key;sel.appendChild(op);});
   var f=byId("flow");clear(f);
-  var P=phases();
+  var P=phasesFor(o.run);
   renderEnding(o.run);renderDelivered(o.run);renderFidelity(o.run);
   renderRunRecord(o.run);
   var hc=byId("runhosts"),hostc=o.run?hostChip(o.run):null;hc.hidden=!hostc;hc.textContent=hostc?hostc.text:"";hc.title=hostc?hostc.title:"";
@@ -2080,9 +2123,15 @@ function openOption(id){
 }
 function renderPanel(){
   var box=byId("phasepanel");clear(box);
-  var p=L.phase>=0?phaseAt(L.phase):null;
+  var p=L.phase>=0?phaseAt(L.phase,runOf().run):null;
   if(!p){box.appendChild(h("div","empty","Select a stage or a numbered marker above to read what we expect there and what diverged."));return;}
-  var head=h("div","card");head.appendChild(h("h3","",p.title+": what we expect"));head.appendChild(expBlock(p.key));box.appendChild(head);
+  var head=h("div","card");head.appendChild(h("h3","",p.title+": what we expect"));
+  if(typeof p.v4text==="string"){  /* a 17-stage run: its loop's own expectation, read only; the page's text is the 8-stage one */
+    var vb=h("div","expb"),vp=h("p","etext");vp.appendChild(h("strong","","Expected. "));addLinked(vp,p.v4text);vb.appendChild(vp);
+    vb.appendChild(h("div","meta","The expectation of the 17-stage inner loop this run used, kept with its catalog. The page's own text for this phase describes the 8-stage loop."));
+    head.appendChild(vb);
+  }else head.appendChild(expBlock(p.key));
+  box.appendChild(head);
   var list=data.obs.filter(function(o){return o.phase===L.phase&&appliesTo(o,L.run);});
   if(!list.length){box.appendChild(h("div","empty","Nothing diverged at "+p.title+" for this run."));return;}
   list.forEach(function(o){
@@ -2200,7 +2249,8 @@ function fillPacket(id){
   }
 }
 /* ---------- the stage card and the list of stage cards (all text goes in through textContent) ---------- */
-function stageCatalog(){var s=cfgOf("stages").stages;return Array.isArray(s)?s:null;}
+/* The stage catalog a run reads: config/stages for an 8-stage run (or an unknown model), config/stages-v4 for a 17-stage run. */
+function stageCatalog(run){var s=cfgOf(stageModel(run)==="v4"?"stages-v4":"stages").stages;return Array.isArray(s)?s:null;}
 var OUTCOME_CHIP={done:"holds",revise:"bent",replan:"bent",repeat:"bent",blocked:"broken",unaccepted:"bent"};
 var CHECK_CHIP={"script-run":"holds","review loop":"acc","model judgement":"muted"};
 function chipEl(cls,text,title){var c=h("span","chip "+cls,text);if(title)c.title=title;return c;}
@@ -2252,7 +2302,7 @@ function renderCardList(model,run){
   var held=byId("seqdetail");if(!SEQ_HOME&&held&&held.parentNode&&held.parentNode!==box&&held.className!=="sc-open")SEQ_HOME=held.parentNode;
   if(held){held.className="";if(SEQ_HOME)SEQ_HOME.appendChild(held);}  /* back home, unstyled, before the list is cleared */
   clear(box);box.hidden=!(model&&model.columns.length);if(box.hidden)return;
-  var catalog=stageCatalog();
+  var catalog=stageCatalog(run);
   box.appendChild(h("h3","","Stage cards"));
   box.appendChild(h("p","sub","One row per visit, in order: what the stage is for, how it ended and how it is checked, the packet sent and the result written, how many stages declare reading it, and the minutes. Tap a row to open its card in place; tap it again to close it."));
   var list=h("div","sc-list"),rows=cardRows(model,run,catalog),openAt=-1;
@@ -2321,7 +2371,7 @@ function renderPicture(reveal){
   byId("sqlegband").hidden=!model.band;
   ["done","rev","blk","skip","seed","na","tail","imp","ctx","warn","tri"].forEach(function(k){byId("sql-"+k).hidden=model.legend.indexOf(k)<0;});
   var note=byId("seqnote");note.textContent=model.bandNote;note.hidden=!model.bandNote;
-  var d=pickedCol>=0?columnDetail(model,pickedCol,run,data.obs,stageCatalog()):null;
+  var d=pickedCol>=0?columnDetail(model,pickedCol,run,data.obs,stageCatalog(run)):null;
   if(d){
     var dc=h("div","card sqd"),hd=h("h3","",d.card?d.card.title:d.title);
     if(d.card){hd.title=d.card.stage;if(d.card.rawShown)hd.appendChild(h("span","sc-raw",d.card.stage));}
@@ -2370,7 +2420,7 @@ function techBox(f){
   var b=h("div","tech");
   function line(l,v){if(!v)return;var d=h("div");d.appendChild(h("b","",l+" "));addLinked(d,v);b.appendChild(d);}
   line("Expected.",f.expected);line("Saw.",f.observed);line("Evidence.",f.evidence);
-  if(f.criterion){var e=ex(f.criterion);line("Expectation.",e.title+(e.clauses.length?" ("+e.clauses.join(", ")+")":"")+(phaseName(f.phase)!==e.title?"; "+phaseName(f.phase):""));}
+  if(f.criterion){var e=ex(f.criterion);line("Expectation.",e.title+(e.clauses.length?" ("+e.clauses.join(", ")+")":"")+(phaseName(f.phase,runOf().run)!==e.title?"; "+phaseName(f.phase,runOf().run):""));}
   return b;
 }
 function optionRow(a){
