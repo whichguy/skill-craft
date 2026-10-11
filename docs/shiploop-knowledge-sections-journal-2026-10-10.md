@@ -7,8 +7,9 @@ section-heading notice: waits for the inner-loop session's 8-stage graph on main
 `shiploop_prompts.py`) belongs to the inner-loop session and was not edited; what it needs to print is under "Lines for the packet
 owner". Evidence is compact under `docs/experiments/knowledge-sections-20261010/`.
 
-**Status: built and tested offline; no live run has seen the notice.** The decision to turn the notice into a refusal is the owner's,
-after the first live pair (see "Measure").
+**Status: built and tested offline; no live run has seen the notice.** Two independent reviews (a code lens and a tenet lens) found
+the first build short of the task's addendum and silent at one of the four closes; the fix round below closed every finding it
+confirmed. The decision to turn the notice into a refusal is the owner's, after the first live pair (see "Measure").
 
 ## Question
 
@@ -20,18 +21,24 @@ check that costs a cleared-context model nothing it cannot act on, given that ne
 
 ## What was built
 
+State after the fix round. Where the first build differed, the fix round's table says so.
+
 | Concern | Where (all in `skills/shiploop/scripts/shiploop_knowledge_home.py` unless named) |
 |---|---|
-| The headings as constants, in `__all__` | `SECTIONS: Dict[str, Tuple[str, ...]]`: `spec.md` (Requirements, Non-functional requirements, Retired), `environment.md` (Targets and runtimes, Commands, Access and accounts, Platform facts), `architecture.md` via `ARCHITECTURE` (Stack, Structure, Conventions, Interfaces and boundaries, Decisions, Superseded), `test-strategy.md` (Harnesses and suites, Commands, ID convention, Real-boundary checks). A spec's acceptance criteria stay inside each `R-<n>`, with no heading |
+| The headings as constants, in `__all__` | `SECTIONS: Dict[str, Tuple[str, ...]]`: `spec.md` (Requirements, Non-functional requirements, Retired), `environment.md` (Targets and runtimes, Commands, **Skills**, Access and accounts, Platform facts), `architecture.md` via `ARCHITECTURE` (Stack, Structure, Conventions, Interfaces and boundaries, Decisions, Superseded), `test-strategy.md` (Harnesses and suites, Commands, ID convention, Real-boundary checks). A spec's acceptance criteria stay inside each `R-<n>`, with no heading. `Skills` is the repository's local skill directory (step-plan's per-step skills and carry-forward's skill decision read it) |
 | One wording of what the architecture holds | `ARCHITECTURE_HOLDS` is unchanged (a refusal, the callback contract and three packets print it verbatim). A test pins that the headings it quotes (`'## Decisions'`, `'## Superseded'`) are in `SECTIONS[ARCHITECTURE]` and that every architecture section is a thing the wording says the file holds |
-| Writer entries on the 8-stage graph | `STAGE_FILES`: research, validate-existing and test keep `environment.md`; implement keeps `environment.md` and `architecture.md`; carry-forward keeps `architecture.md` and `environment.md`. verify reads the architecture and writes nothing, so it has no entry. `CLOSES` untouched. A guard test pins every `STAGE_FILES` and `CLOSES` key to `shiploop_stage_spec.STAGES` |
-| The counted notice | `section_notices(state, stage) -> list[str]`, `NOTICE_PREFIX = "ShipLoop knowledge notice: "` (both in `__all__`), helpers `_outline` (headings outside code fences), `_section_state` (`present`, `empty`, `missing`), `_section_hint` (the words for what a file holds). `[]` at a stage that is no close; for each file of `SECTIONS` that exists and has text (the `_filled` rule), one line per missing or empty heading, in the table's order; never raises |
-| One heading syntax | `_HEADING` is shared by the outcome-section reader `_sections` (levels one to three, bodies flat, unchanged and pinned) and the notice (levels one to four) |
-| Printed at the close | `shiploop_navigator._knowledge_close`: right after the commit and the skipped-files notice, `knowledge.section_notices(after, stages[-1])` to stdout, line by line. The terminal block, the retire step and every raise keep their order and behaviour |
-| Fixture | `test/shiploop_knowledge_support.write` writes each living file with all of its `SECTIONS` (spec keeps `R-1`) so no suite that fakes a home prints 17 notice lines at each close |
-| Docs | `references/project-knowledge.md` (each row's Sections, a "Named sections" paragraph), `SKILL.md` (one sentence in the paragraph that lists the home's files), the module docstring, SPEC S-11 (own commit), the change note `changes/shiploop/knowledge-sections.md` (minor), `LEARNINGS.md` |
+| The duties and the constants are one list | `SectionsTests.test_every_heading_a_packet_duty_names_for_a_living_file_is_one_of_its_sections` scans every `shiploop_*.py` except the constants' own module for `<file>.md (## A, ## B)` and `<file>.md ## A` (whitespace joined, source string joins removed), reads each heading by prefix as the notice does, and fails on a heading `SECTIONS[file]` lacks or on a file for which it finds none (so it cannot pass on a scan that reads nothing) |
+| Writer entries on the 8-stage graph | `STAGE_FILES`: research, validate-existing and test keep `environment.md`; **step-plan keeps `{feature}/plan.md`, `architecture.md` and `environment.md`** (appended last); implement keeps `environment.md` and `architecture.md`; carry-forward keeps `architecture.md` and `environment.md`. verify reads the architecture and writes nothing, so it has no entry. `CLOSES` untouched. A guard test pins every `STAGE_FILES` and `CLOSES` key to `shiploop_stage_spec.STAGES` |
+| The counted notice | `section_notices(state, stage) -> list[str]`, `NOTICE_PREFIX = "ShipLoop knowledge notice: "` (both in `__all__`), helpers `_outline` (headings outside code fences), `_section_state` (`present`, `empty`, `missing`), `_section_hint` (the words for what a file holds). `[]` at a stage that is no close; for each file of `SECTIONS` that exists and has text (the `_filled` rule), one line per missing or empty heading, in the table's order; never raises. Each line is `<prefix><absolute path> has no '<H>' section (this close is accepted); add a '## <H>' section (<hint>), or write 'none' under it when nothing applies.` or `<prefix><path> has an empty '<H>' section (this close is accepted); write under it (<hint>), or write 'none' when nothing applies.` The path is the same word in both. The hint is `<file> has the sections A, B, ...`; the first line printed for `architecture.md` says `architecture.md holds <ARCHITECTURE_HOLDS>` instead, once |
+| What opens a fence, and the file's first bytes | `_FENCE` is the CommonMark opener (up to three spaces; three or more backticks or tildes; no backtick in the text after a backtick run). The file is read as `utf-8-sig`, so a byte order mark before a first-line heading is no text |
+| One heading syntax | `_HEADING` is shared by the outcome-section reader `_sections` (levels one to three, bodies flat, unchanged and pinned) and the notice (levels one to four, at the start of the line) |
+| Printed at the close | `shiploop_navigator._knowledge_close`: right after the commit and the skipped-files notice, `knowledge.section_notices(after, close)` to stdout, line by line, where `close` is the last stage among this call's accepted rows that is in `CLOSES` (else the last row, which `section_notices` gates itself). The terminal block, the retire step and every raise keep their order and behaviour |
+| Fixture | `test/shiploop_knowledge_support.write` writes each living file with all of its `SECTIONS` (spec keeps `R-1`) so no suite that fakes a home prints 18 notice lines at each close |
+| Docs | `references/project-knowledge.md` (each row's Sections, a "Named sections" paragraph: what counts, the reading limits, how to count), `SKILL.md` (one sentence in the paragraph that lists the home's files), the module docstring, SPEC S-11 (own commits), the change note `changes/shiploop/knowledge-sections.md` (minor), `LEARNINGS.md` |
 
 ## Commits
+
+First build (branch `batch1012c-1bbefb`, from `8932b849`):
 
 | Commit | What |
 |---|---|
@@ -41,28 +48,66 @@ check that costs a cleared-context model nothing it cannot act on, given that ne
 | `934f3994` | The reference table, the "Named sections" paragraph, SKILL.md, the docstring, the reference pin test |
 | `7ee0c9c6` | SPEC S-11 amendment (own commit, `No-Change-Note: harness spec amendment`) |
 | `691f5e41` | The mutation record, 55 of 55 killed, and the tests that closed its five survivors |
-| (the last commit) | This journal and the `LEARNINGS.md` entry |
+| `fefd6566`, `b252f51e` | This journal's first version, the `LEARNINGS.md` entry and the footprint record; then the open-risk paragraph on the size of the block |
+
+Fix round (after the two reviews; each commit green, the tests written first and seen red for the reason named in its message):
+
+| Commit | Finding(s) | What |
+|---|---|---|
+| `9d2d5f25` | C1 | The close among the call's accepted rows prints the notice; unit cases and the plain-`complete` and `improve-complete` real-CLI routes at test-spec |
+| `e013bfa2` | C2, T1 | `Skills` in `SECTIONS["environment.md"]`, `environment.md` appended to `STAGE_FILES["step-plan"]`, the duty-to-constants pin, the reference row, the change note |
+| `746f7fa9` | C3, C4 (b), T4 | The CommonMark fence opener; the byte order mark; the tests for both and for the documented reading limits |
+| `6bee2e23` | C5, T5 | One path token in both variants; "(this close is accepted)"; `ARCHITECTURE_HOLDS` once per block |
+| `c019c369` | C4 (a, c, d), T2, T3 | The reference states what the code does: the reading limits, the count by occurrence, SECTIONS pinned to the duties; the pin test; the change note |
+| `1756a5cc` | T3 | SPEC S-11 (own commit, `No-Change-Note: harness spec amendment`): the Skills heading, the lines on the accepting call, the count by occurrence |
+| `c6339e16` | T3 | The comment above `NOTICE_PREFIX` (no behaviour) |
+| `6dbaf403` | all | The mutation record regenerated (84 of 84 killed), the saved-home scan on 30 homes; the round 1 records kept as `*-round1.json` |
+| the commit that carries this journal (`git log -1 -- docs/shiploop-knowledge-sections-journal-2026-10-10.md`) | T6 | This journal, the `LEARNINGS.md` entry, `footprint.json` of the fix round |
+
+## Fix round: the reviewers' findings
+
+Each finding was reproduced before it was fixed (a reviewer's probe, or the new test seen red). Two reviewers: code (C) and tenet (T).
+
+| # | Finding | Verdict | Disposition |
+|---|---|---|---|
+| C1 | The test-spec close printed no notice: `_knowledge_close` decided on `stages[-1]`, and in the same call the script records validate-existing, so the new rows were `[test-spec, validate-existing]`. The pinned unit case `(['prepare','step-plan'], 0)` pinned the same blind spot; all four route tests used `complete` at prepare or intake | **Confirmed.** The reviewer's real-CLI probe (`improve-complete` at test-spec, prose home) printed `notice lines=0` with `section_notices` giving 17; the plain `complete` at test-spec with `--planning-review none`, which the reviewer had not run, was silent the same way | Fixed (`9d2d5f25`). `[prepare, step-plan]` now prints too: the close was accepted and checked its files, whatever the script records after it; the commit's subject still names the last stage (unchanged). Route tests assert the new rows are exactly `[test-spec, validate-existing]` first, so they cannot pass on a route that never met the case |
+| C2, T1 | The addendum's two items were not built: `Skills` in `SECTIONS["environment.md"]`, and `environment.md` in `STAGE_FILES["step-plan"]`; the journal recorded no deviation | **Confirmed**, and the duties on main name `## Skills` (the step-plan duty, the carry-forward duty, a loop text) | Fixed (`e013bfa2`). The first build read the task text and missed the addendum, which overrode it; the journal's deviation table now records that. The reviewer's suggested guard is built: a duty that names a heading `SECTIONS` lacks is red (it failed on `Skills` alone before the fix, and only on it) |
+| C3 | The fence opener's indent rule was untested: loosening `\s{0,3}` to `\s*` left every test green | **Confirmed** (the only survivor of the reviewer's 21 mutations) | Fixed (`746f7fa9`): the four-space case is a test and a mutation row; the tab case, which `\s{0,3}` also admitted, was red and is fixed |
+| C4 | The heading recogniser misreads an indented heading, a byte order mark, a setext heading and an unclosed fence | **Partly confirmed** (all four reproduced; rare in practice) | BOM: fixed (`utf-8-sig`, one line; Notepad and Windows PowerShell write one). Indented ATX heading, setext heading and the unclosed fence: **kept and documented** in the reference (the owner's rule: fix what a normal run shows, document the rest). Widening `_HEADING` to three spaces would also change the outcome-section reader that shares it and is pinned to read what it read before. Two of the three limits are pinned by `test_only_an_atx_heading_at_the_start_of_the_line_counts_as_the_reference_says`; the unclosed fence follows CommonMark and is described. "A comment or `---` counts as a body line" is accepted: it is text under the heading |
+| C5 | The two notice variants end the path differently (`<path> has no ...` against `<path>: ...`), so a reader that takes the second word as the file gets `path:` for an empty line | **Confirmed** | Fixed (`6bee2e23`): `<path> has an empty '<H>' section`; a test takes the same word from both variants |
+| T2 | The reference and the change note say a packet quotes `SECTIONS` and none is hard-coded; no packet code references it | **Confirmed** (`grep` of the scripts: only the constants' module, `SKILL.md` and the reference name it) | Fixed (`c019c369`): both say `SECTIONS` is the one list, a packet is to quote it (the packet owner's work), and a test pins every duty heading to it |
+| T3 | The recommended count, one `grep` of the events, undercounts: a call's whole stdout is one JSON line | **Confirmed** on `/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/events.jsonl`: `grep -c 'ShipLoop knowledge: '` gives 1, `grep -o ... \| wc -l` gives 2, both in event line 478 | Fixed (`c019c369`, `1756a5cc`, `c6339e16`): the reference, SPEC S-11, this journal and the code comment say count by occurrence and per event. The small `metrics` counter the first journal deferred is **still not built**: a documented command is enough for one pair |
+| T4 | A line that starts with inline triple-backtick code opens a phantom fence, so later headings are reported missing | **Confirmed** (the new test was red for it) | Fixed (`746f7fa9`) |
+| T5 | A model reading the lines alone cannot tell that the close was accepted; the architecture hint is 480 characters repeated six times | **Accepted in part** | Each line says `(this close is accepted)` (24 characters), and `ARCHITECTURE_HOLDS` is printed once, on the first architecture line (`6bee2e23`). **Not added:** "the edit rides in the next accepted stage's knowledge commit": every stage packet already says ShipLoop commits the home when the stage is accepted (`stage_lines`), and 18 repeats would be the waste this finding removes from the architecture lines. No per-heading text was invented |
+| T6 | The commits table named neither `fefd6566` nor `b252f51e` and ended "(the last commit)" with no SHA | **Confirmed** | Fixed in this journal; the last row gives the `git log` that finds the commit carrying it, because a commit cannot name its own SHA |
+
+Equal-footing numbers for the size of the block (a home whose four files are prose, the same files, the path of a scratch directory):
+before the round 17 lines, 6894 bytes, the six architecture lines 3252 of them; after 18 lines, 6708 bytes, the architecture lines
+2407, the longest line 554 characters. One heading more, 186 bytes less.
 
 ## Decisions and deviations
 
 | Item | Disposition |
 |---|---|
-| A refusal at the closes | **Not built, by the evidence.** `home_scan.json` (29 saved homes): every home would get at least one notice line (273 lines, 0 homes with none, median 9). A refusal would fire at every first close of an existing-style run until packets quote the headings. The first live pair decides (see "Measure"); the task said not to build the refusal |
+| The task's addendum (2026-10-10, from the inner-loop session) | **Missed by the first build, built in the fix round.** Its items 1 and 2 (`Skills`; `environment.md` appended last to step-plan) overrode the task text; items 3 to 6 needed no engine work (no `Lessons:` harvest and no script-built commit body; an `AD-<n>` edit at implement or verify lands in the item commit; the stale-key guard uses `stage_spec.STAGES` of this tree, as it does). The first journal recorded no deviation for this. The constants and the duties on main now agree, and a test keeps them so |
+| A refusal at the closes | **Not built, by the evidence.** `home_scan.json` (30 saved homes): every home would get at least one notice line (314 lines, 0 homes with none, median 10). A refusal would fire at every first close of an existing-style run until packets quote the headings. The first live pair decides (see "Measure"); the task said not to build the refusal |
 | No refusal for `architecture.md` alone | As agreed: the prepare close already requires the file, and its refusal names what it holds |
 | "Starts with" is a plain prefix | The task's rule is "text starts with the heading, case-insensitive". A first version added a word boundary (`Commands` would not match `Commandsx`); dropped, because it made `## ID conventions` (a plural) a false notice. Cost of the plain prefix: `## Structured data` hides a missing `Structure`. Pinned both ways by `test_starts_with_is_a_plain_prefix_so_a_longer_word_still_counts`. Raising a notice for a section that is there is worse than missing one that is not |
-| Fenced code blocks | Added (not in the task). A shell comment (`# install`) inside a ```sh block under `## Commands` would otherwise read as a level-1 heading, and a heading written inside a block would count. `_outline` skips headings between fences (``` or ~~~, closing mark of the same kind at least as long and no text after it); 5 mutation rows cover it |
+| Fenced code blocks | Added (not in the task). A shell comment (`# install`) inside a ```sh block under `## Commands` would otherwise read as a level-1 heading, and a heading written inside a block would count. `_outline` skips headings between fences; since the fix round a fence opens as CommonMark says (three-space indent, no backtick after a backtick run) and closes with its own mark at least as long and no text after it |
 | `either_way_prefix` in the scan | Added to `home_scan.py` (not asked): the homes whose file has a heading that is a prefix of the table's heading as well (`Non-functional` for `Non-functional requirements`), heading words only. It is the delta a looser matching rule would make; a later decision, not built |
-| The fixture writes sections | `shiploop_knowledge_support.write` now writes all of a living file's sections (not in the task). Without it every suite that fakes a home (full-runtime, test-loop, lint, navigator-contract, the inner fixture) prints 17 lines at each close; a drift guard pins that a fixture home gets no notice |
-| Two existing tests edited (both legitimately broken by the new writer entries) | `ArchitectureTests.test_the_architecture_is_a_living_file_plan_and_step_plan_keep_and_prepare_requires` asserted `implement`'s packet lines do not name `architecture.md`; it now uses `verify`. `shiploop-packet-completeness` `test_an_inner_packet_lists_exactly_the_grounding_files_and_none_that_is_missing` asserted the whole `implement` packet lacks the missing file's path; it now asserts on the "Ground this stage's decisions" line, which is what must omit a missing file, and that the line still names a present one |
-| The notice's text | Generic, no text per heading beyond the heading: "add a '## <heading>' section (<the file's sections, or ARCHITECTURE_HOLDS>), or write 'none' under it when nothing applies". The "'none'" clause is generic and is there because a heading that legitimately has nothing (access and accounts of a script) could otherwise never clear its own notice |
+| The fixture writes sections | `shiploop_knowledge_support.write` now writes all of a living file's sections (not in the task). Without it every suite that fakes a home (full-runtime, test-loop, lint, navigator-contract, the inner fixture) prints a notice line per section at each close; a drift guard pins that a fixture home gets no notice |
+| Existing tests edited (all legitimately broken by the new writer entries or headings) | `ArchitectureTests.test_the_architecture_is_a_living_file_plan_and_step_plan_keep_and_prepare_requires` asserted `implement`'s packet lines do not name `architecture.md`; it now uses `verify`. `shiploop-packet-completeness` `test_an_inner_packet_lists_exactly_the_grounding_files_and_none_that_is_missing` asserted the whole `implement` packet lacks the missing file's path; it now asserts on the "Ground this stage's decisions" line. Fix round: the exact `SECTIONS` table, the `WRITERS` map (step-plan joined it), the step-plan assertion in `ArchitectureTests` (now the first two entries, `environment.md` appended), and the literal counts 17 and 4 (now computed from `SECTIONS`) |
+| The notice's text | Generic, no text per heading beyond the heading: the file's section list (or `ARCHITECTURE_HOLDS` once), "or write 'none' under it when nothing applies". The "'none'" clause is generic and is there because a heading that legitimately has nothing (access and accounts of a script) could otherwise never clear its own notice |
 | Where the notice prints | After the knowledge commit, as the task says. A non-terminal commit that fails returns before it (its own stderr line is the output); the next close prints the lines again. The same lines repeat at every close until fixed, which is what "per close" counts |
-| The change note | Added in the first commit (not the last) so every commit of the series passes `check-release-boundary`; one note for the series |
-| `shiploop-mock-replay` | Not a file under `test/`: the catalog entry runs `skills/shiploop-e2e-audit/harness/check_suite.py --suite mock`. It runs in the quick tier with `--changed-from` |
-| 29 homes, not 27 | The main session measured 27; the scan finds 29 homes with a `docs/shiploop` directory under `/Users/dadleet/e2e-runs`. Its figures were text presence; the scan counts headings, so they differ (for example "Platform facts" in 1 home as a heading, not 27) |
+| The change note | Added in the first commit (not the last) so every commit of the series passes `check-release-boundary`; one note for the series, `bump: minor`. Levels may differ between notes and the largest wins (`scripts/release.py plan()` takes `max(bumps)`; it refuses only a mix of `bump:` and `version:` notes for one skill); the eight-stage inner loop's note is `major`, so shiploop will release as a major. Nothing here says the notes must share a level |
+| `shiploop-mock-replay` | Not a file under `test/`: the catalog entry runs `skills/shiploop-e2e-audit/harness/check_suite.py --suite mock`. It runs in the quick tier with `--changed-from` and fails 5 of 37 at the base too (below) |
+| 29 homes, then 30 | The main session measured 27; the first scan found 29 homes with a `docs/shiploop` directory under `/Users/dadleet/e2e-runs`; the fix round's scan finds 30 (`20261010/hello-8stage-13d278dd` landed in between, the first home with an `architecture.md`). Counts of headings differ from the main session's figures of text presence (for example "Platform facts" in 1 home as a heading, not 27) |
 
 ## Method and evidence
 
-Fail-first for each behaviour, run and seen red for the intended reason before the code:
+Fail-first for each behaviour, run and seen red for the intended reason before the code.
+
+First build:
 
 | Step | Red before the code | Green after |
 |---|---|---|
@@ -71,95 +116,130 @@ Fail-first for each behaviour, run and seen red for the intended reason before t
 | 3. wiring | 2 of 6 `SectionNoticeCloseTests` (one with four subtests) and 2 of 4 real-CLI route tests red (`0 != 17` lines); the print-nothing cases are guards | the footprint below |
 | 4. docs | the reference pin red with 18 missing headings, the prefix and the sentence | knowledge suite 155 tests, then 157 with the survivor tests |
 
+Fix round (the same discipline; the numbers are in each commit message):
+
+| Step | Red before the code | Green after |
+|---|---|---|
+| C1 the close | the unit cases `[test-spec, validate-existing]` and `[prepare, step-plan]` (`0 != 17`); the plain-`complete` route at test-spec (`0 != 17`); the `improve-complete` route at test-spec (`0 != 17`); both route tests assert the rows `[test-spec, validate-existing]` first | `SectionNoticeCloseTests` 8 tests; both routes |
+| C2/T1 Skills, step-plan, the pin | 5 tests red: the exact table, the `WRITERS` map with step-plan, the step-plan release-plan refusal line, the step-plan test, and the duty pin (red on `Skills` for `environment.md` alone) | knowledge suite 160 tests |
+| C3/C4/T4 fence and BOM | the tab, inline-code and backtick-in-text cases and both BOM cases red; the four-space case and the two documented limits pass at once, as guards | knowledge suite 163 tests |
+| C5/T5 wording | the exact missing and empty lines, the path-word test, the architecture-once test (`ARCHITECTURE_HOLDS` 6 times, expected 1) | knowledge suite 164 tests |
+| T2/T3 docs | the reference text at HEAD fails all eight new pin assertions | knowledge suite 164 tests |
+
 | Evidence | File | Result |
 |---|---|---|
-| The saved homes, read only | `docs/experiments/knowledge-sections-20261010/home_scan.py`, `home_scan.json` | 29 homes, 273 notice lines (8 to 11 a home, median 9), none without one; per file and heading: present, empty, missing, and the either-way-prefix count; the headings the files really use |
-| Mutation check | `docs/experiments/knowledge-sections-20261010/mutation_check.py`, `mutations.json` | 55 one-line breaks of the module and the wiring, 55 killed in the last full run (sources clean in Git before and after). The first full run killed 50: the level rule tested only at level 2, the fence tested only as a backtick block, and the last-versus-first accepted stage (every test had one) |
-| Footprint | see "Results" | |
+| The saved homes, read only | `docs/experiments/knowledge-sections-20261010/home_scan.py`, `home_scan.json` (round 1: `home_scan-round1.json`) | 30 homes, 314 notice lines (9 to 12 a home, median 10), none without one. The 29 homes of round 1 print 273 + 29 = 302 lines: exactly one more each, the `Skills` heading, present in 0 of 30. The new home prints 12. Per file and heading: present, empty, missing, and the either-way-prefix count; the headings the files really use |
+| Mutation check | `docs/experiments/knowledge-sections-20261010/mutation_check.py`, `mutations.json` (round 1: `mutations-round1.json`, 55 of 55) | 84 one-line breaks of the module, the wiring and two duty texts, 84 killed (sources clean in Git before and after). The first run of this record killed 83 of 84: one row did not apply because a comment line sat between the two lines it replaced; the row was corrected and the whole script run again. Round 1's first full run had killed 50 of 55; the reviewer's own 21 mutations found one survivor that neither record had (the fence indent), now a row |
+| Footprint | `docs/experiments/knowledge-sections-20261010/footprint.json` | see "Results" |
 
 ## Findings
 
-- **Firm (saved homes, `home_scan.json`).** The proposed headings are nearly absent: `environment.md` has `Commands` and `Access and
-  accounts` in 0 of 29 homes, `Targets and runtimes` in 0, `Platform facts` in 1; `test-strategy.md` has `ID convention` and
-  `Real-boundary checks` in 0, `Harnesses and suites` in 0, `Commands` in 2; `spec.md` has `Requirements` in 19, `Retired` in 24,
-  `Non-functional requirements` in 0. `architecture.md` is in 0 homes (all saved before the file existed): null, not zero.
-- **Firm.** The models write `environment.md` as prose under its `# Environment` title (29 of 29 homes carry that title; the other
-  headings are `Delivery` in 7 and `Runtime` in 2), so the first live pair will see about 9 lines a home, up to 17 when the architecture
+- **Firm (saved homes, `home_scan.json`).** The proposed headings are nearly absent: `environment.md` has `Commands`, `Skills`,
+  `Access and accounts` and `Targets and runtimes` in 0 of 30 homes and `Platform facts` in 1; `test-strategy.md` has `ID convention`,
+  `Real-boundary checks` and `Harnesses and suites` in 0 and `Commands` in 2; `spec.md` has `Requirements` in 20, `Retired` in 25 and
+  `Non-functional requirements` in 0. `architecture.md` is in 1 home, the first written after the file existed: the five other
+  figures for it are null (the file was absent), not zero.
+- **Firm.** The models write `environment.md` as prose under its `# Environment` title (30 of 30 saved homes carry that title; the other
+  headings are `Delivery` in 8 and `Runtime` in 2), so the first live pair will see about 10 lines a home, up to 18 when the architecture
   file is written as prose too, at each of the four closes until the headings are written.
-- **Firm, small.** 11 of 29 homes write `Non-functional` where the table says `Non-functional requirements`, which the starts-with rule
-  does not accept (the heading would have to be the longer). Under a rule that also accepts a heading that is a prefix of the table's,
-  the count for that heading falls from 29 missing to 18. `either_way_prefix` shows the same for `Harnesses and suites` (3 homes write
+- **Firm, small.** 12 of 30 homes write `Non-functional` where the table says `Non-functional requirements`, which the starts-with rule
+  does not accept (the heading would have to be the longer). Under a rule that also accepted a heading that is a prefix of the table's,
+  the count for that heading would fall from 30 missing to 18. `either_way_prefix` shows the same for `Harnesses and suites` (3 homes write
   `Harness`) and `Targets and runtimes` (1 writes `Targets`). Not built: packets that quote the headings make it moot, and a looser
   rule would let a short unrelated heading (`Test`) stand for a longer section name.
+- **Firm (a reviewer's probe and three new route tests).** A close that is followed in the same call by a stage the script records is
+  the common case at test-spec, and a count taken from the last row alone would have been silent there. Any later per-close figure
+  must be read against the call, not against the stage the history ends with.
+- **Firm.** The host events log a call's whole stdout as one JSON line, so a line count (`grep -c`) is wrong for any multi-line output;
+  count occurrences.
 - **Exploratory.** Whether a model clears the notice once it reads it is unmeasured. The `'none'` clause is the one guess in the text:
   it assumes a model prefers writing `none` to inventing content.
 
 ## Lines for the packet owner
 
-The engine now supplies, and these are the lines it cannot print itself:
+The engine supplies, and these are the lines it cannot print itself:
 
 1. **Quote the headings, never hard-code them.** At each stage in `knowledge_home.STAGE_FILES` that writes a fact file, after the
    existing "keeps these up to date" line, print `knowledge_home.SECTIONS[name]` for each of the four files that stage keeps, as
    `## <heading>`: "Where an item goes in <file>: ## A, ## B, ... Add it under its heading and create the heading if the file lacks
    it; write 'none' under a heading that has nothing." The notice text already says the same at the close, so a stage may keep it to one
-   sentence.
+   sentence. The duties that name headings today are pinned to `SECTIONS` by a test, so a heading a duty renames is red until
+   `SECTIONS` follows; quoting the constants instead removes the pin's reason.
 2. **Say where each kind of item goes.** research, validate-existing, test: a working command is `environment.md` `## Commands`, a
    platform fact is `## Platform facts`, a target or runtime version `## Targets and runtimes`, an alias for access `## Access and
-   accounts` (never a value). implement: a new working command or fact the same way; a deviation from the plan is
-   `architecture.md` `## Decisions` as the next unused `AD-<n>`. carry-forward: the run's decisions in `## Decisions`, a decision that
-   no longer holds under `## Superseded` with its reason and its replacement's ID. test-strategy and its stage: the commands under
-   `## Commands`, the test-ID rule under `## ID convention`.
+   accounts` (never a value), the repository's local skill directory `## Skills`. step-plan: the same for a command it finds working,
+   and a new `AD-<n>` under `architecture.md` `## Decisions`. implement: a new working command or fact the same way; a deviation from
+   the plan is `architecture.md` `## Decisions` as the next unused `AD-<n>`. carry-forward: the run's decisions in `## Decisions`, a
+   decision that no longer holds under `## Superseded` with its reason and its replacement's ID, the skill decision under
+   `environment.md` `## Skills`. test-strategy and its stage: the commands under `## Commands`, the test-ID rule under `## ID convention`.
 3. **At the closes (optional).** The Checked-by lines of prepare, test-spec, release-plan and release-verify may add: "ShipLoop also
    prints one 'ShipLoop knowledge notice:' line per section the four fact files lack; it does not refuse." The lines name the file by
-   absolute path, the heading and the fix, so no packet needs to repeat them.
-4. **`stage_lines` now prints, with no packet edit,** "This stage keeps these up to date" for research, validate-existing, implement,
-   test and carry-forward, and the matching "ShipLoop refuses prepare/release-plan if any of these is missing or empty" lines
-   (prepare for research; release-plan for the rest). `architecture.md` at implement and carry-forward names no later close, because
-   prepare is behind them. Check that the longer implement and carry-forward packets stay inside the packet bounds you hold (the
-   bounds suite is green).
+   absolute path, the heading, that the close is accepted and the fix, so no packet needs to repeat them.
+4. **`stage_lines` now prints, with no packet edit,** "This stage keeps these up to date" for research, step-plan, validate-existing,
+   implement, test and carry-forward, and the matching "ShipLoop refuses prepare/release-plan if any of these is missing or empty"
+   lines (prepare for research; release-plan for the rest, `environment.md` of step-plan included). `architecture.md` at step-plan,
+   implement and carry-forward names no later close, because prepare is behind them. Check that the longer step-plan, implement and
+   carry-forward packets stay inside the packet bounds you hold (the bounds suite is green).
 
 ## Measure
 
-The first live pair after this lands counts `ShipLoop knowledge notice:` lines per close, with one grep of the `complete` calls' stdout
-in the host events (the other knowledge lines start `ShipLoop knowledge: ` and do not match). No threshold. The baseline is the saved
-homes: 273 lines over 29 homes (median 9), each repeated at every close while unfixed. What to read from the pair: whether packets that
-quote `SECTIONS` get the headings written (lines per close fall toward 0 by `release-verify`), which headings stay missing, and whether
-a model writes `none` or invented text under a heading with nothing to say. Turning the notice into a refusal (by name, with the exit
-in the message) is the owner's decision after that; it is not built.
+The first live pair after this lands counts `ShipLoop knowledge notice:` lines per close. Count by **occurrence**, not by line: the
+host events log a `complete` call's whole stdout as one JSON line, so the total is
+
+    grep -o 'ShipLoop knowledge notice: ' events.jsonl | wc -l
+
+and the count per close is the occurrences in each event line (one event is one `complete` or `improve-complete` call):
+
+    awk '{n=gsub(/ShipLoop knowledge notice: /,"&")} n{print NR": "n}' events.jsonl
+
+(The other knowledge lines start `ShipLoop knowledge: ` and do not match.) The first version of this section said "one grep" of the
+events; on `pc1i-checkers-sonnet/events.jsonl`, `grep -c` on the sibling `ShipLoop knowledge: ` lines gives 1 where the occurrences are 2,
+so that count method is **superseded** (2026-10-10, fix round). A close that the script followed with another stage (test-spec, then
+validate-existing) prints in the same call since `9d2d5f25`. No threshold. The baseline is the saved homes: 314 lines over 30 homes
+(median 10), each repeated at every close while unfixed. What to read from the pair: whether packets that quote `SECTIONS` get the
+headings written (lines per close fall toward 0 by `release-verify`), which headings stay missing, and whether a model writes `none` or
+invented text under a heading with nothing to say. Turning the notice into a refusal (by name, with the exit in the message) is the
+owner's decision after that; it is not built.
 
 ## Open risks
 
-- **Size ahead of the packet.** The notice lines print before the next packet on the `complete` call's stdout. A prose home prints 17
-  lines at a close, 6.9 KB on a short path (longest line 568 characters; about 9 KB at a real checkout path), and the six architecture
-  lines repeat `ARCHITECTURE_HOLDS` (about 2 KB of it). A model that reads the output through `head -N` or `cut` would meet notices
-  before the packet head. Measured as text only; whether it cost a re-orientation is for the first pair (`metrics` re-orientation after a
-  clear). If it does: print `ARCHITECTURE_HOLDS` once (on the first architecture line), or print the notice after the packet head; both
-  are small edits, neither is made on a guess.
+- **Size ahead of the packet.** The notice lines print before the next packet on the `complete` call's stdout. A prose home prints 18
+  lines at a close, 6.7 KB on a scratch path (longest line 554 characters; about 8.9 KB at a real checkout path); the architecture
+  lines now carry `ARCHITECTURE_HOLDS` once (2.4 KB for six lines, from 3.3 KB). A model that reads the output through `head -N` or `cut`
+  would meet notices before the packet head. Measured as text only; whether it cost a re-orientation is for the first pair (`metrics`
+  re-orientation after a clear). If it does: print the notice after the packet head, a small edit not made on a guess.
 - **Repeats.** An unfixed file prints its lines at each of the four closes; the count per close is the measure, but a model sees the same
   lines up to four times.
+- **The reading limits.** An indented heading, a setext heading and anything after a fence that is never closed are not read, so a file
+  written that way gets a notice for a section it has. Documented in the reference; models write column-0 ATX headings, and no saved
+  home contains the others.
+- **Duty text is matched by shape.** The duty pin finds `<file>.md (## A, ## B)` and `<file>.md ## A`. A duty written another way
+  (`## A of environment.md`) is not seen; the pin then passes silently for it. The scan fails when it finds no heading for a file at
+  all, which guards the whole-scan case only.
 
 ## Deferred
 
 - The refusal itself (above).
 - A looser match (a heading that is a prefix of the table's); the either-way counts are in `home_scan.json`.
-- Counting the notice lines in the harness (`metrics`): additive, absent means unknown, wanted only if the pair needs it beyond a grep.
+- Counting the notice lines in the harness (`metrics`): additive, absent means unknown, wanted only if the pair needs more than the
+  commands in "Measure".
 - `README.md`'s own sections (no table): the index lists what each file answers; not asked.
+- Widening the heading reader to indented and setext headings: it would change the outcome-section reader that shares `_HEADING`.
 
 ## Results
 
-On the final tree (`SHIPLOOP_PROGRESS=off`, no `GIT_CONFIG_NOSYSTEM` exported for the quick tier, load average 5.4 to 7.2 on a shared
-machine). Compact record: `docs/experiments/knowledge-sections-20261010/footprint.json`.
+Fix round, on the tree at `6dbaf403` plus this commit's docs (`SHIPLOOP_PROGRESS=off`, no `GIT_CONFIG_NOSYSTEM` exported for the
+quick tier; load average 5.6 at the start and 10.9 at the end, a shared machine, no timing-sensitive failure and no rerun needed).
+Compact record: `docs/experiments/knowledge-sections-20261010/footprint.json`.
 
 | Run | Result |
 |---|---|
-| `bash test/run-all.sh --group quick --changed-from 8932b849` | 45 suites: **44 passed, 1 failed** (`shiploop-mock-replay`, below). Includes shiploop-knowledge (157 tests), callback-contract, actual-improve-cli, packet-completeness, packet-bounds, guidance, delegation, test-groups, navigator-contract, test-loop, lint, e2e and e2e-commit-counters |
-| by name: shiploop-e2e, shiploop-e2e-commit-counters, shiploop-full-runtime, shiploop-progress-data, shiploop-retire | all exit 0 |
-| `shiploop-mock-replay` (`check_suite.py --suite mock`) | **5 of 37 tests fail, and the same 5 fail at the base `8932b849`** (exported with `git archive` and run in the scratchpad). `test_dag_replay` still expects the old graph edge `prepare -> get-next-work-item`; the 8-stage graph goes to `step-plan`. Not touched here: the oracle belongs to the E2E apparatus, and the failure predates this series |
-| Mutation check | 55 of 55 killed (`mutations.json`) |
-| `scripts/check-release-boundary.py --base 8932b849 --head HEAD` | OK |
+| the catalog commands of `bash test/run-all.sh --group quick --changed-from 8932b849`, one suite at a time in the foreground (the serial tier is longer than one call) | 46 suites: **45 passed, 1 failed** (`shiploop-mock-replay`, below). Includes shiploop-knowledge (164 tests), callback-contract (61), actual-improve-cli (63), packet-completeness (24), packet-bounds (10), guidance (62), delegation (51), test-groups, navigator-contract, test-loop, lint, e2e (406) and e2e-commit-counters |
+| by name: shiploop-full-runtime, shiploop-progress-data, shiploop-retire | all exit 0 |
+| `shiploop-mock-replay` (`check_suite.py --suite mock`) | exit 2: **5 of 37 tests fail, and the same 5 fail at the base `8932b849`** (a `git archive` of the base run in the scratchpad gives the same five, the same message). `test_dag_replay` still expects the old graph edge `prepare -> get-next-work-item`; the 8-stage graph goes to `step-plan`. Not touched here: the oracle belongs to the E2E apparatus, and the failure predates this series |
+| Mutation check | 84 of 84 killed (`mutations.json`) |
+| `python3 scripts/check-release-boundary.py --base 8932b849 --head HEAD` | OK (exit 0) |
 
-The suites were also run at each step (step 1: guidance, delegation, progress-data, e2e-commit-counters, test-groups, callback-contract,
-actual-improve-cli, full-runtime, packet-completeness, packet-bounds, step-packets, e2e-packet-anatomy; step 3: those plus
-navigator-contract, retire, e2e, test-loop, lint), all exit 0 apart from the two tests that `implement`'s new writer
-entry legitimately broke (edited, above). `shiploop-knowledge` was catalogued at 15.0 s in `test/suite_catalog.py` and measured 24 to
-29 s before and after this series (28.8 s at the base); the catalogue is not changed here.
+First build, for the record: 44 of 45 quick suites passed (the same one failing), mutation 55 of 55, the footprint suites at each step.
+`shiploop-knowledge` is catalogued at 15.0 s in `test/suite_catalog.py` and measured 24 to 32 s before and after this series (28.8 s at
+the base); the catalogue is not changed here.
