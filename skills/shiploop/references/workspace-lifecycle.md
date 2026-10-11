@@ -263,9 +263,9 @@ commit of its own and travels with the follow-up return. After a working-tree or
 no-change return, or before any return, the file is kept (before any return nothing
 is said; the retry after the return decides). The decision reads the route before the
 follow-up, which works a no-change return out again and may then return the file with
-the knowledge commits, so the notice speaks of the earlier return, not of the branch. If that follow-up return fails after
-the retire commit alone, the handoff guard still refuses a stale return and prints
-the commands; a retry makes no second retire commit.
+the knowledge commits, so the notice speaks of the earlier return, not of the branch.
+If that follow-up return fails after the retire commit alone, the handoff guard still
+refuses a stale return and prints the commands; a retry makes no second retire commit.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied

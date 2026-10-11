@@ -544,10 +544,12 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
     a fast-forward return, False after a working-tree or no-change return (the run's commits are not on the branch, so the
     file would be the only copy; the knowledge follow-up return that comes after this call may still put them there, which is
     why the reason speaks of the earlier return, ``KEPT_AFTER_ROUTE``), None while an isolated run has not returned (the
-    route is unknown; the handoff guard asks for the return and the retry decides).  The removal is one commit of its own: the deletion, and FEATURE_LIST rewritten
-    without the removed file (only when ShipLoop owns that file and Git would take it).  A file that is already gone is a
-    retry or an early deletion by the model and is left alone, which is what makes the terminal close safe to repeat.
-    Handoff is never refused here: IDs the living spec lacks keep the file, and the reason says which.
+    route is unknown; the handoff guard asks for the return and the retry decides).  The removal is one commit of its own:
+    the deletion, and FEATURE_LIST rewritten without the removed file (only when ShipLoop owns that file and Git would take
+    it).  A file that is already gone is a retry or an early deletion by the model and is left alone, which is what makes
+    the terminal close safe to repeat.  Handoff is never refused here for the IDs or the route: the file is kept and the
+    reason says which.  A removal or commit that cannot be made raises RuntimeError (the navigator's "handoff remains
+    pending"), after the file, the list and the index are put back.
     """
     repo = Path(str(state["repo"]))
     relative = feature_dir(state) + "/spec.md"
