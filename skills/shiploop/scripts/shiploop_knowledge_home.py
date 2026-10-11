@@ -214,15 +214,18 @@ def _filled(path: Path) -> bool:
 
 # What an inner stage reads before it decides, in this order: the contract, then what this run changes of it, then where
 # and how it runs, how it is built, how it is tested.  The labels are the packet's words for the files.
-_GROUNDING = (("living spec", "spec.md"), ("environment", "environment.md"), ("architecture", ARCHITECTURE))  # removed after the renderer swap (consumer contract 4c)
-GROUNDING_LABELS = tuple(label for label, _ in _GROUNDING)  # removed after the renderer swap (consumer contract 4c)
+# removed after the renderer swap (consumer contract 4c)
+_GROUNDING = (("living spec", "spec.md"), ("environment", "environment.md"), ("architecture", ARCHITECTURE))
+# removed after the renderer swap (consumer contract 4c)
+GROUNDING_LABELS = tuple(label for label, _ in _GROUNDING)
 
 
 def grounding(state: Mapping[str, Any]) -> List[Tuple[str, Path]]:
     """The knowledge files an inner stage grounds its decisions in, as ``(label, absolute path)`` in ``GROUNDING_LABELS`` order.
 
-    Absolute, in the execution checkout ``state["repo"]``.  A file that is absent, empty or blank is left out.  It reads the file system only (no Git, nothing written), so it is safe outside a
-    checkout, before the home exists and on every packet render.
+    Absolute, in the execution checkout ``state["repo"]``.  A file that is absent, empty or blank is left out.  It reads
+    the file system only (no Git, nothing written), so it is safe outside a checkout, before the home exists and on every
+    packet render.
     """
     repo = Path(str(state["repo"]))
     paths = _expand([name for _, name in _GROUNDING], state)
@@ -633,9 +636,9 @@ class Lessons(NamedTuple):
 def lessons_body(lessons: Mapping[str, str], open_items: Sequence[Any] = ()) -> str:
     """The lessons commit body: each label, then its text (outer whitespace stripped), sections apart by a blank line.
 
-    The layout an earlier version's release-verify body had, so old and new commits read the same.  ``open_items`` are the open items left
-    at release-verify (``shiploop_assumptions.open_items``: ``stage``, ``workitem`` and ``row``); each is appended as a
-    generated line, so the next run sees what nobody settled.
+    The layout an earlier version's release-verify body had, so old and new commits read the same.  ``open_items`` are
+    the open items left at release-verify (``shiploop_assumptions.open_items``: ``stage``, ``workitem`` and ``row``);
+    each is appended as a generated line, so the next run sees what nobody settled.
     """
     body = "\n\n".join(label + "\n" + str(lessons.get(key, "")).strip() for key, label in LESSON_FIELDS)
     rows = []
