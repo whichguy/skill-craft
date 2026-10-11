@@ -4,6 +4,121 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.1.0
+
+- Skills: ask-agent 0.10.1, in-parallel 0.1.0, plan-dispatcher 0.6.3, shiploop 1.1.0
+
+### ask-agent 0.10.1
+
+- Make parent-owned cleanup follow successful worktree edit integration and
+  combined checks. Use the existing receipt-bound close for compact tasks as
+  well as legacy helper tasks, retain branches and commits, and report refusals.
+  Keep failed, unmerged, return-only and findings-only worktrees available.
+- Accept exactly one redundant `PYTHONDONTWRITEBYTECODE=1` assignment before the pinned compact-v4 `python3 -B` finish command. Preserve exact matching of every remaining argument, binding digest, worker, and working directory. Reject other or duplicate assignments, `env` wrappers, and wrong digests.
+
+  The live r4 worker really completed its finish call, but this harmless prefix made the native audit fail. Retain the original failed verdict. A separate read-only replay passes all 28 gates without modifying the evidence; 84 native and compact regression tests pass. Fresh live qualification remains required.
+- Repair compact-v4 live experiment evidence after the three-worker Grok trial exposed a truncated preparation result and auditor assumptions about prompt ownership, Python interpreter identity, and inspection-specific patch locations.
+
+  Keep full setup and dispatch evidence on disk and emit small versioned, hash-bound summaries. Bind worker ownership through the exact native launch and pinned action packet. Use the producer runtime evidenced by the frozen script invocation instead of the auditor process runtime. Compare semantic commit evidence while independently checking patch bytes and containment. Retain fail-closed checks for truncation, hash drift, cross-worker packets, foreign paths, and unsafe patch artifacts.
+
+  The original trial remains failed. Offline qualification passed 239 tests, including seven new regressions. These changes affect the experiment harness and auditor; they do not establish a speedup or live qualification. Fresh live delivery cases remain required before a live-pass claim.
+- Repair native audit compatibility with the compact-v4 worker lifecycle. Require start-only dispatches to bind through the pinned action packet and actual native finish, normalize only equivalent absolute Python interpreter paths, and compare stable action-packet and commit-inspection fields while separately validating patch evidence. Findings-only returns permit absent or null delivery metadata but reject delivered commits, patches, or inspections. Preserve the legacy parser result shape.
+
+  Validate the changes with focused regressions, all five Ask Agent suites, and a separately saved read-only replay of the retained real Grok evidence. A controlled copy with one native finish removed must fail after a passing baseline. Original live verdicts remain unchanged, and fresh live qualification is still required. This audit repair does not establish a speedup or marketplace release.
+- Share Git's `/` path separator and protected-path set between the task and workspace helpers. Reject unnormalized path segments in workspace relative paths while preserving one trailing directory marker and legal POSIX Git filenames such as `C:notes`. Reject Windows drive-qualified or drive-relative task scopes.
+- Add a reusable Claude Code / Sonnet delivery qualification suite alongside the
+  Grok harness. Preserve the shared dirty-parent worktree, production lifecycle,
+  commit-delivery, and ephemeral checks while retaining Claude-native dispatch,
+  completion, and child transcript evidence. Distinguish explicit command-level
+  worktree scope from hosts that expose a native cwd argument, and keep failed
+  attempts and timing evidence separate from qualification claims.
+
+### in-parallel 0.1.0
+
+- Document In Parallel as the goal-oriented entry to the coordinator workflow,
+  with examples for independent analysis and isolated implementation. The same
+  coordinator and existing harness.py runtime own execution and delivery.
+- Separate complete task decomposition from worker concurrency. Default new batches
+  to at most five concurrent workers, honor an explicit prompt-supplied cap, and
+  refill free slots with fresh agents until the full required queue is accepted.
+  Preserve unresolved outcomes and verify aggregate membership against the complete
+  goal. Add reusable queue tests for bounded refill, full coverage, terminal retry,
+  and uncertain-launch reservations; keep Dispatcher as the only queue authority.
+  Consume the planned backlog incrementally, preparing only yielded items and
+  starting a fresh agent for each, with no persistent worker pool or batch barrier.
+  Clarify bytecode-safe report-only inspection after a live trial exposed an
+  ignored cache file despite clean Git status; retain full fixture-file auditing.
+- Remove integrated worker worktrees after successful combined delivery and
+  checks, using Ask Agent's acceptance-bound close. Preserve branches, commits
+  and durable evidence; report cleanup refusals separately from integration.
+  Keep failed, unmerged, return-only and ephemeral worktrees. Resume interrupted
+  cleanup without repeating integration or sweeping historical runs.
+- Expose one callable coordinator entry point shared with the CLI and a public
+  delivery request validator. Reject malformed arguments before reserving work;
+  preserve caller-owned inputs, structured diagnostics, and existing recovery
+  rules. Document the composable APIs and add concise comments around evidence,
+  locking and cleanup boundaries.
+- Add an `in-parallel` skill that composes Ask Agent's compact task interface
+  with Plan Dispatcher for independent native-agent batches, with separate native
+  collection, evidence-based acceptance, and guarded delivery.
+
+  Live experiments favor a single top-level Grok coordinator for a controlled
+  pilot. Retain failed and blocked trials: Claude headless nesting needed parent
+  resumes, one direct process remained open after delivery, and Markdown scratch
+  reports were refused. The reusable auditor separates native lifecycle evidence
+  from filesystem preservation, and retains provenance for parser-corrected
+  re-audits. Worktrees and commits remain available for explicit later cleanup.
+- Centralize repeated artifact and script names and share repository-path
+  validation between coordination and delivery. Keep Git's slash protocol
+  separate from native filesystem paths, reject ambiguous drive-qualified
+  scopes before dispatch, and read JSON and helper responses as UTF-8 independent
+  of the caller's locale. Cover path boundaries and locale behavior with tests.
+- Add In Parallel as a prompt-facing entry to Agent Harness. One fresh
+  coordinator decomposes a Git-backed goal into independent implementation scopes
+  or analytical perspectives, owns the existing worker lifecycle, and returns a
+  verified synthesis with partial outcomes, disagreements, and delivery evidence.
+  Reuse the existing harness script and host limits without another agent layer.
+
+  Consolidate the unpublished Ask Parallel and Agent Harness entry cards into one
+  `in-parallel` skill and matching coordinator card. Keep Ask Agent independently
+  usable, preserve Dispatcher as the sole task-state owner, and retain existing
+  runtime schemas and pinned historical evidence. Register a reusable
+  `in-parallel` suite group with the historical `agent-harness` group as an alias;
+  compare direct and composed worker contracts using real Git fixtures.
+
+### plan-dispatcher 0.6.3
+
+- Plan Dispatcher supports an opt-in compact Ask-Agent coordinator profile and allows concurrent read-only attempts to share the same canonical workspace.
+
+### shiploop 1.1.0
+
+- Packets print what the consumer contract hands each stage, by value and uncut.
+  - **Knowledge files read.** Each file `knowledge_home.READS` gives the stage is quoted whole after the status block,
+    each line prefixed `  | `, or marked "not written yet". The References block names them in one line. This replaces
+    the per-stage consult list of headings, because heading matching missed most saved homes (owner decision D1).
+  - **Hand-off values.** "Handed off by earlier stages" quotes each `CONSUMES` value from `handoff_sources`:
+    - the follows IDs with their spec or architecture entries, marked when retired, or "no entry in HOME/<file>";
+    - the criteria, focused commands and system commands;
+    - the test cases with oracle, red and green;
+    - not_covered;
+    - the open items with check, reason, consumer, owner and producer;
+    - the lessons;
+    - the spec and architecture diff since the run baseline.
+
+    A missing value prints "not recorded by <stage>".
+  - **Result-shape block.** It prints the shape of each hand-off field the gate requires and the template leaves out:
+    - follows at step-plan;
+    - test_cases at test-spec;
+    - lessons at release-verify;
+    - not_covered, optional, at implement;
+    - assumptions at each open-item stage.
+
+    A done result that follows the packet is no longer refused once per missing key.
+  - **Duty wording.** test-spec records its cases in `test_cases` and a due-later case as an open item; verify and
+    system-test-author record later checks and unrunnable cases as open items in `assumptions`.
+  - **Working-tree return.** The handoff packet prints the lessons commit message for the user to commit, since a
+    working-tree return makes no commit.
+
 ### skill-craft 2.0.1
 
 - Skills: improve 0.3.1

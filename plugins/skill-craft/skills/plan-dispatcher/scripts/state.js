@@ -720,11 +720,11 @@ function requireUniqueStrings(value, label, requireNonempty) {
   return values;
 }
 
-function normalizeWriteScope(value, label) {
+function normalizeWriteScope(value, label, allowEmpty = false) {
   if (!Array.isArray(value)) {
     fail(label + ' must be an array');
   }
-  if (value.length === 0) {
+  if (!allowEmpty && value.length === 0) {
     fail(label + ' must not be empty');
   }
   const normalized = value.map((item, index) => {
@@ -779,20 +779,34 @@ function directoriesOverlap(left, right) {
 }
 
 function contextShape(context, label) {
+  const readOnlyPresent = isPlainObject(context) && hasOwn(context, 'read_only');
   assertExactObject(
     context,
-    ['workspace', 'write_scope', 'resources', 'ready_evidence'],
+    readOnlyPresent
+      ? ['workspace', 'write_scope', 'resources', 'ready_evidence', 'read_only']
+      : ['workspace', 'write_scope', 'resources', 'ready_evidence'],
     label
   );
+  if (readOnlyPresent && typeof context.read_only !== 'boolean') {
+    fail(label + '.read_only must be a boolean');
+  }
+  const readOnly = readOnlyPresent && context.read_only === true;
   requireString(context.workspace, label + '.workspace');
   if (!path.isAbsolute(context.workspace)) {
     fail(label + '.workspace must be an absolute path');
   }
+  const writeScope = normalizeWriteScope(context.write_scope, label + '.write_scope', readOnly);
+  if (readOnly && writeScope.length !== 0) {
+    fail(label + '.write_scope must be empty when read_only is true');
+  }
   const output = {
     workspace: path.resolve(context.workspace),
-    write_scope: normalizeWriteScope(context.write_scope, label + '.write_scope'),
+    write_scope: writeScope,
     resources: requireUniqueStrings(context.resources, label + '.resources', false),
   };
+  if (readOnlyPresent) {
+    output.read_only = context.read_only;
+  }
   evidenceShape(context.ready_evidence, label + '.ready_evidence');
   output.ready_evidence = {
     path: path.resolve(context.ready_evidence.path),
@@ -836,7 +850,11 @@ function assertContextAvailable(state, record, context) {
       continue;
     }
     if (directoriesOverlap(context.workspace, other.context.workspace)) {
-      fail('workspace overlaps the active attempt: ' + other.attempt);
+      const sharedReadOnlyWorkspace = context.workspace === other.context.workspace &&
+        context.read_only === true && other.context.read_only === true;
+      if (!sharedReadOnlyWorkspace) {
+        fail('workspace overlaps the active attempt: ' + other.attempt);
+      }
     }
     const otherResources = new Set(other.context.resources);
     for (const resource of context.resources) {

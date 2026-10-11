@@ -1305,11 +1305,13 @@ requirement's text, never from code (check a golden, fixture or snapshot oracle
 against that text first); state which HOME/test-strategy.md decisions this item
 keeps or changes and why. Read the step plan's criteria and its focused commands'
 ids.
-Write one "### <ID>" entry per case in FEATURE/test-spec.md, titled with an
-id a focused command in the step plan's `test_commands` lists, and give every id
-those commands list its own entry: ShipLoop refuses a case ID that no focused
-command lists and a focused command id with no entry. A missing id means the
-step plan must change: report revise naming it.
+Record one case per id in the result's `test_cases`
+(`{"id", "criterion", "requirement", "oracle", "red", "green"}`; implement, test and
+verify quote them), each id one a focused command in the step plan's
+`test_commands` lists, and give every id those commands list its own case:
+ShipLoop refuses a case ID that no focused command lists and a focused command id
+with no case. A missing id means the step plan must change: report revise naming
+it. Write each case's full entry under its "### <ID>" in FEATURE/test-spec.md.
 Each entry holds: criterion and R-<n>; surface (unit, the
 module's public interface, the real boundary, rendered UI) and due phase; setup
 and fixture; action; independent oracle (the expected observation, never only that
@@ -1322,9 +1324,10 @@ type or shape, out of range), asserting the error type, the named argument and
 unchanged state. Isolate per test unless sharing setup is shown safe, never
 sharing mutable state; plan failure cleanup and say which suite registers each
 case and whether it joins smoke. Preserve every assigned clause with its required
-surface and due phase. A case due later (system test, release) is not a "### <ID>"
-entry: list it under "## Due later" as `- <ID>: <criterion, R-<n>, oracle, due
-stage, owner>`, where system-test-author picks it up. A criterion confirmed only by
+surface and due phase. A case due later (system test, release) is not a case
+here: record it in `assumptions` as an open item (the case ID, criterion, R-<n>
+and oracle in its assumption; its check; consumer: the later outer stage it is due
+at; owner), where system-test-author picks it up. A criterion confirmed only by
 a check command (lint, type, build) or by inspection gets no case: name it and its
 confirming command under "## Not tested here". This file is a specification, not evidence:
 the test stage writes and runs these cases after implement. If a criterion cannot
@@ -1429,8 +1432,8 @@ Every case ends as a test the focused command runs and passes (when the first
 method cannot observe the oracle, a test by another method, still titled with its
 ID, and the result says what changed and why), or unachievable (a named reason
 and the requirement it leaves unverified: report revise so the step plan reroutes
-it); a case written but not run is not an end state. A case in FEATURE/test-spec.md's
-"## Due later" list is not written here; it stays there for system-test-author.
+it); a case written but not run is not an end state. A case due later is an open
+item for a later outer stage, not written here; system-test-author picks it up.
 A new test that passes on the item's base without this change is a
 characterisation test: name it in `red_na` (`[{"id": "<test ID>", "reason": "<why it passes without this change>"}]`).
 A test this item deliberately retires goes in `retired_tests`
@@ -1490,8 +1493,8 @@ known limitations. Use Service discovery guidance for the item's selected servic
 and observability contracts: verify the due outcomes, including safe fallback and
 failure cases, and separate local simulation from required remote readback,
 permission enforcement, completion and event retrieval. Confirm every later-phase
-check the criteria need (system, release, real boundary) is listed under the
-FEATURE/test-spec.md's "## Due later" with its owner and due stage, adding any
+check the criteria need (system, release, real boundary) is an open item in
+`assumptions` with its consumer (the stage it is due at) and owner, adding any
 missing one; system-test-author picks them up from there. Keep run state, raw logs, credentials and generated artifacts
 out of the product commit.
 Summarize the entry points traced, each trace that found an issue and its fix,
@@ -1548,18 +1551,19 @@ cannot pass here is changed to observe the same requirement another way. A case
 that cannot run here (for example a browser or an account this host cannot reach)
 is unachievable: leave its command out of `system_commands`,
 because ShipLoop runs every recorded one and refuses unless each passes, and
-record it as an open item in this result's summary: case ID, the requirement it
-leaves unverified, who does what, what they report, and the stage it is due at
-(handoff, or the stage whose external effect it gates). Then continue with every
+record it as an open item in this result's `assumptions`: the case ID and the
+requirement it leaves unverified, who does what and what they report (owner), and
+the stage it is due at as its consumer (handoff, or the stage whose external effect
+it gates). Then continue with every
 case that can run, and report blocked only when nothing else can proceed. A
 command recorded as not run is not an end state. When no system test applies, give an empty list with
 `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
-test-spec or test, with its retained prior locators. Read every entry under
-"## Due later" in FEATURE/test-spec.md and the system-test obligations in
-FEATURE/plan.md "## Open": each becomes a system case here, or an open item with
-its due stage.
+test-spec or test, with its retained prior locators. Read every item's test cases
+and every open item quoted below, and the system-test obligations in
+FEATURE/plan.md "## Open": each due-later case becomes a system case here, or an
+open item with its due stage.
 Keep selected action/result and durable test-note locators in evidence_refs.
 Do not infer whole-product coverage from the last transition or final item.
 Reconcile their suite membership and prerequisites before adding cases.
