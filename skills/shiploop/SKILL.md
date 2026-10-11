@@ -350,10 +350,12 @@ review needs no `final_result`: ShipLoop reuses the submitted result.
 Planning knowledge outlives the run. Planning stages keep `docs/shiploop/` in the
 product repository up to date: `README.md` (index), `spec.md` (the living spec,
 stable `R-<n>` IDs), `environment.md` (targets by alias, working commands,
-platform facts), `test-strategy.md`, and this run's `features/<slug>/` record.
+platform facts), `test-strategy.md`, `architecture.md` (stack, structure, conventions,
+interfaces and numbered `AD-<n>` decisions), and this run's `features/<slug>/` record.
 At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
 refuses `done` until that close's files exist, screens them for credentials,
-refuses a living spec that drops an earlier committed ID, and commits exactly
+refuses a living spec or architecture whose uncommitted version drops an earlier committed
+ID (an edit a review already committed through `improve-commit` is not seen), and commits exactly
 `docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
 ShipLoop runs the same credential and ID checks and commits it too, so never
 commit it yourself. The `release-verify` commit's message is the feature

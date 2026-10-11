@@ -479,6 +479,97 @@ class RefusalRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
 
+    def git(self, repo: Path, *argv: str) -> str:
+        return subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@example.invalid", "-c", "user.name=t", *argv],
+                              env=self.env, check=True, capture_output=True, text=True).stdout
+
+    def test_a_repository_whose_home_has_no_architecture_is_refused_at_prepare_and_the_file_it_names_is_accepted(self) -> None:
+        # A home an earlier version committed has every file but architecture.md.  The next run meets one refusal, at
+        # prepare, that names that file alone and says what it holds; writing exactly it is accepted by the same command.
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        listed = re.findall(r"^- (/\S+)$", self.refused(command, run), re.M)
+        architecture = [named for named in listed if named.endswith("/docs/shiploop/architecture.md")]
+        self.assertEqual(len(architecture), 1, listed)  # a first prepare asks for it with the rest
+        for named in listed:
+            if named not in architecture:
+                Path(named).parent.mkdir(parents=True, exist_ok=True)
+                Path(named).write_text("What this file records.\n", encoding="utf-8")
+        self.git(repo, "add", "docs/shiploop")
+        self.git(repo, "commit", "-qm", "an earlier run's home")
+        reply = self.refused(command, run)
+        self.assertEqual(reply.splitlines()[0], "ShipLoop navigator: Before prepare is done, write: " + architecture[0])
+        self.assertEqual(re.findall(r"^- (/\S+)$", reply, re.M), architecture)
+        self.assertIn("\narchitecture.md holds the stack (language, frameworks, dependencies and why)", reply)
+        Path(architecture[0]).write_text("What this file records.\n", encoding="utf-8")  # exactly the file the refusal names
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertTrue(self.git(repo, "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
+        self.assertEqual(self.git(repo, "show", "--name-only", "--format=", "HEAD").split(), ["docs/shiploop/architecture.md"])
+
+    def test_a_dropped_decision_id_is_refused_with_its_exit_on_line_1_and_the_exit_is_accepted(self) -> None:
+        # A later run's prepare, on a repository whose home an earlier run committed with two decisions.  Line 1 is the
+        # fix, the file and the command, with no ID list; the IDs follow on line 2.  The heading to use is read from the
+        # refusal, not known by the test.
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
+            Path(named).parent.mkdir(parents=True, exist_ok=True)
+            Path(named).write_text("What this file records.\n", encoding="utf-8")
+        architecture = repo / "docs/shiploop/architecture.md"
+        architecture.write_text("# Architecture\n\nAD-1 In-memory board.\nAD-2 One module per concern.\n", encoding="utf-8")
+        self.git(repo, "add", "docs/shiploop")
+        self.git(repo, "commit", "-qm", "an earlier run's home")
+        architecture.write_text("# Architecture\n\nAD-1 In-memory board.\n", encoding="utf-8")  # this run's version loses AD-2
+        reply = self.refused(command, run)
+        first = reply.splitlines()[0]
+        # The template, not a column: where `cut -c1-250` falls depends on how long this machine's temporary directory is
+        # (the knowledge suite tests the cut at the lengths of the real checkouts).
+        self.assertEqual(first.replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Restore the lost AD-<n> in <file> or move it under 'Superseded', "
+                         "then run the same complete command again.")
+        self.assertNotIn("AD-2", first)
+        self.assertIn("The architecture no longer mentions AD-2.", reply.splitlines()[1])
+        heading = re.search(r"move it under '([^']+)'", first).group(1)
+        architecture.write_text(architecture.read_text(encoding="utf-8") + "\n## " + heading + "\n\nAD-2: split by layer instead.\n",
+                                encoding="utf-8")
+        self.accepted(command)  # the same printed command
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertIn("## " + heading, self.git(repo, "show", "HEAD:docs/shiploop/architecture.md"))
+
+    def test_an_architecture_line_that_looks_like_a_credential_is_refused_with_its_place_and_the_fix_and_the_reworded_line_is_accepted(self) -> None:
+        # architecture.md records auth shapes, and the screen reads every home file: the refusal must be one a cleared-context
+        # model can act on from its first line (absolute place, the fix, the command), and echo no value.
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
+            Path(named).parent.mkdir(parents=True, exist_ok=True)
+            Path(named).write_text("What this file records.\n", encoding="utf-8")
+        architecture = repo / "docs/shiploop/architecture.md"
+        architecture.write_text("# Architecture\n\nPassword: bcrypt, cost 12\nSECRET_KEY = os.environ['SECRET_KEY']\n", encoding="utf-8")
+        reply = self.refused(command, run)
+        lines = reply.splitlines()
+        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Reword <file>:3 to name an alias, not a value or an assignment; "
+                         "then run the same complete command again.")
+        self.assertIn("look like credentials", reply)
+        self.assertEqual(re.findall(r"^- (/\S+:\d+)$", reply, re.M), [str(architecture) + ":3", str(architecture) + ":4"])
+        self.assertNotIn("bcrypt", reply)  # places, never the text
+        # the fix the line names, applied at the place it names: the first location, then the rest of the list
+        for place in re.findall(r"^- (/\S+):(\d+)$", reply, re.M):
+            where, number = place[0], int(place[1])
+            rows = Path(where).read_text(encoding="utf-8").splitlines()
+            rows[number - 1] = "Credentials are read from the environment by name (an alias), never written here."
+            Path(where).write_text("\n".join(rows) + "\n", encoding="utf-8")
+        self.accepted(command)  # the same printed command
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)

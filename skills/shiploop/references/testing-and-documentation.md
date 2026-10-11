@@ -432,9 +432,10 @@ actual verification, and complete `skill-validate` when a skill is selected.
 
 Read the actual code/test diff, accepted step plan and relevant repo docs.
 Prefer colocated concise contracts/comments for non-obvious behavior;
-incrementally update affected README sections and existing design/architecture/
-environment notes, or give a concrete unchanged reason. Always assess the repo
-README (record absence and decide whether this step needs one). Use AGENTS.md for
+incrementally update affected README sections, existing design and environment
+notes, and `docs/shiploop/architecture.md` (the stack, structure and `AD-<n>`
+decisions this step changed), or give a concrete unchanged reason. Always assess
+the repo README (record absence and decide whether this step needs one). Use AGENTS.md for
 short stable project navigation/conventions when useful, not run state, secrets,
 raw observations or copied manuals. Link detailed durable knowledge once from
 the existing appropriate index instead of duplicating it.

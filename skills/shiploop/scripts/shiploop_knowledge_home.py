@@ -4,7 +4,7 @@ Owner decision 2026-09-26: planning produces a spec and environment knowledge th
 outlive the run.  The model writes them under ``docs/shiploop/`` during planning;
 at four closes ShipLoop checks the expected files (prepare, test-spec, release-plan,
 release-verify), screens them for credentials,
-refuses a living spec that drops an earlier requirement ID, and commits exactly
+refuses a living spec or architecture that drops an earlier requirement or decision ID, and commits exactly
 ``docs/shiploop/`` and the repository index ``SHIPLOOP.md`` with its own message.
 A later run starts from these files.
 
@@ -12,6 +12,7 @@ A later run starts from these files.
     docs/shiploop/spec.md            living product spec; stable requirement IDs, a Retired section
     docs/shiploop/environment.md     targets, aliases, working commands, platform facts
     docs/shiploop/test-strategy.md   harnesses, suites, commands, the ID convention
+    docs/shiploop/architecture.md    stack, structure, conventions, interfaces; stable decision IDs, a Superseded section
     docs/shiploop/features/<slug>/   this run: spec.md (delta), plan.md, test-spec.md,
                                      system-tests.md, release-plan.md, outcome.md
 """
@@ -31,10 +32,16 @@ HOME = "docs/shiploop"
 # The repository's knowledge index; the references ask the model to keep it, so ShipLoop commits it with the home.
 INDEX = "SHIPLOOP.md"
 KNOWLEDGE = (HOME, INDEX)
-LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md")
+# The architecture file: how the product is built (the stack and structure survive a change of spec, as the spec survives a
+# change of stack).  ARCHITECTURE_HOLDS is the one wording of what it holds; the missing-file refusal prints it.
+ARCHITECTURE = "architecture.md"
+ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), "
+                      "conventions, interfaces and boundaries, and a '## Decisions' section of stable IDs AD-<n> (choice, "
+                      "why, alternatives, status) with a '## Superseded' section for decisions that no longer hold")
+LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE)
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
-    "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md",
+    "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE,
                 "{feature}/spec.md", "{feature}/plan.md"),
     "test-spec": ("{feature}/plan.md", "{feature}/test-spec.md"),
     "release-plan": ("{feature}/system-tests.md", "{feature}/release-plan.md", "environment.md"),
@@ -48,9 +55,9 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "discovery": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
-    "plan": ("{feature}/plan.md", "README.md"),
+    "plan": ("{feature}/plan.md", "README.md", ARCHITECTURE),
     "prepare": ("environment.md",),
-    "step-plan": ("{feature}/plan.md",),
+    "step-plan": ("{feature}/plan.md", ARCHITECTURE),
     "test-spec": ("{feature}/test-spec.md",),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
@@ -74,6 +81,12 @@ def next_close(stage: str, name: str) -> Optional[str]:
 
 
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
+_DECISION_ID = re.compile(r"\b(AD-\d+)\b")
+# The living files whose stable IDs a later version must keep: the file under HOME, its ID pattern, the refusal's name for the
+# file and word for one ID, and the heading a dropped one moves under (with its reason).  AD-, not D-: a spec may number its
+# own product decisions D-<n>, and neither file's check reads the other's numbering.
+_RETAINED = (("spec.md", _REQUIREMENT_ID, "living spec", "requirement", "Retired"),
+             (ARCHITECTURE, _DECISION_ID, "architecture", "decision", "Superseded"))
 # outcome.md sections that become the release-verify commit body (owner to-do 2026-09-26).
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
 
@@ -120,6 +133,36 @@ def feature_dir(state: Mapping[str, Any]) -> str:
 def _expand(names: Sequence[str], state: Mapping[str, Any]) -> List[str]:
     feature = feature_dir(state)
     return [name.replace("{feature}", feature) if "{feature}" in name else HOME + "/" + name for name in names]
+
+
+def _filled(path: Path) -> bool:
+    """Whether ``path`` is a file with some text in it: absent, empty and blank all read as missing.
+
+    The one "present" rule, for the close (a required file) and for ``grounding`` (a file the packet points at).
+    """
+    try:
+        return path.is_file() and bool(path.read_text(encoding="utf-8", errors="replace").strip())
+    except OSError:
+        return False
+
+
+# What an inner stage reads before it decides, in this order: the contract, then what this run changes of it, then where
+# and how it runs, how it is built, how it is tested.  The labels are the packet's words for the files.
+_GROUNDING = (("living spec", "spec.md"), ("feature spec", "{feature}/spec.md"), ("environment", "environment.md"),
+              ("architecture", ARCHITECTURE), ("test strategy", "test-strategy.md"))
+GROUNDING_LABELS = tuple(label for label, _ in _GROUNDING)
+
+
+def grounding(state: Mapping[str, Any]) -> List[Tuple[str, Path]]:
+    """The knowledge files an inner stage grounds its decisions in, as ``(label, absolute path)`` in ``GROUNDING_LABELS`` order.
+
+    Absolute, in the execution checkout ``state["repo"]``; this run's feature spec, never an earlier run's.  A file that is
+    absent, empty or blank is left out.  It reads the file system only (no Git, nothing written), so it is safe outside a
+    checkout, before the home exists and on every packet render.
+    """
+    repo = Path(str(state["repo"]))
+    paths = _expand([name for _, name in _GROUNDING], state)
+    return [(label, repo / path) for (label, _), path in zip(_GROUNDING, paths) if _filled(repo / path)]
 
 
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
@@ -173,8 +216,9 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
                           capture_output=True, text=True, check=False)
 
 
-def _committed_spec(repo: Path) -> str:
-    shown = _git(repo, "show", "HEAD:" + HOME + "/spec.md")
+def _committed(repo: Path, name: str) -> str:
+    """The home file ``name`` as HEAD holds it; "" when HEAD has none (a first run, or an unborn branch)."""
+    shown = _git(repo, "show", "HEAD:" + HOME + "/" + name)
     return shown.stdout if shown.returncode == 0 else ""
 
 
@@ -183,11 +227,13 @@ def _home_changed(repo: Path) -> bool:
     return bool(_git(repo, "status", "--porcelain", "--untracked-files=all", "--", *KNOWLEDGE).stdout.strip())
 
 
-def check(state: Mapping[str, Any], stage: str) -> str:
+def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> str:
     """Refusal text when a stage's done would commit knowledge that is missing, leaks a credential or drops an ID.
 
     A close requires its files; any other stage is checked only when it changed the home,
-    because ShipLoop commits the home after every accepted stage that changed it.
+    because ShipLoop commits the home after every accepted stage that changed it.  ``command`` is the callback the
+    refusal tells the model to run again (``complete``, or ``improve-complete`` for a reviewed result).  A drop is seen
+    only in an edit still uncommitted: an edit a review already committed through ``improve-commit`` is the baseline.
     """
     repo = Path(str(state["repo"]))
     if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
@@ -195,8 +241,7 @@ def check(state: Mapping[str, Any], stage: str) -> str:
     if stage not in CLOSES and not _home_changed(repo):
         return ""
     required = _expand(CLOSES.get(stage, ()), state)
-    missing = [path for path in required if not (repo / path).is_file() or not (repo / path).read_text(
-        encoding="utf-8", errors="replace").strip()]
+    missing = [path for path in required if not _filled(repo / path)]
     if missing:
         # Line 1 is what a model that reads only the first line of a refusal needs: the action and the files.  The
         # paths are absolute because the shell's directory is the original checkout, while these files belong in
@@ -205,31 +250,57 @@ def check(state: Mapping[str, Any], stage: str) -> str:
         return ("Before " + stage + " is done, write: " + ", ".join(paths) + "\n"
                 "ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
                 "The files, one per line:\n" + "".join("- " + p + "\n" for p in paths)
+                # architecture.md is the one file with no other description at prepare: a cleared model reads this.
+                + (ARCHITECTURE + " holds " + ARCHITECTURE_HOLDS + ".\n" if str(repo / HOME / ARCHITECTURE) in paths else "")
                 + "See the packet's knowledge-home lines for what each file holds.")
     leaks = []
     screened = sorted((repo / HOME).rglob("*.md")) + ([repo / INDEX] if (repo / INDEX).is_file() else [])
     for path in screened:
         for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
             if privacy.sensitive_text(line):
-                leaks.append(str(path.relative_to(repo)) + ":" + str(number))
+                leaks.append(str(path) + ":" + str(number))
     if leaks:
-        return ("These knowledge lines look like credentials; record alias names, never tokens, passwords or "
-                "session URLs: " + ", ".join(leaks[:10]))
+        # Line 1 is for a model that reads only it: where (absolute: the shell's directory is the original checkout), what to
+        # write instead, and the command.  Every place follows, one per line, never the text.  Line 2 keeps the words the
+        # refusal has always had, so refusals can still be counted by them.
+        return ("Reword " + leaks[0] + " to name an alias, not a value or an assignment; then run the same " + command
+                + " command again.\n"
+                "These knowledge lines look like credentials; name where each secret is kept (an alias, or the mechanism "
+                "that supplies it, such as the name of an environment variable), never its value or code that assigns it. "
+                "The lines:\n" + "\n".join("- " + place for place in leaks)
+                + ("\nA file this review changed and left uncommitted needs improve-commit before improve-complete; "
+                   "improve-complete prints the exact improve-commit command when one is owed."
+                   if command == "improve-complete" else ""))
     if stage == "release-verify":
         empty = [name for name, body in learnings(state).items() if not body]
         if empty:
             return ("Write these sections in " + str(repo / feature_dir(state) / "outcome.md") + ", in detail; "
                     "they become this run's learnings commit, which the next run reads first: "
                     + ", ".join("'## " + name + "'" for name in empty))
-    before = set(_REQUIREMENT_ID.findall(_committed_spec(repo)))
-    now = set(_REQUIREMENT_ID.findall((repo / HOME / "spec.md").read_text(encoding="utf-8", errors="replace"))
-              if (repo / HOME / "spec.md").is_file() else ())
-    dropped = sorted(before - now, key=lambda value: int(value.split("-")[1]))
-    if dropped:
-        return ("The living spec " + str(repo / HOME / "spec.md") + " no longer mentions " + ", ".join(dropped)
-                + ". Keep every earlier requirement ID: modify it in place, or move it under a 'Retired' "
-                "heading with the reason.")
-    return ""
+    # A plain mention anywhere in the file keeps an ID (a heading, a table row, a line under Retired or Superseded); nothing
+    # is dropped from a file HEAD does not hold yet.  Line 1 is the fix, the absolute path and the command, with no ID
+    # list, so a long list can never cut the fix off a model that reads the first 250 characters; the IDs follow, in full.
+    # The baseline is HEAD, so an edit already committed (a review's, through improve-commit) is not seen: only one still
+    # uncommitted, which is why the knowledge gate runs before the commit gate on the improve-complete route.
+    refusals = []
+    for name, ids, what, kind, section in _RETAINED:
+        path = repo / HOME / name
+        now = set(ids.findall(path.read_text(encoding="utf-8", errors="replace"))) if path.is_file() else set()
+        dropped = sorted(set(ids.findall(_committed(repo, name))) - now, key=lambda value: int(value.split("-")[1]))
+        if dropped:
+            prefix = dropped[0].split("-")[0]
+            if command == "complete":
+                first = ("Restore the lost " + prefix + "-<n> in " + str(path) + " or move it under '" + section
+                         + "', then run the same complete command again.")
+            else:
+                # The route's real sequence: the fix is the review's uncommitted edit, so improve-commit comes before the
+                # import (else the commit gate is the next refusal).  Shorter, so `cut -c1-250` keeps all three steps at
+                # the longest saved checkout path (137 characters); the 'Superseded' exit is on line 2.
+                first = ("Restore " + prefix + "-<n> in " + str(path) + "; if the review changed it, improve-commit it; "
+                         "then run " + command + ".")
+            refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
+                            + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
+    return "\n".join(refusals)
 
 
 def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
@@ -254,5 +325,6 @@ def in_home(path: str) -> bool:
     return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
-           "next_close", "recent_commits", "required_earlier", "stage_lines")
+__all__ = ("ARCHITECTURE", "ARCHITECTURE_HOLDS", "CLOSES", "GROUNDING_LABELS", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS",
+           "check", "commit", "feature_dir", "grounding", "in_home", "learnings", "next_close", "recent_commits",
+           "required_earlier", "stage_lines")

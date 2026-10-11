@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import time
 import subprocess
 import sys
@@ -30,7 +31,9 @@ def git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
 
 
-class KnowledgeTests(unittest.TestCase):
+class HomeFixture(unittest.TestCase):
+    """A real Git repository holding one commit, and the state of a run in it; no tests of its own."""
+
     def setUp(self) -> None:
         # Real-git tests must not read the machine's Git configuration: a CI runner's global config carries git-lfs
         # filters, which the workspace refuses (as in shiploop-workspace and shiploop-test-loop).
@@ -52,6 +55,8 @@ class KnowledgeTests(unittest.TestCase):
         self.state = {"repo": str(self.repo), "prompt": "Add a Fleet command tab to the Battleship game.",
                       "run_id": "nav-0123456789abcdef"}
 
+
+class KnowledgeTests(HomeFixture):
     def test_feature_directory_and_stage_lines(self) -> None:
         self.assertEqual(knowledge.feature_dir(self.state),
                          "docs/shiploop/features/add-a-fleet-command-tab-to-abcdef")
@@ -69,7 +74,8 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(knowledge.next_close("system-test-author", "{feature}/system-tests.md"), "release-plan")
         self.assertIsNone(knowledge.next_close("plan", "{feature}/outcome.md.nope"))
         self.assertEqual(knowledge.required_earlier("prepare"),
-                         ("README.md", "spec.md", "test-strategy.md", "{feature}/spec.md", "{feature}/plan.md"))
+                         ("README.md", "spec.md", "test-strategy.md", "architecture.md", "{feature}/spec.md",
+                          "{feature}/plan.md"))
         lines = "\n".join(knowledge.stage_lines(self.state, "prepare"))
         self.assertIn("Written by earlier stages; ShipLoop refuses prepare if any is missing or empty: "
                       + str(self.repo / "docs/shiploop/README.md"), lines)
@@ -111,12 +117,15 @@ class KnowledgeTests(unittest.TestCase):
         lines = refusal.splitlines()
         feature = knowledge.feature_dir(self.state)
         names = [knowledge.HOME + "/README.md", knowledge.HOME + "/spec.md", knowledge.HOME + "/environment.md",
-                 knowledge.HOME + "/test-strategy.md", feature + "/spec.md", feature + "/plan.md"]
+                 knowledge.HOME + "/test-strategy.md", knowledge.HOME + "/architecture.md", feature + "/spec.md",
+                 feature + "/plan.md"]
         absolute = [str(self.repo / name) for name in names]
         self.assertEqual(lines[0], "Before prepare is done, write: " + ", ".join(absolute))
         self.assertIn(absolute[0], lines[0][:250])
         self.assertNotIn(" docs/shiploop/", lines[0])  # no relative path that could be written from the wrong directory
         self.assertEqual(re.findall(r"^- (/\S+)$", refusal, re.M), absolute)
+        # a first prepare asks for every file at once, the architecture among them: its one hint line is printed once, here too
+        self.assertEqual(re.findall(r"^(\S+) holds ", refusal, re.M), ["architecture.md"])
         self.assertIn("keeps this run's planning knowledge in the repository", refusal)
         self.assertTrue(refusal.endswith("See the packet's knowledge-home lines for what each file holds."))
 
@@ -210,6 +219,384 @@ class KnowledgeAfterEveryStageTests(KnowledgeTests):
 
     def test_an_unchanged_home_is_not_checked_outside_a_close(self) -> None:
         self.assertEqual(knowledge.check(self.state, "implement"), "")  # no home at all: nothing to require
+
+
+class ArchitectureTests(HomeFixture):
+    """docs/shiploop/architecture.md: a living file that plan and step-plan keep and prepare requires."""
+
+    ARCH = "docs/shiploop/architecture.md"
+    DECISIONS = ("# Architecture\n\nNode 22, built-in http, no dependencies.\n\n## Decisions\n\n"
+                 "### AD-1 Keep the board in memory\nChoice: a Map per game. Why: no storage is asked for. Status: current.\n\n"
+                 "### AD-2 One module per concern\nChoice: rules.js, server.js. Why: tests load rules alone. Status: current.\n\n"
+                 "### AD-3 JSON errors\nChoice: {error} bodies. Why: one parser on the page. Status: current.\n")
+
+    def commit_home(self, architecture: str | None = None) -> Path:
+        """The whole home written and committed once (a finished earlier run), with this architecture.md."""
+        support.write(self.state)
+        path = self.repo / self.ARCH
+        path.write_text(self.DECISIONS if architecture is None else architecture, encoding="utf-8")
+        self.assertTrue(knowledge.commit(self.state, "prepare").commit)
+        return path
+
+    def test_the_architecture_is_a_living_file_plan_and_step_plan_keep_and_prepare_requires(self) -> None:
+        self.assertEqual(knowledge.ARCHITECTURE, "architecture.md")
+        self.assertIn("architecture.md", knowledge.LIVING)
+        self.assertIn("architecture.md", knowledge.CLOSES["prepare"])
+        self.assertEqual(knowledge.next_close("plan", "architecture.md"), "prepare")
+        self.assertIsNone(knowledge.next_close("step-plan", "architecture.md"))  # prepare is behind step-plan
+        absolute = str(self.repo / self.ARCH)
+        plan = "\n".join(knowledge.stage_lines(self.state, "plan"))
+        self.assertRegex(plan, r"keeps these up to date \(create them if missing\): .*" + re.escape(absolute))
+        self.assertRegex(plan, r"ShipLoop refuses prepare if any of these is missing or empty: .*" + re.escape(absolute))
+        step_plan = [row for row in knowledge.stage_lines(self.state, "step-plan") if "keeps these up to date" in row]
+        self.assertIn(absolute, step_plan[0])
+        prepare = [row for row in knowledge.stage_lines(self.state, "prepare") if row.startswith("Written by earlier stages")]
+        self.assertIn(absolute, prepare[0])
+        for stage in ("intake", "discovery", "spec", "test-strategy", "implement"):
+            with self.subTest(stage):
+                self.assertNotIn(absolute, "\n".join(knowledge.stage_lines(self.state, stage)))
+
+    def test_the_architecture_is_ordered_after_the_other_living_files_and_before_the_feature_files(self) -> None:
+        self.assertEqual(knowledge.CLOSES["prepare"][:5],
+                         ("README.md", "spec.md", "environment.md", "test-strategy.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["plan"][-1], "architecture.md")  # the printed order of the others is kept
+        self.assertEqual(knowledge.STAGE_FILES["step-plan"], ("{feature}/plan.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))  # prepare requires it; plan writes it
+
+    def test_a_home_without_an_architecture_is_refused_at_prepare_naming_only_that_file_and_what_it_holds(self) -> None:
+        support.write(self.state)
+        (self.repo / self.ARCH).unlink()
+        refusal = knowledge.check(self.state, "prepare")
+        self.assertEqual(refusal.splitlines()[0], "Before prepare is done, write: " + str(self.repo / self.ARCH))
+        self.assertEqual(re.findall(r"^- (/\S+)$", refusal, re.M), [str(self.repo / self.ARCH)])
+        # architecture.md is new: a cleared-context model has no other description of it, so the refusal carries one line
+        self.assertIn("\narchitecture.md holds " + knowledge.ARCHITECTURE_HOLDS + ".\n", refusal)
+        self.assertEqual(re.findall(r"^(\S+) holds ", refusal, re.M), ["architecture.md"])  # no per-file line for the others
+        self.assertTrue(refusal.endswith("See the packet's knowledge-home lines for what each file holds."))
+        # a refusal that asks for nothing about the architecture says nothing about it
+        (self.repo / self.ARCH).write_text("# Architecture\n\nA script.\n")
+        (self.repo / "docs/shiploop/environment.md").unlink()
+        self.assertNotIn("architecture.md holds", knowledge.check(self.state, "prepare"))
+
+    def test_the_wording_of_what_the_file_holds_keeps_runtime_in_the_environment_and_names_the_decision_ids(self) -> None:
+        holds = knowledge.ARCHITECTURE_HOLDS
+        self.assertTrue(holds.startswith("the stack (language, frameworks, dependencies and why)"), holds)
+        self.assertIn("AD-<n>", holds)
+        self.assertIn("'## Decisions'", holds)
+        self.assertIn("'## Superseded'", holds)
+        self.assertNotIn("runtime", holds)  # runtime versions and working commands are environment.md's: one home
+
+    def test_an_empty_or_blank_architecture_is_missing(self) -> None:
+        support.write(self.state)
+        for body in ("", "  \n\n\t\n"):
+            with self.subTest(body=body):
+                (self.repo / self.ARCH).write_text(body)
+                self.assertIn(str(self.repo / self.ARCH), knowledge.check(self.state, "prepare").splitlines()[0])
+        (self.repo / self.ARCH).write_text("# Architecture\n\nA script, no decisions yet.\n")
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")  # no decision ID is required: only the file
+
+    def test_a_first_run_has_nothing_to_drop(self) -> None:
+        support.write(self.state)
+        (self.repo / self.ARCH).write_text(self.DECISIONS)
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")  # HEAD holds no architecture.md yet
+        (self.repo / self.ARCH).write_text("# Architecture\n\nRewritten before anything was committed.\n")
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
+
+    def test_a_later_version_that_loses_a_decision_id_is_refused_with_the_fix_the_file_and_the_command_on_line_1(self) -> None:
+        path = self.commit_home()
+        path.write_text(self.DECISIONS.replace("### AD-2 One module per concern", "### One module per concern")
+                        .replace("### AD-3 JSON errors", "### JSON errors"))
+        for stage in ("prepare", "step-plan", "release-plan"):
+            with self.subTest(stage):
+                first, second = knowledge.check(self.state, stage).split("\n")  # exactly two lines
+                self.assertEqual(first, "Restore the lost AD-<n> in " + str(path) + " or move it under 'Superseded', "
+                                 "then run the same complete command again.")
+                self.assertNotIn("AD-2", first)  # a long list can never push the fix out of the first line
+                self.assertEqual(second, "The architecture no longer mentions AD-2, AD-3. Keep every earlier decision ID: "
+                                 "modify it in place, or move it under a 'Superseded' heading with the reason.")
+        # The improve-complete route has its own sequence: a review's edit is committed with improve-commit before the import,
+        # and line 2 (the IDs and the 'Superseded' reason) is the complete route's.
+        first, second = knowledge.check(self.state, "step-plan", command="improve-complete").split("\n")
+        self.assertEqual(first, "Restore AD-<n> in " + str(path)
+                         + "; if the review changed it, improve-commit it; then run improve-complete.")
+        self.assertNotIn("AD-2", first)
+        self.assertIn("The architecture no longer mentions AD-2, AD-3. Keep every earlier decision ID: modify it in place, "
+                      "or move it under a 'Superseded' heading with the reason.", second)
+
+    # architecture.md sits 125 to 137 characters from the root in the saved E2E execution checkouts (the six
+    # /Users/dadleet/e2e-runs/<date>/<case>/.shiploop-runs/<run>/worktree paths of 2026-10-1x), and the CLI prefixes line 1.
+    REAL_WIDTHS = range(125, 138)
+    PREFIX = "ShipLoop navigator: "
+
+    def at_width(self, line: str, path: Path, width: int) -> tuple[str, str]:
+        """(the CLI's line 1, the path it shows): the real path swapped for a synthetic one of exactly ``width`` characters.
+
+        The cut a model reads through depends on the length of the path, which is the machine's (a temporary directory under
+        a long ``TMPDIR`` made the earlier version of this test fail); the template around the path is the product's.
+        """
+        self.assertEqual(line.count(str(path)), 1)
+        tail = "/" + self.ARCH
+        synthetic = "/" + "w" * (width - len(tail) - 1) + tail
+        self.assertEqual(len(synthetic), width)
+        return self.PREFIX + line.replace(str(path), synthetic), synthetic
+
+    def test_a_cut_of_line_1_at_250_characters_keeps_the_fix_the_file_and_the_commands_at_every_real_checkout_width(self) -> None:
+        """A model reads a refusal through `cut -c1-250`: what survives is the fix, the whole path and the route's commands."""
+        path = self.commit_home("".join("AD-" + str(n) + " choice\n" for n in range(1, 13)))  # twelve decisions to lose
+        path.write_text("# Architecture\n")
+        for command in ("complete", "improve-complete"):
+            line_1 = knowledge.check(self.state, "step-plan", command=command).splitlines()[0]
+            for width in self.REAL_WIDTHS:
+                with self.subTest(command=command, width=width):
+                    line, shown = self.at_width(line_1, path, width)
+                    kept = line[:250]
+                    if command == "complete":
+                        wanted = ("Restore the lost AD-<n> in " + shown
+                                  + " or move it under 'Superseded', then run the same complete command")
+                    else:
+                        wanted = ("Restore AD-<n> in " + shown + "; if the review changed it, improve-commit it; "
+                                  "then run improve-complete.")
+                    self.assertIn(wanted, kept)
+                    self.assertNotIn("AD-12", kept)  # the IDs are on line 2, in full
+        self.assertIn("AD-12.", knowledge.check(self.state, "step-plan").splitlines()[1])  # every ID, no cap
+
+    def test_a_credential_looking_line_is_refused_with_the_place_the_fix_and_the_command_on_line_1(self) -> None:
+        """architecture.md records auth shapes the screen flags ('Password: bcrypt', 'SECRET_KEY = os.environ[...]'), and the
+        screen reads every home file: a model that sees only line 1 must know where, what to write instead, and what to run."""
+        support.write(self.state)
+        path = self.repo / self.ARCH
+        path.write_text("# Architecture\n\nPassword: bcrypt, cost 12\nSECRET_KEY = os.environ['SECRET_KEY']\n"
+                        "token = get_token()\nAPI keys come from the vault\n")
+        environment = self.repo / "docs/shiploop/environment.md"
+        environment.write_text("# environment\nAuthorization: Bearer 0123456789abcdefghij\n")
+        places = [str(path) + ":3", str(path) + ":4", str(path) + ":5", str(environment) + ":2"]  # absolute, in walk order
+        for command in ("complete", "improve-complete"):
+            with self.subTest(command):
+                refusal = knowledge.check(self.state, "prepare", command=command)
+                lines = refusal.splitlines()
+                self.assertEqual(lines[0], "Reword " + places[0] + " to name an alias, not a value or an assignment; "
+                                 "then run the same " + command + " command again.")
+                self.assertIn("look like credentials", lines[1])  # the words the refusal has always had, for counting them
+                self.assertEqual(re.findall(r"^- (/\S+:\d+)$", refusal, re.M), places)  # every place, none capped
+                for text in ("bcrypt", "get_token", "0123456789", "os.environ"):
+                    self.assertNotIn(text, refusal)  # places, never the text
+        # The improve route's commit step is named too, once: its first line keeps the room for the path.
+        self.assertEqual(sum("improve-commit" in line for line in knowledge.check(self.state, "prepare").splitlines()), 0)
+        improve = knowledge.check(self.state, "prepare", command="improve-complete").splitlines()
+        self.assertEqual(sum("improve-commit" in line for line in improve), 1)
+        self.assertIn("improve-commit", improve[-1])
+        path.write_text("# Architecture\n\nPasswords are hashed with bcrypt (cost 12).\nThe signing key is read from the "
+                        "environment variable SECRET_KEY.\nAPI keys come from the vault\n")
+        environment.write_text("# environment\nThe CI token is the alias ci-token.\n")
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")  # the reworded lines are accepted
+
+    def test_a_cut_of_the_credential_refusal_at_250_characters_keeps_the_place_the_fix_and_the_command_verb(self) -> None:
+        support.write(self.state)
+        path = self.repo / self.ARCH
+        path.write_text("# Architecture\n\nPassword: bcrypt, cost 12\n")
+        for command in ("complete", "improve-complete"):
+            line_1 = knowledge.check(self.state, "prepare", command=command).splitlines()[0]
+            for width in self.REAL_WIDTHS:
+                with self.subTest(command=command, width=width):
+                    line, shown = self.at_width(line_1, path, width)
+                    self.assertIn("Reword " + shown + ":3 to name an alias, not a value or an assignment; then run the same "
+                                  + command, line[:250])
+
+    def test_the_spec_refusal_has_the_same_shape_and_still_names_what_it_lost(self) -> None:
+        support.write(self.state)
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.write_text("# spec\n\nR-1: Place a fleet.\nR-2: Report.\n")
+        knowledge.commit(self.state, "prepare")
+        spec.write_text("# spec\n\nR-1: Place a fleet.\n")
+        first, second = knowledge.check(self.state, "release-plan").split("\n")
+        self.assertEqual(first, "Restore the lost R-<n> in " + str(spec) + " or move it under 'Retired', "
+                         "then run the same complete command again.")
+        self.assertEqual(second, "The living spec no longer mentions R-2. Keep every earlier requirement ID: modify it in "
+                         "place, or move it under a 'Retired' heading with the reason.")
+        # the route's own sequence is the spec's too (one template for both files)
+        again, rest = knowledge.check(self.state, "release-plan", command="improve-complete").split("\n")
+        self.assertEqual(again, "Restore R-<n> in " + str(spec)
+                         + "; if the review changed it, improve-commit it; then run improve-complete.")
+        self.assertEqual(rest, second)
+
+    def test_the_id_prefix_the_wording_names_is_the_prefix_the_check_keeps(self) -> None:
+        """ARCHITECTURE_HOLDS tells the model to number decisions AD-<n>; the check must keep exactly those."""
+        prefix = re.search(r"\b([A-Z]+)-<n>", knowledge.ARCHITECTURE_HOLDS).group(1)
+        path = self.commit_home("# Architecture\n\n" + prefix + "-1 one\n" + prefix + "-2 two\n")
+        path.write_text("# Architecture\n\n" + prefix + "-1 one\n")
+        self.assertIn("no longer mentions " + prefix + "-2.", knowledge.check(self.state, "step-plan"))
+
+    def test_a_dropped_id_that_is_staged_but_not_committed_is_still_a_drop(self) -> None:
+        """The baseline is what HEAD holds: ``git add`` of the lost version must not move it (the index would)."""
+        path = self.commit_home()
+        path.write_text(self.DECISIONS.replace("### AD-3 JSON errors", "### JSON errors"))
+        git(self.repo, "add", self.ARCH)
+        self.assertEqual(git(self.repo, "diff", "--cached", "--name-only").split(), [self.ARCH])
+        self.assertIn("The architecture no longer mentions AD-3.", knowledge.check(self.state, "step-plan"))
+
+    def test_a_decision_moved_under_superseded_or_named_anywhere_in_the_file_is_kept(self) -> None:
+        path = self.commit_home()
+        path.write_text("# Architecture\n\nNode 22.\n\n## Decisions\n\n### AD-1 Keep the board in memory\nStatus: current.\n\n"
+                        "### AD-4 One module per concern, split by layer\nReplaces AD-2.\n\n## Superseded\n\n"
+                        "AD-2: split by layer instead (AD-4).\n\nAD-3: the page parses the status code, not a body.\n")
+        self.assertEqual(knowledge.check(self.state, "step-plan"), "")
+        path.write_text(self.DECISIONS + "\nSee also the earlier choice in AD-3's table row.\n")  # a plain mention counts
+        self.assertEqual(knowledge.check(self.state, "step-plan"), "")
+
+    def test_ids_sort_by_number_and_a_deleted_file_loses_them_all(self) -> None:
+        many = "# Architecture\n\n" + "".join("AD-" + str(n) + " choice\n" for n in (1, 2, 9, 10, 11))
+        path = self.commit_home(many)
+        path.write_text("# Architecture\n\nAD-1 choice\n")
+        self.assertIn("no longer mentions AD-2, AD-9, AD-10, AD-11.", knowledge.check(self.state, "step-plan"))
+        path.unlink()
+        self.assertIn("no longer mentions AD-1, AD-2, AD-9, AD-10, AD-11.", knowledge.check(self.state, "step-plan"))
+
+    def test_only_this_files_own_ids_count_in_each_direction(self) -> None:
+        path = self.commit_home()
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.write_text("# spec\n\nR-1: Place a fleet.\nAD-1 AD-2 AD-3 are cited here as product choices.\n")
+        knowledge.commit(self.state, "plan")
+        path.write_text("# Architecture\n\nNode 22.\n")  # AD-1..AD-3 live on in the spec's prose, which does not count
+        self.assertIn("no longer mentions AD-1, AD-2, AD-3", knowledge.check(self.state, "step-plan"))
+        path.write_text(self.DECISIONS + "\nRequirement R-1 drives AD-1.\n")
+        spec.write_text("# spec\n\nPlace a fleet.\n")  # R-1 is not kept by the architecture's mention of it
+        refusal = knowledge.check(self.state, "step-plan")
+        self.assertIn("no longer mentions R-1", refusal)
+        self.assertNotIn("architecture", refusal)
+
+    def test_a_token_that_only_contains_ad_n_is_not_a_decision_id(self) -> None:
+        """Guard (mutants without a word boundary survived, the trailing one until AD-3a became AD-12a, an ID the committed
+        decisions do not already hold): TAD-7, AD-12a and BAD-1 are other things, not decisions."""
+        path = self.commit_home(self.DECISIONS + "\nSee TAD-7 (a tag), the AD-12a draft and BAD-1.\n")
+        path.write_text(self.DECISIONS)
+        self.assertEqual(knowledge.check(self.state, "step-plan"), "")
+
+    def test_a_spec_that_numbers_its_own_product_decisions_d_n_is_not_held_to_them(self) -> None:
+        """Real data: one saved run's spec.md names its product decisions D-1..D-6 and cites them from 7 files.  The
+        architecture's prefix is AD-, so neither file's check reads the other's numbering."""
+        support.write(self.state)
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.write_text("# spec\n\nR-1: Place a fleet.\n\n### D-1 Fleet and coordinates\n### D-2 Meanings\n")
+        knowledge.commit(self.state, "prepare")
+        spec.write_text("# spec\n\nR-1: Place a fleet.\n")
+        self.assertEqual(knowledge.check(self.state, "step-plan"), "")
+
+    def test_both_files_dropping_an_id_are_both_named_the_spec_first(self) -> None:
+        path = self.commit_home()
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.write_text("# spec\n\nR-1: Place a fleet.\nR-2: Report.\n")
+        knowledge.commit(self.state, "plan")
+        spec.write_text("# spec\n\nR-1: Place a fleet.\n")
+        path.write_text("# Architecture\n\nAD-1 only.\n")
+        lines = knowledge.check(self.state, "step-plan").splitlines()
+        self.assertEqual([line.split(" in ")[0] for line in lines[::2]],
+                         ["Restore the lost R-<n>", "Restore the lost AD-<n>"])
+        self.assertIn("The living spec no longer mentions R-2.", lines[1])
+        self.assertIn("The architecture no longer mentions AD-2, AD-3.", lines[3])
+
+    def test_a_step_plan_that_adds_a_decision_is_committed_with_the_home_and_kept_afterwards(self) -> None:
+        path = self.commit_home()
+        path.write_text(self.DECISIONS + "\n### AD-4 Retry the fire call once\nChoice: one retry. Status: current.\n")
+        self.assertEqual(knowledge.check(self.state, "step-plan"), "")
+        committed = knowledge.commit(self.state, "step-plan")
+        self.assertEqual(committed.paths, [self.ARCH])
+        self.assertTrue(git(self.repo, "log", "-1", "--format=%s").strip().endswith("knowledge after step-plan"))
+        path.write_text(self.DECISIONS)  # AD-4 was committed, so a later version may not lose it
+        self.assertIn("no longer mentions AD-4", knowledge.check(self.state, "test-spec"))
+
+    def test_the_fixture_writer_satisfies_every_close_it_derives_from_the_closes(self) -> None:
+        """Drift guard for test/shiploop_knowledge_support.write: a file added to a close is written without editing it."""
+        support.write(self.state)
+        for close in knowledge.CLOSES:
+            with self.subTest(close):
+                if close == "release-verify":
+                    continue  # its outcome.md sections are the writer's job, checked by the release-verify test above
+                self.assertEqual(knowledge.check(self.state, close), "")
+        self.assertTrue((self.repo / self.ARCH).is_file())
+
+
+class GroundingTests(HomeFixture):
+    """knowledge.grounding(state): what an inner stage reads before it decides, as labelled absolute paths."""
+
+    def write_all(self) -> dict:
+        support.write(self.state)
+        feature = knowledge.feature_dir(self.state)
+        return {"living spec": self.repo / "docs/shiploop/spec.md", "feature spec": self.repo / feature / "spec.md",
+                "environment": self.repo / "docs/shiploop/environment.md",
+                "architecture": self.repo / "docs/shiploop/architecture.md",
+                "test strategy": self.repo / "docs/shiploop/test-strategy.md"}
+
+    def test_the_labels_their_order_and_the_absolute_paths_in_the_execution_checkout(self) -> None:
+        expected = self.write_all()
+        self.assertEqual(knowledge.GROUNDING_LABELS, ("living spec", "feature spec", "environment", "architecture", "test strategy"))
+        found = knowledge.grounding(self.state)
+        self.assertEqual([label for label, _ in found], list(knowledge.GROUNDING_LABELS))
+        self.assertEqual(dict(found), expected)
+        for _, path in found:
+            self.assertTrue(path.is_absolute() and path.is_file())
+            self.assertTrue(str(path).startswith(str(self.repo) + "/"))
+
+    def test_a_missing_empty_or_blank_file_is_absent_and_the_rest_keep_their_order(self) -> None:
+        expected = self.write_all()
+        expected["environment"].unlink()
+        expected["feature spec"].write_text("")
+        expected["test strategy"].write_text(" \n\t\n")
+        self.assertEqual([label for label, _ in knowledge.grounding(self.state)], ["living spec", "architecture"])
+        expected["architecture"].unlink()
+        self.assertEqual(knowledge.grounding(self.state), [("living spec", expected["living spec"])])
+
+    def test_an_absent_home_a_directory_in_a_files_place_and_an_unreadable_file_give_nothing(self) -> None:
+        self.assertEqual(knowledge.grounding(self.state), [])
+        expected = self.write_all()
+        expected["architecture"].unlink()
+        expected["architecture"].mkdir()
+        self.assertNotIn("architecture", dict(knowledge.grounding(self.state)))
+        expected["environment"].chmod(0)
+        self.addCleanup(expected["environment"].chmod, 0o644)
+        if os.access(expected["environment"], os.R_OK):  # a superuser reads it anyway: nothing unreadable to test
+            return
+        self.assertNotIn("environment", dict(knowledge.grounding(self.state)))
+
+    def test_the_feature_file_is_this_runs_not_an_earlier_runs(self) -> None:
+        expected = self.write_all()
+        earlier = dict(self.state, run_id="nav-ffffffffffffff0001", prompt="An earlier request.")
+        other = self.repo / knowledge.feature_dir(earlier) / "spec.md"
+        other.parent.mkdir(parents=True)
+        other.write_text("R-1: earlier.\n")
+        self.assertEqual(dict(knowledge.grounding(self.state))["feature spec"], expected["feature spec"])
+        self.assertEqual(dict(knowledge.grounding(earlier))["feature spec"], other)
+
+    def test_it_runs_no_git_writes_nothing_and_needs_no_checkout(self) -> None:
+        self.write_all()
+        plain = Path(tempfile.mkdtemp(prefix="shiploop-grounding-plain-"))
+        self.addCleanup(shutil.rmtree, plain, ignore_errors=True)
+        copy = plain / "repo"
+        shutil.copytree(self.repo, copy, ignore=shutil.ignore_patterns(".git"))  # not a checkout at all
+        state = dict(self.state, repo=str(copy))
+
+        def listing() -> list:
+            return sorted((str(p.relative_to(copy)), p.stat().st_mtime_ns, p.stat().st_size) for p in copy.rglob("*"))
+
+        before = listing()
+        with mock.patch.object(knowledge, "_git", side_effect=AssertionError("git")), \
+                mock.patch.object(subprocess, "run", side_effect=AssertionError("subprocess")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("subprocess")):
+            found = knowledge.grounding(state)
+        self.assertEqual([label for label, _ in found], list(knowledge.GROUNDING_LABELS))
+        self.assertEqual(before, listing())
+
+    def test_grounding_and_the_close_agree_on_what_a_present_file_is(self) -> None:
+        """One rule (knowledge._filled): the file the close counts as written is the file the packet points at."""
+        expected = self.write_all()
+        for body in (None, "", " \n", "text\n"):
+            with self.subTest(body=body):
+                if body is None:
+                    expected["architecture"].unlink(missing_ok=True)
+                else:
+                    expected["architecture"].write_text(body)
+                refusal = knowledge.check(self.state, "prepare")
+                self.assertEqual("architecture" in dict(knowledge.grounding(self.state)),
+                                 str(expected["architecture"]) not in refusal)
 
 
 FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"

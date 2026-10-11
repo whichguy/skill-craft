@@ -153,7 +153,7 @@ each loop that runs. In `none` a planning result is accepted without a review
 loop. What stands in for the loop is what S-9 can name: ShipLoop's gates at
 `complete` (cited files exist; the plan's assumption list; the step plan's
 commands, criteria, paths and dependency order; the knowledge home's required
-files, credential screen and requirement-ID retention); the structural,
+files, credential screen and requirement-ID and decision-ID retention); the structural,
 record-only `backchain-check`; at `test-author`, a run of the focused commands
 that must run a test (a counted test and every listed ID shown on exit 0, a
 failing test on a non-zero exit), so a command whose tests cannot load is refused where it
@@ -189,9 +189,19 @@ planning reviews exists, so the rate of defects that escape without them is
 unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
 
 **S-11 Knowledge is retained in the repository.** Planning knowledge (living
-spec, environment, test strategy, per-feature records) is committed to the
-product's knowledge home, and the product itself ends committed on the
-source branch, so the next run builds on it instead of rediscovering it.
+spec, environment, test strategy, architecture with its numbered decisions,
+per-feature records) is committed to the product's knowledge home, and the
+product itself ends committed on the source branch, so the next run builds on
+it instead of rediscovering it. The living spec and the architecture stay
+apart: the spec holds what the product must do and survives a change of stack;
+the architecture holds the stack, structure and decisions and survives a change
+of spec. Neither file may lose an ID an earlier committed version had
+(requirement `R-<n>`, decision `AD-<n>`): a requirement or decision that no
+longer holds moves under `Retired` or `Superseded` with its reason. ShipLoop
+refuses a drop in an uncommitted version (the stage's own, or a review's before
+it commits through `improve-commit`); a drop a review has already committed is
+not seen, for either file (deferred; trigger in
+docs/shiploop-architecture-file-journal-2026-10-10.md).
 
 **S-12 One implementation of each mechanism.** A mechanism (committing, loop
 contracts and starts, receipts, identity, privacy screens) has one code path
