@@ -1,0 +1,109 @@
+{
+ "impl_head": "1aa4f14ce57ad99bb19835423ecceabec862d929",
+ "findings": [
+  {
+   "lens": "code",
+   "severity": "minor",
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py (check, _committed); test/shiploop-actual-improve-cli.test.py",
+   "summary": "The improve-complete retention refusal only fires when the review's edit is still uncommitted. The normal Improve flow commits the edit with improve-commit first, so an ID dropped by a review then passes improve-complete silently. This is the HEAD-baseline gap the journal records and decision 7 deferred (the same gap exists for spec.md), but the new test name and the \"both routes\" claim overstate the protection.",
+   "repro": "Run /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f24838dd-d5f5-44a8-854e-3d9ddea18aed/scratchpad/b1012/rev-code/probe_improve.py with SHIPLOOP_PROGRESS=off. It copies the committed test's setup (architecture.md committed with AD-1 and AD-2, a run at step-plan, finish_ephemeral). The review's edit drops AD-2, then improve-commit commits it, then improve-complete runs. improve-complete exits 0, the stage moves to test-spec, and `git show HEAD:docs/shiploop/architecture.md` no longer holds AD-2. The committed test only refuses because it calls improve-complete before improve-commit.",
+   "fix_hint": "Keep the deferral, but say in the journal and the test docstring that the improve-complete refusal covers uncommitted review edits only. The trigger is already recorded: a run-start baseline in place of HEAD."
+  },
+  {
+   "lens": "code",
+   "severity": "minor",
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py (check, line 1 of the dropped-ID refusal)",
+   "summary": "On the improve-complete route, line 1 says \"then run the same improve-complete command again\", but that call is refused a second time by the commit gate (\"Commit this review's changes first ... improve-commit\"). The exit is two refusals, not one. The test documents this; line 1 does not. The second refusal names the next command, so a model still gets out.",
+   "repro": "test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_exit_is_accepted: after the model writes the Superseded section and re-runs improve-complete, stderr contains \"Commit this review's changes first\" and exit status is 2.",
+   "fix_hint": "Optional: append \"(an Improve review commits the fix with improve-commit first)\" to line 1 for the improve-complete verb only, as the code audit's correction 3 suggested. Check that it still fits cut -c1-250 (the margin is 122 path characters)."
+  },
+  {
+   "lens": "code",
+   "severity": "minor",
+   "file": "test/shiploop-knowledge.test.py (test_a_cut_of_line_1_at_250_characters_keeps_the_fix_the_file_and_the_command); test/shiploop-callback-contract.test.py (test_a_dropped_decision_id_is_refused_with_its_exit_on_line_1_and_the_exit_is_accepted); test/shiploop-actual-improve-cli.test.py (test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_exit_is_accepted)",
+   "summary": "Three new tests assert that the command word survives within the first 250 columns of line 1. Their pass or fail therefore depends on the length of the machine's temp directory, not on the product. They go red when the temp parent path exceeds roughly 90 characters. The default macOS TMPDIR and CI's /tmp are fine, which is why they pass here.",
+   "repro": "From the worktree: `TMPDIR=<a directory path of ~157 characters> SHIPLOOP_PROGRESS=off python3 -B test/shiploop-knowledge.test.py`. FAIL (two subtests, complete and improve-complete): the 250-column test, \"AssertionError ... not found in ...architecture.md was cut\". Likewise `-k test_a_dropped_decision_id` on shiploop-callback-contract.test.py (\"then run the same complete command again.\" not found), and `-k test_a_reviewed_step_plan_that_drops_a_decision_id` on shiploop-actual-improve-cli.test.py (\"then run the same improve-complete command again.\" not found). With the default TMPDIR all three pass.",
+   "fix_hint": "Skip the 250-column assertion with skipTest when the temp parent leaves no room, or build the fixture from a fixed-length relative root. The knowledge test already computes the pad."
+  },
+  {
+   "lens": "code",
+   "severity": "minor",
+   "file": "test/shiploop-knowledge.test.py (retention tests); skills/shiploop/scripts/shiploop_knowledge_home.py (_committed)",
+   "summary": "Mutation survivor m17: reading the baseline from the index (`git show :docs/shiploop/<name>`) instead of `HEAD:` leaves every test green. No test stages a dropped ID with `git add` without committing. The code is right: with the HEAD baseline a staged drop is refused (I checked it). Only the pin is missing.",
+   "repro": "In a copy of the tree, replace `\"HEAD:\" + HOME + \"/\" + name` with `\":\" + HOME + \"/\" + name` in _committed. Then shiploop-knowledge, shiploop-callback-contract (the two architecture route tests) and shiploop-actual-improve-cli (the new test) all exit 0. See /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f24838dd-d5f5-44a8-854e-3d9ddea18aed/scratchpad/b1012/rev-code/mutate.py (mutation \"m17\") and mut-results-mut2.json. Real behaviour: commit AD-1 to AD-3, write a file with AD-1 only, `git add` it, then check(state, \"step-plan\") refuses.",
+   "fix_hint": "Add a knowledge-suite case: commit three decisions, write a version that drops one, `git add` the file, and assert the refusal."
+  },
+  {
+   "lens": "code",
+   "severity": "minor",
+   "file": "skills/shiploop/scripts/shiploop_privacy.py (unchanged); skills/shiploop/references/project-knowledge.md",
+   "summary": "The credential screen refuses ordinary architecture lines, and check() walks every docs/shiploop/*.md, so one such line refuses every later stage that touches the home. The journal records this risk and its trigger. The only mitigation until the packet owner's L2 sentence lands is one reference sentence, which a cleared-context plan model does not read.",
+   "repro": "Using shiploop_knowledge_support.write plus a committed home, I wrote architecture.md as \"# A\\n<line>\\n\". The lines \"Password: bcrypt, cost 12\", \"SECRET_KEY = os.environ['SECRET_KEY']\" and \"token = get_token()\" each make check(state, \"step-plan\") return \"These knowledge lines look like credentials ... docs/shiploop/architecture.md:2\". The line \"API keys come from the vault\" passes. Script: .../rev-code/probe_check.py.",
+   "fix_hint": "No change here (out of scope by decision 9). Count credential refusals that name architecture.md in the first live pair. Do not release shiploop until the plan and step-plan sentence (L2) lands, as the journal already says."
+  },
+  {
+   "lens": "code",
+   "severity": "minor",
+   "file": "skills/shiploop/references/service-discovery.md",
+   "summary": "The edited \"Development handoff\" paragraph tells the model to keep the discovery decision (status, capability and runtime maps, data and cache contracts, ordered prerequisites, checks) as one AD-<n> entry in architecture.md. ARCHITECTURE_HOLDS and the project-knowledge.md table row say runtime versions and working commands stay in environment.md (one authoritative home). Runtime and command content has two instructed homes, and a discovery decision with that much detail will make an AD entry large.",
+   "repro": "Read the diff of skills/shiploop/references/service-discovery.md (\"Development handoff\") against the architecture.md row of the knowledge-home table in skills/shiploop/references/project-knowledge.md.",
+   "fix_hint": "Say the AD entry links the environment.md section for runtime maps and checks, rather than carrying them."
+  },
+  {
+   "lens": "code",
+   "severity": "minor",
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py (check, retention loop sort key)",
+   "summary": "Nit, inherited from the R- code and adversarial only: `int(value.split(\"-\")[1])` raises ValueError if a committed ID has more than 4300 digits, so check() crashes with a traceback instead of refusing. KISS says leave it.",
+   "repro": "Commit architecture.md containing \"AD-\" followed by 5000 nines, then write a version without it, and call check(state, \"step-plan\"). Result: ValueError \"Exceeds the limit (4300 digits)\".",
+   "fix_hint": "None needed. Mention only if a hardening pass happens."
+  },
+  {
+   "lens": "tenet",
+   "severity": "minor",
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "summary": "On the improve-complete route, line 1 names the wrong next command. It says 'run the same improve-complete command again', but after the model fixes the file the next refusal is the commit gate, which names improve-commit.",
+   "repro": "Run test/shiploop-actual-improve-cli.test.py, test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_exit_is_accepted. After the knowledge refusal, writing the 'Superseded' section and re-running improve-complete gives the refusal 'Commit this review's changes first ... improve-commit'. A cleared-context model that follows line 1 literally therefore spends one extra turn. In the common Improve case the review has already committed its edit through improve-commit, so this check never fires. Journal and LEARNINGS record the two steps. SKILL.md, project-knowledge.md and the change note do not.",
+   "fix_hint": "For command == 'improve-complete', word line 1 as '... then commit it with improve-commit and run improve-complete again'. Or keep the shape and state the two steps in the change note, as the code audit offered."
+  },
+  {
+   "lens": "tenet",
+   "severity": "minor",
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "summary": "The credential-screen refusal is now far more likely to fire (architecture.md holds auth shapes), and its line 1 is not actionable for a cleared-context model: the path is relative and no command is named.",
+   "repro": "Scratch script tenet-a/cred.py in the scratchpad writes 'Password: bcrypt, cost 12', \"SECRET_KEY = os.environ['SECRET_KEY']\" and 'token = get_token()' into architecture.md; each gives check(state,'prepare') = 'These knowledge lines look like credentials; record alias names, never tokens, passwords or session URLs: docs/shiploop/architecture.md:3'. The path is relative to the execution checkout, while the comment above the missing-file branch in check() says the shell's cwd is the original checkout. The line also has no 'run the same command again'. The refusal is unchanged code, and decision 9 says not to touch the screen. The journal only schedules a count of such refusals.",
+   "fix_hint": "Not for this branch (S-12 says the fix belongs in the screen's caller): when the first live pair counts credential refusals, make the leak refusal absolute-path-and-command like the others."
+  },
+  {
+   "lens": "tenet",
+   "severity": "minor",
+   "file": "test/shiploop-knowledge.test.py",
+   "summary": "The 250-column margin is tested at a 120-character path and described as 'about 120', but the saved E2E execution checkouts are 125 to 137 characters.",
+   "repro": "The six /Users/dadleet/e2e-runs/2026101*/*/.shiploop-runs/*/worktree paths plus '/docs/shiploop/architecture.md' measure 125, 127, 134, 135, 135, 137 characters. This worktree's own path gives 124. Computed line 1 after the 'ShipLoop navigator: ' prefix: improve-complete is 252 to 265 characters, so cut -c1-250 clips 'again.' in 6 of 6. At 134 or more, complete is clipped too (254 to 257). The verb survives up to a 137-character path for improve-complete, so the fix, path and verb are intact today. The journal's own cut_margin.json says complete fits to 130 and improve-complete to 122, which contradicts the test docstring and LEARNINGS wording 'about 120 characters'. A longer home directory clips the verb itself.",
+   "fix_hint": "Test at 137 and assert fix, path and verb survive. Or shorten line 1 by about 20 characters (for example 'Restore AD-<n> in <abs> or move it under 'Superseded', then rerun the same <verb> command.')."
+  },
+  {
+   "lens": "tenet",
+   "severity": "minor",
+   "file": "test/shiploop-knowledge.test.py",
+   "summary": "Two behaviours of the new refusal code are unpinned. Mutants of each survive the whole footprint I ran.",
+   "repro": "I mutated a scratch copy of HEAD (git archive into the scratchpad); the worktree was not touched. (a) Mutant 'if str(repo / HOME / ARCHITECTURE) in paths and len(paths) == 1 else \"\"' (the architecture.md hint line only when it is the sole missing file) passes shiploop-knowledge (73 tests), shiploop-callback-contract (44) and shiploop-packet-completeness (22). That mutant breaks the most common real case, a first prepare where every file is missing. The tests pin the hint only when architecture.md is the single missing file. (b) Mutant (command if name != 'spec.md' else 'complete') in the refusal template survives shiploop-knowledge (73 tests), so the spec.md refusal under improve-complete is unpinned. The 35-row mutation table has neither row.",
+   "fix_hint": "In test_a_home_without_an_architecture_is_refused_at_prepare_naming_only_that_file_and_what_it_holds, add an all-files-missing case asserting exactly one 'architecture.md holds' line. In the spec shape test, add a command='improve-complete' call."
+  },
+  {
+   "lens": "tenet",
+   "severity": "minor",
+   "file": "skills/shiploop/SKILL.md",
+   "summary": "User-facing text states retention unconditionally. SKILL.md, project-knowledge.md, the change note and SPEC S-11 say a dropped ID is refused 'at every stage that changes it'. The journal records that a review's improve-commit'd drop is invisible, calls that path 'not rare', and names the plan review as the likely editor of architecture.md.",
+   "repro": "Scratch cred.py: commit an architecture.md with AD-1 and AD-2 via knowledge.commit, then make a separate git commit of a version with only AD-1 (what a review does through improve-commit). check(state,'step-plan') returns '' (printed: \"after a review commit drops AD-2 -> ''\"). The journal's 'Interim: the shared gap' bullet and Deferred list (with triggers) are honest. The release-facing sentences are not. The gap is shared with spec.md and was deferred by decision 7.",
+   "fix_hint": "Add 'except an Improve review's own improve-commit' to the change note, or say it in project-knowledge.md's closes paragraph, until the bind-tree or run-start baseline lands."
+  },
+  {
+   "lens": "tenet",
+   "severity": "minor",
+   "file": "changes/shiploop/architecture-file.md",
+   "summary": "Scope extras and a release hazard. The SPEC commit also edits one phrase of S-10, but decision 13 names S-11 only. SKILL.md's enumeration is edited, but it is not on decision 8's list. Both are small, accurate and declared in commit messages and the journal. Separately, the 'do not release until the duty sentence has landed' guard is prose only.",
+   "repro": "git diff e1dc59dc..HEAD -- test/shiploop_e2e/SPEC.md shows the S-10 hunk ('requirement-ID and decision-ID retention'). The pending note changes/shiploop/architecture-file.md (bump: minor) will be consumed by any scripts/release.py run, and the standing practice is release.py on every push. Nothing blocks a release before the packet owner's L2 sentence exists. Decision 10 accepted that risk. In the meantime a release would ship prepare refusals for runs whose plan packet only lists the file.",
+   "fix_hint": "None required. The merging session should not run release.py on main until the L2 sentence has landed."
+  }
+ ]
+}
