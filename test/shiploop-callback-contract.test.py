@@ -40,6 +40,7 @@ import shiploop_test_loop as test_loop  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
 TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
@@ -545,6 +546,66 @@ class RefusalRouteTests(RealCliCase):
         # folder exists (docs/shiploop/features/README.md): nothing else rides in the commit.
         self.assertEqual(sorted(self.git(repo, "show", "--name-only", "--format=", "HEAD").split()),
                          ["docs/shiploop/architecture.md", "docs/shiploop/features/README.md"])
+
+    def accept_a_prepare_with_files(self, sectioned: bool) -> tuple:
+        """A run at prepare whose refusal's files are written (with every named section, or as prose), then accepted.
+
+        Returns the run, the accepted command's CLI result, and the action id.
+        """
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
+            file = Path(named)
+            file.parent.mkdir(parents=True, exist_ok=True)
+            living = file.parent == repo / knowledge.HOME and file.name in knowledge.SECTIONS
+            file.write_text(knowledge_support.sections(file.name) if sectioned and living else "What this file records.\n",
+                            encoding="utf-8")
+        result = self.run_printed(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return run, result, action
+
+    def test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_section(self) -> None:
+        # The notice is not a refusal: prose files that the refusal asked for are accepted by the same command, and the
+        # lines are on stdout, each starting with the fixed prefix, the file's absolute path first.
+        run, result, action = self.accept_a_prepare_with_files(sectioned=False)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
+        self.assertEqual(len(found), sum(len(headings) for headings in knowledge.SECTIONS.values()))
+        self.assertEqual(found, knowledge.section_notices(self.state(run), "prepare"))
+        self.assertEqual(sorted({row.split(" ")[3] for row in found}),
+                         sorted(str(self.repo_of(run) / knowledge.HOME / name) for name in knowledge.SECTIONS))
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stderr)
+        self.assertTrue(self.git(self.repo_of(run), "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
+
+    def test_the_fix_a_notice_names_applied_to_its_file_silences_that_line_and_only_that_line(self) -> None:
+        # The notice is no gate, so the way out is read from the printed line itself: the heading it says to add.
+        run, result, action = self.accept_a_prepare_with_files(sectioned=False)
+        line = next(row for row in result.stdout.splitlines() if "environment.md has no 'Commands' section" in row)
+        file = Path(line.split(" ")[3])
+        heading = re.search(r"add a '(## [^']+)' section", line).group(1)
+        file.write_text(file.read_text(encoding="utf-8") + "\n" + heading + "\n\nnpm test\n", encoding="utf-8")
+        again = knowledge.section_notices(self.state(run), "prepare")
+        self.assertNotIn(line, again)
+        self.assertEqual(again, [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX) and row != line])
+
+    def test_a_close_whose_files_have_every_named_section_is_accepted_and_prints_no_notice(self) -> None:
+        run, result, action = self.accept_a_prepare_with_files(sectioned=True)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout + result.stderr)
+
+    def test_a_stage_that_is_no_close_prints_no_notice_although_a_file_lacks_its_sections(self) -> None:
+        run, head = self.new_run("intake")
+        command, path, action = printed_callback(head)
+        home = self.repo_of(run) / knowledge.HOME
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "environment.md").write_text("# Environment\n\nNode 22.\n", encoding="utf-8")
+        write_block(path, self.fill_done(head))
+        result = self.run_printed(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout + result.stderr)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
 
     def test_a_dropped_decision_id_is_refused_with_its_exit_on_line_1_and_the_exit_is_accepted(self) -> None:
         # A later run's prepare, on a repository whose home an earlier run committed with two decisions.  Line 1 is the

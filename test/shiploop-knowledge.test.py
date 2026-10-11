@@ -6,6 +6,7 @@ Real Git repositories in temporary directories.
 from __future__ import annotations
 
 import contextlib
+import io
 import json
 import os
 import re
@@ -23,6 +24,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_git  # noqa: E402
 import shiploop_lessons as commit_lessons  # noqa: E402
+import shiploop_navigator as navigator  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_knowledge_support as support  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -788,6 +790,74 @@ class SectionNoticeTests(HomeFixture):
         """The learnings reader shares the heading syntax with the notice and must read exactly what it read before."""
         text = "# Title\nintro\n## Learned\nA\n#### deeper\nB\n### Open\nC\n##### five\nD\n"
         self.assertEqual(knowledge._sections(text), {"Title": "intro", "Learned": "A\n#### deeper\nB", "Open": "C\n##### five\nD"})
+
+    def test_the_fixture_writer_writes_every_section_so_a_fixture_home_gets_no_notice_and_keeps_its_requirement(self) -> None:
+        """Drift guard for test/shiploop_knowledge_support.write: a section added to SECTIONS is written without editing it."""
+        support.write(self.state)
+        for close in knowledge.CLOSES:
+            with self.subTest(close):
+                self.assertEqual(knowledge.section_notices(self.state, close), [])
+        self.assertIn("R-1", (self.repo / self.HOME / "spec.md").read_text(encoding="utf-8"))
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
+
+
+class SectionNoticeCloseTests(HomeFixture):
+    """The notice at the knowledge close the navigator makes after an accepted stage (``_knowledge_close``), on a real repository."""
+
+    def close(self, stage: str, *, terminal: bool = False) -> tuple:
+        after = dict(self.state, history=[{"stage": stage, "outcome": "done"}])
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            navigator._knowledge_close({"history": []}, after, Path("/ws/run"), terminal=terminal)
+        return out.getvalue(), err.getvalue()
+
+    def write_bare_home(self) -> None:
+        """Every file the closes require, none of them with a named section (what the saved runs wrote)."""
+        support.write(self.state)
+        for name in knowledge.SECTIONS:
+            (self.repo / "docs/shiploop" / name).write_text("# " + name + "\n\nProse with no sections.\n", encoding="utf-8")
+
+    def test_a_close_prints_the_notice_lines_on_stdout_after_the_commit_and_the_close_stands(self) -> None:
+        self.write_bare_home()
+        out, err = self.close("prepare")
+        lines = knowledge.section_notices(self.state, "prepare")
+        self.assertEqual(len(lines), 17)
+        self.assertEqual(out, "".join(line + "\n" for line in lines))
+        self.assertEqual(err, "")
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "prepare"))
+
+    def test_every_close_prints_them_and_a_stage_that_is_no_close_prints_none(self) -> None:
+        self.write_bare_home()
+        for stage in knowledge.CLOSES:
+            with self.subTest(stage):
+                out, _ = self.close(stage)
+                self.assertEqual(out.count(knowledge.NOTICE_PREFIX), 17)
+        for stage in ("implement", "plan", "verify", "carry-forward"):
+            with self.subTest(stage):
+                self.assertEqual(self.close(stage), ("", ""))
+
+    def test_a_home_with_every_section_prints_nothing_at_a_close(self) -> None:
+        support.write(self.state)
+        self.assertEqual(self.close("prepare"), ("", ""))
+
+    def test_the_terminal_close_at_handoff_prints_none_and_keeps_its_own_lines(self) -> None:
+        self.write_bare_home()
+        out, err = self.close("handoff", terminal=True)
+        self.assertNotIn(knowledge.NOTICE_PREFIX, out + err)
+
+    def test_a_commit_that_cannot_be_made_prints_its_own_notice_on_stderr_and_no_section_notice(self) -> None:
+        self.write_bare_home()
+        with mock.patch.object(knowledge, "commit", side_effect=RuntimeError("cannot commit")):
+            out, err = self.close("prepare")
+        self.assertEqual(out, "")
+        self.assertEqual(err, "ShipLoop knowledge: cannot commit; the next accepted stage commits it.\n")
+
+    def test_a_notice_never_changes_what_the_close_commits(self) -> None:
+        self.write_bare_home()
+        self.close("prepare")
+        committed = set(git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
+        self.assertTrue(all(name.startswith("docs/shiploop/") for name in committed))
+        self.assertIn("docs/shiploop/environment.md", committed)
 
 
 class GroundingTests(HomeFixture):
