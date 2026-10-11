@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.0.1
+
+- Skills: improve 0.3.1
+
+### improve 0.3.1
+
+- The bundled Until Loop runtime is upstream 0.8.2 (whichguy/until-loop v0.8.2, f7d97f6): a contract without exit checks, as Improve and ShipLoop write, no longer gets the verify-script instruction or the check-repairs schema entry, so its packets are 24% smaller than in 0.8.1 (about 6% above 0.7.0).
+
 ### skill-craft 2.0.0
 
 - Skills: ask-agent 0.10.0, improve 0.3.0, shiploop 1.0.0, shiploop-e2e-audit 0.7.2, shiploop-run-review 0.2.0
