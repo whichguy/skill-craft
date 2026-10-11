@@ -701,6 +701,24 @@ class SectionNoticeTests(HomeFixture):
         self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "## Commands\n\n~~~\n# only a comment\n~~~\n\n"))
         self.assertEqual(self.notices(), [])
 
+    def test_a_fence_closes_only_with_its_own_mark_at_least_as_long_and_no_text(self) -> None:
+        """What a block hides: a heading inside any fence is no heading, so the section stays missing until the fence closes."""
+        hidden = (("a tilde fence", "~~~\n## Commands\n~~~\n"),
+                  ("a tilde line does not close a backtick fence", "```\n~~~\n## Commands\n```\n"),
+                  ("a shorter backtick line does not close a longer fence", "````\n```\n## Commands\n````\n"),
+                  ("a line with text after the marks does not close it", "```\n```sh\n## Commands\n```\n"),
+                  ("a fence indented by up to three spaces", "   ```\n## Commands\n   ```\n"))
+        for label, block in hidden:
+            with self.subTest(label):
+                text = self.full("environment.md").replace("## Commands\n\nSome text.\n\n", block)
+                self.put("environment.md", text)
+                self.assertEqual([line.split("notice: ", 1)[1].split(" ", 1)[1][:19] for line in self.notices()],
+                                 ["has no 'Commands' s"])
+        # once the fence is closed the next heading is a heading again
+        text = self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "```\ncode\n```\n## Commands\n\nnpm test\n\n")
+        self.put("environment.md", text)
+        self.assertEqual(self.notices(), [])
+
     def test_a_section_runs_to_the_next_heading_of_the_same_or_a_higher_level_and_a_deeper_heading_is_body(self) -> None:
         # architecture.md: "## Decisions" whose body is its own "### AD-n" headings is present
         text = self.full("architecture.md").replace("## Decisions\n\nSome text.\n", "## Decisions\n### AD-1 In memory\nWhy.\n")
@@ -713,6 +731,11 @@ class SectionNoticeTests(HomeFixture):
         # a higher level ends it: "### Commands" followed by a "# Next" heading
         self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "### Commands\n# Next\ntext\n\n"))
         self.assertIn("'Commands' is empty", self.notices()[0])
+        # a sibling heading at the section's own level ends it, whatever that level is (the rule is not tied to "##")
+        for marks in ("###", "####"):
+            self.put("environment.md", self.full("environment.md").replace(
+                "## Commands\n\nSome text.\n\n", marks + " Commands\n" + marks + " Sibling\nsome text\n\n"))
+            self.assertIn("'Commands' is empty", self.notices()[0])
         # a deeper-than-it heading but a "####" is still body; the next "###" is not
         self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "### Commands\n#### one\n### two\ntext\n\n"))
         self.assertEqual(self.notices(), [])
@@ -847,6 +870,16 @@ class SectionNoticeCloseTests(HomeFixture):
         for stage in ("implement", "plan", "verify", "carry-forward"):
             with self.subTest(stage):
                 self.assertEqual(self.close(stage), ("", ""))
+
+    def test_the_stage_that_decides_is_the_last_one_accepted_like_the_commits_subject(self) -> None:
+        self.write_bare_home()
+        for rows, expected in ((["step-plan", "prepare"], 17), (["prepare", "step-plan"], 0)):
+            with self.subTest(rows=rows):
+                after = dict(self.state, history=[{"stage": stage, "outcome": "done"} for stage in rows])
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                    navigator._knowledge_close({"history": []}, after, Path("/ws/run"))
+                self.assertEqual(out.getvalue().count(knowledge.NOTICE_PREFIX), expected)
 
     def test_a_home_with_every_section_prints_nothing_at_a_close(self) -> None:
         support.write(self.state)
