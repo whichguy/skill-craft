@@ -1,238 +1,285 @@
 {
  "date": "2026-10-10",
- "round": "fix round after review (batch 1012 task A2)",
+ "round": "size round: one line per file (batch 1012 task A2)",
  "base": "8932b849",
- "command": "the catalog commands of `bash test/run-all.sh --group quick --changed-from 8932b849` (its --list), run one suite at a time in the foreground in three chunks because the serial tier is longer than one tool call; SHIPLOOP_PROGRESS=off, no GIT_CONFIG_NOSYSTEM exported",
+ "head_measured": "1370161a",
+ "command": "the catalog commands of 'bash test/run-all.sh --group quick --changed-from 8932b849' (its --list), 46 suites, plus shiploop-full-runtime, shiploop-progress-data and shiploop-retire by name; two serial streams (odd and even rows) in parallel, each suite in the foreground of its stream; SHIPLOOP_PROGRESS=off, no GIT_CONFIG_NOSYSTEM exported",
  "quick_tier": [
   {
    "id": "test-groups",
    "exit": 0,
-   "seconds": 2.5
+   "seconds": 3,
+   "tests": 28
   },
   {
    "id": "ci-policy",
    "exit": 0,
-   "seconds": 2.0
+   "seconds": 3,
+   "tests": 10
   },
   {
    "id": "release-preflight",
    "exit": 0,
-   "seconds": 4.5
+   "seconds": 6,
+   "tests": 17
   },
   {
    "id": "skill-frontmatter",
    "exit": 0,
-   "seconds": 0.1
+   "seconds": 0,
+   "tests": null
   },
   {
    "id": "shiploop-no-model-launch",
    "exit": 0,
-   "seconds": 5.6
+   "seconds": 7,
+   "tests": 8
   },
   {
    "id": "shiploop-navigator-contract",
    "exit": 0,
-   "seconds": 39.9
+   "seconds": 52,
+   "tests": 109
   },
   {
    "id": "shiploop-navigator-v4",
    "exit": 0,
-   "seconds": 2.0
+   "seconds": 3,
+   "tests": 17
   },
   {
    "id": "shiploop-stopped-improve",
    "exit": 0,
-   "seconds": 1.3
+   "seconds": 2,
+   "tests": 8
   },
   {
    "id": "shiploop-v4-consumers",
    "exit": 0,
-   "seconds": 1.2
+   "seconds": 1,
+   "tests": 5
   },
   {
    "id": "shiploop-actual-improve-cli",
    "exit": 0,
-   "seconds": 88.8
+   "seconds": 112,
+   "tests": 63
   },
   {
    "id": "shiploop-packet-bounds",
    "exit": 0,
-   "seconds": 0.7
+   "seconds": 1,
+   "tests": 10
   },
   {
    "id": "shiploop-packet-completeness",
    "exit": 0,
-   "seconds": 0.5
+   "seconds": 1,
+   "tests": 24
   },
   {
    "id": "shiploop-step-packets",
    "exit": 0,
-   "seconds": 0.3
+   "seconds": 0,
+   "tests": 6
   },
   {
    "id": "shiploop-reference",
    "exit": 0,
-   "seconds": 0.2
+   "seconds": 0,
+   "tests": 4
   },
   {
    "id": "shiploop-guidance",
    "exit": 0,
-   "seconds": 2.5
+   "seconds": 4,
+   "tests": 62
   },
   {
    "id": "shiploop-navigator-dry-run",
    "exit": 0,
-   "seconds": 10.1
+   "seconds": 13,
+   "tests": 32
   },
   {
    "id": "shiploop-status-display",
    "exit": 0,
-   "seconds": 4.7
+   "seconds": 6,
+   "tests": 15
   },
   {
    "id": "shiploop-narrative",
    "exit": 0,
-   "seconds": 0.6
+   "seconds": 0,
+   "tests": 11
   },
   {
    "id": "shiploop-stage-spec",
    "exit": 0,
-   "seconds": 0.3
+   "seconds": 1,
+   "tests": 10
   },
   {
    "id": "shiploop-cross-run",
    "exit": 0,
-   "seconds": 5.2
+   "seconds": 7,
+   "tests": 10
   },
   {
    "id": "shiploop-chain-async",
    "exit": 0,
-   "seconds": 77.8
+   "seconds": 103,
+   "tests": 3
   },
   {
    "id": "shiploop-delegation",
    "exit": 0,
-   "seconds": 8.2
+   "seconds": 10,
+   "tests": 51
   },
   {
    "id": "shiploop-lint",
    "exit": 0,
-   "seconds": 56.4
+   "seconds": 64,
+   "tests": 82
   },
   {
    "id": "shiploop-quality",
    "exit": 0,
-   "seconds": 7.0
+   "seconds": 8,
+   "tests": 11
   },
   {
    "id": "shiploop-loops",
    "exit": 0,
-   "seconds": 19.8
-  },
-  {
-   "id": "shiploop-knowledge",
-   "exit": 0,
-   "seconds": 32.2
-  },
-  {
-   "id": "shiploop-store",
-   "exit": 0,
-   "seconds": 0.1
-  },
-  {
-   "id": "shiploop-privacy",
-   "exit": 0,
-   "seconds": 0.0
-  },
-  {
-   "id": "shiploop-reference-routing",
-   "exit": 0,
-   "seconds": 0.6
-  },
-  {
-   "id": "shiploop-planning-handoff",
-   "exit": 0,
-   "seconds": 0.8
-  },
-  {
-   "id": "shiploop-package-integrity",
-   "exit": 0,
-   "seconds": 0.3
-  },
-  {
-   "id": "shiploop-e2e-runrecord",
-   "exit": 0,
-   "seconds": 0.0
-  },
-  {
-   "id": "shiploop-e2e-slice",
-   "exit": 0,
-   "seconds": 37.2
-  },
-  {
-   "id": "shiploop-e2e-fidelity",
-   "exit": 0,
-   "seconds": 10.7
-  },
-  {
-   "id": "shiploop-e2e-reorientation",
-   "exit": 0,
-   "seconds": 8.7
+   "seconds": 19,
+   "tests": 24
   },
   {
    "id": "shiploop-test-loop",
    "exit": 0,
-   "seconds": 132.5
+   "seconds": 161,
+   "tests": 116
+  },
+  {
+   "id": "shiploop-knowledge",
+   "exit": 0,
+   "seconds": 35,
+   "tests": 167
+  },
+  {
+   "id": "shiploop-store",
+   "exit": 0,
+   "seconds": 0,
+   "tests": 8
+  },
+  {
+   "id": "shiploop-privacy",
+   "exit": 0,
+   "seconds": 0,
+   "tests": 5
+  },
+  {
+   "id": "shiploop-reference-routing",
+   "exit": 0,
+   "seconds": 1,
+   "tests": 4
   },
   {
    "id": "shiploop-keepalive",
    "exit": 0,
-   "seconds": 55.3
+   "seconds": 54,
+   "tests": 57
+  },
+  {
+   "id": "shiploop-planning-handoff",
+   "exit": 0,
+   "seconds": 0,
+   "tests": 7
+  },
+  {
+   "id": "shiploop-package-integrity",
+   "exit": 0,
+   "seconds": 0,
+   "tests": 7
   },
   {
    "id": "shiploop-e2e",
    "exit": 0,
-   "seconds": 145.7
+   "seconds": 120,
+   "tests": 406
+  },
+  {
+   "id": "shiploop-e2e-runrecord",
+   "exit": 0,
+   "seconds": 0,
+   "tests": 6
+  },
+  {
+   "id": "shiploop-e2e-slice",
+   "exit": 0,
+   "seconds": 35,
+   "tests": 25
+  },
+  {
+   "id": "shiploop-e2e-fidelity",
+   "exit": 0,
+   "seconds": 11,
+   "tests": 129
+  },
+  {
+   "id": "shiploop-e2e-reorientation",
+   "exit": 0,
+   "seconds": 8,
+   "tests": 118
   },
   {
    "id": "shiploop-e2e-environment",
    "exit": 0,
-   "seconds": 69.3
+   "seconds": 58,
+   "tests": 133
   },
   {
    "id": "shiploop-e2e-baseline",
    "exit": 0,
-   "seconds": 32.4
+   "seconds": 28,
+   "tests": 143
   },
   {
    "id": "shiploop-e2e-quality",
    "exit": 0,
-   "seconds": 48.2
+   "seconds": 44,
+   "tests": 128
   },
   {
    "id": "shiploop-e2e-packet-anatomy",
    "exit": 0,
-   "seconds": 0.3
+   "seconds": 0,
+   "tests": 13
   },
   {
    "id": "shiploop-e2e-commit-counters",
    "exit": 0,
-   "seconds": 26.9
+   "seconds": 24,
+   "tests": 103
   },
   {
    "id": "shiploop-run-review",
    "exit": 0,
-   "seconds": 47.6
+   "seconds": 48,
+   "tests": 634
   },
   {
    "id": "shiploop-callback-contract",
    "exit": 0,
-   "seconds": 126.2
+   "seconds": 97,
+   "tests": 61
   },
   {
    "id": "shiploop-mock-replay",
    "exit": 2,
-   "seconds": 3.1
+   "seconds": 2,
+   "tests": 37
   }
  ],
  "quick_tier_suites": 46,
@@ -245,13 +292,13 @@
   "shiploop-retire": 0
  },
  "check_release_boundary": "OK (exit 0): python3 scripts/check-release-boundary.py --base 8932b849 --head HEAD",
- "load_average": "5.6 at the start, 10.9 at the end (a shared machine); no timing-sensitive failure, no rerun needed",
+ "load_average": "a shared machine with two other batch worktrees running; no timing-sensitive failure, no rerun needed",
  "pre_existing_failure": {
   "suite": "shiploop-mock-replay",
   "exit": 2,
   "tests_failing": 5,
-  "tests": 37,
   "same_at_base_8932b849": true,
-  "reason": "test_dag_replay still expects the old graph edge 'prepare -> get-next-work-item'; the 8-stage graph goes to step-plan. Re-run at the base in a git archive of 8932b849: the same 5 of 37 fail with the same message"
+  "reason": "test_dag_replay still expects the old graph edge 'prepare -> get-next-work-item'; the 8-stage graph goes to step-plan. Fixed on origin/main by 13d278dd (the E2E apparatus).",
+  "confirmed_with_the_upstream_fix": "git rebase origin/main conflicts in test/shiploop_e2e/LEARNINGS.md (aborted, head unchanged); instead, an exported copy of this tree (git archive) with the patch of 13d278dd applied runs 'check_suite.py --suite mock --skill-root skills/shiploop': 38 tests, exit 0"
  }
 }
