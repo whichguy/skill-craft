@@ -189,3 +189,10 @@ signature. The navigator (`shiploop_navigator.py`), `shiploop_protocol.py` and t
   - the four-part packet re-cut (packets still 400k characters per item offline);
   - the B1/B2 probe fixes;
   - Run Review's v4 history handling (the fork, branch rr8-2ce5e7).
+- 2026-10-11: 2403ee29 adds the test-stage mutation gate. Checkers mutation went 0.664 → 0.866 on 1ac83089 (E2E, n=1). It also lands the prompt coherence pass, the engine-review fixes and SPEC/docs (3f90ec76). 8e23cc1f fixes the last-step Improve wording.
+- 2026-10-11, on the shared branch integrate/refs-consumer-contract (not yet on main):
+  - f7e88e68: each inner packet states its exit conditions, commands and goal once (owner: "looks redundant").
+  - 8848cc65: one References block per packet. HOME, FEATURE, RUN and WORKTREE are defined once, with each knowledge file, its sections and its writer. Each stage gets a consult list (the _CONSULT table, shaped for the consumer-contract plan's READS) and the chained products of earlier stages. Prose uses the symbols.
+  - Live slice (node-fix-bug, Sonnet 5.5): PASS, 233 s, 78 turns. One test-spec revise, because step-plan's focused command listed no ids; candidate fix: refuse that at step-plan.
+  - The mutation gate found no mutable operator in this fix (Math.floor → Math.ceil); this operator-set gap is open.
+- Next: the E2E session's consumer contract 4a lands on the shared branch (READS, section_text, entry_text, result fields). Then the swap (_CONSULT → knowledge_home.READS, quoted sections, retired lines removed), E2E's 4b/4c, one combined live run, and one fast-forward of main.
