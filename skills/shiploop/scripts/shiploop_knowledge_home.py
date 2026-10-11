@@ -127,14 +127,19 @@ def _ids(text: str) -> List[str]:
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
 
 
+# One markdown heading syntax: one to four marks, a space, the text.  ``_sections`` reads levels one to three (the outcome file's
+# sections); ``section_notices`` reads one to four.
+_HEADING = re.compile(r"^(#{1,4})\s+(.+?)\s*$")
+
+
 def _sections(text: str) -> Dict[str, str]:
     """Markdown ``## <heading>`` sections by heading."""
     found: Dict[str, str] = {}
     current: Optional[str] = None
     for line in text.splitlines():
-        heading = re.match(r"^#{1,3}\s+(.+?)\s*$", line)
-        if heading:
-            current = heading.group(1).strip()
+        heading = _HEADING.match(line)
+        if heading and len(heading.group(1)) <= 3:
+            current = heading.group(2).strip()
             found[current] = ""
         elif current is not None:
             found[current] += line + "\n"
@@ -337,6 +342,93 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
             refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
                             + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
     return "\n".join(refusals)
+
+
+# --- the sections check: a counted notice -------------------------------------------------------------------------
+
+# Every notice line starts with this, so a reader or the harness counts them with one grep.  Distinct from the "ShipLoop
+# knowledge: " lines (a commit, a kept file), which a count of those must not pick up.
+NOTICE_PREFIX = "ShipLoop knowledge notice: "
+_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+
+
+def _outline(lines: Sequence[str]) -> List[Tuple[int, int, str]]:
+    """``(line index, level, title)`` of each markdown heading (one to four marks) that is not inside a fenced code block."""
+    found: List[Tuple[int, int, str]] = []
+    fence = ""
+    for index, line in enumerate(lines):
+        opening = _FENCE.match(line)
+        if fence:
+            rest = line.strip()
+            if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(rest):
+                fence = ""
+            continue
+        if opening:
+            fence = opening.group(1)
+            continue
+        heading = _HEADING.match(line)
+        if heading:
+            found.append((index, len(heading.group(1)), heading.group(2).strip()))
+    return found
+
+
+def _section_state(lines: Sequence[str], outline: Sequence[Tuple[int, int, str]], heading: str) -> str:
+    """``present``, ``empty`` or ``missing``: the section named ``heading`` in a file, by the notice's rule.
+
+    A heading line whose text starts with the name, in any case, is the section.  It is present when a non-blank line follows
+    it before the next heading of the same or a higher level (a deeper heading line is a non-blank line), empty when every
+    heading that matches has nothing, missing when none matches.
+    """
+    found = False
+    for position, (index, level, title) in enumerate(outline):
+        if not title.lower().startswith(heading.lower()):
+            continue
+        found = True
+        end = next((later for later, deeper, _ in outline[position + 1:] if deeper <= level), len(lines))
+        if any(line.strip() for line in lines[index + 1:end]):
+            return "present"
+    return "empty" if found else "missing"
+
+
+def _section_hint(name: str) -> str:
+    """What a notice says the file holds, in the words of the constants: ARCHITECTURE_HOLDS, or the table's headings."""
+    if name == ARCHITECTURE:
+        return name + " holds " + ARCHITECTURE_HOLDS
+    return name + " has the sections " + ", ".join(SECTIONS[name])
+
+
+def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
+    """Notice lines for the named sections a living file lacks, at a close; [] at any other stage.
+
+    A counted notice, not a refusal: on the saved homes the headings are nearly absent (docs/shiploop-knowledge-sections-journal-
+    2026-10-10.md), so a refusal would fire at nearly every first close until packets quote the headings.  For each file in
+    ``SECTIONS`` that exists and has text, one line per heading that is missing or empty, in the table's order; an absent or
+    blank file gives none (the close's own refusal asks for it).  Every line starts with ``NOTICE_PREFIX``, names the
+    file by absolute path first, then the heading and the fix.  It reads files only and never raises: a file that cannot be
+    read gives no line.
+    """
+    if stage not in CLOSES:
+        return []
+    repo = Path(str(state["repo"]))
+    notices: List[str] = []
+    for name, headings in SECTIONS.items():
+        path = repo / HOME / name
+        if not _filled(path):
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        outline, hint = _outline(lines), _section_hint(name)
+        for heading in headings:
+            found = _section_state(lines, outline, heading)
+            if found == "missing":
+                notices.append(NOTICE_PREFIX + str(path) + " has no '" + heading + "' section; add a '## " + heading
+                               + "' section (" + hint + "), or write 'none' under it when nothing applies.")
+            elif found == "empty":
+                notices.append(NOTICE_PREFIX + str(path) + ": '" + heading + "' is empty; write under it (" + hint
+                               + "), or write 'none' when nothing applies.")
+    return notices
 
 
 def knowledge_subject(state: Mapping[str, Any], stage: str) -> str:
@@ -747,6 +839,7 @@ __all__ = ("ARCHITECTURE",
            "KEPT_AFTER_ROUTE",
            "KNOWLEDGE",
            "LEARNING_SECTIONS",
+           "NOTICE_PREFIX",
            "Retired",
            "SECTIONS",
            "check",
@@ -767,6 +860,7 @@ __all__ = ("ARCHITECTURE",
            "retire",
            "retire_subject",
            "retired_by",
+           "section_notices",
            "spec_pin",
            "stage_lines",
            "write_feature_list")
