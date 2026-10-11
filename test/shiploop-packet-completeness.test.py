@@ -145,7 +145,9 @@ class PacketCompletenessTests(unittest.TestCase):
         "system_commands": {"system-test-author"},
         "consumer_checks": {"release-plan"},
         "consumer_entry": {"release-plan"},
-        "docs/shiploop": {"prepare", "test-spec", "release-plan"},
+        # The closes, plus the stages whose docs/shiploop change can lose an R-<n> or AD-<n> ID (L4 of the
+        # architecture-file journal, 2026-10-10).
+        "docs/shiploop": {"prepare", "test-spec", "release-plan", "spec", "plan", "step-plan"},
         "unverified": {"product-acceptance"},
         "due_stage": {"product-acceptance"},
     }
@@ -176,7 +178,7 @@ class PacketCompletenessTests(unittest.TestCase):
         # docs/shiploop gate was met first as a refusal in 4 runs (packet review 2026-10-10, P-rv-1).
         # test-spec's close requires the item's test-spec.md under docs/shiploop, and its row now runs the loop
         # receipt check too, so its line belongs to this group (8-stage inner loop, 2026-10-10).
-        closes = {"release-verify", "test-spec"}
+        closes = {"release-verify", "test-spec", "step-plan"}  # step-plan: the ID-retention line (L4)
         for (stage, kind), packet in sorted(self.found.items()):
             row = stage_spec.stage(stage)
             if kind != "producer" or not row.complete_runs:
@@ -390,6 +392,55 @@ class ObservedHarmPacketTests(unittest.TestCase):
         text = flat(self.found[("prepare", "producer")])
         self.assertIn("Record readiness, or the justified N/A, in environment.md", text)
         self.assertIn("cite in `evidence_refs` the runner output that shows each planned check starts", text)
+
+
+class KnowledgeGroundingPacketTests(unittest.TestCase):
+    """The knowledge home's packet lines (the E2E session's L8 pins, docs/shiploop-architecture-file-journal-2026-10-10.md)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.found = packets()
+
+    def test_plan_step_plan_and_prepare_print_what_architecture_md_holds_verbatim(self) -> None:
+        for stage in ("plan", "step-plan", "prepare"):
+            with self.subTest(stage=stage):
+                self.assertIn(knowledge.ARCHITECTURE_HOLDS, flat(self.found[(stage, "producer")]))
+
+    def walk_to(self, repo: Path, run: Path, stage: str) -> str:
+        """The cold packet at ``stage`` for a run on ``repo``, walked with synthetic results (no gates)."""
+        state = navigator.new_state(str(repo), "Build a thing.", delegation="inline")
+        for _ in range(80):
+            if navigator.current_stage(state) == stage:
+                store.write_record(run / "state.md", state)
+                return navigator.render(None, run, store.read_record(run / "state.md"))
+            here, action = navigator.current_stage(state), navigator.current_action(state)["id"]
+            extra = ({"work_items": [{"id": "W1", "title": "one", "context": "context"}]} if here == "plan" else
+                     {"steps": [{"id": "S1", "task": "Make it."}]} if here == "step-plan" else {})
+            state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+            if state.get("active_improve") is not None:
+                state = navigator.finish_improve(state, action, {"summary": "Synthetic review"})
+        self.fail("the walk did not reach " + stage)
+
+    def test_an_inner_packet_lists_exactly_the_grounding_files_and_none_that_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="shiploop-grounding-") as temp:
+            repo = Path(temp).resolve()
+            run = repo / "run"
+            run.mkdir()
+            home = repo / knowledge.HOME
+            home.mkdir(parents=True)
+            for name in ("spec.md", "environment.md", "architecture.md", "test-strategy.md"):
+                (home / name).write_text("# " + name + "\n\nContent.\n", encoding="utf-8")
+            packet = self.walk_to(repo, run, "implement")
+            state = store.read_record(run / "state.md")
+            expected = knowledge.grounding(state)
+            self.assertTrue(expected)
+            lines = [line for line in packet.splitlines() if line.startswith("Ground this stage's decisions")]
+            self.assertEqual(len(lines), 1)
+            self.assertEqual([str(path) for _, path in expected],
+                             re.findall(r"(/\S+?\.md)", lines[0]))
+            (home / "architecture.md").unlink()
+            packet = navigator.render(None, run, store.read_record(run / "state.md"))
+            self.assertNotIn(str(home / "architecture.md"), packet)
 
 
 if __name__ == "__main__":

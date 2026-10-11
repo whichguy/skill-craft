@@ -906,6 +906,9 @@ expectations, error behavior, and user/consumer outcomes.  State independent
 positive, failure, and boundary expectations before coding.  Preserve approved
 scope and mark unresolved prerequisites or user decisions explicitly rather than
 hiding them in implementation detail.
+Number requirements R-<n> only. A choice about structure or technology is not a
+requirement: it belongs in architecture.md as an AD-<n> decision, never in spec.md,
+and a product decision a spec numbers must not use the AD- prefix.
 Reconcile the delta with maintained product requirements: preserve, add, modify,
 or retire affected conditions with their request/decision basis. Retain accepted
 intent outside transient run notes, with pending implementation/checks explicit.

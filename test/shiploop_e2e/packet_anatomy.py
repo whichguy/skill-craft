@@ -133,7 +133,10 @@ RULES: tuple[Rule, ...] = (
     # --- repository knowledge home (knowledge.stage_lines)
     _r("knowledge-home", r"^Inherited learnings:", "indent"),
     _r("knowledge-home", r"^(Repository knowledge home|This stage keeps these up to date|If this stage changes docs/shiploop|"
-       r"On done ShipLoop checks these files|outcome\.md must have|spec\.md is the living spec)"),
+       r"On done ShipLoop checks these files|outcome\.md must have|spec\.md is the living spec|"
+       r"Written by earlier stages|ShipLoop refuses [a-z-]+ if any|architecture\.md is how the product is built|"
+       r"If architecture\.md is missing|Begin .*/plan\.md with this exact first line|In .*/README\.md link the feature list|"
+       r"At this handoff ShipLoop checks|Ground this stage's decisions in these files)"),
     # --- environment discovery
     _r("environment-discovery", r"^(Environment discovery requirement|One investigation allowance|"
        r"Recursive discovery policy|Navigator adapter)"),

@@ -3786,7 +3786,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     lines.extend(_answered_lines(root, state))
     lines.extend(_replan_delta_lines(root, state, stage))
     lines.extend(_revise_delta_lines(root, state, stage, workitem))
-    lines.extend(knowledge.stage_lines(state, stage))
+    lines.extend(_knowledge_lines(state, stage))
     instruction = guidance.prompt(stage, delegation=route,
                                   backchain_passes=recorded_backchain_passes(state),
                                   planning_review=recorded_planning_review(state))
@@ -4034,6 +4034,62 @@ _INNER_GATES = {
 }
 
 
+# The knowledge home's packet lines (the E2E session's architecture and spec-retire builds, 2026-10-10: "Lines for the
+# packet owner" in docs/shiploop-architecture-file-journal-2026-10-10.md (L1, L2, L5/L6) and
+# docs/shiploop-spec-retire-journal-2026-10-10.md (a-d)), around ``knowledge_home.stage_lines``.
+_EARLIER_FEATURE_STAGES = ("intake", "discovery", "research", "spec", "plan")
+
+
+def _knowledge_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    lines = list(knowledge.stage_lines(state, stage))
+    repo = Path(str(state["repo"]))
+    folder = str(repo / knowledge.feature_dir(state))
+    if len(lines) > 1:
+        lines[1] = lines[1].replace("Earlier runs' spec, environment and features are there",
+                                    "Earlier runs' spec, environment, architecture and features are there")
+        if stage in _EARLIER_FEATURE_STAGES:
+            lines[1] += " " + knowledge.earlier_features(state)
+    if stage in ("plan", "step-plan"):
+        lines.append(
+            "architecture.md is how the product is built, apart from what it must do (that is spec.md): it holds "
+            + knowledge.ARCHITECTURE_HOLDS + ". Start from the committed file and keep every decision ID (AD-<n>): "
+            "change a decision in place, or move one that no longer holds under '## Superseded' with the reason and "
+            "its replacement's ID. ShipLoop refuses a version that loses an earlier ID. Describe credential handling "
+            "by name (alias, mechanism): no secret values and no code that assigns them, because the credential "
+            "screen reads this file. "
+            + ("Record each structural choice this plan makes (module format, namespace and data map, storage, "
+               "dependencies, seams) as the next unused AD-<n>, and list architecture.md in README.md."
+               if stage == "plan" else
+               "If this item makes a structural decision (a new module, dependency, interface, storage or "
+               "convention), add it as the next unused AD-<n> and cite the ID in the step plan."))
+    if stage == "prepare":
+        lines.append("If architecture.md is missing, write it from plan.md and the plan's structural choices: it holds "
+                     + knowledge.ARCHITECTURE_HOLDS + ".")
+    if stage == "plan":
+        pin = knowledge.spec_pin(state)
+        if pin is not None:
+            lines.append("Begin " + folder + "/plan.md with this exact first line, which names the living-spec "
+                         "version this plan implements: Spec: " + pin)
+    if stage in [name for name, files in knowledge.STAGE_FILES.items() if "README.md" in files]:
+        lines.append("In " + str(repo / knowledge.HOME / "README.md") + " link the feature list, "
+                     + str(repo / knowledge.FEATURE_LIST) + ", not a feature's spec.md: ShipLoop removes that file at "
+                     "handoff, so a link to it would dangle.")
+    if stage == "handoff":
+        lines.append("At this handoff ShipLoop checks that every requirement ID in " + folder + "/spec.md is in "
+                     + str(repo / knowledge.HOME / "spec.md") + " and, when this run's commits reach your branch (an "
+                     "in-place run, or a fast-forward return), removes that feature spec in a commit of its own; it "
+                     "stays after a working-tree return or a return that recorded no change, and the handoff is never "
+                     "refused for the IDs or the route. A removal that cannot be written or committed does leave the "
+                     "handoff pending, with the file's absolute path and the next step in the refusal.")
+    if stage in stage_spec.INNER:
+        files = knowledge.grounding(state)
+        if files:
+            lines.append("Ground this stage's decisions in these files (open each one this stage needs; cite the "
+                         "requirement or decision ID you follow): "
+                         + "; ".join(label + " " + str(path) for label, path in files) + ".")
+    return lines
+
+
 def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     gates = []
     if stage in assumptions.STAGES:
@@ -4041,6 +4097,9 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
                      "open assumption without a consumer work item in this plan")
     gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
     gates.extend(_INNER_GATES.get(stage, ()))
+    if stage in ("spec", "plan", "step-plan"):
+        gates.append("a change to docs/shiploop/ that loses an earlier requirement (R-<n>) or decision (AD-<n>) ID, "
+                     "or that looks like a credential")
     if stage in unverified.STAGES:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "or a due_stage that is not a later stage")
