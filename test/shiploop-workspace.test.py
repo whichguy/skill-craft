@@ -36,6 +36,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_store as store  # noqa: E402
+import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
@@ -875,6 +876,30 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((self.repo / "docs" / "shiploop" / "outcome.md").read_text(encoding="utf-8"), "learned\n")
         self.assertIsNotNone(self._call(workspace.completed_receipt, root, self.repo))
         self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # nothing new
+
+    def test_an_empty_lessons_commit_is_returned_and_the_next_run_finds_it_on_the_source_branch(self) -> None:
+        """X1 (consumer contract, routes-audit B1): release-verify's lessons commit changes no file when the home did not
+        change; it must still reach the source branch, or the receipt goes stale and handoff is refused."""
+        root, worktree = self._returned_once("empty lessons commit")
+        subject = "docs(shiploop): record add-hello-abc123 knowledge at release-verify"
+        self.git("commit", "-q", "--allow-empty", "-m", subject, "-m", "Learned\nAn empty commit carries it.",
+                 cwd=worktree)
+        head = self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip()
+        self.assertIsNone(self._call(workspace.completed_receipt, root, self.repo))    # stale before the follow-up
+        receipt = self._call(workspace.follow_up_knowledge_return, root)
+        self.assertEqual(receipt["kind"], "fast-forward-merge")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
+        self.assertIsNotNone(self._call(workspace.completed_receipt, root, self.repo))  # current: no stale refusal
+        found = knowledge_home.last_lessons(self.repo)
+        self.assertEqual((found.commit, found.subject, found.body), (head, subject, "Learned\nAn empty commit carries it."))
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))       # nothing new
+
+    def test_an_empty_commit_that_is_not_shiploops_knowledge_is_left_for_review(self) -> None:
+        root, worktree = self._returned_once("empty foreign commit")
+        self.git("commit", "-q", "--allow-empty", "-m", "docs(shiploop): record x knowledge at release-verify",
+                 cwd=worktree)
+        self.git("commit", "-q", "--allow-empty", "-m", "chore: an empty commit of the model's own", cwd=worktree)
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))
 
     def test_knowledge_follow_up_skips_anything_but_knowledge(self) -> None:
         root, worktree = self._returned_once("knowledge with product")
