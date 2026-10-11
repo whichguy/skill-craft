@@ -355,6 +355,8 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
 # Every notice line starts with this, so a reader or the harness counts them with one grep.  Distinct from the "ShipLoop
 # knowledge: " lines (a commit, a kept file), which a count of those must not pick up.
 NOTICE_PREFIX = "ShipLoop knowledge notice: "
+# Said in every line: a model that reads the lines alone, after the close, learns that the close did not fail.
+_ACCEPTED = "(this close is accepted)"
 # A fence opens as CommonMark says: up to three spaces, then three or more backticks or tildes; the text after a backtick run holds
 # no backtick (so a line that starts with inline code, ```npm test``` is it, opens nothing).  A line that opens a fence by
 # mistake would hide every later heading.
@@ -399,9 +401,11 @@ def _section_state(lines: Sequence[str], outline: Sequence[Tuple[int, int, str]]
     return "empty" if found else "missing"
 
 
-def _section_hint(name: str) -> str:
-    """What a notice says the file holds, in the words of the constants: ARCHITECTURE_HOLDS, or the table's headings."""
-    if name == ARCHITECTURE:
+def _section_hint(name: str, first: bool) -> str:
+    """What a notice says the file holds, in the words of the constants: the table's headings, and for the architecture file
+    ARCHITECTURE_HOLDS once (on the first line printed for it: the lines print as one block, and the repeats would be the same
+    words six times)."""
+    if name == ARCHITECTURE and first:
         return name + " holds " + ARCHITECTURE_HOLDS
     return name + " has the sections " + ", ".join(SECTIONS[name])
 
@@ -412,9 +416,9 @@ def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
     A counted notice, not a refusal: on the saved homes the headings are nearly absent (docs/shiploop-knowledge-sections-journal-
     2026-10-10.md), so a refusal would fire at nearly every first close until packets quote the headings.  For each file in
     ``SECTIONS`` that exists and has text, one line per heading that is missing or empty, in the table's order; an absent or
-    blank file gives none (the close's own refusal asks for it).  Every line starts with ``NOTICE_PREFIX``, names the
-    file by absolute path first, then the heading and the fix.  It reads files only and never raises: a file that cannot be
-    read gives no line.
+    blank file gives none (the close's own refusal asks for it).  Every line starts with ``NOTICE_PREFIX``, then the file's
+    absolute path as the next word (the same in a missing and an empty line), then the heading, that the close is accepted, and
+    the fix.  It reads files only and never raises: a file that cannot be read gives no line.
     """
     if stage not in CLOSES:
         return []
@@ -429,15 +433,17 @@ def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
             lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
         except OSError:
             continue
-        outline, hint = _outline(lines), _section_hint(name)
+        outline, first = _outline(lines), True
         for heading in headings:
             found = _section_state(lines, outline, heading)
+            hint = _section_hint(name, first)
             if found == "missing":
-                notices.append(NOTICE_PREFIX + str(path) + " has no '" + heading + "' section; add a '## " + heading
-                               + "' section (" + hint + "), or write 'none' under it when nothing applies.")
+                notices.append(NOTICE_PREFIX + str(path) + " has no '" + heading + "' section " + _ACCEPTED + "; add a '## "
+                               + heading + "' section (" + hint + "), or write 'none' under it when nothing applies.")
             elif found == "empty":
-                notices.append(NOTICE_PREFIX + str(path) + ": '" + heading + "' is empty; write under it (" + hint
-                               + "), or write 'none' when nothing applies.")
+                notices.append(NOTICE_PREFIX + str(path) + " has an empty '" + heading + "' section " + _ACCEPTED
+                               + "; write under it (" + hint + "), or write 'none' when nothing applies.")
+            first = first and found == "present"
     return notices
 
 

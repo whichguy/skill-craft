@@ -693,12 +693,12 @@ class SectionNoticeTests(HomeFixture):
         found = self.notices()
         sections = "environment.md has the sections Targets and runtimes, Commands, Skills, Access and accounts, Platform facts"
         self.assertEqual(found, [
-            "ShipLoop knowledge notice: " + str(path) + " has no 'Targets and runtimes' section; add a '## Targets and "
-            "runtimes' section (" + sections + "), or write 'none' under it when nothing applies.",
-            "ShipLoop knowledge notice: " + str(path) + " has no 'Skills' section; add a '## Skills' section (" + sections
-            + "), or write 'none' under it when nothing applies.",
-            "ShipLoop knowledge notice: " + str(path) + " has no 'Access and accounts' section; add a '## Access and accounts' "
-            "section (" + sections + "), or write 'none' under it when nothing applies."])
+            "ShipLoop knowledge notice: " + str(path) + " has no 'Targets and runtimes' section (this close is accepted); add a "
+            "'## Targets and runtimes' section (" + sections + "), or write 'none' under it when nothing applies.",
+            "ShipLoop knowledge notice: " + str(path) + " has no 'Skills' section (this close is accepted); add a '## Skills' "
+            "section (" + sections + "), or write 'none' under it when nothing applies.",
+            "ShipLoop knowledge notice: " + str(path) + " has no 'Access and accounts' section (this close is accepted); add a "
+            "'## Access and accounts' section (" + sections + "), or write 'none' under it when nothing applies."])
         for line in found:
             self.assertTrue(line.startswith(knowledge.NOTICE_PREFIX + str(self.repo)), line)  # the absolute file comes first
             self.assertEqual(line.count(knowledge.NOTICE_PREFIX), 1)
@@ -706,14 +706,15 @@ class SectionNoticeTests(HomeFixture):
     def test_an_empty_section_is_worded_apart_from_a_missing_one(self) -> None:
         path = self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n", "## Commands\n\n\n"))
         self.assertEqual(self.notices(), [
-            "ShipLoop knowledge notice: " + str(path) + ": 'Commands' is empty; write under it (environment.md has the sections "
-            "Targets and runtimes, Commands, Skills, Access and accounts, Platform facts), or write 'none' when nothing applies."])
+            "ShipLoop knowledge notice: " + str(path) + " has an empty 'Commands' section (this close is accepted); write under it "
+            "(environment.md has the sections Targets and runtimes, Commands, Skills, Access and accounts, Platform facts), or "
+            "write 'none' when nothing applies."])
         # a heading with only blanks after it, at the end of the file, is empty too; a heading no table names is nobody's concern
         self.put("environment.md", self.full("environment.md").replace("## Platform facts\n\nSome text.\n", "## Platform facts\n \t \n")
                  + "\n## Extras\n")
         found = self.notices()
         self.assertEqual(len(found), 1)
-        self.assertIn(": 'Platform facts' is empty; write under it (", found[0])
+        self.assertIn(" has an empty 'Platform facts' section (this close is accepted); write under it (", found[0])
 
     def test_a_heading_matches_in_any_case_at_levels_one_to_four_with_words_after_it(self) -> None:
         for title in ("commands", "COMMANDS", "Commands (working)", "Commands: how to run it", "Commands ##", "Commands\t"):
@@ -816,16 +817,16 @@ class SectionNoticeTests(HomeFixture):
         self.assertEqual(self.notices(), [])
         # the same level ends it
         self.put("architecture.md", self.full("architecture.md").replace("## Decisions\n\nSome text.\n\n", "## Decisions\n\n"))
-        self.assertIn("'Decisions' is empty", self.notices()[0])
+        self.assertIn("has an empty 'Decisions' section", self.notices()[0])
         self.put("architecture.md", self.full("architecture.md"))
         # a higher level ends it: "### Commands" followed by a "# Next" heading
         self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "### Commands\n# Next\ntext\n\n"))
-        self.assertIn("'Commands' is empty", self.notices()[0])
+        self.assertIn("has an empty 'Commands' section", self.notices()[0])
         # a sibling heading at the section's own level ends it, whatever that level is (the rule is not tied to "##")
         for marks in ("###", "####"):
             self.put("environment.md", self.full("environment.md").replace(
                 "## Commands\n\nSome text.\n\n", marks + " Commands\n" + marks + " Sibling\nsome text\n\n"))
-            self.assertIn("'Commands' is empty", self.notices()[0])
+            self.assertIn("has an empty 'Commands' section", self.notices()[0])
         # a deeper-than-it heading but a "####" is still body; the next "###" is not
         self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "### Commands\n#### one\n### two\ntext\n\n"))
         self.assertEqual(self.notices(), [])
@@ -837,7 +838,7 @@ class SectionNoticeTests(HomeFixture):
         self.put("environment.md", self.full("environment.md").replace("\n", "\r\n"))
         self.assertEqual(self.notices(), [])
         self.put("environment.md", self.full("environment.md").replace("\n", "\r\n").replace("## Commands\r\n\r\nSome text.\r\n", "## Commands\r\n\r\n"))
-        self.assertIn("'Commands' is empty", self.notices()[0])
+        self.assertIn("has an empty 'Commands' section", self.notices()[0])
 
     def test_only_a_close_gives_a_notice_and_every_close_gives_the_same_lines(self) -> None:
         self.put("environment.md", "# Environment\n\nNode 22.\n")
@@ -887,13 +888,37 @@ class SectionNoticeTests(HomeFixture):
         self.put("test-strategy.md", self.full("environment.md"))
         self.assertEqual(len([line for line in self.notices() if "test-strategy.md" in line]), 3)
 
-    def test_the_architecture_lines_say_what_the_file_holds_in_the_words_of_the_one_constant(self) -> None:
+    def test_the_path_is_the_same_token_in_a_missing_line_and_an_empty_line(self) -> None:
+        """A reader or the harness that takes the token after the prefix as the file gets the path, not 'path:'."""
+        path = self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n", "## Commands\n\n")
+                        .replace("## Skills\n\nSome text.\n\n", ""))
+        found = self.notices()
+        self.assertEqual([("has an empty" in line, "has no" in line) for line in found], [(True, False), (False, True)])
+        for line in found:
+            self.assertEqual(line.split(" ")[3], str(path), line)
+            self.assertFalse(line.split(" ")[3].endswith(":"))
+
+    def test_the_architecture_wording_is_printed_once_and_the_other_lines_name_the_sections(self) -> None:
+        """What the file holds is the one constant, said once in the block; the repeats would be 2 KB of the same words."""
         self.put("architecture.md", "# Architecture\n\nA script.\n")
         found = self.notices()
         self.assertEqual(len(found), 6)
-        for line in found:
-            self.assertIn("(architecture.md holds " + knowledge.ARCHITECTURE_HOLDS + ")", line)
+        self.assertIn("(architecture.md holds " + knowledge.ARCHITECTURE_HOLDS + ")", found[0])
+        self.assertEqual("\n".join(found).count(knowledge.ARCHITECTURE_HOLDS), 1)
+        sections = "(architecture.md has the sections " + ", ".join(knowledge.SECTIONS["architecture.md"]) + ")"
+        for line in found[1:]:
+            self.assertIn(sections, line)
         self.assertTrue(found[0].endswith("or write 'none' under it when nothing applies."))
+        # the line that says it is the first printed for the file, whichever heading that is
+        self.put("architecture.md", self.full("architecture.md").replace("## Structure\n\nSome text.\n\n", ""))
+        found = self.notices()
+        self.assertEqual(len(found), 1)
+        self.assertIn("(architecture.md holds " + knowledge.ARCHITECTURE_HOLDS + ")", found[0])
+        # each file has its own first line: one explanation per call is for the architecture file only
+        self.put("environment.md", "# Environment\n\nNode 22.\n")
+        both = self.notices()
+        self.assertEqual("\n".join(both).count(knowledge.ARCHITECTURE_HOLDS), 1)
+        self.assertEqual(len([line for line in both if "environment.md has the sections" in line]), 5)
 
     def test_it_reads_files_only_runs_no_process_and_writes_nothing(self) -> None:
         self.put("environment.md", "# Environment\n\nNode 22.\n")
