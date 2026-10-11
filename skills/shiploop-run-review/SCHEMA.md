@@ -59,8 +59,10 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `host`, `model`, `effort`, `case` | string | |
 | `planningReview` | string | optional: the run's `planning_review` option as `state.md` recorded it, text as written (`stage` or `none`; any other value is shown verbatim). `not recorded` when the key is absent (every run before ShipLoop 1.22.0): never a default. Record only: nothing is enforced. The page's header line prints it as `planning review: none` (nothing for `not recorded`, so an older run reads as before) and a `none` run gets a chip, so a run is not read beside one of the other mode without the mode showing |
 | `stageModel` | `v4` \| `v5` | optional: the run's stage model (see "Stage models"): `v4` for the 17-stage inner loop (state version 4 or earlier, or any stage name only that loop had in its history or as its current stage), `v5` for the 8-stage loop (state version 5 or later, or a name only it has). Absent when neither tells (unknown): the page then reads the run with the 8-stage tables, and infers the model from the stage names for a document exported before this field. The page's header line prints `17-stage run` or `8-stage run` after the release, and facts.md has a `Stage model` line |
+| `kind` | `slice` | optional: `slice` for a step slice (`slice-result.json` beside the run, no `result.json`; see "Step slices"). Absent for a whole run: an absent kind is never a slice. The page's header line starts `step slice`, and a slice is compared only with slices |
+| `slice` | object `{item?, stop?, stageAtStop?, notReached?}` | a step slice only: its work item (`slice-result.json` `item`), how its last session stopped (`sessions[-1].status`: `slice-complete` is the slice stop, `cleared` a context-clear probe stop, anything else the host ending first), the stage the run was advanced to (`stage_at_stop`, usually `system-test-author`) and the harness's `not_reached` sentence (cut at 300 characters) |
 | `improveScope` | string | optional: present only when `planningReview` is `none`, and then always `planning stages skipped by design (planning_review none)`. Under `none` no Improve child starts after `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`, so the children a run has are those after each implement step, `system-test-author`, `release-plan` and its last `carry-forward`; a stage row of a planning visit never has an `improve` map. `improvePasses` and `improveMin` stay what the `improve/` directories hold (measured). The page then prints "no Improve at planning stages (planning_review none)" on its Improve card, no share of elapsed, and "not run by design" on a planning visit's detail. Absent for `stage`, an unknown value and `not recorded`: the export claims nothing about Improve then |
-| `status` | `done` \| `active` \| `paused` \| `blocked` \| `failed` \| `stopped` | the ShipLoop run status; a paused run is `paused`, not `active`. `stopped` is the harness's word, not the engine's: the engine reads `active` while its host is gone, and `result.json` (`termination.process_status`) says the host was stopped on purpose, hit its deadline, failed or ended with the resume budget spent (`stopped`, `timeout`, `failed`, `exited`). A run only regraded (`not observed`) is never `stopped`, a blocked, paused or done run keeps the engine's status, and a run with no `result.json` reads `active` as before. See "How the run ended" |
+| `status` | `done` \| `active` \| `paused` \| `blocked` \| `failed` \| `stopped` \| `finished` | the ShipLoop run status; a paused run is `paused`, not `active`. `stopped` is the harness's word, not the engine's: the engine reads `active` while its host is gone, and `result.json` (`termination.process_status`) says the host was stopped on purpose, hit its deadline, failed or ended with the resume budget spent (`stopped`, `timeout`, `failed`, `exited`). A run only regraded (`not observed`) is never `stopped`, a blocked, paused or done run keeps the engine's status, and a run with no `result.json` reads `active` as before. See "How the run ended". `finished` is a step slice's only (see "Step slices"): its engine reads `active` and its last session ended at the slice stop; a slice ended any other way is `stopped` |
 | `startedAt`, `endedAt` | ISO string | |
 | `verdicts` | object | invoked, plugin, process, shiploop, committed and checks are booleans. `worktreeChecks` is the one exception, an object `{passed, total}`: present only when the harness ran the same checks in the worktree because the product was never returned (`shiploop.worktree_checks`), `passed` of its `total` checks passing there (all of them when the two are equal; the page says "passes 4/4 checks in the worktree"). It is information beside `checks`, which ran in the work folder: a run can fail `checks` and pass `worktreeChecks`. An earlier R22a export wrote it as a boolean; that shape is not read |
 | `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?, action?, skipped?, seeded?, improve?, context?, workitem?, loop?, step?, packetDoc?, summary?, summaryTruncated?, resultFile?, carried?, packetImprove?, improvePacketBytes?, improvePacketDoc?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, the visit before it has none (its start is then unknown), its stamp is earlier than the one before it (stamps running backwards: unknown, neither negative nor clamped), or the harness seeded the visit; never 0. Fields below |
@@ -431,6 +433,34 @@ child is named for a `planningChoice` stage). The mode: under a recorded `planni
 stages are `model judgement` in that run (`stage`, an unknown value and `not recorded` leave the catalog's class). Of the five
 planning stages only `spec`, `test-strategy` and `plan` change class with the mode (`step-plan` and `test-spec` end on their
 Until Loop's `loop-terminal`, `script-run` in either mode); a test checks that against the engine's `reviewed_stages`.
+
+## Step slices
+
+A **step slice** (`test/shiploop_e2e/slice.py`) seeds a run up to the inner loop (`run.seed_run` records every stage before
+`step-plan` without doing it), runs one work item's inner loop live, and ends the host at the item boundary on purpose. It writes
+`slice-result.json`, not `result.json`; its seed record is `invocation.json` `seeded`. The exporter reads a folder with
+`slice-result.json` as a slice (`kind: "slice"`, key `<host>-<model>-<release>-slice-<case>-<yyyymmdd>`, name ending `, step slice`):
+
+- **Status.** An engine that reads `active` and a last session `slice-complete` is `finished` (time "finished in N min",
+  `endedAt` the last accept, its phases `done` up to the last reached and `none` after). `cleared` (the context-clear probe ended the
+  session and none continued) and any other session status are `stopped`, with `ending.by` saying which. A blocked, halted or done
+  engine keeps its own status.
+- **Verdicts and outcome.** `verdicts` holds the harness's booleans by their own names (`process`, `inner_loop`, `no_overshoot`,
+  `assembled`, `checks`, and `no_redo` with the probe). `outcome` is `PASS` when `pass` is true and no verdict fails, else `FAILED`
+  with the failing verdicts named in `basis` (`step slice failed by verdict: inner_loop, checks`). `identity.pluginSha` is
+  `invocation.json` `versions.plugin_sha256`.
+- **Seeded, not skipped.** The stages before `step-plan` are `stages[].seeded` (from `invocation.json` `seeded.skipped`), not
+  `skipped`. The work item is the case's, given by the harness on purpose, so `workItems` is measured for a slice (its step plan
+  and implement visits are the model's), where a whole run with a seeded plan visit has it unmeasured.
+- **Not reached.** The stages after `carry-forward` (system tests, release, the report) are not reached: their phases read
+  `none`, which the page labels "not reached (slice)" with the `slice.notReached` sentence; a phase whose visits were all seeded
+  reads "seeded by the harness".
+- **Not measured, never 0 or failure.** A whole-run measure a slice cannot have is absent with a reason that names the slice and
+  quotes `notReached`: `delivered.returned`, `delivered.files` and `delivered.release` (in `unmeasured`), `outerRefusals` (in
+  `unmeasured`: `refusals` counts the item's inner loop only, and no outer stage ran), and `quality` (`{observed: false, reason}`).
+  `delivered.tests` and `delivered.skill` are inner-loop measures and are read as for a whole run.
+- **Comparison.** The page's "Compare with" lists only runs of the same kind, and a stored comparison with a run of the other kind
+  is not drawn: a slice is set beside slices only. The harness writes no baseline row for a slice.
 
 ## Stage models
 

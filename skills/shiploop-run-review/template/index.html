@@ -456,9 +456,39 @@ function improveByDesign(run,stage){return planningReview(run)==="none"&&PLANNIN
    recorded its planning_review option says which; a run that did not reads as it always did. */
 function headerFacts(run){
   function phrase(name,one){var t=countText(run,name);return t==="not measured"?name+" not measured":(one?plural(+t,one,name):t+" "+name);}
-  var mode=planningReview(run),sm=stageModelText(stageModel(run)),parts=[run.release+(sm?" ("+sm+")":""),run.time];
+  var mode=planningReview(run),sm=stageModelText(stageModel(run)),parts=(isSlice(run)?["step slice"]:[]).concat([run.release+(sm?" ("+sm+")":""),run.time]);
   if(mode)parts.push("planning review: "+mode);
   return parts.join(" | ");
+}
+/* A step slice (kind "slice"): the harness seeded the run up to the inner loop, ran one work item's inner loop live and stopped at
+   the item boundary on purpose. A whole run has no kind. A slice is compared only with slices, a whole run only with whole runs. */
+function isSlice(run){return !!run&&run.kind==="slice";}
+function sameKind(a,b){return isSlice(a)===isSlice(b);}
+/* A slice's own words for the run detail and the ending card: its work item, how it stopped, where the run was left, what it
+   does not reach. "" for a whole run. */
+function sliceText(run){
+  if(!isSlice(run))return "";
+  var s=run.slice&&typeof run.slice==="object"?run.slice:{};
+  var stop=s.stop==="slice-complete"?"stopped at the item boundary on purpose (slice-complete)":
+    s.stop==="cleared"?"stopped by a context-clear probe (cleared), with no session after it":
+    s.stop?"its last session ended "+s.stop+" before the slice stop":"how it stopped is not recorded";
+  return [(s.item?"work item "+s.item+"'s":"one work item's")+" inner loop, "+stop,
+    s.stageAtStop?"the run was advanced to "+s.stageAtStop:"",s.notReached?"not reached: "+s.notReached:"",
+    "compared only with other step slices"].filter(Boolean).join("; ");
+}
+/* The Observed chevron's words for a phase state. A slice's phase it never reached reads "not reached (slice)", and a phase whose
+   visits the harness all seeded reads "seeded by the harness" (recorded without being done); a whole run reads as it always did. */
+var CHEVRON_LABEL={done:"accepted",blocked:"blocked here",stopped:"stopped by the harness",running:"in progress",none:"not reached"};
+function seededPhase(run,order){
+  var model=stageModel(run),prev=0,any=false,all=true;
+  ((run&&Array.isArray(run.stages))?run.stages:[]).forEach(function(r){
+    prev=phaseOfStage(r&&r.stage,prev,model);if(prev!==order)return;any=true;if(!(r&&r.seeded===true))all=false;});
+  return any&&all;
+}
+function chevronLabel(run,order,st){
+  if(isSlice(run)&&st==="none")return "not reached (slice)";
+  if(isSlice(run)&&st==="done"&&seededPhase(run,order))return "seeded by the harness";
+  return CHEVRON_LABEL[st]||String(st);
 }
 /* The chip beside the header line for a run whose mode changes what its numbers mean: {text, title}, or null. Only none
    has one, so a none run is never read beside a stage run without the mode showing. */
@@ -862,6 +892,7 @@ function endingModel(run){
   var e=run.ending&&typeof run.ending==="object"?run.ending:null,b=run.blocked&&typeof run.blocked==="object"?run.blocked:null;
   var lb=run.leftBehind&&typeof run.leftBehind==="object"?run.leftBehind:null,v=run.verdicts&&typeof run.verdicts==="object"?run.verdicts:{};
   var rows=[],kind=run.status==="stopped"?"stopped":(run.status==="blocked"||b)?"blocked":"note";
+  if(isSlice(run))rows.push(["Step slice",sliceText(run)]);
   if(run.status==="stopped")rows.push(["Stopped by",e&&e.by?e.by:"the harness's record names no cause"]);
   if(e&&typeof e.stage==="string"&&e.stage){
     var spent=isCount(e.unacceptedMin)?e.unacceptedMin+" min":"",amount=[spent,isCount(e.unacceptedTurns)?plural(e.unacceptedTurns,"turn"):""].filter(Boolean).join(" and ");
@@ -1297,7 +1328,8 @@ function kpiCards(run,loops){
       (w?grouped(run.contextPeak)+" of "+grouped(w)+" tokens":"window not measured")+"; "+
       (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true));
   }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false));
-  out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),refusalNote(run.refusals),true)
+  out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),refusalNote(run.refusals)+
+      (reasonFor(run,"outerRefusals")?"; the item's inner loop only, outer stages not measured (step slice)":""),true)
     :kpi("refusals","Refusals","not measured",whyNot(run,"refusals")||"no reason recorded",false));
   return out;
 }
@@ -2004,9 +2036,9 @@ function renderFlow(){
     c.onclick=function(){pickPhase(p.order);};f.appendChild(c);
   });
   f.appendChild(h("div","lane","Observed"));
-  var label={done:"accepted",blocked:"blocked here",stopped:"stopped by the harness",running:"in progress",none:"not reached"};
   P.forEach(function(p,i){
-    var st=(run.phases||[])[i]||"none",c=h("div","chev st-"+st);c.appendChild(h("b","",p.title));c.appendChild(h("span","",label[st]));
+    var st=(run.phases||[])[i]||"none",c=h("div","chev st-"+st);c.appendChild(h("b","",p.title));c.appendChild(h("span","",chevronLabel(run,p.order,st)));
+    if(isSlice(run)&&st==="none"&&run.slice&&run.slice.notReached)c.title="Not reached by this step slice: "+run.slice.notReached;
     var fs=data.obs.filter(function(ob){return ob.phase===p.order&&appliesTo(ob,run.key);});
     if(fs.length){var op=fs.filter(isOpen).length;c.appendChild(h("span","fc",plural(fs.length,"finding")+(op?", "+op+" open":"")));}
     f.appendChild(c);
@@ -2621,8 +2653,9 @@ function fillSelects(){
   data.runs.slice().sort(byOrder).forEach(function(r){var o=h("option","",r.name);o.value=r.key;rs.appendChild(o);});
   var any=h("option","","All runs");any.value="any";rs.appendChild(any);if(cur)rs.value=cur;
   var cs=byId("cmpsel");clear(cs);var none=h("option","","No comparison");none.value="";cs.appendChild(none);
-  data.runs.slice().sort(byOrder).forEach(function(r){if(r.key===L.run)return;var o=h("option","",r.name);o.value=r.key;cs.appendChild(o);});
-  cs.value=L.cmp||"";
+  var here=runOf().run;  /* a slice is compared only with slices, a whole run only with whole runs */
+  data.runs.slice().sort(byOrder).forEach(function(r){if(r.key===L.run||(here&&!sameKind(here,r)))return;var o=h("option","",r.name);o.value=r.key;cs.appendChild(o);});
+  cs.value=L.cmp&&here&&data.runs.some(function(r){return r.key===L.cmp&&sameKind(here,r);})?L.cmp:"";
 }
 function renderAll(){applyConfig();pruneSelection();renderArc();renderFlow();renderPicture();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCritGroups();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();}
 
@@ -2664,7 +2697,7 @@ function renderRunDetail(){
   var box=byId("rundetail");clear(box);
   var o=runOf();
   if(!o.run){box.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));return;}
-  var A=o.run,B=(L.cmp&&L.cmp!==A.key)?o.rs.filter(function(r){return r.key===L.cmp;})[0]:null;
+  var A=o.run,B=(L.cmp&&L.cmp!==A.key)?o.rs.filter(function(r){return r.key===L.cmp&&sameKind(A,r);})[0]:null;
   var card=h("div","card");card.appendChild(h("h3","",A.name+(B?" compared with "+B.name:"")));
   var facts=factRows(A);
   var dl=h("dl","facts");facts.forEach(function(f){dl.appendChild(h("dt","",f[0]));dl.appendChild(h("dd","",f[1]));});card.appendChild(dl);

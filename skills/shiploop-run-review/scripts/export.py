@@ -7,9 +7,10 @@
   export.py --docs FILE [--out DIR]
   export.py --stages [--out DIR]
 
-RUN_DIR is an output directory of test/shiploop_e2e/run.py. The export reads only
-the run's own records (metrics.json, result.json, invocation.json and the ShipLoop
-run directory) and writes only under --out (default RUN_DIR/review-export):
+RUN_DIR is an output directory of test/shiploop_e2e/run.py, or of slice.py (a step slice:
+slice-result.json in place of result.json, SCHEMA.md "Step slices"). The export reads only
+the run's own records (metrics.json, result.json or slice-result.json, invocation.json and
+the ShipLoop run directory) and writes only under --out (default RUN_DIR/review-export):
 
   docs/<collection>/<id>.json  one file per document
   writes.json                  the documents as ArtifactData `set` operations
@@ -160,6 +161,24 @@ RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "hal
 # What result.json says about a host that is over, for a run whose engine still reads active: it was stopped on purpose, hit its
 # deadline, crashed, or ended its turn with the resume budget spent. Not "not observed": a regrade started no host.
 HARNESS_ENDED = ("stopped", "timeout", "failed", "exited")
+# A step slice (test/shiploop_e2e/slice.py): the harness seeds a run up to the inner loop, runs one work item's inner loop live
+# and ends the host at the item boundary on purpose. It writes slice-result.json instead of result.json. Its run document has
+# kind "slice"; a whole run has no kind. Its last session's status says how it stopped: "slice-complete" is the slice stop (the
+# run is "finished"), "cleared" is the context-clear probe's stop, anything else is the host ending before the slice stop.
+SLICE_RESULT = "slice-result.json"
+RUN_KINDS = ("slice",)
+SLICE_STOPS = {"slice-complete": "the slice stop: the harness ended the host at the item boundary, on purpose",
+               "cleared": "a context-clear probe stop: the harness ended the session to test a fresh start, and no session "
+                          "continued after it"}
+MAX_SLICE_TEXT = 300  # characters of the slice's not_reached sentence kept
+# Why a whole-run measure is absent on a slice: the slice does not reach that part of the run, so it is not measured (never 0,
+# never a failure). The slice's own not_reached sentence follows it.
+SLICE_UNMEASURED = "it runs one work item's inner loop and stops at the item boundary on purpose"
+SLICE_PARTS = {"delivered.returned": "the return of the product to the source branch",
+               "delivered.files": "the return plan's kept files",
+               "delivered.release": "the release stages",
+               "outerRefusals": "an outer stage, so no refusal there is counted (refusals counts the item's inner loop)"}
+SLICE_QUALITY = "the quality phase, measured after a whole run's release"
 # Upload order: what the page shows first (runs and their loops), the replicas published from defaults/, then the
 # review (the arc), the findings it raises and the options that resolve them, then the packets (megabytes: their own
 # upload batches, last, so the page shows the run before they arrive). Every SCHEMA collection is listed.
@@ -289,7 +308,12 @@ SCHEMA = {
         # The run's `planning_review` option as state.md recorded it, text as written ("not recorded" when the key is
         # absent: never a default), and, only for the recorded value `none`, what that means for the Improve numbers.
         "planningReview": (S, False), "improveScope": (S, False), "stageModel": (("enum", tuple(STAGE_MODELS)), False),
-        "status": (("enum", ("done", "active", "paused", "blocked", "failed", "stopped")), False),
+        # finished: a step slice that reached its slice stop (kind "slice"; a whole run is never finished, it is done).
+        "status": (("enum", ("done", "active", "paused", "blocked", "failed", "stopped", "finished")), False),
+        # A step slice (SCHEMA.md "Step slices"): kind "slice" and what the slice was; a whole run has neither.
+        "kind": (("enum", RUN_KINDS), False),
+        "slice": (("object", {"item": (S, False), "stop": (S, False), "stageAtStop": (S, False),
+                              "notReached": (S, False)}), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
         # invoked, plugin, process, shiploop, committed and checks are booleans; worktreeChecks is {passed, total} (see _worktree_checks).
         "verdicts": (("verdicts", None), False),
@@ -693,7 +717,8 @@ def _time_text(status: str | None, wall: float | None, accepted: int, ending: di
     tail = (ending or {}).get("unacceptedMin")
     stopped = f"stopped after {spent}" + (f", then {_fmt_minutes(tail)} of unaccepted work" if isinstance(tail, (int, float)) else "")
     return {"done": f"done in {spent}", "active": f"running, {spent} at snapshot", "paused": f"paused after {spent}",
-            "blocked": f"blocked after {spent}", "failed": f"halted after {spent}", "stopped": stopped}.get(status, spent)
+            "blocked": f"blocked after {spent}", "failed": f"halted after {spent}", "stopped": stopped,
+            "finished": f"finished in {spent}"}.get(status, spent)
 
 
 def _knowledge(checkouts: list[Path]) -> tuple[dict, Path | None]:
@@ -1238,20 +1263,20 @@ def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None
     return found, visits_without_context_reason(lacking, len(found)) if lacking else None
 
 
-def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
-    """(ids of the visits the harness recorded itself, why none is marked when result.json names some).
+def _seeded(seeded, history: list[dict], source: str = "result.json") -> tuple[set[str], str | None]:
+    """(ids of the visits the harness recorded itself, why none is marked when `source` names some).
 
-    result.json's `seeded.skipped` lists the stages the E2E seed recorded without doing them; they are the first
-    visits of the history, in order. No summary text is read.
+    The `seeded.skipped` of result.json (of invocation.json for a step slice, which writes no result.json) lists the stages
+    the E2E seed recorded without doing them; they are the first visits of the history, in order. No summary text is read.
     """
     if not seeded:
         return set(), None
     names = seeded.get("skipped") if isinstance(seeded, dict) else None
     if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
-        return set(), "result.json's seeded.skipped is not a list of stage names"
+        return set(), f"{source}'s seeded.skipped is not a list of stage names"
     first = [h.get("stage") for h in history[:len(names)]]
     if first != names:
-        return set(), (f"result.json says the harness seeded {', '.join(names)}, but the first {len(names)} visits "
+        return set(), (f"{source} says the harness seeded {', '.join(names)}, but the first {len(names)} visits "
                        f"of state.md are {', '.join(str(s) for s in first) or 'none'}")
     return {h["action"] for h in history[:len(names)] if isinstance(h.get("action"), str)}, None
 
@@ -1442,6 +1467,37 @@ def _blocked(state: dict, history: list[dict], results: Path) -> dict:
     if options:
         found["options"] = options
     return found
+
+
+def _slice_why(part: str, sliced: dict) -> str:
+    """Why `part` (a whole-run measure) is absent on a step slice: it is not part of one, with the slice's not_reached sentence."""
+    said = sliced["slice"].get("notReached")
+    return f"a step slice does not reach {part}: {SLICE_UNMEASURED}" + (f"; not reached: {said}" if said else "")
+
+
+def _slice_of(record: dict, invocation: dict) -> dict:
+    """A step slice's slice-result.json in the run document's terms: {slice, stop, verdicts, record}. `slice` is what the slice
+    was (its work item, how its last session stopped, the stage the run was advanced to, the harness's not_reached sentence);
+    `stop` is that last session's status; `verdicts` the harness's boolean verdicts by its own names; `record` a result.json-shaped
+    dict for _run_record: the outcome (PASS when the harness says pass and no verdict fails, else FAILED naming the failing verdicts)
+    and the build under test from invocation.json's versions."""
+    sessions = [s for s in record.get("sessions") or [] if isinstance(s, dict)]
+    stop = _text(sessions[-1].get("status")) if sessions else None
+    said = record.get("verdicts") if isinstance(record.get("verdicts"), dict) else {}
+    verdicts = {str(name): value for name, value in said.items() if isinstance(value, bool)}
+    failing = [name for name, value in verdicts.items() if not value]
+    if record.get("pass") is True and not failing:
+        cls, basis = "PASS", "step slice: every verdict holds" + (f" ({', '.join(verdicts)})" if verdicts else "")
+    elif record.get("pass") is False or failing:
+        cls, basis = "FAILED", ("step slice failed by verdict: " + ", ".join(failing) if failing else
+                                "step slice failed: slice-result.json says pass false and names no failing verdict")
+    else:
+        cls, basis = None, "step slice: slice-result.json records no pass"
+    about = {key: value for key, value in (("item", _line(record.get("item"), MAX_IDENTITY)), ("stop", _line(stop, MAX_IDENTITY)),
+                                           ("stageAtStop", _line(record.get("stage_at_stop"), MAX_IDENTITY)),
+                                           ("notReached", _line(record.get("not_reached"), MAX_SLICE_TEXT))) if value}
+    return {"slice": about, "stop": stop, "verdicts": verdicts,
+            "record": {"versions": invocation.get("versions"), "outcome_class": cls, "outcome_basis": basis}}
 
 
 # ---------------------------------------------------------------- outcome, build, environment, product at the stop (R23a)
@@ -2687,7 +2743,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     metrics = _read_json(out / "metrics.json")
     result = _optional_json(out / "result.json") or {}
     invocation = _optional_json(out / "invocation.json") or {}
-    run_dir = find_run_dir(out, (result.get("shiploop") or {}).get("run_dir"))
+    slice_record = _optional_json(out / SLICE_RESULT)  # a step slice writes this instead of result.json
+    sliced = _slice_of(slice_record, invocation) if isinstance(slice_record, dict) else None
+    run_dir = find_run_dir(out, _text(slice_record.get("run_dir")) if sliced else (result.get("shiploop") or {}).get("run_dir"))
     timeline = _read_json(run_dir / "timeline.json")
     if not isinstance(timeline, dict) or not isinstance(timeline.get("accepted"), dict):
         raise ExportError(f"{run_dir / 'timeline.json'} has no accepted map")
@@ -2714,7 +2772,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     # stamps it). A visit's minutes are its accept minus the accept before it (the first from the run's start),
     # so a visit with no stamp, one right after a visit with no stamp, one whose stamp is earlier than the accept
     # before it, or one the harness seeded has unknown minutes: null, never 0 and never negative.
-    seeded_ids, seeded_note = _seeded(result.get("seeded"), history)
+    seeded_ids, seeded_note = (_seeded(invocation.get("seeded"), history, "invocation.json") if sliced
+                               else _seeded(result.get("seeded"), history))
     packets = run_dir / "packets"
     issued = packets.is_dir() and any(p.is_file() for p in packets.iterdir())  # some packet exists: absence means something
     children = _improve_children(run_dir)
@@ -2791,7 +2850,13 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     # harness's word that the host is over (stopped on purpose, a deadline, a crash, a spent resume budget). A regrade
     # observed no process, so it never makes a run stopped (its status reads "not observed").
     ended = status == "active" and (_process_status(result) in HARNESS_ENDED)
-    if ended:
+    # A step slice whose engine reads active was ended by the harness: finished at the slice stop, else stopped (a context-clear
+    # probe's stop, or the host ending first). An engine that blocked, halted or finished keeps its own status.
+    finished = bool(sliced) and status == "active" and sliced["stop"] == "slice-complete"
+    ended = ended or (bool(sliced) and status == "active" and not finished)
+    if finished:
+        status = "finished"
+    elif ended:
         status = "stopped"
     now = current_stage(state)
     current = None if raw_status == "done" else phase_of.get(now, phases_seen[-1] if phases_seen else 0)
@@ -2799,6 +2864,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         unknown.append(now)
     wall = _minutes(started, stamped[-1][0]) if started and stamped else None
     ending = _ending(result, state, metrics, packets, ended)
+    if sliced and ended:
+        ending = {"by": SLICE_STOPS.get(sliced["stop"]) or
+                  f"the slice's last session ended {sliced['stop'] or 'with no status recorded'} before the slice stop", **ending}
 
     versions = invocation.get("versions") or result.get("versions") or {}
     host = _text(invocation.get("host")) or _text(result.get("host"))
@@ -2809,10 +2877,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     release = (f"skill-craft {plugin}, ShipLoop {shiploop}" if plugin and shiploop
                else f"skill-craft {plugin}" if plugin else f"ShipLoop {shiploop}" if shiploop else "unknown")
     first = started or (stamped[0][0] if stamped else None)
-    key = _clean_key(key or "-".join([host or "unknown", model or "unknown", plugin or "unknown", case or "unknown",
-                                      first.strftime("%Y%m%d") if first else "undated"]))
+    key = _clean_key(key or "-".join([host or "unknown", model or "unknown", plugin or "unknown", *(["slice"] if sliced else []),
+                                      case or "unknown", first.strftime("%Y%m%d") if first else "undated"]))
     name = name or (" ".join(part for part in (host, model, effort) if part) or "unknown host") + \
-        (f", {case}" if case else "") + (f", release {plugin}" if plugin else "")
+        (f", {case}" if case else "") + (", step slice" if sliced else "") + (f", release {plugin}" if plugin else "")
     order = order if order is not None else (int(first.timestamp()) if first else 0)
 
     failures = [f for f in metrics.get("shiploop_failures") or [] if isinstance(f, dict)]
@@ -2824,7 +2892,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             measures.pop(field, None)
             unmeasured[field] = _hosts_why(hosts)
     unmeasured.update(improve_why)
-    items, plan_why, marks = work_items(state, history, results, seeded_ids, AFTER_IMPLEMENT_BY_MODEL[tables])
+    # A slice's work item is the case's, given by the harness on purpose, and its steps loop is the model's: it is measured.
+    items, plan_why, marks = work_items(state, history, results, set() if sliced else seeded_ids,
+                                        AFTER_IMPLEMENT_BY_MODEL[tables])
     unmeasured.update(plan_why)
     for index, mark in marks.items():  # one stage row per history entry, in order
         stages[index].update(mark)
@@ -2835,10 +2905,14 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         unmeasured["toolUse"] = why_no_tool_use
     planning, planning_why = _planning(metrics)
     unmeasured.update(planning_why)
-    record_fields, record_why = _run_record(result)  # R23a: outcome, identity, environment, productAtStop
+    record_fields, record_why = _run_record(sliced["record"] if sliced else result)  # R23a: outcome, identity, environment, productAtStop
     unmeasured.update(record_why)
     delivered, delivered_why = _delivered(run_dir.parent, stages, run_model)  # R23d: merged back or not, files by kind, tests, skill, release
     unmeasured.update(delivered_why)
+    if sliced:  # a slice never reaches the return or the release: those parts are not measured, never "not merged back"
+        delivered.pop("returned", None)
+        unmeasured.pop("delivered.mode", None)
+        unmeasured.update({name: _slice_why(part, sliced) for name, part in SLICE_PARTS.items()})
     fresh_starts, fresh_why = fresh_starts_of(metrics)  # R23c
     if fresh_why:
         unmeasured["freshStarts"] = fresh_why
@@ -2847,7 +2921,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
     run = {"key": key, "name": name, "order": order, "release": release,
-           "phases": derive_phases(phases_seen, current, "stopped" if ended else raw_status),
+           "phases": derive_phases(phases_seen, current, "stopped" if ended else "done" if finished else raw_status),
            "time": _time_text(status, wall, len(stages), ending),
            "imp": _count(len(children), "child", "children") + (f", {_count(improve['improvePasses'], 'review pass')}"
                                                  if improve.get("improvePasses") else ""),
@@ -2856,6 +2930,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
            "planningReview": _recorded_option(state, "planning_review")}
     if run_model:
         run["stageModel"] = run_model
+    if sliced:
+        run["kind"] = "slice"
+        run["slice"] = sliced["slice"]
     if run["planningReview"] == PLANNING_NONE:
         # The Improve totals above are what the improve/ directories hold, measured, and stay as they are. Under none the
         # engine starts no child at the five planning stages, so those stages have none by design: the scope says so.
@@ -2877,7 +2954,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             run[field] = value
     if wall is not None:
         run["wallMin"] = round(wall, 1)
-    if raw_status == "done" and stamped:
+    if (raw_status == "done" or finished) and stamped:
         run["endedAt"] = stamped[-1][1]
     verdicts = {}
     for verdict in ("invoked", "plugin", "process", "shiploop", "committed"):
@@ -2888,6 +2965,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     unreturned = _worktree_checks(result)
     if unreturned is not None:  # the product the run never returned, checked where it is: information beside `checks`
         verdicts["worktreeChecks"] = unreturned
+    if sliced:
+        verdicts.update(sliced["verdicts"])
     if verdicts:
         run["verdicts"] = verdicts
     if hosts:
@@ -2900,6 +2979,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         run["freshStarts"] = fresh_starts
     if (quality := quality_of(result.get("quality"))) is not None:
         run["quality"] = quality
+    elif sliced:
+        run["quality"] = {"observed": False, "reason": _slice_why(SLICE_QUALITY, sliced)}
     if ending:
         run["ending"] = ending
     if raw_status == "blocked" and (blocked := _blocked(state, history, results)):
@@ -2993,6 +3074,32 @@ def _carried_line(run) -> str:
     return (f"- Packet text carried (producer packets read {len(read)}; {separate} visits have a separate Improve packet file; "
             f"{improve} visits (old layout) keep only an Improve child's packet, not read): " + (", ".join(f"{label} {sum(1 for c in read if c.get(label))}" for label, _, _ in CARRIED)
                              if read else "no label counted"))
+
+
+def _seeded_phases(stages: list[dict], phase_of: dict) -> set[int]:
+    """The phases every visit of which the harness seeded (a stage not in the table takes the previous visit's phase)."""
+    seen: dict[int, bool] = {}
+    phase = 0
+    for row in stages:
+        phase = phase_of.get(row["stage"], phase)
+        seen[phase] = seen.get(phase, True) and bool(row.get("seeded"))
+    return {phase for phase, all_seeded in seen.items() if all_seeded}
+
+
+def _slice_phase(state: str, seeded: bool) -> str:
+    """A step slice's phase state in facts.md, as the page labels it: a phase it never reached, one the harness seeded."""
+    return "not reached (slice)" if state == "none" else "seeded by the harness" if state == "done" and seeded else state
+
+
+def _slice_line(run) -> str:
+    """A step slice's facts line: its work item, how it stopped, the stage the run was advanced to and what it does not reach."""
+    about = run.get("slice") or {}
+    stop = about.get("stop")
+    return ("- Step slice: " + (f"work item {about['item']}'s inner loop" if "item" in about else "one work item's inner loop")
+            + (f"; stopped by {stop} ({SLICE_STOPS[stop]})" if stop in SLICE_STOPS else f"; last session {stop}" if stop else "")
+            + (f"; the run was advanced to {about['stageAtStop']}" if "stageAtStop" in about else "")
+            + (f"; not reached: {about['notReached']}" if "notReached" in about else "")
+            + "; compared only with other step slices")
 
 
 def _ending_lines(run) -> list[str]:
@@ -3298,9 +3405,12 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
         verbs[str(failure.get("verb"))] = verbs.get(str(failure.get("verb")), 0) + 1
     knowledge = run["knowledge"]
     largest = next(iter(knowledge.items()), None)
+    sliced = run.get("kind") == "slice"
+    seeded_only = _seeded_phases(stages, STAGE_PHASE_BY_MODEL[run.get("stageModel") or "v5"]) if sliced else set()
     lines = [f"# Run Review facts: {run['key']}", "",
-             f"- Run: ShipLoop status {raw_status or 'unknown'}; {_count(len(stages), 'accepted action')}{kinds}; "
-             f"{run.get('wallMin', 'unknown')} min from start to the last accept",
+             f"- Run: {'step slice; ' if sliced else ''}ShipLoop status {raw_status or 'unknown'}; "
+             f"{_count(len(stages), 'accepted action')}{kinds}; {run.get('wallMin', 'unknown')} min from start to the last accept",
+             *([_slice_line(run)] if sliced else []),
              f"- Driver: {' '.join(run[k] for k in ('host', 'model', 'effort') if k in run) or 'unknown'}; "
              f"case {run.get('case', 'unknown')}; {run['release']}",
              "- Stage model: " + (f"{run['stageModel']} ({STAGE_MODELS[run['stageModel']]})" if run.get("stageModel")
@@ -3310,7 +3420,9 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
                                if run.get("verdicts") else "no result.json"),
              "- Slowest stages (min, accept to accept): " + (", ".join(
                  f"{stage} {sum(m):.1f}" + (f" ({len(m)}x)" if len(m) > 1 else "") for stage, m in slowest) or "none"),
-             f"- Phases: {', '.join(f'{title} {state}' for (title, _), state in zip(PHASES_BY_MODEL[run.get('stageModel') or 'v5'], run['phases']))}",
+             "- Phases: " + ", ".join(f"{title} {_slice_phase(state, order in seeded_only) if sliced else state}"
+                                      for order, ((title, _), state) in enumerate(zip(PHASES_BY_MODEL[run.get('stageModel') or 'v5'],
+                                                                                      run['phases']))),
              f"- Improve: {run['imp']}" + (f"; most passes in one child: {most}" if most else "")
              + (f"; {run['improveMin']} min bind to receipt" if "improveMin" in run
                 else f"; minutes not measured ({unmeasured['improveMin']})")
@@ -3321,7 +3433,9 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
                  for field, label in (("calls", "calls"), ("contextPeak", "context peak"),
                                       ("contextWindow", "window"), ("compactions", "compactions"))),
              (f"- ShipLoop command failures: {len(failures)}" + (
-                 f" ({', '.join(f'{v} {n}' for v, n in sorted(verbs.items()))})" if verbs else ""))
+                 f" ({', '.join(f'{v} {n}' for v, n in sorted(verbs.items()))})" if verbs else "")
+              + ("; the item's inner loop only, refusals at outer stages not measured (step slice)"
+                 if "outerRefusals" in unmeasured else ""))
              if "refusals" in run else
              f"- ShipLoop command failures: not measured ({run['unmeasured']['shiploop_failures']})",
              f"- Model glue: {run['glue']} commands" if "glue" in run else

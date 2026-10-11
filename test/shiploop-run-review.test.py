@@ -9975,5 +9975,194 @@ class StageModelTests(unittest.TestCase):
         self.assertEqual(export.validate_doc("config", export.defaults_docs()["config"]["stages-v4"]), [])
 
 
+SLICE_NOT_REACHED = "system tests, release and the report: a slice ends after the item's inner loop"
+SLICE_VERDICTS = {"process": True, "inner_loop": True, "no_overshoot": True, "assembled": True, "checks": True}
+
+
+def slice_run(root: Path, model: str = "v5", stop: str = "slice-complete", verdicts: dict | None = None) -> Path:
+    """A step slice as test/shiploop_e2e/slice.py leaves it (shaped on the real 8-stage slice node-add-function of 2026-10-10):
+    the harness seeded every stage before step-plan (invocation.json `seeded`; only intake has a packet, as the seed leaves it),
+    work item W1 ran its inner loop live and the run was advanced to system-test-author, where the harness ended the host. It
+    writes slice-result.json, no result.json. The workspace was prepared and never returned. v4: the 17-stage inner loop, with
+    get-next-work-item seeded too."""
+    seeded = SM_OUTER + (("get-next-work-item",) if model == "v4" else ())
+    inner = SM_V5_INNER if model == "v5" else SM_V4_INNER[1:]
+    visits = [(None, s) for s in SM_OUTER] + [("W1", s) for s in seeded[len(SM_OUTER):] + inner]
+    accepts = []
+    for n, (_, stage) in enumerate(visits):
+        name = f"slice-{model}-{n:02d}-{stage}"
+        IDS.setdefault(name, "nav-" + hashlib.sha256(name.encode()).hexdigest()[:32])
+        accepts.append((name, stage, 0.1 * (n + 1) if n < len(seeded) else 1 + n, "done"))
+    out = make_run(root, accepts=accepts, loops=False)
+    run_dir = run_dir_of(out)
+    state = export._record(run_dir / "state.md")
+    for row, (item, stage) in zip(state["history"], visits):
+        row["workitem"] = item
+        row["summary"] = SM_SAID["carry-forward"] if stage == "carry-forward" else f"{stage} done"
+    state.update(version=5 if model == "v5" else 4, work_index=0, stage="system-test-author", inner_loops={},
+                 work_items=[{"id": "W1", "title": "Add slugify"}])
+    record(run_dir / "state.md", state)
+    for name, _, _, _ in accepts[1:len(seeded)]:  # the seed issues a packet for intake only
+        (run_dir / "packets" / f"{IDS[name]}.md").unlink()
+    record(run_dir.parent / "workspace.md", {"status": "prepared", "source_branch": "master", "branch": "shiploop/run-x"})
+    (out / "result.json").unlink()
+    edit_json(out / "invocation.json", lambda i: i.update(
+        case="node-add-function", host="claude", model="claude-sonnet-5-5", effort=None, kind="step-slice",
+        delegation="inline", versions={"plugin_version": "1.27.0", "shiploop_version": "0.59.0", "plugin_sha256": "f32107d2c559"},
+        seeded={"stage": "step-plan", "run_dir": str(run_dir), "start_head": "6138557e", "skipped": list(seeded),
+                "action": "nav-x", "delegation": "inline"}))
+    verdicts = dict(SLICE_VERDICTS, **(verdicts or {}))
+    write_json(out / "slice-result.json", {
+        "case": "node-add-function", "host": "claude", "model": "claude-sonnet-5-5", "delegation": "inline",
+        "output": str(out), "run_dir": str(run_dir), "worktree": str(run_dir.parent / "worktree"),
+        "pass": all(verdicts.values()), "verdicts": verdicts, "item": "W1",
+        "item_history": [{"stage": s, "outcome": "done"} for s in inner], "overshoot": [], "queue_growth": 0,
+        "run_status": "active", "stage_at_stop": "system-test-author",
+        "assembled": {"pass": verdicts["assembled"], "changed": ["src/strings.js"], "missing": [], "reason": None},
+        "checks": [{"command": "node --test", "pass": verdicts["checks"]}],
+        "sessions": [{"status": stop, "returncode": -9, "elapsed_seconds": 315.0, "stop": None}],
+        "clear": None, "not_reached": SLICE_NOT_REACHED})
+    return out
+
+
+class StepSliceTests(unittest.TestCase):
+    """A step slice (slice-result.json, no result.json) reads as a slice: kind slice, finished at its stop, its seeded stages
+    seeded (not skipped), its outer stages not reached, the whole-run measures it cannot have not measured with a reason that
+    names the slice, "step slice" on the header and in facts.md, and compared only with slices. A whole run reads as before."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = next(iter(docs["runs"].values()))
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def fresh(self) -> Path:
+        return Path(tempfile.mkdtemp(dir=self.tmp))
+
+    def test_a_finished_slice_is_kind_slice_with_seeded_stages_and_its_outer_stages_not_reached(self):
+        run, facts = self.build(slice_run(self.tmp))
+        self.assertEqual((run["kind"], run["status"]), ("slice", "finished"))
+        self.assertEqual(run["slice"], {"item": "W1", "stop": "slice-complete", "stageAtStop": "system-test-author",
+                                        "notReached": SLICE_NOT_REACHED})
+        self.assertIn("-slice-node-add-function-", run["key"])
+        self.assertTrue(run["name"].endswith(", step slice, release 1.27.0"), run["name"])
+        rows = run["stages"]
+        self.assertEqual([r["stage"] for r in rows if r.get("seeded")], list(SM_OUTER))
+        self.assertEqual([r["stage"] for r in rows if r.get("skipped")], [])  # seeded, never "skipped"
+        self.assertTrue(all(r["min"] is None for r in rows[:len(SM_OUTER)]))
+        self.assertEqual(run["phases"], ["done"] * 6 + ["none", "none"])  # system test and release not reached, not running
+        self.assertTrue(run["time"].startswith("finished in "), run["time"])
+        self.assertEqual(run["endedAt"], iso(len(rows)))
+        self.assertEqual(run["verdicts"], SLICE_VERDICTS)
+        self.assertEqual(run["outcome"], {"class": "PASS", "basis": "step slice: every verdict holds (process, inner_loop, "
+                                                                   "no_overshoot, assembled, checks)"})
+        self.assertEqual(run["identity"], {"pluginSha": "f32107d2c559"})
+        # the work item is the case's on purpose: its steps loop is the model's and is measured
+        self.assertEqual((run["stepsPlanned"], run["stepsExecuted"]), (2, 2))
+        text = "\n".join(facts)
+        self.assertIn("- Run: step slice; ShipLoop status active; 16 accepted actions (9 work, 0 skipped, 7 seeded)", text)
+        self.assertIn("- Step slice: work item W1's inner loop; stopped by slice-complete (the slice stop", text)
+        self.assertIn(f"not reached: {SLICE_NOT_REACHED}; compared only with other step slices", text)
+        self.assertIn("- Phases: Understand seeded by the harness, Specify seeded by the harness, Plan done, Build done, Verify done, "
+                      "Carry forward done, System test not reached (slice), Release not reached (slice)", text)
+        self.assertIn("- Verdicts: process pass, inner_loop pass, no_overshoot pass, assembled pass, checks pass", text)
+        self.assertNotIn("no result.json", text)
+
+    def test_whole_run_measures_a_slice_cannot_have_are_not_measured_with_a_reason_naming_the_slice(self):
+        run, facts = self.build(slice_run(self.tmp))
+        unmeasured = run["unmeasured"]
+        for name in ("delivered.returned", "delivered.files", "delivered.release", "outerRefusals"):
+            self.assertIn("a step slice does not reach", unmeasured[name], name)
+            self.assertIn(f"not reached: {SLICE_NOT_REACHED}", unmeasured[name], name)
+        self.assertNotIn("returned", run["delivered"])  # never "not merged back"
+        self.assertNotIn("release", run["delivered"])
+        self.assertEqual(run["quality"]["observed"], False)
+        self.assertIn("a step slice does not reach the quality phase", run["quality"]["reason"])
+        # the inner loop's own measures stay measured: refusals (a count, never dropped), the tests and the skill decision
+        self.assertEqual(run["refusals"], 1)
+        self.assertEqual(run["delivered"]["skill"], {"assessed": SM_SAID["carry-forward"]})
+        text = "\n".join(facts)
+        self.assertIn("- Delivered: not measured (a step slice does not reach the return of the product", text)
+        self.assertIn("- Delivered release: not measured (a step slice does not reach the release stages", text)
+        self.assertIn("- Quality (recorded after the run, never a verdict): not observed (a step slice does not reach", text)
+        self.assertIn("- ShipLoop command failures: 1 (complete 1); the item's inner loop only, refusals at outer stages not "
+                      "measured (step slice)", text)
+        self.assertNotIn("not merged back", text)
+
+    def test_a_failing_slice_is_failed_by_its_named_verdicts_and_a_stop_other_than_the_slice_stop_is_stopped(self):
+        run, _ = self.build(slice_run(self.fresh(), verdicts={"inner_loop": False, "checks": False}))
+        self.assertEqual(run["outcome"], {"class": "FAILED", "basis": "step slice failed by verdict: inner_loop, checks"})
+        self.assertEqual((run["verdicts"]["inner_loop"], run["status"]), (False, "finished"))  # it still reached its stop
+        cleared, facts = self.build(slice_run(self.fresh(), stop="cleared"))
+        self.assertEqual((cleared["status"], cleared["slice"]["stop"]), ("stopped", "cleared"))
+        self.assertIn("a context-clear probe stop", cleared["ending"]["by"])
+        self.assertIn("stopped", cleared["phases"])
+        self.assertIn("- Ended: stopped: a context-clear probe stop", "\n".join(facts))
+        timed, _ = self.build(slice_run(self.fresh(), stop="timeout"))
+        self.assertEqual((timed["status"], timed["ending"]["by"]),
+                         ("stopped", "the slice's last session ended timeout before the slice stop"))
+
+    def test_a_17_stage_slice_reads_with_its_own_stage_model(self):
+        run, facts = self.build(slice_run(self.tmp, "v4"))
+        self.assertEqual((run["kind"], run["stageModel"], run["status"]), ("slice", "v4", "finished"))
+        self.assertEqual([r["stage"] for r in run["stages"] if r.get("seeded")], [*SM_OUTER, "get-next-work-item"])
+        self.assertEqual(run["phases"], ["done"] * 6 + ["none", "none"])
+        self.assertIn("- Phases: Understand seeded by the harness, Specify seeded by the harness, Plan done, Build done, Prove done, "
+                      "Integrate done, System test not reached (slice), Release not reached (slice)", "\n".join(facts))
+
+    def test_a_whole_run_has_no_kind_and_reads_as_before(self):
+        run, facts = self.build(make_run(self.tmp, loops=False))
+        self.assertTrue("kind" not in run and "slice" not in run)
+        self.assertEqual(run["status"], "active")
+        text = "\n".join(facts)
+        self.assertNotIn("step slice", text)
+        self.assertIn("- Run: ShipLoop status active;", text)
+
+    def page(self, expression: str, current: str, cmp: str = "") -> object:
+        slice_doc, _ = self.build(slice_run(self.fresh()))
+        other, _ = self.build(slice_run(self.fresh(), verdicts={"checks": False}))
+        other = dict(other, key="slice-2", name="second slice", order=slice_doc["order"] + 1)
+        whole, _ = self.build(make_run(self.fresh(), loops=False))
+        whole = dict(whole, key="whole", name="whole run", order=slice_doc["order"] + 2)
+        keys = {"slice": slice_doc["key"], "slice-2": "slice-2", "whole": "whole"}
+        defaults = export.defaults_docs()
+        setup = ("data.runs=" + json.dumps([slice_doc, other, whole]) + ";data.bc=[];data.exp=" + json.dumps(defaults["expectations"])
+                 + ";data.cfg=" + json.dumps(defaults["config"]) + ";Object.keys(loaded).forEach(function(k){loaded[k]=true;});"
+                 + "L.run=%s;L.cmp=%s;renderAll();" % (json.dumps(keys[current]), json.dumps(keys.get(cmp, ""))))
+        return page_probe(expression, setup=setup)
+
+    def test_the_page_says_step_slice_on_the_header_and_labels_seeded_and_not_reached_phases(self):
+        header, chevrons, ending = self.page(
+            '[textOf("runfacts"),byClass("flow","chev").filter(function(c){return c.className.indexOf("exp")<0;})'
+            '.map(function(c){return [c.children[0].textContent,c.children[1].textContent,c.title||""];}),textOf("endcard")]',
+            "slice")
+        self.assertTrue(header.startswith("step slice | skill-craft 1.27.0, ShipLoop 0.59.0 (8-stage run) | finished in "), header)
+        labels = {name: (said, title) for name, said, title in chevrons}
+        self.assertEqual([labels[p][0] for p in ("Understand", "Specify", "Plan", "Build", "Carry forward", "System test", "Release")],
+                         ["seeded by the harness", "seeded by the harness", "accepted", "accepted", "accepted",
+                          "not reached (slice)", "not reached (slice)"])
+        self.assertEqual(labels["Release"][1], "Not reached by this step slice: " + SLICE_NOT_REACHED)
+        self.assertIn("Step slice", ending)
+        self.assertIn("work item W1's inner loop, stopped at the item boundary on purpose (slice-complete)", ending)
+
+    def test_a_slice_is_compared_only_with_slices_and_a_whole_run_only_with_whole_runs(self):
+        probe = ('[byId("cmpsel").children.map(function(o){return o.value;}),byId("cmpsel").value,'
+                 'textOf("rundetail").indexOf("side by side")>=0]')
+        on_slice = self.page(probe, "slice", cmp="slice-2")
+        self.assertEqual(on_slice, [["", "slice-2"], "slice-2", True])
+        crossed = self.page(probe, "slice", cmp="whole")  # a comparison stored before: not drawn across kinds
+        self.assertEqual(crossed, [["", "slice-2"], "", False])
+        on_whole = self.page(probe, "whole", cmp="slice")
+        self.assertEqual(on_whole, [[""], "", False])
+        self.assertEqual(run_logic('[sameKind({kind:"slice"},{}),sameKind({},{}),sameKind({kind:"slice"},{kind:"slice"}),'
+                                   'chevronLabel({},0,"none"),headerFacts({release:"r",time:"t"})]'),
+                         [False, True, True, "not reached", "r | t"])
+
+
 if __name__ == "__main__":
     unittest.main()
