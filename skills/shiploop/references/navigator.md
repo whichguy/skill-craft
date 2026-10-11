@@ -60,7 +60,8 @@ and only after the stage's script gates pass: the expectation checks at
 `validate-existing`, the [lint gate](../SKILL.md#script-owned-lint) at
 `implement`, `test` and `verify`, ShipLoop's base and candidate
 [test runs](../SKILL.md#test-loop) at `test`, and its rerun of every recorded
-command at `verify`. Every inner loop's repeat condition carries the
+command at `verify`. Each loop prints its own repeat condition; the
+`implement` and `test` loops carry the
 [pass-or-stop rule](../SKILL.md#tests-pass-or-the-step-stops).
 No stage contains a copied Improve policy or independently counts review passes.
 

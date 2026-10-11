@@ -1,0 +1,257 @@
+{
+ "date": "2026-10-10",
+ "round": "fix round after review (batch 1012 task A2)",
+ "base": "8932b849",
+ "command": "the catalog commands of `bash test/run-all.sh --group quick --changed-from 8932b849` (its --list), run one suite at a time in the foreground in three chunks because the serial tier is longer than one tool call; SHIPLOOP_PROGRESS=off, no GIT_CONFIG_NOSYSTEM exported",
+ "quick_tier": [
+  {
+   "id": "test-groups",
+   "exit": 0,
+   "seconds": 2.5
+  },
+  {
+   "id": "ci-policy",
+   "exit": 0,
+   "seconds": 2.0
+  },
+  {
+   "id": "release-preflight",
+   "exit": 0,
+   "seconds": 4.5
+  },
+  {
+   "id": "skill-frontmatter",
+   "exit": 0,
+   "seconds": 0.1
+  },
+  {
+   "id": "shiploop-no-model-launch",
+   "exit": 0,
+   "seconds": 5.6
+  },
+  {
+   "id": "shiploop-navigator-contract",
+   "exit": 0,
+   "seconds": 39.9
+  },
+  {
+   "id": "shiploop-navigator-v4",
+   "exit": 0,
+   "seconds": 2.0
+  },
+  {
+   "id": "shiploop-stopped-improve",
+   "exit": 0,
+   "seconds": 1.3
+  },
+  {
+   "id": "shiploop-v4-consumers",
+   "exit": 0,
+   "seconds": 1.2
+  },
+  {
+   "id": "shiploop-actual-improve-cli",
+   "exit": 0,
+   "seconds": 88.8
+  },
+  {
+   "id": "shiploop-packet-bounds",
+   "exit": 0,
+   "seconds": 0.7
+  },
+  {
+   "id": "shiploop-packet-completeness",
+   "exit": 0,
+   "seconds": 0.5
+  },
+  {
+   "id": "shiploop-step-packets",
+   "exit": 0,
+   "seconds": 0.3
+  },
+  {
+   "id": "shiploop-reference",
+   "exit": 0,
+   "seconds": 0.2
+  },
+  {
+   "id": "shiploop-guidance",
+   "exit": 0,
+   "seconds": 2.5
+  },
+  {
+   "id": "shiploop-navigator-dry-run",
+   "exit": 0,
+   "seconds": 10.1
+  },
+  {
+   "id": "shiploop-status-display",
+   "exit": 0,
+   "seconds": 4.7
+  },
+  {
+   "id": "shiploop-narrative",
+   "exit": 0,
+   "seconds": 0.6
+  },
+  {
+   "id": "shiploop-stage-spec",
+   "exit": 0,
+   "seconds": 0.3
+  },
+  {
+   "id": "shiploop-cross-run",
+   "exit": 0,
+   "seconds": 5.2
+  },
+  {
+   "id": "shiploop-chain-async",
+   "exit": 0,
+   "seconds": 77.8
+  },
+  {
+   "id": "shiploop-delegation",
+   "exit": 0,
+   "seconds": 8.2
+  },
+  {
+   "id": "shiploop-lint",
+   "exit": 0,
+   "seconds": 56.4
+  },
+  {
+   "id": "shiploop-quality",
+   "exit": 0,
+   "seconds": 7.0
+  },
+  {
+   "id": "shiploop-loops",
+   "exit": 0,
+   "seconds": 19.8
+  },
+  {
+   "id": "shiploop-knowledge",
+   "exit": 0,
+   "seconds": 32.2
+  },
+  {
+   "id": "shiploop-store",
+   "exit": 0,
+   "seconds": 0.1
+  },
+  {
+   "id": "shiploop-privacy",
+   "exit": 0,
+   "seconds": 0.0
+  },
+  {
+   "id": "shiploop-reference-routing",
+   "exit": 0,
+   "seconds": 0.6
+  },
+  {
+   "id": "shiploop-planning-handoff",
+   "exit": 0,
+   "seconds": 0.8
+  },
+  {
+   "id": "shiploop-package-integrity",
+   "exit": 0,
+   "seconds": 0.3
+  },
+  {
+   "id": "shiploop-e2e-runrecord",
+   "exit": 0,
+   "seconds": 0.0
+  },
+  {
+   "id": "shiploop-e2e-slice",
+   "exit": 0,
+   "seconds": 37.2
+  },
+  {
+   "id": "shiploop-e2e-fidelity",
+   "exit": 0,
+   "seconds": 10.7
+  },
+  {
+   "id": "shiploop-e2e-reorientation",
+   "exit": 0,
+   "seconds": 8.7
+  },
+  {
+   "id": "shiploop-test-loop",
+   "exit": 0,
+   "seconds": 132.5
+  },
+  {
+   "id": "shiploop-keepalive",
+   "exit": 0,
+   "seconds": 55.3
+  },
+  {
+   "id": "shiploop-e2e",
+   "exit": 0,
+   "seconds": 145.7
+  },
+  {
+   "id": "shiploop-e2e-environment",
+   "exit": 0,
+   "seconds": 69.3
+  },
+  {
+   "id": "shiploop-e2e-baseline",
+   "exit": 0,
+   "seconds": 32.4
+  },
+  {
+   "id": "shiploop-e2e-quality",
+   "exit": 0,
+   "seconds": 48.2
+  },
+  {
+   "id": "shiploop-e2e-packet-anatomy",
+   "exit": 0,
+   "seconds": 0.3
+  },
+  {
+   "id": "shiploop-e2e-commit-counters",
+   "exit": 0,
+   "seconds": 26.9
+  },
+  {
+   "id": "shiploop-run-review",
+   "exit": 0,
+   "seconds": 47.6
+  },
+  {
+   "id": "shiploop-callback-contract",
+   "exit": 0,
+   "seconds": 126.2
+  },
+  {
+   "id": "shiploop-mock-replay",
+   "exit": 2,
+   "seconds": 3.1
+  }
+ ],
+ "quick_tier_suites": 46,
+ "quick_tier_failed": [
+  "shiploop-mock-replay"
+ ],
+ "also_run_by_name": {
+  "shiploop-full-runtime": 0,
+  "shiploop-progress-data": 0,
+  "shiploop-retire": 0
+ },
+ "check_release_boundary": "OK (exit 0): python3 scripts/check-release-boundary.py --base 8932b849 --head HEAD",
+ "load_average": "5.6 at the start, 10.9 at the end (a shared machine); no timing-sensitive failure, no rerun needed",
+ "pre_existing_failure": {
+  "suite": "shiploop-mock-replay",
+  "exit": 2,
+  "tests_failing": 5,
+  "tests": 37,
+  "same_at_base_8932b849": true,
+  "reason": "test_dag_replay still expects the old graph edge 'prepare -> get-next-work-item'; the 8-stage graph goes to step-plan. Re-run at the base in a git archive of 8932b849: the same 5 of 37 fail with the same message"
+ }
+}

@@ -1,0 +1,799 @@
+{
+ "rows": [
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"spec.md\": (\"Requirements\", \"Non-functional requirements\", \"Retired\"),",
+   "with": "\"spec.md\": (\"Requirements\", \"Retired\"),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\"Targets and runtimes\", \"Commands\", \"Skills\", \"Access and accounts\", \"Platform facts\")",
+   "with": "(\"Commands\", \"Targets and runtimes\", \"Skills\", \"Access and accounts\", ",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\"Targets and runtimes\", \"Commands\", \"Skills\", \"Access and accounts\", \"Platform facts\")",
+   "with": "(\"Targets and runtimes\", \"Commands\", \"Access and accounts\", \"Platform ",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\"Targets and runtimes\", \"Commands\", \"Skills\", \"Access and accounts\", \"Platform facts\")",
+   "with": "(\"Targets and runtimes\", \"Commands\", \"Access and accounts\", \"Skills\", ",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\"Stack\", \"Structure\", \"Conventions\", \"Interfaces and boundaries\", \"Decisions\", \"Supersede",
+   "with": "(\"Stack\", \"Structure\", \"Conventions\", \"Interfaces and boundaries\", \"De",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\"Harnesses and suites\", \"Commands\", \"ID convention\", \"Real-boundary checks\")",
+   "with": "(\"Harnesses and suites\", \"Commands\", \"ID convention\", \"Real boundary c",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"SECTIONS\",",
+   "with": "(removed)",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "a '## Decisions' section of stable IDs",
+   "with": "a '## Decision log' section of stable IDs",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_prompts.py",
+   "replaced": "environment.md (## Commands, ## Targets and runtimes, ## Skills)",
+   "with": "environment.md (## Commands, ## Targets and runtimes, ## Skillz)",
+   "tests": "SectionsTests.test_every_heading_a_packet_duty_names_for_a_living_file_is_one_of_its_sections",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_loops.py",
+   "replaced": "(environment.md ## Skills \"",
+   "with": "(environment.md ## Skillz \"",
+   "tests": "SectionsTests.test_every_heading_a_packet_duty_names_for_a_living_file_is_one_of_its_sections",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_prompts.py",
+   "replaced": "architecture.md (## Decisions, ## Superseded)",
+   "with": "architecture.md (## Decisions, ## Replaced)",
+   "tests": "SectionsTests.test_every_heading_a_packet_duty_names_for_a_living_file_is_one_of_its_sections",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"research\": (\"environment.md\",),",
+   "with": "(removed)",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"step-plan\": (\"{feature}/plan.md\", ARCHITECTURE, \"environment.md\"),",
+   "with": "\"step-plan\": (\"{feature}/plan.md\", ARCHITECTURE),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"step-plan\": (\"{feature}/plan.md\", ARCHITECTURE, \"environment.md\"),",
+   "with": "\"step-plan\": (\"{feature}/plan.md\", \"environment.md\", ARCHITECTURE),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"step-plan\": (\"{feature}/plan.md\", ARCHITECTURE, \"environment.md\"),",
+   "with": "\"step-plan\": (\"{feature}/plan.md\", \"environment.md\"),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"validate-existing\": (\"environment.md\",),",
+   "with": "(removed)",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"implement\": (\"environment.md\", ARCHITECTURE),",
+   "with": "\"implement\": (\"environment.md\",),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"implement\": (\"environment.md\", ARCHITECTURE),",
+   "with": "\"implement\": (ARCHITECTURE,),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"test\": (\"environment.md\",),",
+   "with": "(removed)",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"carry-forward\": (ARCHITECTURE, \"environment.md\"),",
+   "with": "\"carry-forward\": (ARCHITECTURE,),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"carry-forward\": (ARCHITECTURE, \"environment.md\"),",
+   "with": "\"carry-forward\": (\"environment.md\", ARCHITECTURE),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"system-test-author\": (\"{feature}/system-tests.md\",),",
+   "with": "\"verify\": (ARCHITECTURE,),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"research\": (\"environment.md\",),",
+   "with": "\"research-notes\": (\"environment.md\",),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"carry-forward\": (ARCHITECTURE, \"environment.md\"),",
+   "with": "\"carry-forward\": (ARCHITECTURE, \"environment.md\"),",
+   "tests": "SectionsTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if stage not in CLOSES:",
+   "with": "repo = Path(str(state[\"repo\"]))",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 7
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if stage not in CLOSES:",
+   "with": "if stage not in STAGE_FILES:",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if not _filled(path):",
+   "with": "if not path.is_file():",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "except OSError:",
+   "with": "except ValueError:",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "for name, headings in SECTIONS.items():",
+   "with": "for name, headings in sorted(SECTIONS.items()):",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if not title.lower().startswith(heading.lower()):",
+   "with": "if not title.startswith(heading):",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 8
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if not title.lower().startswith(heading.lower()):",
+   "with": "if heading.lower() not in title.lower():",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if not title.lower().startswith(heading.lower()):",
+   "with": "if title.lower() != heading.lower():",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 14
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if deeper <= level), len(lines))",
+   "with": "if deeper < level), len(lines))",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 6
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if deeper <= level), len(lines))",
+   "with": "if True), len(lines))",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if deeper <= level), len(lines))",
+   "with": "if deeper <= 2), len(lines))",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if any(line.strip() for line in lines[index + 1:end]):",
+   "with": "if lines[index + 1:end]:",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 6
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "return \"empty\" if found else \"missing\"",
+   "with": "return \"missing\"",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 5
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_HEADING = re.compile(r\"^(#{1,4})\\s+(.+?)\\s*$\")",
+   "with": "_HEADING = re.compile(r\"^(#{1,6})\\s+(.+?)\\s*$\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_HEADING = re.compile(r\"^(#{1,4})\\s+(.+?)\\s*$\")",
+   "with": "_HEADING = re.compile(r\"^(#{1,3})\\s+(.+?)\\s*$\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 7
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_HEADING = re.compile(r\"^(#{1,4})\\s+(.+?)\\s*$\")",
+   "with": "_HEADING = re.compile(r\"^(#{1,4})\\s*(.+?)\\s*$\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_HEADING = re.compile(r\"^(#{1,4})\\s+(.+?)\\s*$\")",
+   "with": "_HEADING = re.compile(r\"^ {0,3}(#{1,4})\\s+(.+?)\\s*$\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if heading and len(heading.group(1)) <= 3:",
+   "with": "if heading:",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if opening:",
+   "with": "if False:",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 7
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(r",
+   "with": "if opening:",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(r",
+   "with": "if opening and len(rest) >= len(fence) and rest == rest[0] * len(rest)",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(r",
+   "with": "if opening and rest[0] == fence[0] and rest == rest[0] * len(rest):",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})\")",
+   "with": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$))\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})\")",
+   "with": "_FENCE = re.compile(r\"^ *(`{3,}(?=[^`]*$)|~{3,})\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})\")",
+   "with": "_FENCE = re.compile(r\"^\\s{0,3}(`{3,}(?=[^`]*$)|~{3,})\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})\")",
+   "with": "_FENCE = re.compile(r\"^ {0,3}(`{3,}|~{3,})\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})\")",
+   "with": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$)|~{3,}(?=[^`~]*$))\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_FENCE = re.compile(r\"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})\")",
+   "with": "_FENCE = re.compile(r\"^ {0,3}(`{2,}(?=[^`]*$)|~{2,})\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "path.read_text(encoding=\"utf-8-sig\", errors=\"replace\").splitlines()",
+   "with": "path.read_text(encoding=\"utf-8\", errors=\"replace\").splitlines()",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "NOTICE_PREFIX = \"ShipLoop knowledge notice: \"",
+   "with": "NOTICE_PREFIX = \"ShipLoop knowledge: \"",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 30
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "notices.append(NOTICE_PREFIX + str(path) + \" has \" + \" and \".join(said)",
+   "with": "notices.append(NOTICE_PREFIX + str(path.relative_to(repo)) + \" has \" +",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 9
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "notices.append(NOTICE_PREFIX + str(path) + \" has \" + \" and \".join(said)",
+   "with": "notices.append(NOTICE_PREFIX + \"has \" + \" and \".join(said) + \" in \" + ",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 28
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "notices.append(NOTICE_PREFIX + str(path) + \" has \" + \" and \".join(said)",
+   "with": "notices.append(NOTICE_PREFIX + str(path) + \": \" + \" and \".join(said)",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 30
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\" has \" + \" and \".join(said) + \" \" + _ACCEPTED",
+   "with": "\" has \" + \"\".join(said) + \" \" + _ACCEPTED",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\" has \" + \" and \".join(said) + \" \" + _ACCEPTED",
+   "with": "\" has \" + \", \".join(said) + \" \" + _ACCEPTED",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\" has \" + \" and \".join(said) + \" \" + _ACCEPTED",
+   "with": "\" has \" + \" and \".join(said[:1]) + \" \" + _ACCEPTED",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "for state_name, lead in ((\"missing\", \"no \"), (\"empty\", \"an empty \")):",
+   "with": "for state_name, lead in ((\"empty\", \"an empty \"), (\"missing\", \"no \")):",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "for state_name, lead in ((\"missing\", \"no \"), (\"empty\", \"an empty \")):",
+   "with": "for state_name, lead in ((\"missing\", \"no \"),):",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 6
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "for state_name, lead in ((\"missing\", \"no \"), (\"empty\", \"an empty \")):",
+   "with": "for state_name, lead in ((\"missing\", \"no \"), (\"empty\", \"empty \")):",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 5
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "for state_name, lead in ((\"missing\", \"no \"), (\"empty\", \"an empty \")):",
+   "with": "for state_name, lead in ((\"missing\", \"no \"), (\"empty\", \"no \")):",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 5
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "said.append(lead + \", \".join(quoted) + \" section\")",
+   "with": "said.append(lead + \",\".join(quoted) + \" section\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 8
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "said.append(lead + \", \".join(quoted) + \" section\")",
+   "with": "said.append(lead + \", \".join(quoted) + \" sections\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 25
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "said.append(lead + \", \".join(quoted) + \" section\")",
+   "with": "said.append(lead + \", \".join(quoted[:1]) + \" section\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 9
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "said.append(lead + \", \".join(quoted) + \" section\")",
+   "with": "said.append(lead + \"; \".join(quoted) + \" section\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 9
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "quoted = [\"'\" + heading + \"'\" for heading in headings if found[heading] == state_name]",
+   "with": "quoted = [\"'\" + heading + \"'\" for heading in sorted(headings) if found",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 8
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "quoted = [\"'\" + heading + \"'\" for heading in headings if found[heading] == state_name]",
+   "with": "quoted = [\"'\" + heading + \"'\" for heading in headings if found[heading",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 29
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "quoted = [\"'\" + heading + \"'\" for heading in headings if found[heading] == state_name]",
+   "with": "quoted = [heading for heading in headings if found[heading] == state_n",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 31
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "quoted = [\"'\" + heading + \"'\" for heading in headings if found[heading] == state_name]",
+   "with": "quoted = ['\"' + heading + '\"' for heading in headings if found[heading",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 31
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if said:",
+   "with": "if True:",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 67
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if said:",
+   "with": "if said and found[headings[0]] != 'present':",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 26
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_ACCEPTED = \"(this close is accepted)\"",
+   "with": "_ACCEPTED = \"(this close is refused)\"",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 25
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\" \" + _ACCEPTED + \"; \" + _FIX",
+   "with": "\"; \" + _FIX",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 25
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\" \" + _ACCEPTED + \"; \" + _FIX",
+   "with": "\" \" + _ACCEPTED + \". \" + _FIX",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 26
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\" \" + _ACCEPTED + \"; \" + _FIX",
+   "with": "\" \" + _ACCEPTED + \" \" + _FIX",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 26
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "or write 'none' there if it does not apply.\")",
+   "with": "or leave it if it does not apply.\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "_FIX = (\"for each, write its content under a '## <heading>' (add the heading if missing), ",
+   "with": "_FIX = (\"for each, write its content under a '## <heading>', \"",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITECTURE else \"\")",
+   "with": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if True else \"\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITECTURE else \"\")",
+   "with": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name != ARCHITEC",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITECTURE else \"\")",
+   "with": "(\"\" if name == ARCHITECTURE else \"\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITECTURE else \"\")",
+   "with": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS if name == ARCHITECTURE e",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITECTURE else \"\")",
+   "with": "(\" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITECTURE else \"\")",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITECTURE else \"\")",
+   "with": "(\" \" + name + \" holds \" + ARCHITECTURE_HOLDS + \".\" if name == ARCHITEC",
+   "tests": "SectionNoticeTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "for line in knowledge.section_notices(after, close):",
+   "with": "(removed)",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 10
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "for line in knowledge.section_notices(after, close):",
+   "with": "(removed)",
+   "tests": "RefusalRouteTests.test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_file",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "for line in knowledge.section_notices(after, close):",
+   "with": "for line in knowledge.section_notices(after, close):",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 10
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "for line in knowledge.section_notices(after, close):",
+   "with": "for line in knowledge.section_notices(after, close)[:1]:",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 10
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "for line in knowledge.section_notices(after, close):",
+   "with": "for line in knowledge.section_notices(after, close):",
+   "tests": "RefusalRouteTests.test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_file",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1",
+   "with": "close = stages[-1]",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1",
+   "with": "close = stages[-1]",
+   "tests": "RefusalRouteTests.test_the_test_spec_close_prints_its_notice_although_the_script_records_validate_existing_after_it",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1",
+   "with": "close = stages[-1]",
+   "tests": "-k",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1",
+   "with": "close = stages[0]",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1",
+   "with": "close = next((stage for stage in reversed(stages) if stage in knowledg",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 8
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1",
+   "with": "close = next((stage for stage in reversed(stages) if stage in knowledg",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "stages = [row[\"stage\"] for row in rows if row[\"outcome\"] == \"done\"]",
+   "with": "stages = [row[\"stage\"] for row in rows]",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if stage not in CLOSES:",
+   "with": "if stage not in CLOSES and stage != \"handoff\":",
+   "tests": "SectionNoticeCloseTests",
+   "exit": 1,
+   "failing": 2
+  }
+ ],
+ "killed": 99,
+ "of": 99,
+ "survivors": 0
+}

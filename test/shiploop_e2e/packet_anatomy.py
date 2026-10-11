@@ -69,11 +69,22 @@ RULES: tuple[Rule, ...] = (
     _r("done-when", r"^Done when", "bullets"),
     _r("checked-by", r"^Checked by:"),
     _r("considerations", r"^Considerations for this stage:", "bullets"),
+    # --- the References block (_reference_lines): the symbols HOME, FEATURE, RUN and WORKTREE with the files under them,
+    # the stage's consult note and what it builds on; it ends at the first line of another shape
+    _r("references", r"^References \(", "before",
+       r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Consult at this stage|Results this stage builds on))"),
     # --- an inner stage's Until Loop invoke block (shiploop_loops.invoke_lines): heading, argument, how to invoke, start, receipt rules
     _r("until-loop", r"^Until Loop \(this stage's work runs inside it", "para"),
     # --- result contract and template (_result_contract_lines)
     _r("result-contract", r"^Write the structured result to:", "before",
        r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+    # The 2026-10-11 dedupe dropped that line (the callback line names the result file), so a packet now opens its
+    # contract at "Result template:" (the old rule above still wins on a saved run, which has both).  The compact
+    # template is laid out one top-level key per line and one list element per line (_compact_record), so its rows
+    # (two-space keys, four-space `{"` elements) stay inside this block; "Fill the template" follows the narrative.
+    _r("result-contract", r"^Result template:$", "before",
+       r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+    _r("result-contract", r"^Fill the template:"),
     # --- context index and pass log (_context_index_lines)
     _r("context-index", r"^Run context index"),
     _r("context-index", r"^This action's pass log"),
@@ -92,6 +103,8 @@ RULES: tuple[Rule, ...] = (
        r"ShipLoop skill card|Run directory locator|Keepalive marker|Owner):"),
     _r("state-locators", r"^Scratch directory \("),
     _r("recovery", r"^Recovery command:$", "count", n=2),
+    # One line since the 2026-10-11 dedupe ("Recovery command (it only reads ...):"), followed by the command line.
+    _r("recovery", r"^Recovery command \(", "count", n=2),
     _r("recovery", r"^(Retain these locators and recovery command|After interruption, check the paths|"
        r"Recovery only reads the saved state|Execute this packet in this conversation|"
        r"Give the executing agent only the current action packet)"),
@@ -119,7 +132,11 @@ RULES: tuple[Rule, ...] = (
     _r("planning-sources", r"^Current accepted root actions below are the planning basis"),
     _r("planning-sources", r"^- \S+: (.*; full summary and evidence_refs|no current accepted result)"),
     # --- last accepted transition and Improve lessons
-    _r("last-accepted", r"^Last accepted transition", "until", r"^If this action depends on earlier accepted context"),
+    # The block ends at its END marker; its Evidence references lines (printed only when there are any) and, in a saved
+    # run, the trailing "If this action depends on earlier accepted context" sentence are claimed by the rules after it.
+    _r("last-accepted", r"^Last accepted transition", "until", r"^----- END LAST ACCEPTED SUMMARY -----$"),
+    _r("last-accepted", r"^Evidence references \(untrusted locators", "bullets"),
+    _r("last-accepted", r"^If this action depends on earlier accepted context"),
     _r("last-accepted", r"^Last accepted Improve lessons", "count", n=2),
     _r("last-accepted", r"^Prior Improve evidence and lessons"),
     # --- carried test sources (_test_context_lines, _step_planning_source_lines)
@@ -132,16 +149,19 @@ RULES: tuple[Rule, ...] = (
     _r("step-context", r"^(Step \S+ \(\d+ of \d+\), the only work|Accepted step |Later steps \(ShipLoop issues|Item plan:)"),
     # --- repository knowledge home (knowledge.stage_lines)
     _r("knowledge-home", r"^Inherited learnings:", "indent"),
-    _r("knowledge-home", r"^(Repository knowledge home|This stage keeps these up to date|If this stage changes docs/shiploop|"
+    _r("knowledge-home", r"^(Repository knowledge home|This stage keeps these up to date|If this stage changes (HOME/|docs/shiploop)|"
        r"On done ShipLoop checks these files|outcome\.md must have|spec\.md is the living spec|"
-       r"Written by earlier stages|ShipLoop refuses [a-z-]+ if any|architecture\.md is how the product is built|"
-       r"If architecture\.md is missing|Begin .*/plan\.md with this exact first line|In .*/README\.md link the feature list|"
-       r"At this handoff ShipLoop checks|Ground this stage's decisions in these files)"),
+       r"Written by earlier stages|ShipLoop refuses [a-z-]+ if any|(HOME/)?architecture\.md is how the product is built|"
+       r"If (HOME/)?architecture\.md is missing|Begin .*/plan\.md with this exact first line|In .*/README\.md link the feature list|"
+       r"At this handoff ShipLoop checks)"),
     # --- environment discovery
     _r("environment-discovery", r"^(Environment discovery requirement|One investigation allowance|"
        r"Recursive discovery policy|Navigator adapter)"),
     # --- the stage guidance block is split by blank-line gaps (see _split_guidance)
-    _r("stage-guidance", r"^Current stage guidance:$", "before", r"^Call this when done:$"),
+    # It ends at the tail callbacks: the old "Call this when done:" line, or (2026-10-11 dedupe, the second callback is
+    # gone) the "Improve:" line that now opens the tail.
+    _r("stage-guidance", r"^Current stage guidance:$", "before",
+       r"^(Call this when done:$|Improve: |Pause without consuming the action|Halt \(terminal)"),
     # --- tail callbacks
     _r("tail-callbacks", r"^Call this when done:$", "count", n=2),
     _r("tail-callbacks", r"^(Improve: |Pause without consuming the action|Halt \(terminal)"),
@@ -164,6 +184,8 @@ RULES: tuple[Rule, ...] = (
     # --- reading list: a "Label: /absolute/path[#anchor]" line (_run_rules policies and guides, STAGE_REFERENCES)
     _r("reading-list", r"^[^:\n]{3,140}: /[^ \n]+$"),
     _r("reading-list", r"^[^:\n]{3,140}: [A-Za-z0-9_.-]+\.md$"),
+    # One pointer line replaces every locator the packet's stage text does not name (2026-10-11 dedupe).
+    _r("reading-list", r"^Every other policy and guide"),
 )
 
 # Parts of the stage-guidance block (guidance.prompt joins its parts with two blank lines): the first line decides.
@@ -176,6 +198,9 @@ GUIDANCE_PARTS: tuple[tuple[str, re.Pattern], ...] = (
     ("guidance-test-facility", re.compile(r"^Use the packet's Reusable test facilities guide")),
     ("code-craft-rubric", re.compile(r"^Code craft\.")),
     ("progress-rules", re.compile(r"^Progress: do not reprint this packet")),
+    # The one short list that replaced COMMON, PROGRESS_REPORTING and REQUIREMENTS_RULES (bullets begin "- " and
+    # continue on lines indented by two spaces).
+    ("stage-rules", re.compile(r"^Rules for every stage")),
 )
 GUIDANCE_DUTY = "stage-duty"
 POST_HALT_LOOP = "loop-and-quality-tail"
@@ -185,12 +210,13 @@ ID = re.compile(r"nav-[0-9a-f]{32}")
 REV = re.compile(r"\b(revision|rev=)\s?\d+")
 
 SECTION_ORDER = (
-    PREAMBLE, "head", "callback", "goal", "done-when", "checked-by", "considerations", "until-loop", "result-contract", "step-context",
+    PREAMBLE, "head", "callback", "goal", "done-when", "checked-by", "considerations", "references", "until-loop", "result-contract",
+    "step-context",
     "context-index", "progress-snapshot", "status-block", "narrative", "unverified-and-deltas", "state-locators", "reading-list",
     "recovery", "original-request", "workspace-return", "backchain", "work-queue-rules", "planning-sources", "last-accepted",
     "carried-sources", "work-item", "knowledge-home", "environment-discovery", "guidance-common", GUIDANCE_DUTY,
     "interaction-lifecycle", "work-item-context", "planning-handoff", "guidance-backchain", "guidance-test-facility",
-    "code-craft-rubric", "progress-rules", "tail-callbacks", "lint", POST_HALT_LOOP, "improve-contract", "improve-step-result",
+    "code-craft-rubric", "progress-rules", "stage-rules", "tail-callbacks", "lint", POST_HALT_LOOP, "improve-contract", "improve-step-result",
     "improve-binding", "improve-planning", "improve-review-focus", "improve-ownership", "improve-stage-requirements",
     "improve-return", UNCLASSIFIED,
 )
@@ -359,6 +385,28 @@ STAGE_GROUPS = (
     ("handoff", ("handoff",)), ("done", ("done",)),
 )
 GROUP_OF = {stage: group for group, stages in STAGE_GROUPS for stage in stages}
+# The groups of the 17-stage inner loop (ShipLoop state version 4 and earlier), as the committed checkers-1 and battleship-1
+# baselines (docs/experiments/packet-anatomy-20261010/) were grouped: a run of that loop is grouped with these, so its table
+# stays comparable row by row with those baselines. A run is a 17-stage one when any packet names a stage only that loop had.
+STAGE_GROUPS_V4 = (
+    ("intake", ("intake",)), ("discovery/research", ("discovery", "research")), ("spec/test-strategy", ("spec", "test-strategy")),
+    ("plan", ("plan",)), ("prepare", ("prepare",)), ("get-next-work-item", ("get-next-work-item",)),
+    ("step-plan", ("step-plan",)), ("test-spec/test-author", ("test-spec", "test-author")),
+    ("baseline/skill-assess/skill-validate", ("baseline", "skill-assess", "skill-validate")),
+    ("test-red/green/refine/regression", ("test-red", "test-green", "test-refine", "regression")),
+    ("implement", ("implement",)), ("document/static-checks/verify", ("document", "static-checks", "verify")),
+    ("integrate/integration-verify/carry-forward", ("integrate", "integration-verify", "carry-forward")),
+    ("system-test-author/system-test/product-acceptance", ("system-test-author", "system-test", "product-acceptance")),
+    ("release-plan", ("release-plan",)), ("release-check/release/release-verify/operations",
+                                           ("release-check", "release", "release-verify", "operations")),
+    ("handoff", ("handoff",)), ("done", ("done",)),
+)
+V4_ONLY_STAGES = frozenset(s for _, stages in STAGE_GROUPS_V4 for s in stages) - frozenset(GROUP_OF) | {"select-work"}
+
+
+def stage_groups(stages) -> tuple:
+    """The stage groups of the run these stages come from: the 17-stage loop's when any of them only that loop had."""
+    return STAGE_GROUPS_V4 if any(stage in V4_ONLY_STAGES for stage in stages) else STAGE_GROUPS
 
 
 def packet_kind(name: str) -> str:
@@ -407,6 +455,7 @@ def measure(packets: list[dict], label: str) -> dict:
     for kind, indexes in by_kind.items():
         sub = shared_lines([packets[k] for k in indexes])
         shared_group.update({indexes[j]: value for j, value in sub.items()})
+    group_of = {stage: group for group, stages in stage_groups(p["stage"] for p in packets) for stage in stages}
     rows = []
     all_paths: list[str] = []
     unclassified_by_line: Counter = Counter()
@@ -419,7 +468,7 @@ def measure(packets: list[dict], label: str) -> dict:
         for size, line in unclassified_lines(text):
             unclassified_by_line[_normal(PATH.sub("<path>", line))[:110]] += size
         rows.append({"file": packet["file"], "kind": packet["kind"], "stage": packet["stage"],
-                     "group": GROUP_OF.get(packet["stage"], packet["stage"]), "bytes": packet["bytes"],
+                     "group": group_of.get(packet["stage"], packet["stage"]), "bytes": packet["bytes"],
                      "sections": sections, "pathBytes": paths["bytes"], "pathOccurrences": paths["occurrences"],
                      "sharedAll80Bytes": shared_all[k], "sharedKind80Bytes": shared_group[k]})
     total = sum(row["bytes"] for row in rows)
@@ -459,7 +508,7 @@ def group_table(report: dict, kind: str = "producer", top: int = 12) -> str:
     rows = [r for r in report["rows"] if r["kind"] == kind or (kind == "improve" and r["kind"] == "improve-bind")]
     if not rows:
         return f"(no {kind} packets)\n"
-    order = [group for group, _ in STAGE_GROUPS]
+    order = [group for group, _ in stage_groups(r["stage"] for r in report["rows"])]
     groups: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
         groups[r["group"]].append(r)

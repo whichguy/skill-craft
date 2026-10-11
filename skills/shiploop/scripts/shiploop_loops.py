@@ -68,7 +68,7 @@ WORK: Mapping[str, str] = {
     "test-spec": (
         "Write or fix one entry in {feature}/test-spec.md per case for this item's criteria: criterion and R-<n>, "
         "surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its "
-        "command row; then run the id-match command printed in the packet {run}/packets/{action}.md and fix any "
+        "command row; then run the complete command with --check-only printed in the packet {run}/packets/{action}.md (it checks the ids) and fix any "
         "mismatch."),
     "validate-existing": (
         "Take the first expectation whose check does not match its state (works: passes; absent: nothing there; "
@@ -141,7 +141,7 @@ REPEAT: Mapping[str, str] = {
         "Repeat while a check-only refusal remains or an exit condition above does not hold; " + _NO_LIMIT
         + " Stop blocked only when the plan no longer requires the item. " + _NEVER_CANCEL),
     "test-spec": (
-        "Repeat while a criterion has no entry, an entry lacks a field, or the id-match command fails; " + _NO_LIMIT
+        "Repeat while a criterion has no entry, an entry lacks a field, or the complete command with --check-only refuses an id; " + _NO_LIMIT
         + " Stop blocked when a criterion cannot be tested as written (the stage then reports revise). "
         + _NEVER_CANCEL),
     "validate-existing": (
@@ -303,7 +303,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, i
     a submitted command list with the longest values a run may have."""
     values = {"run": str(root), "action": action_id, "repo": repo, "feature": feature}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
-             f"{feature}/ and docs/shiploop/ where this stage writes them. Preserve every other change.")
+             "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
         _need(step is not None, f"work item {item} has no implement step left in its accepted step plan")
         values["step"] = str(step.get("id"))
@@ -317,8 +317,8 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, i
             scope = (f"Workspace {repo}. Step {step.get('id')} of work item {item}: only its paths: "
                      f"{_paths_text(step.get('paths') or ())}. No later step's work. Preserve every other change.")
     elif stage == "step-plan":
-        scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft, "
-                 f"{feature}/ and docs/shiploop/. Change no product file.")
+        scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft and "
+                 "docs/shiploop/. Change no product file.")
     work = _fill(WORK[stage], values)
     if stage == "test" and commands:
         work += "\n" + COMMANDS_HEAD + "\n" + command_listing(commands)
@@ -339,15 +339,11 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, i
          "locator": str(root / "notes" / (action_id + ".md"))},
         {"purpose": "living spec", "locator": str(home / "spec.md")},
         {"purpose": "architecture", "locator": str(home / "architecture.md")},
-        {"purpose": "environment and working commands", "locator": str(home / "environment.md")},
-        {"purpose": "test strategy", "locator": str(home / "test-strategy.md")},
-        {"purpose": "this run's feature plan", "locator": feature + "/plan.md"},
+        {"purpose": "environment, working commands, harnesses and suites", "locator": str(home / "environment.md")},
     ]
     if plan_action is not None:
         resources.append({"purpose": "accepted step plan: steps, criteria, paths, commands and expectations",
                           "locator": str(root / "results" / (plan_action + ".md"))})
-    if stage in ("test-spec", "test", "verify"):
-        resources.append({"purpose": "this item's test spec", "locator": feature + "/test-spec.md"})
     if stage == "verify":
         resources += [
             {"purpose": "Code craft rubric the review applies", "locator": str(root / RUBRIC_PATH)},
@@ -386,6 +382,8 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
+    # ``feature`` fills the {feature} token the inner-loop session's WORK texts still use; removed after the renderer
+    # swap (consumer contract 4c), with the token.
     return _build(root, stage, action_id, repo=repo, feature=str(Path(repo) / knowledge_home.feature_dir(state)),
                   item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)
@@ -518,6 +516,19 @@ def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
             "Repeat condition (otherwise it runs another iteration): " + repeat_text]
 
 
+def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
+    """Whether ``invoke_lines`` prints the /until-loop argument (and so the numbered exit conditions) for this state."""
+    found = cursor(state)
+    if found is None:
+        return False
+    try:
+        runtime(state)
+        contract(Path(root), state, found[1])
+    except LoopError:
+        return False
+    return True
+
+
 def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
     """Read-only packet lines: the strong /until-loop invoke block for the current inner action ([] outside one)."""
     found = cursor(state)
@@ -559,11 +570,11 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
 
 
 # --------------------------------------------------------------------------- the terminal check
-# Every key the bound runtime puts in a packet (Until Loop 0.7.0).
+# Every key the bound runtime puts in a packet (Until Loop 0.8.0: exit checks and their recorded verify runs).
 _PACKET_KEYS = frozenset({
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
     "status_semantics", "last_report", "instruction", "next_argv", "done_argv", "report_schema",
-    "receipt",
+    "receipt", "exit_checks", "last_check_results", "check_repairs", "verify_script",
 })
 _PROGRESS_KEYS = (frozenset({"action_number", "trivial_streak", "required_trivial_reviews"}),
                   frozenset({"action_number", "trivial_streak", "required_trivial_reviews",

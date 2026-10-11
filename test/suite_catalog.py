@@ -101,7 +101,6 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
     "test/shiploop-return-review.test.py",
-    "test/shiploop-retire.test.py",
     "test/shiploop-chain-ledger.test.py",
     "test/shiploop-chain-git.test.py",
     "test/shiploop-chain.test.py",
@@ -125,6 +124,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-backchain-check.test.py",
     "test/shiploop-improve-changes.test.py",
     "test/shiploop-knowledge.test.py",
+    "test/shiploop-handoff.test.py",
     "test/shiploop-assumptions.test.py",
     "test/experiments/shiploop_delivery/fake_deployment.test.py",
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py",
@@ -175,6 +175,10 @@ _DURATION_SECONDS = {
     "test/shiploop-packet-completeness.test.py": 0.1,
     "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
     "test/shiploop-reference.test.py": 0.5,  # measured locally 2026-10-10
+    # measured locally 2026-10-11: 36 tests, two of them through the real CLI, 9.0 s; with the two isolated-run CLI tests
+    # moved in from the retired shiploop-retire suite (consumer contract 4c): 38 tests, 17.1 s at load average 4.8; with
+    # the report tests and the working-tree return (4d) and main's settlement tests: 45 tests, 23.9 s.
+    "test/shiploop-handoff.test.py": 24.0,
     "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
@@ -188,13 +192,6 @@ _DURATION_SECONDS = {
     # load average 4.7 to 6.8 for 77 tests). Still above QUICK_MAX_SECONDS, so the quick tier does not select it.
     "test/shiploop-workspace.test.py": 191.2,
     "test/shiploop-return-review.test.py": 85.9,  # measured alone 2026-10-08 at load average 4.6 to 5.1: 23 tests, 85.9 s (81.5 s at 20, 65.5 s at 17, 36.8 s at 11)
-    # The handoff retire (owner decision D3, batch 1012 task R): the terminal close on a real repository, and the real CLI through the
-    # fast-forward, working-tree, before-the-return, guard-refused and drifted-source routes.  A suite of its own so that
-    # shiploop-return-review stays at its catalogued seconds under QUICK_MAX_SECONDS.  Local wall seconds, 2026-10-10: 17 tests, 44.3 s,
-    # the faster of two serial runs at load average 8 to 10 (the five CLI tests are about 6 s each, the other twelve under 4 s together).
-    # After the review fixes of the same day: 26 tests (two more CLI tests, the no-change route and the cited retry, and unit tests of
-    # the evidence check), 61.3 s, the faster of two serial runs (64.1 s) at load average 6 to 9.  Under QUICK_MAX_SECONDS.
-    "test/shiploop-retire.test.py": 61.3,
     "test/shiploop-chain.test.py": 191.262,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,
@@ -403,6 +400,7 @@ _CORE_SUITES = (
     _suite("improve-plugin", "core", "test/improve-plugin.test.py", "python3", "test/improve-plugin.test.py"),
     _suite("improve-agent", "core", "test/improve-agent.test.py", "python3", "test/improve-agent.test.py"),
     _suite("improve-runtime", "core", "test/improve-runtime.test.py", "python3", "test/improve-runtime.test.py"),
+    _suite("until-loop-vendor", "core", "test/until-loop-vendor.test.py", "python3", "test/until-loop-vendor.test.py"),
     _suite("review-coverage", "core", "test/review-coverage.test.sh", "bash", "test/review-coverage.test.sh"),
     _suite("rubric-eval", "core", "test/rubric-eval.test.py", "python3", "test/rubric-eval.test.py"),
     _suite("dual-body-guard", "core", "test/dual-body-guard.test.sh", "bash", "test/dual-body-guard.test.sh"),

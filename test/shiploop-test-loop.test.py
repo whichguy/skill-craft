@@ -29,12 +29,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as inner  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
+import shiploop_mutation as mutation  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_status_hook as status_hook  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
@@ -191,6 +193,12 @@ class TestLoopTests(unittest.TestCase):
             result = dict(result, assumptions=[])
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result = dict(result, unverified=[])
+        if result.get("outcome") == "done":
+            # The consumer contract's open items and lessons (2026-10-11): none here unless the test sets them.
+            if stage in inner.assumptions.OPEN_ITEM_STAGES and "assumptions" not in result:
+                result = dict(result, assumptions=[])
+            if stage == "release-verify" and "lessons" not in result:
+                result = dict(result, lessons=dict(inner.LESSONS))
         if loops.cursor(state) is not None:
             if fill:
                 result = inner.fill(state, stage, result, self.run_dir)
@@ -562,7 +570,7 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("system-test-author")
         duty = " ".join(self.packet().split())
-        self.assertIn("record it as an open item in this result's summary", duty)
+        self.assertIn("record it as an open item in this result's `assumptions`", duty)
         self.assertNotIn("blocked, blocked_by access", duty)
         self.complete(dict(DONE, system_commands=[COMMANDS[1]], summary=(
             "Open item TC-16 (needs a browser this host cannot reach): requirement R-4 stays unverified; a person "
@@ -591,7 +599,7 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("verify")
         self.assertEqual(self.state()["execution_mode"], "navigator")
-        (self.repo / "helper.py").write_text("y = 2\n")
+        (self.repo / "helper.py").write_text("y = \"helper\"\n")
         packet = self.packet()
         self.assertIn(IN_PLACE_LEFT, " ".join(packet.split()))
         self.assertNotIn("plan-return", packet)
@@ -607,7 +615,7 @@ class TestLoopTests(unittest.TestCase):
         verify is accepted, the redone step plan declares the file, and the next verify commits it."""
         self.start()
         self.drive_to("verify")
-        (self.repo / "helper.py").write_text("y = 2\n")
+        (self.repo / "helper.py").write_text("y = \"helper\"\n")
         self.complete(dict(DONE, outcome="revise", summary="helper.py is product code the step plan did not declare."))
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
         (self.repo / "fixed.txt").unlink()  # the redone item's test stage runs its base check again
@@ -745,7 +753,7 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("implement", step_plan=self.NO_TESTS)
         (self.repo / "a.py").write_text("x = 2\n")
-        self.assert_refused(DONE, r"(?s)declared only non-code paths.*- a.py \(code\).*report blocked", loop=True)
+        self.assert_refused(DONE, r"(?s)declared only non-code paths.*- a.py \(code\).*report revise", loop=True)
         (self.repo / "a.py").write_text("x = 1\n")
         (self.repo / "notes.txt").write_text("stray\n")
         self.assert_refused(DONE, r"- notes.txt \(code\)", loop=True)  # a path no rule matches counts as code
@@ -1165,10 +1173,11 @@ class TestLoopTests(unittest.TestCase):
     def floor_item(self) -> dict:
         """A step plan whose focused command prints `Ran N tests`, failing while fixed.txt is missing.
 
-        N is read from count.txt in the directory the command runs in, else from n.txt beside the script: the base run
-        (a worktree without count.txt) counts ``ran``'s number, the candidate run ``ran_here``'s."""
+        N is read from docs/count.txt in the directory the command runs in, else from n.txt beside the script: the base
+        run (a worktree without docs/count.txt) counts ``ran``'s number, the candidate run ``ran_here``'s.  The tally
+        lives under docs/ so the mutation check does not take the runner's own number for product code."""
         script = self.repo.parent / "counted.sh"
-        script.write_text('n=$(cat count.txt 2>/dev/null || cat "$(dirname "$0")/n.txt")\n'
+        script.write_text('n=$(cat docs/count.txt 2>/dev/null || cat "$(dirname "$0")/n.txt")\n'
                           'echo "Ran $n tests in 0.001s"\n'
                           'if test -f "$1"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
         command = "sh " + shlex.quote(str(script)) + " fixed.txt"
@@ -1178,7 +1187,8 @@ class TestLoopTests(unittest.TestCase):
         (self.repo.parent / "n.txt").write_text(str(tests))
 
     def ran_here(self, tests: int) -> None:
-        (self.repo / "count.txt").write_text(str(tests))
+        (self.repo / "docs").mkdir(exist_ok=True)
+        (self.repo / "docs" / "count.txt").write_text(str(tests))
 
     def loop_done(self) -> dict:
         """The files both commands need, one trivial loop iteration, and the done that cites its terminal packet."""
@@ -1233,8 +1243,8 @@ class TestLoopTests(unittest.TestCase):
         self.ran(3)
         plan = self.floor_item()
         script = self.repo.parent / "counted.sh"
-        script.write_text('n=$(cat count.txt 2>/dev/null || cat "$(dirname "$0")/n.txt")\n'
-                          'test -f count.txt || echo "\u2716 OLD-1 legacy behaviour"\n'
+        script.write_text('n=$(cat docs/count.txt 2>/dev/null || cat "$(dirname "$0")/n.txt")\n'
+                          'test -f docs/count.txt || echo "\u2716 OLD-1 legacy behaviour"\n'
                           'echo "Ran $n tests in 0.001s"\n'
                           'if test -f "$1"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
         self.drive_to("test", step_plan=plan)
@@ -1284,6 +1294,116 @@ class TestLoopTests(unittest.TestCase):
         self.complete(dict(done, outcome="revise", summary="The plan changed: one case was removed with R-3."))
         self.assertNotEqual(nav.current_stage(self.settle()), "verify")
 
+    # -- the mutation check (owner decision 2026-10-11: tests after the build must catch something) ----------------
+
+    CALC = "def add(a, b):\n    return a + b\n\n\ndef is_big(n):\n    return n > 10\n"
+    EMPTY_TEST = ("import unittest\n\nimport calc  # noqa: F401\n\n\nclass CalcTests(unittest.TestCase):\n"
+                  "    def test_tc1(self):\n        self.assertTrue(True)\n")
+    REAL_TEST = ("import unittest\n\nimport calc\n\n\nclass CalcTests(unittest.TestCase):\n"
+                 "    def test_tc1(self):\n        self.assertEqual(calc.add(2, 3), 5)\n"
+                 "        self.assertTrue(calc.is_big(11))\n        self.assertFalse(calc.is_big(10))\n")
+
+    def calc_item(self, test_text: str) -> None:
+        """Drive to the test stage of an item that adds calc.py, then write ``test_text`` as its focused test file.
+
+        On the base calc.py is missing, so the test fails to load there: RED by the base rule, whatever it asserts."""
+        isolated = mock.patch.dict(os.environ, {"PYTHONDONTWRITEBYTECODE": "1"})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        self.start()
+        self.drive_to("test", step_plan={"test_commands": [
+            {"command": "python3 -m unittest -v test_calc", "suite": "focused", "ids": ["test_tc1"]}, COMMANDS[1]],
+            "paths": ["a.py", "calc.py", "test_calc.py"]})
+        (self.repo / "calc.py").write_text(self.CALC)
+        (self.repo / "test_calc.py").write_text(test_text)
+
+    def item(self) -> str:
+        return nav._active_cursor(self.state())[2] or ""
+
+    def tree_bytes(self) -> dict:
+        files = {str(path.relative_to(self.repo)): path.read_bytes() for path in self.repo.rglob("*")
+                 if path.is_file() and ".git" not in path.relative_to(self.repo).parts}
+        return {"files": files, "status": git(self.repo, "status", "--porcelain"),
+                "worktrees": git(self.repo, "worktree", "list", "--porcelain")}
+
+    def test_a_test_that_only_loads_the_new_module_is_refused_by_the_mutation_check(self):
+        """The Checkers defect (88d412e9): every new test was RED on the base only because rules.js could not load.
+        The base run still accepts that, and the mutation check refuses the test that asserts nothing."""
+        self.calc_item(self.EMPTY_TEST)
+        action = self.action()
+        self.assertIn("mutates a sample of this item's changed product lines", " ".join(self.packet().split()))
+        self.assert_refused(self.loop_done(), r"(?s)ShipLoop mutation check: test is not done.*"
+                                              r"- calc.py:2: ' \+ ' -> ' - '.*the test spec's oracle states")
+        base = store.read_record(self.run_dir / test_loop.base_path(action, 1))
+        self.assertEqual(base["runs"][0]["status"], "red")  # the load failure of an added file is still RED
+        record = store.read_record(self.run_dir / test_loop.mutation_path(action, 1))
+        self.assertFalse(record["passed"])
+        self.assertEqual(record["killed"], 0)
+        self.assertEqual(record["survived"], len(record["mutants"]))
+        self.assertGreater(record["survived"], 0)
+        self.assertLessEqual(len(record["mutants"]), mutation.MUTANT_SAMPLE)
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 1)  # counts toward the cap
+
+    def test_a_test_with_a_real_assertion_kills_a_mutant_and_is_accepted(self):
+        self.calc_item(self.REAL_TEST)
+        action = self.action()
+        self.complete(self.loop_done())
+        self.assertNotEqual(nav.current_stage(self.settle()), "test")
+        record = store.read_record(self.run_dir / test_loop.mutation_path(action, 1))
+        self.assertTrue(record["passed"])
+        self.assertGreater(record["killed"], 0)
+        self.assertEqual(record["unmutated"]["status"], "passed")
+        self.assertEqual({row["file"] for row in record["mutants"]}, {"calc.py"})  # never the test file
+
+    def test_a_docs_only_change_passes_with_no_mutants(self):
+        self.start()
+        self.drive_to("test")
+        (self.repo / "docs").mkdir(exist_ok=True)
+        (self.repo / "docs" / "guide.md").write_text("Set `limit = 10` when x == 1 is true.\n")
+        (self.repo / "fixed.txt").write_text("fixed\n")
+        lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        self.assertEqual(lines, ["mutation: skipped (no mutants: no changed product line matched an operator)"])
+        record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
+        self.assertTrue(record["passed"])
+        self.assertEqual(record["mutants"], [])
+
+    def test_the_checkout_is_byte_identical_after_the_check(self):
+        self.calc_item(self.REAL_TEST)
+        before = self.tree_bytes()
+        lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        self.assertRegex(lines[0], r"^mutation: [1-9]\d* of \d+ mutants")
+        self.assertEqual(self.tree_bytes(), before)
+        with self.assertRaises(test_loop.TestLoopError):
+            (self.repo / "test_calc.py").write_text(self.EMPTY_TEST)
+            before = self.tree_bytes()
+            test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        self.assertEqual(self.tree_bytes(), before)
+
+    def test_check_only_runs_the_mutation_check_without_counting(self):
+        self.calc_item(self.EMPTY_TEST)
+        action = self.action()
+        done = self.loop_done()
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(store.dumps(inner.fill(self.state(), "test", done, self.run_dir), "result"))
+        with self.assertRaisesRegex(nav.NavigatorError, r"(?s)mutation check: test is not done.*This check-only run "
+                                                        r"does not count toward the refused runs"):
+            nav.dispatch(CORE, self.run_dir, self.state(), types.SimpleNamespace(
+                command="complete", action=action, result=str(path), check_only=True))
+        self.assertTrue((self.run_dir / test_loop.mutation_check_only_path(action)).is_file())
+        self.assertFalse((self.run_dir / test_loop.mutation_path(action, 1)).exists())
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
+
+    def test_the_mutants_skip_comments_and_strings_and_spread_across_files(self):
+        rows = mutation.candidates('x = "a == b"  # n > 1 is true\ny = 1 + 2 // 3 < 4\n', [1, 2])
+        self.assertEqual([(row["line"], row["original"]) for row in rows], [(2, "1"), (2, " + "), (2, "2")])
+        self.assertEqual(mutation.candidates('s = """\nn == 1\n"""\nm = true\n', [2, 4])[0]["replacement"], "false")
+        picked = mutation.sample({"a.js": [{"line": i} for i in range(1, 21)], "b.py": [{"line": 1}]}, 8)
+        self.assertEqual(len(picked), 8)
+        self.assertEqual({row["file"] for row in picked}, {"a.js", "b.py"})
+        self.assertEqual(picked, mutation.sample({"a.js": [{"line": i} for i in range(1, 21)], "b.py": [{"line": 1}]},
+                                                 8))
+
     # -- the loop contract travels with the callback (packet review 2026-10-10, rows 3, 8 and 13) -------------------
     #
     # The loop stages were refused 3 times for a terminal packet path missing from evidence_refs (stated only at "Do step 3"),
@@ -1322,7 +1442,8 @@ class TestLoopTests(unittest.TestCase):
                 self.assertEqual(full.count("\n" + self.START), 1)  # in the head, not repeated at the tail
                 self.assertLess(full.index("\n" + self.START), full.index("Current stage guidance:"))
                 self.assertGreater(full.index("\n" + self.START), full.index(nav.STATUS_END))
-                self.assertLess(head.index(nav.STATUS_END), 8000)  # a status hook reads only the first 8000 bytes
+                # a status hook reads only the first WINDOW bytes (16,000; 8000 before 2026-10-10)
+                self.assertLess(head.index(nav.STATUS_END), status_hook.WINDOW)
                 if stage == "verify":
                     self.assertGreater(full.index("Change inventory for"), full.index("\n" + self.START))
                 (self.repo / "fixed.txt").write_text("fixed\n")
@@ -1811,7 +1932,6 @@ class WholeWordIdTests(unittest.TestCase):
             root = Path(temp)
             parts = {
                 "step-plan duty": test_loop.guidance.duty("step-plan"),
-                "test duty": test_loop.guidance.duty("test"),
                 # The head carries loop_lines and the full packet's tail rule_lines.
                 "test commands and rules": "\n".join(test_loop.loop_lines(root, state, "W1", "A1", "test")
                                                      + test_loop.rule_lines(state, "W1", "test")),
@@ -1820,6 +1940,8 @@ class WholeWordIdTests(unittest.TestCase):
         for name, text in parts.items():
             with self.subTest(part=name):
                 self.assertEqual(" ".join(text.split()).count(rule), 1)  # each part states it once
+        # The test packet prints the rule once, in its command rules; its duty no longer repeats it (2026-10-11).
+        self.assertNotIn(rule, " ".join(test_loop.guidance.duty("test").split()))
 
 
 class CountFloorTests(unittest.TestCase):

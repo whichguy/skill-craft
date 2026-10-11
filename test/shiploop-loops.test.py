@@ -111,7 +111,8 @@ class ContractTests(Synthetic):
                 writes = self.write(state)
                 value = loops.contract(self.root, state, action)
                 # The runtime's own validator returns the contract unchanged: no field added, dropped or normalised.
-                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), value)
+                # The 0.8.0 runtime normalizes a contract without exit checks to an empty list; nothing else changes.
+                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
                 self.assertEqual(json.loads(writes[loops.contract_path(action)]), value)
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
                 self.assertIsNone(loop_contract.size_problem(value))
@@ -151,6 +152,28 @@ class ContractTests(Synthetic):
         state["history"].append({"stage": "implement", "workitem": "W1", "action": "A-i2", "outcome": "done"})
         with self.assertRaisesRegex(loops.LoopError, "no implement step left"):
             loops.contract(self.root, state, "A-implement")
+
+    def test_no_contract_resource_or_scope_names_a_feature_folder_test_strategy_or_test_spec(self):
+        """Consumer contract 4b: the engine's part of every inner contract (scope and resources) names only the living files.
+
+        The work texts are the inner-loop session's packet text (``WORK``); they move with its renderer swap."""
+        for stage in stage_spec.INNER:
+            with self.subTest(stage=stage):
+                value = loops.contract(self.root, self.state_for(stage), "A-" + stage)
+                engine = json.dumps({"scope": value["context"]["scope"], "resources": value["context"]["resources"]})
+                for removed in ("/features/", "test-strategy", "/test-spec.md", "test spec", "feature plan"):
+                    self.assertNotIn(removed, engine)
+
+    def test_resources_are_packet_pass_log_three_living_files_and_step_plan(self):
+        home = self.repo / "docs" / "shiploop"
+        for stage in stage_spec.INNER:
+            with self.subTest(stage=stage):
+                resources = loops.contract(self.root, self.state_for(stage), "A-" + stage)["context"]["resources"]
+                self.assertEqual([row["locator"] for row in resources[:6]], [
+                    str(self.root / "packets" / ("A-" + stage + ".md")), str(self.root / "notes" / ("A-" + stage + ".md")),
+                    str(home / "spec.md"), str(home / "architecture.md"), str(home / "environment.md"),
+                    str(self.root / "results" / "A-sp.md")])
+                self.assertEqual(len(resources), 9 if stage == "verify" else 6)
 
     def test_a_contract_is_only_for_the_current_inner_action(self):
         with self.assertRaisesRegex(loops.LoopError, "not the current inner action"):
@@ -477,6 +500,44 @@ class MissingContractTests(unittest.TestCase):
             self.assertTrue(contract.is_file())
             self.assertEqual(json.loads(contract.read_text()), loops.contract(run, state, action))
             self.assertNotIn("The loop contract is missing", (run / "packets" / (action + ".md")).read_text())
+
+
+    def test_check_only_inside_the_loop_accepts_the_prefilled_receipt_before_it_exists(self) -> None:
+        """The live hello run on 13d278dd (2026-10-11) was refused "evidence_refs cite files that do not exist: ...
+        loops/<action>-terminal.json. Write the file" for a --check-only run inside the loop: the receipt is the
+        runtime's, so a check from inside the loop must not ask the model to write it."""
+        with tempfile.TemporaryDirectory(prefix="shiploop-check-only-receipt-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            run = Path(temp).resolve() / "run"
+            run.mkdir()
+            state = nav.new_state(str(repo), "Build a thing.", delegation="inline")
+            while nav.current_stage(state) != "document":
+                here, action = nav.current_stage(state), nav.current_action(state)["id"]
+                extra = ({"work_items": [{"id": "W1", "title": "one", "context": "c"}]} if here == "plan" else
+                         {"steps": [{"id": "S1", "task": "Make it."}]} if here == "step-plan" else {})
+                state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, action, {"summary": "Synthetic review"})
+            nav.save(run, state)
+            action = nav.current_action(state)["id"]
+            receipt = loops.receipt_path(run, action)
+            self.assertFalse(receipt.exists())
+            result = run / "inbox" / (action + ".md")
+            result.parent.mkdir(parents=True, exist_ok=True)
+            result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
+                              "headline": "Docs updated.", "evidence_refs": [str(receipt)]}) + "\n```\n")
+            cli = [sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "complete", "--run-dir", str(run),
+                   "--action", action, "--result", str(result)]
+            env = {**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"}
+            checked = subprocess.run(cli + ["--check-only"], capture_output=True, text=True, env=env)
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+            self.assertNotIn("Write the file", checked.stdout + checked.stderr)
+            # The real complete still needs the receipt: the loop's own check refuses, naming the start command.
+            real = subprocess.run(cli, capture_output=True, text=True, env=env)
+            self.assertEqual(real.returncode, 2, real.stdout + real.stderr)
+            self.assertIn("has not run", real.stdout + real.stderr)
 
 
 if __name__ == "__main__":

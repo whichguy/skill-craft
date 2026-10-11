@@ -179,14 +179,53 @@ class CrossRunTests(unittest.TestCase):
             and path.relative_to(run_dir).parts[0] != "packets"
         }
 
+    @staticmethod
+    def _reference_text(packet: str) -> str:
+        """The run reference file the packet points to (one line names it; 2026-10-11 dedupe)."""
+        lead = "Every other policy and guide, and the long form of the rules: "
+        line = next((line for line in packet.splitlines() if line.startswith(lead)), "")
+        path = Path(line[len(lead):].split(" (#policies", 1)[0])
+        assert path.is_file(), (path, packet)
+        return path.read_text(encoding="utf-8")
+
+    def _assert_policy_locator(self, packet: str, line: str) -> None:
+        """A packet prints a policy locator only when its stage text names that policy.
+
+        Every other packet carries the locator in the run reference file (#policies) that its one pointer line names.
+        """
+        if packet.count(line) == 1:
+            return
+        self.assertEqual(packet.count(line), 0, packet)
+        self.assertIn("(#policies, #rules, #recovery)", packet)
+        # The reference file is written at save time with the package path of the saving process, so a fixture saved
+        # in-process names the source tree where the CLI under test names its relocated copy: compare the label, the
+        # tail below references/, and that the named file exists.
+        label, locator = line.split(": ", 1)
+        listed = [row[len("- " + label + ": "):] for row in self._reference_text(packet).splitlines()
+                  if row.startswith("- " + label + ": ")]
+        self.assertEqual(len(listed), 1, line)
+        tail = locator.split("/references/", 1)[1]
+        self.assertTrue(listed[0].endswith("/references/" + tail), (listed, line))
+        self.assertTrue(Path(listed[0].split("#", 1)[0]).is_file(), listed)
+
     def _assert_knowledge_locators(self, packet: str) -> None:
         policy = "Cross-run knowledge policy: " + str(self.policy)
         index = "Repository knowledge index (host-authored, if present): " + str(
             self.index.resolve()
         )
         self.assertTrue(self.policy.is_file(), self.policy)
-        self.assertEqual(packet.count(policy), 1, packet)
+        self._assert_policy_locator(packet, policy)
         self.assertEqual(packet.count(index), 1, packet)
+
+    def _assert_handoff_rule_in_reference(self, packet: str) -> None:
+        """The requirements rules (REQUIREMENTS_RULES) live in reference.md#requirements, not in the packet.
+
+        The packet's STAGE_RULES "Requirements" bullet carries the obligation and names that section.
+        """
+        self.assertIn("reference#rules, #requirements, #progress", packet)
+        section = self._reference_text(packet).split("{#requirements}", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("Follow the packet's Reference handoff policy", section)
+        self.assertIn("Follow the packet's Maintained requirements policy", section)
 
     def _assert_requirements_policy(self, packet: str) -> None:
         """Assert a packet exposes its selected policy rather than model behavior."""
@@ -201,14 +240,17 @@ class CrossRunTests(unittest.TestCase):
             + "#reference-handoffs-and-destinations"
         )
         self.assertTrue(self.policy.is_file(), self.policy)
-        self.assertEqual(packet.count(policy), 1, packet)
-        self.assertEqual(packet.count(reference_handoff), 1, packet)
+        self._assert_policy_locator(packet, policy)
+        self._assert_policy_locator(packet, reference_handoff)
 
     def _submit_blocked(self, packet: str) -> subprocess.CompletedProcess[str]:
         """Use the packet's exact public callback to create a blocked packet."""
-        callback = Path(
-            packet.split("Write the structured result to: ", 1)[1].splitlines()[0]
+        # The single callback line names the result file in its --result flag (2026-10-11 dedupe).
+        lead = "Callback for this stage (run once after its work, with the result written to the file it names): "
+        command = shlex.split(
+            next(line for line in packet.splitlines() if line.startswith(lead))[len(lead):]
         )
+        callback = Path(next(arg for arg in command if arg.startswith("--result="))[len("--result="):])
         callback.write_text(
             store.dumps(
                 {
@@ -218,9 +260,6 @@ class CrossRunTests(unittest.TestCase):
                 "ShipLoop cross-run blocked callback",
             ),
             encoding="utf-8",
-        )
-        command = shlex.split(
-            packet.split("Call this when done:\n", 1)[1].splitlines()[0]
         )
         self.assertEqual(command[0], "python3")
         return self._run([sys.executable, "-B", *command[1:]])
@@ -313,7 +352,7 @@ class CrossRunTests(unittest.TestCase):
         old_packet = self._init(old_run, OLD_PROMPT)
         self.assertEqual(self._state(old_run)["navigator_protocol_version"], 4)
         self._assert_requirements_policy(old_packet.stdout)
-        self.assertIn("Follow the packet's Reference handoff policy", old_packet.stdout)
+        self._assert_handoff_rule_in_reference(old_packet.stdout)
         shutil.rmtree(old_run)
         self.assertFalse(old_run.exists())
 
@@ -343,7 +382,7 @@ class CrossRunTests(unittest.TestCase):
             with self.subTest(run_dir=run_dir.name):
                 cold = self._cli(run_dir, "next")
                 self._assert_requirements_policy(cold.stdout)
-                self.assertIn("Follow the packet's Reference handoff policy", cold.stdout)
+                self._assert_handoff_rule_in_reference(cold.stdout)
                 self.assertEqual(self._state(run_dir)["prompt"], prompt)
                 self.assertEqual(self.requirements.read_bytes(), requirements)
                 self.assertEqual(self.readme.read_bytes(), readme)

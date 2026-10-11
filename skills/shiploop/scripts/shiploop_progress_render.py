@@ -24,7 +24,6 @@ _DOC_STATUS_LABELS = {
     "accepted-result": "Accepted result",
     "draft": "Draft",
     "missing": "Missing",
-    "retired": "Retired",
     "withheld": "Withheld",
 }
 

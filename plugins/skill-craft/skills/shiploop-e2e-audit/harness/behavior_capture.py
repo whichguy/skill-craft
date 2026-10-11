@@ -31,11 +31,8 @@ _MAX_EVENT_LINE_BYTES = 1024 * 1024
 _STAGES = frozenset(
     {
         "intake", "discovery", "research", "spec", "test-strategy", "plan",
-        "prepare", "get-next-work-item", "step-plan", "test-spec", "baseline",
-        "test-author", "test-red", "implement", "test-green", "test-refine",
-        "regression", "document", "skill-assess", "skill-validate",
-        "static-checks", "verify", "integrate", "integration-verify",
-        "carry-forward", "system-test-author", "system-test", "product-acceptance",
+        "prepare", "step-plan", "test-spec", "validate-existing", "implement",
+        "test", "document", "verify", "carry-forward", "system-test-author", "system-test", "product-acceptance",
         "release-plan", "release-check", "release", "release-verify",
         "operations", "handoff", "done",
     }
@@ -46,7 +43,7 @@ _SUPPORTED_PROTOCOLS = frozenset({4})
 # The live runner's public partial-stop keys (run.PARTIAL_STAGES).
 _STOP_STAGES = frozenset({"intake", "discovery", "research", "spec", "test-strategy", "plan"})
 _STATE_STATUSES = frozenset({"active", "paused", "blocked", "halted", "done"})
-_OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "reconcile"})
+_OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise", "reconcile"})
 _NATIVE_TYPES = frozenset(
     {
         "available_commands", "end", "plan", "text", "thought", "tool_call",

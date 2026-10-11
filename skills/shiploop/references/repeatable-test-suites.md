@@ -399,3 +399,15 @@ RED evidence: each new test must fail on the item's base, without the item's
 change (`red_na` names a characterisation test that already passes). A test
 that fails on the candidate is not a reason to weaken the oracle; fix the
 product code, and change a test only for an independent reason you record.
+
+On new code the base run can only see a load failure (the module the item adds
+is missing there), and that counts as RED, so it proves nothing about the
+assertions. After the candidate run passes, ShipLoop's mutation check does: it
+makes a small deterministic sample (at most 8) of one-token mutants of the
+item's changed product lines (comparisons, boolean literals, `+`/`-` between
+operands, integer literals; never test, docs or config files), applies each
+alone in a temporary copy of the candidate and runs the focused commands. A
+mutant is killed when a command fails. ShipLoop refuses done only when mutants
+ran and none was killed (no kill-rate threshold, since equivalent mutants
+survive any suite), and records every mutant in
+`tests/<action>-mutation<N>.md`; a docs-only change records "no mutants".

@@ -1,0 +1,60 @@
+{
+ "case": "node-fix-bug",
+ "delegation": "inline",
+ "tool": "test/shiploop_e2e/packets.py offline_packets (no model)",
+ "before_ref": "3c812fbd",
+ "packets": {
+  "01-step-plan": {
+   "before": 57728,
+   "after": 33281
+  },
+  "02-step-plan-improve": {
+   "before": 24348,
+   "after": 15209
+  },
+  "03-test-spec": {
+   "before": 36121,
+   "after": 21591
+  },
+  "04-test-spec-improve": {
+   "before": 20624,
+   "after": 11339
+  },
+  "05-validate-existing": {
+   "before": 35103,
+   "after": 21365
+  },
+  "06-implement": {
+   "before": 38522,
+   "after": 24086
+  },
+  "07-implement-improve": {
+   "before": 22481,
+   "after": 13243
+  },
+  "08-test": {
+   "before": 47044,
+   "after": 31682
+  },
+  "09-document": {
+   "before": 36809,
+   "after": 22374
+  },
+  "10-verify": {
+   "before": 45929,
+   "after": 30510
+  },
+  "11-carry-forward": {
+   "before": 42746,
+   "after": 29178
+  },
+  "12-carry-forward-improve": {
+   "before": 24059,
+   "after": 15877
+  }
+ },
+ "total": {
+  "before": 431514,
+  "after": 269735
+ }
+}

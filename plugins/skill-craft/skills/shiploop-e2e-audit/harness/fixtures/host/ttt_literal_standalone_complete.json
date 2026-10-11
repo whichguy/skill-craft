@@ -32,7 +32,7 @@
   },
   "id": "ttt-literal-standalone-complete",
   "observer": {
-    "grok_adapter_sha256": "bfc9a15a7bde56633d512f81100a8ae5a9f426e5b590aa2c94c9b93524d8bb5d",
+    "grok_adapter_sha256": "967d19573443a31548a3df5954bf29fd205ae87b12c0aa979c622c1b63a905f6",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
     "previous_grok_adapter_sha256": "c6fbad88c5ee6fb19d6c4167572ee4338030ed038f9c3a8a9b19de3901936613",
     "revalidation": "The direct-form ShipLoop verb allowlist now also accepts backchain-check, the record-only Backchain graph check. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged.",

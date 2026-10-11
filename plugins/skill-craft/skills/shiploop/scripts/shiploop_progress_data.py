@@ -750,13 +750,9 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     doc_identity: list[dict[str, str]] = []
 
     repo = Path(os.path.abspath(os.fspath(state["repo"])))
-    feature = knowledge_home.feature_dir(state)
+    # The living spec; the run's other records are result fields (consumer contract 6.2), shown by the report.
     fixed_docs = (
-        ("living-spec", "Living specification", "docs/shiploop/spec.md"),
-        ("feature-spec", "Feature specification draft", f"{feature}/spec.md"),
-        ("feature-plan", "Feature plan draft", f"{feature}/plan.md"),
-        ("feature-test-spec", "Feature test specification draft", f"{feature}/test-spec.md"),
-        ("test-strategy", "Test strategy", "docs/shiploop/test-strategy.md"),
+        ("living-spec", "Living specification", knowledge_home.HOME + "/spec.md"),
     )
     candidates: list[tuple[str, str, Path, str, Mapping[str, Any] | None,
                            Mapping[str, Any] | None, str | None]] = []

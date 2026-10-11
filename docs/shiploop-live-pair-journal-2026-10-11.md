@@ -22,5 +22,62 @@ Question: does the build that carries the commit contract, the spec retire step,
 3. **Packets mention the retire and list correctly**, with absolute paths; no prepare refusal; the `ShipLoop knowledge notice:` section notices do not exist yet (A2).
 4. The three command failures belong to the inner-loop session's area (loop contract evidence, result path, test-spec command ids); reported to it.
 
+## Checkers (web service, two-player), 88d412e9
+
+Build: `88d412e9` (the 8-stage inner loop, the commit contract, the retire step, `architecture.md`, and the inner-loop session's three fixes from the hello findings, including the feature-list sentence). Claude Sonnet 5.5, `--source checkout`, output `/Users/dadleet/e2e-runs/20261010/checkers-8stage-88d412e9` (compact extract: `docs/experiments/live-runs-20261011/checkers-8stage-88d412e9.json`).
+
+**Status: firm for this one run; single-run differences from the earlier Checkers row are inside the noise of a same-build cell (a hello cell ranged 1.75x in cost), so no claim of change.**
+
+| Measure | This run |
+|---|---|
+| Outcome | PASS: `shiploop done`, all case checks, held-out 6 of 6, committed; mutation 71 of 107 caught (`js-1`, ratio 0.66, 4 timeouts, 4 port refusals) |
+| Cost, turns, wall | $4.27, 215 turns, 1,080 s (planning window closed at test-spec after 6.3 min); previous row: $3.72, 201 turns |
+| Commits in the product repo | 20: 12 ShipLoop's own (1 with a lessons section: release-verify's `Learned`), **8 Improve commits, all 8 carrying lessons, 0 citing an earlier commit**, 0 model commits (`other` n=0) |
+| Knowledge home at the end | `README.md`, `architecture.md`, `environment.md`, `spec.md`, `test-strategy.md`, `features/README.md` (ShipLoop's generated list), one feature folder without `spec.md` |
+| Kept-notices / section notices | 0 / not built yet |
+| ShipLoop command failures | 3: `assumptions are allowed only on a done plan result` (twice, the only repeat), `open plan assumptions A3 name W1 as consumer; add an expectation ... from ...` |
+| Stage turns vs the previous row | system-test-author 6 to 26 (0.5 to 4.3 min), test-spec 5 to 20, implement 16 to 30, step-plan 8 to 16, verify 3 to 8; stages only in this run: test, validate-existing |
+
+**What it shows against the plan's measures**
+1. **Commit contract: the bypass is gone in this run.** All 8 Improve commits went through `improve-commit` and carry `Key learnings`; the model made no commit of its own. The audit measured 14 of 40 Improve-window commits bypassing the gate on the earlier build, and the saved-run baseline has 74 of 136 Improve commits with a lessons section under the shared reader. By construction a commit that passes the gate has lessons, so the informative number is "no commit around the gate", not "8 of 8 have lessons".
+2. **Citations did not appear: 0 of 8.** `Learned-from:` is optional and the first run on a fresh repository has few earlier commits worth crediting (the Improve card already makes the child read seven messages). The look-back block (deferred in plan v5 until a baseline existed) is the lever; whether it is worth its bytes needs a follow-on run on this repository, where `cited_earlier_run` can be non-zero. **Next measurement proposed, not run:** a second feature on this same repository, then compare `improve.cited` and `cited_earlier_run`.
+3. **The feature-list defect from the hello run did not recur.** With the sentence "ShipLoop writes that feature list at its next knowledge commit; do not create or edit it" the model left the file alone; `features/README.md` is ShipLoop's generated list with the four header commands and was refreshed inside five knowledge commits and the retire commit.
+4. **Retire step again made and returned** (`81ae5b0`).
+5. **Cost of the 8-stage graph on a larger case is not yet visible as a saving**: the stage-level turns grew in the planning and system-test stages (above); the inner-loop session's own slices found the 8 stages "correct but slower than the 17-stage slices". One run each; the same-build spread must be measured (three or more runs of this cell) before reading this as a change.
+
+## Pair on 1ac83089: section notices, the test-stage mutation gate, commit contract (Checkers, then hello)
+
+Build `1ac83089`: A2 (section constants, one-line-per-file counted notice), the inner-loop session's 8-stage loop with the test-stage mutation gate and prompt coherence, the commit contract, the retire step, `architecture.md`. Claude Sonnet 5.5, `--source checkout`; runs `checkers-sections-1ac83089` and `hello-sections-1ac83089` under `/Users/dadleet/e2e-runs/20261010/`; compact extract `docs/experiments/live-runs-20261011/pair-sections-1ac83089.json`. CI on the pushed commit: green.
+
+| | Checkers | hello |
+|---|---|---|
+| Outcome | PASS; held-out 6 of 6; mutation **71 of 82 caught (0.866)** | PASS |
+| Cost, turns, wall | $4.09, 208 turns, 1,277 s | $3.92, 231 turns, 828 s |
+| Previous 8-stage row | $4.27, 215 turns, mutation 71 of 107 (0.664) | $2.69, 148 turns |
+| ShipLoop command failures | 0 | 2, not repeated (improve-complete needs the check output; a result path slip) |
+| Commits | 19: 5 Improve (all with lessons), 14 script, 0 model | 15: 5 Improve (all with lessons), 10 script, 0 model |
+| Citations | 0 of 5 | **1 of 5** (see below) |
+| Section notices | **0** | **0** |
+| Retire commit | made and returned | made and returned |
+
+**Findings (firm for these two runs; no change claim from single runs).**
+1. **Quoting the headings was enough: the counted notice never fired.** In the Checkers run all 21 headings of `spec.md`, `environment.md`, `architecture.md` and `test-strategy.md` were present by the prepare close; in the earlier runs and the saved homes they were a minority (environment "Commands" 1 of 27, test strategy "ID convention" 0 of 27). The measure planned for the counted notice (does quoting `SECTIONS` in the packets make models write the headings) is answered for this case: yes, with no refusal and no notice. Do not turn the notice into a refusal on this evidence; it stays a notice until a run shows a miss.
+2. **The test-stage mutation gate moved the mutation score in Checkers from 0.664 (71 of 107) to 0.866 (71 of 82)** (the inner-loop session's change; the harness's own measure, `js-1`), at about the same cost and turns. One run each; the inner-loop session's cause (the base run passed on load failures alone) explains the direction.
+3. **First live citation.** In the hello run an Improve commit (`9dfc6cc`) carries `Learned-from: fb1d3f5113a7... first fixed the ID rule in plan.md only.`, a full id that git resolves, crediting the step-plan commit that first fixed the rule and drawing the lesson "when a rule is corrected mid-run, grep every knowledge-home file for the old wording". The commit contract's citation requirement works end to end; `cited_earlier_run` stays 0 until a second feature runs on an earlier run's repository.
+4. **hello cost is inside the old range but the turns are not.** $2.69 and $3.92 sit inside the 1.27.0 same-build range ($3.06 to $5.35, n=5); the turns (148 and 231) straddle its 126 to 196. Stage turns that grew in the second run: step-plan 19 to 38, carry-forward 6 to 18 (it rewrote `test-strategy.md` and `architecture.md` to fix a rule it had changed). **Two runs of the 8-stage hello cell do not show a change; run three more on this build before any claim**, because hello cost rising is a standing concern.
+
+## hello, same-day spread: released 1.27.0 against the new build (n=5 each)
+
+Question: the owner tracks hello cost, and the first runs of the new build looked heavier than the first (148-turn) one. Method: after the pair, three more hello runs on the new build (`1ac83089`) and three on the released 1.27.0 plugin tree (a worktree at `6f86c8cf`, `--plugin-dir`), all started together on the same machine the same evening; with the fork's two earlier 1.27.0 marketplace rows that is n=5 for each. Evidence: `docs/experiments/live-runs-20261011/hello-spread-1270-vs-8stage.json`.
+
+| | cost (sorted) | median | turns (sorted) | median |
+|---|---|---|---|---|
+| New build, n=5 (`13d278dd` once, `1ac83089` four times) | $2.04, 2.69, 3.64, 3.92, 4.24 | **$3.64** | 121, 148, 190, 215, 231 | **190** |
+| Released 1.27.0, n=5 (3 today + the fork's 2) | $2.01, 3.62, 3.62, 4.54, 6.47 | **$3.62** | 117, 149, 195, 243, 315 | **195** |
+
+**Status: firm for this sample (both builds, 10 runs, all PASS); no change in hello cost or turns is shown, and a rise is not supported.** The medians agree (cost $3.64 against $3.62, turns 190 against 195); the spread inside one build ($2.01 to $6.47, 117 to 315 turns) is larger than any difference between the builds. Minutes are not compared: 6 of 8 recorded rows overlapped another run (the runs were started together). The baseline file lumps the released-tree rows into the `checkout | stage` cell with the new build's rows (`--plugin-dir` implies checkout), so `--baseline-report` shows 8 rows; the split above is by plugin tree.
+
+Two side findings from the released-tree runs: the 1.27.0 commit contract already makes Improve commits cite earlier ones when there are many iterations (one run: 12 Improve commits, 10 with `Learned-from`; another 5 with 2), so citations are not rare once a run has several reviews; `cited_earlier_run` stays 0 everywhere because no run builds on an earlier run's repository.
+
 ## Next
 Checkers (source=checkout) once A2 is on main and the build includes the packet fix for finding 2, then the counters (`metrics.commits`), kept-notices, `ShipLoop knowledge notice:` lines and the hello and Battleship deltas are read for both runs.

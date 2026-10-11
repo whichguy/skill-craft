@@ -18,6 +18,7 @@ sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
+import shiploop_reference as reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -150,7 +151,9 @@ class DelegationStateTests(unittest.TestCase):
         entry = self.render(state)
         self.assertTrue(entry.startswith(
             "Continue in this context and execute the prompt.\n\nDelegation: inline."))
-        self.assertIn("including the\nstep-plan that opens each work item", entry)
+        # The preamble (shortened 2026-10-11) says to do this stage here and submit its callback; it no longer names
+        # step-plan, because every stage, step-plan included, gets the same line.
+        self.assertIn("Do this stage in this conversation, and submit its callback\nyourself.", entry)
         self.assertNotIn("Clear and then", entry)
         self.assertIn("Pause without consuming the action:", entry)
         # step-plan is a planning-review stage, so completing it starts an
@@ -162,7 +165,7 @@ class DelegationStateTests(unittest.TestCase):
             with self.subTest(stage=stage):
                 packet = self.render(advance(state, stage))
                 self.assertTrue(packet.startswith("Continue in this context and execute the prompt.\n"))
-                self.assertIn("Do not clear, pause for a clear", packet)
+                self.assertIn("Do not clear the context or hand the stage to Ask Agent or a native\nworker", packet)
 
     def test_ask_agent_step_plan_splits_independent_changes_into_separate_steps(self):
         # Live 2026-10-04 (p1-temperature-plain): without this rule the model put two modules
@@ -175,7 +178,7 @@ class DelegationStateTests(unittest.TestCase):
         inline = self.render(advance(self.state(), "implement"))
         self.assertIn("Delegation is inline: this packet is for the one step named in its Step line.", inline)
         step_plan = self.render(advance(self.state(), "step-plan"))
-        self.assertIn("list every implementation step in `steps`, in the order to do them",
+        self.assertIn("`steps`: every implementation step, in the order to do them",
                       " ".join(step_plan.split()))
         self.assertIn("Each reviewed step's task/ready/done criteria", step_plan)
         for packet in (inline, step_plan):
@@ -292,21 +295,28 @@ class StepTests(DelegationStateTests):
     def test_the_snapshot_does_not_list_implement_as_done_while_steps_remain(self):
         # On steps 2..N the Progress snapshot listed implement among the accepted-done stages and dropped it from the
         # pending list beside "Current: implement", which a model that lost its context could read as finished (seen in
-        # 3 packets of one checkers run; packet review 2026-10-10, P-implement-1).
+        # 3 packets of one checkers run; packet review 2026-10-10, P-implement-1).  The packet no longer prints the
+        # snapshot (2026-10-11 dedupe): its status block is the one saved-position display, and report.html keeps the
+        # snapshot (nav._progress_lines), so the rule is pinned on both homes.
+        def status_of(packet):
+            return packet.split("=== ShipLoop status ===", 1)[1].split("=== end ShipLoop status ===", 1)[0]
+
         state = self.at_implement()
-        first = self.render(state)
-        self.assertIn("Current: implement", first)
-        self.assertIn("Current stage implement: in progress (0 of 2 steps accepted)", first)
-        self.assertNotRegex(first, r"stages completed \(accepted done\):.*\bimplement\b")
-        state = self.done(state, "divide() added.")
-        second = self.render(state)
-        self.assertIn("Current: implement", second)
-        self.assertIn("Current stage implement: in progress (1 of 2 steps accepted)", second)
-        self.assertNotRegex(second, r"stages completed \(accepted done\):.*\bimplement\b")
-        self.assertNotIn("Current stage implement: in progress", self.render(self.done(state, "README documents divide.")))
+        for step, accepted in ((state, 0), (self.done(state, "divide() added."), 1)):
+            packet = self.render(step)
+            self.assertNotIn("Progress snapshot", packet)
+            status = status_of(packet)
+            self.assertIn("Build \u25b6", status)  # the Build group is current, never done, while steps remain
+            self.assertNotIn("Build \u2713", status)
+            self.assertIn("Next:      implement:", status)
+            snapshot = "\n".join(nav._progress_lines(step))
+            self.assertIn("Current: implement", snapshot)
+            self.assertIn(f"Current stage implement: in progress ({accepted} of 2 steps accepted)", snapshot)
+            self.assertNotRegex(snapshot, r"stages completed \(accepted done\):.*\bimplement\b")
+        last = self.done(self.done(state, "divide() added."), "README documents divide.")
+        self.assertNotIn("Current stage implement: in progress", "\n".join(nav._progress_lines(last)))
         # Only the last accepted step makes implement a completed stage.
-        after = self.render(self.done(state, "README documents divide."))
-        self.assertRegex(after, r"stages completed \(accepted done\):.*\bimplement\b")
+        self.assertRegex("\n".join(nav._progress_lines(last)), r"stages completed \(accepted done\):.*\bimplement\b")
 
     def test_a_chain_implement_has_no_step_count_in_the_snapshot(self):
         # The chain runs every step inside its one implement action: there is no per-step acceptance to count.
@@ -371,15 +381,25 @@ class PacketContractTests(DelegationStateTests):
 
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
         entry = self.render(advance(self.state(), "verify"))
-        # The result contract sits under the callback; the tail repeats only the callback.
+        # The result contract sits under the callback, which is printed once (the "Write the structured result to:"
+        # line and the tail's "Call this when done:" callback are gone, 2026-10-11 dedupe).
         head = entry.split("Current stage guidance:", 1)[0]
-        self.assertIn("\nWrite the structured result to: ", head)
+        self.assertIn("\nCallback for this stage (run once after its work, with the result written to the file it "
+                      "names): ", head)
+        self.assertIn("--result=", head.split("\nCallback for this stage", 1)[1].split("\n", 1)[0])
+        self.assertNotIn("Write the structured result to: ", entry)
         # repeat is no longer an inner outcome (8-stage loop, 2026-10-10).
         self.assertIn("\nAllowed outcomes: done | blocked | revise", head)
-        self.assertIn("\nCall this when done:\n", entry.split("Current stage guidance:", 1)[1])
+        self.assertNotIn("Call this when done:", entry)
+        self.assertEqual(entry.count("Callback for this stage"), 1)
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
-        # verify is not a planning/checkpoint stage; it advances directly.
-        self.assertIn("This result advances directly; no Improve child runs for this stage.", entry)
+        # verify starts no Improve child, and its packet says nothing about Improve (owner rule 2026-10-10: Improve is
+        # mentioned only as a directive); how to report a stop is the outcome shapes' (the trailing Improve-line sentence
+        # is gone, 2026-10-11 dedupe), and the stage prints no Improve line.
+        self.assertNotIn("advances directly", entry)
+        self.assertNotIn("If work cannot continue, submit outcome 'blocked'", entry)
+        self.assertFalse([line for line in entry.splitlines() if line.startswith("Improve:")])
+        self.assertIn('blocked: {"outcome": "blocked", "blocked_by": "user | access | external"', entry)
         # No route offers a pause for a context clear: the host cannot be cleared from a packet.
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
@@ -398,20 +418,31 @@ class PacketContractTests(DelegationStateTests):
         state = advance(self.state(), "implement")
         packet = self.render(state)
         card = PACKAGE / "SKILL.md"
-        self.assertIn("ShipLoop skill card: " + str(card) + "\n", packet)
+        # The skill card line left the run rules (2026-10-11 dedupe): reference.md#policies lists it, and the packet's
+        # one pointer line names that file.
+        self.assertNotIn("ShipLoop skill card: ", packet)
+        self.assertIn("(#policies, #rules, #recovery)", packet)
+        self.assertIn("- ShipLoop skill card: " + str(card) + "\n", reference.render(state, Path("/simulation-only/run")))
         self.assertTrue(card.is_file())
         step_plan = next(entry["action"] for entry in state["history"] if entry["stage"] == "step-plan")
-        self.assertIn("Current item step-plan source action: " + step_plan, packet)
-        self.assertIn("Current item test-decision source action:", packet)
+        # A source that "Results this stage builds on" lists is not printed again as a test source (2026-10-11
+        # dedupe): the step-plan result and plan section are listed there, by the action id in the result path.
+        self.assertIn("- W1 step-plan result: RUN/results/" + step_plan + ".md", packet)
+        self.assertNotIn("Current item step-plan source action", packet)
         # Right after step-plan it is already the test-decision source; do not print it twice.
         test_spec = self.render(advance(self.state(), "test-spec"))
         self.assertNotIn("Current item step-plan source", test_spec)
-        self.assertIn("Current item test-decision source action:", test_spec)
+        # ... and, listed under "Results this stage builds on", it is not printed as a test-decision source either.
+        self.assertNotIn("Current item test-decision source action:", test_spec)
+        self.assertIn("- W1 step-plan result: RUN/results/", test_spec)
         self.assertNotIn("Current item step-plan source", self.render(advance(self.state(), "step-plan")))
-        self.assertIn("Execute this packet in this conversation, submit its current callback yourself", packet)
+        # The inline route's "Execute this packet in this conversation..." run-rule line is gone: the preamble says it.
+        self.assertNotIn("Execute this packet in this conversation, submit its current callback yourself", packet)
+        self.assertIn("Do this stage in this conversation, and submit its callback\nyourself.", packet)
         delegated = self.render(dict(state, delegation="ask-agent"))
         self.assertIn("Give the executing agent only the current action packet", delegated)
-        self.assertIn("Current item step-plan source action: " + step_plan, delegated)
+        self.assertIn("- W1 step-plan result: RUN/results/" + step_plan + ".md", delegated)
+        self.assertNotIn("Current item step-plan source action", delegated)
 
     def test_verify_assembles_direct_or_chain_work(self):
         # integrate is folded into verify (8-stage loop, 2026-10-10).
@@ -544,8 +575,13 @@ class PacketContractTests(DelegationStateTests):
                     lead = lines[header + 1]
                     if kind == "produce":
                         self.assertTrue(lead.startswith("Callback for this stage "), lead)
-                        done = lines[lines.index("Call this when done:") + 1]
-                        self.assertEqual(shlex.split(lead.split("): ", 1)[1]), shlex.split(done))
+                        # The first callback line is the only one: "Call this when done:" is gone (2026-10-11 dedupe),
+                        # so the lead carries the complete command and the result file it reads.
+                        self.assertNotIn("Call this when done:", packet)
+                        command = shlex.split(lead.split("): ", 1)[1])
+                        self.assertEqual(command[2], "complete")
+                        self.assertTrue(any(arg.startswith("--result=") and arg.endswith(".md") for arg in command),
+                                        command)
                         if stage in planning:
                             others = [o for o in ("blocked", "repeat") if o in nav.stage_spec.stage(stage).outcomes]
                             self.assertIn("Improve: Every " + stage + " result, including " + " and ".join(others)
@@ -557,8 +593,12 @@ class PacketContractTests(DelegationStateTests):
                             # packet must not say the result advances with no child.
                             self.assertNotIn("no Improve child runs for this stage", packet)
                         else:
-                            self.assertIn("Improve: This result advances directly; no Improve child "
-                                          "runs for this stage.", packet)
+                            # No child: no Improve sentence at all (owner rule 2026-10-10); the blocked route is the
+                            # outcome shapes' (the trailing sentence is gone, 2026-10-11 dedupe).
+                            self.assertNotIn("advances directly", packet)
+                            self.assertNotIn("If work cannot continue, submit outcome 'blocked'", packet)
+                            self.assertFalse([line for line in lines if line.startswith("Improve:")])
+                            self.assertIn("blocked", next(line for line in lines if line.startswith("Allowed outcomes:")))
                         continue
                     # A bound child that has not started leads with improve-start on both routes
                     # (551b8b49); the improve-complete callback follows in the packet body.

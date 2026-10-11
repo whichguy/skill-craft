@@ -24,6 +24,7 @@ FIXTURES = ROOT / "test" / "fixtures" / "shiploop-keepalive"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_keepalive as keepalive  # noqa: E402
+import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 RECORDED_HOSTS = ("claude", "codex", "cursor", "grok")
@@ -136,7 +137,7 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertEqual(recovered, self.packet)
         full = _packet_file_text(recovered)
         self.assertIn("Original request (preserve user scope", full)
-        self.assertIn("Recovery command:", full)
+        self.assertIn("Recovery command (it only reads the saved state", full)
 
     def test_the_result_contract_is_printed_under_the_callback(self) -> None:
         # Only the short stage-goal block sits between the callback and the
@@ -145,13 +146,20 @@ class RepeatPacketTests(KeepaliveTestCase):
         # whole callback/goal/contract section).
         lines = self.packet.splitlines()
         callback = next(i for i, line in enumerate(lines) if line.startswith("Callback for this stage"))
-        contract = next(i for i, line in enumerate(lines) if line.startswith("Write the structured result to: "))
+        # The "Write the structured result to:" line is gone (2026-10-11 dedupe): the callback line names the result
+        # file, and the result template follows the stage-goal block directly.
+        self.assertFalse(any(line.startswith("Write the structured result to: ") for line in lines))
+        self.assertIn("with the result written to the file it names", lines[callback])
+        contract = next(i for i, line in enumerate(lines) if line == "Result template:")
         self.assertTrue(lines[callback + 1].startswith("Goal: "))
         for line in lines[callback + 2:contract]:
-            self.assertTrue(line.startswith(("Done when", "Checked by: ", "Considerations for this stage:", "- ")), line)
-        self.assertEqual(lines[contract + 1], "Result template:")
+            self.assertTrue(line.startswith(("Done when", "Checked by: ", "Considerations for this stage:", "- ",
+                                             # the References block (owner, 2026-10-11), one item per line
+                                             nav.REFERENCES_HEAD, "HOME = ", "FEATURE = ", "RUN = ", "WORKTREE = ",
+                                             "Read at this stage", "Results this stage builds on")), line)
+        self.assertEqual(lines[contract + 1], "# ShipLoop navigator result")
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
-        self.assertEqual(sum(line.startswith("Write the structured result to: ") for line in lines), 1)
+        self.assertEqual(sum(line == "Result template:" for line in lines), 1)
         self.assertEqual(sum(line.startswith("Allowed outcomes: ") for line in lines), 1)
         self.assertGreater(outcomes, callback)
 

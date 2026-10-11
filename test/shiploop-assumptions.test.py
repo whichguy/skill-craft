@@ -94,7 +94,9 @@ class ShapeTests(unittest.TestCase):
     def test_navigator_allows_the_field_only_on_a_done_plan(self):
         # A done result at another stage keeps the stage sentence; a repeat result at plan is refused for carrying a
         # done-only field (the refusal names the field and says to delete it).
-        for stage, outcome, message in (("research", "done", "only on a done plan"), ("spec", "done", "only on a done plan"),
+        # Since the consumer contract (X10) the open-item stages after plan carry the list too; the sentence names them all.
+        allowed = "only on a done carry-forward, plan, release-plan, release-verify, system-test, system-test-author, "
+        for stage, outcome, message in (("research", "done", allowed), ("spec", "done", allowed), ("test", "done", allowed),
                                         ("plan", "repeat", "a repeat result does not carry assumptions")):
             with self.assertRaisesRegex(nav.NavigatorError, message):
                 nav._canonical_result(dict(DONE, outcome=outcome, assumptions=[]), stage=stage)

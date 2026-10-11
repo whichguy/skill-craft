@@ -9,21 +9,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/shiploop/sc
 import shiploop_knowledge_home as knowledge  # noqa: E402
 
 
+def sections(name: str) -> str:
+    """The body of a living file with every one of its ``knowledge.SECTIONS``, each with text; spec.md carries one requirement ID.
+
+    A fixture whose home has all of its sections gets no section notice at its closes (a home with none prints a line per
+    section on the CLI's stdout at each close, which a test of anything else would have to step around).
+    """
+    return "".join("## " + heading + "\n\n" + ("R-1: Synthetic requirement.\n" if (name, heading) == ("spec.md", "Requirements")
+                                                else "Synthetic knowledge.\n") + "\n" for heading in knowledge.SECTIONS[name])
+
+
 def write(state: Mapping[str, Any]) -> None:
-    """Create every file any close requires, when missing; spec.md carries one requirement ID."""
+    """Create every file any close requires, when missing; spec.md carries one requirement ID.
+
+    A living file with named sections (``knowledge.SECTIONS``) is written with all of them.
+    """
     repo = Path(str(state["repo"]))
     for names in knowledge.CLOSES.values():
         for name in names:
-            path = repo / (name.replace("{feature}", knowledge.feature_dir(state)) if "{feature}" in name
-                           else knowledge.HOME + "/" + name)
+            path = repo / knowledge.HOME / name
             if path.is_file():
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
-            body = "R-1: Synthetic requirement.\n" if path.name == "spec.md" else "Synthetic knowledge.\n"
-            if path.name == "outcome.md":
-                body = "".join("## " + name + "\n\nSynthetic " + name.lower() + ".\n\n"
-                               for name in knowledge.LEARNING_SECTIONS)
+            body = sections(name) if name in knowledge.SECTIONS else "Synthetic knowledge.\n"
             path.write_text("# " + path.stem + "\n\n" + body, encoding="utf-8")
-    # A real run's first knowledge commit (after the spec stage) writes the feature list long before any work item takes its
-    # base snapshot; write it here so a fixture that passes its closes at the item boundary does not see it appear late.
-    knowledge.write_feature_list(repo)

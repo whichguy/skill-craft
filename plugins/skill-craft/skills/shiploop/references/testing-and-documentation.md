@@ -8,8 +8,8 @@ create a service just to satisfy a test-category label.
 Before product execution, use the current packet's planning checks. The
 `test-strategy`, `plan`, `step-plan` and `test-spec` producers plan the checks,
 and in a `planning_review: stage` run each is followed by its Improve review. Under `none` no
-Improve review follows them: ShipLoop's checks at `complete` are the gate, and `test-author` runs
-the focused commands once before `test-red`. Planning checks do not certify future
+Improve review follows them: ShipLoop's checks at `complete` are the gate, and the `test` stage's
+base run (no new test ID may pass on the item's base) comes after `implement`. Planning checks do not certify future
 product test results. Product acceptance remains blocked until its real
 implementation checks run. Research evidence does not prove that a live
 environment stayed unchanged; see
@@ -46,8 +46,8 @@ not test evidence.
 
 Likewise, a prerequisite repo-local skill is an earlier work item with its own
 validation before a consumer relies on it. A reusable procedure discovered
-during product work follows `skill-assess` and `skill-validate`. Neither
-authorizes global installation or lets a late skill edit bypass final product
+during product work is decided at `carry-forward` (its skill decision). That
+decision never authorizes global installation or lets a late skill edit bypass final product
 or outer test evidence.
 
 ## Stage readiness and completion
@@ -64,16 +64,14 @@ do not copy this table into every work item or create a second acceptance ledger
 | intake, discovery, research | Request, applicable sources and scoped investigation | Consumer intent, baseline observations, constraints and material unknowns retained; an investigated failure is not product readiness |
 | spec | Reconciled sources and decision basis | Independently verifiable clauses and required surfaces defined; unresolved criteria remain prerequisites |
 | test-strategy, plan | Defined criteria and initial baseline | Cases/verification methods allocated by surface, target, owner and due phase; prerequisites ordered before consumers |
-| prepare, get-next-work-item, step-plan | Authorized preparation or selected item with supplier evidence | Actual prerequisites and bounded item Ready/Done criteria revalidated; relevant clause/case locators retained |
+| prepare, step-plan | Authorized preparation or selected item with supplier evidence | Actual prerequisites and bounded item Ready/Done criteria revalidated; relevant clause/case locators retained |
 | test-spec | Assigned clauses and accepted strategy | Inputs, independent expected observations, required surfaces, fixtures and execution phases specified |
-| baseline, test-red | Starting candidate and applicable checks | Actual baseline or meaningful expected failure observed and classified; missing coverage/setup failure is not a passing product check |
-| test-author, system-test-author | Independent cases and permitted test scope | Executable checks or justified reproducible manual procedures supplied, discoverable and bound to clauses; authoring does not claim execution. At `test-author` ShipLoop runs the focused commands once and refuses unless a test ran, so tests that load something the item creates need a loadable placeholder or an in-test load |
-| implement | Ready item, independent expectations and edit authority | Scoped candidate supplied; accepted criteria are preserved |
-| test-green, regression, static-checks | Current candidate and selected checks | Actual results recorded only for the behavior/surface those checks observe |
-| test-refine | Original cases plus implementation evidence | Retained, added, removed or narrowed cases reconciled with an independent basis; required coverage cannot disappear |
-| document, skill-assess, skill-validate | Current artifacts and relevant documentation/reuse criteria | Documentation and selected skill checks or justified N/A recorded; neither substitutes for product verification |
-| verify, integration-verify, system-test | Candidate at the assigned boundary and cases due there | Due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
-| integrate, carry-forward | Reviewed item and assembly/next-consumer requirements | Assembly and remaining obligations retained with owner, phase and locators; assembly is not deployment |
+| validate-existing | Step plan's expectations and the unchanged checkout | Each works, absent or broken expectation observed by its check; a known small fix to a broken works expectation committed separately; missing coverage/setup failure is not a passing product check |
+| implement | Ready item, independent expectations and edit authority | Scoped candidate supplied one reviewed step at a time; accepted criteria are preserved |
+| test, system-test-author | Independent cases, the current candidate and permitted test scope | Executable checks bound to clauses; at `test` each new test fails on the item's base (unless `red_na` names it) and every recorded command passes on the candidate at its floor; removed or narrowed cases are declared with an independent basis (`retired_tests`); required coverage cannot disappear |
+| document | Current artifacts and relevant documentation criteria | Documentation recorded from observed behaviour, or the stage recorded not applicable on proof; it does not substitute for product verification |
+| verify, system-test | Candidate at the assigned boundary and cases due there | Due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
+| carry-forward | Verified, committed item and next-consumer requirements | Remaining obligations retained with owner, phase and locators; the skill decision recorded; the item commit is not deployment |
 | product-acceptance | Original outcome and whole-product evidence | All due criteria may establish pre-release readiness; distinguish corrective or blocked work from release-only behaviors that remain pending and are not yet observed |
 | release-plan, release-check | Current candidate, authority and pending delivery cases | Release route and readiness established with post-release checks and recovery; no implied external operation |
 | release | Current authorized operation and target | Actual effect and candidate/target identity recorded separately from behavior |
@@ -92,6 +90,96 @@ is not such a check: it is an open item owned by that person and due at handoff
 not prevent declaring the boundary complete. For an enabled delivery contract,
 preserve its fixed obligation phases and correction rules; this guidance does not
 move them.
+
+## How ShipLoop runs the recorded commands
+
+The card's [test loop](../SKILL.md#test-loop) says what ShipLoop runs at `test`
+and `verify`. This section holds the detailed rules: how a run is read, the
+floors and their known limits, stages recorded as not applicable, the outer
+reruns and runs that reached no verdict.
+
+### Reading a run
+
+A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
+runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `node --test` with the spec or tap
+reporter, not dot or junit) and
+refuses a run of zero tests (`no-tests`), fewer than `min_tests`
+(`too-few-tests`), or one whose output does not show each listed ID on a line
+that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). An ID counts only as its own
+word in a test's printed name: `TC-4a` does not show `TC-4`. When a missing ID is printed at the start of a longer token that continues it with a
+new kind of character (`TC-4a`, `TC-4_a`; not `TC-40`, which is another ID, nor a longer token that is itself a listed ID and so shows that ID), the refusal says so and quotes the line (`ids_inside` in the record);
+an ID that no line holds that way keeps the select-and-print remedy. A focused command whose count ShipLoop
+cannot read passes only with `ids` that all appear; a regression command without
+`ids` or `min_tests` may pass uncounted.
+
+### Floors and their known limits
+
+`min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. After the
+`test` stage, `verify` may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
+since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
+because the plan changed is a plan change: report `revise` with the reason, and the redone step plan starts the count again.
+Every inner stage's `revise` needs its stopped Until Loop receipt; `test` also accepts `revise` once its runs used the 11 refused
+runs or its latest attempt could not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
+rerun commands another stage recorded and have no `revise` to lower a floor, so they are not held to one; a run whose count
+ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
+to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
+needs a fixed count to be held to a floor; and the base run sees only tracked files and the dependency directories it links in
+(`node_modules`, `.venv`, `venv`), and a command that names the checkout by an absolute path runs there, not on the base.
+A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
+an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
+regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
+output, because the project's default suite must pass without the host tool.
+
+### Stages not applicable to an item
+
+When the accepted step plan records no
+test command (`test_commands_na`) and every declared path is documentation,
+configuration or navigation metadata in the package catalog
+(`references/path-classes.json`; a path no rule matches counts as code), ShipLoop
+records `test` as not applicable to that item instead of issuing it: it keeps a
+history row and a result file. `implement`'s `done` is then refused if the item's
+real diff touches code or any path outside `paths`, so the step plan is revised
+and the stage runs. `document` is recorded as not applicable when the item's
+real diff since its base touches no code or test path (or no file). Anything
+short of that proof issues the stage.
+
+### Reruns after the test stage
+
+`verify` reruns the test commands too: on `done` ShipLoop runs every recorded
+command and refuses unless each passes. The outer `system-test` and
+`release-verify` rerun their own recorded commands the same way, from
+`system-test-author` and `release-plan`. There is no test loop at those stages;
+the packet lists the commands. At
+`release-verify` of an isolated run the commands run in a clean copy of the result
+the workspace return delivered (made fresh from the return receipt into
+`consumer-check` under the workspace root, never in your checkout); with no
+completed return yet they run in the work area, and the test record (`observed`)
+and the handoff say so.
+
+### Runs that reached no verdict
+
+A command that times out, cannot start, or is skipped because the invocation's
+budget ran out reached no verdict about the product. It still refuses the stage,
+because nothing is accepted on unrun tests, but the attempt is recorded
+`could-not-run` and does not spend one of the 11. A timeout is not a diagnosis:
+it can mean a deadlock, a broken test, a suite too slow for the budget, or an
+external dependency. Because those attempts never reach the 11, the routes out
+are explicit: a hang in this item's own code, test or fixture is yours to fix
+here and is not a blocker; if the recorded command is itself wrong or too slow
+to fit the run's budget (a skipped command is that case: the same ones are
+skipped every time), report the stage's remedy instead of retrying it, and
+ShipLoop accepts it on its own record of the attempt without a new loop packet;
+report `blocked` only for what the user, an access grant or an outside
+dependency must supply.
+
+### Release entry and release-check
+
+A done `release-plan` records `consumer_entry`: how a person reaches the result
+and the repository files that create that entry. ShipLoop refuses the release plan
+without one or when those files do not exist, so a component with no navigation
+entry is caught before release rather than at `release-verify`. `release-check`
+runs the dry-run deploy and each post-release confirm command once, recording
+their "not there yet" output before the real deploy.
 
 ## Test cases
 
@@ -165,8 +253,7 @@ rationale and evidence that it covers the criterion; do not manufacture a
 no-op edit. New observations can refine stimuli or assertions, but do not
 silently rewrite accepted behavior.
 
-Run current required checks at `test-green`, `regression`, `static-checks` and
-`verify`; preserve failures and explain test changes. Include documentation/example checks where applicable. A
+Run current required checks at `test` and `verify`; preserve failures and explain test changes. Include documentation/example checks where applicable. A
 test correction records its reason, the before/after oracle, an independent
 requirement/contract source, and coverage retained or added. Do not change
 expected outcomes or remove assertions merely to match a bug. A requirement
@@ -421,31 +508,37 @@ and research do not create product files. Plan documentation outputs and checks 
 
 ## Iteration documentation and reuse
 
-`document` records the documentation disposition for the current item, and
-`skill-assess` and `skill-validate` record the reusable-skill decision and its
-checks. An assessment is required; needless edits or skill creation are not. When
-the step plan finds no repo-local skill to select, create or change, it records
-`skill_na` with the no-fit reason and the index inspected, and ShipLoop records both
-stages as not applicable instead of issuing them; otherwise both are issued.
-Update or explicitly assess relevant README and interface documentation before
-actual verification, and complete `skill-validate` when a skill is selected.
+`document` records the documentation disposition for the current item; it is
+issued only when the item's diff touches a code or test path. `carry-forward`
+records the reusable-skill decision (`none`, `reuse`, `update` or `create`) with
+its reason and repeat evidence, and runs a created or updated skill once on the
+run's real procedure. A decision is required; needless edits or skill creation
+are not. Each step's helper `skills` are chosen at `step-plan`, and `implement`
+reports whether each was used. Update or explicitly assess relevant README and
+interface documentation before `verify`.
 
 Read the actual code/test diff, accepted step plan and relevant repo docs.
 Prefer colocated concise contracts/comments for non-obvious behavior;
-incrementally update affected README sections and existing design/architecture/
-environment notes, or give a concrete unchanged reason. Always assess the repo
-README (record absence and decide whether this step needs one). Use AGENTS.md for
+incrementally update affected README sections, existing design and environment
+notes, and `docs/shiploop/architecture.md` (the stack, structure and `AD-<n>`
+decisions this step changed), or give a concrete unchanged reason. Always assess
+the repo README (record absence and decide whether this step needs one). Use AGENTS.md for
 short stable project navigation/conventions when useful, not run state, secrets,
 raw observations or copied manuals. Link detailed durable knowledge once from
 the existing appropriate index instead of duplicating it.
 
 ### Reusable product skills
 
-Describe the disposition in `summary` and link its evidence in `evidence_refs`,
-alongside the packet's `outcome`. ShipLoop preserves those ordinary references;
-it does not validate skill frontmatter,
-index links, meaningful execution or compatibility through a skill-specific
-receipt. Those remain host review and verification obligations.
+Two stages own skill decisions. `step-plan` lists each step's helper `skills`
+(`[{"name", "why", "locator"}]`, an existing locator, or an empty list), which
+the implement packet prints; `implement` reports whether each was used.
+`carry-forward` records the reusable-skill decision in its result's `skill`
+(`none`, `reuse`, `update` or `create`, with its reason and repeat evidence; see
+the [carry-forward contract](carry-forward.md)). For `update` and `create`
+ShipLoop checks only that the named `SKILL.md` exists with `name` and
+`description` frontmatter and that repeat evidence is listed, then commits the
+skill. It does not validate index links, meaningful execution or compatibility;
+those remain host review and verification obligations.
 
 During `discovery`, read the existing repo skill index or relevant README/AGENTS
 links and inspect plausible skills before proposing new implementation. A missing
@@ -455,12 +548,13 @@ have created or evolved a skill since the plan was written. Record fit or no fit
 and revalidate any earlier selection against this item's requirements. Discovery
 inspects skill packages without editing them and records findings under the
 existing project-knowledge notes/index policy. Create or evolve skill packages
-during authorized implementation or documentation work.
+at `carry-forward`, the stage that records the skill decision.
 
 Ask whether a reusable repo-local skill would materially help later steps or
 maintenance. Check existing skills first. Record a decision and rationale even
 when the answer is no. Create or update one only for a demonstrated reusable
-procedure or boundary, not a narrow transcript of this step or a speculative
+procedure or boundary (one that ran in two or more steps or items of this run,
+or that a pending item or `R-<n>` says will recur), not a narrow transcript of this step or a speculative
 framework. Reuse existing repo layout, or `skills/<name>/SKILL.md` when none is
 established. Keep it inside the product worktree; no global installation, new
 connector or privilege change follows from this decision.
@@ -512,8 +606,9 @@ AGENTS.md reference, stating when future planners should read it. Name the inten
 future consumer and required inputs; do not assume every host automatically
 discovers every local skill folder. Validate frontmatter and referenced paths,
 exercise changed helpers/examples when applicable, and record unrun limitations
-honestly. A file-existence check is not proof the procedure works. Keep new work
-inside the accepted step; broader missing outputs use existing replan/pause routes.
+honestly. A file-existence check is not proof the procedure works: run a
+created or updated skill once on this run's real procedure and keep its output
+in the run notes. Broader missing outputs use existing replan/pause routes.
 
 For changed skills, validate both the motivating example and an older supported
 use, plus meaningful default/override and failure cases. For a cold-context trial,
@@ -588,7 +683,7 @@ in the existing plan and review notes. The rules below and the
    Private helpers need a comment only when non-obvious. Delete comments that
    restate names or code. Document changed public/non-obvious contracts as
    specified in [Documentation](#documentation). The packets carry these rules
-   as the *Code craft* rubric, which the `static-checks` quality loop reviews.
+   as the *Code craft* rubric, which each implement step's Improve review and `verify` apply.
 5. **Evidence before polish.** Plan tests first; inspect code before refining
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.
@@ -629,13 +724,12 @@ second scheduler.
 | Current stage | Duty and existing record |
 | --- | --- |
 | `step-plan`, `test-spec` | Put the pre-code case-to-requirement matrix in the plan and test notes. Use the implementation constitution; only the accepted plan authorizes its scoped code edits. |
-| `baseline`, `test-author`, `test-red` | Observe the item's starting state, author executable tests from the independent cases, and record the expected RED failure without production edits. |
-| `implement` | Write the planned code; inspect the actual diff and learnings. |
-| `test-green`, `test-refine`, `regression` | Run the authored tests; refine cases from the code actually written with an independent basis; run the affected regression set. Required failed, blocked or unrun checks remain unfinished. |
-| `document`, `skill-assess`, `skill-validate` | Required docs/README and reusable-local-skill decision, with safe paths, reasons and intended readers. Make documentation/skill edits before fresh verification, not after it. |
-| `static-checks`, `verify` | Run required lint/tests and relevant examples/links; diagnose failures. A source edit after documentation needs its affected checks rerun. A test-oracle change needs independent justification. |
-| `integrate`, `integration-verify` | Assemble through authorized Git/worktree work and recheck the combined candidate. Assembly is not deployment. |
-| `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations and the future queue. The last carry-forward's Improve review covers every executed step together. |
+| `validate-existing` | Observe the item's starting state through the expectation checks; change no product file except a known small fix to a broken works expectation. |
+| `implement` | Write the planned code one step at a time; inspect the actual diff and learnings. Write no tests here. |
+| `test` | Author executable tests from the independent cases; ShipLoop's base run requires each new test to fail without the item's change, then every recorded command must pass. Refine cases from the code actually written only with an independent basis. Required failed, blocked or unrun checks remain unfinished. |
+| `document` | Required docs/README, with safe paths, reasons and intended readers. Make documentation edits before fresh verification, not after it. |
+| `verify` | Run required lint/tests and relevant examples/links; trace changed entry points; review the whole diff; diagnose failures. A source edit after documentation needs its affected checks rerun. A test-oracle change needs independent justification. ShipLoop commits the item on accept; that commit is not deployment. |
+| `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations, the future queue and the skill decision. The last carry-forward's Improve review covers every executed step together. |
 
 Keep case IDs, independent sources, environment, observed outcomes and evidence
 references compact in the result summary and its linked notes. Results are

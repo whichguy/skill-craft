@@ -262,6 +262,10 @@ def ensure(root: Path) -> None:
         root = checked_root(root)
         if os.path.lexists(root / DISABLED):
             return
+        # A done or halted run has nothing left to observe, and printing its terminal packet is a read: starting an
+        # observer there wrote .progress.lock and refreshed context-index.md (shiploop-cross-run, terminal recovery).
+        if store.read_record(root / "state.md").get("status") in ("done", "halted"):
+            return
         if not start(root):
             print("ShipLoop progress observer unavailable; use view --start to retry.", file=sys.stderr)
     except (OSError, ValueError, store.StorageError) as exc:

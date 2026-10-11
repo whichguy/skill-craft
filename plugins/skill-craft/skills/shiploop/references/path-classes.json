@@ -1,6 +1,6 @@
 {
   "schema": "shiploop-path-classes/v1",
-  "about": "Package-owned path classes. ShipLoop leaves an item's test stages out only when every path it declares and changes is in a non-behavioural class; a path matching no rule counts as code. First matching class wins, in this order. skill_surface is not a class: it is read only by the skill-stage proof (an item whose step plan records skill_na), and no path is classified by it.",
+  "about": "Package-owned path classes. ShipLoop leaves an item's test stage out only when its step plan records no test command and every path it declares is in a non-behavioural class, and its document stage out only when the item's real diff touches no path outside those classes (item_scope.behavioural). A path matching no rule counts as code. First matching class wins, in this order.",
   "order": ["test", "metadata-nav", "docs", "config"],
   "non_behavioural": ["metadata-nav", "docs", "config"],
   "classes": {
@@ -20,17 +20,6 @@
     ],
     "config": [
       ".github/**", "**/.gitignore", "**/.gitattributes", "**/.editorconfig", ".vscode/**", "**/.forceignore"
-    ]
-  },
-  "skill_surface": {
-    "declared": [
-      "**/SKILL.md", "**/skills/**", "**/agents/**",
-      ".claude/**", ".agents/**", ".codex/**", ".cursor/**", ".grok/**", ".opencode/**",
-      "**/AGENTS.md", "**/CLAUDE.md", "**/GEMINI.md", "**/.mcp.json"
-    ],
-    "observed": [
-      "**/SKILL.md", "**/skills/**", "**/agents/**",
-      ".claude/**", ".agents/**", ".codex/**", ".cursor/**", ".grok/**", ".opencode/**"
     ]
   }
 }

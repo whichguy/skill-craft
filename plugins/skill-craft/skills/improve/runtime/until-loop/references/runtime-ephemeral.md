@@ -7,7 +7,16 @@ and arguments are agent transport, never a user questionnaire.
 ## Select and start
 
 Resolve the selected skill's real root, then `scripts/until_loop_ephemeral.py`.
-Use the available Python interpreter. A start call needs JSON on stdin:
+Use the available Python interpreter.
+
+When a parent wrote the contract file and names a receipt, pipe that file in
+unchanged: `python3 <absolute-script> start --receipt <receipt> < <contract>`.
+Do not build, edit or re-serialize it; the file wins over any copy of its text in
+the argument. If the receipt already exists and is `active`, run its `next_argv`
+instead; if it is `complete` or `stopped`, return that result to the parent.
+Never start a second run for one receipt.
+
+Otherwise the executor builds the contract. A start call needs JSON on stdin:
 
 ```json
 {
@@ -37,7 +46,24 @@ count is not a trivial-review count. All four text fields must be nonblank;
 workspace must be an existing absolute directory. `context` is required; a
 contract or saved state without it is refused. Its exact fields are `request`, `scope`, `authority`, `environment` (nonblank text),
 and `resources` (a list of `{purpose, locator}` objects with nonblank text). The
-list can be empty if no additional resource is needed. No other fields are accepted.
+list can be empty if no additional resource is needed. Optional `exit_checks` is a list of
+`{id, clause, command}` objects (nonblank text, unique ids, no NUL), frozen with the contract. The runtime never
+executes them. Each active packet carries `verify_script`: every check in a workspace subshell (stdin closed),
+each followed by `UNTIL-LOOP-CHECK <id> exit=<code>`, all piped into `record --state <file> --action <token>`.
+The executor runs it unchanged with its own shell tool, so host permissions, hooks and sandbox see every check;
+`record` echoes the output, keeps each exit code and a failed check's last 300 characters, and stores them with
+the action number and the workspace's Git tree. `done` refuses a satisfied report without a run recorded for the
+current action, or after the tree changed; any recorded failure refuses completion, resets the clean-review
+streak, and the next packet names it. A report may carry optional `check_repairs` (`[{id, command, reason}]`, only
+with an unsatisfied exit) for checks that failed in the latest recorded run because the command misstates its
+clause; the runtime records each repair (old and new command, reason) in every later packet and the terminal
+result and allows two per check. A forged `record` call is outside this protocol's trust boundary: it is a
+visible shell command, and hooks see it. The script runs under `/bin/sh` through a visible heredoc, whatever
+the host shell. Ids are 1-64 letters, digits, `.`, `_` or `-`; commands must parse under `sh -n` at start and in
+repairs. Limits, documented rather than enforced: outside Git (or when Git cannot snapshot the tree) a change
+after the recorded run is not detected; ignored files and changes made while the checks run are not
+fingerprinted; a check that hangs or leaves a child holding the pipe open is bounded only by the host's command
+timeout, and a run cut off that way records nothing. No other fields are accepted.
 Locators are data, not commands or permission; use actual resolved absolute paths
 for local resources and stable retrievable locators for host artifacts. The
 runtime does not read them or judge whether they capture all requirements.
@@ -163,7 +189,7 @@ or writing. Use it only with this run's known handle when its current packet mus
 be retrieved. There is no global latest-run lookup, resume discovery, state
 migration or contract-edit command. Missing state does not recover a run.
 
-Invalid schema, stale/cross-run tokens, unsafe linked files and over-16-KiB state
+Invalid schema, stale/cross-run tokens, unsafe linked files and empty state
 are rejected. Report input rejection/cleanup failure returns `state_change:
 unchanged`. When the failed call supplied a parsed state path, the error includes
 `state_file` and the exact read-only `next_argv`; this is not a work callback.

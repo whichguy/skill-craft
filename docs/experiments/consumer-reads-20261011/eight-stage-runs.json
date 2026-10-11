@@ -1,0 +1,644 @@
+{
+ "families": [
+  "feature spec.md",
+  "feature plan.md",
+  "feature test-spec.md",
+  "feature system-tests.md",
+  "feature release-plan.md",
+  "feature outcome.md",
+  "features/README.md",
+  "spec.md",
+  "environment.md",
+  "architecture.md",
+  "test-strategy.md",
+  "home README.md",
+  "SHIPLOOP.md",
+  "home dir",
+  "run state.md",
+  "run results/*.md",
+  "run packets/*.md",
+  "run context-index.md",
+  "run reference.md",
+  "run notes/",
+  "progress/report html"
+ ],
+ "runs": [
+  {
+   "host": "claude",
+   "reads": {
+    "architecture.md": {
+     "plan": 1
+    },
+    "environment.md": {
+     "document": 1,
+     "release-plan": 1
+    },
+    "feature outcome.md": {
+     "handoff": 1
+    },
+    "feature plan.md": {
+     "plan": 1,
+     "step-plan": 2
+    },
+    "feature release-plan.md": {
+     "operations": 1,
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature system-tests.md": {
+     "system-test": 1,
+     "system-test-author": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 3
+    },
+    "features/README.md": {
+     "spec": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "spec": 1
+    },
+    "home dir": {
+     "spec": 1
+    },
+    "run context-index.md": {
+     "discovery": 1,
+     "intake": 1,
+     "research": 1
+    },
+    "run packets/*.md": {
+     "done": 1,
+     "intake": 1,
+     "plan": 2,
+     "release": 1,
+     "spec": 5,
+     "step-plan": 2
+    },
+    "spec.md": {
+     "document": 1,
+     "plan": 1,
+     "spec": 2,
+     "test-strategy": 2
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "step-plan": 1,
+     "test-strategy": 1
+    }
+   },
+   "run": "hello-8stage-13d278dd",
+   "tool_calls": 87,
+   "writes": {
+    "architecture.md": {
+     "plan": 1
+    },
+    "environment.md": {
+     "prepare": 1,
+     "release-plan": 1,
+     "release-verify": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 2
+    },
+    "features/README.md": {
+     "spec": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "prepare": 1,
+     "release-verify": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "carry-forward": 1,
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "architecture.md": {
+     "plan": 1
+    },
+    "environment.md": {
+     "release-verify": 1
+    },
+    "feature plan.md": {
+     "plan": 1,
+     "step-plan": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "carry-forward": 1,
+     "spec": 3
+    },
+    "feature system-tests.md": {
+     "product-acceptance": 1,
+     "release-plan": 1,
+     "system-test-author": 2
+    },
+    "feature test-spec.md": {
+     "test-spec": 7
+    },
+    "home README.md": {
+     "release-verify": 1,
+     "spec": 1
+    },
+    "home dir": {
+     "handoff": 1
+    },
+    "run packets/*.md": {
+     "discovery": 1,
+     "intake": 2,
+     "research": 1
+    },
+    "spec.md": {
+     "plan": 1,
+     "spec": 5,
+     "test-strategy": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 2
+    }
+   },
+   "run": "checkers-8stage-88d412e9",
+   "tool_calls": 114,
+   "writes": {
+    "architecture.md": {
+     "carry-forward": 1,
+     "plan": 1
+    },
+    "environment.md": {
+     "carry-forward": 1,
+     "prepare": 1
+    },
+    "feature outcome.md": {
+     "release-verify": 1
+    },
+    "feature plan.md": {
+     "carry-forward": 1,
+     "plan": 1,
+     "step-plan": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature system-tests.md": {
+     "system-test-author": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "carry-forward": 1,
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "carry-forward": 1,
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "architecture.md": {
+     "carry-forward": 1,
+     "implement": 1,
+     "plan": 1
+    },
+    "environment.md": {
+     "carry-forward": 1,
+     "release-plan": 2,
+     "release-verify": 1
+    },
+    "feature plan.md": {
+     "plan": 1,
+     "step-plan": 1
+    },
+    "feature release-plan.md": {
+     "release": 1,
+     "release-check": 1,
+     "release-plan": 2
+    },
+    "feature spec.md": {
+     "spec": 2
+    },
+    "feature system-tests.md": {
+     "system-test-author": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "release-verify": 1,
+     "spec": 1
+    },
+    "home dir": {
+     "carry-forward": 1,
+     "handoff": 1
+    },
+    "run packets/*.md": {
+     "intake": 2,
+     "spec": 1
+    },
+    "spec.md": {
+     "plan": 2,
+     "spec": 6,
+     "test-strategy": 1
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "step-plan": 1,
+     "test-strategy": 1
+    }
+   },
+   "run": "checkers-sections-1ac83089",
+   "tool_calls": 110,
+   "writes": {
+    "architecture.md": {
+     "plan": 1
+    },
+    "environment.md": {
+     "prepare": 1
+    },
+    "feature outcome.md": {
+     "release-verify": 1
+    },
+    "feature plan.md": {
+     "plan": 1,
+     "step-plan": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature system-tests.md": {
+     "system-test-author": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "architecture.md": {
+     "carry-forward": 3,
+     "plan": 1
+    },
+    "environment.md": {
+     "carry-forward": 1,
+     "document": 1,
+     "release-plan": 2,
+     "release-verify": 1
+    },
+    "feature outcome.md": {
+     "handoff": 1
+    },
+    "feature plan.md": {
+     "carry-forward": 1,
+     "plan": 2,
+     "step-plan": 3
+    },
+    "feature release-plan.md": {
+     "operations": 1,
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature system-tests.md": {
+     "system-test": 1,
+     "system-test-author": 2
+    },
+    "feature test-spec.md": {
+     "carry-forward": 1,
+     "test-spec": 1,
+     "verify": 1
+    },
+    "home README.md": {
+     "carry-forward": 1,
+     "plan": 1,
+     "release-verify": 1,
+     "spec": 2
+    },
+    "home dir": {
+     "carry-forward": 2,
+     "implement": 1,
+     "plan": 1,
+     "release": 1,
+     "spec": 3,
+     "test-strategy": 1,
+     "verify": 1
+    },
+    "run notes/": {
+     "implement": 1
+    },
+    "run packets/*.md": {
+     "carry-forward": 2,
+     "discovery": 1,
+     "document": 1,
+     "handoff": 1,
+     "implement": 1,
+     "intake": 2,
+     "operations": 1,
+     "plan": 2,
+     "product-acceptance": 1,
+     "release": 1,
+     "release-check": 1,
+     "release-plan": 1,
+     "release-verify": 1,
+     "research": 1,
+     "spec": 6,
+     "step-plan": 2,
+     "system-test": 1,
+     "system-test-author": 2,
+     "test": 1,
+     "test-spec": 3,
+     "verify": 1
+    },
+    "run results/*.md": {
+     "plan": 1,
+     "product-acceptance": 1,
+     "step-plan": 1
+    },
+    "spec.md": {
+     "carry-forward": 2,
+     "implement": 1,
+     "plan": 2,
+     "spec": 2,
+     "test-strategy": 2
+    },
+    "test-strategy.md": {
+     "carry-forward": 2,
+     "plan": 1,
+     "test-strategy": 2
+    }
+   },
+   "run": "hello-sections-1ac83089",
+   "tool_calls": 111,
+   "writes": {
+    "architecture.md": {
+     "plan": 1
+    },
+    "environment.md": {
+     "prepare": 1
+    },
+    "feature plan.md": {
+     "step-plan": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "spec": 1
+    },
+    "run notes/": {
+     "carry-forward": 1,
+     "document": 1,
+     "implement": 1,
+     "verify": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "architecture.md": {
+     "plan": 2
+    },
+    "environment.md": {
+     "prepare": 1,
+     "release-plan": 2,
+     "release-verify": 1,
+     "test-spec": 2
+    },
+    "feature plan.md": {
+     "plan": 3,
+     "step-plan": 2,
+     "test-spec": 2
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature system-tests.md": {
+     "system-test": 1,
+     "system-test-author": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 4
+    },
+    "home README.md": {
+     "plan": 1,
+     "release-verify": 1,
+     "spec": 1
+    },
+    "home dir": {
+     "carry-forward": 2,
+     "document": 1,
+     "handoff": 1,
+     "prepare": 1,
+     "release-plan": 1,
+     "release-verify": 1,
+     "spec": 2,
+     "test-spec": 3,
+     "test-strategy": 3
+    },
+    "run packets/*.md": {
+     "discovery": 1,
+     "intake": 2,
+     "research": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "document": 1,
+     "plan": 2,
+     "spec": 2,
+     "test-strategy": 2
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "step-plan": 3,
+     "test-strategy": 8
+    }
+   },
+   "run": "hello-sections-r2-1ac83089",
+   "tool_calls": 121,
+   "writes": {
+    "spec.md": {
+     "test-strategy": 2
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "architecture.md": {
+     "plan": 1
+    },
+    "environment.md": {
+     "prepare": 1,
+     "release-verify": 1,
+     "step-plan": 4
+    },
+    "feature plan.md": {
+     "plan": 1,
+     "step-plan": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "spec": 2
+    },
+    "feature system-tests.md": {
+     "system-test-author": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 2
+    },
+    "home README.md": {
+     "release-verify": 1,
+     "spec": 1
+    },
+    "home dir": {
+     "carry-forward": 1,
+     "document": 1,
+     "plan": 1,
+     "spec": 1
+    },
+    "run packets/*.md": {
+     "discovery": 1,
+     "intake": 2,
+     "research": 1,
+     "spec": 4,
+     "step-plan": 2
+    },
+    "run results/*.md": {
+     "step-plan": 1
+    },
+    "spec.md": {
+     "document": 1,
+     "plan": 1,
+     "spec": 4,
+     "test-strategy": 1
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "test-strategy": 1
+    }
+   },
+   "run": "hello-sections-r3-1ac83089",
+   "tool_calls": 114,
+   "writes": {
+    "architecture.md": {
+     "carry-forward": 1
+    },
+    "environment.md": {
+     "carry-forward": 1,
+     "release-plan": 1,
+     "release-verify": 1
+    },
+    "home README.md": {
+     "release-verify": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "spec": 1,
+     "test-strategy": 1
+    },
+    "test-strategy.md": {
+     "step-plan": 1,
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "environment.md": {
+     "plan": 1,
+     "prepare": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 1
+    },
+    "home dir": {
+     "carry-forward": 1,
+     "handoff": 1,
+     "spec": 1
+    },
+    "run packets/*.md": {
+     "intake": 1,
+     "release-check": 1,
+     "spec": 3
+    },
+    "spec.md": {
+     "spec": 2
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "test-strategy": 1
+    }
+   },
+   "run": "hello-sections-r4-1ac83089",
+   "tool_calls": 69,
+   "writes": {
+    "environment.md": {
+     "release-plan": 1
+    },
+    "feature plan.md": {
+     "step-plan": 1
+    },
+    "home README.md": {
+     "release-verify": 1
+    },
+    "run notes/": {
+     "implement": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "carry-forward": 1,
+     "test-strategy": 1
+    }
+   }
+  }
+ ]
+}

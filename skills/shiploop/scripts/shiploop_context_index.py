@@ -8,7 +8,9 @@ queue with each item's accepted results, the outer loop, and superseded
 results.  It stores pointers and short summaries, never a second copy of state.
 
 ``STAGE_READS`` is the script-owned list of index entries each stage must read
-before acting; packets print it, resolved to result files, as "Read first".
+before acting; the packet's References block prints them, with each earlier
+stage's other durable products, as "Results this stage builds on"
+(``shiploop_navigator._builds_on_lines``).
 """
 
 from __future__ import annotations
@@ -147,10 +149,8 @@ def pass_log_path(root: Path, action_id: str) -> Path:
 # context index is regenerated only at save.  Neither can say whether the host has created the log by then,
 # so both carry this one conditional rule and never read the log.
 PASS_LOG_RULE = (
-    "optional, never a completion gate; ShipLoop does not create it. Create it when the pass starts and "
-    "append after each pass what you checked and what is left. After a reset, open it first if it exists; "
-    "if it does not, nothing was logged, and your scratch files and the worktree changes show how far this "
-    "stage got")
+    "optional, never a completion gate: create it and append what each pass checked and what is left; after a "
+    "reset, open it first if it exists")
 
 
 def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
@@ -195,23 +195,6 @@ def _current_action(state: Mapping[str, Any]) -> dict[str, Any] | None:
     if not isinstance(state.get("action"), Mapping):
         return None
     return {**state["action"], "stage": state["stage"], "workitem": None}
-
-
-def read_first(state: Mapping[str, Any], root: Path, stage: str,
-               workitem: str | None) -> list[str]:
-    """Resolve STAGE_READS for one stage to result files ("not accepted yet" when absent)."""
-    root = Path(root)
-    current = planning_revision.current_actions(state)
-    lines = []
-    for name in STAGE_READS.get(stage, ()):
-        if name.startswith("item:"):
-            key, label = (workitem, name[5:]), f"{workitem} {name[5:]}"
-        else:
-            key, label = (None, name), name
-        action = current.get(key)
-        lines.append(f"- {label}: " + (f"{_result_path(root, action)}" if action
-                                       else "not accepted yet; do not guess its content"))
-    return lines
 
 
 def stages_named(names: Iterable[str]) -> set[str]:

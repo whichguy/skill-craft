@@ -2232,3 +2232,18 @@ on unpushed branches (for example docs/experiments/run-review-r22c-20261009/) wi
 note was written after its fix. Draft v12 carries all of it; the page was read in the built-in browser through a stub database at desktop
 width and at 375 px (first pass; the later cards were read as text and by screenshot at desktop width only).
 
+
+**Release and packet review, 2026-10-10 (`897733cb`; review in `docs/shiploop-packet-review-2026-10-10.md`).**
+*Release.* R22, R23 (a to f), the de-duplication, the delivered card, links, in-place stage cards and the per-run static copy
+(`run-review.html` beside `review-export.json`) are on `origin/main` as `897733cb` (skill-craft 1.26.1, shiploop-run-review 0.1.3),
+pushed by `release-push.py` with four checks (release-boundary, marketplace-package, test-groups, Run Review suite 634 OK). The
+installed Claude plugin refreshed 1.26.0 to 1.26.1; Codex and Grok marketplaces refreshed. The draft artifact is now the page of
+record: released template, 14 re-exported runs plus the real `checkers-1` and `battleship-1` (45 packets each), my synthetic run
+removed; the older page `BFc6JGjLhENVJ9shRAA2iA` (config and prompt v1 only) is left as is. Main CI was not readable from here.
+*Packet review (firm for counts, interim for fixes).* Six read-only reviewers, one per stage group, on checkers-1, battleship-1,
+s6-after-spec and older runs. Finding: packets are sufficient to pass and thin in about ten places; 13 defects match an observed
+refusal or a SPEC breach (S-4/S-5 commits, S-14 blocked, S-3 Improve deploy), listed in rank order in the review. The model read 3
+of 46 packets whole in checkers-1 and worked from the head plus one slice, so obligations outside the head and Done-when go unread.
+The plan packet (55 KB in 1.22.0 and 1.26.0) has about 17 KB unique; a 11 to 12 KB form with a checklist of eight items and
+`reference#section` locators is proposed. Nothing is implemented; the owner decides which fixes ship. Evidence:
+`docs/experiments/packet-review-20261010/`.

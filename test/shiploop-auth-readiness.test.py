@@ -149,67 +149,78 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             + ACCESS_POLICY_ANCHOR
         )
 
-    def _assert_active_access_boundary(self, packet: str) -> None:
-        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(packet.split()))
+    def _assert_active_access_boundary(self, packet: str, run_dir: Path) -> None:
+        # A producer packet prints the short STAGE_RULES bullet; the full boundary text (probes, sanitized evidence,
+        # tool-managed authentication) is kept whole in the run reference file the packet points to (2026-10-11
+        # dedupe: COMMON left the packet, reference.md#rules has it).
+        flat = " ".join(packet.split())
+        self.assertIn("Never read, decode, keep or report local authentication, session or credential-store "
+                      "contents.", flat)
+        self.assertIn("reference#rules", flat)
+        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(self._reference(run_dir).split()))
+
+    @staticmethod
+    def _reference(run_dir: Path) -> str:
+        reference = run_dir / "reference.md"
+        assert reference.is_file(), reference
+        return reference.read_text(encoding="utf-8")
 
     def _assert_access_policy(self, packet: str, run_dir: Path) -> None:
-        expected = self._policy_locator()
-        self.assertEqual(packet.count(expected), 1, packet)
-        self.assertEqual(packet.count(ACCESS_POLICY_LABEL), 1, packet)
-        self.assertNotIn(
-            ACCESS_POLICY_LABEL
-            + str((SOURCE_PACKAGE / "references" / "research-loop.md").resolve()),
-            packet,
-        )
-        # Access and authority are separate decisions, available after a cold
-        # start from the selected package in both INNER and OUTER packets.
+        # Since the 2026-10-11 dedupe a packet prints a policy locator only when its stage text names that policy;
+        # every one stays reachable through the run reference file's #policies section, which the packet's
+        # "Every other policy and guide" line points to.  Either way the path comes from the selected package.
+        reference = self._reference(run_dir)
+        policies = reference.split("{#policies}", 1)[1].split("{#workspace}", 1)[0]
         authority_policy = (self.package / "references" / "delivery-authority.md").resolve()
         self.assertTrue(authority_policy.is_file())
-        self.assertEqual(
-            sum(line.startswith("Delivery-authority policy: ") for line in packet.splitlines()),
-            1,
-        )
-        self.assertIn("Delivery-authority policy: " + str(authority_policy), packet)
-        self.assertNotIn(
-            "Delivery-authority policy: "
-            + str(SOURCE_PACKAGE / "references" / "delivery-authority.md"),
-            packet,
-        )
-        # The environment-lifecycle policy also comes from the selected
-        # package, next to this run's own host-authored lifecycle note.
-        self.assertEqual(
-            packet.count(LIFECYCLE_POLICY_LABEL + str(self.lifecycle_policy)), 1, packet
-        )
-        self.assertEqual(packet.count(LIFECYCLE_POLICY_LABEL), 1, packet)
-        self.assertNotIn(
-            LIFECYCLE_POLICY_LABEL
-            + str((SOURCE_PACKAGE / "references" / "environment-lifecycle.md").resolve()),
-            packet,
-        )
+        for label, locator, source in (
+            (ACCESS_POLICY_LABEL, self._policy_locator(),
+             ACCESS_POLICY_LABEL + str((SOURCE_PACKAGE / "references" / "research-loop.md").resolve())),
+            ("Delivery-authority policy: ", "Delivery-authority policy: " + str(authority_policy),
+             "Delivery-authority policy: " + str(SOURCE_PACKAGE / "references" / "delivery-authority.md")),
+            (LIFECYCLE_POLICY_LABEL, LIFECYCLE_POLICY_LABEL + str(self.lifecycle_policy),
+             LIFECYCLE_POLICY_LABEL + str((SOURCE_PACKAGE / "references" / "environment-lifecycle.md").resolve())),
+        ):
+            with self.subTest(policy=label):
+                self.assertEqual(policies.count("- " + locator), 1, policies)
+                self.assertEqual(packet.count(label), packet.count(locator))  # printed in full or not at all
+                self.assertLessEqual(packet.count(locator), 1, packet)
+                self.assertNotIn(source, packet)
+                self.assertNotIn(source, policies)
+        # The environment-lifecycle note is host-authored and belongs to this run.
         note = LIFECYCLE_NOTE_LABEL + str((run_dir / LIFECYCLE_NOTE).resolve())
-        self.assertEqual(packet.count(note), 1, packet)
-        self.assertEqual(packet.count(LIFECYCLE_NOTE_LABEL), 1, packet)
+        self.assertEqual(policies.count("- " + note), 1, policies)
+        self.assertEqual(packet.count(LIFECYCLE_NOTE_LABEL), packet.count(note))
+        self.assertLessEqual(packet.count(note), 1, packet)
+        # The packet points at the reference file for everything it does not print.
+        self.assertIn("Every other policy and guide, and the long form of the rules: "
+                      + str(run_dir.resolve() / "reference.md") + " (#policies, #rules, #recovery).", packet)
 
     def _cold_packet(self, run_dir: Path) -> str:
         before = (run_dir / "state.md").read_bytes()
         packet = self._cli(run_dir, "next")
         self.assertEqual((run_dir / "state.md").read_bytes(), before)
-        self._assert_active_access_boundary(packet)
+        self._assert_active_access_boundary(packet, run_dir)
         self._assert_access_policy(packet, run_dir)
         return packet
 
     def _submit(self, run_dir: Path, packet: str, result: dict) -> tuple[str, Path, list[str]]:
         state = self._state(run_dir)
         action = self._current_action(state)
-        callback = Path(
-            packet.split("Write the structured result to: ", 1)[1].splitlines()[0]
+        # The one callback line carries both the command and the result file it reads (--result=); the separate
+        # "Write the structured result to:" and "Call this when done:" lines are gone (2026-10-11 dedupe).
+        callback_prefix = (
+            "Callback for this stage (run once after its work, with the result written to the file it names): "
         )
+        command = shlex.split(
+            packet.split(callback_prefix, 1)[1].splitlines()[0]
+        )
+        result_args = [arg for arg in command if arg.startswith("--result=")]
+        self.assertEqual(len(result_args), 1, command)
+        callback = Path(result_args[0].partition("=")[2])
         self.assertEqual(
             callback,
             run_dir.resolve() / "inbox" / f"{action['id']}.md",
-        )
-        command = shlex.split(
-            packet.split("Call this when done:\n", 1)[1].splitlines()[0]
         )
         self.assertEqual(command[0], "python3")
         self.assertEqual(Path(command[1]).resolve(), self.cli)

@@ -108,6 +108,7 @@ __all__ = [
     "assert_binding",
     "completed_receipt",
     "returned_before",
+    "return_kind",
     "completed_receipt_snapshot",
     "ROUTE_TEXT",
     "execute_return",
@@ -1375,7 +1376,7 @@ def _validate_plan(
             _fail(f"return plan cannot keep a protected runtime path: {path}")
         if knowledge_home.in_home(path) and disposition == "exclude" and not _matches_exclusion(
                 path, manifest["excluded"]):
-            _fail(f"return plan cannot exclude {path}: it is ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md), "
+            _fail(f"return plan cannot exclude {path}: it is ShipLoop's knowledge (docs/shiploop/), "
                   "which later runs inherit")
         rows.append(dict(item))
     undecided = [row["path"] for row in rows if row["disposition"] == "pending"]
@@ -2018,8 +2019,9 @@ def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]
     """Return ShipLoop's own knowledge commit after a verified return, by that return's route (plan P11).
 
     Runs only when a return was recorded and every path changed since its candidate
-    head is ShipLoop knowledge (docs/shiploop/, SHIPLOOP.md) with nothing else dirty
-    in the candidate; then it plans and executes the follow-up return, whose own
+    head is ShipLoop knowledge (docs/shiploop/) with nothing else dirty
+    in the candidate, or, when no path changed, every commit since that head is a
+    ShipLoop knowledge commit (the empty release-verify lessons commit); then it plans and executes the follow-up return, whose own
     checks refuse a moved source. Returns the new receipt, or None when it does not
     apply. A refusal (WorkspaceError) propagates; the caller leaves the return to the
     handoff guard. It never commits leftovers, retries or rolls back.
@@ -2037,8 +2039,15 @@ def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]
         "utf-8", "surrogateescape").split("\0") if name]
     dirty = [line[3:] for line in _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=all").decode(
         "utf-8", "surrogateescape").splitlines() if line and not _forbidden(line[3:])]
-    if not changed or dirty or not all(knowledge_home.in_home(path) for path in changed):
+    if dirty or not all(knowledge_home.in_home(path) for path in changed):
         return None
+    if not changed:
+        # An empty commit is returned only when it is ShipLoop's own knowledge record: release-verify's lessons commit
+        # changes no file when the home did not change (consumer contract X1), and the receipt would go stale without it.
+        subjects = _git_bytes(worktree, "log", "--format=%s", head + "..HEAD").decode("utf-8", "surrogateescape")
+        if not subjects.strip() or not all(knowledge_home.is_knowledge_subject(line)
+                                           for line in subjects.splitlines()):
+            return None
     # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that decision
     # (plan_return carries it); the only new paths are knowledge, which the plan keeps.
     plan = plan_return(root)
@@ -2147,6 +2156,22 @@ def returned_before(workspace_root: Path) -> bool:
     except WorkspaceError:
         return False
     return bool(receipt) and receipt.get("status") == "returned"
+
+
+def return_kind(workspace_root: Path) -> Optional[str]:
+    """The route of the newest recorded return (fast-forward-merge, working-tree-return, no-change-return); None before one.
+
+    Read-only and lock-free, like ``returned_before``, and a stale receipt still answers: it names the route the work
+    went by.  A follow-up return keeps only a fast-forward and a working-tree route (``_return_kind``); one that follows a
+    no-change return is worked out again, so read the kind before a follow-up if it is the earlier route that matters.  A
+    workspace or receipt that cannot be read is "no return recorded" here.
+    """
+    try:
+        receipt = _receipt(_resolved_directory(Path(workspace_root), label="workspace root"))
+    except WorkspaceError:
+        return None
+    kind = receipt.get("kind") if receipt and receipt.get("status") == "returned" else None
+    return kind if kind in _RETURN_KINDS else None
 
 
 def completed_receipt(workspace_root: Path, repo: Path) -> Optional[Dict[str, Any]]:

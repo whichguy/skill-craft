@@ -351,8 +351,9 @@ is the one reader of that.
   records. `declared` is the check the stage table declares (`script-run`, `review loop`, `model judgement`), read from the
   run's own `shiploop_stage_spec.py` through the exporter's `stage_catalog` and `effective_exit_check` (so
   `planning_review none` needs no special case). `needs` is the record kinds the stage's declared runs write
-  (`lint-gate` is a lint gate record, `test-loop`, `test-probe`, `test-red` and `test-rerun` are verify records,
-  `quality-terminal` is a quality record; none for a run with the `lint` option `off`) and `lacks` the ones the action has
+  (`lint-gate` is a lint gate record, `test-base`, `test-loop` and `test-rerun` are verify records, `loop-terminal` is
+  a loop receipt and `expectation-check` an expectation record; none for a run with the `lint` option `off`; amended
+  2026-10-11 for the 8-stage inner loop, see `fidelity.RUN_KIND`) and `lacks` the ones the action has
   none of; `declared_script_run_without_record` lists the done stages with a `lacks`, so a stage that declares two scripts
   and has one record is listed (none in the eleven saved Claude and Grok runs); a declared run the harness has no record kind for
   (`unmapped_runs`) is not judged and is named in `unmeasured["declared.runs"]`. The class comes from the records that
@@ -809,11 +810,11 @@ timeout, a command that could not be spawned, or one skipped when the invocation
 budget ran out). They refuse their stage without counting as product failures. A
 non-zero count means the run could not tell, because of an environment problem or a
 product hang; it does not say the product is wrong. It also counts `red`: the records in
-which a command ran red (a run whose own status is `red`). A test-red record, or the
-test-author probe, passes because red is what it accepts, so `passed` includes it ("10/10
-passed" on r1 Battleship holds 2 such records, and the report says "2 ran red"). What ran
-is counted and not what the record expected: the probe accepts red or passed, and one that
-ran green is a green pass.
+which a command ran red (a run whose own status is `red`). The test stage's base run (on
+the 17-stage loop before 2026-10-11, a test-red record or the test-author probe) passes
+because red is what it accepts, so `passed` includes it ("10/10 passed" on r1 Battleship
+holds 2 such records, and the report says "2 ran red"). What ran is counted and not what
+the record expected: a record that accepts red and ran green is a green pass.
 
 ### Reading per-stage figures
 
@@ -933,7 +934,7 @@ ran green is a green pass.
   is that as a percentage of the context window the result events report. `turns` still
   counts events, so the two differ (r1 Battleship: 120 calls, 206 stage turns). A call after
   the last accepted stage is in no row: the rows hold 119 of the 120 calls of r1 Battleship
-  and 104 of the 105 of r1 Checkers. A stage the script recorded itself (skill-assess, say)
+  and 104 of the 105 of r1 Checkers. A stage the script recorded itself (validate-existing when every expectation matched, say)
   has 0 calls and no peak. It is a record; no verdict reads it.
 - No output-token figure is built per stage, and none from Claude's events: a Claude
   message's output count is a streaming snapshot (it summed to about 1/17 of the session's own
@@ -1187,8 +1188,8 @@ share a suite directory, and `.../batch-sonnet/battleship` is also a prefix of `
 ## Step slices: one work item's inner loop
 
 A full run spends most of its time planning and releasing. A step slice exercises only one work item's inner loop:
-get-next-work-item, step-plan, through implement, integrate and carry-forward, including the last item's carry-forward
-Improve. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
+step-plan, test-spec, validate-existing, implement, test, document, verify and carry-forward, with the Improve child
+after each implement step and the last item's carry-forward Improve. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
 cost, and repeat that after each skill edit.
 
 There are three tiers, cheapest first.
@@ -1232,10 +1233,11 @@ Grok and Codex sessions that end before the slice is complete are resumed, up to
 | `assembled` | ShipLoop's product worktree changes every expected path against the seed, and changes product files, not only ShipLoop's own (`docs/shiploop/`, `.shiploop-improve/`) |
 | `checks` | every case check exits 0 in a clean copy of that candidate: tracked and untracked, not ignored, without run evidence |
 
-The candidate is graded **uncommitted** on purpose. The inner `integrate` stage assembles each item inside the
-execution checkout. The product is committed only at the final return (`workspace plan-return`, at release), and a
-slice does not reach release. The first live slice showed this: its fix was correct and uncommitted, and only
-knowledge files had been committed.
+The candidate is graded against the seed commit, committed or not. Each item is assembled inside the execution
+checkout; `verify` commits the files the step plan declares (with documentation and `docs/shiploop/`), and anything
+else is committed only at the final return (`workspace plan-return`, at release), which a slice does not reach.
+(Amended 2026-10-11 for the 8-stage inner loop: the first live slice, on the 17-stage loop, had its correct fix
+uncommitted because the inner `integrate` stage did not commit.)
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the

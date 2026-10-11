@@ -36,6 +36,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_store as store  # noqa: E402
+import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
@@ -876,18 +877,43 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
     def test_knowledge_committed_after_a_return_is_returned_by_the_same_route(self) -> None:
         root, worktree = self._returned_once("knowledge follow-up")
         (worktree / "docs" / "shiploop").mkdir(parents=True)
-        (worktree / "docs" / "shiploop" / "outcome.md").write_text("learned\n", encoding="utf-8")
+        (worktree / "docs" / "shiploop" / "environment.md").write_text("learned\n", encoding="utf-8")
         head = self._commit_all(worktree, "docs(shiploop): knowledge at release-verify")
         receipt = self._call(workspace.follow_up_knowledge_return, root)
         self.assertEqual(receipt["kind"], "fast-forward-merge")
         self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
-        self.assertEqual((self.repo / "docs" / "shiploop" / "outcome.md").read_text(encoding="utf-8"), "learned\n")
+        self.assertEqual((self.repo / "docs" / "shiploop" / "environment.md").read_text(encoding="utf-8"), "learned\n")
         self.assertIsNotNone(self._call(workspace.completed_receipt, root, self.repo))
         self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # nothing new
 
+    def test_an_empty_lessons_commit_is_returned_and_the_next_run_finds_it_on_the_source_branch(self) -> None:
+        """X1 (consumer contract, routes-audit B1): release-verify's lessons commit changes no file when the home did not
+        change; it must still reach the source branch, or the receipt goes stale and handoff is refused."""
+        root, worktree = self._returned_once("empty lessons commit")
+        subject = "docs(shiploop): record add-hello-abc123 knowledge at release-verify"
+        self.git("commit", "-q", "--allow-empty", "-m", subject, "-m", "Learned\nAn empty commit carries it.",
+                 cwd=worktree)
+        head = self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip()
+        self.assertIsNone(self._call(workspace.completed_receipt, root, self.repo))    # stale before the follow-up
+        receipt = self._call(workspace.follow_up_knowledge_return, root)
+        self.assertEqual(receipt["kind"], "fast-forward-merge")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
+        self.assertIsNotNone(self._call(workspace.completed_receipt, root, self.repo))  # current: no stale refusal
+        found = knowledge_home.last_lessons(self.repo)
+        self.assertEqual((found.commit, found.subject, found.body), (head, subject, "Learned\nAn empty commit carries it."))
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))       # nothing new
+
+    def test_an_empty_commit_that_is_not_shiploops_knowledge_is_left_for_review(self) -> None:
+        root, worktree = self._returned_once("empty foreign commit")
+        self.git("commit", "-q", "--allow-empty", "-m", "docs(shiploop): record x knowledge at release-verify",
+                 cwd=worktree)
+        self.git("commit", "-q", "--allow-empty", "-m", "chore: an empty commit of the model's own", cwd=worktree)
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))
+
     def test_knowledge_follow_up_skips_anything_but_knowledge(self) -> None:
         root, worktree = self._returned_once("knowledge with product")
-        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        (worktree / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (worktree / "docs" / "shiploop" / "environment.md").write_text("index\n", encoding="utf-8")
         self._commit_all(worktree, "index")
         (worktree / "app.txt").write_text("uncommitted product change\n", encoding="utf-8")
         self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # dirty product file
@@ -897,7 +923,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
 
     def test_knowledge_follow_up_refuses_a_moved_source(self) -> None:
         root, worktree = self._returned_once("knowledge drift")
-        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        (worktree / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (worktree / "docs" / "shiploop" / "environment.md").write_text("index\n", encoding="utf-8")
         self._commit_all(worktree, "index")
         (self.repo / "user-note.txt").write_text("the user kept working\n", encoding="utf-8")
         before = self.git("rev-parse", "HEAD").stdout
@@ -906,7 +933,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(self.git("rev-parse", "HEAD").stdout, before)
 
     def test_return_kind_is_the_route_of_the_recorded_return_and_a_follow_up_keeps_a_fast_forward(self) -> None:
-        """The handoff retire reads the route from the receipt (owner decision D3): the kind of the newest recorded return."""
+        """The completion report reads the route from the receipt (consumer contract X2): the kind of the newest return."""
         record = self._prepare(name="kind fast forward")
         root = self.base / "kind fast forward"
         worktree = self._worktree(record)
@@ -939,7 +966,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
 
     def test_return_kind_answers_only_for_a_receipt_that_is_returned_and_names_a_known_route(self) -> None:
         """Audit (batch 1012): a receipt is written with status "applying" and a kind while a return is mid-flight, and the
-        retire must not take an unfinished fast-forward for one that reached the branch; nothing pinned the status guard."""
+        report must not take an unfinished fast-forward for one that reached the branch; nothing pinned the status guard."""
         record = self._prepare(name="kind guard")
         root = self.base / "kind guard"
         (self._worktree(record) / "app.txt").write_text("product\n", encoding="utf-8")
@@ -959,7 +986,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
 
     def test_a_follow_up_after_a_no_change_return_recomputes_the_route_so_the_kind_is_read_before_it(self) -> None:
         """Only a fast-forward and a working-tree return are kept across a follow-up (``_return_kind``); a no-change return
-        is recomputed, so the retire, which reads the kind before the follow-up, keeps the file in that case on purpose."""
+        is recomputed, so a reader of the kind before the follow-up sees the earlier route."""
         record = self._prepare(name="kind no change")
         root = self.base / "kind no change"
         self._plan(root)
@@ -967,7 +994,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(self._execute(root)["kind"], "no-change-return")
         self.assertEqual(self._call(workspace.return_kind, root), "no-change-return")
         worktree = self._worktree(record)
-        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        (worktree / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (worktree / "docs" / "shiploop" / "environment.md").write_text("index\n", encoding="utf-8")
         self._commit_all(worktree, "index")
         self.assertEqual(self._call(workspace.return_kind, root), "no-change-return")    # read before the follow-up
         self.assertEqual(self._call(workspace.follow_up_knowledge_return, root)["kind"], "fast-forward-merge")
@@ -1094,6 +1122,29 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self._assert_source_unchanged(source_before)
         self.assertEqual((self.repo / "secret.dat").read_text(encoding="utf-8"), "source sentinel\n")
 
+    def test_a_return_plan_may_exclude_a_user_shiploop_md_and_keeps_the_home(self) -> None:
+        """Consumer contract 4c: SHIPLOOP.md is the host's file, not ShipLoop's knowledge.  The plan leaves it for review and
+        may exclude it; the home under docs/shiploop/ is kept by rule and cannot be excluded."""
+        root = self.base / "user index"
+        record = self._prepare(name="user index")
+        worktree = self._worktree(record)
+        (worktree / "SHIPLOOP.md").write_text("# The host's index\n", encoding="utf-8")
+        (worktree / "docs" / "shiploop").mkdir(parents=True)
+        (worktree / "docs" / "shiploop" / "spec.md").write_text("- R-1 one\n", encoding="utf-8")
+        self._commit_all(worktree, "index and home")
+        items = {item["path"]: item for item in self._plan(root)["paths"]}
+        self.assertEqual(items["SHIPLOOP.md"]["disposition"], "pending")
+        self.assertEqual(items["docs/shiploop/spec.md"]["disposition"], "keep")
+        self._resolve_plan(root, exclude={"SHIPLOOP.md", "docs/shiploop/spec.md"})
+        with self.assertRaisesRegex(workspace.WorkspaceError, r"cannot exclude docs/shiploop/spec.md: it is ShipLoop's "
+                                                              r"knowledge \(docs/shiploop/\)"):
+            self._call(workspace.execute_return, root)
+        self._plan(root)
+        self._resolve_plan(root, exclude={"SHIPLOOP.md"})                # accepted: the user may leave it out
+        self._execute(root)
+        self.assertNotIn("The host's index", (self.repo / "SHIPLOOP.md").read_text(encoding="utf-8"))   # left out
+        self.assertEqual((self.repo / "docs" / "shiploop" / "spec.md").read_text(encoding="utf-8"), "- R-1 one\n")
+
     def test_explicitly_omitted_output_never_returns_but_durable_documents_do(self) -> None:
         root = self.base / "filtered return"
         record = self._prepare(
@@ -1121,7 +1172,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         plan = self._plan(root)
         items = {item["path"]: item for item in plan["paths"]}
         self.assertEqual(items["reports/transient-output.html"]["disposition"], "exclude")
-        self.assertEqual(items["SHIPLOOP.md"]["disposition"], "keep")  # ShipLoop's knowledge index always returns
+        self.assertEqual(items["SHIPLOOP.md"]["disposition"], "pending")  # the host's index: reviewed like any product file
         self.assertEqual(items["environment.md"]["disposition"], "pending")
         self.assertEqual(items["docs/requirements.md"]["disposition"], "pending")
         self._resolve_plan(
@@ -2144,8 +2195,11 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         initial_state_bytes = (run / "state.md").read_bytes()
         with mock.patch.dict(os.environ, self.env, clear=False):
             initial_packet = navigator.render(None, run, initial_state)
-        self.assertIn("Return receipt: " + str(receipt_path), initial_packet)
-        self.assertIn("Current workspace return: not currently verified.", initial_packet)
+        # 2026-10-11 dedupe: the return route and receipt print only at release-plan, release-check, release and
+        # handoff (navigator.RETURN_STAGES); an intake packet names only where product work happens.
+        self.assertNotIn("Return receipt: ", initial_packet)
+        self.assertIn("Execution checkout: " + str(initial_state["repo"]), initial_packet)
+        self.assertIn("The original branch is returned only at release or handoff.", initial_packet)
         self.assertEqual((run / "state.md").read_bytes(), initial_state_bytes)
 
         worktree = root / "worktree"

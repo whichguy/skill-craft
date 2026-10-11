@@ -1053,7 +1053,7 @@ class HookTests(Fixture):
         with self.patched_env():
             state = self.enter_verify_with_a_fixable_edit()
             self.assertIn("AUTO-FIX APPLIED", self.entered)
-            self.assertLess(self.entered.index("Call this when done:"),
+            self.assertLess(self.entered.index("Callback for this stage (run once after its work"),
                             self.entered.index("ShipLoop lint (supporting output"))
             self.assertIn("AUTO-FIX APPLIED", nav.render(CORE, self.run_dir, state))
             calls = len(self.logged())
@@ -1452,8 +1452,10 @@ class PromptContractTests(unittest.TestCase):
                 self.assertIn("the lint command printed in the packet", " ".join(loops.WORK[stage].split()))
                 self.assertIn("`lint_waivers`", guidance.prompt(stage, delegation=guidance.INLINE))
         implement = " ".join(guidance.prompt("implement", delegation=guidance.INLINE).split())
-        self.assertIn("run every recorded check command and the printed lint command and record each exit code",
-                      implement)
+        # Running the checks and the lint command is the loop's Work, stated once there (owner, 2026-10-11).
+        self.assertIn("run every recorded check command and the lint command printed in the packet",
+                      " ".join(loops.WORK["implement"].split()))
+        self.assertNotIn("run every recorded check command", implement)
         self.assertIn("the same check still fails after 7 genuine fix attempts", implement)
 
 

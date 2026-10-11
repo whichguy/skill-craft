@@ -1,0 +1,194 @@
+{
+ "prose_home": {
+  "environment_md_path_137": {
+   "bytes": 1944,
+   "environment_md_path_chars": 137,
+   "lines": 4,
+   "longest_line": 736
+  },
+  "environment_md_path_212": {
+   "bytes": 2244,
+   "environment_md_path_chars": 212,
+   "lines": 4,
+   "longest_line": 811
+  },
+  "temporary_directory": {
+   "bytes": 1792,
+   "environment_md_path_chars": 99,
+   "lines": 4,
+   "longest_line": 698
+  }
+ },
+ "saved_homes": {
+  "bytes_min_median_mean_max_total": [
+   985,
+   1039,
+   1075,
+   1698,
+   33339
+  ],
+  "homes": 31,
+  "lines_min_max": [
+   3,
+   4
+  ],
+  "per_home": {
+   "20261003/hello": {
+    "bytes": 985,
+    "lines": 3,
+    "longest_line": 351
+   },
+   "20261003/seat-reservations": {
+    "bytes": 1021,
+    "lines": 3,
+    "longest_line": 363
+   },
+   "20261003/v1161-hello": {
+    "bytes": 1003,
+    "lines": 3,
+    "longest_line": 357
+   },
+   "20261004/v1180-hello-sonnet": {
+    "bytes": 1024,
+    "lines": 3,
+    "longest_line": 364
+   },
+   "20261004/v1190-hello-sonnet": {
+    "bytes": 1006,
+    "lines": 3,
+    "longest_line": 356
+   },
+   "20261004/v1190-hello-sonnet-2": {
+    "bytes": 1030,
+    "lines": 3,
+    "longest_line": 366
+   },
+   "20261004/v1200-hello-sonnet": {
+    "bytes": 1024,
+    "lines": 3,
+    "longest_line": 364
+   },
+   "20261006/v1220-battleship-grok-medium-none": {
+    "bytes": 1073,
+    "lines": 3,
+    "longest_line": 379
+   },
+   "20261006/v1220-battleship-sonnet": {
+    "bytes": 1039,
+    "lines": 3,
+    "longest_line": 369
+   },
+   "20261007/v1230-battleship-sonnet": {
+    "bytes": 1039,
+    "lines": 3,
+    "longest_line": 369
+   },
+   "20261008/r1-battleship-sonnet": {
+    "bytes": 1057,
+    "lines": 3,
+    "longest_line": 366
+   },
+   "20261008/r1-checkers-sonnet": {
+    "bytes": 1051,
+    "lines": 3,
+    "longest_line": 364
+   },
+   "20261008/r2-battleship-grok-none": {
+    "bytes": 1027,
+    "lines": 3,
+    "longest_line": 369
+   },
+   "20261008/r2-battleship-sonnet": {
+    "bytes": 1046,
+    "lines": 3,
+    "longest_line": 366
+   },
+   "20261008/r2-checkers-sonnet": {
+    "bytes": 1024,
+    "lines": 3,
+    "longest_line": 364
+   },
+   "20261008/r3-battleship-sonnet": {
+    "bytes": 1046,
+    "lines": 3,
+    "longest_line": 366
+   },
+   "20261008/r3-checkers-sonnet": {
+    "bytes": 1040,
+    "lines": 3,
+    "longest_line": 364
+   },
+   "20261009/s6-after-spec": {
+    "bytes": 1009,
+    "lines": 3,
+    "longest_line": 359
+   },
+   "20261009/s6-inside-implement": {
+    "bytes": 1027,
+    "lines": 3,
+    "longest_line": 365
+   },
+   "20261009/s6-inside-implement-k2": {
+    "bytes": 1052,
+    "lines": 3,
+    "longest_line": 368
+   },
+   "20261009/s6-inside-implement-mtime": {
+    "bytes": 1045,
+    "lines": 3,
+    "longest_line": 371
+   },
+   "20261009/s6-inside-implement-write": {
+    "bytes": 1045,
+    "lines": 3,
+    "longest_line": 371
+   },
+   "20261009/s6-inside-test-strategy": {
+    "bytes": 1039,
+    "lines": 3,
+    "longest_line": 369
+   },
+   "20261009/s6-inside-test-strategy-2": {
+    "bytes": 1045,
+    "lines": 3,
+    "longest_line": 371
+   },
+   "20261010/battleship-1": {
+    "bytes": 1017,
+    "lines": 3,
+    "longest_line": 358
+   },
+   "20261010/checkers-1": {
+    "bytes": 1027,
+    "lines": 3,
+    "longest_line": 356
+   },
+   "20261010/checkers-1270-sonnet": {
+    "bytes": 1057,
+    "lines": 3,
+    "longest_line": 366
+   },
+   "20261010/checkers-8stage-88d412e9": {
+    "bytes": 1698,
+    "lines": 4,
+    "longest_line": 664
+   },
+   "20261010/hello-1270-claude-2": {
+    "bytes": 1027,
+    "lines": 3,
+    "longest_line": 365
+   },
+   "20261010/hello-8stage-13d278dd": {
+    "bytes": 1670,
+    "lines": 4,
+    "longest_line": 636
+   },
+   "20261010/pc1i-checkers-sonnet": {
+    "bytes": 1046,
+    "lines": 3,
+    "longest_line": 366
+   }
+  }
+ },
+ "scripts": "/Users/dadleet/src/skill-craft/.claude/worktrees/b1011z-aaa47e/.claude/worktrees/b1012c-1bbefb/skills/shiploop/scripts"
+}

@@ -264,7 +264,7 @@ class NavigatorV4Tests(unittest.TestCase):
         ]
         returned_commits: list[str] = []
 
-        def commit(after, stage):
+        def commit(after, stage, open_items=()):
             self.assertEqual(stage, "handoff")
             events.append("commit")
             answer = commit_results.pop(0)
@@ -360,7 +360,7 @@ class NavigatorV4Tests(unittest.TestCase):
             SimpleNamespace(commit="", skipped=[]),
         ]
 
-        def commit(_after, stage):
+        def commit(_after, stage, open_items=()):
             self.assertEqual(stage, "handoff")
             events.append("commit")
             answer = commit_results.pop(0)
@@ -566,7 +566,8 @@ class NavigatorV4Tests(unittest.TestCase):
         # P13: every packet names the run's scratch directory and says why /tmp is not used.
         self.assertIn("Scratch directory (your temporary files; /tmp is shared with other runs): "
                       + str(root / "scratch"), producer)
-        self.assertIn("packet's Scratch directory, not /tmp", " ".join(producer.split()))
+        # The line above defines RUN/scratch; the STAGE_RULES bullet carries the obligation (2026-10-11 dedupe).
+        self.assertIn("Temporary files go in RUN/scratch, not /tmp", " ".join(producer.split()))
 
         waiting, action, _child = self.bound_plan_child(state)
         improve = navigator.render(None, root, waiting)

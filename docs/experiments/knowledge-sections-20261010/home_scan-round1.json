@@ -1,0 +1,464 @@
+{
+  "homes": 29,
+  "homes_with_no_notice": 0,
+  "notice_lines_min_median_max": [
+    8,
+    9,
+    11
+  ],
+  "notice_lines_per_home": {
+    "20261003/hello": 9,
+    "20261003/seat-reservations": 9,
+    "20261003/v1161-hello": 9,
+    "20261004/v1180-hello-sonnet": 9,
+    "20261004/v1190-hello-sonnet": 8,
+    "20261004/v1190-hello-sonnet-2": 9,
+    "20261004/v1200-hello-sonnet": 9,
+    "20261006/v1220-battleship-grok-medium-none": 9,
+    "20261006/v1220-battleship-sonnet": 9,
+    "20261007/v1230-battleship-sonnet": 9,
+    "20261008/r1-battleship-sonnet": 11,
+    "20261008/r1-checkers-sonnet": 11,
+    "20261008/r2-battleship-grok-none": 8,
+    "20261008/r2-battleship-sonnet": 10,
+    "20261008/r2-checkers-sonnet": 9,
+    "20261008/r3-battleship-sonnet": 10,
+    "20261008/r3-checkers-sonnet": 10,
+    "20261009/s6-after-spec": 9,
+    "20261009/s6-inside-implement": 9,
+    "20261009/s6-inside-implement-k2": 10,
+    "20261009/s6-inside-implement-mtime": 9,
+    "20261009/s6-inside-implement-write": 9,
+    "20261009/s6-inside-test-strategy": 9,
+    "20261009/s6-inside-test-strategy-2": 9,
+    "20261010/battleship-1": 10,
+    "20261010/checkers-1": 11,
+    "20261010/checkers-1270-sonnet": 11,
+    "20261010/hello-1270-claude-2": 9,
+    "20261010/pc1i-checkers-sonnet": 10
+  },
+  "notice_lines_total": 273,
+  "table": {
+    "architecture.md": {
+      "headings": {
+        "Conventions": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 0,
+          "present": 0
+        },
+        "Decisions": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 0,
+          "present": 0
+        },
+        "Interfaces and boundaries": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 0,
+          "present": 0
+        },
+        "Stack": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 0,
+          "present": 0
+        },
+        "Structure": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 0,
+          "present": 0
+        },
+        "Superseded": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 0,
+          "present": 0
+        }
+      },
+      "headings_the_files_use_most": [],
+      "homes_with_the_file": 0
+    },
+    "environment.md": {
+      "headings": {
+        "Access and accounts": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 29,
+          "present": 0
+        },
+        "Commands": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 29,
+          "present": 0
+        },
+        "Platform facts": {
+          "either_way_prefix": 1,
+          "empty": 0,
+          "missing": 28,
+          "present": 1
+        },
+        "Targets and runtimes": {
+          "either_way_prefix": 1,
+          "empty": 0,
+          "missing": 29,
+          "present": 0
+        }
+      },
+      "headings_the_files_use_most": [
+        [
+          "Environment",
+          29
+        ],
+        [
+          "Delivery",
+          7
+        ],
+        [
+          "Runtime",
+          2
+        ],
+        [
+          "Release",
+          2
+        ],
+        [
+          "Prepare",
+          2
+        ],
+        [
+          "Readiness (prepare)",
+          1
+        ],
+        [
+          "Delivery target (release-plan)",
+          1
+        ],
+        [
+          "Targets",
+          1
+        ],
+        [
+          "Working commands",
+          1
+        ],
+        [
+          "Platform facts",
+          1
+        ],
+        [
+          "Baseline",
+          1
+        ],
+        [
+          "State placement",
+          1
+        ],
+        [
+          "Closed by spec",
+          1
+        ],
+        [
+          "Baseline tests",
+          1
+        ],
+        [
+          "State",
+          1
+        ],
+        [
+          "Observability",
+          1
+        ],
+        [
+          "Non-functional screen",
+          1
+        ],
+        [
+          "Probes",
+          1
+        ],
+        [
+          "Checks",
+          1
+        ],
+        [
+          "Lessons (W1)",
+          1
+        ],
+        [
+          "Rerun procedure and learnings",
+          1
+        ],
+        [
+          "Learned (W1)",
+          1
+        ],
+        [
+          "Release verification",
+          1
+        ],
+        [
+          "Learnings",
+          1
+        ]
+      ],
+      "homes_with_the_file": 29
+    },
+    "spec.md": {
+      "headings": {
+        "Non-functional requirements": {
+          "either_way_prefix": 11,
+          "empty": 0,
+          "missing": 29,
+          "present": 0
+        },
+        "Requirements": {
+          "either_way_prefix": 19,
+          "empty": 0,
+          "missing": 10,
+          "present": 19
+        },
+        "Retired": {
+          "either_way_prefix": 24,
+          "empty": 0,
+          "missing": 5,
+          "present": 24
+        }
+      },
+      "headings_the_files_use_most": [
+        [
+          "Retired",
+          24
+        ],
+        [
+          "Requirements",
+          19
+        ],
+        [
+          "Living spec",
+          14
+        ],
+        [
+          "Non-functional",
+          11
+        ],
+        [
+          "Battleship living spec",
+          7
+        ],
+        [
+          "Checkers living spec",
+          4
+        ],
+        [
+          "Non-functional assessment",
+          2
+        ],
+        [
+          "Seat-reservation service: living spec",
+          1
+        ],
+        [
+          "Assumptions (defaults taken, no user to ask)",
+          1
+        ],
+        [
+          "Request requirements",
+          1
+        ],
+        [
+          "R-1 Server process",
+          1
+        ],
+        [
+          "R-2 Playable page",
+          1
+        ],
+        [
+          "R-3 New game",
+          1
+        ],
+        [
+          "R-4 Fire result",
+          1
+        ],
+        [
+          "R-5 Game over",
+          1
+        ],
+        [
+          "R-6 Rules module and tests",
+          1
+        ],
+        [
+          "R-7 Hidden fleet",
+          1
+        ],
+        [
+          "R-8 One player",
+          1
+        ],
+        [
+          "Design decisions",
+          1
+        ],
+        [
+          "D-1 Fleet and coordinates",
+          1
+        ],
+        [
+          "D-2 What the three results mean",
+          1
+        ],
+        [
+          "D-3 Rejected shots",
+          1
+        ],
+        [
+          "D-4 Memory",
+          1
+        ],
+        [
+          "D-5 Page behavior",
+          1
+        ],
+        [
+          "D-6 Cell names",
+          1
+        ]
+      ],
+      "homes_with_the_file": 29
+    },
+    "test-strategy.md": {
+      "headings": {
+        "Commands": {
+          "either_way_prefix": 2,
+          "empty": 0,
+          "missing": 27,
+          "present": 2
+        },
+        "Harnesses and suites": {
+          "either_way_prefix": 3,
+          "empty": 0,
+          "missing": 29,
+          "present": 0
+        },
+        "ID convention": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 29,
+          "present": 0
+        },
+        "Real-boundary checks": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 29,
+          "present": 0
+        }
+      },
+      "headings_the_files_use_most": [
+        [
+          "Test strategy",
+          28
+        ],
+        [
+          "Harness",
+          3
+        ],
+        [
+          "Learnings (W1)",
+          2
+        ],
+        [
+          "Commands",
+          2
+        ],
+        [
+          "Cases",
+          2
+        ],
+        [
+          "System tests (release phase)",
+          1
+        ],
+        [
+          "Rerun procedures (observed, W1)",
+          1
+        ],
+        [
+          "Rerun procedure and status (after W1)",
+          1
+        ],
+        [
+          "Rerun procedures (as implemented)",
+          1
+        ],
+        [
+          "Rerun",
+          1
+        ],
+        [
+          "Browser procedure for TC-4 and TC-15",
+          1
+        ],
+        [
+          "Exclusions",
+          1
+        ],
+        [
+          "Isolation",
+          1
+        ],
+        [
+          "File check",
+          1
+        ],
+        [
+          "Target",
+          1
+        ],
+        [
+          "Revalidation",
+          1
+        ],
+        [
+          "Test strategy \u2014 Checkers",
+          1
+        ],
+        [
+          "Suite commands (single source of truth)",
+          1
+        ],
+        [
+          "Requirement to check map",
+          1
+        ],
+        [
+          "Host-tool cases",
+          1
+        ],
+        [
+          "Non-functional",
+          1
+        ],
+        [
+          "Baseline",
+          1
+        ],
+        [
+          "System checks",
+          1
+        ],
+        [
+          "Concrete oracles (replayable positions)",
+          1
+        ]
+      ],
+      "homes_with_the_file": 29
+    }
+  }
+}

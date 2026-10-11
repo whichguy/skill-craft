@@ -1,0 +1,867 @@
+{
+ "generated": "test/shiploop-run-review.test.py stage_model_run('v4') exported by skills/shiploop-run-review/scripts/export.py and read by template/index.html as of 54bcb54d (the 17-stage Run Review); regenerate only from that commit",
+ "skill": {
+  "assessed": "Decision: no new skill; rules.js is the reusable unit.",
+  "validated": "N/A: no skill was created, so nothing to validate."
+ },
+ "skillWhy": null,
+ "phaseStates": [
+  "done",
+  "done",
+  "done",
+  "done",
+  "running",
+  "done",
+  "none",
+  "none"
+ ],
+ "phasesFact": "- Phases: Understand done, Specify done, Plan done, Build done, Prove running, Integrate done, System test none, Release none",
+ "phases": [
+  "Understand",
+  "Specify",
+  "Plan",
+  "Build",
+  "Prove",
+  "Integrate",
+  "System test",
+  "Release"
+ ],
+ "cards": [
+  {
+   "stage": "intake",
+   "phase": "Understand",
+   "purpose": "Confirm the request, boundaries and open questions",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "discovery",
+     "item": false
+    },
+    {
+     "stage": "research",
+     "item": false
+    },
+    {
+     "stage": "spec",
+     "item": false
+    },
+    {
+     "stage": "plan",
+     "item": false
+    },
+    {
+     "stage": "product-acceptance",
+     "item": false
+    },
+    {
+     "stage": "handoff",
+     "item": false
+    }
+   ]
+  },
+  {
+   "stage": "discovery",
+   "phase": "Understand",
+   "purpose": "Inspect the current repository, environment and baseline tests",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "research",
+     "item": false
+    },
+    {
+     "stage": "spec",
+     "item": false
+    },
+    {
+     "stage": "plan",
+     "item": false
+    }
+   ]
+  },
+  {
+   "stage": "research",
+   "phase": "Understand",
+   "purpose": "Resolve the unknowns that matter with evidence",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "spec",
+     "item": false
+    },
+    {
+     "stage": "test-strategy",
+     "item": false
+    },
+    {
+     "stage": "plan",
+     "item": false
+    }
+   ]
+  },
+  {
+   "stage": "spec",
+   "phase": "Specify",
+   "purpose": "Define required behavior and acceptance criteria",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve child reviews this result before the graph advances."
+   },
+   "readers": [
+    {
+     "stage": "test-strategy",
+     "item": false
+    },
+    {
+     "stage": "plan",
+     "item": false
+    },
+    {
+     "stage": "get-next-work-item",
+     "item": false
+    },
+    {
+     "stage": "step-plan",
+     "item": false
+    },
+    {
+     "stage": "test-spec",
+     "item": false
+    },
+    {
+     "stage": "implement",
+     "item": false
+    },
+    {
+     "stage": "test-refine",
+     "item": false
+    },
+    {
+     "stage": "document",
+     "item": false
+    },
+    {
+     "stage": "verify",
+     "item": false
+    },
+    {
+     "stage": "integration-verify",
+     "item": false
+    },
+    {
+     "stage": "carry-forward",
+     "item": false
+    },
+    {
+     "stage": "system-test-author",
+     "item": false
+    },
+    {
+     "stage": "system-test",
+     "item": false
+    },
+    {
+     "stage": "product-acceptance",
+     "item": false
+    },
+    {
+     "stage": "release-plan",
+     "item": false
+    },
+    {
+     "stage": "release-verify",
+     "item": false
+    },
+    {
+     "stage": "handoff",
+     "item": false
+    }
+   ]
+  },
+  {
+   "stage": "test-strategy",
+   "phase": "Specify",
+   "purpose": "Map requirements to the checks that will prove them",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve child reviews this result before the graph advances."
+   },
+   "readers": [
+    {
+     "stage": "plan",
+     "item": false
+    },
+    {
+     "stage": "prepare",
+     "item": false
+    },
+    {
+     "stage": "step-plan",
+     "item": false
+    },
+    {
+     "stage": "test-spec",
+     "item": false
+    },
+    {
+     "stage": "baseline",
+     "item": false
+    },
+    {
+     "stage": "test-author",
+     "item": false
+    },
+    {
+     "stage": "regression",
+     "item": false
+    },
+    {
+     "stage": "verify",
+     "item": false
+    },
+    {
+     "stage": "system-test-author",
+     "item": false
+    }
+   ]
+  },
+  {
+   "stage": "plan",
+   "phase": "Plan",
+   "purpose": "Build the dependency plan and the work-item queue",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve child reviews this result before the graph advances."
+   },
+   "readers": [
+    {
+     "stage": "prepare",
+     "item": false
+    },
+    {
+     "stage": "get-next-work-item",
+     "item": false
+    },
+    {
+     "stage": "step-plan",
+     "item": false
+    },
+    {
+     "stage": "test-spec",
+     "item": false
+    },
+    {
+     "stage": "implement",
+     "item": false
+    },
+    {
+     "stage": "document",
+     "item": false
+    },
+    {
+     "stage": "skill-assess",
+     "item": false
+    },
+    {
+     "stage": "integrate",
+     "item": false
+    },
+    {
+     "stage": "carry-forward",
+     "item": false
+    },
+    {
+     "stage": "system-test-author",
+     "item": false
+    },
+    {
+     "stage": "release-plan",
+     "item": false
+    },
+    {
+     "stage": "handoff",
+     "item": false
+    }
+   ]
+  },
+  {
+   "stage": "prepare",
+   "phase": "Plan",
+   "purpose": "Ready the development and test environment",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "step-plan",
+     "item": false
+    }
+   ]
+  },
+  {
+   "stage": "get-next-work-item",
+   "phase": "Plan",
+   "purpose": "Confirm this work item is still the right next item",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": []
+  },
+  {
+   "stage": "step-plan",
+   "phase": "Plan",
+   "purpose": "Plan this item's concrete changes and checks",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve child reviews this result before the graph advances."
+   },
+   "readers": [
+    {
+     "stage": "test-spec",
+     "item": true
+    },
+    {
+     "stage": "baseline",
+     "item": true
+    },
+    {
+     "stage": "test-author",
+     "item": true
+    },
+    {
+     "stage": "implement",
+     "item": true
+    },
+    {
+     "stage": "document",
+     "item": true
+    },
+    {
+     "stage": "skill-assess",
+     "item": true
+    },
+    {
+     "stage": "static-checks",
+     "item": true
+    },
+    {
+     "stage": "verify",
+     "item": true
+    },
+    {
+     "stage": "integrate",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-spec",
+   "phase": "Build",
+   "purpose": "Specify the tests this item needs before code changes",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve child reviews this result before the graph advances."
+   },
+   "readers": [
+    {
+     "stage": "baseline",
+     "item": true
+    },
+    {
+     "stage": "test-author",
+     "item": true
+    },
+    {
+     "stage": "test-red",
+     "item": true
+    },
+    {
+     "stage": "implement",
+     "item": true
+    },
+    {
+     "stage": "test-green",
+     "item": true
+    },
+    {
+     "stage": "test-refine",
+     "item": true
+    },
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "baseline",
+   "phase": "Build",
+   "purpose": "Record the relevant checks before any change",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "regression",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-author",
+   "phase": "Build",
+   "purpose": "Write the tests the item's test spec calls for",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-probe before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "test-red",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-red",
+   "phase": "Build",
+   "purpose": "Run the new tests and confirm they fail for the right reason",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-red before it accepts done."
+   },
+   "readers": []
+  },
+  {
+   "stage": "implement",
+   "phase": "Build",
+   "purpose": "Make the planned change",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs lint-gate before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "test-green",
+     "item": true
+    },
+    {
+     "stage": "test-refine",
+     "item": true
+    },
+    {
+     "stage": "document",
+     "item": true
+    },
+    {
+     "stage": "static-checks",
+     "item": true
+    },
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-green",
+   "phase": "Build",
+   "purpose": "Run the focused tests and confirm they pass",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs lint-gate, test-loop before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-refine",
+   "phase": "Build",
+   "purpose": "Tighten the tests against the actual implementation",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-rerun before it accepts done."
+   },
+   "readers": []
+  },
+  {
+   "stage": "regression",
+   "phase": "Prove",
+   "purpose": "Rerun the retained suites for regressions",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs lint-gate, test-loop before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "document",
+   "phase": "Prove",
+   "purpose": "Update the documentation this change affects",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": []
+  },
+  {
+   "stage": "skill-assess",
+   "phase": "Prove",
+   "purpose": "Decide whether a reusable skill or helper change is warranted",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "skill-validate",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "skill-validate",
+   "phase": "Prove",
+   "purpose": "Validate any skill or helper change against real inputs",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": []
+  },
+  {
+   "stage": "static-checks",
+   "phase": "Prove",
+   "purpose": "Run formatting, lint, type and build checks",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs quality-terminal, test-rerun before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "verify",
+   "phase": "Prove",
+   "purpose": "Verify the item against its acceptance criteria",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-rerun before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "integrate",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "integrate",
+   "phase": "Integrate",
+   "purpose": "Assemble the item's candidate in the execution checkout",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "integration-verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "integration-verify",
+   "phase": "Integrate",
+   "purpose": "Verify the integrated result and shared interfaces",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-rerun before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "carry-forward",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "carry-forward",
+   "phase": "Integrate",
+   "purpose": "Record lessons and revise the remaining queue",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
+   },
+   "readers": []
+  },
+  {
+   "stage": "get-next-work-item",
+   "phase": "Plan",
+   "purpose": "Confirm this work item is still the right next item",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": []
+  },
+  {
+   "stage": "step-plan",
+   "phase": "Plan",
+   "purpose": "Plan this item's concrete changes and checks",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve child reviews this result before the graph advances."
+   },
+   "readers": [
+    {
+     "stage": "test-spec",
+     "item": true
+    },
+    {
+     "stage": "baseline",
+     "item": true
+    },
+    {
+     "stage": "test-author",
+     "item": true
+    },
+    {
+     "stage": "implement",
+     "item": true
+    },
+    {
+     "stage": "document",
+     "item": true
+    },
+    {
+     "stage": "skill-assess",
+     "item": true
+    },
+    {
+     "stage": "static-checks",
+     "item": true
+    },
+    {
+     "stage": "verify",
+     "item": true
+    },
+    {
+     "stage": "integrate",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-spec",
+   "phase": "Build",
+   "purpose": "Specify the tests this item needs before code changes",
+   "check": {
+    "kind": "review loop",
+    "why": "An Improve child reviews this result before the graph advances."
+   },
+   "readers": [
+    {
+     "stage": "baseline",
+     "item": true
+    },
+    {
+     "stage": "test-author",
+     "item": true
+    },
+    {
+     "stage": "test-red",
+     "item": true
+    },
+    {
+     "stage": "implement",
+     "item": true
+    },
+    {
+     "stage": "test-green",
+     "item": true
+    },
+    {
+     "stage": "test-refine",
+     "item": true
+    },
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "baseline",
+   "phase": "Build",
+   "purpose": "Record the relevant checks before any change",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "regression",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-author",
+   "phase": "Build",
+   "purpose": "Write the tests the item's test spec calls for",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-probe before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "test-red",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-red",
+   "phase": "Build",
+   "purpose": "Run the new tests and confirm they fail for the right reason",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-red before it accepts done."
+   },
+   "readers": []
+  },
+  {
+   "stage": "implement",
+   "phase": "Build",
+   "purpose": "Make the planned change",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs lint-gate before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "test-green",
+     "item": true
+    },
+    {
+     "stage": "test-refine",
+     "item": true
+    },
+    {
+     "stage": "document",
+     "item": true
+    },
+    {
+     "stage": "static-checks",
+     "item": true
+    },
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-green",
+   "phase": "Build",
+   "purpose": "Run the focused tests and confirm they pass",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs lint-gate, test-loop before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "test-refine",
+   "phase": "Build",
+   "purpose": "Tighten the tests against the actual implementation",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs test-rerun before it accepts done."
+   },
+   "readers": []
+  },
+  {
+   "stage": "regression",
+   "phase": "Prove",
+   "purpose": "Rerun the retained suites for regressions",
+   "check": {
+    "kind": "script-run",
+    "why": "ShipLoop runs lint-gate, test-loop before it accepts done."
+   },
+   "readers": [
+    {
+     "stage": "verify",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "document",
+   "phase": "Prove",
+   "purpose": "Update the documentation this change affects",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": []
+  },
+  {
+   "stage": "skill-assess",
+   "phase": "Prove",
+   "purpose": "Decide whether a reusable skill or helper change is warranted",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": [
+    {
+     "stage": "skill-validate",
+     "item": true
+    }
+   ]
+  },
+  {
+   "stage": "skill-validate",
+   "phase": "Prove",
+   "purpose": "Validate any skill or helper change against real inputs",
+   "check": {
+    "kind": "model judgement",
+    "why": "The model judges the stage against its done-when list; no script run or Improve review follows."
+   },
+   "readers": []
+  }
+ ],
+ "tests": "Last run: 8 tests ran, 8 failed, at test-red: the new tests are meant to fail here"
+}

@@ -261,8 +261,10 @@ class ReviseTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, "missing: revisions"):
             nav.validate(old)
         # A run saved by the 17-stage inner loop (state version 4) is refused with its own reason.
-        for version, reason in ((3, "state version 3 is not the supported version 5"),
-                                (4, "seventeen-stage inner loop \\(state version 4\\)")):
+        # A run saved before the consumer contract's hand-off fields (state version 5) is refused by the version check.
+        for version, reason in ((3, "state version 3 is not the supported version 6"),
+                                (4, "seventeen-stage inner loop \\(state version 4\\)"),
+                                (5, "state version 5 is not the supported version 6")):
             wrong_version = deepcopy(state)
             wrong_version["version"] = version
             with self.subTest(version=version), self.assertRaisesRegex(

@@ -358,8 +358,11 @@ class RunReviewTest(unittest.TestCase):
             self.assertEqual(json.loads((target / "docs" / "config" / f"{doc_id}.json").read_text()), config[doc_id])
         stages = json.loads((SKILL_ROOT / "defaults" / "stages.json").read_text())["stages"]
         self.assertEqual(json.loads((target / "docs" / "config" / "stages.json").read_text()), {"stages": stages})
+        frozen = json.loads((SKILL_ROOT / "defaults" / "stages-v4.json").read_text())
+        self.assertEqual(json.loads((target / "docs" / "config" / "stages-v4.json").read_text()),
+                         {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]})
         writes = json.loads((target / "writes.json").read_text())
-        self.assertEqual(len(writes), len(entries) + 3)  # the expectations, config/page, config/prompt and config/stages
+        self.assertEqual(len(writes), len(entries) + 4)  # the expectations, config/page, config/prompt, config/stages and config/stages-v4
         self.assertTrue(all(set(w) == {"op", "collection", "doc_id", "file_path"} and w["op"] == "set" for w in writes))
 
     def test_writes_json_lists_every_document_in_a_stable_order_with_absolute_paths(self):
@@ -619,7 +622,7 @@ class RunVisitsTest(unittest.TestCase):
         self.assertIs(self.row(run, "get-next-work-item")["skipped"], True)
         self.assertNotIn("packetBytes", self.row(run, "get-next-work-item"))
         self.assertEqual(sum("skipped" in r for r in run["stages"]), 1)
-        self.assertIn("7 accepted actions (6 work, 1 skipped, 0 seeded)", "\n".join(facts))
+        self.assertIn("7 accepted actions (6 work, 1 recorded by ShipLoop, 0 seeded)", "\n".join(facts))
 
     def test_no_packets_at_all_marks_nothing_because_absence_then_says_nothing(self):
         out = make_run(self.tmp, loops=False)
@@ -806,7 +809,7 @@ class RunVisitsTest(unittest.TestCase):
         self.assertTrue("skipped" not in first and "skipped" not in second)  # seeded, not engine-skipped
         self.assertEqual((third["min"], "seeded" in third), (20.0, False))  # timed from the seeded visit's own stamp
         text = "\n".join(facts)
-        self.assertIn("7 accepted actions (5 work, 0 skipped, 2 seeded)", text)
+        self.assertIn("7 accepted actions (5 work, 0 recorded by ShipLoop, 2 seeded)", text)
         self.assertNotIn("Stages with no minutes", text)  # null by design, not a missing stamp
         self.assertNotIn("Seeded visits not marked", text)
 
@@ -1216,10 +1219,27 @@ class PlanAndExecutionTest(unittest.TestCase):
         self.assertTrue(all(r.get("workitem") for r in run["stages"] if r["stage"] == "implement"))
         self.assertIn("executed not measured (", "\n".join(facts))
 
+    def test_which_stages_come_after_implement_is_the_runs_stage_model(self):
+        # N1: in a 17-stage run test-author and test-red ran before implement, so they do not end the steps; in an 8-stage run
+        # test runs after implement and does. The same two-step plan with one implement visit, then that stage:
+        for model, stage in (("v4", "test-red"), ("v4", "test-green"), ("v5", "test")):
+            first = [PLAN_ROWS[0], PLAN_ROWS[1]] if model == "v4" else [PLAN_ROWS[0]]
+            rows = first + [("sp", "step-plan", "done", "W1", steps_of("S1", "S2")), ("i1", "implement", "done", "W1", {}),
+                            (f"after-{stage}", stage, "done", "W1", {})]
+            out = make_plan_run(self.fresh(), rows)
+            if model == "v5":  # make_run's run is at test-green, a 17-stage stage: this one is at test
+                set_state(out, version=5, inner_loops={"W1": {"stage": "test", "action": {"id": "nav-x", "stage": "test"}}})
+            run, _ = self.build(out)
+            self.assertEqual(run["stageModel"], model)
+            moved_on = stage != "test-red"
+            self.assertEqual("stepsExecuted" in run["workItems"][0], not moved_on, stage)
+            if moved_on:
+                self.assertIn("W1: it moved past implement with 1 done implement visits for 2 steps", run["unmeasured"]["stepsExecuted"])
+
     def test_counts_that_do_not_line_up_with_one_packet_per_step_are_unknown_not_guessed(self):
         # one implement visit for a two-step plan, then the item moved on: it was not paired step by step
         rows = [PLAN_ROWS[0], PLAN_ROWS[1], ("sp", "step-plan", "done", "W1", steps_of("S1", "S2")),
-                ("i1", "implement", "done", "W1", {}), ("t1", "test", "done", "W1", {})]
+                ("i1", "implement", "done", "W1", {}), ("test-green", "test-green", "done", "W1", {})]
         run, _ = self.build(make_plan_run(self.fresh(), rows))
         item = run["workItems"][0]
         self.assertNotIn("stepsExecuted", item)
@@ -1804,10 +1824,11 @@ def luna_run() -> dict:
 
 
 def phases_of(rows: list[dict]) -> list[int]:
-    """The phase of each visit as the exporter's table gives it; an unknown stage takes the visit before it."""
+    """The phase of each visit as the exporter's table of the rows' stage model gives it; an unknown stage takes the visit before it."""
+    table = export.STAGE_PHASE_BY_MODEL[export.stage_model({}, [row["stage"] for row in rows]) or "v5"]
     previous, out = -1, []
     for row in rows:
-        previous = export.STAGE_PHASE.get(row["stage"], previous)
+        previous = table.get(row["stage"], previous)
         out.append(previous)
     return out
 
@@ -2538,16 +2559,19 @@ class DefaultsUpgradeTests(unittest.TestCase):
         cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
         self.assertIn("concatPreamble", self.live["config"]["prompt"])
         stages = json.loads((DEFAULTS_DIR / "stages.json").read_text(encoding="utf-8"))["stages"]
+        frozen = json.loads((DEFAULTS_DIR / "stages-v4.json").read_text(encoding="utf-8"))
+        v4 = {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]}
         # config/page holds the page's URL, kept, and gains the defaults' repoUrl when it has none (R23 E: repo references become links);
-        # config/stages is the derived catalog, always the defaults'
-        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages},
+        # config/stages is the derived catalog, always the defaults'; config/stages-v4 the frozen 17-stage one, likewise
+        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages}, "stages-v4": v4,
                                           "page": {**self.live["config"]["page"], "repoUrl": cfg["page"]["repoUrl"]}})
         self.assertEqual(set(docs["expectations"]), set(self.defaults))
         self.assertFalse([k for k in docs["expectations"] if k.startswith("iter-")])
         self.assertEqual(set(docs), {"expectations", "config"})
         self.assertEqual(notes, [
             "expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text",
-            # phases 3-5 describe the 8-stage inner loop (Build, Verify, Carry forward) since 2026-10-10
+            # phases 3-5 describe the 8-stage inner loop (Build, Verify, Carry forward) since 2026-10-10. The page's texts they
+            # replace are the 17-stage loop's (Build, Prove, Integrate), which a 17-stage run reads from config/stages-v4.phaseTexts
             *(f"expectations/phase-{n}: the page's text, which has no revision of its own, is replaced by the defaults' text"
               for n in (3, 4, 5)),
             "expectations/group-principles: the page's text, which has no revision of its own, is replaced by the "
@@ -2555,7 +2579,9 @@ class DefaultsUpgradeTests(unittest.TestCase):
             "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)",
             f"config/page: repoUrl {cfg['page']['repoUrl']} is added (repo references in the review text become links)"])
         bare = {"expectations": {}, "config": {}}
-        self.assertEqual(export.upgrade_docs(bare)[0]["config"], {**cfg, "stages": {"stages": stages}})  # a page with no settings gets all three
+        self.assertEqual(export.upgrade_docs(bare)[0]["config"], {**cfg, "stages": {"stages": stages}, "stages-v4": v4})  # a page with no settings gets all four
+        for key in ("phase-3", "phase-4", "phase-5"):  # the texts the upgrade replaces are the frozen 17-stage ones, word for word
+            self.assertEqual({f: self.live["expectations"][key][f] for f in ("title", "short", "text")}, frozen["phaseTexts"][key], key)
 
     def test_a_page_revision_the_defaults_lack_refuses_the_upgrade_and_names_each_document(self):
         live = copy.deepcopy(self.live)
@@ -2577,7 +2603,8 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertIn("note: expectations/group-principles", out.getvalue())
         writes = json.loads((self.tmp / "up" / "writes.json").read_text())
         self.assertEqual(sorted((w["collection"], w["doc_id"]) for w in writes),
-                         sorted([("config", "page"), ("config", "prompt"), ("config", "stages")] + [("expectations", k) for k in self.defaults]))
+                         sorted([("config", "page"), ("config", "prompt"), ("config", "stages"), ("config", "stages-v4")]
+                                + [("expectations", k) for k in self.defaults]))
         bad = self.tmp / "bad.json"
         bad.write_text(json.dumps({"docs": {"expectations": {"P1": {"text": "a bare document, not a row"}}}}))
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
@@ -3756,7 +3783,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertTrue(all(c["mark"] == "" for c in luna if c["outcome"] == "done"))
 
     def test_the_visits_card_splits_work_from_skipped_and_the_improve_card_counts_passes(self) -> None:
-        self.assertEqual(self.card("hello-1190b", "visits")["text"], "54 (47 work, 7 skipped)")
+        self.assertEqual(self.card("hello-1190b", "visits")["text"], "54 (47 work, 7 recorded by ShipLoop)")
         self.assertEqual(self.card("luna1", "visits")["text"], "39 (39 work)")
         self.assertEqual(self.card("hello-1190b", "improve")["value"], "19 passes")
         luna = self.card("luna1", "improve")
@@ -3838,7 +3865,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertEqual((work["h"], work["min"], work["share"]), (96, 4, 40))
         self.assertEqual((skipped["kind"], skipped["n"], skipped["label"], skipped["h"], skipped["min"]), ("skipped", 2, "x2", 14, 0))
         self.assertEqual(len(model["columns"]), 4)
-        self.assertEqual(model["cards"][0]["text"], "5 (2 work, 2 skipped, 1 seeded)")
+        self.assertEqual(model["cards"][0]["text"], "5 (2 work, 2 recorded by ShipLoop, 1 seeded)")
 
     def test_the_column_detail_names_the_visit_its_files_improve_context_and_the_findings_at_its_phase(self) -> None:
         findings = [{"id": "o1", "title": "A plan defect", "phase": 2, "run": "luna1", "status": "open"},
@@ -3863,7 +3890,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertEqual(last["next"], None)
         skipped = run_logic("(function(r){var m=sequenceModel(r,{});return columnDetail(m,29,r,[]);})("
                             + json.dumps(self.runs["hello-1190b"]) + ")")
-        self.assertEqual(skipped["title"], "Visits 30 to 33: 4 skipped")
+        self.assertEqual(skipped["title"], "Visits 30 to 33: 4 recorded by ShipLoop")
         self.assertEqual(dict(skipped["lines"])["Stages"], "test-spec, baseline, test-author, test-red")
         self.assertIn("no packet was issued", dict(skipped["lines"])["Outcome"])
         self.assertEqual(run_logic("columnDetail(sequenceModel({stages:[]}),0,{},[])"), None)
@@ -3877,7 +3904,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertEqual(luna["head"][-2:], ["Context peak", "Compactions"])
         self.assertEqual(hello["head"], ["#", "Stage", "Outcome", "Minutes", "Improve", "Packet file", "Result file"])
         self.assertEqual(luna["rows"][38], ["39", "system-test", "blocked", "11.2 min", "", "36.5 KB", "5.8 KB", "87.6%", "0"])
-        self.assertEqual(hello["rows"][29], ["30", "test-spec", "done, skipped", "0 min", "", "none issued", "814 B"])
+        self.assertEqual(hello["rows"][29], ["30", "test-spec", "done, recorded by ShipLoop", "0 min", "", "none issued", "814 B"])
         self.assertEqual(hello["rows"][39][3], "under 0.1 min")
         self.assertTrue(all(len(r) == len(luna["head"]) for r in luna["rows"]))
         self.assertTrue(all(len(r) == len(hello["head"]) for r in hello["rows"]))
@@ -4011,7 +4038,7 @@ class SequencePictureTests(unittest.TestCase):
         self.assertEqual(luna[4], "")
         hello = page_probe('[textOf("kpis"),textOf("seqnote"),REG.seqnote.hidden,REG.sqlegband.hidden,walk(REG.seqtable,function(e){return e.tagName==="th";}).length]',
                            setup=with_run("hello-1190b"))
-        self.assertIn("Visits5447 work, 7 skipped", hello[0])
+        self.assertIn("Visits5447 work, 7 recorded by ShipLoop", hello[0])
         self.assertIn("Improve19 passes", hello[0])
         self.assertIn("Refusalsnot measured", hello[0])
         self.assertIn(evidence_run("hello-1190b")["unmeasured"]["shiploop_failures"], hello[0])
@@ -5059,6 +5086,7 @@ class RoundRunFindingsTests(unittest.TestCase):
 # ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
 
 STAGES_JSON = DEFAULTS_DIR / "stages.json"
+STAGES_V4_JSON = DEFAULTS_DIR / "stages-v4.json"  # the frozen 17-stage catalog a 17-stage run reads
 FIXTURES = ROOT / "test" / "fixtures" / "run-review"
 ENGINE_SPEC_PATH = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
 CARD_FIELDS = ("summary", "summaryTruncated", "resultFile", "carried", "packetImprove")
@@ -5440,7 +5468,7 @@ class StageCatalogPageTests(unittest.TestCase):
     def test_schema_md_documents_the_stage_card_the_reader_labels_and_the_reserved_audit(self):
         schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
         for phrase in ("## The stage card", "\"Stage cards\" list", "declared by the stage spec",
-                       "no stage declares reading it", "records no observed reads", "not recorded per visit", "xN skipped"):
+                       "no stage declares reading it", "records no observed reads", "not recorded per visit", "xN recorded by ShipLoop"):
             self.assertIn(phrase, schema, phrase)
 
 
@@ -5474,9 +5502,19 @@ CARD_RUN = {
                    "implementVisits": {"done": 1, "repeat": 0, "revise": 1, "replan": 0, "blocked": 0}}]}
 
 
-def readers_text(stage: str) -> str:
-    """The card's 'Read by' text for a stage, worked out in Python from the committed catalog (the inverse of every `reads`)."""
-    catalog = json.loads(STAGES_JSON.read_text(encoding="utf-8"))["stages"]
+def model_of(run: dict) -> str:
+    """A run document's stage model as the page reads it: its stageModel, else the one its stage names give, else v5."""
+    return run.get("stageModel") or export.stage_model({}, [r.get("stage") for r in run.get("stages") or []]) or "v5"
+
+
+def catalog_of(model: str = "v5") -> list:
+    """The committed catalog of a stage model: defaults/stages.json (v5) or the frozen defaults/stages-v4.json (v4)."""
+    return json.loads((STAGES_V4_JSON if model == "v4" else STAGES_JSON).read_text(encoding="utf-8"))["stages"]
+
+
+def readers_text(stage: str, model: str = "v5") -> str:
+    """The card's 'Read by' text for a stage, worked out in Python from the committed catalog of the model (the inverse of every `reads`)."""
+    catalog = catalog_of(model)
     run = [e["stage"] for e in catalog if stage in e["reads"]]
     item = [e["stage"] for e in catalog if f"item:{stage}" in e["reads"]]
     parts = [", ".join(run)] if run else []
@@ -5485,16 +5523,22 @@ def readers_text(stage: str) -> str:
     return "; ".join(parts) or "no stage declares reading it"
 
 
-def catalog_json() -> str:
-    return json.dumps(json.loads(STAGES_JSON.read_text(encoding="utf-8"))["stages"])
+def catalog_json(model: str = "v5") -> str:
+    return json.dumps(catalog_of(model))
+
+
+def cfg_catalogs() -> str:
+    """The page's config with both catalogs, as --defaults writes them: the page picks the run's."""
+    return "data.cfg={stages:{stages:" + catalog_json() + "},\"stages-v4\":{stages:" + catalog_json("v4") + "}};"
 
 
 def card_setup(run: dict = CARD_RUN, extra: str = "", catalog: bool = True) -> str:
-    return plan_setup(run, ("data.cfg={stages:{stages:" + catalog_json() + "}};" if catalog else "") + extra)
+    return plan_setup(run, (cfg_catalogs() if catalog else "") + extra)
 
 
 def card(run: dict, index: int, catalog: bool = True) -> dict:
-    return run_logic("stageCard(%s,%d,%s)" % (json.dumps(run), index, catalog_json() if catalog else "null"))
+    """The stage card of a visit, with the catalog the page gives a run of its stage model (CARD_RUN is a 17-stage run)."""
+    return run_logic("stageCard(%s,%d,%s)" % (json.dumps(run), index, catalog_json(model_of(run)) if catalog else "null"))
 
 
 class StageCardLogicTests(unittest.TestCase):
@@ -5506,7 +5550,7 @@ class StageCardLogicTests(unittest.TestCase):
     def test_a_work_visit_reads_purpose_check_checklist_sizes_and_declared_readers_from_the_catalog(self):
         c = card(CARD_RUN, 5)  # the revise visit of implement
         self.assertEqual((c["title"], c["stage"], c["kind"], c["outcome"]), ("Visit 6: Implement", "implement", "work", "revise"))
-        self.assertEqual(c["purpose"], "Make the planned step's change")
+        self.assertEqual(c["purpose"], "Make the planned change")  # the 17-stage catalog's implement
         self.assertEqual(c["check"]["kind"], "script-run")
         self.assertIn("lint-gate", c["check"]["why"])
         self.assertEqual(c["sent"]["bytes"], 40_677)
@@ -5526,8 +5570,10 @@ class StageCardLogicTests(unittest.TestCase):
         written = self.lines(c["written"]["lines"])
         self.assertEqual(c["written"]["summary"], "S1 cannot be built")
         self.assertEqual(written["Result file"], "written, 1.3 KB")
-        self.assertEqual(written["Read by (declared by the stage spec)"], readers_text("implement"))
-        self.assertEqual(readers_text("implement"), "test, document, verify (each reads this work item's result)")
+        self.assertEqual(written["Read by (declared by the stage spec)"], readers_text("implement", "v4"))
+        self.assertEqual(readers_text("implement", "v4"), "test-green, test-refine, document, static-checks, verify "
+                         "(each reads this work item's result)")
+        self.assertEqual(readers_text("implement"), "test, document, verify (each reads this work item's result)")  # an 8-stage run's
 
     def test_readers_read_as_run_level_stages_then_those_that_read_this_work_items_result(self):
         text = run_logic('[readersText([]),readersText(null),readersText([{stage:"a",item:false},{stage:"b",item:false}]),'
@@ -5561,7 +5607,7 @@ class StageCardLogicTests(unittest.TestCase):
 
     def test_a_skipped_and_a_seeded_visit_say_so_and_claim_neither_a_packet_nor_a_reader_list(self):
         skipped, seeded = card(CARD_RUN, 3), card(CARD_RUN, 7)
-        self.assertEqual((skipped["kind"], skipped["outcome"], seeded["kind"], seeded["outcome"]), ("skipped", "skipped", "seeded", "seeded"))
+        self.assertEqual((skipped["kind"], skipped["outcome"], seeded["kind"], seeded["outcome"]), ("skipped", "recorded by ShipLoop", "seeded", "seeded"))
         self.assertIn("No packet was issued", skipped["sent"]["note"])
         self.assertIn("harness recorded this visit itself", seeded["sent"]["note"])
         for c in (skipped, seeded):
@@ -5622,7 +5668,7 @@ class StageCardLogicTests(unittest.TestCase):
     def test_the_old_and_new_detail_lines_agree_where_they_overlap(self):
         model = "sequenceModel(%s,{})" % json.dumps(CARD_RUN)
         detail = run_logic("(function(m){return [5,6].map(function(k){var d=columnDetail(m,k,%s,[],%s);return {lines:d.lines,card:d.card};});})(%s)"
-                           % (json.dumps(CARD_RUN), catalog_json(), model))
+                           % (json.dumps(CARD_RUN), catalog_json("v4"), model))
         for d in detail:
             card_lines = self.lines(d["card"]["done"]["lines"])
             old = self.lines(d["lines"])
@@ -5677,20 +5723,20 @@ class StageLabelTests(unittest.TestCase):
             out = page_probe('var rows=byClass("sclist","sc-row");[rows[2].title,byClass(rows[2],"sc-name")[0].textContent,'
                              'byClass(rows[2],"sc-raw").map(function(x){return x.textContent;}),rows[3].title||"",byClass(rows[3],"sc-name")[0].textContent,'
                              'byClass(rows[4],"sc-raw").length]', setup=card_setup(run))
-            self.assertEqual(out, [stage, label + stage, [stage], "", "x2 skipped", 0], stage)
+            self.assertEqual(out, [stage, label + stage, [stage], "", "x2 recorded by ShipLoop", 0], stage)
 
 
 class StageCardListTests(unittest.TestCase):
     """One row per column of the picture, so a tap selects the same visit as a tap on the picture."""
 
     def rows(self, run: dict = CARD_RUN, catalog: bool = True) -> list:
-        return run_logic("cardRows(sequenceModel(%s,{}),%s,%s)" % (json.dumps(run), json.dumps(run), catalog_json() if catalog else "null"))
+        return run_logic("cardRows(sequenceModel(%s,{}),%s,%s)" % (json.dumps(run), json.dumps(run), catalog_json(model_of(run)) if catalog else "null"))
 
     def test_rows_follow_the_columns_collapse_skipped_visits_and_print_only_what_the_export_holds(self):
         rows = self.rows()
         self.assertEqual([r["col"] for r in rows], list(range(7)))  # eight visits, two skipped in a row are one column
         self.assertEqual([(r["visit"], r["stage"]) for r in rows],
-                         [("1", "Intake"), ("2", "Spec"), ("3", "Get next work item"), ("4 to 5", "x2 skipped"), ("6", "Implement"),
+                         [("1", "Intake"), ("2", "Spec"), ("3", "Get next work item"), ("4 to 5", "x2 recorded by ShipLoop"), ("6", "Implement"),
                           ("7", "Implement"), ("8", "System test author")])
         self.assertEqual([(r["raw"], r["rawShown"]) for r in rows],
                          [("intake", False), ("spec", False), ("get-next-work-item", True), ("", False), ("implement", False),
@@ -5700,9 +5746,9 @@ class StageCardListTests(unittest.TestCase):
                          ("45.1 KB (the Improve child's)", "1.2 KB", "review loop", "done", "4 min"))
         self.assertEqual(spec["purpose"], "Define required behavior and acceptance criteria")
         self.assertEqual((skipped["outcome"], skipped["check"], skipped["sent"], skipped["written"], skipped["readBy"], skipped["purpose"]),
-                         ("skipped", "", "", "", None, ""))
+                         ("recorded by ShipLoop", "", "", "", None, ""))
         self.assertEqual((revise["outcome"], revise["check"], revise["readBy"], revise["sent"], revise["written"]),
-                         ("revise", "script-run", 3, "39.7 KB", "1.3 KB"))
+                         ("revise", "script-run", 5, "39.7 KB", "1.3 KB"))
         self.assertEqual(rows[6]["outcome"], "seeded")
         self.assertEqual(rows[6]["min"], "")
 
@@ -5726,7 +5772,7 @@ class StageCardListTests(unittest.TestCase):
                                       {"stage": "b", "outcome": "done", "min": 1}, {"stage": "skill-validate", "outcome": "done", "skipped": True}]}
         rows = self.rows(run, catalog=False)
         self.assertEqual([(r["visit"], r["stage"], r["outcome"]) for r in rows],
-                         [("1", "A", "done"), ("2", "Skill assess", "skipped"), ("3", "B", "done"), ("4", "Skill validate", "skipped")])
+                         [("1", "A", "done"), ("2", "Skill assess", "recorded by ShipLoop"), ("3", "B", "done"), ("4", "Skill validate", "recorded by ShipLoop")])
 
 
 class StageCardPageTests(unittest.TestCase):
@@ -5741,8 +5787,8 @@ class StageCardPageTests(unittest.TestCase):
         self.assertIn("exit check: script-run", chips)
         self.assertIn("✓ where", chips)
         self.assertIn("✗ recovery", chips)
-        self.assertIn("What the stage is for. Make the planned step's change.", text)
-        self.assertIn("How it is checked: script-run. ShipLoop runs loop-terminal, lint-gate before it accepts done.", text)
+        self.assertIn("What the stage is for. Make the planned change.", text)  # CARD_RUN is a 17-stage run: its catalog's words
+        self.assertIn("How it is checked: script-run. ShipLoop runs lint-gate before it accepts done.", text)
         self.assertIn("not found in the packet text", text)  # the legend, readable without hovering
         self.assertIn("Packet size39.7 KB", text)
         self.assertIn("Summary. S1 cannot be built", text)
@@ -5750,7 +5796,7 @@ class StageCardPageTests(unittest.TestCase):
 
     def test_previous_and_next_walk_the_visits_and_the_card_follows(self):
         out = page_probe('setCol(2);var go=function(label){byClass("seqdetail","btn").filter(function(b){return b.textContent===label;})[0].onclick();};'
-                         'var a=textOf("seqdetail").indexOf("Visit 3: Get next work item")>=0;go("Next visit");var b=pickedCol,t1=textOf("seqdetail").indexOf("Visits 4 to 5: 2 skipped")>=0;'
+                         'var a=textOf("seqdetail").indexOf("Visit 3: Get next work item")>=0;go("Next visit");var b=pickedCol,t1=textOf("seqdetail").indexOf("Visits 4 to 5: 2 recorded by ShipLoop")>=0;'
                          'go("Next visit");var c=textOf("seqdetail").indexOf("Visit 6: Implement")>=0;go("Previous visit");go("Previous visit");'
                          '[a,b,t1,c,pickedCol,byClass("seqdetail","btn").map(function(x){return x.textContent+":"+x.disabled;}).filter(function(s){return s.indexOf("Show")<0;})]', setup=card_setup())
         self.assertEqual(out[:5], [True, 3, True, True, 2])
@@ -5759,7 +5805,7 @@ class StageCardPageTests(unittest.TestCase):
     def test_a_collapsed_skipped_column_keeps_the_old_lines_and_no_card(self):  # a guard: it passes before this change too
         out = page_probe('setCol(3);[byClass("seqdetail","sc-block").length,textOf("seqdetail")]', setup=card_setup())
         self.assertEqual(out[0], 0)
-        self.assertIn("Visits 4 to 5: 2 skipped", out[1])
+        self.assertIn("Visits 4 to 5: 2 recorded by ShipLoop", out[1])
         self.assertIn("skill-assess, skill-validate", out[1])
 
     def test_the_summary_with_markup_is_text_never_an_element_and_the_cut_is_said(self):
@@ -5776,14 +5822,14 @@ class StageCardPageTests(unittest.TestCase):
                          'rows()[4].onclick();var a=[pickedCol,rows()[4].className,rows()[4].attrs["aria-expanded"],rows()[0].attrs["aria-expanded"]];'
                          'rows()[3].onclick();[n,hidden,first,a,pickedCol,textOf("seqdetail").indexOf("Visits 4 to 5")>=0,rows()[3].textContent,bits]', setup=card_setup())
         self.assertEqual((out[0], out[1]), (7, False))
-        for part in ("6", "Implement", "revise", "script-run", "Make the planned step's change"):
+        for part in ("6", "Implement", "revise", "script-run", "Make the planned change"):
             self.assertIn(part, out[2])
-        self.assertEqual(out[7], ["6 min", "sent 39.7 KB", "written 1.3 KB", "declared readers 3"])  # one span each, so a phone wraps between them
+        self.assertEqual(out[7], ["6 min", "sent 39.7 KB", "written 1.3 KB", "declared readers 5"])  # one span each, so a phone wraps between them
         self.assertEqual(out[3], [4, "sc-row sel", "true", "false"])
         self.assertEqual(out[4], 3)
         self.assertTrue(out[5])
-        self.assertIn("x2 skipped", out[6])
-        self.assertIn("skipped", out[6])
+        self.assertIn("x2 recorded by ShipLoop", out[6])
+        self.assertEqual(out[6].count("recorded by ShipLoop"), 2)  # the row's label and its outcome chip
 
     def test_a_row_opens_its_card_in_place_with_a_chevron_and_a_second_tap_closes_it(self):
         """The card a row opens sits directly under that row, inside the list, and the row says it can open and is open
@@ -5854,7 +5900,7 @@ class StageCardPageTests(unittest.TestCase):
     def test_the_real_evidence_rows_render_a_card_and_a_list_with_and_without_the_catalog(self):
         for key in ("luna1", "hello-1190b"):
             for with_catalog in (True, False):
-                setup = with_run(key).replace("renderAll();", ("data.cfg={stages:{stages:" + catalog_json() + "}};" if with_catalog else "") + "renderAll();")
+                setup = with_run(key).replace("renderAll();", (cfg_catalogs() if with_catalog else "") + "renderAll();")
                 out = page_probe('setCol(10);[textOf("seqdetail"),byClass("sclist","sc-row").length,textOf("sclist")]', setup=setup)
                 self.assertIn("Visit 11:", out[0], (key, with_catalog))
                 self.assertGreater(out[1], 10)
@@ -5867,8 +5913,9 @@ class StageCardPageTests(unittest.TestCase):
             run = json.loads(json.dumps(CARD_RUN))
             run["stages"][2]["stage"] = stage
             c = card(run, 2)
-            purpose = next(e["purpose"] for e in export.stage_catalog(engine_spec()) if e["stage"] in export.stage_names(stage))
-            self.assertEqual((c["purpose"], c["check"]["kind"]), (purpose[0].upper() + purpose[1:], "script-run"), stage)  # both old names are step-plan now
+            purpose = next(e["purpose"] for e in catalog_of("v4") if e["stage"] == "get-next-work-item")
+            # a 17-stage run's card is the 17-stage catalog's: get-next-work-item, judged by the model (B2)
+            self.assertEqual((c["purpose"], c["check"]["kind"]), (purpose[0].upper() + purpose[1:], "model judgement"), stage)
 
 
 class PacketHeadTests(unittest.TestCase):
@@ -8753,7 +8800,7 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         self.assertEqual(tuple(key for key, _, _ in export.IMPROVE_CARRIED), R23B_IMPROVE_KEYS)
         engine = R23B_NAVIGATOR.read_text(encoding="utf-8")
         for phrase in ("Reviewing the returned ", ". Goal: ", "Done when (a done result must meet each", '"Checked by: the Improve skill',
-                       "The opening file holds exactly these headings", '"Then run: "', '"Recovery command:"'):
+                       "The opening file holds exactly these headings", '"Then run: "', '"Recovery command (it only reads'):
             self.assertIn(phrase, engine, phrase)  # the navigator still prints the line each pattern looks for
 
     def test_a_packet_text_is_scored_label_by_label_on_lines_that_start_with_the_marker(self):
@@ -9065,7 +9112,7 @@ class R23bFidelityPageLogicTests(unittest.TestCase):
         run = r23b_run_doc()
         model = self.model(run)
         rows = dict(model["rows"])
-        self.assertEqual(rows["Exit evidence"], "script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 (37 accepted stages)")
+        self.assertEqual(rows["Exit evidence"], "script 15, loop 7, file 1, note 12, sentence 0, recorded by ShipLoop 2, unclassified 0 (37 accepted stages)")
         self.assertEqual(rows["Declared script checks with no script record"], "none")
         self.assertEqual(rows["Validation"], "10 records, 29 command runs, 6 distinct commands; 10 passed, 2 ran red, 0 could not run, "
                                              "0 unreadable; 0 of 23 rows with a test count ran no test; 0 focused or regression rows with no test count")
@@ -9231,7 +9278,8 @@ class R23bFidelityPageTests(unittest.TestCase):
 R23D_FIXTURE = ROOT / "docs" / "experiments" / "run-review-r23-20261009" / "delivered.json"
 R23D_CHECKERS, R23D_HELLO = "20261008/r3-checkers-sonnet", "20261009/s6-after-spec"
 R23D_BLOCKED, R23D_STOPPED = "20261008/r1-battleship-grok-none", "20261008/r3-battleship-grok-none"
-R23D_STAGES = ("carry-forward", "release-plan", "release", "release-verify")  # carry-forward records the skill decision
+# The fixture run is a 17-stage run (ACCEPTS has get-next-work-item): its skill decision is skill-assess's and skill-validate's.
+R23D_STAGES = ("skill-assess", "skill-validate", "release-plan", "release", "release-verify")
 for _index, _name in enumerate(R23D_STAGES):  # the fixture run has no visit at these stages; give each an action id like the others
     IDS.setdefault(_name, f"nav-9{_index}{hashlib.sha256(_name.encode()).hexdigest()[:30]}")
 R23D_ACCEPTS = ACCEPTS + [(name, name, 150 + 5 * index, "done") for index, name in enumerate(R23D_STAGES)]
@@ -9373,7 +9421,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertNotIn("tests", again["delivered"])
 
     def test_the_skill_decision_and_the_release_are_the_runs_own_words_cut_and_free_of_local_paths(self):
-        said = {"carry-forward": "Decision: no new skill. " + "word " * 80,
+        said = {"skill-assess": "Decision: no new skill. " + "word " * 80, "skill-validate": "N/A: nothing to run.",
                 "release-plan": "Release = guarded fast-forward return of the run branch to main (no push). See /Users/someone/e2e/run/notes/plan.md",
                 "release": "Ran the planned local release. " + "y" * 400}
         out = r23d_run(Path(tempfile.mkdtemp(dir=self.tmp)), R23D_HELLO, summaries=said)
@@ -9381,7 +9429,8 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertEqual(export.validate_doc("runs", run), [])
         self.assertNotIn("/Users/", json.dumps(run["delivered"]))
         skill, release = run["delivered"]["skill"], run["delivered"]["release"]
-        self.assertEqual(set(skill), {"assessed"})  # carry-forward's one skill decision; no separate validation stage
+        self.assertEqual(run["stageModel"], "v4")
+        self.assertEqual(skill["validated"], "N/A: nothing to run.")
         self.assertTrue(skill["assessed"].startswith("Decision: no new skill. word word"))
         self.assertLessEqual(len(skill["assessed"]), export.MAX_DELIVERED_SKILL)
         self.assertTrue(skill["assessed"].endswith("…"))
@@ -9390,18 +9439,21 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertNotIn("delivered.skill", run["unmeasured"])
 
     def test_a_skipped_visit_is_not_a_decision_and_a_stage_never_reached_is_unmeasured(self):
-        rows = [{"stage": "carry-forward", "outcome": "done", "summary": "first answer"},
-                {"stage": "carry-forward", "outcome": "done", "summary": "skipped answer", "skipped": True},
-                {"stage": "release-plan", "outcome": "done", "summary": "p"}, {"stage": "release-plan", "outcome": "done"}]
+        # the skill decision is skill-assess's in a 17-stage run and carry-forward's in an 8-stage one (B1)
         workspace = Path(tempfile.mkdtemp(dir=self.tmp))
-        got, why = export._delivered(workspace, rows)
-        self.assertEqual(got["skill"], {"assessed": "first answer"})
-        self.assertEqual(got["release"], {"plan": "p"})  # the last visit with words; a visit with no summary says nothing
-        self.assertNotIn("delivered.skill", why)
-        got, why = export._delivered(workspace, [{"stage": "intake", "outcome": "done"}])
-        self.assertNotIn("skill", got)
-        self.assertIn("carry-forward", why["delivered.skill"])
-        self.assertIn("release-plan", why["delivered.release"])
+        for model, stage in (("v4", "skill-assess"), ("v5", "carry-forward")):
+            rows = [{"stage": stage, "outcome": "done", "summary": "first answer"},
+                    {"stage": stage, "outcome": "done", "summary": "skipped answer", "skipped": True},
+                    {"stage": "carry-forward" if model == "v4" else "skill-assess", "outcome": "done", "summary": "other model's"},
+                    {"stage": "release-plan", "outcome": "done", "summary": "p"}, {"stage": "release-plan", "outcome": "done"}]
+            got, why = export._delivered(workspace, rows, model)
+            self.assertEqual(got["skill"], {"assessed": "first answer"}, model)
+            self.assertEqual(got["release"], {"plan": "p"})  # the last visit with words; a visit with no summary says nothing
+            self.assertNotIn("delivered.skill", why)
+            got, why = export._delivered(workspace, [{"stage": "intake", "outcome": "done"}], model)
+            self.assertNotIn("skill", got)
+            self.assertIn(stage, why["delivered.skill"])
+            self.assertIn("release-plan", why["delivered.release"])
 
     def test_a_receipt_that_cannot_be_read_leaves_the_status_and_branches_and_names_the_missing_mode(self):
         out = r23d_run(self.tmp, R23D_HELLO)
@@ -9423,7 +9475,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
 
     def test_the_facts_carry_the_files_the_test_run_and_the_words_of_the_skill_and_release_stages(self):
         _, facts = self.build(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE},
-                              summaries={"carry-forward": "Decision: no new skill.", "release": "Ran the local release."})
+                              summaries={"skill-assess": "Decision: no new skill.", "release": "Ran the local release."})
         text = "\n".join(facts)
         self.assertIn("- Delivered files (kept in the return plan): source 3, tests 4, docs 1, knowledge 10, skills 0", text)
         self.assertIn("- Delivered tests: 15 ran, 0 failed (release-verify, returned-result)", text)
@@ -9486,7 +9538,7 @@ class R23dPageLogicTests(unittest.TestCase):
 
     def test_the_card_rows_are_implemented_tests_documentation_skills_and_release_in_the_runs_words(self):
         doc = r23d_page_doc(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE},
-                            summaries={"carry-forward": "no new skill.", "release-plan": "Local only.", "release": "Ran it."})
+                            summaries={"skill-assess": "no new skill.", "skill-validate": "N/A.", "release-plan": "Local only.", "release": "Ran it."})
         model = run_logic("deliveredModel(%s)" % json.dumps(doc))
         rows = dict(model["rows"])
         self.assertEqual(model["title"], "What was delivered")
@@ -9496,7 +9548,7 @@ class R23dPageLogicTests(unittest.TestCase):
         self.assertNotIn("system/http-smoke.js", rows["Implemented"])  # a system test is a test, listed under Tests
         self.assertEqual(rows["Tests"], "4 files\nsystem/http-smoke.js\nsystem/ui-click.js\ntest/rules.test.js\ntest/server.test.js\nLast run: 15 tests ran, 0 failed, at release-verify (returned-result)")
         self.assertEqual(rows["Documentation"], "1 file\nREADME.md\nShipLoop records: 10 files under docs/shiploop (the run's own planning, outcome and release records)")
-        self.assertEqual(rows["Skills"], "Decision: no new skill.\nProduced: none")
+        self.assertEqual(rows["Skills"], "Decision: no new skill.\nValidation: N/A.\nProduced: none")
         self.assertEqual(rows["Release"], "Planned: Local only.\nDone: Ran it.")
 
     def test_a_part_the_export_could_not_measure_is_said_with_its_reason_and_a_marked_change_is_shown(self):
@@ -9537,11 +9589,19 @@ class R23dPageTests(unittest.TestCase):
             self.assertIn(text, out[1])
         self.assertEqual(out[2], 0)  # paths are files on the machine that ran the case: text, not links
 
-    def test_a_red_last_run_is_shown_with_its_counts_and_stage_and_no_excuse(self):
-        # The 8-stage loop has no stage whose last run is meant to be red (test's base run is followed by its loop run), so a
-        # red last run is shown as it is, at whatever stage it ran.
+    def test_a_red_run_is_not_read_as_a_failing_product(self):
+        # S3: in a 17-stage run test-red's new tests are meant to fail
         doc = r23d_page_doc(R23D_STOPPED)
-        for stage in ("test", "test-red", "verify"):
+        self.assertEqual(doc["stageModel"], "v4")
+        doc["delivered"]["tests"] = {"ran": 17, "failed": 15, "stage": "test-red"}
+        rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
+        self.assertIn("Last run: 17 tests ran, 15 failed, at test-red: the new tests are meant to fail here", rows["Tests"])
+        doc["delivered"]["tests"] = {"ran": 17, "failed": 2, "stage": "regression"}
+        self.assertNotIn("meant to fail", dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])["Tests"])
+        # The 8-stage loop has no stage whose last run is meant to be red (test's base run is followed by its loop run), so a
+        # red last run of an 8-stage run is shown as it is, at whatever stage it ran.
+        doc["stageModel"] = "v5"
+        for stage in ("test", "verify"):
             doc["delivered"]["tests"] = {"ran": 17, "failed": 15, "stage": stage}
             rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
             self.assertIn("Last run: 17 tests ran, 15 failed, at " + stage, rows["Tests"])
@@ -9675,7 +9735,7 @@ class StaticCopyTests(unittest.TestCase):
         self.assertIn("&lt;/script&gt;", html.split("<title>")[1].split("</title>")[0])
         defaults = export.defaults_docs()
         self.assertEqual(set(data["expectations"]), set(defaults["expectations"]))
-        self.assertEqual(set(data["config"]), {"page", "prompt", "stages"})
+        self.assertEqual(set(data["config"]), {"page", "prompt", "stages", "stages-v4"})  # both catalogs: the run reads its model's
         self.assertEqual(data["expectations"].keys(), defaults["expectations"].keys())
 
     def test_line_separators_in_a_document_are_escaped_in_the_data(self):
@@ -9743,6 +9803,414 @@ class StaticCopyTests(unittest.TestCase):
                               text=True, timeout=60)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(json.loads(done.stdout), [None, [["r", {"a": 1}]], True, {"a": 1}, False, {"a": 1}])
+
+
+# ---------------------------------------------------------------- stage models: 17-stage (v4) and 8-stage (v5) runs
+
+STAGE_MODEL_GOLDEN = FIXTURES / "stage-model-v4.golden.json"
+SM_OUTER = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
+SM_V4_INNER = ("get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement", "test-green",
+               "test-refine", "regression", "document", "skill-assess", "skill-validate", "static-checks", "verify", "integrate",
+               "integration-verify", "carry-forward")
+SM_V5_INNER = ("step-plan", "test-spec", "validate-existing", "implement", "implement", "test", "document", "verify",
+               "carry-forward")
+SM_SAID = {"skill-assess": "Decision: no new skill; rules.js is the reusable unit.",
+           "skill-validate": "N/A: no skill was created, so nothing to validate.",
+           "carry-forward": "Lessons: the quality loop found a crash worth a regression test. Queue unchanged."}
+
+
+def stage_model_run(root: Path, model: str) -> Path:
+    """A run of one stage model with distinct accepted summaries. v4 (state version 4): work item W1 goes through all 17 inner
+    stages (its carry-forward records lessons), W2 stops at static-checks after skill-assess and skill-validate, with a red
+    test-red record as the last counted test run. v5 (state version 5): W1 goes through the 8 stages (two implement steps;
+    carry-forward records the skill decision) and the run is at system-test-author."""
+    visits = [(None, s) for s in SM_OUTER]
+    if model == "v4":
+        visits += [("W1", s) for s in SM_V4_INNER] + [("W2", s) for s in SM_V4_INNER[:SM_V4_INNER.index("skill-validate") + 1]]
+    else:
+        visits += [("W1", s) for s in SM_V5_INNER]
+    accepts, rows = [], []
+    for n, (item, stage) in enumerate(visits):
+        name = f"sm-{model}-{n:02d}-{stage}"
+        IDS.setdefault(name, "nav-" + hashlib.sha256(name.encode()).hexdigest()[:32])
+        accepts.append((name, stage, 5 * (n + 1), "done"))
+        rows.append((item, stage))
+    out = make_run(root, accepts=accepts, loops=False)
+    run_dir = run_dir_of(out)
+    state = export._record(run_dir / "state.md")
+    for row, (item, stage) in zip(state["history"], rows):
+        row["workitem"] = item
+        row["summary"] = (SM_SAID["carry-forward"] if model == "v4" else "Decision: reuse; no new skill. "
+                          + SM_SAID["carry-forward"]) if stage == "carry-forward" else SM_SAID.get(stage, f"{stage} done")
+    state["work_items"] = [{"id": "W1", "title": "Build the rules"}] + ([{"id": "W2", "title": "Build the server"}] if model == "v4" else [])
+    if model == "v4":
+        state.update(version=4, work_index=1, stage="inner-loop",
+                     inner_loops={"W2": {"stage": "static-checks", "action": {"id": "nav-x", "stage": "static-checks"}}})
+    else:
+        state.update(version=5, work_index=0, stage="system-test-author", inner_loops={})
+    record(run_dir / "state.md", state)
+    if model == "v4":
+        last_red = [name for name, stage, _, _ in accepts if stage == "test-red"][-1]
+        add_record(out, IDS[last_red], 1, VERIFY_RED)
+    return out
+
+
+def stage_model_view(out: Path, catalog: list | None = None) -> dict:
+    """What a reader sees of a stage-model run: the exported document's stage model, skill and phases, the facts' phase line,
+    and, from the page, each visit's phase name and stage card and the Tests row of the delivered card. `catalog` is the one the
+    page passes to the card (None: the page's own choice from config/stages and config/stages-v4)."""
+    docs, facts = export.build_run(out)
+    run = json.loads(json.dumps(next(iter(docs["runs"].values()))))
+    cfg = export.defaults_docs()["config"]
+    page = run_logic("(function(run,cfg,given){var m=stageModel(run),cat=given||(m===\"v4\"?cfg[\"stages-v4\"].stages:cfg.stages.stages),"
+                     "flow=stageFlow(m),prev=-1;return {phases:flow.map(function(p){return p[0];}),"
+                     "cards:run.stages.map(function(r,i){prev=phaseOfStage(r.stage,prev,m);var c=stageCard(run,i,cat);"
+                     "return {stage:c.stage,phase:flow[prev][0],purpose:c.purpose,check:c.check,readers:c.written.readers};}),"
+                     "tests:deliveredModel(run).rows.filter(function(x){return x[0]===\"Tests\";})[0][1]};})(%s,%s,%s)"
+                     % (json.dumps(run), json.dumps(cfg), json.dumps(catalog)))
+    return {"stageModel": run.get("stageModel"), "skill": run.get("delivered", {}).get("skill"),
+            "skillWhy": run["unmeasured"].get("delivered.skill"), "phaseStates": run["phases"],
+            "phasesFact": next(line for line in facts if line.startswith("- Phases:")),
+            "modelFact": next((line for line in facts if line.startswith("- Stage model:")), None), **page}
+
+
+class StageModelTests(unittest.TestCase):
+    """A saved 17-stage run reads as the 17-stage engine described it, and a new 8-stage run as the 8-stage engine does. The
+    golden is what the exporter and page of 54bcb54d (the last 17-stage release of Run Review) showed for the v4 fixture."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def test_a_17_stage_run_exports_and_renders_as_the_17_stage_release_did(self):
+        golden = json.loads(STAGE_MODEL_GOLDEN.read_text(encoding="utf-8"))
+        view = stage_model_view(stage_model_run(self.tmp, "v4"))
+        self.assertEqual(view["stageModel"], "v4")
+        self.assertEqual(view["modelFact"], "- Stage model: v4 (the 17-stage inner loop, state version 4 or earlier)")
+        # B1: the skill decision and its validation are skill-assess's and skill-validate's words, not carry-forward's lessons
+        self.assertEqual((view["skill"], view["skillWhy"]), (golden["skill"], golden["skillWhy"]))
+        self.assertEqual(view["skill"], {"assessed": SM_SAID["skill-assess"], "validated": SM_SAID["skill-validate"]})
+        # S1/S2: the 17-stage phase names, and the run's phases stay in flow order (Prove running, Integrate not reached)
+        self.assertEqual((view["phasesFact"], view["phaseStates"]), (golden["phasesFact"], golden["phaseStates"]))
+        self.assertEqual(view["phases"], golden["phases"])
+        self.assertIn("Prove running, Integrate done", view["phasesFact"])
+        # B2: every card's purpose, exit check (and why) and readers come from the 17-stage catalog
+        self.assertEqual(view["cards"], golden["cards"])
+        self.assertEqual(next(c for c in view["cards"] if c["stage"] == "baseline")["check"]["kind"], "model judgement")
+        # S3: a last counted run at test-red is the new tests failing as meant
+        self.assertEqual(view["tests"], golden["tests"])
+        self.assertIn("at test-red: the new tests are meant to fail here", view["tests"])
+
+    def test_the_page_picks_the_17_stage_catalog_for_a_17_stage_run_by_itself(self):
+        out = stage_model_run(self.tmp, "v4")
+        self.assertEqual(stage_model_view(out)["cards"], stage_model_view(out, json.loads(STAGES_V4_JSON.read_text())["stages"])["cards"])
+        # a run exported before stageModel existed (the page's database holds such documents) is still known by its stage names
+        run = next(iter(export.build_run(out)[0]["runs"].values()))
+        run.pop("stageModel")
+        self.assertEqual(run_logic("[stageModel(%s),stageModel({stages:[{stage:'test'}]}),stageModel({stages:[]})]" % json.dumps(run)),
+                         ["v4", "v5", ""])
+
+    def test_an_8_stage_run_exports_and_renders_with_the_8_stage_catalog(self):
+        view = stage_model_view(stage_model_run(self.tmp, "v5"))
+        self.assertEqual(view["stageModel"], "v5")
+        self.assertEqual(view["modelFact"], "- Stage model: v5 (the 8-stage inner loop, state version 5)")
+        self.assertEqual(view["skill"], {"assessed": "Decision: reuse; no new skill. " + SM_SAID["carry-forward"]})
+        self.assertEqual(view["phases"], ["Understand", "Specify", "Plan", "Build", "Verify", "Carry forward", "System test", "Release"])
+        self.assertEqual(view["phasesFact"], "- Phases: Understand done, Specify done, Plan done, Build done, Verify done, "
+                                             "Carry forward done, System test running, Release none")
+        cards = {c["stage"]: c for c in view["cards"]}
+        self.assertEqual([c["phase"] for c in view["cards"] if c["stage"] in ("test-spec", "validate-existing", "verify")],
+                         ["Plan", "Build", "Verify"])
+        self.assertEqual(cards["implement"]["purpose"], "Make the planned step's change")
+        # N2: a script-run row that also has an Improve child says so
+        self.assertEqual(cards["implement"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal, lint-gate before it "
+                         "accepts done, and an Improve child reviews each step's result."})
+        self.assertIn("only the last work item's carry-forward", cards["carry-forward"]["check"]["why"])
+        self.assertEqual(cards["verify"]["check"]["why"], "ShipLoop runs loop-terminal, lint-gate, test-rerun before it accepts done.")
+        self.assertNotIn("meant to fail", view["tests"])
+
+    def test_the_page_names_the_model_and_shows_a_17_stage_runs_own_phases_and_expectation(self):
+        docs = {m: next(iter(export.build_run(stage_model_run(Path(tempfile.mkdtemp(dir=self.tmp)), m))[0]["runs"].values()))
+                for m in ("v4", "v5")}
+        docs["v5"] = dict(docs["v5"], key="k5", order=docs["v4"]["order"] + 1)
+        defaults = export.defaults_docs()
+        setup = ("data.runs=" + json.dumps([docs["v4"], docs["v5"]]) + ";data.bc=[];data.exp=" + json.dumps(defaults["expectations"])
+                 + ";data.cfg=" + json.dumps(defaults["config"]) + ";Object.keys(loaded).forEach(function(k){loaded[k]=true;});")
+        probe = ('[textOf("runfacts"),byClass("flow","exp").map(function(c){return c.children[0].textContent;}),'
+                 '(pickPhase(4),textOf("phasepanel"))]')
+        v4 = page_probe(probe, setup=setup + "L.run=%s;renderAll();" % json.dumps(docs["v4"]["key"]))
+        v5 = page_probe(probe, setup=setup + "L.run='k5';renderAll();")
+        self.assertIn("skill-craft 1.16.1, ShipLoop 0.48.1 (17-stage run) |", v4[0])
+        self.assertIn("(8-stage run) |", v5[0])
+        self.assertEqual(v4[1][3:6], ["Build", "Prove", "Integrate"])
+        self.assertEqual(v5[1][3:6], ["Build", "Verify", "Carry forward"])
+        frozen = json.loads(STAGES_V4_JSON.read_text(encoding="utf-8"))["phaseTexts"]
+        self.assertIn("Prove: what we expect", v4[2])
+        self.assertIn(frozen["phase-4"]["text"], v4[2])
+        self.assertIn("describes the 8-stage loop", v4[2])
+        self.assertIn(defaults["expectations"]["phase-4"]["text"], v5[2])
+        self.assertNotIn(frozen["phase-4"]["text"], v5[2])
+
+    def test_the_stage_model_comes_from_the_state_version_and_the_stage_names(self):
+        model = export.stage_model
+        self.assertEqual([model({"version": 4}, []), model({"version": 5}, []), model({"version": 3}, ["spec"]),
+                          model({}, ["intake", "get-next-work-item"]), model({"version": 5}, ["test-green"]),
+                          model({}, ["intake", "test"]), model({}, ["intake", "spec"]), model({"version": "x"}, [])],
+                         ["v4", "v5", "v4", "v4", "v4", "v5", None, None])
+        self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v4"], ("test-green", "test-refine", "regression", "document", "skill-assess",
+                         "skill-validate", "static-checks", "verify", "integrate", "integration-verify", "carry-forward"))
+        self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v5"], export.AFTER_IMPLEMENT)
+
+    def test_the_17_stage_catalog_is_the_frozen_54bcb54d_one_and_the_page_flow_matches_it(self):
+        frozen = json.loads(STAGES_V4_JSON.read_text(encoding="utf-8"))
+        self.assertEqual(len(frozen["stages"]), 34)
+        self.assertEqual([e["stage"] for e in frozen["stages"]][7:25], list(SM_V4_INNER))
+        self.assertEqual([[name, list(stages)] for name, stages in export.PHASES_V4], frozen["phases"])
+        self.assertEqual(run_logic("STAGE_FLOW_V4"), frozen["phases"])
+        self.assertEqual(run_logic("STAGE_ALIASES_V4"), [list(g) for g in export.STAGE_ALIASES_V4])
+        self.assertEqual({k: v["title"] for k, v in frozen["phaseTexts"].items()},
+                         {"phase-3": "Build", "phase-4": "Prove", "phase-5": "Integrate"})
+        self.assertEqual(export.defaults_docs()["config"]["stages-v4"], {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]})
+        self.assertEqual(export.validate_doc("config", export.defaults_docs()["config"]["stages-v4"]), [])
+
+
+SLICE_NOT_REACHED = "system tests, release and the report: a slice ends after the item's inner loop"
+SLICE_VERDICTS = {"process": True, "inner_loop": True, "no_overshoot": True, "assembled": True, "checks": True}
+
+
+def slice_run(root: Path, model: str = "v5", stop: str = "slice-complete", verdicts: dict | None = None) -> Path:
+    """A step slice as test/shiploop_e2e/slice.py leaves it (shaped on the real 8-stage slice node-add-function of 2026-10-10):
+    the harness seeded every stage before step-plan (invocation.json `seeded`; only intake has a packet, as the seed leaves it),
+    work item W1 ran its inner loop live and the run was advanced to system-test-author, where the harness ended the host. It
+    writes slice-result.json, no result.json. The workspace was prepared and never returned. v4: the 17-stage inner loop, with
+    get-next-work-item seeded too."""
+    seeded = SM_OUTER + (("get-next-work-item",) if model == "v4" else ())
+    inner = SM_V5_INNER if model == "v5" else SM_V4_INNER[1:]
+    visits = [(None, s) for s in SM_OUTER] + [("W1", s) for s in seeded[len(SM_OUTER):] + inner]
+    accepts = []
+    for n, (_, stage) in enumerate(visits):
+        name = f"slice-{model}-{n:02d}-{stage}"
+        IDS.setdefault(name, "nav-" + hashlib.sha256(name.encode()).hexdigest()[:32])
+        accepts.append((name, stage, 0.1 * (n + 1) if n < len(seeded) else 1 + n, "done"))
+    out = make_run(root, accepts=accepts, loops=False)
+    run_dir = run_dir_of(out)
+    state = export._record(run_dir / "state.md")
+    for row, (item, stage) in zip(state["history"], visits):
+        row["workitem"] = item
+        row["summary"] = SM_SAID["carry-forward"] if stage == "carry-forward" else f"{stage} done"
+    state.update(version=5 if model == "v5" else 4, work_index=0, stage="system-test-author", inner_loops={},
+                 work_items=[{"id": "W1", "title": "Add slugify"}])
+    record(run_dir / "state.md", state)
+    for name, _, _, _ in accepts[1:len(seeded)]:  # the seed issues a packet for intake only
+        (run_dir / "packets" / f"{IDS[name]}.md").unlink()
+    record(run_dir.parent / "workspace.md", {"status": "prepared", "source_branch": "master", "branch": "shiploop/run-x"})
+    (out / "result.json").unlink()
+    edit_json(out / "invocation.json", lambda i: i.update(
+        case="node-add-function", host="claude", model="claude-sonnet-5-5", effort=None, kind="step-slice",
+        delegation="inline", versions={"plugin_version": "1.27.0", "shiploop_version": "0.59.0", "plugin_sha256": "f32107d2c559"},
+        seeded={"stage": "step-plan", "run_dir": str(run_dir), "start_head": "6138557e", "skipped": list(seeded),
+                "action": "nav-x", "delegation": "inline"}))
+    verdicts = dict(SLICE_VERDICTS, **(verdicts or {}))
+    write_json(out / "slice-result.json", {
+        "case": "node-add-function", "host": "claude", "model": "claude-sonnet-5-5", "delegation": "inline",
+        "output": str(out), "run_dir": str(run_dir), "worktree": str(run_dir.parent / "worktree"),
+        "pass": all(verdicts.values()), "verdicts": verdicts, "item": "W1",
+        "item_history": [{"stage": s, "outcome": "done"} for s in inner], "overshoot": [], "queue_growth": 0,
+        "run_status": "active", "stage_at_stop": "system-test-author",
+        "assembled": {"pass": verdicts["assembled"], "changed": ["src/strings.js"], "missing": [], "reason": None},
+        "checks": [{"command": "node --test", "pass": verdicts["checks"]}],
+        "sessions": [{"status": stop, "returncode": -9, "elapsed_seconds": 315.0, "stop": None}],
+        "clear": None, "not_reached": SLICE_NOT_REACHED})
+    return out
+
+
+class StepSliceTests(unittest.TestCase):
+    """A step slice (slice-result.json, no result.json) reads as a slice: kind slice, finished at its stop, its seeded stages
+    seeded (not skipped), its outer stages not reached, the whole-run measures it cannot have not measured with a reason that
+    names the slice, "step slice" on the header and in facts.md, and compared only with slices. A whole run reads as before."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = next(iter(docs["runs"].values()))
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def fresh(self) -> Path:
+        return Path(tempfile.mkdtemp(dir=self.tmp))
+
+    def test_a_finished_slice_is_kind_slice_with_seeded_stages_and_its_outer_stages_not_reached(self):
+        run, facts = self.build(slice_run(self.tmp))
+        self.assertEqual((run["kind"], run["status"]), ("slice", "finished"))
+        self.assertEqual(run["slice"], {"item": "W1", "stop": "slice-complete", "stageAtStop": "system-test-author",
+                                        "notReached": SLICE_NOT_REACHED})
+        self.assertIn("-slice-node-add-function-", run["key"])
+        self.assertTrue(run["name"].endswith(", step slice, release 1.27.0"), run["name"])
+        rows = run["stages"]
+        self.assertEqual([r["stage"] for r in rows if r.get("seeded")], list(SM_OUTER))
+        self.assertEqual([r["stage"] for r in rows if r.get("skipped")], [])  # seeded, never "skipped"
+        self.assertTrue(all(r["min"] is None for r in rows[:len(SM_OUTER)]))
+        self.assertEqual(run["phases"], ["done"] * 6 + ["none", "none"])  # system test and release not reached, not running
+        self.assertTrue(run["time"].startswith("finished in "), run["time"])
+        self.assertEqual(run["endedAt"], iso(len(rows)))
+        self.assertEqual(run["verdicts"], SLICE_VERDICTS)
+        self.assertEqual(run["outcome"], {"class": "PASS", "basis": "step slice: every verdict holds (process, inner_loop, "
+                                                                   "no_overshoot, assembled, checks)"})
+        self.assertEqual(run["identity"], {"pluginSha": "f32107d2c559"})
+        # the work item is the case's on purpose: its steps loop is the model's and is measured
+        self.assertEqual((run["stepsPlanned"], run["stepsExecuted"]), (2, 2))
+        text = "\n".join(facts)
+        self.assertIn("- Run: step slice; ShipLoop status active; 16 accepted actions (9 work, 0 recorded by ShipLoop, 7 seeded)", text)
+        self.assertIn("- Step slice: work item W1's inner loop; stopped by slice-complete (the slice stop", text)
+        self.assertIn(f"not reached: {SLICE_NOT_REACHED}; compared only with other step slices", text)
+        self.assertIn("- Phases: Understand seeded by the harness, Specify seeded by the harness, Plan done, Build done, Verify done, "
+                      "Carry forward done, System test not reached (slice), Release not reached (slice)", text)
+        self.assertIn("- Verdicts: process pass, inner_loop pass, no_overshoot pass, assembled pass, checks pass", text)
+        self.assertNotIn("no result.json", text)
+
+    def test_whole_run_measures_a_slice_cannot_have_are_not_measured_with_a_reason_naming_the_slice(self):
+        run, facts = self.build(slice_run(self.tmp))
+        unmeasured = run["unmeasured"]
+        for name in ("delivered.returned", "delivered.files", "delivered.release", "outerRefusals"):
+            self.assertIn("a step slice does not reach", unmeasured[name], name)
+            self.assertIn(f"not reached: {SLICE_NOT_REACHED}", unmeasured[name], name)
+        self.assertNotIn("returned", run["delivered"])  # never "not merged back"
+        self.assertNotIn("release", run["delivered"])
+        self.assertEqual(run["quality"]["observed"], False)
+        self.assertIn("a step slice does not reach the quality phase", run["quality"]["reason"])
+        # the inner loop's own measures stay measured: refusals (a count, never dropped), the tests and the skill decision
+        self.assertEqual(run["refusals"], 1)
+        self.assertEqual(run["delivered"]["skill"], {"assessed": SM_SAID["carry-forward"]})
+        text = "\n".join(facts)
+        self.assertIn("- Delivered: not measured (a step slice does not reach the return of the product", text)
+        self.assertIn("- Delivered release: not measured (a step slice does not reach the release stages", text)
+        self.assertIn("- Quality (recorded after the run, never a verdict): not observed (a step slice does not reach", text)
+        self.assertIn("- ShipLoop command failures: 1 (complete 1); the item's inner loop only, refusals at outer stages not "
+                      "measured (step slice)", text)
+        self.assertNotIn("not merged back", text)
+
+    def test_a_failing_slice_is_failed_by_its_named_verdicts_and_a_stop_other_than_the_slice_stop_is_stopped(self):
+        run, _ = self.build(slice_run(self.fresh(), verdicts={"inner_loop": False, "checks": False}))
+        self.assertEqual(run["outcome"], {"class": "FAILED", "basis": "step slice failed by verdict: inner_loop, checks"})
+        self.assertEqual((run["verdicts"]["inner_loop"], run["status"]), (False, "finished"))  # it still reached its stop
+        cleared, facts = self.build(slice_run(self.fresh(), stop="cleared"))
+        self.assertEqual((cleared["status"], cleared["slice"]["stop"]), ("stopped", "cleared"))
+        self.assertIn("a context-clear probe stop", cleared["ending"]["by"])
+        self.assertIn("stopped", cleared["phases"])
+        self.assertIn("- Ended: stopped: a context-clear probe stop", "\n".join(facts))
+        timed, _ = self.build(slice_run(self.fresh(), stop="timeout"))
+        self.assertEqual((timed["status"], timed["ending"]["by"]),
+                         ("stopped", "the slice's last session ended timeout before the slice stop"))
+
+    def test_a_17_stage_slice_reads_with_its_own_stage_model(self):
+        run, facts = self.build(slice_run(self.tmp, "v4"))
+        self.assertEqual((run["kind"], run["stageModel"], run["status"]), ("slice", "v4", "finished"))
+        self.assertEqual([r["stage"] for r in run["stages"] if r.get("seeded")], [*SM_OUTER, "get-next-work-item"])
+        self.assertEqual(run["phases"], ["done"] * 6 + ["none", "none"])
+        self.assertIn("- Phases: Understand seeded by the harness, Specify seeded by the harness, Plan done, Build done, Prove done, "
+                      "Integrate done, System test not reached (slice), Release not reached (slice)", "\n".join(facts))
+
+    # The engine's own summaries of a visit it recorded with no packet (shiploop_navigator, shiploop_item_scope.NOT_APPLICABLE).
+    EXPECTATIONS_SAID = ("ShipLoop ran every expectation check on the unchanged checkout and each matched its state; "
+                         "validate-existing is recorded done without a packet.")
+    NOT_APPLICABLE_SAID = "Not applicable to this item: it changes no documented surface. ShipLoop recorded this stage without running it."
+
+    def recorded_slice(self, stage: str, said: str) -> tuple[dict, list[str], int]:
+        """An 8-stage slice whose live `stage` visit ShipLoop recorded itself: no packet file, the engine's summary."""
+        out = slice_run(self.fresh())
+        run_dir = run_dir_of(out)
+        state = export._record(run_dir / "state.md")
+        index = len(SM_OUTER) + SM_V5_INNER.index(stage)  # slice_run's visits: the outer stages, then W1's inner loop
+        state["history"][index]["summary"] = said
+        record(run_dir / "state.md", state)
+        (run_dir / "packets" / f"{state['history'][index]['action']}.md").unlink()
+        run, facts = self.build(out)
+        return run, facts, index
+
+    def test_a_visit_shiploop_recorded_because_every_expectation_matched_says_so_on_the_row_and_the_page(self):
+        run, facts, index = self.recorded_slice("validate-existing", self.EXPECTATIONS_SAID)
+        row = run["stages"][index]
+        self.assertEqual((row["stage"], row.get("skipped"), row.get("recorded")),
+                         ("validate-existing", True, "expectations matched"))
+        self.assertEqual([r["stage"] for r in run["stages"] if "recorded" in r], ["validate-existing"])
+        self.assertIn("(8 work, 1 recorded by ShipLoop, 7 seeded)", "\n".join(facts))
+        card = run_logic("stageCard(%s,%d,null)" % (json.dumps(run), index))
+        outcome = dict(card["done"]["lines"])["Outcome"]
+        self.assertEqual(outcome, "recorded by ShipLoop: every expectation check matched its state, no packet was needed")
+        self.assertEqual(card["sent"]["note"], "Recorded by ShipLoop: every expectation check matched its state, no packet was needed.")
+        detail = run_logic("(function(r){var m=sequenceModel(r,{});return columnDetail(m,columnOfVisit(m,%d),r,[]);})(%s)"
+                           % (index, json.dumps(run)))
+        self.assertEqual(dict(detail["lines"])["Outcome"], outcome)
+        self.assertEqual(detail["title"], "Visit %d: validate-existing (recorded by ShipLoop)" % (index + 1))
+
+    def test_a_visit_shiploop_left_out_as_not_applicable_is_recorded_not_applicable(self):
+        run, facts, index = self.recorded_slice("document", self.NOT_APPLICABLE_SAID)
+        row = run["stages"][index]
+        self.assertEqual((row["stage"], row.get("skipped"), row.get("recorded")), ("document", True, "not applicable"))
+        card = run_logic("stageCard(%s,%d,null)" % (json.dumps(run), index))
+        self.assertEqual(dict(card["done"]["lines"])["Outcome"],
+                         "recorded by ShipLoop: not applicable to this item, no packet was issued")
+
+    def test_a_no_packet_visit_with_another_summary_has_no_recorded_reason_and_keeps_the_old_outcome_line(self):
+        run, _, index = self.recorded_slice("document", "document done")
+        row = run["stages"][index]
+        self.assertEqual((row.get("skipped"), "recorded" in row), (True, False))
+        card = run_logic("stageCard(%s,%d,null)" % (json.dumps(run), index))
+        self.assertEqual(dict(card["done"]["lines"])["Outcome"], "skipped: no packet was issued, the engine found it not applicable")
+        self.assertEqual(run_logic("kpiCards(%s,null)[0].note" % json.dumps(run)), "8 work, 1 recorded by ShipLoop, 7 seeded")
+
+    def test_a_whole_run_has_no_kind_and_reads_as_before(self):
+        run, facts = self.build(make_run(self.tmp, loops=False))
+        self.assertTrue("kind" not in run and "slice" not in run)
+        self.assertEqual(run["status"], "active")
+        text = "\n".join(facts)
+        self.assertNotIn("step slice", text)
+        self.assertIn("- Run: ShipLoop status active;", text)
+
+    def page(self, expression: str, current: str, cmp: str = "") -> object:
+        slice_doc, _ = self.build(slice_run(self.fresh()))
+        other, _ = self.build(slice_run(self.fresh(), verdicts={"checks": False}))
+        other = dict(other, key="slice-2", name="second slice", order=slice_doc["order"] + 1)
+        whole, _ = self.build(make_run(self.fresh(), loops=False))
+        whole = dict(whole, key="whole", name="whole run", order=slice_doc["order"] + 2)
+        keys = {"slice": slice_doc["key"], "slice-2": "slice-2", "whole": "whole"}
+        defaults = export.defaults_docs()
+        setup = ("data.runs=" + json.dumps([slice_doc, other, whole]) + ";data.bc=[];data.exp=" + json.dumps(defaults["expectations"])
+                 + ";data.cfg=" + json.dumps(defaults["config"]) + ";Object.keys(loaded).forEach(function(k){loaded[k]=true;});"
+                 + "L.run=%s;L.cmp=%s;renderAll();" % (json.dumps(keys[current]), json.dumps(keys.get(cmp, ""))))
+        return page_probe(expression, setup=setup)
+
+    def test_the_page_says_step_slice_on_the_header_and_labels_seeded_and_not_reached_phases(self):
+        header, chevrons, ending = self.page(
+            '[textOf("runfacts"),byClass("flow","chev").filter(function(c){return c.className.indexOf("exp")<0;})'
+            '.map(function(c){return [c.children[0].textContent,c.children[1].textContent,c.title||""];}),textOf("endcard")]',
+            "slice")
+        self.assertTrue(header.startswith("step slice | skill-craft 1.27.0, ShipLoop 0.59.0 (8-stage run) | finished in "), header)
+        labels = {name: (said, title) for name, said, title in chevrons}
+        self.assertEqual([labels[p][0] for p in ("Understand", "Specify", "Plan", "Build", "Carry forward", "System test", "Release")],
+                         ["seeded by the harness", "seeded by the harness", "accepted", "accepted", "accepted",
+                          "not reached (slice)", "not reached (slice)"])
+        self.assertEqual(labels["Release"][1], "Not reached by this step slice: " + SLICE_NOT_REACHED)
+        self.assertIn("Step slice", ending)
+        self.assertIn("work item W1's inner loop, stopped at the item boundary on purpose (slice-complete)", ending)
+
+    def test_a_slice_is_compared_only_with_slices_and_a_whole_run_only_with_whole_runs(self):
+        probe = ('[byId("cmpsel").children.map(function(o){return o.value;}),byId("cmpsel").value,'
+                 'textOf("rundetail").indexOf("side by side")>=0]')
+        on_slice = self.page(probe, "slice", cmp="slice-2")
+        self.assertEqual(on_slice, [["", "slice-2"], "slice-2", True])
+        crossed = self.page(probe, "slice", cmp="whole")  # a comparison stored before: not drawn across kinds
+        self.assertEqual(crossed, [["", "slice-2"], "", False])
+        on_whole = self.page(probe, "whole", cmp="slice")
+        self.assertEqual(on_whole, [[""], "", False])
+        self.assertEqual(run_logic('[sameKind({kind:"slice"},{}),sameKind({},{}),sameKind({kind:"slice"},{kind:"slice"}),'
+                                   'chevronLabel({},0,"none"),headerFacts({release:"r",time:"t"})]'),
+                         [False, True, True, "not reached", "r | t"])
 
 
 if __name__ == "__main__":
