@@ -4,8 +4,8 @@ Step 3 of `docs/shiploop-consumer-contract-plan-2026-10-11.md` (Execute: ask). T
 from in step 4. It has not been built.
 
 **Revision 2 (2026-10-11, after three independent audits).** Section 0A lists every audit correction. Where 0A conflicts
-with sections 1 to 11, 0A wins. Sections 1 to 11 are rewritten to match once the owner answers D1 to D4 (section 0A.3).
-Until then, the body below is the audited draft (revision 1), kept for the audit trail.
+with sections 1 to 11, 0A wins. The owner approved D1 to D4 as recommended (section 0A.3). Sections 1 to 11 are being rewritten to match; until that
+commit, the body below is the audited draft (revision 1), kept for the audit trail.
 
 Inputs:
 - the plan (sections 2, 3, 6 and 8);
@@ -107,6 +107,8 @@ Accepted as known limits:
 | Q8 | Superseded by X9 if D3 is adopted; otherwise fine. | All three. |
 
 ### 0A.3 Owner decisions (each changes the approved plan's shape)
+
+**Decided 2026-10-11: the owner approved all four recommendations** (D1 yes, D2 drop, D3 yes, D4 no). X9, X11 and X12 are therefore adopted in full.
 
 | # | Decision | Recommendation |
 |---|---|---|

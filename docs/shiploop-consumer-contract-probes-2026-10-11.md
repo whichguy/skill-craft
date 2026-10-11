@@ -82,3 +82,11 @@ Findings (status: interim; every saved run had one work item):
 - **Removing the last-commits window conflicts with the owner's 2026-10-10 requirement 4.** The window is kept, and the lessons quote is added beside it.
 
 All corrections are in the contract's section 0A. X1 to X16 are adopted. D1 to D4 change the approved shape and await the owner.
+
+## Owner decisions after the audit (2026-10-11)
+
+The owner approved all four recommendations in contract section 0A.3:
+- **D1:** quote the three living files whole.
+- **D2:** drop the `release` field.
+- **D3:** script-derived spec diff from one run baseline, replacing `requirement_changes` and `changed_ids`.
+- **D4:** no `surface` key.
