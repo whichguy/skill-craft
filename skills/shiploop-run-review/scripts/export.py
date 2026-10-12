@@ -2717,7 +2717,8 @@ IMPROVE_CARRIED_RX = tuple((key, re.compile(rx, re.M)) for key, _, rx in IMPROVE
 IMPROVE_COMPACT_HANDOFF_RX = (
     re.compile(r"^1\. Run the improve skill on the .+ result\. For example, on Claude Code:$", re.M),
     re.compile(r"^\s+/improve ShipLoop Improve: .+/handoff\.md$", re.M),
-    re.compile(r"^2\. When the improve skill has completed, run: .*improve-complete", re.M),
+    # `improve-complete` up to the release before the Improve stage became an action of its own; its `complete` after it.
+    re.compile(r"^2\. When the improve skill has completed, run: .*(?:improve-complete| complete )", re.M),
     re.compile(r"^Keepalive marker: .* run=\S+ rev=\d+ dir=.+$", re.M),
 )
 

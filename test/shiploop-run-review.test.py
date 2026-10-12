@@ -6277,7 +6277,8 @@ class ImprovePacketLayoutTests(unittest.TestCase):
                 doc = docs["packets"][f"real--{visit['action']}-improve"]
                 self.assertEqual((doc["kind"], doc["action"], doc["stage"]), ("improve", visit["action"], visit["stage"]))
                 self.assertTrue(doc["text"].startswith(f"ShipLoop navigator | improve | revision "), doc["text"][:80])
-                self.assertIn(f"complete --run-dir=", doc["text"])
+                # the argument is shell-quoted whole when the checkout path has a space: complete '--run-dir=...'
+                self.assertRegex(doc["text"], r"complete '?--run-dir=")
                 self.assertIn(f"--action={stage_ids[visit['action']]}", doc["text"])  # the callback names the Improve stage, not the reviewed action
             else:
                 self.assertEqual({f for f in ("improvePacketDoc", "improvePacketBytes", "packetImprove") if f in row}, set(), visit["stage"])
@@ -9003,7 +9004,8 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         """The packet carries the invocation and return; the separately named handoff carries the review context."""
         out, visits = real_engine_run(self.tmp)
         packets = next((out / ".shiploop-runs").glob("*/run/packets"))
-        self.assertTrue(any(packets.glob("*-improve.md")), "the engine of this checkout writes the new layout")
+        self.assertTrue(any(f.read_text(encoding="utf-8").startswith("ShipLoop navigator | improve | revision ")
+                            for f in packets.glob("nav-*.md")), "the engine of this checkout writes the Improve stage's own packet")
         docs, facts = export.build_run(out, key="real")
         run = docs["runs"]["real"]
         scored = [r for r in run["stages"] if "improveCarried" in r]
