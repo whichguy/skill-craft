@@ -1799,6 +1799,53 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
 
+    def test_a_result_summary_with_opening_headings_still_starts_the_improve_stage(self):
+        """Review of 2026-10-12 (P1): the opening pastes the result's summary, and a summary line "## Scope" made the
+        contract parser read the opening as repeating that section, so the stage never started and the printed restart
+        command refused for the same reason.  The summary is one line in the opening now."""
+        run = self.base / "heading-run"
+        base = [sys.executable, "-B", str(CLI)]
+
+        def cli(*argv):
+            done = subprocess.run([*base, *map(str, argv)], text=True, capture_output=True, cwd=self.base,
+                                  timeout=30, env=self.environment)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            return done
+
+        cli("init", "--repo", self.repo, "--run-dir", run, "--prompt", "Heading summary fixture",
+            "--improve-skill", CARD, *self.delegation_args())
+        state = store.read_record(run / "state.md")
+        for stage in ("intake", "discovery", "research", "spec"):
+            action = state["action"]["id"]
+            result = run / "inbox" / (action + ".md")
+            summary = ("Spec drafted.\n\n## Scope\nIn scope: the widget.\n\n## Environment\nPython.\n"
+                       if stage == "spec" else "Fixture " + stage + " result.")
+            store.write_record(result, {"outcome": "done", "summary": summary,
+                                        **({"evidence_refs": [str(self.product_contract)]} if stage == "spec" else {})})
+            done = cli("complete", "--run-dir", run, "--action", action, "--result", result)
+            state = store.read_record(run / "state.md")
+        self.assertNotIn("could not start", done.stdout + done.stderr)
+        folder = bridge.receipt_path(state["active_improve"]).parent
+        self.assertEqual(json.loads((folder / "packet.json").read_text(encoding="utf-8"))["status"], "active")
+        opening = (folder / "opening.md").read_text(encoding="utf-8")
+        self.assertEqual(opening.count("\n## Scope\n") + opening.startswith("## Scope\n"), 1)
+        self.assertIn("Its summary: Spec drafted. ## Scope In scope: the widget.", opening)
+
+    def test_the_plan_improve_stage_freezes_its_experiment_scratch_scope_when_it_starts(self):
+        """Review of 2026-10-12 (P1): ShipLoop starts the plan child, so the scratch directory, the notebook and the
+        experiment objective are in the frozen contract, not left for a model to freeze before a start that happened."""
+        self.begin("plan")
+        folder = bridge.receipt_path(self.bound).parent
+        frozen = json.loads((folder / "start.json").read_text(encoding="utf-8"))
+        state = store.read_record(self.run / "state.md")
+        scratch = navigator.planning_scratch_dir(state, state["active_improve"])
+        self.assertIn(str(scratch), frozen["context"]["scope"])
+        self.assertIn(str(navigator.planning_notebook_path(state)), frozen["context"]["scope"])
+        self.assertIn("Planning experiment objective", frozen["work"])
+        handoff = navigator.improve_handoff_text(None, self.run, state)
+        self.assertNotIn("freeze the exact candidate, this scratch directory", handoff)
+        self.assertIn("ShipLoop froze the exact candidate, this scratch directory", handoff)
+
     def test_lessons_are_required_for_a_commit_and_the_named_exit_commits(self):
         """Fail-first: any message used to be committed."""
         self.begin()

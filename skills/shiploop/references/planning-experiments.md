@@ -97,9 +97,9 @@ be relabeled deferred merely to accept a graph.
 
 ## Scope, accounting, and recovery
 
-The parent names and explicitly freezes the candidate plan, investigation
-notebook, evidence paths, and scratch-fixture scope in the existing Improve
-contract. Use the printed child workspace. The normal planning scratch directory
+ShipLoop freezes the candidate plan, investigation notebook, evidence paths,
+and scratch-fixture scope in the Improve contract when it starts the child (the
+opening's Scope section and `start.json`). Use the printed child workspace. The normal planning scratch directory
 is `<child workspace>/.shiploop-improve/.experiments/<run-id>/<action-id>`.
 Experimental code stays in that frozen scope; the path is an isolation boundary,
 not authority. It grants no product integration, production/baseline mutation,

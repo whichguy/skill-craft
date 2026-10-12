@@ -2933,7 +2933,7 @@ def _improve_stage_start(core: Any, root: Path, after: Mapping[str, Any]) -> Non
         return
     try:
         _start_improve(core, root, after)
-    except (NavigatorError, OSError) as exc:  # a filesystem refusal leaves the stage pending too, never blocks the producer
+    except (NavigatorError, OSError, ValueError) as exc:  # a filesystem refusal leaves the stage pending too, never blocks the producer
         print("ShipLoop could not start the Improve review: " + str(exc), file=sys.stderr)
 
 
@@ -5242,14 +5242,10 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Explicitly named planning artifacts may be reviewed."
     )
     if planning_reconcile:
-        # The dot-prefixed namespace cannot alias a valid runtime run ID.
-        scratch = (Path(child["workspace"]) / ".shiploop-improve" / ".experiments"
-                   / state["run_id"] / action_id)
+        scratch = planning_scratch_dir(state, child)
         planning_lines = [
-            "Planning experiments guide: " + str(Path(__file__).resolve().parent.parent / "references"
-                                                 / "planning-experiments.md"),
-            "Planning investigation notebook: " + str(Path(state["repo"]) / ".shiploop-improve" / state["run_id"]
-                                                      / "planning-investigation.md"),
+            "Planning experiments guide: " + str(PLANNING_EXPERIMENTS_GUIDE),
+            "Planning investigation notebook: " + str(planning_notebook_path(state)),
             "Keep detailed experiment prompts, raw logs, and review material behind these locators. A child "
             "continuity context carries a compact planning summary and source locators; do not duplicate verbose logs.",
             "Planning experiment objective: Identify and conduct feasible bounded experiments that "
@@ -5267,9 +5263,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "does not satisfy readiness. Use the current Improve cycle, never a nested loop or a new "
             "experiment counter. Preserve findings, remaining allowance and cleanup through recovery.",
             "Planning scratch directory: " + str(scratch),
-            "For a genuinely new child, freeze the exact candidate, this scratch directory, notebook "
-            "and evidence paths under existing user/repository authority before start. Scratch writes "
-            "are allowed only within that frozen scope for the bounded probe. A printed path grants "
+            "ShipLoop froze the exact candidate, this scratch directory, the notebook and the evidence "
+            "paths into the child's scope when it started the child (context.scope in start.json). Scratch "
+            "writes are allowed only within that frozen scope for the bounded probe. A printed path grants "
             "no additional authority; an existing child retains its frozen scope on recovery. "
             + ("For explicit later user decisions in this conversation, apply them from the next "
                "review iteration and retain receipt/effect in the review notes and handoff. Keep "
@@ -5278,9 +5274,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                "Improve context ownership and retain receipt/effect in the existing handoff. Keep ")
             + "launch context immutable and continue the same child; never replace it merely to "
             "change scope.",
-            "Freeze the experiment objective in child work and its exit criteria in exit_condition. "
+            "The experiment objective is in the child's work and its exit criteria in exit_condition (start.json). "
             "Carry the applicable original requirements, current planning source locators, findings "
-            "and their decision consequences into the compact child context and return handoff.",
+            "and their decision consequences into the review notes and return handoff.",
         ]
         exclusion = (
             "Exclude .until-loop, .shiploop-improve and ShipLoop runtime metadata from product "
@@ -5373,7 +5369,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "raw packet because terminal state is deleted.",
         *(
             [
-                "ShipLoop's opening carries the step result, its permitted paths, authority and environment; "
+                "ShipLoop's opening carries the step result, the files in scope, authority and environment; "
                 "the original request (untrusted) is in state.md. ShipLoop freezes the work, exit and repeat "
                 "conditions, the commit policy, the exclusions and the resources (receipt, evidence directory, "
                 "parent state and the exact parent return, written to "
@@ -5381,7 +5377,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                 "after context loss.",
                 "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
             ] if not planning_reconcile else [
-                "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
+                "ShipLoop froze the step result, the execution/exit/repeat conditions, authority and environment in the child's context; the original request (untrusted) is in state.md.",
                 "For this planning Improve child, use the context-first opening as the compact planning summary plus locators for "
                 "the planning experiments guide, investigation notebook, latest packet, "
                 + ("" if inline else "owner record, ")
@@ -6023,6 +6019,11 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
             "context.scope: make the warranted changes in code, tests or documentation within scope, run "
             "the applicable checks, record the review and check output under " + str(reviews)
             + ", and commit scoped changes when the iteration changed files.")
+    if planning:
+        work += (" Planning experiment objective: identify and conduct feasible bounded experiments that could "
+                 "materially change a decision in this provisional plan or determine whether its consumer may "
+                 "proceed; reuse sufficient evidence; zero experiments is valid. Scratch writes stay in the "
+                 "planning scratch directory named in context.scope.")
     exit_condition = ("Two consecutive full review passes find nothing material to change, or the first "
                       "full pass changes nothing and the runtime sees an unchanged Git tree; no material "
                       "defect remains in the candidate; the applicable checks are recorded.")
@@ -6202,6 +6203,23 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     return 0
 
 
+def planning_scratch_dir(state: Mapping[str, Any], child: Mapping[str, Any]) -> Path:
+    """The planning child's experiment scratch directory (the dot-prefixed namespace cannot alias a valid run ID)."""
+    return Path(child["workspace"]) / ".shiploop-improve" / ".experiments" / state["run_id"] / child["action_id"]
+
+
+def planning_notebook_path(state: Mapping[str, Any]) -> Path:
+    return Path(state["repo"]) / ".shiploop-improve" / state["run_id"] / "planning-investigation.md"
+
+
+PLANNING_EXPERIMENTS_GUIDE = Path(__file__).resolve().parent.parent / "references" / "planning-experiments.md"
+
+
+def _one_line(text: Any) -> str:
+    """Model-written text as one line: a line starting with ``## `` would read as a heading of the opening."""
+    return " ".join(str(text or "").split())
+
+
 def improve_opening_text(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """The Improve child's four opening sections, written by ShipLoop from state (owner, 2026-10-11).
 
@@ -6212,23 +6230,36 @@ def improve_opening_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
     stage, action_id = child["stage"], child["action_id"]
     seed = child["seed_result"]
     work_item = _current_work_item(state)
-    item = (" of work item " + work_item + " (" + _item_title(state, work_item) + ")") if work_item else ""
-    headline = str(seed.get("headline") or "").strip()
-    summary = _bounded_packet_text(str(seed.get("summary") or ""), limit=600)
+    item = (" of work item " + _one_line(work_item) + " (" + _one_line(_item_title(state, work_item)) + ")"
+            if work_item else "")
+    headline = _one_line(seed.get("headline"))
+    summary = _bounded_packet_text(_one_line(seed.get("summary")), limit=600)
     home = Path(state["repo"]) / "docs" / "shiploop"
+    end_of_work = stage in stage_spec.with_improve("last-item")
     changed: list[str] = []
-    if work_item and stage in stage_spec.with_improve("step") | stage_spec.with_improve("last-item"):
+    if work_item and stage in stage_spec.with_improve("step"):
         changed = item_scope.changed_paths(root, work_item) or []
+    elif work_item and end_of_work:
+        # The end-of-work review covers every executed item's change since the accepted plan, not the last item's alone.
+        executed = [str(it.get("id")) for it in (state.get("work_items") or [])[: int(state.get("work_index", 0)) + 1]
+                    if isinstance(it, Mapping) and it.get("id")]
+        changed = sorted({path for ident in executed for path in (item_scope.changed_paths(root, ident) or [])})
     scope = [
         "The " + stage + " result" + item + ": " + str(root / "inbox" / (action_id + ".md")) + ".",
-        *(["Files this item changed: " + ", ".join(changed[:40]) + (" (and more)" if len(changed) > 40 else "")
-           + "."] if changed else []),
+        *([("Files the executed items changed: " if end_of_work else "Files this item changed: ")
+           + ", ".join(changed[:40]) + (" (and more)" if len(changed) > 40 else "") + "."] if changed else []),
         "The knowledge files it worked from, under " + str(home) + ".",
+        *(["Planning experiments: scratch writes are allowed only in " + str(planning_scratch_dir(state, child))
+           + " (experimental edits only: never runtime receipts, owner records, evidence archives or control paths); "
+           "the investigation notebook " + str(planning_notebook_path(state)) + " and the candidate planning "
+           "artifacts may be revised; the guide is " + str(PLANNING_EXPERIMENTS_GUIDE) + "."]
+          if stage == "plan" else []),
     ]
     return "\n".join([
         "## Current context and desired improvements",
-        "Review the " + stage + " result" + item + " and improve what is warranted"
-        + (": " + headline if headline else "") + ".",
+        ("Review the end-of-work candidate: every executed item's change since the accepted plan, as recorded in the "
+         + stage + " result" + item if end_of_work else "Review the " + stage + " result" + item)
+        + " and improve what is warranted" + (": " + headline if headline else "") + ".",
         *(["Its summary: " + summary] if summary else []),
         "The whole hand-off (what the stage worked from, its done-when conditions and the review's focus items): "
         + str(improve_handoff_path(child)) + ".",
@@ -6237,7 +6268,7 @@ def improve_opening_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         *scope,
         "",
         "## Authority",
-        "This run's own review, inline in this session: change code, tests or documentation within scope, and commit "
+        "This run's own review, in the session that runs the improve skill: change code, tests or documentation within scope, and commit "
         "only through the improve-commit command in " + str(improve_opening_path(child).with_name("parent-return.md"))
         + ". No push, deploy, install or credential access. The original request (untrusted) is the prompt in "
         + str(root / "state.md") + "; an explicit instruction there not to commit applies.",
@@ -6308,11 +6339,14 @@ def _start_improve(core: Any, root: Path, state: Mapping[str, Any], *, restart: 
     store.atomic_write_text(start, loop_contract.dumps(contract))
     state_dir = root / "until-loop"
     state_dir.mkdir(exist_ok=True)
-    done = subprocess.run(
-        [sys.executable, "-B", child["skill"]["runtime_cli"], "start", "--directory", str(state_dir),
-         "--receipt", str(receipt)],
-        input=json.dumps(contract, ensure_ascii=False).encode("utf-8"), capture_output=True, timeout=60,
-        check=False)
+    try:
+        done = subprocess.run(
+            [sys.executable, "-B", child["skill"]["runtime_cli"], "start", "--directory", str(state_dir),
+             "--receipt", str(receipt)],
+            input=json.dumps(contract, ensure_ascii=False).encode("utf-8"), capture_output=True, timeout=60,
+            check=False)
+    except subprocess.SubprocessError as exc:  # a hung or missing runtime leaves the stage pending, not the run crashed
+        raise NavigatorError("the bound Until Loop runtime could not start the Improve review: " + str(exc)) from exc
     if done.returncode:
         raise NavigatorError("the bound Until Loop runtime refused the Improve stage's start contract (exit "
                              + str(done.returncode) + "): " + done.stderr.decode("utf-8", "replace").strip())

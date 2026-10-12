@@ -313,13 +313,13 @@ Three kinds of result start an actual Improve child:
   `system-test-author` and `release-plan` (see [Planning review option](#planning-review-option)).
   These stages write the
   contracts that later work is built on, where a sentence, example or expected
-  result can look done and still be wrong. Their Improve packets carry a
+  result can look done and still be wrong. Their Improve handoffs carry a
   planning review focus: find steps or examples that can't be replayed exactly,
   expected results a weaker stand-in would pass, documented commands that don't
   run what they claim, and required IDs or cases that were dropped. The review
   does not replay facts already on record.
 - Every accepted `implement` step, under either planning review option. Its
-  packet carries the step review focus (`IMPLEMENT_STEP_REVIEW_FOCUS` in
+  handoff carries the step review focus (`IMPLEMENT_STEP_REVIEW_FOCUS` in
   `scripts/shiploop_prompts.py`, with the *Code craft* rubric), so each step is
   reviewed before the next one builds on it.
 - The successful `carry-forward` that leaves no work item pending. This
@@ -724,12 +724,12 @@ or predicted successor into the handoff as graph authority.
 Under `delegation: inline`, every INNER producer packet, including the
 `step-plan` packet that opens each work item, begins "Continue in this context
 and execute the prompt." then "Delegation: inline.": no clear, no pause for a
-clear and no delegation. Inline INNER Improve packets begin "Keep the invoking
+clear and no delegation. Inline INNER Improve handoffs begin "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
 invocation itself (see step 3 below) and never clears for it.
 
 On the opt-in `delegation: ask-agent` route, active INNER **producer**
-packets begin with "Clear and then execute the prompt." Improve packets instead begin "Keep the invoking parent
+packets begin with "Clear and then execute the prompt." Improve handoffs instead begin "Keep the invoking parent
 alive": never clear, replace or wrap the live parent for Improve. For an
 `implement` producer, select the packet's chain route first. During that producer, its bound mode and executor take precedence: parallel chains
 retain their capacity and bypass this serial context boundary; explicit serial
