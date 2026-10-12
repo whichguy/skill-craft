@@ -32,7 +32,6 @@ CARD = ROOT / "skills" / "improve" / "SKILL.md"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_knowledge_home as knowledge  # noqa: E402
-import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
@@ -1568,67 +1567,6 @@ class InnerGateRouteTests(RealCliCase):
         write_block(path, {**good, "skill": SKILL_NONE})
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["skill"], SKILL_NONE)
-
-
-class OpeningAllowanceTests(RealCliCase):
-    """The oversize-opening refusal states the room the sections have, and the room it states is real.
-
-    The Luna 1.16.1 refusal listed whole contract fields (which carry ShipLoop's own text) next to an allowance for
-    the model's sections only, so its arithmetic looked 1,165 bytes off (12,478 total, 3,262 over, "about 4,686").
-    The allowance was right; the listed sizes were not comparable to it.  Listing each section's own escaped bytes
-    (112b239c) made them comparable, and this test keeps them so, through the real size gate.  Since 2026-10-11 the
-    sections are ShipLoop's own text, written at the transition, so the gate is exercised on the started child's
-    state with a synthetic opening instead of a file a model wrote.
-    """
-
-    NAMES = ("Current context and desired improvements", "Scope", "Authority", "Environment")
-
-    def at_improve_stage(self) -> tuple[Path, dict]:
-        """A run whose Improve child ShipLoop has started: its run directory and state."""
-        run, head = self.new_run("spec")
-        command, path, _ = printed_callback(head)
-        write_block(path, self.done_fields())
-        self.accepted(command)
-        return run, self.state(run)
-
-    def problem(self, run: Path, state: dict, sizes: tuple[int, int, int, int]) -> str | None:
-        """The size gate's verdict on an opening whose four sections hold plain text of exactly these sizes."""
-        text = "".join(f"## {name}\n{'a' * size}\n\n" for name, size in zip(self.NAMES, sizes))
-        contract = nav.improve_start_contract(None, run, state, text)
-        return loop_contract.size_problem(
-            contract, writable=nav.OPENING_CONTRACT_PARTS, allowance=nav.improve_opening_allowance(None, run, state),
-            sizes={name: loop_contract.text_bytes(body) for name, body in nav._opening_sections(text).items()})
-
-    def test_shiploops_own_opening_fits_its_allowance(self) -> None:
-        run, state = self.at_improve_stage()
-        opening, _receipt = self.started_child(run)
-        allowance = nav.improve_opening_allowance(None, run, state)
-        used = sum(loop_contract.text_bytes(body)
-                   for body in nav._opening_sections(opening.read_text(encoding="utf-8")).values())
-        self.assertLessEqual(used, allowance)
-        self.assertIsNone(self.problem(run, state, (1, 1, 1, 1)))
-
-    def test_the_stated_allowance_is_the_sections_real_room_and_the_refusal_says_how_it_is_counted(self) -> None:
-        run, state = self.at_improve_stage()
-        reply = self.problem(run, state, (2993, 891, 1057, 4172))  # the sizes of the Luna refusal's four sections
-        self.assertIsNotNone(reply)
-        listed = {name: int(size.replace(",", "")) for name, size in re.findall(
-            r"(Environment|Scope|Authority|Current context and desired improvements) ([\d,]+)", reply)}
-        over = int(re.search(r"([\d,]+) over its", reply).group(1).replace(",", ""))
-        allowance = int(re.search(r"may use about ([\d,]+) bytes in all", reply).group(1).replace(",", ""))
-        self.assertEqual(sorted(listed), sorted(self.NAMES))
-        # The arithmetic the reply invites agrees with its allowance: the sections total less the overage is the
-        # room, to within the four placeholder bytes ShipLoop's own measure of its fixed text includes.
-        self.assertEqual(sum(listed.values()), 9113)
-        self.assertIn(sum(listed.values()) - over - allowance, range(0, 5))
-        # What the allowance counts is said once, where the number is.
-        self.assertIn("counted as above: escaped like JSON, so a newline or a quote costs 2 bytes and a non-ASCII "
-                      "character 6, and a file's byte size undercounts it", reply)
-        # ... and the clause is true: the runtime's count of a newline or quote is 2 bytes, of a non-ASCII character 6.
-        self.assertEqual((loop_contract.text_bytes("a\n\"b"), loop_contract.text_bytes("\u65e5")), (6, 6))
-        # Sections that total the stated allowance are accepted by the same gate; its room ends just above it.
-        self.assertIn("over its 9,216-byte budget", self.problem(run, state, (300, 300, 300, allowance + 5 - 900)))
-        self.assertIsNone(self.problem(run, state, (300, 300, 300, allowance - 900)))
 
 
 # Stages whose accepted result starts an Improve child (the planning reviews and the last item's carry-forward),

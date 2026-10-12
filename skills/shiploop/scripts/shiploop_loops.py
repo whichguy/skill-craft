@@ -33,9 +33,6 @@ import shiploop_standalone_improve as standalone
 
 STAGES: tuple[str, ...] = stage_spec.INNER
 LOOP_DIR = "loops"
-# The one contract budget: ``contract_writes`` refuses a contract over it, and step-plan's gate refuses a command list
-# that would put the test stage's contract over it (``command_list_problem``).
-CONTRACT_BUDGET = loop_contract.CONTRACT_BUDGET
 RUBRIC_PATH = "quality/code-craft.md"
 # The improve skill bundled beside ShipLoop in the one skill-craft plugin; its runtime/until-loop/ is the vendored
 # Until Loop.  Used when the run has no selected Improve card (the card, when selected, binds its own runtime).
@@ -54,7 +51,7 @@ def _need(condition: bool, message: str) -> None:
 # --------------------------------------------------------------------------- the loops table
 # Work and repeat texts come from the reviewed drafts' contracts (docs/experiments/inner-loop-redesign-20261010/
 # drafts.json) with the coverage fixes; the exit condition is the row's done_when, numbered.  Tokens in braces are
-# filled from state by ``_fill`` (run directory, action, repository, feature directory, implement step); nothing else
+# filled from state by ``_fill`` (run directory, action, repository, implement step); nothing else
 # varies, so a contract rebuilt at complete equals the one written at entry.
 
 _NEVER_CANCEL = "Never stop cancelled: a user's stop is the ShipLoop packet's pause command."
@@ -246,12 +243,11 @@ def command_listing(commands: Sequence[Mapping[str, Any]]) -> str:
 COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; the packet shows each floor):"
 
 
-def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, item: str, title: str,
+def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
            commands: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
-    """One stage's contract from plain values; ``contract`` supplies them from state, ``command_list_problem`` from
-    a submitted command list with the longest values a run may have."""
-    values = {"run": str(root), "action": action_id, "repo": repo, "feature": feature}
+    """One stage's contract from plain values; ``contract`` supplies them from state."""
+    values = {"run": str(root), "action": action_id, "repo": repo}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
@@ -332,10 +328,7 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
-    # ``feature`` fills the {feature} token the inner-loop session's WORK texts still use; removed after the renderer
-    # swap (consumer contract 4c), with the token.
-    return _build(root, stage, action_id, repo=repo, feature=str(Path(repo) / knowledge_home.feature_dir(state)),
-                  item=item, title=_work_title(state, item), plan_action=plan_action,
+    return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)
 
 
@@ -361,65 +354,17 @@ def _implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Opt
     return {"id": ids[0] if len(ids) == 1 else ids[0] + " to " + ids[-1], "paths": paths, "all_steps": True}
 
 
-# Stand-ins for what the gate cannot know yet: the test action's id (every action id is "nav-" and 32 hex digits)
-# and, outside a work item, a run's paths, item id and title at a generous length.
-_ACTION_STANDIN = "nav-" + "0" * 32
-_PATH_STANDIN = "/" + "x" * 159
-
-
-def command_list_problem(root: Optional[Path], state: Optional[Mapping[str, Any]],
-                         commands: Sequence[Mapping[str, Any]]) -> Optional[str]:
-    """Why a submitted ``test_commands`` list cannot fit the test stage's loop contract, or None when it fits.
-
-    The test stage's contract lists every recorded command and is written at a transition, where nothing can be
-    refused, so step-plan's gate builds that contract now, from this run's paths, item and title with the submitted
-    list, and checks it against the budget ``contract_writes`` enforces (``CONTRACT_BUDGET``).  Without a run
-    directory or a current work item it uses generous stand-ins.  A malformed list returns None: the shape check
-    refuses it.
-    """
-    item = None
-    if state is not None:
-        items, index = state.get("work_items") or (), state.get("work_index")
-        if isinstance(index, int) and 0 <= index < len(items):
-            item = items[index].get("id")
-    if root is not None and state is not None and item:
-        repo = str(state["repo"])
-        values = {"root": Path(root), "repo": repo, "feature": str(Path(repo) / knowledge_home.feature_dir(state)),
-                  "item": str(item), "title": _work_title(state, str(item))}
-    else:
-        values = {"root": Path(_PATH_STANDIN), "repo": _PATH_STANDIN, "feature": _PATH_STANDIN, "item": "W" * 64,
-                  "title": "t" * 200}
-
-    def build(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-        return _build(values["root"], "test", _ACTION_STANDIN, repo=values["repo"], feature=values["feature"],
-                      item=values["item"], title=values["title"], plan_action=_ACTION_STANDIN, commands=rows)
-
-    try:
-        full = loop_contract.compact_bytes(build([dict(row) for row in commands]))
-        empty = loop_contract.compact_bytes(build(()))
-    except (KeyError, TypeError, ValueError):
-        return None
-    if full <= CONTRACT_BUDGET:
-        return None
-    return (f"test_commands renders to {full - empty:,} bytes in the test stage's Until Loop contract, which has room "
-            f"for about {max(CONTRACT_BUDGET - empty, 0):,} (the contract budget is {CONTRACT_BUDGET:,} bytes: the "
-            f"Until Loop keeps its whole state in {loop_contract.STATE_LIMIT:,} bytes and needs room for its first "
-            "report). Shorten the ids lists, drop duplicate commands, or split this work item into smaller items")
-
-
 def contract_writes(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
     """Run-relative path -> text for the current inner action's loop contract (and verify's rubric); {} outside one.
 
-    Call it on entry to every inner action, with the state that issues it.  A contract over the runtime's budget
-    raises ``LoopError``: the loop could start yet fail to save its first report.
+    Call it on entry to every inner action, with the state that issues it.  Raises ``LoopError`` when the contract
+    cannot be built (``contract``).
     """
     found = cursor(state)
     if found is None:
         return {}
     stage, action_id, _ = found
     value = contract(root, state, action_id)
-    problem = loop_contract.size_problem(value) if loop_contract.compact_bytes(value) > CONTRACT_BUDGET else None
-    _need(problem is None, str(problem))
     writes = {contract_path(action_id): loop_contract.dumps(value)}
     if stage == "verify":
         import shiploop_quality as quality  # quality imports this module; the rubric text lives in the prompt catalog
@@ -674,7 +619,6 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
 __all__ = (
     "BUNDLED_IMPROVE_CARD",
     "COMMANDS_HEAD",
-    "CONTRACT_BUDGET",
     "INVOKE_LINE",
     "LOOP_DIR",
     "LoopError",
@@ -689,7 +633,6 @@ __all__ = (
     "WORK",
     "check_loop_packet",
     "check_terminal",
-    "command_list_problem",
     "command_listing",
     "condition_lines",
     "contract",

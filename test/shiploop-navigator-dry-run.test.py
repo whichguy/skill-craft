@@ -550,7 +550,7 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertIn("action `review` / stage `audit`", flat)
                 self.assertIn("read-only, one-pass diagnostic", flat)
                 self.assertIn("exactly one action `repair` / stage `revise`", flat)
-                self.assertIn("Until Loop state budget", flat)  # a repair/revise request starts a loop
+                self.assertNotIn("Until Loop state budget", flat)  # the runtime has no state limit
                 self.assertIn("A whole `plan`/`draft` is requested only at `plan`", flat)
                 self.assertIn("A MISSING loop resource blocks repair/revise; no other install substitutes", flat)
                 for loop_text in ("`MISSING: ...`", "Record the binding id", "required_trivial_reviews"):
@@ -564,7 +564,7 @@ class BackchainStageTextTests(unittest.TestCase):
                         "Record the binding id, candidate and receipt paths",
                         "is not execution evidence or a passed experiment",
                         "The planning guide's Source-aware native caller section holds",
-                        "Until Loop state budget", "action `plan` / stage `draft`",
+                        "action `plan` / stage `draft`",
                         "Backchain standalone Until Loop binding: <binding-id>",
                         "only after the child reports `complete`",
                         "final candidate identity and domain evidence",
@@ -697,15 +697,14 @@ class BackchainStageTextTests(unittest.TestCase):
                                        for event in events if event["command"] == "produce"}
         return cls._mode_packets[mode]
 
-    def test_none_offers_no_whole_plan_or_draft_and_keeps_the_audit_route_and_the_budget_at_plan(self):
+    def test_none_offers_no_whole_plan_or_draft_and_keeps_the_audit_route_at_plan(self):
         plan = self.packets_in("none")[self.LOOP_STAGE]
         self.assert_prints_guidance(plan, self.LOOP_STAGE, backchain_passes="none")  # the route reaches the packet
         flat = self.printed_guidance(self.LOOP_STAGE, backchain_passes="none")  # the plan duty, Backchain item folded
         for kept in (self.NONE_SENTENCE, "Request a Backchain `review` / `audit`", "It is read-only, one pass",
                      "you may request exactly one `repair` / `revise`",
                      "put the line `Backchain passes: one` beside the binding marker in the child request",
-                     "a MISSING one blocks it, and no other install substitutes",
-                     "keep its start contract within the state budget"):
+                     "a MISSING one blocks it, and no other install substitutes"):
             with self.subTest(kept=kept):
                 self.assertIn(kept, flat)
         for dropped in ("A whole `plan`/`draft` is requested only", "You may also request one Backchain",
@@ -717,7 +716,7 @@ class BackchainStageTextTests(unittest.TestCase):
         self.assertEqual(flat.count("`plan`/`draft`"), 1)  # named once: to say it is not requested
         self.assertIn("Backchain graph check: ", plan)  # the record-only check command line stays
         self.assertIn("Run the printed `backchain-check` after each candidate revision", flat)  # and the duty line
-        self.assertIn("Until Loop state budget", plan)  # the budget rule stays printed after the duty
+        self.assertNotIn("Until Loop state budget", plan)  # the runtime has no state limit, so no budget rule prints
         self.assertEqual(plan.count("Backchain planning guide: "), 1)
 
     def test_none_prints_the_audit_resource_and_the_loop_status_not_the_six_file_block_at_plan(self):

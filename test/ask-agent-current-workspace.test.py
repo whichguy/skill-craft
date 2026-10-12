@@ -15,6 +15,8 @@ import sys
 import tempfile
 import unittest
 
+from git_fixture import isolate_git_environment
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "ask-agent"
@@ -37,7 +39,7 @@ class CurrentStateTests(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.base = Path(temp.name).resolve()
         self.home = self.base / "home"
-        self.home.mkdir()
+        isolate_git_environment(self, self.home)
         self.repo = self.base / "repo"
         (self.repo / "src").mkdir(parents=True)
         git(self.repo, "init", "-q", "-b", "main")

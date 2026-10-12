@@ -420,7 +420,7 @@ class ObservedHarmPacketTests(unittest.TestCase):
     # row 11b: a file written before a close names the close that refuses without it, taken from the gate itself.
     def refusals(self) -> dict:
         """{close: the paths the real gate asks for when nothing is written}, on an empty repository, as the packet's
-        References symbols name them (the refusal prints absolute paths; the packet's prose prints HOME/ and FEATURE/)."""
+        References symbols name them (the refusal prints absolute paths; the packet's prose prints HOME/)."""
         with tempfile.TemporaryDirectory(prefix="shiploop-knowledge-gate-") as temp:
             repo = Path(temp)
             subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True, capture_output=True)
@@ -442,7 +442,7 @@ class ObservedHarmPacketTests(unittest.TestCase):
                 continue
             lines = [line for line in self.found[(stage, "producer")].splitlines() if "refuses " in line]
             for name in names:
-                path = name.replace("{feature}", "FEATURE") if "{feature}" in name else "HOME/" + name
+                path = "HOME/" + name
                 later = [close for close in refusals if order.index(close) > order.index(stage) and path in refusals[close]]
                 if not later:
                     continue
@@ -506,47 +506,36 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
                 state = navigator.finish_improve(state, action, {"summary": "Synthetic review"})
         self.fail("the walk did not reach " + stage)
 
-    def test_an_inner_packet_lists_every_grounding_file_and_marks_a_missing_one_with_its_writer(self) -> None:
-        """The References block replaced the grounding line (owner, 2026-10-11): the same files, each listed in every
-        packet; one that exists carries no marker, and a missing architecture.md is shown as not written, not dropped."""
-        grounding = tuple(navigator.reference_name(name) for _label, name in knowledge._GROUNDING)
-        self.assertEqual(len(grounding), len(knowledge.GROUNDING_LABELS))
+    def test_an_inner_packet_lists_every_living_file_and_marks_a_missing_one_with_its_writer(self) -> None:
+        """The References block lists the three living files in every packet; one that exists carries no marker, and a
+        missing architecture.md is shown as not written, not dropped."""
+        living = tuple(navigator.reference_name(name) for name in knowledge.LIVING)
         with tempfile.TemporaryDirectory(prefix="shiploop-grounding-") as temp:
             repo = Path(temp).resolve()
             run = repo / "run"
             run.mkdir()
             home = repo / knowledge.HOME
             home.mkdir(parents=True)
-            for name in ("spec.md", "environment.md", "architecture.md", "test-strategy.md"):
+            for name in knowledge.LIVING:
                 (home / name).write_text("# " + name + "\n\nContent.\n", encoding="utf-8")
             packet = self.walk_to(repo, run, "implement")
-            state = store.read_record(run / "state.md")
-            feature = repo / knowledge.feature_dir(state)
-            feature.mkdir(parents=True)
-            (feature / "spec.md").write_text("# Feature\n\nR-1 changes.\n", encoding="utf-8")
-            packet = navigator.render(None, run, state)
-            self.assertEqual(len(knowledge.grounding(state)), len(grounding))
             block = reference_block(packet)
-            for name in grounding:
+            for name in living:
                 with self.subTest(name):
                     rows = [row for row in knowledge_entries(block) if row.startswith(name + ":")]
                     self.assertEqual(len(rows), 1)
                     self.assertNotIn("not written yet", rows[0])
-            self.assertNotIn("Ground this stage's decisions", packet)
             (home / "architecture.md").unlink()
             block = reference_block(navigator.render(None, run, store.read_record(run / "state.md")))
             entries = knowledge_entries(block)
             row = next(row for row in entries if row.startswith(navigator.reference_name(knowledge.ARCHITECTURE) + ":"))
             self.assertTrue(row.endswith("(not written yet: " + navigator.reference_writer(knowledge.ARCHITECTURE) + ")"), row)
-            # test-strategy is its first writer since consumer contract 4b (its real-boundary checks).
             self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "test-strategy writes it")
-            self.assertEqual([row for row in entries if "not written yet" in row and row.startswith(
-                tuple(name + ":" for name in grounding))], [row])
 
 
-# Packet re-cut R3: the block is "HOME = ... · RUN = ...", "WORKTREE = ...", one "Knowledge files: a; b; c" line, a
-# FEATURE line only when feature files apply, then the "Results this stage builds on" rows.  There is no reads pointer.
-REFERENCE_ROW = re.compile(r"^(- |HOME = |FEATURE = |WORKTREE = |Knowledge files: |Results this stage builds on)")
+# Packet re-cut R3: the block is "HOME = ... · RUN = ...", "WORKTREE = ...", one "Knowledge files: a; b; c" line, then
+# the "Results this stage builds on" rows.  There is no reads pointer.
+REFERENCE_ROW = re.compile(r"^(- |HOME = |WORKTREE = |Knowledge files: |Results this stage builds on)")
 NOT_WRITTEN = re.compile(r" \(not written yet: [^)]*\)")
 
 
@@ -579,25 +568,20 @@ def builds_on(block: list) -> list:
 
 def knowledge_entries(block: list) -> list:
     """The block's knowledge-file entries ("HOME/spec.md: living spec (not written yet: ...)"), from the "Knowledge files"
-    line and, when present, the FEATURE line."""
+    line."""
     found = []
     for row in block:
         if row.startswith("Knowledge files: "):
             found += row[len("Knowledge files: "):].split("; ")
-        elif row.startswith("FEATURE = "):
-            found += row.split(": ", 1)[1].split("; ")
     return found
 
 
 def symbol_paths(block: list) -> dict:
-    """{symbol: absolute path} from the block's definition lines (FEATURE is defined under HOME, and only when feature
-    files apply)."""
+    """{symbol: absolute path} from the block's definition lines."""
     found = {}
     for row in block:
         for match in re.finditer(r"(?:^| · )(HOME|RUN|WORKTREE) = (\S+)", row):
             found[match.group(1)] = match.group(2)
-        if row.startswith("FEATURE = "):
-            found["FEATURE"] = row[len("FEATURE = "):].split(": ", 1)[0].replace("HOME", found["HOME"], 1)
     return found
 
 
@@ -683,46 +667,33 @@ class ReferencesBlockTests(unittest.TestCase):
             with self.subTest(run=run, packet=number):
                 self.assertEqual(packet.count(navigator.REFERENCES_HEAD), 1)
                 for symbol in navigator.REFERENCE_SYMBOLS:
-                    count = len(re.findall("(?m)(?:^| · )" + symbol + " = ", packet))
-                    # FEATURE is defined only when feature files apply (none do since the feature folder was removed).
-                    self.assertEqual(count, 0 if symbol == "FEATURE" else 1, symbol)
+                    self.assertEqual(len(re.findall("(?m)(?:^| · )" + symbol + " = ", packet)), 1, symbol)
 
     def test_each_knowledge_file_is_listed_with_its_sections_or_its_writer(self) -> None:
-        """The files come from knowledge_home's tables (SECTIONS, FEATURE_LIST, the {feature} entries of STAGE_FILES),
-        so a change there changes the block and this test with it."""
-        home = [*knowledge.SECTIONS, str(Path(knowledge.FEATURE_LIST).relative_to(knowledge.HOME))]
-        feature = sorted({name for names in knowledge.STAGE_FILES.values() for name in names if name.startswith("{feature}/")})
-        self.assertEqual(navigator.reference_files(), (home, [name for name in navigator.reference_files()[1]]))
-        self.assertEqual(sorted(navigator.reference_files()[1]), feature)
+        """The files are the living files (knowledge_home.LIVING), each with its SECTIONS headings."""
+        self.assertEqual(navigator.reference_files(), list(knowledge.LIVING))
         for run, number, packet in self.each():
             block = reference_block(packet)
             block = block[:len(global_part(block))]
             entries = knowledge_entries(block)
-            stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
             # Packet re-cut: a HOME file prints its name without its headings (a stage that reads it gets it quoted
-            # whole); a FEATURE file prints only when this stage writes it or it exists (nothing exists in these walks).
-            writes = set(knowledge.STAGE_FILES.get(stage, ())) | set(knowledge.CLOSES.get(stage, ()))
-            for name in home + feature:
+            # whole).
+            for name in knowledge.LIVING:
                 symbol = navigator.reference_name(name)
                 with self.subTest(run=run, packet=number, file=symbol):
                     rows = [row for row in entries if row.startswith(symbol + ":") or row.startswith(symbol + " (")]
-                    if name in feature and name not in writes:
-                        self.assertEqual(rows, [])
-                        continue
                     self.assertEqual(len(rows), 1)
                     self.assertNotIn("## ", rows[0])
-                    writer = next((stage for stage in stage_spec.STAGES if name in knowledge.STAGE_FILES.get(stage, ())),
-                                  None)
+                    writer = next(stage for stage in stage_spec.STAGES if name in knowledge.STAGE_FILES.get(stage, ()))
                     # Nothing exists in these walks, so every file is marked with the stage that writes it.
-                    self.assertTrue(rows[0].endswith("(not written yet: " + (writer + " writes it" if writer else
-                                    "ShipLoop writes it at its next knowledge commit") + ")"), rows[0])
+                    self.assertTrue(rows[0].endswith("(not written yet: " + writer + " writes it)"), rows[0])
 
     def test_no_absolute_home_or_feature_path_appears_in_prose_outside_the_block(self) -> None:
         for run, number, packet in self.each():
             paths = symbol_paths(reference_block(packet))
             with self.subTest(run=run, packet=number):
                 for line in prose_lines(packet):
-                    self.assertNotIn(paths["HOME"], line)  # FEATURE is under HOME
+                    self.assertNotIn(paths["HOME"], line)
 
     def test_the_global_part_is_identical_in_every_packet_of_a_run(self) -> None:
         for run, found in self.runs.items():
@@ -743,7 +714,7 @@ class ReferencesBlockTests(unittest.TestCase):
                     with self.subTest(run=run, label=label):
                         self.assertEqual(labels.setdefault(path, label), label)
                         self.assertRegex(label, r"^(W\d+ [a-z-]+ |[a-z-]+ stage result$)")
-                        self.assertRegex(path, r"^(RUN|FEATURE|HOME|commit|the WORKTREE)\b")
+                        self.assertRegex(path, r"^(RUN|HOME|commit|the WORKTREE)\b")
             if run != "dry:halted":  # halted at intake: nothing earlier to build on
                 self.assertTrue(cited, run)
 

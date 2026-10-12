@@ -2249,3 +2249,23 @@ The evidence is in `docs/experiments/packet-recut-20261011/live-slices.json`, an
   `improve-start` and the runtime from its own script, with fixed review text.
 
 **Open.** Fitting producer packets under the limit, piping, and scripted Improve all await an owner decision.
+
+## Consumer contract complete: the release round (2026-10-11, origin/main 8e1253de) — status: interim (n=1, one case, one host)
+
+**Question.** Does a ShipLoop item still pass end to end once all of the consumer contract is on main?
+- 4a: hand-off fields, whole-file READS quotes, the lessons commit, the run baseline.
+- 4b/4c/4d: the living files, the removals and the report hand-off sections.
+- The renderer swap and the packet re-cut.
+- The last removal step: the six symbols kept for the swap.
+
+**Run.** `slice.py --case node-fix-bug` on Claude, with the default model.
+
+**Result.** PASS on every verdict: process, inner_loop, no_overshoot, assembled, checks. Every inner stage, step-plan through carry-forward, reported done.
+
+Evidence: `/Users/dadleet/e2e-runs/20261011/slice-fixbug-8e1253de/` (slice-result.json, packet-report.md, flow.html).
+
+**Before it:** on the same merge, the quick tier `--changed-from origin/main` passed and check-release-boundary was OK.
+
+**Open.**
+- A follow-on run across two runs (lessons quoted at the next intake, environment.md read as the cross-run home) is still to be repeated on this build.
+- A cleared-context run that hits a hand-off refusal on each route is still to be run.

@@ -11,7 +11,6 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-import shiploop_loop_contract as loop_contract
 import shiploop_stage_spec as stage_spec
 
 
@@ -474,8 +473,8 @@ to stop or pause runs Pause. Long form: reference#progress.
 
 
 # An inline step-plan or carry-forward builds no execution graph, so it carries one optional audit line instead of the
-# Backchain caller guidance and its contract budget (owner, 2026-10-11); the guide and the audit resource are printed
-# with the packet's locators.
+# Backchain caller guidance (owner, 2026-10-11); the guide and the audit resource are printed with the packet's
+# locators.
 INLINE_AUDIT_STAGES = ("step-plan", "carry-forward")
 INLINE_BACKCHAIN_AUDIT = """\
 Optional: for a material prerequisite ambiguity or acceptance gap, request one
@@ -1817,22 +1816,6 @@ def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
     return tuple(resolved)
 
 
-def _backchain_contract_budget() -> str:
-    """The size rule for the Until Loop start contract the plan stage's host writes for the Backchain child."""
-    return (
-        f"Until Loop state budget: the runtime saves its whole state (the start contract, the latest report and\n"
-        f"progress) in {loop_contract.STATE_LIMIT:,} bytes. The start contract you write for the Backchain child must\n"
-        f"serialize (compact JSON, sorted keys, default ASCII escaping) to at most {loop_contract.CONTRACT_BUDGET:,} bytes,\n"
-        f"so its bookkeeping and the first report (evidence and a compact handoff, up to about "
-        f"{loop_contract.REPORT_RESERVE:,} bytes) still fit;\n"
-        "a larger contract can start yet fail to save that report, and the plan then cannot close. Put long request,\n"
-        "scope or environment text in files and cite them by locator in `context.resources`. Measure the contract file\n"
-        "before starting (replace CONTRACT_FILE with its path):\n"
-        "`python3 -c \"import json,sys; print(len(json.dumps(json.load(open(sys.argv[1])), "
-        "separators=(',', ':'), sort_keys=True).encode()))\" CONTRACT_FILE`\n\n"
-    )
-
-
 # Record only: the navigator prints the command; nothing refuses a failing check.
 BACKCHAIN_CHECK = ("Run the printed `backchain-check` after each candidate revision; a failure is a loop finding; "
                    "cite its receipt in `evidence_refs`.\n")
@@ -1871,8 +1854,7 @@ diagnostic that changes no candidate and completes no parent action. A material
 finding goes to the stage owner, who within explicit authorized edit bounds may
 request exactly one action `repair` / stage `revise`, a whole native operation
 that needs the loop resources named in the planning guide's Source-aware native
-caller section (the packet's "Loop resources" line reports them) and keeps its
-start contract within the budget below."""
+caller section (the packet's "Loop resources" line reports them)."""
 # Modes one and none.  An instruction to write the marker line, not a gate field: the audit text never names
 # `required_trivial_reviews`; the child's gate and exit condition are the ones Backchain's convergence reference
 # defines for the marker line, and without the line a repair/revise child runs that reference's two-review default.
@@ -1957,7 +1939,7 @@ def _backchain_guidance(stage: str, *, improve_owner: bool = False,
 
     The loop text and the resource gate are printed only at the stage that may start a whole loop (plan);
     the other Backchain stages print the read-only audit route and the rule that a material finding may
-    request one repair/revise (the budget stays there: that request starts a loop).
+    request one repair/revise.
 
     ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  ``converge`` prints the two-review
     gate; the default ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at the
@@ -1969,7 +1951,7 @@ def _backchain_guidance(stage: str, *, improve_owner: bool = False,
         return _BACKCHAIN_ROUTE + _BACKCHAIN_IMPROVE_OWNER
     if offers_whole_backchain_loop(stage, backchain_passes):
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
-        return _BACKCHAIN_ROUTE + _BACKCHAIN_PLAN_CALL + _backchain_contract_budget() + f"""\
+        return _BACKCHAIN_ROUTE + _BACKCHAIN_PLAN_CALL + f"""\
 Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
@@ -1987,7 +1969,7 @@ acceptance and lifecycle state.
         audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes) else "")
                  + (_BACKCHAIN_AUDIT_WHOLE_NONE if backchain_passes == "none" else _BACKCHAIN_AUDIT_WHOLE)
                  + _BACKCHAIN_AUDIT_TAIL)
-        return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
+        return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK
     return _BACKCHAIN_ROUTE + """\
 This stage has no native Backchain action. Keep relevant findings in ordinary
 notes and route a material planning gap through its authorized owner.
@@ -2005,8 +1987,7 @@ Request a Backchain `review` / `audit` only for a material prerequisite ambiguit
     edit bounds:
     - it needs every loop resource on the Loop resources line; a MISSING one blocks it, and no other install
       substitutes;
-{marker}    - keep its start contract within the state budget, measured with the printed command;
-    - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
+{marker}    - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
       done.
     Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
     `evidence_refs`. The only call route is `source-aware-native`.{whole}"""
@@ -2038,11 +2019,10 @@ _BACKCHAIN_GATE_ONE_ITEM = """Until Loop owns the callback handle, progress, the
       printed `backchain-check` is ok on the final candidate and its receipt is cited; final candidate-specific
       domain evidence is saved. A pass that completes that cycle reports `exit_assessment: satisfied` even when it
       repaired the candidate, and no second review runs. Put the line `Backchain passes: one` beside the binding
-      marker in the child request. Keep the contract within the state budget;"""
+      marker in the child request;"""
 _BACKCHAIN_GATE_CONVERGE_ITEM = """Until Loop owns the callback handle, progress, its
       `required_trivial_reviews: 2` gate for two consecutive distinct complete trivial/no-change dependency reviews,
-      recovery and the terminal transition; copy none of that runtime and create no other controller. Keep the
-      contract within the state budget;"""
+      recovery and the terminal transition; copy none of that runtime and create no other controller;"""
 
 
 def _backchain_item(stage: str, backchain_passes: str) -> str:
@@ -2217,7 +2197,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
         parts.append(INLINE_BACKCHAIN_AUDIT)
     elif stage in BACKCHAIN_FOLDED_STAGES:
-        parts.append(_backchain_contract_budget().rstrip("\n"))  # the budget the folded Backchain item points at
+        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
     elif stage in BACKCHAIN_STAGES:
         parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
     if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)

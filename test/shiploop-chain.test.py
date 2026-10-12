@@ -866,6 +866,21 @@ class ChainIntegrationTests(ChainFixture):
         self.assertIn("Parallel-chain guide", packet)
         self.assertIn("default parallel", packet)
         self.assertIn("native slots are observed free", " ".join(packet.split()))   # was "observed native slots" (re-cut)
+        parallel_chain = " ".join((SCRIPTS.parent / "references/parallel-chain.md").read_text().split())
+        self.assertIn(
+            "use this parallel route by default when selected compatible native capacity is available",
+            parallel_chain,
+        )
+        self.assertIn("Serial mode remains an explicit user or host-limit choice", parallel_chain)
+        self.assertIn(
+            "set `--capacity` from the observed user or host native-slot limit for this run",
+            parallel_chain,
+        )
+        self.assertIn("The CLI default of `2` is a fallback, not proof", parallel_chain)
+        self.assertIn(
+            "a concrete compatibility, readiness, or resource blocker retains the ordinary parent route",
+            parallel_chain,
+        )
         self.assertEqual((self.run / "state.md").read_bytes(), before)
 
 

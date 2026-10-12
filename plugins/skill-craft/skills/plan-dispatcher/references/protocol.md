@@ -22,12 +22,40 @@ this contract. Keep the package code fixed for a run; no schema-upgrade mechanis
 Every successful RUN-scoped response includes an `instruction`; a `next` response
 also includes the authoritative current `actions`. For a dispatcher-scoped
 response, the dispatcher executes its instruction, then its exact `next_argv`,
-instead of deriving graph navigation from this reference or the graph itself. A
-task-facing `report` response ends the bounded task phase and is returned to the
-dispatcher, which then uses its exact `next_argv` for the next phase. This
-reference defines fields, boundaries, and recovery semantics; it is not another
-scheduler.
+instead of deriving graph navigation from this reference or the graph itself.
+For an unmarked graph, the task-facing `report` response ends the bounded task
+phase and is returned to the dispatcher, which then uses its exact `next_argv`
+for the next phase. For the exact compact marker, the coordinator publishes the
+report after native collection and continues from that response's `next_argv`.
+This reference defines fields, boundaries, and recovery semantics; it is not
+another scheduler.
 `capabilities` is package discovery rather than a RUN operation.
+
+When `graph.source.agent_harness` is exactly
+`{"schema":"agent-harness/v1","ask_agent_interface":"compact"}`, the
+coordinator uses the selected Ask-Agent package's compact task interface. The
+coordinator owns this fresh run from `init`; the initiator is not a second
+owner. Never take over a ShipLoop callback or reuse an existing ShipLoop run
+implicitly. Prepare one compact task packet per claimed attempt, retain its path,
+`packet.binding_sha256` and `packet.sha256`, and launch its emitted
+`launch.prompt` at `launch.cwd` unchanged. The worker runs the pinned
+`worker-start` and `worker-finish` commands. After native collection, the
+coordinator runs the retained `verify-return` command, writes the Dispatcher
+artifact and envelope, and calls `report`. The worker does not publish the
+Dispatcher report. The existing Dispatcher actions remain the sole scheduler
+and own semantic acceptance, integration, settlement and dependency release.
+Do not repeat task preparation, run the legacy capability gate or workspace
+helper preparation path, or assemble a second worker brief.
+
+This compact profile requires a distinct native handle for each attempt, including
+later queue items and retries. `launched` checks all retained attempts under the
+existing Dispatcher lock and refuses reuse before changing state; identical
+registration replay for the same running attempt remains inert. The refusal
+names the earlier attempt and state evidence. Reconcile the actual host before
+proceeding. Distinct recorded handles do not authenticate host behavior or prove
+fresh contexts; native launch evidence still belongs to the coordinator.
+The exact marker is the only selector; absent or different marker values retain
+the legacy guidance in [Ask-Agent compatibility and managed Git preflight](#ask-agent-compatibility-and-managed-git-preflight).
 
 ### Exact calls
 
@@ -43,6 +71,10 @@ main-context work. A call is `{argv, input?, input_path?}`:
   result is not a verified blocker.
 - Write `input` as JSON (to `input_path` when given) and run `argv` with that
   file's path appended. A call with no `input` runs as given.
+- On a start call for the exact compact marker, replace the `write_scope`
+  placeholder with a JSON string array. Use `read_only: true` and an empty array
+  for a task that makes no writes; otherwise remove the `read_only` placeholder
+  and supply a nonempty relative write scope.
 - Never compose argv, choose an operation, or change a value the call already
   carries. For example, the settle call pre-fills the receipt digest.
 - From a claim call, you may only remove steps you cannot run.
@@ -155,7 +187,9 @@ update. Required launch/return notices and exact internal handoffs remain exact.
 
 ## Ask-Agent compatibility and managed Git preflight
 
-Every Ask-Agent delegation selects a compatible package before execution. Bind
+For graphs without the exact `agent_harness/v1` marker, the legacy contract
+applies: Every Ask-Agent delegation selects a compatible package before execution.
+Bind
 the selected absolute card and helper, then run:
 
 ```sh
@@ -378,12 +412,20 @@ Context is exactly:
 }
 ```
 
-The workspace must exist and be disjoint from RUN and other active workspaces.
-write_scope uses relative paths without `..`, absolute paths or a whole-workspace
-`.` entry. It is cooperative scope, not filesystem access control. Use the same
-resource key for any shared writable external target; undeclared conflicts cannot
-be detected. Starting work atomically reserves workspace/resource identity.
-Resources remain reserved while launching/running/rejected, and are released by
+`read_only` is optional and must be a boolean when present. `true` requires an
+empty `write_scope`; `false` or omission requires a nonempty `write_scope`. The
+field remains absent from persisted context when the caller omits it. A
+read-only attempt may share a workspace with another active attempt only when
+both contexts explicitly set `read_only: true` and their resolved canonical
+workspace paths are identical; overlapping parent/child directories still
+conflict. Resource conflicts still fail.
+
+The workspace must exist and be disjoint from RUN. `write_scope` uses relative
+paths without `..`, absolute paths or a whole-workspace `.` entry. It is
+cooperative scope, not filesystem access control. Use the same resource key for
+any shared writable external target; undeclared conflicts cannot be detected.
+Starting work atomically reserves workspace/resource identity. Resources remain
+reserved while launching/running/rejected, and are released by
 accepted settlement or confirmed-stopped retry. Preparing/claiming alone does not
 reserve resources. Restrict claim count using actual available execution capacity;
 the caller preserves serial capacity one for main-context work.

@@ -1106,6 +1106,7 @@ def _planning_worker_instructions(packet: dict[str, Any]) -> None:
         f"{label}: {reference_dir / relative}"
         for label, relative in _WORKER_GUIDANCE_ROUTES
     ]
+    instructions.append(navigator_prompts.CODE_CRAFT.rstrip())
     instructions.extend((
         "Before scoped edits, select and apply only the relevant practice and platform guidance; consult the accepted planning/context, repository conventions, and applicable baseline.",
         "Return material discoveries, decision rationale, actual checks and their limits, and unresolved uncertainty. Put essential findings and the next action/owner in the manifest summary; use declared files for supporting detail and evidence. If there are no new findings, say so explicitly. Keep this handoff self-contained for a parent or successor without this conversation.",

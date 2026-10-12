@@ -40,8 +40,6 @@ ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), t
                       "conventions, interfaces and boundaries, the real-boundary checks a local test cannot prove (each "
                       "with its owner), and a '## Decisions' section of stable IDs AD-<n> (choice, why, alternatives, "
                       "status) with a '## Superseded' section for decisions that no longer hold")
-# An earlier version's list of the feature folders; nothing writes it any more.
-FEATURE_LIST = HOME + "/features/README.md"  # removed after the renderer swap (consumer contract 4c)
 
 # The living files (consumer contract 2.1): the product's contract, where and how it runs and is tested, and how it is built.
 # test-strategy.md's content lives in environment.md (harnesses and suites, the ID convention) and architecture.md (the
@@ -191,12 +189,6 @@ def run_label(state: Mapping[str, Any]) -> str:
     return slug[:48].rstrip("-") + "-" + str(state["run_id"])[-6:]
 
 
-# removed after the renderer swap (consumer contract 4c)
-def feature_dir(state: Mapping[str, Any]) -> str:
-    """An earlier version's feature directory for this run; only the inner-loop packet text still names it."""
-    return HOME + "/features/" + run_label(state)
-
-
 def _expand(names: Sequence[str], state: Mapping[str, Any]) -> List[str]:
     return [HOME + "/" + name for name in names]
 
@@ -204,7 +196,7 @@ def _expand(names: Sequence[str], state: Mapping[str, Any]) -> List[str]:
 def _filled(path: Path) -> bool:
     """Whether ``path`` is a file with some text in it: absent, empty and blank all read as missing.
 
-    The one "present" rule, for the close (a required file) and for ``grounding`` (a file the packet points at).
+    The one "present" rule, for the close (a required file) and for the References block (a file the packet names).
     """
     try:
         return path.is_file() and bool(path.read_text(encoding="utf-8", errors="replace").strip())
@@ -212,32 +204,12 @@ def _filled(path: Path) -> bool:
         return False
 
 
-# What an inner stage reads before it decides, in this order: the contract, then what this run changes of it, then where
-# and how it runs, how it is built, how it is tested.  The labels are the packet's words for the files.
-# removed after the renderer swap (consumer contract 4c)
-_GROUNDING = (("living spec", "spec.md"), ("environment", "environment.md"), ("architecture", ARCHITECTURE))
-# removed after the renderer swap (consumer contract 4c)
-GROUNDING_LABELS = tuple(label for label, _ in _GROUNDING)
-
-
-def grounding(state: Mapping[str, Any]) -> List[Tuple[str, Path]]:
-    """The knowledge files an inner stage grounds its decisions in, as ``(label, absolute path)`` in ``GROUNDING_LABELS`` order.
-
-    Absolute, in the execution checkout ``state["repo"]``.  A file that is absent, empty or blank is left out.  It reads
-    the file system only (no Git, nothing written), so it is safe outside a checkout, before the home exists and on every
-    packet render.
-    """
-    repo = Path(str(state["repo"]))
-    paths = _expand([name for _, name in _GROUNDING], state)
-    return [(label, repo / path) for (label, _), path in zip(_GROUNDING, paths) if _filled(repo / path)]
-
-
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
     lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME) + "/: "
-             + ", ".join(str(repo / HOME / name) for name in LIVING) + ". Earlier runs' spec, environment and features "
-             "are there; open a file when this stage needs it."]
+             + ", ".join(str(repo / HOME / name) for name in LIVING) + ". Earlier runs' spec, environment and "
+             "architecture are there; open a file when this stage needs it."]
     written, earlier = STAGE_FILES.get(stage, ()), required_earlier(stage)
     if written:
         lines.append("This stage keeps these up to date (create them if missing): "
@@ -770,36 +742,6 @@ def commit(state: Mapping[str, Any], stage: str, open_items: Sequence[Any] = ())
         raise RuntimeError(str(exc)) from exc
 
 
-# --- kept for the inner-loop packet text until its renderer swap ---------------------------------------------------
-
-# removed after the renderer swap (consumer contract 4c)
-def earlier_features(state: Mapping[str, Any]) -> str:
-    """The packet clause about an earlier version's feature folders: "none yet", or where they are (history only)."""
-    repo = Path(str(state["repo"]))
-    root = repo / HOME / "features"
-    own = run_label(state)
-    folders = ([path for path in root.iterdir() if path.is_dir() and not path.is_symlink() and path.name != own]
-               if root.is_dir() and not root.is_symlink() else [])
-    if not folders:
-        return "Earlier features: none yet."
-    return ("Earlier features: the folders in " + str(root) + "/ (an earlier ShipLoop version's records; the living "
-            "files hold what they decided).")
-
-
-# removed after the renderer swap (consumer contract 4c)
-def spec_pin(state: Mapping[str, Any]) -> Optional[str]:
-    """``docs/shiploop/spec.md @ <12 hex>``: the newest commit that changed the living spec; None while none did.
-
-    None outside a checkout too, without running Git (a graph dry run runs no process).
-    """
-    repo = Path(str(state["repo"]))
-    if not (repo / ".git").exists():
-        return None
-    shown = _git(repo, "log", "-1", "--format=%H", "--", HOME + "/spec.md")
-    found = shown.stdout.strip() if shown.returncode == 0 else ""
-    return HOME + "/spec.md @ " + found[:12] if found else None
-
-
 def in_home(path: str) -> bool:
     """A path ShipLoop commits as knowledge: the home directory or a path under it."""
     return path == HOME or path.startswith(HOME + "/")
@@ -809,8 +751,6 @@ __all__ = ("ARCHITECTURE",
            "ARCHITECTURE_HOLDS",
            "CLOSES",
            "Entry",
-           "FEATURE_LIST",
-           "GROUNDING_LABELS",
            "HOME",
            "KNOWLEDGE",
            "LESSONS_SUBJECT",
@@ -825,11 +765,8 @@ __all__ = ("ARCHITECTURE",
            "STAGE_FILES",
            "check",
            "commit",
-           "earlier_features",
            "entries",
            "entry_text",
-           "feature_dir",
-           "grounding",
            "in_home",
            "is_knowledge_subject",
            "knowledge_subject",
@@ -844,5 +781,4 @@ __all__ = ("ARCHITECTURE",
            "run_label",
            "section_notices",
            "spec_diff",
-           "spec_pin",
            "stage_lines")

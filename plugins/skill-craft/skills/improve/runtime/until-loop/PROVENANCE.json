@@ -2,15 +2,15 @@
   "format": "skill-craft-until-loop-runtime-provenance/v1",
   "upstream": {
     "repository": "https://github.com/whichguy/until-loop.git",
-    "commit": "f7d97f6a23683753ffbda78dfac887528705df2b",
-    "version": "0.8.2"
+    "commit": "908db9c60d99d60c1f07399e62ca08df9503daab",
+    "version": "0.8.3"
   },
   "default_ephemeral_runtime": [
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "42f1ae5a8320cee838a83191076edde07972e2f887910bb6d380ce299c2b5a49",
-      "upstream_sha256": "d0143e7871147e0af15eeb0de26ff655969694291d3bff2ca10a83e84123b405",
+      "sha256": "c71931fc5b3981490ba967a87dbcfea0e1d24a79247f259809004e8100101e19",
+      "upstream_sha256": "93f1e97d1442c1219f56f6bf26d498e26c5d6ae21feb7cdb6063312cdaaf231f",
       "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run."
     },
     {
@@ -21,7 +21,7 @@
     {
       "bundled_path": "scripts/until_loop_ephemeral.py",
       "upstream_path": "scripts/until_loop_ephemeral.py",
-      "sha256": "f259577ee62c2471fd571d00987c078be6dc88e45de394ffd2d08ecebffe5ec6"
+      "sha256": "dd8b3513f5795391fd9ef13afa0f9487557547d950836b306b53b8760f663488"
     },
     {
       "bundled_path": "references/runtime-ephemeral.md",

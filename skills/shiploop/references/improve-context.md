@@ -220,13 +220,8 @@ authority and return facts are in `context.authority` and `context.resources`;
 the route/owner markers and owner outputs do not apply.
 
 Omit empty learning categories, or state when none are known. Preserve essential
-meaning inline with locators for supporting detail; there is no word or bullet
-quota, only a size limit: the opening is frozen into the Until Loop's state, which
-the runtime caps at 16,384 bytes in all, so ShipLoop refuses to start a contract over
-9,216 bytes (the refusal says how far over it is and which section to shorten). Within that
-limit keep the reasoning a later review needs inline, and put long detail in a
-file whose path the section names; non-ASCII text counts several bytes per
-character. Be concise by removing repetition, not consequential context. The opening
+meaning inline with locators for supporting detail; there is no word, bullet or
+size quota. Be concise by removing repetition, not consequential context. The opening
 is orientation, not a second authority contract or an exhaustive review checklist.
 Improve may reject a suggestion, investigate beyond the supplied hypotheses,
 choose a better approach and make substantial warranted changes. Derive edit

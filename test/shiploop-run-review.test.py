@@ -5341,6 +5341,18 @@ class CardRowFieldsTests(unittest.TestCase):
         no_goal = "\n".join(l for l in new.split("\n") if not l.startswith("Goal: "))
         self.assertTrue(carried_of(no_goal)["purpose"])  # the Step line alone says the purpose of an implement packet
 
+    def test_current_recovery_requires_the_result_shape_and_both_current_stage_rules(self):
+        current = "\n".join((
+            'blocked: {"outcome": "blocked", "blocked_by": "user | access | external"}',
+            "- Unattended: take the best default and record it as an assumption; a person-only step is an open item; report",
+            "  blocked only when nothing can proceed without a person.",
+        ))
+        self.assertTrue(carried_of(current)["recovery"])
+        for marker in ('blocked: {"outcome": "blocked"', "take the best default and record it as an assumption",
+                       "blocked only when nothing can proceed without a person"):
+            with self.subTest(missing=marker):
+                self.assertFalse(carried_of(current.replace(marker, ""))["recovery"])
+
     def test_a_checked_by_line_is_an_additional_way_for_checked_to_be_found_and_nothing_needs_it(self):
         old, new = packet_fixture("packet-lines-1161.txt"), packet_fixture("packet-lines-1220.txt")
         for text in (old, new):  # packets that predate the line keep the old pair of markers
@@ -6233,15 +6245,15 @@ class ImprovePacketLayoutTests(unittest.TestCase):
     def test_schema_md_documents_both_layouts_the_kind_and_the_second_document(self):
         schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
         for phrase in ("`stages[].improvePacketBytes`", "`improvePacketDoc`", "<action>-improve.md", "new layout", "old layout history",
-                       "`<runKey>--<action>-improve`", "| `kind` | `improve` |", "the E2E session's record register of 2026-10-07"):
+                       "`<runKey>--<action>-improve`", "| `kind` | `improve` |", "`stages[].improvePacketMode`", "compact-handoff",
+                       "the E2E session's record register of 2026-10-07"):
             self.assertIn(phrase, schema, phrase)
 
     def test_the_checkouts_own_navigator_writes_the_layout_the_exporter_reads_for_every_reviewed_stage(self):
         """No model: the navigator prints each packet on synthetic results, so this reads what that engine writes. Up to ShipLoop
-        1.22.0 a reviewed stage keeps only the Improve child's packet; after it the producer packet stays and the child's file sits
-        beside it; and with the Improve stage an action of its own the child's file is named by the stage's id (`<id>.md`, `<id>-bind.md`
-        before a card is bound). The exporter must say which, and no reviewed visit may read as if it had both or neither."""
-        out, visits = real_engine_run(self.tmp)
+        1.22.0 a reviewed stage keeps only the Improve child's packet; after it the producer packet stays and the child's file
+        sits beside it. Either way the exporter must say so, and no reviewed visit may read as if it had both or neither."""
+        out, visits = real_engine_run(self.tmp / "path with spaces")
         packets = next((out / ".shiploop-runs").glob("*/run/packets"))
         state = export._record(packets.parent / "state.md")
         stage_ids = {reviewed: record["improve_action"] for reviewed, record in state["improve_results"].items()}
@@ -6259,6 +6271,8 @@ class ImprovePacketLayoutTests(unittest.TestCase):
                 self.assertEqual(row["improvePacketBytes"], stage_file.stat().st_size, visit["stage"])
                 self.assertTrue(row["improvePacketDoc"], visit["stage"])
                 self.assertNotIn("packetImprove", row)
+                self.assertEqual(row.get("improvePacketMode"), "compact-handoff", visit["stage"])
+                self.assertIn("/path with spaces/", docs["packets"][f"real--{visit['action']}-improve"]["text"])
                 self.assertTrue(all(row["carried"].values()) or visit["stage"] == "intake", (visit["stage"], row.get("carried")))
                 doc = docs["packets"][f"real--{visit['action']}-improve"]
                 self.assertEqual((doc["kind"], doc["action"], doc["stage"]), ("improve", visit["action"], visit["stage"]))
@@ -8836,6 +8850,15 @@ def r23b_improve_packet(*, goal=True, done_when=True, checked_by=True, output=Tr
 
 R23B_OLD_PACKET = r23b_improve_packet(goal=False, done_when=False)  # an engine before skill-craft 1.25.0
 R23B_NEW_PACKET = r23b_improve_packet()
+R23B_COMPACT_PACKET = "\n".join((
+    "ShipLoop navigator | plan | revision 11 | Improve",
+    "1. Run the improve skill on the plan result. For example, on Claude Code:",
+    "       /improve ShipLoop Improve: /tmp/run folder/handoff.md",
+    "   (the Skill tool, skill \"improve\", with that argument)",
+    "2. When the improve skill has completed, run: python3 shiploop improve-complete --action=nav-a1",
+    "Keepalive marker: shiploop-run-review run=run-a1 rev=11 dir=/tmp/run folder",
+    "",
+))
 
 
 def r23b_write_improve_packets(out: Path, text: str, names=None) -> None:
@@ -8861,6 +8884,9 @@ class R23bImprovePacketExportTests(unittest.TestCase):
 
     def test_the_table_has_five_labels_each_anchored_to_the_engines_own_wording(self):
         self.assertEqual(tuple(key for key, _, _ in export.IMPROVE_CARRIED), R23B_IMPROVE_KEYS)
+        for phrase in ("Reviewing the returned ", ". Goal: ", "Done when (a done result must meet each", "Checked by:",
+                       "The opening file holds exactly these headings", "Recovery command:"):
+            self.assertIn(phrase, R23B_NEW_PACKET, phrase)  # the saved historical packet pins each literal text marker
         engine = R23B_NAVIGATOR.read_text(encoding="utf-8")
         # The review's goal, done-when list, checked-by sentence and recovery command are still printed, now in the hand-off file the
         # Improve stage's packet names (the packet itself is two lines), so the engine still has the wording each pattern looks for.
@@ -8871,6 +8897,9 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         # `Then run:` step is printed any more: the `output` label has no line to find (SCHEMA.md says so; the old releases still have it).
         for gone in ("The opening file holds exactly these headings", '"Then run: "'):
             self.assertNotIn(gone, engine, gone)
+        for phrase in ("1. Run the improve skill on the ", '"2. When the improve skill has completed, run: "',
+                       'f"Keepalive marker: {KEEPALIVE_MARKER}'):
+            self.assertIn(phrase, engine, phrase)  # the current producer has a different, compact invocation/return layout
 
     def test_a_packet_text_is_scored_label_by_label_on_lines_that_start_with_the_marker(self):
         self.assertEqual(export.improve_carried_markers(R23B_NEW_PACKET), {key: True for key in R23B_IMPROVE_KEYS})
@@ -8882,6 +8911,18 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         self.assertEqual(export.improve_carried_markers("  Recovery command: mid-line\nsee Checked by: here")["recovery"], False)
         then = "Then run: python3 shiploop improve-start --action=nav-x\n"
         self.assertEqual(export.improve_carried_markers(then)["output"], True)  # the start line also says what the output file is
+
+    def test_the_compact_handoff_marker_requires_both_actions_and_the_run_bound_keepalive(self):
+        self.assertEqual(export.improve_packet_mode(R23B_COMPACT_PACKET), "compact-handoff")
+        self.assertIsNone(export.improve_packet_mode(R23B_NEW_PACKET))
+        self.assertEqual(export.improve_carried_markers(R23B_COMPACT_PACKET), {key: False for key in R23B_IMPROVE_KEYS})
+        for omitted in (
+                "1. Run the improve skill on the plan result. For example, on Claude Code:",
+                "       /improve ShipLoop Improve: /tmp/run folder/handoff.md",
+                "2. When the improve skill has completed, run: python3 shiploop improve-complete --action=nav-a1",
+                "Keepalive marker: shiploop-run-review run=run-a1 rev=11 dir=/tmp/run folder"):
+            with self.subTest(omitted=omitted):
+                self.assertIsNone(export.improve_packet_mode(R23B_COMPACT_PACKET.replace(omitted, "")))
 
     def test_the_counts_equal_the_saved_runs_the_e2e_session_froze_and_each_visit_carries_its_own_scoring(self):
         figures = r23b_figures()["examples"]
@@ -8940,7 +8981,8 @@ class R23bImprovePacketExportTests(unittest.TestCase):
 
     def test_the_contract_types_the_new_fields_and_schema_md_documents_the_table_and_the_release_it_changed_at(self):
         base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
-        good = dict(base, stages=[{"stage": "s", "outcome": "done", "improveCarried": {key: True for key in R23B_IMPROVE_KEYS}}],
+        good = dict(base, stages=[{"stage": "s", "outcome": "done", "improveCarried": {key: True for key in R23B_IMPROVE_KEYS},
+                                   "improvePacketMode": "compact-handoff"}],
                     improvePackets={"read": 1, "carried": {key: 1 for key in R23B_IMPROVE_KEYS}})
         self.assertEqual(export.validate_doc("runs", good), [])
         bad = dict(base, stages=[{"stage": "s", "outcome": "done", "improveCarried": {"goal": "yes"}}],
@@ -8949,33 +8991,38 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         for needle in ("improveCarried.goal: expected a boolean", "improveCarried: missing required field 'doneWhen'",
                        "improvePackets.read: expected a number", "improvePackets.carried: missing required field 'checkedBy'"):
             self.assertIn(needle, problems)
+        bad_mode = dict(base, stages=[{"stage": "s", "outcome": "done", "improvePacketMode": "guess"}])
+        self.assertIn("stages[0].improvePacketMode: 'guess' is not one of compact-handoff",
+                      "\n".join(export.validate_doc("runs", bad_mode)))
         text = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
         for phrase in ("## The Improve packet checklist", "`stages[].improveCarried`", "`improvePackets`", "skill-craft 1.25.0",
                        "never a defect**", "`Recovery command:`", "`Reviewing the returned <stage> result. Goal:`", "a measured none", "`unmeasured.improvePackets`"):
             self.assertIn(phrase, text, phrase)
 
-    def test_the_checkouts_own_navigator_writes_improve_packets_the_exporter_scores_and_that_carry_the_stage_callback(self):
-        """The seed binds the Improve card and prints the Improve stage's packet. In this checkout's engine that packet is the instruction
-        to run the improve skill and the Improve stage's own `complete` (the review's context moved to the hand-off file the packet names),
-        so each visit is scored (a file was read) and none of the five labels is printed: they read false by design (SCHEMA.md). If the
-        engine prints a label in the packet again, this test names the labels to move back into the count."""
+    def test_the_checkouts_own_navigator_writes_compact_packets_and_the_full_handoff(self):
+        """The packet carries the invocation and return; the separately named handoff carries the review context."""
         out, visits = real_engine_run(self.tmp)
         packets = next((out / ".shiploop-runs").glob("*/run/packets"))
-        self.assertTrue(any(packets.glob("*-bind.md")), "the engine of this checkout writes the Improve stage's own files")
-        docs = export.build_run(out, key="real")[0]
+        self.assertTrue(any(packets.glob("*-improve.md")), "the engine of this checkout writes the new layout")
+        docs, facts = export.build_run(out, key="real")
         run = docs["runs"]["real"]
         scored = [r for r in run["stages"] if "improveCarried" in r]
         self.assertEqual(len(scored), len([v for v in visits if v["reviewed"]]))
         for row in scored:
+            self.assertEqual(row["improvePacketMode"], "compact-handoff", row["stage"])
             self.assertEqual(row["improveCarried"], {key: False for key in R23B_IMPROVE_KEYS}, row["stage"])
-        self.assertEqual(run["improvePackets"], {"read": len(scored), "carried": {key: 0 for key in R23B_IMPROVE_KEYS}})
-        for visit in (v for v in visits if v["reviewed"]):
-            text = docs["packets"][f"real--{visit['action']}-improve"]["text"]
-            self.assertIn("1. Run the improve skill on the " + visit["stage"] + " result.", text)
-            self.assertNotIn("improve-complete", text)
-            self.assertNotIn("improve-start", text)  # ShipLoop started the review: the packet does not ask the model to
-            self.assertNotIn("opening", text.lower())
-        self.assertNotIn("improvePackets", run["unmeasured"])
+            packet = docs["packets"][f"real--{row['action']}-improve"]["text"]
+            self.assertIn("1. Run the improve skill on the ", packet)
+            self.assertRegex(packet, r"(?m)^\s+/improve ShipLoop Improve: .+/handoff\.md$")
+            self.assertIn("2. When the improve skill has completed, run:", packet)
+            self.assertIn("Keepalive marker:", packet)
+            handoff_path = re.search(r"(?m)^\s+/improve ShipLoop Improve: (.+/handoff\.md)$", packet).group(1)
+            handoff = Path(handoff_path).read_text(encoding="utf-8")
+            self.assertIn("# ShipLoop Improve handoff:", handoff)
+            self.assertIn("## What the reviewed stage worked from", handoff)
+            self.assertIn("## The review", handoff)
+        self.assertEqual(run["improvePackets"]["carried"], {key: 0 for key in R23B_IMPROVE_KEYS})
+        self.assertTrue(any("compact handoff layout" in line for line in facts))
 
 
 def r23b_block(name: str = R23B_R1, **changes) -> dict:
@@ -9259,6 +9306,22 @@ class R23bFidelityPageLogicTests(unittest.TestCase):
                          ["Improve packets: none read (the run has no Improve child)",
                           "Improve packets: not measured (ShipLoop 1.22.0 or earlier wrote one packet file per action)", "", ""])
 
+    def test_compact_handoff_counts_identify_the_layout_without_changing_legacy_boolean_readings(self):
+        compact = r23b_run_doc(R23B_COMPACT_PACKET, release=R23B_RELEASE_NEW)
+        self.assertTrue(all(row.get("improvePacketMode") == "compact-handoff" for row in compact["stages"]
+                            if "improveCarried" in row))
+        self.assertEqual(run_logic("improvePacketsText(%s)" % json.dumps(compact)),
+                         "Improve packets, skill-craft 1.26.0, ShipLoop 0.58.0: Goal 0/8, Done when 0/8, Checked by 0/8, Output 0/8, Recovery 0/8. "
+                         "8 packet(s) use the compact handoff layout; its two-step instruction points to a separate handoff file, so the historical labels do not apply.")
+        row = compact["stages"][3]
+        self.assertEqual(row["improveCarried"], {key: False for key in R23B_IMPROVE_KEYS})
+        self.assertEqual(run_logic("improveCarriedText(%s,%s)" %
+                                   (json.dumps(row["improveCarried"]), json.dumps(row["improvePacketMode"]))),
+                         "legacy labels not used in the compact handoff packet: Goal, Done when, Checked by, Output, Recovery")
+        card = run_logic("stageCard(%s,3,null)" % json.dumps(compact))
+        self.assertEqual(card["sent"]["improveCarried"],
+                         "legacy labels not used in the compact handoff packet: Goal, Done when, Checked by, Output, Recovery")
+
     def test_a_visit_names_the_labels_its_improve_packet_carried_and_the_class_its_exit_was_evidenced_by(self):
         run = r23b_run_doc(R23B_OLD_PACKET)
         carried = run["stages"][3]["improveCarried"]
@@ -9270,6 +9333,10 @@ class R23bFidelityPageLogicTests(unittest.TestCase):
         self.assertEqual(card["sent"]["improveCarried"], "Checked by, Output, Recovery; not in the packet text: Goal, Done when")
         done = dict(card["done"]["lines"])
         self.assertEqual(done["Exit evidenced by"], "loop: an Improve review")  # the real block's class of that visit (the plan stage)
+        compact = r23b_run_doc(R23B_COMPACT_PACKET, release=R23B_RELEASE_NEW)
+        out = page_probe('setCol(3);textOf("seqdetail")', setup=card_setup(compact))
+        self.assertIn("legacy labels not used in the compact handoff packet: Goal, Done when, Checked by, Output, Recovery", out)
+        self.assertNotIn("not in the packet text", out)
         bare = run_logic("stageCard(%s,3,null)" % json.dumps(r23b_run_doc()))
         self.assertEqual(bare["sent"]["improveCarried"], "")
         self.assertNotIn("Exit evidenced by", dict(run_logic("stageCard(%s,0,null)" % json.dumps(dict(DONE_RUN, stages=[{"stage": "intake", "outcome": "done"}])))["done"]["lines"]))

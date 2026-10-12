@@ -5,6 +5,7 @@ import json
 import hashlib
 from pathlib import Path
 import shlex
+import sys
 import tempfile
 import unittest
 from urllib.parse import quote
@@ -650,6 +651,163 @@ print(out.read_text())'''
         self.assertEqual(line, 12)
         self.assertIn("does not follow", error or "")
 
+    def test_compact_v4_prepare_summary_binds_setup_hash_and_producer_interpreter(self) -> None:
+        setup_path = self.operator / "setup-result.json"
+        script_path = self.operator / "operations.py"
+        script_path.write_text("# frozen operations producer\n", encoding="utf-8")
+        producer_python = str(Path("/usr/bin/python3").resolve())
+        setup = {
+            "status": "PREPARED", "run_id": self.manifest["run_id"],
+            "treatment": "compact", "delivery_mode": "commits",
+            "compact_startup_contract": "action-packet/v1",
+            "runtime_python_executable": producer_python,
+            "operations_script_sha256": hashlib.sha256(script_path.read_bytes()).hexdigest(),
+        }
+        setup_bytes = json.dumps(setup, sort_keys=True).encode("utf-8")
+        setup_path.write_bytes(setup_bytes)
+        value = {
+            "schema": "ask-agent.compact-prepare-summary/v1", "status": "PREPARED",
+            "run_id": self.manifest["run_id"], "treatment": "compact", "delivery_mode": "commits",
+            "setup_path": str(setup_path.resolve()),
+            "setup_sha256": hashlib.sha256(setup_bytes).hexdigest(),
+            "dispatch_index_path": str((self.operator / "compact-dispatch" / "index.json").resolve()),
+            "runtime_python_executable": producer_python,
+        }
+        call = {
+            "tokens": ["python3", "-B", str(script_path.resolve()), "prepare-batch", "--run",
+                       str(self.run.resolve()), "--compact"],
+            "args": ["prepare-batch", "--run", str(self.run.resolve()), "--compact"],
+        }
+        errors, runtime = native_trace._compact_v4_prepare_summary_errors(
+            self.run, self.manifest, {"delivery_mode": "commits"}, setup, value, call,
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(runtime, producer_python)
+        self.assertNotEqual(runtime, str(Path(sys.executable).resolve()))
+
+        altered_summary = dict(value, setup_sha256="0" * 64)
+        errors, _ = native_trace._compact_v4_prepare_summary_errors(
+            self.run, self.manifest, {"delivery_mode": "commits"}, setup, altered_summary, call,
+        )
+        self.assertTrue(errors)
+
+        setup["runtime_python_executable"] = "/opt/homebrew/opt/python@3.14/bin/python3.13"
+        setup_path.write_text(json.dumps(setup, sort_keys=True), encoding="utf-8")
+        errors, _ = native_trace._compact_v4_prepare_summary_errors(
+            self.run, self.manifest, {"delivery_mode": "commits"}, setup, value, call,
+        )
+        self.assertTrue(errors)
+
+        setup["runtime_python_executable"] = producer_python
+        setup_path.write_text(json.dumps(setup, sort_keys=True), encoding="utf-8")
+        conflicting = dict(call, tokens=["/usr/bin/python2", "-B", str(script_path.resolve()),
+                                         "prepare-batch", "--run", str(self.run.resolve()), "--compact"])
+        errors, _ = native_trace._compact_v4_prepare_summary_errors(
+            self.run, self.manifest, {"delivery_mode": "commits"}, setup, value, conflicting,
+        )
+        self.assertTrue(errors)
+
+    def test_compact_v4_dispatch_summary_binds_setup_and_index_bytes(self) -> None:
+        setup_path = self.operator / "setup-result.json"
+        setup_path.write_bytes(b'{"status":"PREPARED"}\n')
+        index_path = self.operator / "compact-dispatch" / "index.json"
+        index_path.parent.mkdir()
+        index_bytes = b'{"schema":"ask-agent.compact-dispatch/v1"}\n'
+        index_path.write_bytes(index_bytes)
+        setup_sha = hashlib.sha256(setup_path.read_bytes()).hexdigest()
+        value = {
+            "schema": "ask-agent.compact-dispatch-summary/v1", "status": "PREPARED",
+            "run_id": self.manifest["run_id"], "worker_ids": ["1", "2", "3"],
+            "setup_path": str(setup_path.resolve()), "setup_sha256": setup_sha,
+            "index_path": str(index_path.resolve()),
+            "index_sha256": hashlib.sha256(index_bytes).hexdigest(),
+        }
+        self.assertEqual(native_trace._compact_v4_dispatch_summary_errors(
+            self.run, self.manifest, setup_sha, ["1", "2", "3"], value,
+        ), [])
+        changed_index = dict(value, index_sha256="0" * 64)
+        self.assertTrue(native_trace._compact_v4_dispatch_summary_errors(
+            self.run, self.manifest, setup_sha, ["1", "2", "3"], changed_index,
+        ))
+        index_path.write_bytes(index_bytes + b"tampered")
+        self.assertTrue(native_trace._compact_v4_dispatch_summary_errors(
+            self.run, self.manifest, hashlib.sha256(setup_path.read_bytes()).hexdigest(),
+            ["1", "2", "3"], value,
+        ))
+
+    def test_compact_v4_action_packet_binds_worker_assignment_and_target(self) -> None:
+        task = self.manifest["task_assignments"][0]
+        root = str(self.child_roots[0].resolve())
+        binding = {"task": {
+            "objective": task["assignment"], "expected_result": "src/step_1.py defines transform(x)=(1+1)*x+1*1 for every integer.",
+            "write_set": [task["path"]], "mode": "edit", "delivery_mode": "commits",
+        }, "workspace": {"root": root}}
+        setup_worker = {"worktree": root}
+        self.assertTrue(native_trace._compact_v4_binding_matches(binding, task, setup_worker, "commits"))
+        swapped = dict(binding, task=dict(binding["task"], objective=self.manifest["task_assignments"][1]["assignment"],
+                                          write_set=["src/step_2.py"]))
+        self.assertFalse(native_trace._compact_v4_binding_matches(swapped, task, setup_worker, "commits"))
+        foreign_write_set = dict(binding, task=dict(binding["task"], write_set=["foreign.txt"]))
+        self.assertFalse(native_trace._compact_v4_binding_matches(foreign_write_set, task, setup_worker, "commits"))
+        wrong_target = {"worktree": str(self.child_roots[1].resolve())}
+        self.assertFalse(native_trace._compact_v4_binding_matches(binding, task, wrong_target, "commits"))
+
+    def test_compact_v4_commit_projection_checks_patch_bytes_and_containment(self) -> None:
+        store = self.run / "workspace-store"
+        first = store / "attempts" / "worker-1" / "finish" / "contribution.patch"
+        second = store / "attempts" / "worker-1" / "verify-return" / "contribution.patch"
+        first.parent.mkdir(parents=True)
+        second.parent.mkdir(parents=True)
+        first_bytes = b"diff --git a/src/step_1.py b/src/step_1.py\n"
+        first.write_bytes(first_bytes)
+        second.write_bytes(first_bytes)
+        phase_delivery = {"mode": "commits", "base": "a" * 40, "commits": ["b" * 40],
+                          "commit_paths": ["src/step_1.py"],
+                          "per_commit_paths": [{"commit": "b" * 40, "paths": ["src/step_1.py"]}],
+                          "residual_paths": [], "contribution_patch": str(first.resolve())}
+        returned_delivery = dict(phase_delivery, contribution_patch=str(second.resolve()))
+        finish = {"patch_path": str(first.resolve()), "patch_sha256": hashlib.sha256(first_bytes).hexdigest()}
+        self.assertTrue(native_trace._compact_commit_delivery_matches(
+            self.run.resolve(), phase_delivery, returned_delivery, finish, True,
+        ))
+        returned_attempt = dict(finish, patch_path=str(second.resolve()))
+        self.assertTrue(native_trace._compact_commit_delivery_matches(
+            self.run.resolve(), phase_delivery, returned_delivery, returned_attempt, True,
+        ))
+        production_inspection = {
+            "status": "returned", "worktree": str(self.child_roots[0].resolve()),
+            "receipt": "receipt-1", "contribution_paths": ["src/step_1.py"],
+            "delivery": phase_delivery, "fingerprint": "finish-fingerprint",
+            "artifacts": ["finish artifact classification"],
+        }
+        returned_inspection = {
+            "status": "returned", "worktree": str(self.child_roots[0].resolve()),
+            "receipt": "receipt-1", "contribution_paths": ["src/step_1.py"],
+            "delivery": returned_delivery, "fingerprint": "return-fingerprint",
+            "artifacts": ["verify-return artifact classification"],
+            "evidence": {"reclassified": True}, "git_state_changed": True,
+        }
+        self.assertTrue(native_trace._compact_commit_inspection_matches(
+            self.run.resolve(), production_inspection, returned_inspection, finish, True,
+        ))
+        self.assertFalse(native_trace._compact_commit_inspection_matches(
+            self.run.resolve(), dict(production_inspection, status="prepared"), returned_inspection, finish, True,
+        ))
+        second.write_bytes(first_bytes + b"tampered")
+        self.assertFalse(native_trace._compact_commit_delivery_matches(
+            self.run.resolve(), phase_delivery, returned_delivery, finish, True,
+        ))
+        second.unlink()
+        second.symlink_to(first)
+        self.assertFalse(native_trace._compact_commit_delivery_matches(
+            self.run.resolve(), phase_delivery, returned_delivery, finish, True,
+        ))
+        outside = self.root / "outside.patch"
+        outside.write_bytes(first_bytes)
+        self.assertFalse(native_trace._compact_commit_delivery_matches(
+            self.run.resolve(), phase_delivery, dict(phase_delivery, contribution_patch=str(outside.resolve())), finish, True,
+        ))
+
     def test_native_worker_and_collection_results_require_unique_later_terminal(self) -> None:
         call_id = "native-phase"
         terminal = {"line": 22, "update": {
@@ -1143,6 +1301,25 @@ print(out.read_text())'''
         self.assertEqual(check["status"], "FAIL")
         self.assertEqual(detail["commit_invocations"], 1)
 
+    def test_compact_v4_ephemeral_output_allows_only_null_delivery_metadata(self) -> None:
+        actual_wrapper_shape = {
+            "ephemeral_audit": {"status": "ephemeral-audit", "findings_only": True},
+            "patch_path": None, "patch_sha256": None, "commit_base": None,
+            "contribution_commits": None,
+        }
+        self.assertTrue(native_trace._compact_ephemeral_has_no_delivery_payload(actual_wrapper_shape))
+        self.assertTrue(native_trace._compact_ephemeral_has_no_delivery_payload({
+            "patch_path": None, "patch_sha256": None,
+        }))
+        for payload in (
+            dict(actual_wrapper_shape, patch_path="/tmp/returned.patch"),
+            dict(actual_wrapper_shape, commit_base="a" * 40),
+            dict(actual_wrapper_shape, contribution_commits=["b" * 40]),
+            dict(actual_wrapper_shape, returned_inspection={}),
+            dict(actual_wrapper_shape, delivery={}),
+        ):
+            self.assertFalse(native_trace._compact_ephemeral_has_no_delivery_payload(payload))
+
     def test_ephemeral_findings_bind_exact_oracle_bytes_and_production_records(self) -> None:
         task = self.manifest["task_assignments"][0]
         worker = task["worker_id"]
@@ -1566,6 +1743,119 @@ print(out.read_text())'''
 
         self.assertEqual(report["checks"]["spawn_argument_bindings"]["status"], "FAIL")
         self.assertFalse(report["passed"])
+
+    def test_compact_v4_packet_allows_owned_path_from_bound_packet_only(self) -> None:
+        raw = dict(self.calls[0]["params"]["update"]["rawInput"])
+        raw["prompt"] = raw["prompt"].replace("src/step_1.py", "the assigned source module")
+        starts = {"1": {"record": {"root": str(self.child_roots[0].resolve())}}}
+        worker, issue, conflict = native_trace._bind_spawn_to_probe(raw, self.manifest["task_assignments"], starts)
+        self.assertIsNone(worker)
+        self.assertTrue(conflict)
+        self.assertIn("owned path", issue or "")
+
+        worker, issue, conflict = native_trace._bind_spawn_to_probe(
+            raw, self.manifest["task_assignments"], starts, allow_owned_path_omission=True,
+        )
+        self.assertEqual(worker, "1")
+        self.assertIsNone(issue)
+        self.assertFalse(conflict)
+
+        raw["prompt"] = raw["prompt"].replace("--worker 1 --phase finish", "--worker 2 --phase finish")
+        worker, issue, conflict = native_trace._bind_spawn_to_probe(
+            raw, self.manifest["task_assignments"], starts, allow_owned_path_omission=True,
+        )
+        self.assertIsNone(worker)
+        self.assertTrue(conflict)
+        self.assertIn("worker IDs disagree", issue or "")
+
+    def test_compact_v4_start_only_packet_prompt_binds_without_finish_prose(self) -> None:
+        raw = dict(self.calls[0]["params"]["update"]["rawInput"])
+        worktree = str(self.child_roots[0].resolve())
+        raw["cwd"] = worktree
+        raw["prompt"] = (
+            "Fresh native worker context. Read the returned action_packet; its finish_command is authoritative.\n"
+            f"Start wrapper: `cd {worktree} && PYTHONDONTWRITEBYTECODE=1 python3 -B "
+            f"../../../../operator/worker_phase.py --run ../../../.. --worker 1 --phase start "
+            f"--compact-binding /tmp/worker-1.json --expected-binding-sha256 {'a' * 64}`\n"
+            "Do not rerun worker-start. Run the packet task_test, then its commit_proof, then finish_command.\n"
+        )
+        starts = {"1": {"record": {"root": worktree}}}
+
+        legacy_worker, legacy_issue, _ = native_trace._bind_spawn_to_probe(
+            raw, self.manifest["task_assignments"], starts, allow_owned_path_omission=True,
+        )
+        self.assertIsNone(legacy_worker)
+        self.assertIn("missing an explicit start or finish", legacy_issue or "")
+
+        worker, issue, conflict = native_trace._bind_spawn_to_probe(
+            raw, self.manifest["task_assignments"], starts,
+            allow_owned_path_omission=True, allow_finish_probe_omission=True,
+        )
+        self.assertEqual(worker, "1")
+        self.assertIsNone(issue)
+        self.assertFalse(conflict)
+
+        raw["prompt"] += "Finish wrapper: `python3 worker_phase.py --run /synthetic/run --worker 2 --phase finish`\n"
+        worker, issue, conflict = native_trace._bind_spawn_to_probe(
+            raw, self.manifest["task_assignments"], starts,
+            allow_owned_path_omission=True, allow_finish_probe_omission=True,
+        )
+        self.assertIsNone(worker)
+        self.assertTrue(conflict)
+        self.assertIn("worker IDs disagree", issue or "")
+
+    def test_compact_v4_runtime_argv_resolves_only_interpreter_alias(self) -> None:
+        canonical = Path(sys.executable).resolve(strict=True)
+        alias = self.root / "python-alias"
+        alias.symlink_to(canonical)
+        expected = [str(canonical), "-B", "/package/scripts/ask_agent_task.py", "worker-finish",
+                    "--binding", "/run/worker-1.json"]
+        actual = [str(alias), *expected[1:]]
+        self.assertTrue(native_trace._compact_runtime_argv_matches(actual, expected))
+
+        wrong_interpreter = [str(Path("/bin/sh").resolve(strict=True)), *expected[1:]]
+        self.assertFalse(native_trace._compact_runtime_argv_matches(wrong_interpreter, expected))
+        changed_command = [str(alias), *expected[1:-1], "different-binding.json"]
+        self.assertFalse(native_trace._compact_runtime_argv_matches(changed_command, expected))
+        relative_interpreter = ["python3", *expected[1:]]
+        self.assertFalse(native_trace._compact_runtime_argv_matches(relative_interpreter, expected))
+
+    def test_compact_v4_finish_invocation_matches_packet_command_shape(self) -> None:
+        cwd = str(self.child_roots[0].resolve())
+        script = self.operator / "worker_phase.py"
+        script.write_text("# fixture\n", encoding="utf-8")
+        binding = self.operator / "compact-bindings" / "worker-1.json"
+        binding.parent.mkdir()
+        binding.write_text("{}\n", encoding="utf-8")
+        digest = "a" * 64
+        argv = ["python3", "-B", str(script.resolve()), "--run", str(self.run.resolve()),
+                "--worker", "1", "--phase", "finish", "--compact-binding", str(binding.resolve()),
+                "--expected-binding-sha256", digest]
+        command = shlex.join(argv)
+        parsed = native_trace._compact_child_invocation(
+            command, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
+            expected_binding_sha256=digest, launch_cwd_verified=True,
+        )
+        self.assertEqual(parsed, {"fixture_test": False, "command_argv": argv})
+
+        for env_prefix in ("PYTHONDONTWRITEBYTECODE=1 " + command,
+                           "cd " + shlex.quote(cwd) + " && PYTHONDONTWRITEBYTECODE=1 " + command):
+            self.assertEqual(native_trace._compact_child_invocation(
+                env_prefix, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
+                expected_binding_sha256=digest, launch_cwd_verified=True,
+            ), {"fixture_test": False, "command_argv": argv})
+        for prefix in ("PYTHONDONTWRITEBYTECODE=0 ", "PYTHONPATH=/tmp ",
+                       "PYTHONDONTWRITEBYTECODE=1 PYTHONDONTWRITEBYTECODE=1 ",
+                       "env PYTHONDONTWRITEBYTECODE=1 "):
+            self.assertIsNone(native_trace._compact_child_invocation(
+                prefix + command, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
+                expected_binding_sha256=digest, launch_cwd_verified=True,
+            ))
+        wrong_digest = command.replace(digest, "b" * 64)
+        self.assertIsNone(native_trace._compact_child_invocation(
+            wrong_digest, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
+            expected_binding_sha256=digest, launch_cwd_verified=True,
+        ))
 
     def test_reaudit_uses_retained_root_and_child_logs(self) -> None:
         first = self._audit()

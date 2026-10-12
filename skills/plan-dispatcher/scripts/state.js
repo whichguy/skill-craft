@@ -36,6 +36,18 @@ const ATTEMPT_STATUSES = new Set([
 const RECEIPT_STATUSES = new Set(['SUCCEEDED', 'FAILED', 'BLOCKED']);
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+// The same exact profile selects both compact guidance and its launch invariants.
+function usesAgentHarness(graph) {
+  const marker = graph && graph.source && graph.source.agent_harness;
+  if (!marker || typeof marker !== 'object' || Array.isArray(marker)) {
+    return false;
+  }
+  const keys = Object.keys(marker).sort();
+  return keys.length === 2 &&
+    keys[0] === 'ask_agent_interface' && keys[1] === 'schema' &&
+    marker.schema === 'agent-harness/v1' && marker.ask_agent_interface === 'compact';
+}
+
 function fail(message, code) {
   const error = new Error(message);
   if (code) {
@@ -720,11 +732,11 @@ function requireUniqueStrings(value, label, requireNonempty) {
   return values;
 }
 
-function normalizeWriteScope(value, label) {
+function normalizeWriteScope(value, label, allowEmpty = false) {
   if (!Array.isArray(value)) {
     fail(label + ' must be an array');
   }
-  if (value.length === 0) {
+  if (!allowEmpty && value.length === 0) {
     fail(label + ' must not be empty');
   }
   const normalized = value.map((item, index) => {
@@ -779,20 +791,34 @@ function directoriesOverlap(left, right) {
 }
 
 function contextShape(context, label) {
+  const readOnlyPresent = isPlainObject(context) && hasOwn(context, 'read_only');
   assertExactObject(
     context,
-    ['workspace', 'write_scope', 'resources', 'ready_evidence'],
+    readOnlyPresent
+      ? ['workspace', 'write_scope', 'resources', 'ready_evidence', 'read_only']
+      : ['workspace', 'write_scope', 'resources', 'ready_evidence'],
     label
   );
+  if (readOnlyPresent && typeof context.read_only !== 'boolean') {
+    fail(label + '.read_only must be a boolean');
+  }
+  const readOnly = readOnlyPresent && context.read_only === true;
   requireString(context.workspace, label + '.workspace');
   if (!path.isAbsolute(context.workspace)) {
     fail(label + '.workspace must be an absolute path');
   }
+  const writeScope = normalizeWriteScope(context.write_scope, label + '.write_scope', readOnly);
+  if (readOnly && writeScope.length !== 0) {
+    fail(label + '.write_scope must be empty when read_only is true');
+  }
   const output = {
     workspace: path.resolve(context.workspace),
-    write_scope: normalizeWriteScope(context.write_scope, label + '.write_scope'),
+    write_scope: writeScope,
     resources: requireUniqueStrings(context.resources, label + '.resources', false),
   };
+  if (readOnlyPresent) {
+    output.read_only = context.read_only;
+  }
   evidenceShape(context.ready_evidence, label + '.ready_evidence');
   output.ready_evidence = {
     path: path.resolve(context.ready_evidence.path),
@@ -836,7 +862,11 @@ function assertContextAvailable(state, record, context) {
       continue;
     }
     if (directoriesOverlap(context.workspace, other.context.workspace)) {
-      fail('workspace overlaps the active attempt: ' + other.attempt);
+      const sharedReadOnlyWorkspace = context.workspace === other.context.workspace &&
+        context.read_only === true && other.context.read_only === true;
+      if (!sharedReadOnlyWorkspace) {
+        fail('workspace overlaps the active attempt: ' + other.attempt);
+      }
     }
     const otherResources = new Set(other.context.resources);
     for (const resource of context.resources) {
@@ -1845,6 +1875,18 @@ function launched(dir, owner, attempt, handle) {
     }
 
     if (record.status === 'launching') {
+      // Include terminal and retried attempts: each queue item gets a fresh
+      // context. Check under the existing state lock before changing any state.
+      if (usesAgentHarness(state.graph)) {
+        const prior = Object.values(state.attempts).find(other =>
+          other.attempt !== attempt && other.handle !== null && sameJson(other.handle, handle));
+        if (prior) {
+          fail('compact Ask-Agent tasks require a fresh native handle; already bound to ' +
+            prior.attempt + ' (step ' + prior.step + ', status ' + prior.status + '). ' +
+            'Reconcile the native host before registering another worker. Evidence: ' +
+            path.join(dir, STATE_FILE), 'EHANDLEREUSE');
+        }
+      }
       record.handle = cloneJson(handle);
       record.status = 'running';
       stepState.status = 'running';
@@ -2120,6 +2162,7 @@ function main() {
 }
 
 module.exports = {
+  usesAgentHarness,
   validateGraph,
   graphIdentity,
   init,

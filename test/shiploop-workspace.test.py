@@ -97,6 +97,15 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
         return result
 
+    def _full_packet_output(self, result: subprocess.CompletedProcess[str]) -> str:
+        """Read a packet file when the CLI prints its oversized-packet pointer."""
+        prefix = "Full packet: "
+        if not result.stdout.startswith(prefix):
+            return result.stdout
+        packet_path = Path(result.stdout.splitlines()[0][len(prefix):])
+        self.assertTrue(packet_path.is_file(), f"full packet pointer is missing its file: {packet_path}")
+        return packet_path.read_text(encoding="utf-8")
+
     def _call(self, function, *args, **kwargs):
         """Give helper-owned subprocesses the test's selected Git environment."""
         with mock.patch.dict(os.environ, self.env, clear=False):
@@ -2244,8 +2253,9 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             "--result",
             str(result_path),
         )
-        self.assertIn("It's all complete.", terminal.stdout)
-        self.assertIn("Current workspace return: currently verified", terminal.stdout)
+        terminal_packet = self._full_packet_output(terminal)
+        self.assertIn("It's all complete.", terminal_packet)
+        self.assertIn("Current workspace return: currently verified", terminal_packet)
         # The verified return lets the same worktree handoff complete.
         self.assertEqual(store.read_record(run / "state.md")["status"], "done")
         self.assertEqual(
@@ -2265,7 +2275,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         cold = self.cli("next", "--run-dir", str(run))
         stale_report = self.cli("report", "--run-dir", str(run))
 
-        for packet in (stale_current, cold.stdout):
+        for packet in (stale_current, self._full_packet_output(cold)):
             self.assertIn("Current workspace return: not currently verified.", packet)
             self.assertIn("Return receipt: " + str(receipt_path), packet)
             self.assertIn(stale_summary, packet)

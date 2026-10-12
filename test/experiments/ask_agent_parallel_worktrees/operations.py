@@ -320,6 +320,31 @@ def _canonical_sha256(value):
     return hashlib.sha256(payload).hexdigest()
 
 
+def compact_prepare_summary(run, result):
+    """Return the bounded v4 setup receipt; the full record remains on disk."""
+    run=Path(run).expanduser().resolve()
+    setup_path=run/'operator/setup-result.json'
+    if setup_path.is_symlink() or not setup_path.is_file():
+        raise fixture.FixtureError(f'Compact setup result is not a regular retained file: {setup_path}')
+    setup_bytes=setup_path.read_bytes()
+    setup=json.loads(setup_bytes.decode('utf-8'))
+    if (setup.get('status')!='PREPARED' or setup.get('treatment')!='compact'
+            or setup.get('compact_startup_contract')!='action-packet/v1'
+            or setup.get('run_id')!=result.get('run_id')):
+        raise fixture.FixtureError('Compact setup summary requires the completed v4 action-packet record')
+    return {
+        'schema':'ask-agent.compact-prepare-summary/v1',
+        'status':setup['status'],
+        'run_id':setup['run_id'],
+        'treatment':setup['treatment'],
+        'delivery_mode':setup.get('delivery_mode'),
+        'setup_path':str(setup_path.resolve()),
+        'setup_sha256':hashlib.sha256(setup_bytes).hexdigest(),
+        'dispatch_index_path':str((run/'operator/compact-dispatch/index.json').resolve()),
+        'runtime_python_executable':setup.get('runtime_python_executable'),
+    }
+
+
 def _ephemeral_audit_matches(phase_audit, return_audit, expected_cwd):
     if not isinstance(phase_audit,dict) or not isinstance(return_audit,dict):
         return False
@@ -471,6 +496,9 @@ def prepare_batch(run, *, compact=False, delivery_mode=None):
             'frozen_package_tree_sha256_before_preparation':None,
             'frozen_package_tree_sha256_after_preparation':None,
             'retry_semantics':'One setup attempt per run; failed attempts retain receipts and logs and must not be rerun.'}
+    if compact:
+        result.update({'run_id':manifest['run_id'],
+                       'runtime_python_executable':str(Path(sys.executable).resolve())})
     def save():
         output.write_text(json.dumps(result,indent=2)+'\n')
     def command_call(label,argv,cwd=source):
@@ -1658,9 +1686,10 @@ if __name__=='__main__':
     try:
         if a.command=='prepare-batch':
             result=prepare_batch(a.run,compact=a.compact)
-            # All inspection details stay in setup-result.json and the exact helper logs.
-            compact={**result,'workers':[{k:v for k,v in w.items() if k!='prepared_inspection'} for w in result['workers']]}
-            print(json.dumps(compact,indent=2))
+            if a.compact:
+                print(json.dumps(compact_prepare_summary(a.run,result),sort_keys=True,separators=(',',':')))
+            else:
+                print(json.dumps(result,indent=2))
         elif a.command=='verify-return':
             if not a.worker:
                 p.error('verify-return requires --worker')

@@ -34,11 +34,12 @@ MANAGED_WORKTREE_CAPABILITIES = [
 ]
 GUIDANCE_ROUTES = {
     "Coding decision guide": "coding-guidance.md#select-guidance",
-    "Repeatable test-suite guide": "repeatable-test-suites.md#select-or-revalidate-the-harness",
-    "Implementation constitution": "testing-and-documentation.md#implementation-constitution",
+    "House-style guidance": "house-style.md#match-while-building",
+    "Service discovery guidance": "service-discovery.md#development-handoff",
+    "Target-native test selection": "repeatable-test-suites.md#select-target-native-tests",
 }
 
-from shiploop_chain_support import digest
+from shiploop_chain_support import digest, missing_code_craft_headings
 import shiploop_chain_support as fixture
 
 
@@ -196,6 +197,7 @@ class PlanningContextChainTests(unittest.TestCase):
     def assert_worker_guidance(self, packet, package: Path = SCRIPTS.parent) -> None:
         """Follow the actual worker's locators, including the selector's cards."""
         references = package / "references"
+        self.assertEqual(missing_code_craft_headings(packet["instructions"]), ())
         for label, relative in GUIDANCE_ROUTES.items():
             locator = str(references / relative)
             self.assertEqual(packet["instructions"].count(label + ": " + locator), 1)
@@ -700,6 +702,31 @@ class PlanningContextChainTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("unavailable worker guidance", result.stderr)
+        self.assertFalse((workspace / "context_alpha.py").exists())
+        self.assertEqual(self.f.git(workspace, "status", "--porcelain"), "")
+
+    def test_consumer_fixture_stops_before_edits_when_code_craft_is_missing(self) -> None:
+        self.bind(self.f, mode="serial", capacity=1)
+        attempt = self.claim(self.f, "A")["A"]
+        packet = self.start_serial(self.f, "A", attempt, ["context_alpha.py"])
+        self.check_managed_context(packet)
+        self.assert_worker_guidance(packet)
+        packet["instructions"] = [
+            text for text in packet["instructions"]
+            if not text.startswith("Code craft.")
+        ]
+        workspace = Path(packet["context"]["workspace"])
+        assignment = {
+            "step": "A", "run_id": packet["run_id"], "attempt": attempt,
+            "base_commit": packet["context"]["base_commit"],
+            "workspace": str(workspace), "packet": packet,
+        }
+        result = subprocess.run(
+            [sys.executable, "-B", str(WORKER)], input=json.dumps(assignment) + "\n",
+            text=True, capture_output=True, timeout=15,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing or duplicate worker Code craft rules", result.stderr)
         self.assertFalse((workspace / "context_alpha.py").exists())
         self.assertEqual(self.f.git(workspace, "status", "--porcelain"), "")
 

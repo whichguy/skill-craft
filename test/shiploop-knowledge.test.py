@@ -10,7 +10,6 @@ import io
 import json
 import os
 import re
-import shutil
 import time
 import subprocess
 import sys
@@ -78,9 +77,7 @@ class HomeFixture(unittest.TestCase):
 
 
 class KnowledgeTests(HomeFixture):
-    def test_feature_directory_and_stage_lines(self) -> None:
-        self.assertEqual(knowledge.feature_dir(self.state),
-                         "docs/shiploop/features/add-a-fleet-command-tab-to-abcdef")
+    def test_stage_lines_name_the_living_spec_and_only_a_close_says_it_checks(self) -> None:
         lines = "\n".join(knowledge.stage_lines(self.state, "spec"))
         self.assertNotIn("README.md", lines)
         self.assertIn(str(self.repo / "docs/shiploop/spec.md"), lines)
@@ -575,17 +572,19 @@ class RemovalTests(HomeFixture):
     """Consumer contract slice 4c (sections 7 and 8): the feature folder, the retire, outcome.md, the feature list and
     ShipLoop's SHIPLOOP.md are gone; an old repository's files are left in place and no longer named or written."""
 
-    # Kept defined until the inner-loop renderer swap, which still calls them; a final small commit removes them.
-    SWAP_KEPT = ("feature_dir", "FEATURE_LIST", "_GROUNDING", "GROUNDING_LABELS", "earlier_features", "spec_pin")
     LOCATOR = "Repository knowledge index (host-authored, if present)"
-    EXEMPT = SWAP_KEPT + (LOCATOR,)
+    EXEMPT = (LOCATOR,)
     # The removed engine names, as patterns over the shipped skill tree (skills/shiploop).
     REMOVED = (r"\bretire\(", r"\b_put_back\b", r"\bretired_by\b", r"\bis_retired_spec\b", r"\bretire_subject\b",
                r"\bis_retire_subject\b", r"\b_RETIRE_SUBJECT\b", r"\bKEPT_AFTER_ROUTE\b", r"\bknowledge(?:_home)?\.Retired\b",
                r"\bwrite_feature_list\b", r"\bfeature_list\b", r"\bfeature_list_notice\b", r"\b_missing_ids\b",
                r"\blearnings\(", r"\bknowledge(?:_home)?\._sections\b", r"\bLEARNING_SECTIONS\b", r"\bKNOWLEDGE_INDEX\b",
                r"\bknowledge(?:_home)?\.INDEX\b", r"\b_run_commits_reach_branch\b", r"\bcheck_test_spec_ids\b",
-               r"\b_planned_record\b", r"\b_retire_message\b", r"\boutcome\.md\b")
+               r"\b_planned_record\b", r"\b_retire_message\b", r"\boutcome\.md\b",
+               # kept for the inner-loop renderer swap (edb831ba) and removed after it, the final 4c commit
+               r"\bfeature_dir\b", r"\bFEATURE_LIST\b", r"\b_GROUNDING\b", r"\bGROUNDING_LABELS\b",
+               r"\bknowledge(?:_home)?\.grounding\(", r"\bearlier_features\b", r"\bspec_pin\b", r"\{feature\}",
+               r"removed after the renderer swap", r"features/README")
     # Engine scripts: SHIPLOOP.md is a user file there, named only by the host-authored locator line.
     ENGINE_SCRIPTS = ("shiploop_knowledge_home.py", "shiploop_navigator.py", "shiploop_workspace.py",
                       "shiploop_expectations.py", "shiploop_protocol.py", "shiploop_loops.py", "shiploop_progress_data.py",
@@ -595,9 +594,8 @@ class RemovalTests(HomeFixture):
              ("spec.md", "plan.md", "test-spec.md", "system-tests.md", "release-plan.md", "outcome.md")),
            "SHIPLOOP.md")
 
-    def test_the_exemptions_are_exactly_the_swap_symbols_and_the_locator_line(self) -> None:
-        self.assertEqual(self.EXEMPT, ("feature_dir", "FEATURE_LIST", "_GROUNDING", "GROUNDING_LABELS", "earlier_features",
-                                       "spec_pin", "Repository knowledge index (host-authored, if present)"))
+    def test_the_exemption_is_exactly_the_locator_line(self) -> None:
+        self.assertEqual(self.EXEMPT, ("Repository knowledge index (host-authored, if present)",))
 
     def test_no_removed_engine_name_is_left_in_the_skill_tree(self) -> None:
         tree = ROOT / "skills" / "shiploop"
@@ -606,16 +604,6 @@ class RemovalTests(HomeFixture):
             for pattern in self.REMOVED:
                 with self.subTest(file=str(path.relative_to(ROOT)), pattern=pattern):
                     self.assertEqual(re.findall(pattern, text), [])
-
-    def test_each_swap_symbol_is_still_defined_and_marked_for_removal(self) -> None:
-        source = (ROOT / "skills/shiploop/scripts/shiploop_knowledge_home.py").read_text(encoding="utf-8").splitlines()
-        mark = "# removed after the renderer swap (consumer contract 4c)"
-        for name in self.SWAP_KEPT:
-            with self.subTest(name):
-                self.assertTrue(hasattr(knowledge, name))
-                line = next(i for i, row in enumerate(source) if re.match(r"^(def " + re.escape(name) + r"\(|"
-                                                                           + re.escape(name) + r" = )", row))
-                self.assertIn(mark, "\n".join(source[max(0, line - 2):line + 1]))
 
     SKILL_INDEX_TEMPLATE = "each skill index file outside HOME/ and SHIPLOOP.md"
 
@@ -629,7 +617,8 @@ class RemovalTests(HomeFixture):
                         self.assertIn(self.LOCATOR, line)
 
     def test_knowledge_home_exports_no_removed_machinery(self) -> None:
-        for name in ("INDEX", "LEARNING_SECTIONS", "KEPT_AFTER_ROUTE", "Retired", "retire", "retire_subject",
+        for name in ("feature_dir", "FEATURE_LIST", "_GROUNDING", "GROUNDING_LABELS", "grounding", "earlier_features",
+                     "spec_pin", "INDEX", "LEARNING_SECTIONS", "KEPT_AFTER_ROUTE", "Retired", "retire", "retire_subject",
                      "is_retire_subject", "retired_by", "is_retired_spec", "write_feature_list", "feature_list",
                      "feature_list_notice", "learnings", "_sections", "_missing_ids", "_put_back", "_planned_record",
                      "_retire_message", "_RETIRE_SUBJECT"):
@@ -650,10 +639,6 @@ class RemovalTests(HomeFixture):
         for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
             for names in table.values():
                 self.assertTrue(set(names) <= set(knowledge.LIVING), names)
-
-    def test_grounding_labels_are_spec_environment_architecture(self) -> None:
-        self.assertEqual(knowledge.GROUNDING_LABELS, ("living spec", "environment", "architecture"))
-        self.assertEqual([name for _, name in knowledge._GROUNDING], list(knowledge.LIVING))
 
     def test_run_label_is_the_old_folder_name_and_names_no_folder(self) -> None:
         self.assertEqual(knowledge.run_label(self.state), "add-a-fleet-command-tab-to-abcdef")
@@ -774,7 +759,7 @@ class SectionsTests(HomeFixture):
         for heading in sections:  # and every section is a thing the wording says the file holds
             self.assertIn(heading.lower(), holds.lower())
 
-    def test_every_stage_files_key_is_a_real_stage_and_every_name_a_living_or_feature_file(self) -> None:
+    def test_every_stage_files_key_is_a_real_stage_and_every_name_a_living_file(self) -> None:
         """A future change to the graph cannot leave a writer entry on a stage that no longer exists."""
         for stage in knowledge.STAGE_FILES:
             self.assertIn(stage, stage_spec.STAGES)
@@ -783,7 +768,7 @@ class SectionsTests(HomeFixture):
         for stage, names in knowledge.STAGE_FILES.items():
             for name in names:
                 with self.subTest(stage=stage, name=name):
-                    self.assertTrue(name in knowledge.LIVING or name.startswith("{feature}/"), name)
+                    self.assertIn(name, knowledge.LIVING)
 
     def test_the_reference_table_names_every_section_of_its_file_and_says_the_check_is_a_counted_notice(self) -> None:
         """Docs follow the constants (S-12): a heading added to SECTIONS must reach the reference's table row."""
@@ -832,7 +817,7 @@ class SectionsTests(HomeFixture):
         self.assertTrue([row for row in lines if "keeps these up to date" in row and environment in row], lines)
         self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: " + environment + ".", lines)
 
-    DUTY_FILES = ("spec", "environment", "architecture", "test-strategy")
+    DUTY_FILES = ("spec", "environment", "architecture")
 
     @classmethod
     def named_in_the_scripts(cls) -> dict:
@@ -871,8 +856,7 @@ class SectionsTests(HomeFixture):
         for name, items in named.items():
             with self.subTest(file=name):
                 for item in sorted(items):
-                    sections = list(knowledge.SECTIONS[name])
-                    self.assertTrue(any(item.startswith(heading) for heading in sections),
+                    self.assertTrue(any(item.startswith(heading) for heading in knowledge.SECTIONS[name]),
                                     repr(item) + " is named for " + name + " but is not in SECTIONS[" + repr(name) + "]")
 
     def test_verify_reads_the_architecture_and_writes_nothing_and_the_planning_entries_are_unchanged(self) -> None:
@@ -1357,77 +1341,6 @@ class SectionNoticeCloseTests(HomeFixture):
         self.assertIn("docs/shiploop/environment.md", committed)
 
 
-class GroundingTests(HomeFixture):
-    """knowledge.grounding(state): what an inner stage reads before it decides, as labelled absolute paths."""
-
-    def write_all(self) -> dict:
-        support.write(self.state)
-        return {"living spec": self.repo / "docs/shiploop/spec.md",
-                "environment": self.repo / "docs/shiploop/environment.md",
-                "architecture": self.repo / "docs/shiploop/architecture.md"}
-
-    def test_the_labels_their_order_and_the_absolute_paths_in_the_execution_checkout(self) -> None:
-        expected = self.write_all()
-        self.assertEqual(knowledge.GROUNDING_LABELS, ("living spec", "environment", "architecture"))
-        found = knowledge.grounding(self.state)
-        self.assertEqual([label for label, _ in found], list(knowledge.GROUNDING_LABELS))
-        self.assertEqual(dict(found), expected)
-        for _, path in found:
-            self.assertTrue(path.is_absolute() and path.is_file())
-            self.assertTrue(str(path).startswith(str(self.repo) + "/"))
-
-    def test_a_missing_empty_or_blank_file_is_absent_and_the_rest_keep_their_order(self) -> None:
-        expected = self.write_all()
-        expected["environment"].write_text(" \n\t\n")
-        self.assertEqual([label for label, _ in knowledge.grounding(self.state)], ["living spec", "architecture"])
-        expected["architecture"].unlink()
-        self.assertEqual(knowledge.grounding(self.state), [("living spec", expected["living spec"])])
-
-    def test_an_absent_home_a_directory_in_a_files_place_and_an_unreadable_file_give_nothing(self) -> None:
-        self.assertEqual(knowledge.grounding(self.state), [])
-        expected = self.write_all()
-        expected["architecture"].unlink()
-        expected["architecture"].mkdir()
-        self.assertNotIn("architecture", dict(knowledge.grounding(self.state)))
-        expected["environment"].chmod(0)
-        self.addCleanup(expected["environment"].chmod, 0o644)
-        if os.access(expected["environment"], os.R_OK):  # a superuser reads it anyway: nothing unreadable to test
-            return
-        self.assertNotIn("environment", dict(knowledge.grounding(self.state)))
-
-    def test_it_runs_no_git_writes_nothing_and_needs_no_checkout(self) -> None:
-        self.write_all()
-        plain = Path(tempfile.mkdtemp(prefix="shiploop-grounding-plain-"))
-        self.addCleanup(shutil.rmtree, plain, ignore_errors=True)
-        copy = plain / "repo"
-        shutil.copytree(self.repo, copy, ignore=shutil.ignore_patterns(".git"))  # not a checkout at all
-        state = dict(self.state, repo=str(copy))
-
-        def listing() -> list:
-            return sorted((str(p.relative_to(copy)), p.stat().st_mtime_ns, p.stat().st_size) for p in copy.rglob("*"))
-
-        before = listing()
-        with mock.patch.object(knowledge, "_git", side_effect=AssertionError("git")), \
-                mock.patch.object(subprocess, "run", side_effect=AssertionError("subprocess")), \
-                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("subprocess")):
-            found = knowledge.grounding(state)
-        self.assertEqual([label for label, _ in found], list(knowledge.GROUNDING_LABELS))
-        self.assertEqual(before, listing())
-
-    def test_grounding_and_the_close_agree_on_what_a_present_file_is(self) -> None:
-        """One rule (knowledge._filled): the file the close counts as written is the file the packet points at."""
-        expected = self.write_all()
-        for body in (None, "", " \n", "text\n"):
-            with self.subTest(body=body):
-                if body is None:
-                    expected["architecture"].unlink(missing_ok=True)
-                else:
-                    expected["architecture"].write_text(body)
-                refusal = knowledge.check(self.state, "prepare")
-                self.assertEqual("architecture" in dict(knowledge.grounding(self.state)),
-                                 str(expected["architecture"]) not in refusal)
-
-
 FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"
 TRAILER = "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 FULL = "3f2a9c1e0b7d4a5c8e6f1a2b3c4d5e6f708192a3"
@@ -1795,7 +1708,6 @@ class CommitHelperTests(unittest.TestCase):
         self.assertIn("this repository has no commit yet", problem)
 
 
-STUB = "# Feature spec\nAdds: R-1 .. R-3. Modifies: R-2. Retires: R-4.\n"
 LIVING = "# Living\n\n- R-1 one\n- R-2 two\n- R-3 three\n\n## Retired\n\n- R-4 four (replaced)\n"
 SLUG = "add-a-fleet-command-tab-to-abcdef"
 
@@ -1804,9 +1716,6 @@ class HomeCase(unittest.TestCase):
     """A repository and a run state, with helpers that write a knowledge home the way a planning host does."""
 
     setUp = KnowledgeTests.setUp
-
-    def feature(self) -> str:
-        return knowledge.feature_dir(self.state)
 
     def write(self, relative: str, text: str) -> None:
         path = self.repo / relative
@@ -1829,19 +1738,16 @@ class HomeCase(unittest.TestCase):
                 mock.patch.object(Path, "write_bytes", deny(Path.write_bytes)):
             yield target
 
-    def planned_home(self, living: str = LIVING, feature_spec: str = STUB) -> str:
+    def planned_home(self, living: str = LIVING) -> str:
         """The home as a real run leaves it before its prepare close: committed after the spec stage."""
         self.write("docs/shiploop/spec.md", living)
-        self.write(self.feature() + "/spec.md", feature_spec)
-        self.write(self.feature() + "/plan.md", "# Plan\n")
         done = knowledge.commit(self.state, "spec").commit
         self.assertTrue(done)
         return done
 
 
-class SubjectAndPinTests(HomeCase):
-    """The knowledge commit's subject (``run_label``) and the living spec's pin, which the inner-loop packet text still
-    prints until its renderer swap (consumer contract 4c)."""
+class SubjectTests(HomeCase):
+    """The knowledge commit's subject (``run_label``)."""
 
     def test_the_knowledge_subject_is_built_in_one_place(self) -> None:
         self.assertEqual(knowledge.knowledge_subject(self.state, "prepare"),
@@ -1850,30 +1756,6 @@ class SubjectAndPinTests(HomeCase):
                          "docs(shiploop): record " + SLUG + " knowledge after spec")
         self.planned_home()
         self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "spec"))
-
-    def test_the_pin_is_the_newest_commit_that_changed_the_living_spec_and_does_not_move_with_other_commits(self) -> None:
-        self.assertIsNone(knowledge.spec_pin(self.state))                                       # no living spec committed
-        self.write("docs/shiploop/spec.md", LIVING)
-        git(self.repo, "add", "-A")
-        git(self.repo, "commit", "-qm", "spec")
-        first = git(self.repo, "rev-parse", "HEAD").strip()
-        self.assertEqual(knowledge.spec_pin(self.state), "docs/shiploop/spec.md @ " + first[:12])
-        self.write("other.txt", "x\n")
-        git(self.repo, "add", "-A")
-        git(self.repo, "commit", "-qm", "unrelated")
-        self.assertEqual(knowledge.spec_pin(self.state), "docs/shiploop/spec.md @ " + first[:12])
-        self.write("docs/shiploop/spec.md", LIVING + "- R-5 five\n")
-        git(self.repo, "add", "-A")
-        git(self.repo, "commit", "-qm", "spec changed")
-        self.assertEqual(knowledge.spec_pin(self.state),
-                         "docs/shiploop/spec.md @ " + git(self.repo, "rev-parse", "HEAD").strip()[:12])
-
-    def test_the_pin_runs_no_git_outside_a_checkout(self) -> None:
-        plain = self.repo.parent / "plain"
-        plain.mkdir()
-        with mock.patch.object(subprocess, "run", side_effect=AssertionError("no process may start")):
-            self.assertIsNone(knowledge.spec_pin(dict(self.state, repo=str(plain))))
-
 
 
 if __name__ == "__main__":

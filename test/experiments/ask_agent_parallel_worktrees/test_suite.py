@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -124,7 +125,12 @@ class SuiteControls(unittest.TestCase):
     def test_delivery_suite_runs_default_commit_scale_then_findings_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             output=Path(tmp)/'campaign'
+            observed_stages=[]
+            def stage(argv):
+                script=Path(argv[2]).name
+                return (script,argv[3] if script in {'fixture.py','controller.py'} else None)
             def command(argv, **kwargs):
+                observed_stages.append(stage(argv))
                 if any(str(arg).endswith('native_trace.py') for arg in argv):
                     run=Path(argv[argv.index('--run')+1]); operator=run/'operator'
                     operator.mkdir(parents=True,exist_ok=True)
@@ -136,14 +142,68 @@ class SuiteControls(unittest.TestCase):
             self.assertTrue(campaign['seed_compact_ignore_controls'])
             self.assertEqual([(c['name'],c['workers'],c['delivery_mode']) for c in campaign['cases']],
                              [('commit3-a',3,'commits'),('commit5-a',5,'commits'),('ephemeral3-a',3,'ephemeral')])
+            expected_stages=[('fixture.py','prepare'),('prompts.py',None),('controller.py','launch'),
+                             ('controller.py','verify'),('native_trace.py',None)]
+            self.assertEqual(observed_stages,expected_stages*len(campaign['cases']))
             for case in campaign['cases']:
                 self.assertEqual(case['treatment'],'compact')
                 self.assertEqual(case['status'],'PASS')
+                self.assertEqual([stage(row['argv']) for row in case['commands']],expected_stages)
+                self.assertEqual([row['exit_code'] for row in case['commands']],[0,0,0,0,0])
                 prepare=case['commands'][0]['argv']
                 self.assertEqual(prepare[prepare.index('--delivery-mode')+1],case['delivery_mode'])
                 self.assertIn('--seed-compact-ignore-controls',prepare)
                 prompt=case['commands'][1]['argv']
                 self.assertEqual(prompt[prompt.index('--delivery-mode')+1],case['delivery_mode'])
+                run=case['run']
+                self.assertEqual(case['commands'][2]['argv'],
+                                 [sys.executable,'-B',str(suite.ROOT/'controller.py'),'launch',
+                                  '--run',run,'--model',campaign['model'],'--effort',campaign['effort']])
+                self.assertEqual(case['commands'][3]['argv'],
+                                 [sys.executable,'-B',str(suite.ROOT/'controller.py'),'verify',
+                                  '--run',run])
+
+    def test_delivery_suite_rejects_failed_or_missing_controller_verify_with_native_pass(self):
+        for verify_outcome in ('failed','missing'):
+            with self.subTest(verify_outcome=verify_outcome), tempfile.TemporaryDirectory() as tmp:
+                output=Path(tmp)/'campaign'
+                observed_stages=[]
+                def command(argv, **kwargs):
+                    script=Path(argv[2]).name
+                    stage=(script,argv[3] if script in {'fixture.py','controller.py'} else None)
+                    observed_stages.append(stage)
+                    if script=='controller.py' and argv[3]=='verify':
+                        if verify_outcome=='missing':
+                            raise OSError('controller verify command unavailable')
+                        return subprocess.CompletedProcess(argv,1)
+                    if script=='native_trace.py':
+                        run=Path(argv[argv.index('--run')+1]);operator=run/'operator'
+                        operator.mkdir(parents=True,exist_ok=True)
+                        (operator/'native-verification.json').write_text(
+                            json.dumps({'status':'PASS','passed':True}))
+                    return subprocess.CompletedProcess(argv,0)
+
+                with patch('suite.subprocess.run',side_effect=command),contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(suite.main(['--suite','delivery-qualification','--case','commit3-a',
+                                                 '--live','--output',str(output)]),1)
+
+                campaign=json.loads((output/'suite-result.json').read_text())
+                case=campaign['cases'][0]
+                expected_stages=[('fixture.py','prepare'),('prompts.py',None),('controller.py','launch'),
+                                 ('controller.py','verify'),('native_trace.py',None)]
+                self.assertEqual(observed_stages,expected_stages)
+                self.assertEqual([stage for stage in observed_stages if stage[0]=='controller.py'],
+                                 [('controller.py','launch'),('controller.py','verify')])
+                self.assertEqual(json.loads((Path(case['run'])/'operator/native-verification.json').read_text()),
+                                 {'status':'PASS','passed':True})
+                self.assertEqual(case['status'],'FAIL')
+                self.assertEqual(campaign['status'],'FAIL')
+                self.assertEqual(case['commands'][4]['exit_code'],0)
+                if verify_outcome=='failed':
+                    self.assertEqual(case['commands'][3]['exit_code'],1)
+                else:
+                    self.assertIsNone(case['commands'][3]['exit_code'])
+                    self.assertIn('controller verify command unavailable',case['commands'][3]['error'])
 
     def test_delivery_modes_reach_real_prompt_generation_before_model_launch(self):
         real_run = subprocess.run

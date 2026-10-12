@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -15,6 +16,29 @@ class SetupBatchTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory(prefix='ask-agent-batch-test-');self.addCleanup(self.tmp.cleanup)
         self.run=Path(self.tmp.name)/'run'
         self.manifest=fixture.prepare_fixture(self.run,3,'parallel')
+
+    def test_compact_prepare_summary_is_small_and_hash_binds_full_setup(self):
+        operator=self.run/'operator'
+        operator.mkdir(exist_ok=True)
+        setup={
+            'status':'PREPARED','run_id':self.manifest['run_id'],'treatment':'compact',
+            'delivery_mode':'commits','compact_startup_contract':'action-packet/v1',
+            'runtime_python_executable':str(Path(sys.executable).resolve()),
+            'workers':[{'worker_id':str(i),'prepared_inspection':{'large':'full setup retained on disk'}}
+                       for i in range(1,6)],
+        }
+        setup_path=operator/'setup-result.json'
+        setup_path.write_text(json.dumps(setup),encoding='utf-8')
+        summary=operations.compact_prepare_summary(self.run,{'run_id':self.manifest['run_id']})
+        self.assertEqual(summary['schema'],'ask-agent.compact-prepare-summary/v1')
+        self.assertEqual(summary['setup_sha256'],hashlib.sha256(setup_path.read_bytes()).hexdigest())
+        self.assertEqual(summary['dispatch_index_path'],str((operator/'compact-dispatch/index.json').resolve()))
+        self.assertEqual(set(summary),{
+            'schema','status','run_id','treatment','delivery_mode','setup_path','setup_sha256',
+            'dispatch_index_path','runtime_python_executable',
+        })
+        self.assertLess(len(json.dumps(summary,separators=(',',':'))),1024)
+        self.assertFalse((operator/'compact-dispatch/index.json').exists())
 
     def _is_helper_command(self, args, command):
         helper=Path(self.manifest['paths']['package'])/'scripts/ask_agent_workspace.py'

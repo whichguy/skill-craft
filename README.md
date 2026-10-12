@@ -30,20 +30,21 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**22 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**23 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
 | [adversarial-review](skills/adversarial-review/SKILL.md) | 0.1.0 | Have an independent model try to break a proposed change and return its findings as testable hypotheses, each with the smallest experiment that would refute it. Use before… |
 | [architect](skills/architect/SKILL.md) | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work. |
-| [ask-agent](skills/ask-agent/SKILL.md) | 0.10.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
+| [ask-agent](skills/ask-agent/SKILL.md) | 0.10.1 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
 | [backchain](skills/backchain/SKILL.md) | 0.6.3 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete… |
 | [c-plan](skills/c-plan/SKILL.md) | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens >… |
-| [improve](skills/improve/SKILL.md) | 0.4.0 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and repeat until two… |
+| [improve](skills/improve/SKILL.md) | 0.4.1 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and repeat until two… |
 | [improve-agent](skills/improve-agent/SKILL.md) | 0.1.3 | Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then… |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both… |
-| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | 0.6.2 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim ready steps, preserve launch state, collect result evidence,… |
+| [in-parallel](skills/in-parallel/SKILL.md) | 0.1.1 | Use for "in parallel" or when one goal should be divided among independent native agents and returned as one verified aggregate. One coordinator owns decomposition, progress,… |
+| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | 0.6.4 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim ready steps, preserve launch state, collect result evidence,… |
 | [plan-test](skills/plan-test/SKILL.md) | 0.1.3 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components. |
 | [prompt-align](skills/prompt-align/SKILL.md) | 0.1.2 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is… |
 | [prompt-audit](skills/prompt-audit/SKILL.md) | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a… |
@@ -52,9 +53,9 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
 | [rubric-eval](skills/rubric-eval/SKILL.md) | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default), grade blind with one evidence-first judge, and decide by… |
-| [shiploop](skills/shiploop/SKILL.md) | 1.1.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
+| [shiploop](skills/shiploop/SKILL.md) | 1.3.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.7.2 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
-| [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.2.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
+| [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.2.1 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 
 <!-- skill-craft:inventory:end -->

@@ -281,9 +281,13 @@ integrate contributions, or clean up worktrees. The parent owns those steps and
 any later close operation.
 
 The parent reports success only after the requested outcome is verified and any
-required integration is complete. Retain work and report the blocker if a gate
-fails. Existing [cleanup rules](workspace-operations.md#close-after-acceptance)
-apply only after acceptance and stopped-worker evidence.
+required integration is complete. After successful worktree edit integration
+and combined checks, invoke the selected workspace helper's
+[acceptance-bound close](workspace-operations.md#close-after-acceptance) with the
+returned inspection fingerprint and native stop evidence. Preserve referenced
+evidence outside the worktree before removal; keep branches and commits. Report
+each close outcome, including cleanup-pending refusals. Retain failed, unmerged,
+return-only and findings-only worktrees. Workers never remove their own tree.
 
 ## Failures
 

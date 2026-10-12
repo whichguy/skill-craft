@@ -1816,17 +1816,12 @@ def implement_progress(state: Mapping[str, Any], work_item: str | None) -> tuple
     return done, steps
 
 
-def _check_submitted_test_commands(stage: str, result: Any, *, root: Path | None = None,
-                                   state: Mapping[str, Any] | None = None) -> None:
+def _check_submitted_test_commands(stage: str, result: Any) -> None:
     """Refuse a submitted done step-plan result without its test command list.
 
     Like the plan's assumption list, this runs at the CLI gates only; the pure
     graph functions validate the field's shape when present.  The test stage
-    loops on these commands and ShipLoop reruns them.  The test stage's loop
-    contract lists them and is written at a transition, where nothing can be
-    refused, so a list that would put it over the contract budget is refused
-    here (``loops.command_list_problem``, with this run's paths when ``root``
-    and ``state`` are given).
+    loops on these commands and ShipLoop reruns them.
     """
     if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
@@ -1849,8 +1844,6 @@ def _check_submitted_test_commands(stage: str, result: Any, *, root: Path | None
           "a done step-plan result must list steps: [{\"id\": \"S1\", \"task\": \"...\", \"deps\": []}] in the order to do "
           "them (one step is fine); ShipLoop issues one implement packet per step")
     _check_step_sizing(result)
-    problem = loops.command_list_problem(root, state, result.get("test_commands") or [])
-    _need(problem is None, problem or "")
 
 
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
@@ -4388,31 +4381,28 @@ _INNER_GATES = {
 }
 
 
-# The References block (owner, 2026-10-11): a stage that starts after a context clear finds the knowledge files, this
-# run's feature files and its records here, every path defined once.  Its global part (HOME, FEATURE, RUN, WORKTREE) reads
+# The References block (owner, 2026-10-11): a stage that starts after a context clear finds the knowledge files and this
+# run's records here, every path defined once.  Its global part (HOME, RUN, WORKTREE) reads
 # the same in every packet of a run, except the "not written yet" markers; its stage-local part is the stage's consult
 # note (the files ``knowledge.READS`` names, quoted whole after the status block) and the earlier products it builds
 # on (``_PRODUCTS``).  The rest of the packet's prose names files
 # by these symbols; a command the model runs verbatim keeps its absolute paths, so it still runs.
 #
-# Every file name comes from knowledge_home's tables (SECTIONS, the grounding labels, STAGE_FILES, FEATURE_LIST,
-# feature_dir), so a change there (docs/shiploop-consumer-contract-plan-2026-10-11.md 3.4-3.5 would drop the feature
-# folder and test-strategy.md) changes the block with no edit here.
+# Every file name comes from knowledge_home's tables (LIVING, STAGE_FILES), so a change there changes the block with no
+# edit here.
 REFERENCES_HEAD = "References (defined once; the packet names files by these symbols):"
-REFERENCE_SYMBOLS = ("HOME", "FEATURE", "RUN", "WORKTREE")
-_FEATURE = "{feature}/"
+REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE")
 BUILDS_ON_HEAD = ("Results this stage builds on (open each not already in your context; report a conflict instead of "
                   "choosing silently):")
 
 def reference_paths(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
     """{symbol: absolute path} for the References block's global symbols."""
     repo = Path(str(state["repo"]))
-    return {"HOME": str(repo / knowledge.HOME), "FEATURE": str(repo / knowledge.feature_dir(state)),
-            "RUN": str(Path(root)), "WORKTREE": str(repo)}
+    return {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo)}
 
 
 def symbolic(text: str, root: Path, state: Mapping[str, Any]) -> str:
-    """``text`` with each absolute HOME, FEATURE, RUN or WORKTREE path written as its symbol (longest prefix first).
+    """``text`` with each absolute HOME, RUN or WORKTREE path written as its symbol (longest prefix first).
 
     For prose only: a command the model runs verbatim keeps its absolute paths.  A relative or root path is never
     replaced, so a symbol cannot stand for a fragment of a word.
@@ -4424,20 +4414,13 @@ def symbolic(text: str, root: Path, state: Mapping[str, Any]) -> str:
 
 
 def reference_name(name: str) -> str:
-    """A knowledge_home file name ("spec.md", "{feature}/plan.md") as the packet's symbol path."""
-    return "FEATURE/" + name[len(_FEATURE):] if name.startswith(_FEATURE) else "HOME/" + name
+    """A knowledge_home file name ("spec.md") as the packet's symbol path."""
+    return "HOME/" + name
 
 
-def reference_files() -> tuple[list[str], list[str]]:
-    """(the files listed under HOME, those under FEATURE), as knowledge_home names them, from its tables only: the
-    files with named sections, then the feature list; this run's feature files in the order the stages write them."""
-    home_list = str(Path(knowledge.FEATURE_LIST).relative_to(knowledge.HOME))
-    home = [*knowledge.SECTIONS, home_list]
-    feature = []
-    for stage in stage_spec.STAGES:
-        feature += [name for name in knowledge.STAGE_FILES.get(stage, ())
-                    if name.startswith(_FEATURE) and name not in feature]
-    return home, feature
+def reference_files() -> list[str]:
+    """The files listed under HOME, as knowledge_home names them: the living files, in their order."""
+    return list(knowledge.LIVING)
 
 
 def reference_writer(name: str) -> str:
@@ -4446,35 +4429,27 @@ def reference_writer(name: str) -> str:
     return stage + " writes it" if stage else "ShipLoop writes it at its next knowledge commit"
 
 
+# The living files' packet words.
+_LIVING_LABELS = {"spec.md": "living spec", "environment.md": "environment", knowledge.ARCHITECTURE: "architecture"}
+
+
 def _reference_global_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
     paths = reference_paths(root, state)
-    labels = {name: label for label, name in knowledge._GROUNDING}  # the grounding files' packet words
     repo = Path(str(state["repo"]))
-
-    def path_of(name: str) -> Path:
-        return (Path(paths["FEATURE"]) / name[len(_FEATURE):] if name.startswith(_FEATURE)
-                else Path(paths["HOME"]) / name)
 
     def entry(name: str) -> str:
         # The file's headings are not listed (packet re-cut, 2026-10-11): a stage that reads it gets it quoted whole,
         # and a duty names the section it writes.
-        return ("- " + reference_name(name) + (": " + labels[name] if name in labels else "")
-                + ("" if knowledge._filled(path_of(name)) else " (not written yet: " + reference_writer(name) + ")"))
+        return (reference_name(name) + (": " + _LIVING_LABELS[name] if name in _LIVING_LABELS else "")
+                + ("" if knowledge._filled(Path(paths["HOME"]) / name) else " (not written yet: "
+                   + reference_writer(name) + ")"))
 
-    home, feature = reference_files()
-    # A feature file is listed when it exists or this stage writes it; the others say nothing this stage acts on.
-    stage = current_stage(state)
-    writes = set(knowledge.STAGE_FILES.get(stage, ())) | set(knowledge.CLOSES.get(stage, ()))
-    feature = [name for name in feature if name in writes or knowledge._filled(path_of(name))]
-    feature_dir = str(Path(knowledge.feature_dir(state)).relative_to(knowledge.HOME))
     return [REFERENCES_HEAD,
             "HOME = " + paths["HOME"] + " (knowledge home) · RUN = " + paths["RUN"] + " (run records)",
             "WORKTREE = " + str(repo) + " (all product work; a working directory, never a --result value"
             + ("; an isolated worktree, returned to the original branch only at release or handoff)"
                if state.get("execution_mode") == "navigator-worktree" else ")"),
-            "Knowledge files: " + "; ".join(row[2:] for row in (entry(name) for name in home)),
-            *(["FEATURE = HOME/" + feature_dir + ": " + "; ".join(row[2:] for row in (entry(name) for name in feature))]
-              if feature else [])]
+            "Knowledge files: " + "; ".join(entry(name) for name in reference_files())]
 
 
 def reads_pointer(stage: str) -> list[str]:
@@ -4719,9 +4694,6 @@ def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
 # The knowledge home's packet lines (the E2E session's architecture and spec-retire builds, 2026-10-10: "Lines for the
 # packet owner" in docs/shiploop-architecture-file-journal-2026-10-10.md (L1, L2, L5/L6) and
 # docs/shiploop-spec-retire-journal-2026-10-10.md (a-d)), around ``knowledge_home.stage_lines``.
-_EARLIER_FEATURE_STAGES = ("intake", "discovery", "research", "spec", "plan")
-
-
 def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
     """The knowledge home's lines for this stage, with paths written as the References block's symbols.
 
@@ -4729,12 +4701,6 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
     now: every file listed in every packet, a missing one marked with its writer, and the stage's consult note.
     """
     lines = list(knowledge.stage_lines(state, stage))
-    folder = "FEATURE"
-    if len(lines) > 1:
-        lines[1] = lines[1].replace("Earlier runs' spec, environment and features are there",
-                                    "Earlier runs' spec, environment, architecture and features are there")
-        if stage in _EARLIER_FEATURE_STAGES:
-            lines[1] += " " + knowledge.earlier_features(state)
     if stage in stage_spec.INNER:
         # The References block names the knowledge home and its files; an inner stage needs no second description.
         lines = [line for line in lines if not line.startswith("Repository knowledge home")]
@@ -4754,11 +4720,6 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
     if stage == "prepare":
         lines.append("If HOME/architecture.md is missing, write it from the plan result's structural choices: it holds "
                      + knowledge.ARCHITECTURE_HOLDS + ".")
-    if stage == "plan":
-        pin = knowledge.spec_pin(state)
-        if pin is not None:
-            lines.append("Begin " + folder + "/plan.md with this exact first line, which names the living-spec "
-                         "version this plan implements: Spec: " + pin)
     # A quoted commit message ("  | ...", the inherited learnings) is the commit's own text: it is not rewritten.  The
     # home's repository-relative name ("docs/shiploop/") is HOME too.
     return [line if line.startswith("  |") else symbolic(line, root, state).replace(knowledge.HOME + "/", "HOME/")
@@ -5224,18 +5185,11 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     evidence_root = packet_path.parent / "reviews"
     # Both routes: the parent writes the opening and ShipLoop freezes the contract and starts
     # the child (improve-start); a model never writes the start contract (149ed901, 551b8b49).
-    opening_allowance = improve_opening_allowance(core, root, state)
     start_lines = [
             "Context-first opening: before start, write the opening file " + str(improve_opening_path(child))
             + " with exactly these four sections, each filled from this conversation and the candidate:\n"
             + improve_opening_template()
-            + "'Current context and desired improvements' holds current learnings, decisions, unresolved concerns and suggested improvements to assess; 'Scope' the exact candidate paths (including untracked ones) and anything excluded; 'Authority' current approvals, declines, pending decisions and any no-commit override, with their source; 'Environment' the runtime, commands and checks that apply. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions. "
-            "Size budget: the opening is frozen into the Until Loop's state, which the runtime caps at "
-            + f"{loop_contract.STATE_LIMIT:,} bytes in all (contract, latest report, progress). improve-start refuses a contract over "
-            + f"{loop_contract.CONTRACT_BUDGET:,} bytes so the first review report still fits; ShipLoop's own text leaves the four sections "
-            + (f"about {opening_allowance:,} bytes together" if opening_allowance else "little more than a few thousand bytes together")
-            + " (non-ASCII text counts several bytes per character). Put long detail in a file and name its path in the section; "
-            "keep inline the reasoning a later review needs. A refusal says how far over you are and which section to shorten.",
+            + "'Current context and desired improvements' holds current learnings, decisions, unresolved concerns and suggested improvements to assess; 'Scope' the exact candidate paths (including untracked ones) and anything excluded; 'Authority' current approvals, declines, pending decisions and any no-commit override, with their source; 'Environment' the runtime, commands and checks that apply. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions.",
             "Then run: " + _callback(core, root, "improve-start", action=action_id, opening=str(improve_opening_path(child)))
             + " . ShipLoop freezes the child contract from the opening (binding line, workspace, work, exit and repeat conditions, commit policy, exclusions and every return locator; written to start.json beside the receipt), starts the bound runtime with the receipt below and prints the child's first packet. Do not write the start contract or start the runtime yourself. If this child already started, recover it from its receipt as described below instead.",
     ]
@@ -5909,25 +5863,6 @@ def improve_opening_template() -> str:
     return "\n\n".join("## " + name + "\n..." for name in OPENING_SECTIONS) + "\n"
 
 
-# The contract parts the parent's opening sections become, named as the parent knows them.
-OPENING_CONTRACT_PARTS = {
-    "context.request": "Current context and desired improvements",
-    "context.scope": "Scope",
-    "context.authority": "Authority",
-    "context.environment": "Environment",
-}
-
-
-def improve_opening_allowance(core: Any, root: Path, state: Mapping[str, Any]) -> int | None:
-    """Bytes the four opening sections may use together: the contract budget less ShipLoop's own text."""
-    minimal = "\n\n".join("## " + name + "\nx" for name in OPENING_SECTIONS) + "\n"
-    try:
-        contract = improve_start_contract(core, root, state, minimal)
-    except NavigatorError:
-        return None
-    return max(0, loop_contract.CONTRACT_BUDGET - loop_contract.compact_bytes(contract))
-
-
 def _opening_sections(text: str) -> dict[str, str]:
     """The four required `## ` sections of an opening file, each non-empty."""
     sections: dict[str, list[str]] = {}
@@ -6188,13 +6123,6 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     _need(getattr(args, "opening", None) == str(opening), "Improve opening must use the printed path " + str(opening))
     _need(opening.is_file() and not opening.is_symlink(), "write the opening file first: " + str(opening))
     contract = improve_start_contract(core, root, state, opening.read_text(encoding="utf-8"))
-    # Refuse here, before anything is written or archived: a contract that fills the runtime's state file
-    # leaves no room for the first review report, and that is only discovered after the review is done.
-    opening_text = opening.read_text(encoding="utf-8")
-    problem = loop_contract.size_problem(
-        contract, writable=OPENING_CONTRACT_PARTS, allowance=improve_opening_allowance(core, root, state),
-        sizes={name: loop_contract.text_bytes(body) for name, body in _opening_sections(opening_text).items()})
-    _need(problem is None, problem or "")
     if restart:
         # Keep the stopped child's packet and evidence; the new child writes its own.
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -6343,8 +6271,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_test_commands(
-                        child["stage"], child["seed_result"] if final_result is None else final_result,
-                        root=root, state=state)
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -6430,7 +6357,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                                       check_only=check_only)
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
-            _check_submitted_test_commands(current_stage(state), submitted, root=root, state=state)
+            _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)

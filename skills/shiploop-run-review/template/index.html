@@ -1170,32 +1170,31 @@ var EVIDENCE_CLASSES=[
   ["sentence","sentence","the model's own sentence alone (nothing beyond the stage's own files)"],
   ["skipped","recorded by ShipLoop","ShipLoop's own not-applicable entry, no packet"],
   ["unclassified","unclassified","no accepted entry for the visit"]];
-/* The five labels of an Improve child's packet, [key, label]; a test keeps the keys and their order equal to the exporter's IMPROVE_CARRIED. */
+/* The five historical text labels of an Improve child's packet, [key, label]; compact-handoff packets carry their instructions separately. */
 var IMPROVE_CARRIED_LABELS=[["goal","Goal"],["doneWhen","Done when"],["checkedBy","Checked by"],["output","Output"],["recovery","Recovery"]];
-/* The release that started printing Goal and Done when in the Improve packet (ShipLoop 0.57.0): a run of an earlier release has none by design. */
+/* The release that started printing Goal and Done when in the historical detailed packet (ShipLoop 0.57.0). */
 var IMPROVE_GOAL_SINCE="skill-craft 1.25.0";
-/* A visit's Improve packet labels as text: the ones its packet carried, then the ones not found in its text. "" without the object. */
-function improveCarriedText(c){
+/* A visit's Improve packet labels as text: the ones found and the absent labels, with the compact layout named when present. */
+function improveCarriedText(c,mode){
   if(!c||typeof c!=="object")return "";
   var yes=[],no=[];
   IMPROVE_CARRIED_LABELS.forEach(function(l){if(c[l[0]]===true)yes.push(l[1]);else if(c[l[0]]===false)no.push(l[1]);});
   if(!yes.length&&!no.length)return "";
-  return yes.join(", ")+(yes.length&&no.length?"; ":"")+(no.length?"not in the packet text: "+no.join(", "):"");
+  return yes.join(", ")+(yes.length&&no.length?"; ":"")+(no.length?(mode==="compact-handoff"?"legacy labels not used in the compact handoff packet: ":"not in the packet text: ")+no.join(", "):"");
 }
-/* The run's Improve packet counts beside its release: "Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, ..." with
-   the labels carried by most first. A run of a release before the one that added Goal and Done when reads 0 for them by design, and the
-   text says so; it is never drawn as a defect. "" for an export with no such record and no reason. */
+/* The run's historical Improve packet counts beside its release. A compact-handoff marker explains the current two-step layout; otherwise
+   the pre-1.25 Goal/Done-when explanation applies. "" for an export with no such record and no reason. */
 function improvePacketsText(run){
   var p=run&&run.improvePackets&&typeof run.improvePackets==="object"?run.improvePackets:null,why=reasonFor(run,"improvePackets");
   if(!p||!isCount(p.read)||!p.carried||typeof p.carried!=="object")return why?"Improve packets: not measured ("+why+")":"";
   if(p.read===0)return "Improve packets: none read (the run has no Improve child)";
   var counts=IMPROVE_CARRIED_LABELS.map(function(l,i){return {label:l[1],n:isCount(p.carried[l[0]])?p.carried[l[0]]:0,i:i};})
     .sort(function(a,b){return b.n-a.n||a.i-b.i;}).map(function(x){return x.label+" "+x.n+"/"+p.read;});
-  var none=IMPROVE_CARRIED_LABELS.every(function(l){return p.carried[l[0]]===0;});
-  var late=!none&&isCount(p.carried.goal)&&isCount(p.carried.doneWhen)&&(p.carried.goal<p.read||p.carried.doneWhen<p.read);
+  var compact=Array.isArray(run.stages)?run.stages.filter(function(r){return r&&r.improvePacketMode==="compact-handoff";}).length:0;
+  var late=!compact&&isCount(p.carried.goal)&&isCount(p.carried.doneWhen)&&(p.carried.goal<p.read||p.carried.doneWhen<p.read);
   var rel=run&&typeof run.release==="string"&&run.release?", "+run.release:"";
-  /* None of the five: the packet of the release where Improve is a stage of its own is only the run-the-skill instruction and the stage's complete; the review's context is in the hand-off file. */
-  return "Improve packets"+rel+": "+counts.join(", ")+(none?". The Improve stage's packet is only the instruction to run the improve skill and its complete callback; the review's goal, done-when list and checked-by sentence are in the hand-off file it names, so none of the five is in the packet by design.":late?". Goal and Done when are printed from "+IMPROVE_GOAL_SINCE+" on, so an earlier release has none by design.":"");
+  return "Improve packets"+rel+": "+counts.join(", ")+(compact?". "+compact+" packet(s) use the compact handoff layout; its two-step instruction points to a separate handoff file, so the historical labels do not apply.":
+    late?". Goal and Done when are printed from "+IMPROVE_GOAL_SINCE+" on, so an earlier release has none by design.":"");
 }
 /* A visit's exit evidence as text, "script: a check ShipLoop's script ran and recorded"; "" for a class this page does not know. */
 function evidenceLine(key){
@@ -1553,7 +1552,7 @@ var CARRIED_LABELS=[
   ["operates","operates","the 'Current stage guidance:' rules or the 'Considerations for this stage:' list"],
   ["checked","checked","the 'Done when (' list and the 'Improve:' line that says whether a review loop follows, or a 'Checked by:' line"],
   ["produces","produces","the 'Result template:' and the 'Allowed outcomes:' line"],
-  ["recovery","recovery","the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked (the packet re-cut says it as: blocked only when nothing can proceed without a person)"],
+  ["recovery","recovery","the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and either the historical self-repair sentence or the current best-default/assumption and person-only blocking rules"],
   ["inputs","inputs","the 'Results this stage builds on' list"]];
 /* The checklist of one visit: [{key, label, found: true|false|null, na, tip}], null when the row has no `carried` (older export,
    unreadable packet, skipped, seeded or an Improve child's packet). A cross is "not found in the packet text": a statement about
@@ -1596,7 +1595,7 @@ function stageCard(run,i,catalog){
   /* sent: the packet */
   var sent={bytes:isCount(r.packetBytes)?r.packetBytes:null,bytesLabel:r.packetImprove===true?"Packet file kept (the Improve child's)":"Packet size",
     improveBytes:isCount(r.improvePacketBytes)?r.improvePacketBytes:null,improvePacket:improvePacketId(run,r)?{id:improvePacketId(run,r)}:null,
-    improveCarried:improveCarriedText(r.improveCarried),
+    improveCarried:improveCarriedText(r.improveCarried,r.improvePacketMode),
     note:"",carried:null,carriedNote:"",packet:packetId(run,r)?{id:packetId(run,r)}:null};
   if(kind==="skipped")sent.note=typeof r.recorded==="string"&&RECORDED_TEXT[r.recorded]?recordedText([r],true)+".":
     "No packet was issued: the engine found this stage not applicable to the item.";

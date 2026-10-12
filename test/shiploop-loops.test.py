@@ -21,7 +21,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as fx  # noqa: E402
-import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -102,6 +101,18 @@ class Synthetic(unittest.TestCase):
 
 
 class ContractTests(Synthetic):
+    def test_a_contract_of_any_size_is_written_and_the_runtime_starts_from_it(self):
+        """No size budget: verify's contract names the run directory many times, so a deep run directory (an E2E build
+        directory, say) took it over the old 9,216-byte budget and blocked every item; now the loop starts."""
+        self.root = self.root / ("d" * 200) / ("d" * 200) / ("d" * 200)
+        self.root.mkdir(parents=True)
+        state = self.state_for("verify")
+        writes = self.write(state)
+        text = writes[loops.contract_path("A-verify")]
+        self.assertGreater(len(json.dumps(json.loads(text), separators=(",", ":"), sort_keys=True).encode()), 8_000)  # a large contract (the old budget was 9,216)
+        packet = self.runtime(["start", "--receipt", str(loops.receipt_path(self.root, "A-verify"))], text)
+        self.assertEqual(packet["status"], "active", packet)
+
     def test_every_inner_stage_contract_is_in_the_runtime_schema_and_the_runtime_starts_from_it(self):
         validate = _runtime_module()._validate_contract
         self.assertEqual(set(loops.STAGES), set(stage_spec.INNER))
@@ -115,7 +126,6 @@ class ContractTests(Synthetic):
                 self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
                 self.assertEqual(json.loads(writes[loops.contract_path(action)]), value)
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
-                self.assertIsNone(loop_contract.size_problem(value))
                 self.assertEqual(value["required_trivial_reviews"], 1 if stage == "verify" else 0)
                 self.assertEqual(value["exit_condition"], loops.exit_condition(stage))
                 self.assertEqual(value["exit_condition"].splitlines(),

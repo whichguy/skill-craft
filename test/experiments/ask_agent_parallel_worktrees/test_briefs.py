@@ -1,5 +1,6 @@
 """Focused tests for binding native arguments and parent-only pipeline oracles."""
 import json
+import hashlib
 import shlex
 from pathlib import Path
 import subprocess
@@ -34,6 +35,20 @@ class BriefPacketTests(unittest.TestCase):
         self.setup_path.write_bytes(self.setup_bytes)
         (self.run_path / "operator" / "parent-expected.json").unlink(missing_ok=True)
         (self.run_path / "operator" / "dispatch-packet.json").unlink(missing_ok=True)
+
+    def test_v4_dispatch_summary_hashes_full_setup_and_new_index(self):
+        setup={"status":"PREPARED","run_id":self.manifest["run_id"],
+               "treatment":"compact","compact_startup_contract":"action-packet/v1"}
+        self.setup_path.write_text(json.dumps(setup),encoding="utf-8")
+        index_path=self.run_path/"operator"/"compact-dispatch"/"index.json"
+        index_path.parent.mkdir(exist_ok=True)
+        index_path.write_bytes(b'{"schema":"ask-agent.compact-dispatch/v1"}\n')
+        assignments=[{"worker_id":str(i)} for i in range(1,4)]
+        summary=briefs._compact_dispatch_summary(self.run_path,self.manifest,assignments,index_path)
+        self.assertEqual(summary["schema"],"ask-agent.compact-dispatch-summary/v1")
+        self.assertEqual(summary["setup_sha256"],hashlib.sha256(self.setup_path.read_bytes()).hexdigest())
+        self.assertEqual(summary["index_sha256"],hashlib.sha256(index_path.read_bytes()).hexdigest())
+        self.assertEqual(summary["worker_ids"],["1","2","3"])
 
     def test_packets_bind_each_worker_and_quote_paths_with_spaces(self):
         before = fixture.capture_repo_state(Path(self.manifest["paths"]["caller"]))

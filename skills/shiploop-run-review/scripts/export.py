@@ -356,6 +356,8 @@ SCHEMA = {
                               # the release where the Improve stage is an action of its own, packets/<improve stage id>.md): its
                               # size, and true when a packets document `<runKey>--<action>-improve` was written for it.
                               "improvePacketBytes": (N, False), "improvePacketDoc": (B, False),
+                              # the compact call-and-return Improve packet; old checklist markers remain literal text readings.
+                              "improvePacketMode": (("enum", ("compact-handoff",)), False),
                               # R22b: what ShipLoop's own script checks recorded for the visit (tests/<action>-verifyN.md) and
                               # the outcomes a result left unverified, each with its owner and due stage (SCHEMA.md).
                               "verify": (("object", VERIFY_FIELDS), False),
@@ -2648,11 +2650,19 @@ CARRIED = (
     ("produces", "the 'Result template:' and the 'Allowed outcomes:' line",
      (((r"^Result template:",), (r"^Allowed outcomes:",)),)),
     ("recovery", "the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line "
-                 "from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked "
-                 "(the packet re-cut says it as: blocked only when nothing can proceed without a person)",
-     (((r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
-       (r"a problem this run can fix itself is repaired in this stage, not blocked",
-        r"blocked only when nothing can proceed without a person")),)),
+                 "from 1.22.0) and either the historical self-repair sentence or the current best-default/assumption and person-only blocking rules",
+     (
+         (
+             (r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
+             (r"a problem this run can fix itself is repaired in this stage, not blocked",
+              r"Anything this run can fix itself --.*is not blocked: repair it in this stage"),
+         ),
+         (
+             (r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
+             (r"take the best default and record it as an assumption",),
+             (r"blocked only when nothing can proceed without a person",),
+         ),
+     )),
     ("inputs", "the 'Results this stage builds on' list",
      (((r"^Results this stage builds on",),),)),
 )
@@ -2688,14 +2698,9 @@ def _improve_packet_file(packets: Path, action, stage_ids: dict[str, str]) -> Pa
     """The Improve packet file of a visit, else None: the Improve stage's own `<id>.md`, else the older `<action>-improve.md`."""
     names = ([f"{stage_ids[action]}.md"] if isinstance(action, str) and action in stage_ids else []) + [f"{action}{IMPROVE_SUFFIX}.md"]
     return next((packets / name for name in names if (packets / name).is_file()), None)
-# What an Improve child's packet (packets/<action>-improve.md, or packets/<improve stage id>.md) carries for a model that holds only that packet: one row per label,
-# (key, what is looked for, pattern), the patterns anchored to the lines the navigator prints (_goal_lines in its active-Improve branch,
-# _checked_line's Improve variant in _render_improve, _first_callback_lines, the run footer). A packet is scored line by line like
-# CARRIED. Goal and Done when are printed from skill-craft 1.25.0 (ShipLoop 0.57.0) on: an earlier release has none by design, so the
-# count is read beside the run's release and is never a defect. A test pins each phrase against the navigator's source.
-# From the release where the Improve stage's packet is only "run the improve skill, then its complete" (the review's context moved
-# to the hand-off file the packet names, which prints the first, second, third and fifth line and no opening instruction), the
-# packet file carries none of the five, so every label reads false by design; the hand-off file is not exported.
+# Historical Improve packet checklist markers. They remain literal text readings for saved runs. The current compact handoff
+# packet has its own two-step instruction and points at a separate handoff file; it does not carry these labels by design.
+# Tests pin historical markers against saved detailed packets and the current mode against the navigator's compact output.
 IMPROVE_CARRIED = (
     ("goal", "the review's 'Reviewing the returned <stage> result. Goal:' line (skill-craft 1.25.0 on)", r"^Reviewing the returned .* result\. Goal: "),
     ("doneWhen", "the 'Done when (' list the review holds the result to (skill-craft 1.25.0 on)", r"^Done when \("),
@@ -2707,6 +2712,15 @@ IMPROVE_CARRIED = (
 )
 IMPROVE_CARRIED_RX = tuple((key, re.compile(rx, re.M)) for key, _, rx in IMPROVE_CARRIED)
 
+# The compact Improve packet is recognized only when it carries both current actions and the run-bound keepalive marker.
+# Its detailed review context is in the separate handoff file named by the invocation line; this flag only distinguishes layout.
+IMPROVE_COMPACT_HANDOFF_RX = (
+    re.compile(r"^1\. Run the improve skill on the .+ result\. For example, on Claude Code:$", re.M),
+    re.compile(r"^\s+/improve ShipLoop Improve: .+/handoff\.md$", re.M),
+    re.compile(r"^2\. When the improve skill has completed, run: .*improve-complete", re.M),
+    re.compile(r"^Keepalive marker: .* run=\S+ rev=\d+ dir=.+$", re.M),
+)
+
 
 def carried_markers(text: str) -> dict[str, bool]:
     """{label: whether the packet text carries it} for every CARRIED label (the page prints each as a tick or a cross)."""
@@ -2717,6 +2731,11 @@ def carried_markers(text: str) -> dict[str, bool]:
 def improve_carried_markers(text: str) -> dict[str, bool]:
     """{label: whether the Improve child's packet text carries it} for every IMPROVE_CARRIED label."""
     return {key: bool(rx.search(text)) for key, rx in IMPROVE_CARRIED_RX}
+
+
+def improve_packet_mode(text: str) -> str | None:
+    """Return the recognized current packet layout, leaving historical/unrecognized text unclassified."""
+    return "compact-handoff" if all(rx.search(text) for rx in IMPROVE_COMPACT_HANDOFF_RX) else None
 
 
 def _packet_doc(run_key: str, action: str, stage: str, path: Path, kind: str | None = None) -> tuple[dict, str] | None:
@@ -2785,6 +2804,9 @@ def packet_docs(run_key: str, packets: Path, stages: list[dict],
                 found[f"{run_key}--{action}{IMPROVE_SUFFIX}"] = read[0]
                 row["improvePacketDoc"] = True
                 row["improveCarried"] = improve_carried_markers(read[1])
+                mode = improve_packet_mode(read[1])
+                if mode is not None:
+                    row["improvePacketMode"] = mode
     return found, unreadable
 
 
@@ -3443,8 +3465,11 @@ def _fidelity_lines(run) -> list[str]:
     elif not packets["read"]:
         lines.append("- Improve packets: none (the run has no Improve child)")
     else:
-        lines.append(f"- Improve packets ({run['release']}; read {packets['read']}; skill-craft 1.25.0 added Goal and Done when, so an earlier "
-                     "release has none): " + ", ".join(f"{label} {packets['carried'][key]}" for key, label in (
+        compact = sum(1 for row in run["stages"] if row.get("improvePacketMode") == "compact-handoff")
+        lines.append(f"- Improve packets ({run['release']}; read {packets['read']}; "
+                     + (f"{compact} use the compact handoff layout and point to a separate handoff file; those packets do not use the five historical labels): "
+                        if compact else "historical checklist labels): ")
+                     + ", ".join(f"{label} {packets['carried'][key]}" for key, label in (
                          ("goal", "goal"), ("doneWhen", "done when"), ("checkedBy", "checked by"), ("output", "output"), ("recovery", "recovery"))))
     return lines
 

@@ -4,9 +4,58 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
-### skill-craft 2.1.0
+### skill-craft 2.3.1
 
-- Skills: improve 0.4.0, shiploop 1.1.0
+- Skills: in-parallel 0.1.1, plan-dispatcher 0.6.4
+
+### in-parallel 0.1.1
+
+- Require a distinct recorded native handle for every queued item and retry, preserving the one-item, one-fresh-agent contract while retaining coordinator responsibility for native launch evidence.
+
+### plan-dispatcher 0.6.4
+
+- For the compact Ask Agent profile, reject native handles already bound to another attempt under the Dispatcher lock, including accepted and retried attempts. Keep same-attempt registration replay and ordinary Dispatcher behavior unchanged.
+
+### skill-craft 2.3.0
+
+- Skills: improve 0.4.1, shiploop 1.3.0
+
+### improve 0.4.1
+
+- The bundled Until Loop runtime is upstream 0.8.3 (whichguy/until-loop v0.8.3, 908db9c): stale size-limit wording removed and a test flake fixed; no behavior change. The README now points at PROVENANCE.json for the version and commit instead of repeating them, and the callback-evidence guide no longer justifies brevity by a state-size limit (there is none).
+
+### shiploop 1.3.0
+
+- The last consumer-contract 4c removals, after the renderer swap. The first removals shipped in 1.0.0; these six were
+  kept for the swap.
+  - **References block.** It no longer defines a `FEATURE` symbol or lists the old feature folder and the
+    `features/README.md` list. Its "Knowledge files" line lists the three living files.
+  - **Knowledge lines.** The plan packet no longer prints the `Spec: docs/shiploop/spec.md @ <sha>` first-line pin, and
+    early stages no longer print the "Earlier features" clause. The home line says "spec, environment and architecture".
+  - **Loop contracts.** The unused `{feature}` token fill is gone.
+  - **Engine.** `knowledge_home` drops `feature_dir`, `FEATURE_LIST`, `_GROUNDING`, `GROUNDING_LABELS`, `grounding`,
+    `earlier_features` and `spec_pin`.
+- ShipLoop no longer limits the size of an inner-loop contract (the bundled Until Loop is now 0.8.3, which has no size limit either). The 16 KiB state budget (9,216-byte contract budget, report reserve and bookkeeping reserve) is gone with the Until Loop runtime's own cap (Until Loop 0.8.1+): `improve-start` accepts any opening, step-plan accepts any `test_commands` list, and the Backchain guidance and Improve context no longer print a byte allowance. A deep run directory could previously push the verify stage's contract over the budget and block every item. Contract building, the one-contract-per-action rule, exit and repeat conditions and receipts are unchanged.
+
+### skill-craft 2.2.2
+
+- Skills: shiploop-run-review 0.2.1
+
+### shiploop-run-review 0.2.1
+
+- Run Review recognizes current compact Improve handoff packets and explains that historical checklist labels are not used in that layout.
+
+### skill-craft 2.2.1
+
+- Skills: shiploop 1.2.1
+
+### shiploop 1.2.1
+
+- Parallel and serial implementation-chain worker packets now carry ShipLoop's current Code craft rubric, and their linked guidance matches the implement-stage routes.
+
+### skill-craft 2.2.0
+
+- Skills: improve 0.4.0, shiploop 1.2.0
 
 ### improve 0.4.0
 
@@ -14,6 +63,113 @@ Written by scripts/release.py.
   the skill and names the done command (owner, 2026-10-11). The handoff file ShipLoop writes takes the place of the packet
   in the "ShipLoop whole-skill subcall" section: the binding marker, the result under review, the start, commit and
   return commands, and the evidence files.
+
+### shiploop 1.2.0
+
+- A completed Improve child that ended on one unchanged trivial pass, with files changed after its bind, now restarts
+  through `improve-start --restart-stopped`. Before this change, `improve-complete` refused it and told the model to "run
+  the loop's next review", but that loop was already complete and `--restart-stopped` refused any child that was not
+  stopped. The run had no route forward and paused (live node-add-route slice, 2026-10-11). The refusal's first line now
+  ends with the restart command. A test runs that command through the real CLI.
+- The ShipLoop packets are re-cut for concision (owner, 2026-10-11); the plan and rubric are in
+  docs/shiploop-packet-recut-2026-10-11.md.
+  - **Duties.** Every stage's goal is one action sentence that says where its output goes, and every duty is a short
+    numbered list.
+  - **Shared rules.** Cut to the five that live runs showed are needed.
+  - **Code craft.** Prints in full at implement only. Each step's Improve review and verify apply it.
+  - **Loop mechanics.** These live on the Until Loop card.
+  - **Printing.** A packet at or under 16k characters prints whole.
+  - **Improve packet.** Two instructions: run the improve skill with the handoff path, then run `improve-complete`.
+    ShipLoop binds the recorded card itself, and everything else goes in the handoff file beside the opening.
+  - **No advance mention.** No producer packet mentions Improve ahead of time, and Improve never mentions Backchain.
+
+  On the live node-fix-bug slice, the packet characters written fell from 546k to 212k.
+
+### skill-craft 2.1.0
+
+- Skills: ask-agent 0.10.1, in-parallel 0.1.0, plan-dispatcher 0.6.3, shiploop 1.1.0
+
+### ask-agent 0.10.1
+
+- Make parent-owned cleanup follow successful worktree edit integration and
+  combined checks. Use the existing receipt-bound close for compact tasks as
+  well as legacy helper tasks, retain branches and commits, and report refusals.
+  Keep failed, unmerged, return-only and findings-only worktrees available.
+- Accept exactly one redundant `PYTHONDONTWRITEBYTECODE=1` assignment before the pinned compact-v4 `python3 -B` finish command. Preserve exact matching of every remaining argument, binding digest, worker, and working directory. Reject other or duplicate assignments, `env` wrappers, and wrong digests.
+
+  The live r4 worker really completed its finish call, but this harmless prefix made the native audit fail. Retain the original failed verdict. A separate read-only replay passes all 28 gates without modifying the evidence; 84 native and compact regression tests pass. Fresh live qualification remains required.
+- Repair compact-v4 live experiment evidence after the three-worker Grok trial exposed a truncated preparation result and auditor assumptions about prompt ownership, Python interpreter identity, and inspection-specific patch locations.
+
+  Keep full setup and dispatch evidence on disk and emit small versioned, hash-bound summaries. Bind worker ownership through the exact native launch and pinned action packet. Use the producer runtime evidenced by the frozen script invocation instead of the auditor process runtime. Compare semantic commit evidence while independently checking patch bytes and containment. Retain fail-closed checks for truncation, hash drift, cross-worker packets, foreign paths, and unsafe patch artifacts.
+
+  The original trial remains failed. Offline qualification passed 239 tests, including seven new regressions. These changes affect the experiment harness and auditor; they do not establish a speedup or live qualification. Fresh live delivery cases remain required before a live-pass claim.
+- Repair native audit compatibility with the compact-v4 worker lifecycle. Require start-only dispatches to bind through the pinned action packet and actual native finish, normalize only equivalent absolute Python interpreter paths, and compare stable action-packet and commit-inspection fields while separately validating patch evidence. Findings-only returns permit absent or null delivery metadata but reject delivered commits, patches, or inspections. Preserve the legacy parser result shape.
+
+  Validate the changes with focused regressions, all five Ask Agent suites, and a separately saved read-only replay of the retained real Grok evidence. A controlled copy with one native finish removed must fail after a passing baseline. Original live verdicts remain unchanged, and fresh live qualification is still required. This audit repair does not establish a speedup or marketplace release.
+- Share Git's `/` path separator and protected-path set between the task and workspace helpers. Reject unnormalized path segments in workspace relative paths while preserving one trailing directory marker and legal POSIX Git filenames such as `C:notes`. Reject Windows drive-qualified or drive-relative task scopes.
+- Add a reusable Claude Code / Sonnet delivery qualification suite alongside the
+  Grok harness. Preserve the shared dirty-parent worktree, production lifecycle,
+  commit-delivery, and ephemeral checks while retaining Claude-native dispatch,
+  completion, and child transcript evidence. Distinguish explicit command-level
+  worktree scope from hosts that expose a native cwd argument, and keep failed
+  attempts and timing evidence separate from qualification claims.
+
+### in-parallel 0.1.0
+
+- Document In Parallel as the goal-oriented entry to the coordinator workflow,
+  with examples for independent analysis and isolated implementation. The same
+  coordinator and existing harness.py runtime own execution and delivery.
+- Separate complete task decomposition from worker concurrency. Default new batches
+  to at most five concurrent workers, honor an explicit prompt-supplied cap, and
+  refill free slots with fresh agents until the full required queue is accepted.
+  Preserve unresolved outcomes and verify aggregate membership against the complete
+  goal. Add reusable queue tests for bounded refill, full coverage, terminal retry,
+  and uncertain-launch reservations; keep Dispatcher as the only queue authority.
+  Consume the planned backlog incrementally, preparing only yielded items and
+  starting a fresh agent for each, with no persistent worker pool or batch barrier.
+  Clarify bytecode-safe report-only inspection after a live trial exposed an
+  ignored cache file despite clean Git status; retain full fixture-file auditing.
+- Remove integrated worker worktrees after successful combined delivery and
+  checks, using Ask Agent's acceptance-bound close. Preserve branches, commits
+  and durable evidence; report cleanup refusals separately from integration.
+  Keep failed, unmerged, return-only and ephemeral worktrees. Resume interrupted
+  cleanup without repeating integration or sweeping historical runs.
+- Expose one callable coordinator entry point shared with the CLI and a public
+  delivery request validator. Reject malformed arguments before reserving work;
+  preserve caller-owned inputs, structured diagnostics, and existing recovery
+  rules. Document the composable APIs and add concise comments around evidence,
+  locking and cleanup boundaries.
+- Add an `in-parallel` skill that composes Ask Agent's compact task interface
+  with Plan Dispatcher for independent native-agent batches, with separate native
+  collection, evidence-based acceptance, and guarded delivery.
+
+  Live experiments favor a single top-level Grok coordinator for a controlled
+  pilot. Retain failed and blocked trials: Claude headless nesting needed parent
+  resumes, one direct process remained open after delivery, and Markdown scratch
+  reports were refused. The reusable auditor separates native lifecycle evidence
+  from filesystem preservation, and retains provenance for parser-corrected
+  re-audits. Worktrees and commits remain available for explicit later cleanup.
+- Centralize repeated artifact and script names and share repository-path
+  validation between coordination and delivery. Keep Git's slash protocol
+  separate from native filesystem paths, reject ambiguous drive-qualified
+  scopes before dispatch, and read JSON and helper responses as UTF-8 independent
+  of the caller's locale. Cover path boundaries and locale behavior with tests.
+- Add In Parallel as a prompt-facing entry to Agent Harness. One fresh
+  coordinator decomposes a Git-backed goal into independent implementation scopes
+  or analytical perspectives, owns the existing worker lifecycle, and returns a
+  verified synthesis with partial outcomes, disagreements, and delivery evidence.
+  Reuse the existing harness script and host limits without another agent layer.
+
+  Consolidate the unpublished Ask Parallel and Agent Harness entry cards into one
+  `in-parallel` skill and matching coordinator card. Keep Ask Agent independently
+  usable, preserve Dispatcher as the sole task-state owner, and retain existing
+  runtime schemas and pinned historical evidence. Register a reusable
+  `in-parallel` suite group with the historical `agent-harness` group as an alias;
+  compare direct and composed worker contracts using real Git fixtures.
+
+### plan-dispatcher 0.6.3
+
+- Plan Dispatcher supports an opt-in compact Ask-Agent coordinator profile and allows concurrent read-only attempts to share the same canonical workspace.
 
 ### shiploop 1.1.0
 
@@ -43,24 +199,6 @@ Written by scripts/release.py.
     system-test-author record later checks and unrunnable cases as open items in `assumptions`.
   - **Working-tree return.** The handoff packet prints the lessons commit message for the user to commit, since a
     working-tree return makes no commit.
-- A completed Improve child that ended on one unchanged trivial pass, with files changed after its bind, now restarts
-  through `improve-start --restart-stopped`. Before this change, `improve-complete` refused it and told the model to "run
-  the loop's next review", but that loop was already complete and `--restart-stopped` refused any child that was not
-  stopped. The run had no route forward and paused (live node-add-route slice, 2026-10-11). The refusal's first line now
-  ends with the restart command. A test runs that command through the real CLI.
-- The ShipLoop packets are re-cut for concision (owner, 2026-10-11); the plan and rubric are in
-  docs/shiploop-packet-recut-2026-10-11.md.
-  - **Duties.** Every stage's goal is one action sentence that says where its output goes, and every duty is a short
-    numbered list.
-  - **Shared rules.** Cut to the five that live runs showed are needed.
-  - **Code craft.** Prints in full at implement only. Each step's Improve review and verify apply it.
-  - **Loop mechanics.** These live on the Until Loop card.
-  - **Printing.** A packet at or under 16k characters prints whole.
-  - **Improve packet.** Two instructions: run the improve skill with the handoff path, then run `improve-complete`.
-    ShipLoop binds the recorded card itself, and everything else goes in the handoff file beside the opening.
-  - **No advance mention.** No producer packet mentions Improve ahead of time, and Improve never mentions Backchain.
-
-  On the live node-fix-bug slice, the packet characters written fell from 546k to 212k.
 
 ### skill-craft 2.0.1
 
