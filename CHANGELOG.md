@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.2.1
+
+- Skills: shiploop 1.2.1
+
+### shiploop 1.2.1
+
+- Parallel and serial implementation-chain worker packets now carry ShipLoop's current Code craft rubric, and their linked guidance matches the implement-stage routes.
+
 ### skill-craft 2.2.0
 
 - Skills: improve 0.4.0, shiploop 1.2.0
