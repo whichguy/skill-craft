@@ -194,6 +194,9 @@ def _obligations(value: Any) -> list[dict[str, Any]]:
 
 
 def _contract(value: Any) -> dict[str, Any]:
+    """Validate a delivery contract has exactly the required fields with valid values and return its canonical
+    form.
+    """
     _need(isinstance(value, Mapping), "delivery contract must be an object")
     required = {
         "consumer", "target", "behavior", "candidate", "operation", "necessity",
@@ -560,6 +563,7 @@ def _pending(projection: Mapping[str, Any], *, phase: str | None = None) -> list
         return []
     observations = projection["observations"]
     def satisfied(row: Mapping[str, Any]) -> bool:
+        """True when the observation for ``row`` passed, or was already current for an effect or identity row."""
         status = observations.get(row["id"], {}).get("status")
         return status == "passed" or (
             status == "already-current" and row["kind"] in {"effect", "identity"}

@@ -94,7 +94,7 @@ def _fixes(grants: Sequence[Path]) -> List[Tuple[str, str]]:
                 else " plus the repository's .git directory (workspace-write keeps it read-only)")
     return [
         ("claude", "Claude Code - no restart: the user runs "
-         + " and ".join(f"/add-dir {q}" for q in quoted)
+         + " and ".join(f"/add-dir {quoted_dir}" for quoted_dir in quoted)
          + " in this session, then rerun. To persist, list them in permissions.additionalDirectories"
          " in .claude/settings.local.json (Bash sandbox write roots follow these)."),
         ("codex", "Codex - no restart: the user picks Full access in /permissions. Scoped instead"

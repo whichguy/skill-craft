@@ -423,7 +423,7 @@ def normalise_test_cases(value: Any) -> List[Dict[str, str]]:
                   label + "." + key + " must be nonblank text" + tail)
             row[key] = entry[key].strip()
         for key in ("id", "criterion"):
-            _need(not any(ch.isspace() for ch in row[key]), label + "." + key + " has no spaces" + tail)
+            _need(not any(character.isspace() for character in row[key]), label + "." + key + " has no spaces" + tail)
         _need(knowledge._ids(row["requirement"]), label + ".requirement names no R-<n>: name the requirement it "
               "proves, such as R-3" + tail)
         rows.append(row)
@@ -672,6 +672,7 @@ def entry(root: Path, state: Mapping[str, Any]) -> Tuple[Dict[str, str], bool]:
 
 
 def read_record(root: Path, action_id: str) -> Optional[Dict[str, Any]]:
+    """The stored expectation record for ``action_id`` when it exists and has the current schema, else None."""
     path = Path(root) / record_path(action_id)
     if not path.is_file():
         return None

@@ -75,11 +75,16 @@ _KNOWN = _line_pattern(_KNOWN_LABELS)
 
 
 class Section(NamedTuple):
+    """One labelled section of a commit message: the label as asked for and its stripped text (empty when absent).
+    """
     label: str   # the label as spelled in the ``labels`` argument
     body: str    # the section text, stripped; empty when the label has none
 
 
 class Citation(NamedTuple):
+    """One ``Learned-from:`` line of a commit message: its line number, the commit ID cited and the contribution
+    described.
+    """
     line: int          # 1-based line of the ``Learned-from:`` line
     token: str         # the commit ID as written, without quotes, brackets or trailing punctuation ('' when absent)
     contribution: str  # the rest of the line, stripped

@@ -159,7 +159,7 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
         if "ids" in entry:
             ids = entry["ids"]
             _need(isinstance(ids, list) and ids and all(
-                isinstance(item, str) and item.strip() and not any(ch.isspace() for ch in item.strip())
+                isinstance(item, str) and item.strip() and not any(character.isspace() for character in item.strip())
                 for item in ids), "a test command's ids must be a nonempty list of test IDs without spaces")
             cleaned = [item.strip() for item in ids]
             _need(len(set(cleaned)) == len(cleaned), "a test command's ids must not repeat")
@@ -172,7 +172,7 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
         if "criteria" in entry:
             criteria = entry["criteria"]
             _need(isinstance(criteria, list) and criteria and all(
-                isinstance(item, str) and item.strip() and not any(ch.isspace() for ch in item.strip())
+                isinstance(item, str) and item.strip() and not any(character.isspace() for character in item.strip())
                 for item in criteria) and len(set(criteria)) == len(criteria),
                 "a test command's criteria must be a nonempty list of distinct criterion IDs")
             row["criteria"] = [item.strip() for item in criteria]
@@ -1027,6 +1027,9 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         runs.append(run)
     if stage == "system-test":
         def run_one(command: str) -> Optional[Tuple[int, str]]:
+            """Run one command with the time left in the budget; returns (exit code, combined output), or None when
+            out of time or it cannot start.
+            """
             left = deadline - clock()
             if left <= 1.0:
                 return None
