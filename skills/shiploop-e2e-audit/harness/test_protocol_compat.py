@@ -46,9 +46,9 @@ class ProtocolCompatibilityTests(unittest.TestCase):
             "status": "active",
             "history": history,
             "accepted": {entry["action"]: {"outcome": "done"} for entry in history},
-            # Only planning checkpoints pass through an Improve child.
+            # Only planning checkpoints pass through an Improve stage, an action of its own whose id the record holds.
             "improve_results": {
-                entry["action"]: {"summary": "Synthetic Improve receipt."}
+                entry["action"]: {"summary": "Synthetic Improve receipt.", "improve_action": f"improve-for-{entry['action']}"}
                 for entry in history if entry["stage"] in PRELUDE_CHECKPOINTS
             },
         }
@@ -77,8 +77,9 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         }
 
     def events_for(self, state: dict, producer_callback: str = "complete", *,
-                   overrides: dict[str, str] | None = None) -> dict:
-        """Emit the per-action callback a correct host would issue."""
+                   overrides: dict[str, str] | None = None, named: dict[str, str] | None = None) -> dict:
+        """Emit the per-action callback a correct host would issue: the Improve stage's `complete` names the stage's id, a producer's
+        names its own action. ``overrides`` swaps a verb, ``named`` swaps the id the call names."""
         calls = [
             self.call(
                 "start",
@@ -87,14 +88,14 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         ]
         for index, entry in enumerate(state["history"], start=1):
             action = entry["action"]
-            callback = "improve-complete" if action in state["improve_results"] else producer_callback
-            callback = (overrides or {}).get(action, callback)
+            callback = (overrides or {}).get(action, producer_callback)
+            named_id = (named or {}).get(action, state["improve_results"].get(action, {}).get("improve_action", action))
             calls.append(self.call(
                 f"callback-{index}",
                 [
                     callback,
                     "--run-dir", str(self.run_dir),
-                    "--action", action,
+                    "--action", named_id,
                     "--result", str(self.run_dir / "inbox" / f"{action}.md"),
                 ],
             ))
@@ -133,9 +134,9 @@ class ProtocolCompatibilityTests(unittest.TestCase):
             with self.subTest(retired=retired):
                 self.assertIsNone(run._partial_boundary(4, retired))
 
-        # The plan producer callback alone never accepts a planning checkpoint.
-        producer_only = self.events_for(state, overrides={
-            entry["action"]: "complete" for entry in state["history"] if entry["stage"] == "plan"
+        # The plan producer callback alone (it names the reviewed action, not its Improve stage) never accepts a planning checkpoint.
+        producer_only = self.events_for(state, named={
+            entry["action"]: entry["action"] for entry in state["history"] if entry["stage"] == "plan"
         })
         observed = self.partial(navigation, producer_only, captured, "plan")
         self.assertFalse(observed["reached"])
@@ -156,35 +157,50 @@ class ProtocolCompatibilityTests(unittest.TestCase):
                 self.assertFalse(lifecycle["complete"])
                 self.assertEqual("unsupported-navigator-protocol", lifecycle["reason"])
 
-    def test_lifecycle_requires_matching_successful_improve_complete(self) -> None:
+    def test_lifecycle_requires_the_improve_stages_own_successful_complete(self) -> None:
         state, navigation, _ = self.state_and_navigation(4, ("plan",), current_stage="prepare")
         action = state["history"][0]["action"]
-        self.assertIn(action, state["improve_results"])
+        stage_id = state["improve_results"][action]["improve_action"]
         start = self.call("start", ["init", "--repo", str(self.repo), "--run-dir", str(self.run_dir)])
 
-        producer_only = {"cli_calls": [start, self.call(
-            "producer", ["complete", "--run-dir", str(self.run_dir), "--action", action, "--result", "/tmp/result"]
-        )]}
-        wrong_action = {"cli_calls": [start, self.call(
-            "wrong-action", ["improve-complete", "--run-dir", str(self.run_dir), "--action", "other", "--result", "/tmp/result"]
-        )]}
-        wrong_run = {"cli_calls": [start, self.call(
-            "wrong-run", ["improve-complete", "--run-dir", str(self.root / "other-run"), "--action", action, "--result", "/tmp/result"]
-        )]}
-        nonzero = {"cli_calls": [start, self.call(
-            "nonzero", ["improve-complete", "--run-dir", str(self.run_dir), "--action", action, "--result", "/tmp/result"], exit_codes=[7]
-        )]}
-        accepted = {"cli_calls": [start, self.call(
-            "accepted", ["improve-complete", "--run-dir", str(self.run_dir), "--action", action, "--result", "/tmp/result"]
-        )]}
+        def complete(call_id: str, named: str, run_dir: Path | None = None, **extra) -> dict:
+            return {"cli_calls": [start, self.call(
+                call_id, ["complete", "--run-dir", str(run_dir or self.run_dir), "--action", named, "--result", "/tmp/result"], **extra
+            )]}
 
-        for events in (producer_only, wrong_action, wrong_run, nonzero):
+        producer_only = complete("producer", action)  # parks the action at its Improve stage: accepts nothing
+        wrong_action = complete("wrong-action", "other")
+        wrong_run = complete("wrong-run", stage_id, self.root / "other-run")
+        nonzero = complete("nonzero", stage_id, exit_codes=[7])
+        retired_verb = {"cli_calls": [start, self.call(
+            "retired", ["improve-complete", "--run-dir", str(self.run_dir), "--action", stage_id, "--result", "/tmp/result"]
+        )]}
+        accepted = complete("accepted", stage_id)
+
+        for events in (producer_only, wrong_action, wrong_run, nonzero, retired_verb):
             observed = self.lifecycle(navigation, events)
             self.assertFalse(observed["complete"])
             self.assertEqual([action], observed["missing_callback_actions"])
         observed = self.lifecycle(navigation, accepted)
         self.assertTrue(observed["complete"])
+        self.assertEqual(["complete"], observed["callback_commands"])
+
+    def test_a_saved_run_of_the_older_layout_is_still_accepted_by_its_improve_complete(self) -> None:
+        """A record without `improve_action` is a run from before the Improve stage was an action of its own."""
+        state, navigation, _ = self.state_and_navigation(4, ("plan",), current_stage="prepare")
+        action = state["history"][0]["action"]
+        del state["improve_results"][action]["improve_action"]
+        start = self.call("start", ["init", "--repo", str(self.repo), "--run-dir", str(self.run_dir)])
+        accepted = {"cli_calls": [start, self.call(
+            "accepted", ["improve-complete", "--run-dir", str(self.run_dir), "--action", action, "--result", "/tmp/result"]
+        )]}
+        producer_only = {"cli_calls": [start, self.call(
+            "producer", ["complete", "--run-dir", str(self.run_dir), "--action", action, "--result", "/tmp/result"]
+        )]}
+        observed = self.lifecycle(navigation, accepted)
+        self.assertTrue(observed["complete"])
         self.assertEqual(["improve-complete"], observed["callback_commands"])
+        self.assertFalse(self.lifecycle(navigation, producer_only)["complete"])
 
     def test_lifecycle_matches_each_action_to_its_callback(self) -> None:
         state, navigation, _ = self.state_and_navigation(
@@ -196,31 +212,33 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         observed = self.lifecycle(navigation, self.events_for(state))
         self.assertTrue(observed["complete"], observed)
         self.assertEqual([], observed["missing_callback_actions"])
-        self.assertEqual(["complete", "improve-complete"], observed["callback_commands"])
+        self.assertEqual(["complete"], observed["callback_commands"])
         self.assertEqual(
-            {intake: ["complete"], plan: ["improve-complete"]},
+            {intake: ["complete"], plan: ["complete"]},
             observed["action_callback_commands"],
         )
 
         # The retired ``done`` alias is not a ShipLoop verb and earns no credit.
         retired_alias = self.lifecycle(navigation, self.events_for(state, "done"))
         self.assertFalse(retired_alias["complete"])
-        self.assertEqual([intake], retired_alias["missing_callback_actions"])
+        self.assertEqual([intake, plan], retired_alias["missing_callback_actions"])
 
-        producer_for_plan = self.events_for(state, overrides={plan: "complete"})
+        # The producer complete naming the reviewed plan action parks it: the Improve stage's complete is what accepts it.
+        producer_for_plan = self.events_for(state, named={plan: plan})
         observed = self.lifecycle(navigation, producer_for_plan)
         self.assertFalse(observed["complete"])
         self.assertEqual([plan], observed["missing_callback_actions"])
 
-        improve_for_intake = self.events_for(state, overrides={intake: "improve-complete"})
+        # An Improve stage's id earns nothing for an action that has no Improve record.
+        improve_for_intake = self.events_for(state, named={intake: f"improve-for-{intake}"})
         observed = self.lifecycle(navigation, improve_for_intake)
         self.assertFalse(observed["complete"])
         self.assertEqual([intake], observed["missing_callback_actions"])
 
-        # A stopped initial plan child is accepted only by improve-reconcile.
+        # A stopped initial plan child is accepted only by improve-reconcile, which names the Improve stage's id.
         state, navigation, _ = self.state_and_navigation(4, ("intake", "plan"), current_stage="spec")
         intake, plan = (entry["action"] for entry in state["history"])
-        state["improve_results"][plan] = {"runtime_phase": "stopped"}
+        state["improve_results"][plan]["runtime_phase"] = "stopped"
         observed = self.lifecycle(navigation, self.events_for(state, overrides={plan: "improve-reconcile"}))
         self.assertTrue(observed["complete"], observed)
         self.assertEqual(["improve-reconcile"], observed["action_callback_commands"][plan])

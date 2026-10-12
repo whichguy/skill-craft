@@ -87,11 +87,11 @@ class ReviseTests(unittest.TestCase):
         for used in (1, 2):
             state = submit(state, REVISE)
             self.assertEqual(state["revisions"], {"W1": used})
-            # Walk step-plan (with its Improve child) back to implement.
+            # Walk step-plan (with its Improve stage) back to implement.
             for step in dry_run.activity():
                 if nav.current_stage(state) == "implement":
                     break
-                if step["at"] != nav.current_stage(state):
+                if step["at"] != nav.sequence_stage(state):
                     continue
                 action = nav.current_action(state)["id"]
                 if step["command"] == "produce":

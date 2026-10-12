@@ -334,7 +334,7 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
     wait_steps = to_spec + [
         {"at": "spec", "command": "produce", "result": _result("spec"), "expect": "spec", "status": "active"},
         {"at": "spec", "command": "duplicate-produce", "result": _result("spec"), "expect": "spec", "status": "active"},
-        {"at": "spec", "command": "conflicting-produce", "result": _result("spec", summary="Conflicting synthetic declaration."), "expect": "spec", "status": "active", "expect_error": "step awaits actual Improve"},
+        {"at": "spec", "command": "conflicting-produce", "result": _result("spec", summary="Conflicting synthetic declaration."), "expect": "spec", "status": "active", "expect_error": "step awaits its Improve stage"},
         {"at": "spec", "command": "finish-improve", "receipt": _receipt("spec"), "expect": "test-strategy", "status": "active"},
         {"at": "test-strategy", "command": "duplicate-finish-improve", "receipt": _receipt("spec"), "expect": "test-strategy", "status": "active"},
         {"at": "test-strategy", "command": "conflicting-finish-improve", "receipt": _receipt("spec", marker="conflict"), "expect": "test-strategy", "status": "active", "expect_error": "conflicting Improve completion replay"},

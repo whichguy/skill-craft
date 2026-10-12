@@ -69,7 +69,7 @@ while state["status"] != "done":
     action=navigator.current_action(state)
     result={"outcome":"done","summary":"Synthetic apparatus declaration; no game work."}
     state=navigator.apply(state,action["id"],result)
-    if state["active_improve"] is not None: state=navigator.finish_improve(state,action["id"],receipt)
+    if state["active_improve"] is not None: state=navigator.finish_improve(state,action["id"],dict(receipt,improve_action=state["active_improve"]["improve_action"]))
     navigator.save(run_dir,state)
     if os.environ.get("E2E_TEST_PARTIAL"): break
 record(workspace/"workspace.md",{"status":"returned","source_repo":str(repo),"source_head":before,"worktree":str(workspace/"worktree"),"run_dir":str(run_dir)})
@@ -81,7 +81,8 @@ if control_input:
     print(json.dumps({"type":"tool_call_update","toolCallId":"control-input","status":"completed","rawOutput":{"exitCode":0}}),flush=True)
 commands=[["workspace","start","--repo",str(repo),"--workspace-root",str(workspace)]]
 if not os.environ.get("E2E_TEST_MISSING_CALLBACKS"):
-    commands += [["improve-complete" if row["action"] in state["improve_results"] else "complete","--run-dir="+str(run_dir),"--action="+row["action"],"--result=fixture"] for row in state["history"]]
+    # An action with an Improve record is accepted by its Improve stage's own complete, which names the stage's id.
+    commands += [["complete","--run-dir="+str(run_dir),"--action="+state["improve_results"].get(row["action"],{}).get("improve_action",row["action"]),"--result=fixture"] for row in state["history"]]
     if not os.environ.get("E2E_TEST_PARTIAL"):
         commands += [["workspace","return","--workspace-root",str(workspace)]]
 for index, command in enumerate(commands):

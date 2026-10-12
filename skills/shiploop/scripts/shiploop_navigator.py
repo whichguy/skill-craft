@@ -23,6 +23,7 @@ import shlex
 import stat
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, NamedTuple
 from urllib.parse import quote
 
@@ -2935,7 +2936,7 @@ def _improve_stage_start(core: Any, root: Path, after: Mapping[str, Any]) -> Non
         return
     try:
         _start_improve(core, root, after)
-    except NavigatorError as exc:
+    except (NavigatorError, OSError) as exc:  # a filesystem refusal leaves the stage pending too, never blocks the producer
         print("ShipLoop could not start the Improve review: " + str(exc), file=sys.stderr)
 
 
@@ -5350,7 +5351,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ownership_lines = [
             *start_lines,
             "Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
-            "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
+            "This conversation holds the current approvals, declines and pending decisions (ShipLoop's opening cannot): apply an applicable approval without asking again, treat a decline as binding, and record each with its source in the review notes and handoff. A later user decision applies from the next review iteration: record its receipt and effect there; the frozen launch context stays unchanged.",
             "Return order: only after the runtime has written the terminal packet to the receipt below, run the parent return and callback below. Runtime completion alone never advances this action.",
         ]
     else:
@@ -5360,7 +5361,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "For a genuinely new invocation, after ShipLoop has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
             "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
-            "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
+            "ShipLoop's opening cannot hold this conversation's approvals, declines and pending decisions: state them, with action/target, conditions and authorization source, in the dispatch prompt, so the worker applies an approval without asking again and treats a decline as binding. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
             "Parent-only return: the worker continues the child from the receipt below and writes its review files, then returns their locators without executing ShipLoop callbacks other than improve-commit, or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
         ]
     start_word = "start" if inline else "dispatch"
@@ -5378,8 +5379,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ]),
         ("The runtime writes every packet it returns to the receipt above, the terminal one before it deletes "
          "its state. Never write or edit the receipt; ShipLoop imports only a packet the runtime wrote there. "
-         "Start before any review work."),
-        "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
+         "ShipLoop started this child before any review work."),
+        "For a genuinely new child, read the selected skills. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
         + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
            "this initial plan child may use the printed parent-only improve-reconcile route "
            + ("once the runtime has returned that stopped packet. " if inline else "after worker collection. ")
@@ -5400,8 +5401,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "raw packet because terminal state is deleted.",
         *(
             [
-                "Put the original request, step result, permitted paths, expected check state, authority and "
-                "relevant environment in the opening's sections. ShipLoop freezes the work, exit and repeat "
+                "ShipLoop's opening carries the step result, its permitted paths, authority and environment; "
+                "the original request (untrusted) is in state.md. ShipLoop freezes the work, exit and repeat "
                 "conditions, the commit policy, the exclusions and the resources (receipt, evidence directory, "
                 "parent state and the exact parent return, written to "
                 "parent-return.md beside the receipt), so the terminal packet can locate the parent return "
@@ -6035,12 +6036,10 @@ def _opening_sections(text: str) -> dict[str, str]:
     _need(not absent,
           "opening has no line reading exactly " + " or ".join('"## ' + name + '"' for name in absent)
           + " (its headings are: " + (", ".join(re.findall(r"(?m)^##\s+.+?\s*$", text)) or "none")
-          + "). Rename the heading to match, or add the section with its content, and run the same "
-          "improve-start command again")
+          + "). ShipLoop writes this opening itself, so this is a ShipLoop defect: report it")
     missing = [name for name in OPENING_SECTIONS if not found.get(name) or found[name] == "..."]
     _need(not missing, "opening needs non-empty sections: " + ", ".join("## " + name for name in missing)
-          + ". Write each one's content under its heading (a section left empty or as ... is refused) and run "
-          "the same improve-start command again")
+          + ". ShipLoop writes this opening itself, so this is a ShipLoop defect: report it")
     return found
 
 
@@ -6518,7 +6517,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 path = root / "inbox" / (action_id + "-reconcile.md")
                 _need(getattr(args, "result", None) == str(path),
                       "reconciliation receipt must use the printed inbox path")
-                receipt = _submitted_result(root, args, suffix="-reconcile")
+                # The receipt file is keyed by the reviewed action, whereas args.action names the Improve stage.
+                receipt = _submitted_result(root, SimpleNamespace(action=action_id, result=getattr(args, "result", None)),
+                                            suffix="-reconcile")
                 prior = state["improve_results"].get(action_id)
                 if prior is not None:
                     _need(prior.get("runtime_phase") == "stopped",

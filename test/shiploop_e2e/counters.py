@@ -5,8 +5,9 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
 0 and never a pass; an empty list or a zero is a measured none.
 
 ``packets``    one entry per file in the run's ``packets/`` folder, ``{action, stage, file_bytes, head_bytes}``.
-               ``action`` is the file's name without ``.md`` (the second packet a bound Improve child gets for one action is its
-               own file, ``<action>-improve``, so the key is unique), ``stage`` the stage of the file's ``ShipLoop navigator |``
+               ``action`` is the file's name without ``.md`` (the Improve stage is an action of its own, so its packet is its own
+               file ``<improve id>``, and the packet that asks for improve-bind ``<improve id>-bind``; a run of the older layout has
+               ``<action>-improve`` beside the producer's, so the key is unique either way), ``stage`` the stage of the file's ``ShipLoop navigator |``
                line (first in some files, below a delegation preamble in others), ``file_bytes`` the size on disk (a recovery
                ``next`` rewrites the file, so it is the last write), and ``head_bytes`` the bytes of the head ShipLoop first printed
                for the packet, as the host recorded the reply. One reader for every host (``metrics.ToolLog.replies``): Claude's

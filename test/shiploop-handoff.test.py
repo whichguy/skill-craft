@@ -487,10 +487,9 @@ class GateCase(RepoCase):
         complete = self.path_of(173, "nav-current.md")
         final = self.path_of(173, "nav-current-final-result.md")
         return [("complete", navigator.NextStep(complete, "then run the same complete command again.", False)),
-                ("improve-complete", navigator.NextStep(final, "then run the same improve-complete command again.",
-                                                        False)),
-                ("seed", navigator.NextStep(final, "then run improve-complete again with --final-result set to that "
-                                                   "file.", True))]
+                ("improve-stage", navigator.NextStep(final, "then run the same complete command again.", False)),
+                ("seed", navigator.NextStep(final, "then run the same complete command again with --final-result set "
+                                                   "to that file.", True))]
 
     def refusal(self, state: dict, stage: str, result: dict, step=None) -> str:
         step = step or self.steps()[0][1]
@@ -507,7 +506,7 @@ class GateCase(RepoCase):
         if step.seed:
             self.assertTrue(first.startswith("Write a final result to " + str(step.path) + " that "), first)
             self.assertTrue(first.endswith(", " + step.tail), first)
-            self.assertIn("then run improve-complete", first[:250])
+            self.assertIn("then run the same complete", first[:250])   # the verb is inside the cut a model reads
         else:
             self.assertIn(str(step.path), first)
             self.assertTrue(first.endswith(", " + step.tail), first)
@@ -868,7 +867,7 @@ class CompleteRouteTests(inner.RunDriver):
 
 
 class ImproveRouteTests(_improve_cli.ImproveCliFixture):
-    def test_a_seed_refusal_on_improve_complete_names_an_exit_the_real_cli_accepts(self) -> None:
+    def test_a_seed_refusal_on_the_improve_stage_complete_names_an_exit_the_real_cli_accepts(self) -> None:
         run = self.base / "parent-seed"
         self.invoke(_improve_cli.CLI, "init", "--repo", self.repo, "--run-dir", run, "--prompt",
                     "Synthetic predecessor navigation for the hand-off route.", "--improve-skill", _improve_cli.CARD)
@@ -888,22 +887,25 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
                            "skills": []}],
                 "expectations": [{"id": "E1", "state": "absent", "statement": "src/ does not exist yet.",
                                   "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]}
+        before = state
         state = navigator.apply(state, self.action, seed)        # the pure graph: the seed skipped complete's gates
-        navigator.save(run, state)
+        # complete's transition binds the recorded card and starts the review (owner, 2026-10-11); run it here too.
+        state, writes, _payload = navigator._transition(inner.CORE, run, before, state)
+        navigator.save(run, state, writes)
         self.run, self.state, self.parent_evidence_refs = run, state, []
         self.bind_current()
         packet = self.invoke(_improve_cli.CLI, "next", "--run-dir", run).stdout
         self.assertIn("revise at the INNER stages test-spec to verify", packet)   # X4: revise is a final outcome
         self.finish_ephemeral()
         flags, _receipt = self.completion_receipt()
-        refused = self.invoke(_improve_cli.CLI, "improve-complete", "--run-dir", run, "--action", self.action, *flags,
+        refused = self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
                               status=2)
         final = run / "inbox" / (self.action + "-final-result.md")
         self.assertEqual(refused.stderr.splitlines()[0],
                          "ShipLoop navigator: Write a final result to " + str(final) + " that adds follows, then run "
-                         "improve-complete again with --final-result set to that file.")
+                         "the same complete command again with --final-result set to that file.")
         store.write_record(final, dict(seed, follows=[]), "final result")
-        self.invoke(_improve_cli.CLI, "improve-complete", "--run-dir", run, "--action", self.action, *flags,
+        self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
                     "--final-result", final)
         after = store.read_record(run / "state.md")
         self.assertIsNone(after["active_improve"])

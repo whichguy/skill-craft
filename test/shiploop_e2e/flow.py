@@ -11,7 +11,10 @@
 
 The packet archive and run/packets supply the text of each packet.
 
-Each action has one or two phases, the producer and its Improve child. A phase holds:
+Each action has one phase. The Improve stage is an action of its own (stage `improve`, its own id and packet file), listed
+after the action it reviews and linked to it (`reviewed`, `reviewed_stage`); its phase has kind `improve`. A saved run of
+the older layout has the Improve child's packet beside the producer's (`<action>-improve.md`): its action keeps two
+phases, the producer and the Improve child. A phase holds:
 - the packet: its text, size and largest sections;
 - the head the model received, as printed in a tool result;
 - how the model opened the packet file, if it did;
@@ -47,13 +50,16 @@ import packets  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
-FLOW_VERSION = 1
+FLOW_VERSION = 2  # 2: the Improve stage is an action row of its own (`reviewed`, `reviewed_stage`); version 1 files still open
 TEMPLATE = HERE / "flow_viewer.html"
 DATA_MARK = "<!--FLOW-RUNS-->"
 HEAD = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \| revision (?P<rev>\d+)")
 ACTION = re.compile(r"--action=(nav-[0-9a-f]{32})")
 ANY_ACTION = re.compile(r"(nav-[0-9a-f]{32})")
-PACKET_FILE = re.compile(r"packets/(nav-[0-9a-f]{32}(?:-improve)?)\.md")
+PACKET_FILE = re.compile(r"packets/(nav-[0-9a-f]{32}(?:-improve(?:-bind)?|-bind)?)\.md")
+# An Improve packet's head, old layout: the producer's stage with `| Improve` or an improve-* verb in its first lines. New layout:
+# stage `improve` (a worktree path that merely contains "improve-" is not a sign).
+OLD_IMPROVE_HEAD = re.compile(r"\| Improve\b|Current action: Improve|improve-(?:bind|start|complete)\b")
 SCRIPT_DEF = re.compile(r"cat\s+>\s*(\S+\.sh)\s+<<|(\w+)\(\)\s*\{")
 TRIVIAL = re.compile(r'\\?"classification\\?"\s*:\s*\\?"trivial')
 REVIEW_FILE = re.compile(r"cat\s+>\s*\S*reviews/review-\d+\.md\s+<<")
@@ -154,7 +160,8 @@ def claude_items(out: Path, short: Shortener, first_action: str | None) -> tuple
                     found = ACTION.search(tail[:3000]) or ANY_ACTION.search(tail[:3000])
                     if not found:
                         continue
-                    improve = "Improve" in tail[:400] or "improve-" in tail[:400]
+                    # New layout: an `improve` head names the Improve stage's own id, so it is an ordinary action key.
+                    improve = match.group("stage") != navigator.IMPROVE_STAGE and bool(OLD_IMPROVE_HEAD.search(tail[:400]))
                     key = found.group(1) + ("-improve" if improve else "")
                     end = content.find(STATUS_END, match.start())
                     heads.setdefault(key, short(content[match.start(): end + len(STATUS_END) if end > 0 else len(content)]))
@@ -191,11 +198,19 @@ def build(out: Path) -> dict:
     history = [h for h in state.get("history") or [] if isinstance(h, dict) and h.get("action")]
 
     def seeded(action: str) -> bool:
+        action = reviewed_by.get(action, action)
         record = accepted.get(action) or {}
         result = record.get("result", record) if isinstance(record, dict) else {}
         return str((result or {}).get("summary", "")).startswith("Synthetic")
 
-    order = [h["action"] for h in history]
+    links = packets.improve_links(state)  # {Improve stage id: reviewed action}
+    reviewed_by = dict(links)
+    improve_of = {reviewed: stage_id for stage_id, reviewed in links.items()}
+    order = []
+    for h in history:
+        order.append(h["action"])
+        if h["action"] in improve_of:
+            order.append(improve_of[h["action"]])  # the Improve stage ran after its reviewed action and before its accept
     by_action = {h["action"]: h for h in history}
     stamps = {row["action"]: row["t"] for row in metrics.stage_results(run_dir, state) if row.get("action")}
     texts, emissions, source = packet_texts(out, run_dir)
@@ -204,6 +219,11 @@ def build(out: Path) -> dict:
         pending = str(navigator.current_action(state)["id"]) if state.get("status") == "active" else None
     except Exception:  # noqa: BLE001 - a record, never a refusal
         pending = None
+    child = state.get("active_improve") if isinstance(state.get("active_improve"), dict) else None
+    if pending is not None and child and isinstance(child.get("improve_action"), str):
+        # The run stands at an Improve stage: the cursor still names the reviewed action; the stage is the Improve one.
+        order.extend(a for a in (pending, child["improve_action"]) if a not in order)
+        pending = child["improve_action"]
     # Events before the first head belong to the first live action: accepted already, or the one the run is at.
     first_live = next((a for a in order if not seeded(a)), pending)
     if claude:
@@ -218,30 +238,41 @@ def build(out: Path) -> dict:
             order.append(action)
     actions = []
     for index, action in enumerate(order):
-        h = by_action.get(action, {})
-        stage = h.get("stage")
+        reviewed = reviewed_by.get(action)  # set only for an Improve stage's own id
+        h = by_action.get(reviewed or action, {})
+        stage = packets.IMPROVE_STAGE if reviewed else h.get("stage")
         if stage is None:
             found = HEAD.search(texts.get(action, "") or texts.get(action + "-improve", ""))
             stage = found.group("stage") if found else "?"
+        if reviewed:
+            # The Improve stage: one phase, its packet (the bind packet when no card was ever bound), linked to the reviewed action.
+            candidates = [(action, "improve", False)]
+        else:
+            candidates = [(action, "producer", False), (action + "-improve", "improve", True)]
         phases = []
-        for key, kind in ((action, "producer"), (action + "-improve", "improve")):
-            mine = [i for i in items if i["action"] == action and i["improve"] == (kind == "improve")]
-            if key not in texts and not mine:
+        for key, kind, legacy in candidates:
+            mine = [i for i in items if i["action"] == action and i["improve"] == legacy]
+            text_key = key if key in texts else f"{key}-bind" if f"{key}-bind" in texts else key
+            if text_key not in texts and not mine:
                 continue
-            text = texts.get(key, "")
+            text = texts.get(text_key, "")
             times = [i["t"] for i in mine]
             phases.append({
                 "kind": kind, "key": key,
-                "packet": {"text": short(text), "chars": len(text), "emissions": emissions.get(key, 0),
+                "packet": {"text": short(text), "chars": len(text), "emissions": emissions.get(text_key, 0),
                            "sections": packets.sections(text, top=12), **packets.references(text)},
-                "head": heads.get(key), "head_chars": len(heads.get(key) or ""), "reads": reads.get(key, []),
+                "head": heads.get(key) or heads.get(f"{key}-bind"), "head_chars": len(heads.get(key) or heads.get(f"{key}-bind") or ""),
+                "reads": [*reads.get(key, []), *reads.get(f"{key}-bind", [])],
                 "events": mine, "calls": sum(1 for i in mine if i["kind"] == "call"),
                 "span_seconds": round(max(times) - min(times), 1) if times else None,
                 "flags": sorted({f for i in mine if i["kind"] == "call" for f in i["flags"]}),
             })
-        actions.append({"index": index, "action": action, "stage": stage, "outcome": h.get("outcome"),
-                        "work_item": h.get("workitem"), "seeded": seeded(action), "accepted": action in by_action,
-                        "phases": phases})
+        row = {"index": index, "action": action, "stage": stage, "outcome": h.get("outcome"),
+               "work_item": h.get("workitem"), "seeded": seeded(action), "accepted": (reviewed or action) in by_action,
+               "phases": phases}
+        if reviewed:  # the Improve stage's accept is the reviewed action's: its `complete` imports the review
+            row.update({"reviewed": reviewed, "reviewed_stage": h.get("stage")})
+        actions.append(row)
 
     def json_file(name: str) -> dict:
         try:

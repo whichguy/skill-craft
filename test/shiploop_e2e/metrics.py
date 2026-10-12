@@ -576,19 +576,29 @@ def stage_results(run_dir: Path | None, state: dict | None = None) -> list[dict]
 
     ``state`` lets a caller that already read state.md pass it in, so one
     collection cannot read two different versions of a live run's state.
+
+    A reviewed action's row also carries ``improve_action`` when state.md records its Improve stage's id
+    (``improve_results[<action>]["improve_action"]``, set when the Improve stage's `complete` imports the review): that
+    id, not the reviewed action's, is what the `complete` call that accepts the action names.
     """
-    history = (engine_state(run_dir) if state is None else state).get("history")
+    state = engine_state(run_dir) if state is None else state
+    history = state.get("history")
     if not isinstance(history, list):
         return []
     stamps = acceptance_stamps(run_dir)
+    improved = state.get("improve_results") if isinstance(state.get("improve_results"), dict) else {}
     rows = []
     for entry in history:
         if not isinstance(entry, dict):
             continue
         action = entry.get("action")
-        rows.append({"stage": entry.get("stage") or "?", "outcome": entry.get("outcome"),
-                     "work_item": entry.get("workitem"), "action": action if isinstance(action, str) else None,
-                     "t": stamps.get(action) if isinstance(action, str) else None})
+        row = {"stage": entry.get("stage") or "?", "outcome": entry.get("outcome"),
+               "work_item": entry.get("workitem"), "action": action if isinstance(action, str) else None,
+               "t": stamps.get(action) if isinstance(action, str) else None}
+        record = improved.get(action) if isinstance(action, str) else None
+        if isinstance(record, dict) and isinstance(record.get("improve_action"), str):
+            row["improve_action"] = record["improve_action"]
+        rows.append(row)
     return rows
 
 
@@ -924,7 +934,9 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
 # where the same command assigns them), to compare with what the resume prompt told.
 NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
 RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
-# The ShipLoop verbs whose call can be the one that gets an action accepted (an Improve child's finish accepts its parent).
+# The ShipLoop verbs whose call can be the one that gets an action accepted. The Improve stage's `complete` (it names the Improve
+# stage's id) accepts the action it reviews; `improve-complete` was the Improve child's finish before the Improve stage was an
+# action of its own, and a saved run still holds it.
 ACCEPTING_VERBS = ("complete", "improve-complete")
 # Why `rewrote` and the window's failures are lower bounds (the scope strings in a block say it short; this says it whole).
 # `rewrote` sees file-edit tools only: a file a shell command writes (cat >, sed -i, cp, tee, a script) is invisible to the tool
@@ -1081,10 +1093,10 @@ def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = 
     counts as a session boundary too.
 
     The action waited for is the FIRST the ledger accepted after the start (``_next_accept``). The window ends at the LAST
-    `complete` or `improve-complete` call that names it, did not fail, began before its accept stamp's second ended and
-    returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp would lose the call (it starts
-    after the truncated stamp) or keep the next one (it starts in the same second); an Improve park's parent `complete`
-    returns long before the accept and is not the call. Both clocks are recorded: ``seconds`` to the call, on the runner's
+    `complete` call (`improve-complete` in a run of the older layout) that names it or its Improve stage, did not fail, began
+    before its accept stamp's second ended and returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp would lose the call (it starts
+    after the truncated stamp) or keep the next one (it starts in the same second); a producer's `complete`
+    that parks the action at its Improve stage returns long before the accept and is not the call. Both clocks are recorded: ``seconds`` to the call, on the runner's
     clock, and ``seconds_to_accept_stamp``, good to a second. A window the records cannot place that way is never extended
     to a later action: it is ``measured: false`` with its reason.
 
@@ -1102,7 +1114,10 @@ def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = 
     row = accepted[index] if index is not None else None
     target = row["action"] if row and isinstance(row.get("action"), str) else None
     stamp = row["t"] if row else None
-    pattern = re.compile(r"(?<![\w-])" + re.escape(target) + r"(?![\w-])") if target else None
+    # The call that gets the action accepted names the action itself (a stage with no review) or its Improve stage.
+    named = [target, row.get("improve_action")] if target else []
+    pattern = (re.compile(r"(?<![\w-])(?:" + "|".join(re.escape(n) for n in named if isinstance(n, str)) + r")(?![\w-])")
+               if target else None)
     tools, order = ToolLog(), []
     candidates: list = []  # calls that name the target in an accepting verb and began before its accept stamp's second ended
     line_of: dict = {}
@@ -1169,7 +1184,7 @@ def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = 
 
 
 def _submits(call: dict, pattern) -> bool:
-    """Whether a tool call runs a `complete` or `improve-complete` that names the action ``pattern`` matches."""
+    """Whether a tool call runs a `complete` (or an older run's `improve-complete`) that names what ``pattern`` matches."""
     return any(verb in ACCEPTING_VERBS for verb in _verbs(call)) and bool(pattern.search(call.get("invoked", "")))
 
 

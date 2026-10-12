@@ -314,11 +314,12 @@ class ArchitectureTests(HomeFixture):
                 self.assertNotIn("AD-2", first)  # a long list can never push the fix out of the first line
                 self.assertEqual(second, "The architecture no longer mentions AD-2, AD-3. Keep every earlier decision ID: "
                                  "modify it in place, or move it under a 'Superseded' heading with the reason.")
-        # The improve-complete route has its own sequence: a review's edit is committed with improve-commit before the import,
-        # and line 2 (the IDs and the 'Superseded' reason) is the complete route's.
-        first, second = knowledge.check(self.state, "step-plan", command="improve-complete").split("\n")
+        # The Improve stage's complete (command "improve") has its own sequence: a review's edit is committed with
+        # improve-commit before the import, and line 2 (the IDs and the 'Superseded' reason) is the complete route's.
+        # The command to run again is the same complete command (improve-complete is gone, 2026-10-11).
+        first, second = knowledge.check(self.state, "step-plan", command="improve").split("\n")
         self.assertEqual(first, "Restore AD-<n> in " + str(path)
-                         + "; if the review changed it, improve-commit it; then run improve-complete.")
+                         + "; if the review changed it, improve-commit it; then run complete again.")
         self.assertNotIn("AD-2", first)
         self.assertIn("The architecture no longer mentions AD-2, AD-3. Keep every earlier decision ID: modify it in place, "
                       "or move it under a 'Superseded' heading with the reason.", second)
@@ -344,7 +345,7 @@ class ArchitectureTests(HomeFixture):
         """A model reads a refusal through `cut -c1-250`: what survives is the fix, the whole path and the route's commands."""
         path = self.commit_home("".join("AD-" + str(n) + " choice\n" for n in range(1, 13)))  # twelve decisions to lose
         path.write_text("# Architecture\n")
-        for command in ("complete", "improve-complete"):
+        for command in ("complete", "improve"):
             line_1 = knowledge.check(self.state, "step-plan", command=command).splitlines()[0]
             for width in self.REAL_WIDTHS:
                 with self.subTest(command=command, width=width):
@@ -355,7 +356,9 @@ class ArchitectureTests(HomeFixture):
                                   + " or move it under 'Superseded', then run the same complete command")
                     else:
                         wanted = ("Restore AD-<n> in " + shown + "; if the review changed it, improve-commit it; "
-                                  "then run improve-complete.")
+                                  "then run complete again.")
+                    # The Improve route's line 1 ends "then run complete again." (shortened with improve-complete's
+                    # removal): the whole closing step survives the cut at every real checkout width.
                     self.assertIn(wanted, kept)
                     self.assertNotIn("AD-12", kept)  # the IDs are on line 2, in full
         self.assertIn("AD-12.", knowledge.check(self.state, "step-plan").splitlines()[1])  # every ID, no cap
@@ -370,19 +373,19 @@ class ArchitectureTests(HomeFixture):
         environment = self.repo / "docs/shiploop/environment.md"
         environment.write_text("# environment\nAuthorization: Bearer 0123456789abcdefghij\n")
         places = [str(path) + ":3", str(path) + ":4", str(path) + ":5", str(environment) + ":2"]  # absolute, in walk order
-        for command in ("complete", "improve-complete"):
+        for command in ("complete", "improve"):
             with self.subTest(command):
                 refusal = knowledge.check(self.state, "prepare", command=command)
                 lines = refusal.splitlines()
                 self.assertEqual(lines[0], "Reword " + places[0] + " to name an alias, not a value or an assignment; "
-                                 "then run the same " + command + " command again.")
+                                 "then run the same complete command again.")
                 self.assertIn("look like credentials", lines[1])  # the words the refusal has always had, for counting them
                 self.assertEqual(re.findall(r"^- (/\S+:\d+)$", refusal, re.M), places)  # every place, none capped
                 for text in ("bcrypt", "get_token", "0123456789", "os.environ"):
                     self.assertNotIn(text, refusal)  # places, never the text
         # The improve route's commit step is named too, once: its first line keeps the room for the path.
         self.assertEqual(sum("improve-commit" in line for line in knowledge.check(self.state, "prepare").splitlines()), 0)
-        improve = knowledge.check(self.state, "prepare", command="improve-complete").splitlines()
+        improve = knowledge.check(self.state, "prepare", command="improve").splitlines()
         self.assertEqual(sum("improve-commit" in line for line in improve), 1)
         self.assertIn("improve-commit", improve[-1])
         path.write_text("# Architecture\n\nPasswords are hashed with bcrypt (cost 12).\nThe signing key is read from the "
@@ -394,13 +397,13 @@ class ArchitectureTests(HomeFixture):
         support.write(self.state)
         path = self.repo / self.ARCH
         path.write_text("# Architecture\n\nPassword: bcrypt, cost 12\n")
-        for command in ("complete", "improve-complete"):
+        for command in ("complete", "improve"):
             line_1 = knowledge.check(self.state, "prepare", command=command).splitlines()[0]
             for width in self.REAL_WIDTHS:
                 with self.subTest(command=command, width=width):
                     line, shown = self.at_width(line_1, path, width)
                     self.assertIn("Reword " + shown + ":3 to name an alias, not a value or an assignment; then run the same "
-                                  + command, line[:250])
+                                  "complete", line[:250])
 
     def test_the_spec_refusal_has_the_same_shape_and_still_names_what_it_lost(self) -> None:
         support.write(self.state)
@@ -414,9 +417,9 @@ class ArchitectureTests(HomeFixture):
         self.assertEqual(second, "The living spec no longer mentions R-2. Keep every earlier requirement ID: modify it in "
                          "place, or move it under a 'Retired' heading with the reason.")
         # the route's own sequence is the spec's too (one template for both files)
-        again, rest = knowledge.check(self.state, "release-plan", command="improve-complete").split("\n")
+        again, rest = knowledge.check(self.state, "release-plan", command="improve").split("\n")
         self.assertEqual(again, "Restore R-<n> in " + str(spec)
-                         + "; if the review changed it, improve-commit it; then run improve-complete.")
+                         + "; if the review changed it, improve-commit it; then run complete again.")
         self.assertEqual(rest, second)
 
     def test_the_id_prefix_the_wording_names_is_the_prefix_the_check_keeps(self) -> None:

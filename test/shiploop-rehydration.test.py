@@ -215,7 +215,7 @@ class GoalFirstTests(unittest.TestCase):
         packet = nav.improve_handoff_text(dry_run.CORE, dry_run.RUN, blocked)  # the review's goal lives in the handoff
         self.assertIn("Reviewing the returned " + stage + " result. Goal: ", packet)
         self.assertIn("Done when (a done result must meet each", packet)
-        self.assertNotIn("accepted " + stage + " result", packet)  # the parent step stays pending until improve-complete
+        self.assertNotIn("accepted " + stage + " result", packet)  # the parent step stays pending until the Improve stage's complete
 
 
 class EvidenceGateTests(unittest.TestCase):

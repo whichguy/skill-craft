@@ -27,6 +27,8 @@ import metrics  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
 import slice as step_slice  # noqa: E402
+sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
+import shiploop_store as store  # noqa: E402
 
 CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
 GIT_ENV = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -420,6 +422,52 @@ class FlowTests(SliceCase):
         self.assertFalse(by_action["nav-" + "f" * 32]["accepted"])
         self.assertEqual([e["body"]["text"] for e in later["events"] if e["kind"] == "call"], ["echo after the head"])
         self.assertTrue(all(a["seeded"] for a in found["actions"] if a["stage"] in ("intake", "plan")))
+
+    def test_the_improve_stage_is_an_action_row_of_its_own_and_an_old_layout_run_keeps_its_improve_phase(self):
+        seeded = self.seed()
+        run_dir = Path(seeded["run_dir"])
+        state = store.read_record(run_dir / "state.md")
+        spec = next(h["action"] for h in state["history"] if h["stage"] == "spec")
+        plan = next(h["action"] for h in state["history"] if h["stage"] == "plan")
+        stage_id = "nav-" + "c" * 32
+        # New layout: the Improve stage has its own id, recorded at import, and its own packet file. Old layout (plan):
+        # the Improve child's packet sits beside the producer's as <action>-improve.md.
+        state["improve_results"][spec]["improve_action"] = stage_id
+        store.write_record(run_dir / "state.md", state)
+        packet_dir = run_dir / "packets"
+        packet_dir.mkdir(exist_ok=True)
+        improve_head = (f"ShipLoop navigator | improve | revision 4 | the spec result\n1. Run the improve skill on the spec result.\n"
+                        f"2. When the improve skill has completed, run: python3 shiploop complete --run-dir={run_dir} --action={stage_id}\n")
+        (packet_dir / f"{spec}.md").write_text("ShipLoop navigator | spec | revision 3\nproducer\n")
+        (packet_dir / f"{stage_id}.md").write_text(improve_head)
+        (packet_dir / f"{stage_id}-bind.md").write_text(improve_head.replace("revision 4", "revision 3"))
+        (packet_dir / f"{plan}.md").write_text("ShipLoop navigator | plan | revision 5\nproducer\n")
+        (packet_dir / f"{plan}-improve.md").write_text("ShipLoop navigator | plan | revision 6 | Improve\nold child\n")
+        self.claude_stream(seeded, [{"call": "shiploop next", "result": improve_head},
+                                    {"call": "echo review", "say": "Reviewing the spec."}])
+        found = flow.build(self.out)
+        rows = found["actions"]
+        names = [(r["stage"], r["action"]) for r in rows]
+        at = names.index(("improve", stage_id))
+        self.assertEqual(names[at - 1], ("spec", spec), "the Improve stage is listed right after the action it reviews")
+        row = rows[at]
+        self.assertEqual((row["reviewed"], row["reviewed_stage"], row["accepted"]), (spec, "spec", True))
+        self.assertEqual([p["kind"] for p in row["phases"]], ["improve"])
+        self.assertEqual(row["phases"][0]["packet"]["chars"], len(improve_head))
+        self.assertIn("Reviewing the spec.", [e["body"]["text"] for e in row["phases"][0]["events"] if e["kind"] == "say"])
+        self.assertEqual([p["kind"] for p in rows[at - 1]["phases"]], ["producer"], "the producer has no Improve phase of its own")
+        old = next(r for r in rows if r["action"] == plan)
+        self.assertEqual([p["kind"] for p in old["phases"]], ["producer", "improve"])
+        self.assertNotIn(("improve", plan), names)
+        self.assertEqual(sum(1 for r in rows if r["stage"] == "improve"), 1)
+        self.assertEqual(found["flow_version"], 2)
+        report = packets.build(self.out)
+        by_packet = {r["packet"]: r for r in report["packets"]}
+        self.assertEqual((by_packet[stage_id]["kind"], by_packet[stage_id]["stage"], by_packet[stage_id]["reviewed_stage"],
+                          by_packet[stage_id]["action"]), ("improve", "improve", "spec", spec))
+        self.assertEqual(by_packet[f"{stage_id}-bind"]["action"], spec)
+        self.assertEqual((by_packet[f"{plan}-improve"]["kind"], by_packet[f"{plan}-improve"]["action"]), ("improve", plan))
+        self.assertEqual(by_packet[spec]["kind"], "producer")
 
     def test_a_fake_host_run_gives_a_flow_and_a_page_that_cannot_be_closed_by_its_data(self):
         seeded = self.seed()

@@ -284,6 +284,8 @@ Parent callback; run only after the runtime returned complete:
 python3 /plugin/shiploop improve-complete --run-dir={RUN}
 """
 
+STAGE_HEAD = "ShipLoop navigator | improve | revision 5 | the spec result"
+
 IMPROVE_EXPECTED = {
     "Next command (start the bound": "callback",
     "Reviewing the returned plan result.": "goal",
@@ -371,6 +373,30 @@ class ClassifierTests(unittest.TestCase):
         self.assertEqual(anatomy.packet_kind("nav-1.md"), "producer")
         self.assertEqual(anatomy.packet_kind("nav-1-improve.md"), "improve")
         self.assertEqual(anatomy.packet_kind("nav-1-improve-bind.md"), "improve-bind")
+
+    def test_the_improve_stages_own_packet_files_are_told_by_their_head_line(self):
+        """The Improve stage is an action of its own: `nav-<improve id>.md` (and `-bind.md` before a card is bound), whose head
+        line names the stage `improve`. The file names of the older layout keep giving their kind."""
+        self.assertEqual(anatomy.packet_kind("nav-1.md", "improve"), "improve")
+        self.assertEqual(anatomy.packet_kind("nav-1-bind.md", "improve"), "improve-bind")
+        self.assertEqual(anatomy.packet_kind("nav-1.md", "spec"), "producer")
+        self.assertEqual(anatomy.packet_kind("nav-1-improve.md", "spec"), "improve")
+        self.assertEqual(anatomy.HEAD_LINE.match(STAGE_HEAD).group("stage"), "improve")
+
+
+class ImproveStagePacketFilesTests(unittest.TestCase):
+    def test_a_directory_with_the_improve_stages_own_files_counts_them_as_improve_packets(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            (directory / "nav-aa.md").write_text(PRODUCER)
+            for name in ("nav-ii.md", "nav-ii-bind.md"):
+                (directory / name).write_text(STAGE_HEAD + "\n1. Run the improve skill on the spec result. For example, on Claude Code:\n")
+            packets = anatomy.read_packets([directory])
+            report = anatomy.measure(packets, "synthetic")
+        self.assertEqual({p["file"]: p["kind"] for p in packets},
+                         {"nav-aa.md": "producer", "nav-ii.md": "improve", "nav-ii-bind.md": "improve-bind"})
+        self.assertEqual({p["stage"] for p in packets if p["kind"] != "producer"}, {"improve"})
+        self.assertEqual((report["producers"], report["improves"]), (1, 2))
 
 
 class PathAndSharedLineTests(unittest.TestCase):
@@ -491,6 +517,14 @@ class CurrentEngineTests(unittest.TestCase):
                     result["work_items"] = [{"id": "W1", "title": "The request"}]
                 state = navigator.apply(state, action, result)
                 if state.get("active_improve") is not None:
+                    # The Improve stage's own packet (its head names the stage `improve`): classified like the others.
+                    text = navigator.render(None, run, state)
+                    self.assertTrue(text.startswith("ShipLoop navigator | improve | revision "), text[:80])
+                    sections = anatomy.section_bytes(text)
+                    self.assertEqual(sum(sections.values()), len(text.encode("utf-8")))
+                    total += len(text.encode("utf-8"))
+                    unclassified += sections.get(anatomy.UNCLASSIFIED, 0)
+                    worst.extend(anatomy.unclassified_lines(text))
                     state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "None."})
             self.assertGreater(len(set(seen)), 10)
             self.assertLessEqual(

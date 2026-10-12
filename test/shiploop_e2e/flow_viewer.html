@@ -277,7 +277,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
       rows += `<div class="row" role="button" tabindex="0" aria-expanded="${expanded}" data-a="${a.index}">
         <div class="ship">
           <div class="name"><b>${esc(a.stage)}</b>
-            ${improve ? `<span class="pill quiet">+ Improve</span>` : ""}
+            ${a.reviewed_stage ? `<span class="pill quiet">reviews ${esc(a.reviewed_stage)}</span>` : improve ? `<span class="pill quiet">+ Improve</span>` : ""}
             ${clearedHere || clearedBefore ? `<span class="pill flag">context cleared here</span>` : ""}
             ${a.accepted ? `<span class="muted">${esc(a.outcome || "")}</span>` : `<span class="pill quiet">stopped here</span>`}
             <span class="muted num">${k(written)} written · ${k(reach)} reached</span></div>

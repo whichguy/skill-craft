@@ -427,9 +427,10 @@ inherits it) and an `end` row after it (status, last events line, `engine` at th
 lists one block for every fresh session (`--resume-run`, the session after `--interrupt-at`) and every compaction (Grok's
 `auto_compact_completed`; Codex's from its rollouts; Claude's are not detected), each over the events from that start to the
 tool call that got the next accepted action accepted. That action is the first one the ledger accepted after the start, and the
-call is the last `complete` or `improve-complete` that names it, did not fail and returned at or after the accept stamp (the
-stamp is whole-second truncated, so the window ends at the call, not at the stamp, and an Improve park's parent `complete`, which
-returns long before the accept, is not the call): `tool_calls`, `seconds` (to the call) and `seconds_to_accept_stamp`,
+call is the last `complete` that names it or its Improve stage (`improve_results[<action>].improve_action`; an older run's
+`improve-complete`), did not fail and returned at or after the accept stamp (the
+stamp is whole-second truncated, so the window ends at the call, not at the stamp, and the producer `complete` that parks the action at its
+Improve stage, which returns long before the accept, is not the call): `tool_calls`, `seconds` (to the call) and `seconds_to_accept_stamp`,
 `first_grounding` (the first call that goes to ShipLoop's scripts or reads a packet: `next`, `improve-next` (the Improve
 runtime's own recovery command), `packet`, or `other` for another ShipLoop verb such as `complete` or `lint`) with
 `calls_before_grounding`, `recovery` (was the first `next` as told: `cli` and `run_dir` are exact, equivalent after normpath and
@@ -971,8 +972,10 @@ shown to have changed it by these counts, never by cost or wall time (a same-bui
 - `packets`: a list, one entry per `*.md` file in the run's `packets/` folder, in run order (the revision of the file's
   `ShipLoop navigator |` line, then the name): `{action, stage, file_bytes, head_bytes}`.
   - `action` is the file name without `.md`, so it is the unique key. A stage that is visited again (a repeat, a revise, a
-    replan) is a new action with its own file; the second packet a bound Improve child gets for one action is its own file,
-    `<action>-improve`, with the same stage (strip the suffix to join to `state.md`'s history). `stage` is read from the first
+    replan) is a new action with its own file; the Improve stage is an action of its own, so its packet is its own file,
+    `<improve stage id>` (and `<improve stage id>-bind` before a card is bound), whose stage is `improve`; `state.md`'s
+    `improve_results[<reviewed action>].improve_action` joins it to the action it reviews. A run of the older layout has
+    `<action>-improve` with the reviewed stage (strip the suffix to join to `state.md`'s history). `stage` is read from the first
     `ShipLoop navigator | <stage> | revision N` line anywhere in the file (it is line 1, 12 or 16, below the delegation preamble).
   - `file_bytes` is the size on disk. A recovery `next` rewrites the file, so it is the last write.
   - `head_bytes` is the bytes ShipLoop first printed for the packet, as the host recorded the reply. One reader for all three hosts

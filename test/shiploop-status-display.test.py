@@ -126,10 +126,10 @@ class StatusBlockTests(unittest.TestCase):
         action = navigator.current_action(state)["id"]
         parked = self.act(state, summary="Spec drafted with 6 criteria. More detail follows.")
         block = navigator.status_block(parked)
-        self.assertEqual(line(block, "Where"), "Where:     Preparation > spec (4 of 7, Improve review)")
+        # Improve is its own stage in the sequence (owner, 2026-10-11): the position and the next line name it.
+        self.assertEqual(line(block, "Where"), "Where:     Preparation > spec (4 of 7) > improve")
         self.assertEqual(line(block, "Done"), "Done:      spec result ready: Spec drafted with 6 criteria.")
-        self.assertEqual(line(block, "Next"), "Next:      Improve review of the spec result "
-                                              "(the Improve skill runs its own review loop)")
+        self.assertEqual(line(block, "Next"), "Next:      improve: run the improve skill on the spec result")
 
         imported = navigator.finish_improve(parked, action, receipt("spec"))
         block = navigator.status_block(imported)

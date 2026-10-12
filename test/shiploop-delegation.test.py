@@ -60,11 +60,14 @@ BOUND_DELEGATED_TEXT = DELEGATED_ROUTE_TEXT + (
 )
 
 
-def bound_walk(repo, delegation, handoffs=False):
+def bound_walk(repo, delegation, handoffs=False, started=True):
     """Render every producer and its bound ephemeral Improve packet for one item.
 
     With ``handoffs`` each Improve packet is followed by a ``handoff`` entry: the file text ShipLoop writes beside the
     opening (everything the improve skill needs, re-cut 2026-10-11), since the packet itself is two instructions.
+    ShipLoop binds the card and starts the child at the transition (owner, 2026-10-11); ``started`` stands in for that
+    start by leaving a receipt where the runtime would have written one, without running the runtime.  Without it the
+    walk renders a child ShipLoop could not start.
     """
     selected = standalone.resolve_skill(str(CARD))
     state = nav.new_state(str(repo), "Synthetic bound walk.", delegation=delegation)
@@ -82,7 +85,12 @@ def bound_walk(repo, delegation, handoffs=False):
         child = state.get("active_improve")
         if child is not None:
             state["active_improve"] = standalone.binding(state, action, child["stage"],
-                                                         child["seed_result"], selected)
+                                                         child["seed_result"], selected,
+                                                         improve_action=child["improve_action"])
+            if started:
+                receipt = standalone.receipt_path(state["active_improve"])
+                receipt.parent.mkdir(parents=True, exist_ok=True)
+                receipt.write_text("{}", encoding="utf-8")
             packets.append((stage, "improve", nav.render(None, run, state)))
             if handoffs:
                 packets.append((stage, "handoff", nav.improve_handoff_text(None, run, state)))
@@ -167,8 +175,9 @@ class DelegationStateTests(unittest.TestCase):
         # actual Improve child.
         # The Improve packet is the two instructions (re-cut 2026-10-11): it opens with its own header, not a prefix.
         improve = self.render(advance(state, "step-plan", stop_after_apply=True))
-        self.assertTrue(improve.startswith("ShipLoop navigator | step-plan | revision "), improve[:80])
-        self.assertIn("| Improve\n", improve.split("\n\n", 1)[0] + "\n")
+        # Improve is a stage of its own (owner, 2026-10-11): its header names the stage `improve` and the result.
+        self.assertTrue(improve.startswith("ShipLoop navigator | improve | revision "), improve[:80])
+        self.assertTrue(improve.splitlines()[0].endswith("| the step-plan result"), improve.splitlines()[0])
         for stage in ("step-plan", "implement", "carry-forward"):
             with self.subTest(stage=stage):
                 packet = self.render(advance(state, stage))
@@ -240,16 +249,19 @@ class DelegationStateTests(unittest.TestCase):
         # stays recorded on the state, the parked child is unbound, and its first line is the one legal callback.
         self.assertEqual(checkpoint["delegation_hold"], {"action": action, "route": "ask-agent"})
         lines = held_child.splitlines()
-        self.assertTrue(lines[0].startswith("ShipLoop navigator | step-plan | revision ") and
-                        lines[0].endswith("| Improve"), lines[0])
+        self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision ") and
+                        lines[0].endswith("| the step-plan result"), lines[0])
         for text in DELEGATED_ROUTE_TEXT:
             self.assertNotIn(text, held_child)
         callback = lines[1]
-        # The parked child is unbound, so its one legal callback is improve-bind.
+        # The parked child is unbound, so its one legal callback is improve-bind, which names the Improve stage's id,
+        # never the reviewed action's.
         self.assertTrue(callback.startswith("No Improve card is recorded for this run. Next command (bind the Improve "
                                             "skill's SKILL.md"), callback)
         self.assertIn(" improve-bind ", callback)
-        self.assertIn("--action=" + action, callback)
+        improve_action = checkpoint["active_improve"]["improve_action"]
+        self.assertIn("--action=" + improve_action, callback)
+        self.assertNotIn("--action=" + action, callback)
         following = nav.finish_improve(checkpoint, action, {"summary": "Synthetic receipt."})
         self.assertTrue(self.render(following).startswith("Continue in this context and execute the prompt."))
         # Switching back before the next action cancels the pending change.
@@ -555,8 +567,11 @@ class PacketContractTests(DelegationStateTests):
                         self.assertIn("Do not run git commit yourself.", pointer)
                         planned += 1
                         continue
+                    # ShipLoop starts the child itself (owner, 2026-10-11): the paragraph saying so replaces the old
+                    # improve-start line, and the commit command still follows it directly.
                     start = next(i for i, line in enumerate(lines)
-                                 if line.startswith("Then run: ") and " improve-start " in line)
+                                 if line.startswith("ShipLoop started this review when the Improve stage began"))
+                    self.assertNotIn("improve-start --run-dir=", "\n".join(lines[start:start + 2]))
                     self.assertEqual(commits, [start + 1])
                     commit = lines[start + 1]
                     self.assertTrue(commit.startswith("To commit a review iteration's changes"), commit)
@@ -566,9 +581,35 @@ class PacketContractTests(DelegationStateTests):
                     command = commit.rsplit("Then run: ", 1)[1]
                     self.assertEqual(command.split()[2], "improve-commit")
                     self.assertTrue(command.endswith("--message=" + written), command)  # one file; nothing after it
+                    # improve-commit names the Improve stage's id: the one the complete callback in this file names.
+                    complete = next(line for line in lines if line.startswith("python3 shiploop complete --run-dir="))
+                    self.assertEqual(shlex.split(command)[4], shlex.split(complete)[4])
+                    self.assertTrue(shlex.split(command)[4].startswith("--action="), command)
                     checked += 1
         self.assertGreaterEqual(checked, 12)
         self.assertEqual(planned, 2)
+
+    def test_a_child_shiploop_could_not_start_leads_with_the_restart_command(self):
+        """A start the runtime refused leaves the Improve stage pending: its packet's first instruction is the one
+        restart route (improve-start --restart-stopped, with the Improve stage's id), then the usual two lines."""
+        with tempfile.TemporaryDirectory(prefix="shiploop-restart-walk-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            packets = [(stage, text) for stage, kind, text in bound_walk(repo, "inline", started=False)
+                       if kind == "improve"]
+        self.assertTrue(packets)
+        for stage, packet in packets:
+            with self.subTest(stage=stage):
+                lines = packet.splitlines()
+                self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision "), lines[0])
+                self.assertTrue(lines[1].startswith("ShipLoop could not start this review; start it again first: "),
+                                lines[1])
+                argv = shlex.split(lines[1].split("first: ", 1)[1])
+                self.assertEqual(argv[2], "improve-start")
+                self.assertEqual(argv[-1], "--restart-stopped")
+                self.assertFalse(any(arg.startswith("--opening") for arg in argv), argv)
+                complete = next(line for line in lines if line.startswith("2. When the improve skill"))
+                self.assertEqual(shlex.split(complete.split("run: ", 1)[1])[4], argv[4])  # one id for both commands
 
     def test_no_improve_packet_may_perform_a_release_effect(self):
         # SPEC S-3 and environment-lifecycle.md#release-operation-ownership: a stage-scoped Improve assesses and records
@@ -608,9 +649,11 @@ class PacketContractTests(DelegationStateTests):
                                   if line.startswith("ShipLoop navigator | "))
                     if kind == "improve":
                         # The bound Improve packet is two instructions (re-cut 2026-10-11): run the improve skill with
-                        # the handoff path, then improve-complete.  Its header carries the "Improve" tag.
-                        self.assertEqual(lines[header], "ShipLoop navigator | " + stage + " | revision "
-                                         + lines[header].split("revision ", 1)[1].split(" |")[0] + " | Improve")
+                        # the handoff path, then the Improve stage's complete.  Its header names the stage (owner,
+                        # 2026-10-11: Improve is a stage of its own) and the reviewed result.
+                        self.assertEqual(lines[header], "ShipLoop navigator | improve | revision "
+                                         + lines[header].split("revision ", 1)[1].split(" |")[0]
+                                         + " | the " + stage + " result")
                         self.assertEqual(header, 0)
                         self.assertTrue(lines[1].startswith("1. Run the improve skill on the " + stage + " result."),
                                         lines[1])
@@ -618,10 +661,11 @@ class PacketContractTests(DelegationStateTests):
                         self.assertTrue(lines[2].rstrip().endswith("/handoff.md"), lines[2])
                         callback = next(line for line in lines if line.startswith("2. When the improve skill"))
                         argv = shlex.split(callback.split("run: ", 1)[1])
-                        self.assertEqual(argv[2], "improve-complete")
+                        self.assertEqual(argv[2], "complete")
                         # P12: no completion record; ShipLoop derives it from the review files.
                         self.assertFalse(any(arg.startswith("--result") for arg in argv), argv)
-                        self.assertNotIn("improve-start", packet)
+                        self.assertNotIn("improve-complete", packet)  # the verb is gone
+                        self.assertNotIn("improve-start", packet)     # ShipLoop started the child
                         self.assertNotIn("improve-bind", packet)  # the card is bound at the transition
                         continue
                     self.assertRegex(lines[header],
@@ -654,16 +698,23 @@ class PacketContractTests(DelegationStateTests):
     def check_handoff(self, stage, planning, lines, packet):
         """The handoff file holds what the old Improve packet led with (re-cut 2026-10-11)."""
         self.assertTrue(lines[0].startswith("# ShipLoop Improve handoff: the " + stage + " result"), lines[0])
-        # A bound child that has not started: the improve-start command, then the improve-complete callback.
-        start = shlex.split(next(line for line in lines if line.startswith("Then run: ")
-                                 and " improve-start " in line)[len("Then run: "):].split(" . ", 1)[0])
-        self.assertEqual(start[2], "improve-start")
-        self.assertTrue(any(arg.startswith("--opening=") and arg.endswith("/opening.md") for arg in start), start)
+        # ShipLoop wrote the opening and started the child (owner, 2026-10-11): the hand-off says so, names the opening
+        # it wrote, and never asks the model to write it or to run improve-start; then the Improve stage's complete.
+        started = next(line for line in lines
+                       if line.startswith("ShipLoop started this review when the Improve stage began"))
+        self.assertRegex(started, r"it wrote the opening \S+/opening\.md from the run's state")
+        self.assertIn("Do not write the opening or start the runtime yourself", started)
+        self.assertNotIn("--opening", packet)
+        self.assertNotIn("improve-complete", packet)
+        self.assertFalse([line for line in lines if " improve-start " in line and "--restart-stopped" not in line])
         parent = next(i for i, line in enumerate(lines)
                       if line.startswith(("Parent callback;", "Parent-only callback;")))
         argv = shlex.split(lines[parent + 1])
-        self.assertEqual(argv[2], "improve-complete")
+        self.assertEqual(argv[2], "complete")
         self.assertFalse(any(arg.startswith("--result") for arg in argv), argv)
+        reviewed = re.search(r"\((nav-[0-9a-f]+)\)", lines[0]).group(1)
+        self.assertEqual(argv[4].startswith("--action=nav-"), True, argv)
+        self.assertNotEqual(argv[4], "--action=" + reviewed)  # the Improve stage's id, not the reviewed action's
         self.assertTrue(any(line.startswith("Evidence: write each review pass to ") for line in lines))
         if stage == "carry-forward":
             self.assertIn("End-of-work review: this is the run's single Improve", packet)
@@ -776,8 +827,12 @@ class DelegationCliTests(unittest.TestCase):
         store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec."})
         self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                   "--result", result_path).returncode, 0)
-        bound = self.cli("improve-bind", "--run-dir", self.run, "--action", action, "--skill-card", CARD)
-        self.assertEqual(bound.returncode, 0, bound.stderr)
+        # ShipLoop bound the run's Improve card and started the review at the transition (owner, 2026-10-11): no
+        # improve-bind, and the child's opening and receipt are already on disk.
+        child = self.saved()["active_improve"]
+        self.assertIsNotNone(child["skill"])
+        self.assertTrue(standalone.receipt_path(child).is_file())
+        self.assertTrue(standalone.receipt_path(child).with_name("opening.md").is_file())
         switched = self.cli("delegation", "--run-dir", self.run, "--set", "ask-agent")
         self.assertEqual(switched.returncode, 0, switched.stderr)
         # The bound child keeps its inline route; later actions use ask-agent.

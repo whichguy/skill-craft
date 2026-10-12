@@ -37,7 +37,7 @@ A finding can change the plan, confirm it, or leave a material question open.
 Only the first two can support readiness. A valid confirmation is exported by
 adding its decision-note evidence locator to the existing
 `final_result.evidence_refs`, even when it leaves the plan unchanged, and the
-parent alone verifies and imports it with `improve-complete`. An experiment's
+parent alone verifies and imports it with the Improve stage's `complete`. An experiment's
 mere completion cannot establish readiness.
 
 ## One review cycle
@@ -59,8 +59,7 @@ assumption is an unreviewed one. The exit requires a disposition for every entry
 and no open entry that a feasible bounded probe within the remaining allowance
 could settle now.
 
-ShipLoop enforces what it can check at the `complete` and `improve-complete`
-gates: the list is present, each open consumer is a work item in the submitted
+ShipLoop enforces what it can check at the `complete` gates (the producer's and the Improve stage's): the list is present, each open consumer is a work item in the submitted
 queue, every local evidence path exists, and each
 probed entry cites a nonempty output file. It cannot check that the list is
 complete or that a locator supports its claim; review owns those.
@@ -172,7 +171,7 @@ rather than receive a fabricated stopped-child settlement.
    `target`, and nonempty `evidence_refs`. Target is `discovery`, `research`,
    `spec`, or `test-strategy`. Evidence references must be absolute regular,
    single-link, non-symlink files inside the child workspace. Use the printed
-   `improve-reconcile` callback, never `improve-complete` for this stopped child.
+   `improve-reconcile` callback (it names the Improve stage's id), never the Improve stage's `complete` for this stopped child.
 4. ShipLoop archives the raw terminal packet, receipt and evidence, records a
    non-success `reconcile` result and timestamped event, then issues a fresh
    action at the target in one recoverable Markdown transaction. Event/history

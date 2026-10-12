@@ -1960,7 +1960,7 @@ class MetricsTest(unittest.TestCase):
             'cp /tmp/r.txt /x/wt/.shiploop-improve/n/a/reviews/checks.md': [],
             'echo x > /x/.shiploop-runs/a/run/results/nav-1.md': ["shell write into a ShipLoop-owned path"],
             # a file of the model's own that merely ends like a ShipLoop name
-            'python3 /p/shiploop improve-start --action=a --opening=/x/o.md > /tmp/plan-start.json': [],
+            'python3 /p/shiploop improve-start --action=a --restart-stopped > /tmp/plan-start.json': [],
             'cp /tmp/x.json /x/wt/.shiploop-improve/n/a/start.json': ["shell write into a ShipLoop-owned path"],
             # check output the packet asks the model to record as evidence
             'npm test > /x/.shiploop-runs/a/run/evidence/w1-verify.txt': [],
@@ -1968,7 +1968,7 @@ class MetricsTest(unittest.TestCase):
             'python3 -m unittest > /x/.shiploop-runs/a/run/scratch/baseline.txt 2>&1': [],
             # the Improve child's review directory is where P12 asks it to write
             "mkdir -p .shiploop-improve/n/a/reviews": [],
-            # the Improve child's own directory, where the model writes its opening file
+            # the Improve child's own directory (a saved run's model wrote its opening file there; ShipLoop writes it now, and the regrade of a saved run still allows it)
             'mkdir -p "/x/wt/.shiploop-improve/run1/nav-1"': [],
             'rm -rf "/x/wt/.shiploop-improve"': ["shell write into a ShipLoop-owned path"],
             # reading ShipLoop's own contract is not building one

@@ -47,7 +47,8 @@ class V4ConsumersTests(unittest.TestCase):
         action = nav.current_action(self.f.state)['id']
         waiting = nav.apply(self.f.state, action, {'outcome': 'done', 'summary': 'Provisional plan'})
         skill = bridge.resolve_skill(str(ROOT / 'skills/improve/SKILL.md'))
-        binding = bridge.binding(waiting, action, 'plan', waiting['active_improve']['seed_result'], skill)
+        binding = bridge.binding(waiting, action, 'plan', waiting['active_improve']['seed_result'], skill,
+                                 improve_action=waiting['active_improve']['improve_action'])
         waiting['active_improve'] = binding
         contract = {
             'workspace': binding['workspace'], 'work': 'Review this plan and its experiment evidence.',
@@ -94,7 +95,8 @@ class V4ConsumersTests(unittest.TestCase):
         }
         waiting = nav.apply(self.f.state, action, seed)
         skill = bridge.resolve_skill(str(ROOT / 'skills/improve/SKILL.md'))
-        binding = bridge.binding(waiting, action, 'plan', waiting['active_improve']['seed_result'], skill)
+        binding = bridge.binding(waiting, action, 'plan', waiting['active_improve']['seed_result'], skill,
+                                 improve_action=waiting['active_improve']['improve_action'])
         waiting['active_improve'] = binding
         nav.validate(waiting)
         contract = {

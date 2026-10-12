@@ -1932,6 +1932,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             "seed_result": {"outcome": "done", "summary": "Synthetic parked handoff.",
                             "evidence_refs": []},
             "skill": None,
+            "improve_action": "nav-" + "f" * 32,      # a current binding; only its stage is forged
         }
         state["revision"] += 1
         store.write_record(run / "state.md", state)

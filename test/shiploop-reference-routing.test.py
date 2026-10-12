@@ -215,7 +215,8 @@ class ReferenceRoutingTests(unittest.TestCase):
                         continue
                     packets.append(navigator.render(None, run, state))
                     bound = dict(state, active_improve=standalone.binding(
-                        state, action, child["stage"], child["seed_result"], selected))
+                        state, action, child["stage"], child["seed_result"], selected,
+                        improve_action=child["improve_action"]))
                     packets.append(navigator.render(None, run, bound))
                     # The Improve packet is two instructions; its locators live in the handoff the skill reads.
                     packets.append(navigator.improve_handoff_text(None, run, bound))

@@ -238,12 +238,12 @@ v1/v2/v3, managed or legacy run, is refused with an error that names its protoco
 or mode; start a fresh `--run-dir` (or workspace root) for that request. If
 new-run initialization did not select an Improve skill with `--improve-skill`, it records the
 card installed beside ShipLoop (found by file location in this plugin install and
-validated; no name or PATH search). The first Improve checkpoint's packet directs the
-owner to bind the recorded card with `improve-bind --action ... --skill-card ...`
-(a `--planning-review none` run has no planning child to bind it, so it is still refused
-without `--improve-skill`). Where no installed card validates, nothing is recorded and the
-packet prints a marked blank and says where ShipLoop looked. Use the packet's exact
-command and absolute selected-card path; never substitute a same-named skill. Recover
+validated; no name or PATH search). ShipLoop binds that recorded card to the first Improve stage
+itself. Only when the recorded card no longer resolves does the Improve packet print
+`improve-bind --action <improve id> --skill-card ...` (a `--planning-review none` run has no planning
+child to bind it, so it is still refused without `--improve-skill`). Where no installed card
+validates, nothing is recorded and the packet prints a marked blank and says where ShipLoop looked.
+Use the packet's exact command and absolute selected-card path; never substitute a same-named skill. Recover
 an existing run's current packet with:
 
 ```sh
@@ -326,6 +326,15 @@ Three kinds of result start an actual Improve child:
   end-of-work child reviews every executed step together (code, tests,
   documentation and the queue) before OUTER system tests and release.
 
+Improve is a stage of its own in the sequence (`improve`), with its own action id, after each
+reviewed stage; the dry run lists an `improve` row after each. At the transition ShipLoop binds the
+recorded card, writes the child's opening itself and starts the child, so the model never writes an opening
+or starts the runtime. The Improve packet has two lines: run the improve skill on the handoff, then
+`complete --action=<improve id>`. Every improve-* command (`improve-bind`, `improve-commit`,
+`improve-reconcile`, `improve-start --restart-stopped`) and that `complete` name the Improve stage's
+id, never the reviewed action's id. (Before 2026-10-11 the model wrote the opening, ran
+`improve-start --opening` and finished with `improve-complete`; that verb is gone.)
+
 Every other producer result, and a planning result the option does not review, is
 accepted on its own checks and the graph advances directly. The stage names stay in
 the graph, so an auditor still sees
@@ -342,7 +351,7 @@ it against the tree it recorded at `improve-bind`.
 
 An Improve review makes the changes it finds warranted, in code, tests or
 documentation, and commits them. At `improve-bind` ShipLoop snapshots the
-candidate. At `improve-complete` it refuses the import while files the review
+candidate. At the Improve stage's `complete` it refuses the import while files the review
 changed still differ from `HEAD`; work that was uncommitted before the review is
 not counted. A receipt `no_commit` reason, citing the user's or repository's
 instruction, records the edits instead. The end-of-work review reruns every
@@ -780,8 +789,8 @@ report a conflict with an accepted decision instead of silently choosing. Packet
 point at material rather than asking you to reread it at every stage.
 
 Every packet is complete, and it lives in a file: ShipLoop writes the full
-packet to `<run>/packets/<action>.md` (an Improve child's packets for the same action go to
-`<action>-improve.md`, and the packet asking for `improve-bind` to `<action>-improve-bind.md`, so the producer packet that
+packet to `<run>/packets/<action>.md` (the Improve stage is its own action, so its packet goes to
+`<improve id>.md`, and the packet asking for `improve-bind` to `<improve id>-bind.md`; the producer packet that
 was sent stays on disk) and prints only a short head, with the
 callback, the goal and done-when, the result path, template and allowed
 outcomes, the packet file's path, the recovery and pause commands and the status
@@ -865,51 +874,47 @@ question about the loop is not a stop: answer it and continue the packet.
    and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
 3. When this result is a planning result, an `implement` step or the last carry-forward (see
-   [When Improve runs](#when-improve-runs)), the script enters
-   `active_improve` for that same action. Otherwise the result is accepted and the
-   next producer packet follows. Read the selected actual Improve `SKILL.md` and let its bound
-   Until Loop runtime own the improvement loop. For a new ephemeral child use
-   [Improve context ownership](references/improve-context.md). Under
-   `delegation: inline`, this parent conversation runs the selected card's
-   ShipLoop whole-skill subcall itself in the exact Child workspace, with no
-   Ask Agent, native worker, extra worktree or `host-owner.md`: write the
-   context-first opening, put the packet's binding line alone and first in frozen
-   `context.request`, and save the start packet before any review work. A later
-   user decision in this conversation applies from the next review iteration;
-   record it in the review notes and handoff and leave the frozen launch context
-   unchanged. PRELUDE and OUTER Improve packets carry the same runtime lines
-   without a context prefix. On the opt-in `delegation: ask-agent` route, Ask Agent
-   delegates one fresh executor with consumer-owned workspace and in-place delivery.
-   Either way, only the parent accepts the result and executes the return. Use the packet's selected skill,
-   candidate scope, commit policy and other authority constraints, expected check state, and
-   return route. Test creation/refinement checkpoints include the tests, fixtures,
-   repeatability and suite wiring in that actual Improve review. Do not paste or
-   imitate Improve's algorithm in ShipLoop, substitute a hand-written review loop
-   for the selected skill, create
-   a child phase graph/counter, or advance the parent while the child is active.
-   On the default inline route, write the packet's four-section opening file and
-   run its `improve-start` command: ShipLoop freezes the child contract and starts
-   the ephemeral Until Loop with `--receipt` set to the parent packet's
-   per-action receipt path; the runtime writes every packet there before printing
-   it. A delegated worker starts it with that `--receipt` itself. The one temporary `state_file` owns the child's live counters; the receipt
-   retains its recovery command and final review/check locators, and ShipLoop
-   imports only a packet the runtime wrote there. Preserve parent identity, scoped authority and
-   return locators in frozen child `context`, and replace `handoff` on each `done`.
-   Execute one work iteration, submit its truthful classification and assessments,
-   then obey the returned instruction. A complete child deletes its state file
-   after the runtime has written its terminal packet to the receipt; then
-   run the parent return and import. On cold recovery,
-   read the receipt and use its exact `next_argv` for an active child. Missing
-   state/output is incomplete, never evidence of success or permission to restart.
-   Only the ephemeral runtime is supported; a card or saved binding that names a
-   durable Until Loop runtime is refused.
-   On accepted success, run `improve-complete --action <id>` with no separate
-   record: ShipLoop imports the review's own `review-<n>.md` and `checks.md`
-   files and selects the next
-   producer. A blocked or stopped child leaves the parent incomplete; follow the
-   Improve packet's restart route (archive the stopped receipt and its reviews, start a new child
-   with the same binding line) once the blocker is resolved or the user authorizes
-   continuing. Pause by pausing the parent; never report `cancelled` for a pause.
+   [When Improve runs](#when-improve-runs)), the script moves to the `improve` stage: it enters
+   `active_improve` for that same action and issues the Improve stage its own action id. Otherwise
+   the result is accepted and the next producer packet follows. Read the selected actual Improve
+   `SKILL.md` and let its bound Until Loop runtime own the improvement loop. For a new ephemeral
+   child use [Improve context ownership](references/improve-context.md). ShipLoop sets the child up
+   at the transition: it binds the recorded card, writes the four-section opening, freezes the child
+   contract with the binding line first in frozen `context.request`, and starts the ephemeral Until Loop with
+   `--receipt` set to the per-action receipt path, so a bound run already has an active
+   `packet.json`. The model writes no opening and starts no runtime. Under `delegation: inline`,
+   this parent conversation runs the selected card's ShipLoop whole-skill subcall itself in the
+   exact Child workspace, with no Ask Agent, native worker, extra worktree or `host-owner.md`: it
+   runs the improve skill on the handoff the packet names and continues the child from the receipt.
+   A later user decision in this conversation applies from the next review iteration; record it in
+   the review notes and handoff and leave the frozen launch context unchanged. PRELUDE and OUTER
+   Improve packets carry the same runtime lines without a context prefix. On the opt-in
+   `delegation: ask-agent` route, Ask Agent delegates one fresh executor with consumer-owned
+   workspace and in-place delivery. Either way, only the parent accepts the result and executes the
+   return. Use the packet's selected skill, candidate scope, commit policy and other authority
+   constraints, expected check state, and return route. Test creation/refinement checkpoints
+   include the tests, fixtures, repeatability and suite wiring in that actual Improve review. Do
+   not paste or imitate Improve's algorithm in ShipLoop, substitute a hand-written review loop for
+   the selected skill (the Improve stage's `complete` refuses a review that repeats another Improve
+   stage's), create a child phase graph/counter, or advance the parent while the child is active.
+   The runtime writes every packet to the receipt before printing it. The one temporary
+   `state_file` owns the child's live counters; the receipt retains its recovery command and final
+   review/check locators, and ShipLoop imports only a packet the runtime wrote there. Preserve
+   parent identity, scoped authority and return locators in frozen child `context`, and replace
+   `handoff` on each `done`. Execute one work iteration, submit its truthful classification and
+   assessments, then obey the returned instruction. A complete child deletes its state file after
+   the runtime has written its terminal packet to the receipt; then run the parent return and
+   import. On cold recovery, read the receipt and use its exact `next_argv` for an active child.
+   Missing state/output is incomplete, never evidence of success or permission to restart. Only the
+   ephemeral runtime is supported; a card or saved binding that names a durable Until Loop runtime
+   is refused.
+   On accepted success, run `complete --action=<improve id>` (it takes `--notes`, `--final-result`
+   and `--no-commit`, and no `--result`): ShipLoop imports the review's own `review-<n>.md` and
+   `checks.md` files and selects the next producer. A blocked or stopped child leaves the parent
+   incomplete; once the blocker is resolved or the user authorizes continuing, run
+   `improve-start --action <improve id> --restart-stopped`, which archives the stopped receipt and
+   its reviews and starts a new child from ShipLoop's own opening. Pause by pausing the parent;
+   never report `cancelled` for a pause.
 4. The owning agent writes the packet's generic Markdown result and runs its
    exact completion command (`complete`), retaining the action ID. At an Improve
    checkpoint a `done` outcome starts the bound Improve child rather

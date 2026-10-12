@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import sys
 import tempfile
 import unittest
@@ -92,7 +93,9 @@ class PacketBoundsTests(unittest.TestCase):
         self.assertIn(action["id"], handoff)
         self.assertNotIn(summary, handoff)
         self.assertNotIn(summary, packet)
-        self.assertIn(action["id"], packet)
+        # The Improve stage has its own action id (2026-10-11): the packet's callback names it, not the producer's.
+        self.assertIn(navigator.improve_id(waiting), packet)
+        self.assertNotIn(action["id"], packet)
         self.assertNotIn("active_improve.seed_result", packet)
         self.assertEqual(waiting["active_improve"]["seed_result"]["summary"], summary)
 
@@ -155,14 +158,14 @@ class PacketBoundsTests(unittest.TestCase):
         improve = navigator.packet_path(self.run, waiting)
         self.assertNotEqual(improve, producer)
         self.assertEqual(producer.name, action + ".md")
-        self.assertEqual(improve.name, action + "-improve-bind.md")  # no card is bound yet: the bind packet
+        self.assertEqual(improve.name, navigator.improve_id(waiting) + "-bind.md")  # no card is bound yet: the bind packet
         self.assertEqual(producer.read_text(), sent)
         self.assertIn("Current action: Improve the completed spec result.",
                       navigator.improve_handoff_text(None, self.run, waiting))  # the handoff holds the detail (re-cut)
 
     def test_the_improve_bind_packet_keeps_its_own_file_when_improve_start_prints(self):
         """An Improve child prints two packets before the runtime starts: improve-bind (no card bound yet) and, once bound,
-        improve-start. Both went to <action>-improve.md, so the bind packet was lost on disk and could not be reviewed
+        the improve packet. Both went to <action>-improve.md, so the bind packet was lost on disk and could not be reviewed
         (packet compaction plan 2026-10-10, Phase 0; the producer-packet fix before it is 897733cb)."""
         import contextlib, io
         state = self.state()
@@ -181,23 +184,28 @@ class PacketBoundsTests(unittest.TestCase):
         bound = dict(waiting)
         bound["active_improve"] = bridge.binding(waiting, action, navigator.current_stage(waiting),
                                                  child["seed_result"],
-                                                 bridge.resolve_skill(str(ROOT / "skills/improve/SKILL.md")))
+                                                 bridge.resolve_skill(str(ROOT / "skills/improve/SKILL.md")),
+                                                 improve_action=child["improve_action"])
         navigator.validate(bound)
         store.write_record(self.run / "state.md", bound)
         with contextlib.redirect_stdout(io.StringIO()):
             navigator.emit(None, self.run, bound)
         start = navigator.packet_path(self.run, bound)
         self.assertNotEqual(start, bind)
-        self.assertEqual(start.name, action + "-improve.md")
-        self.assertEqual(bind.name, action + "-improve-bind.md")
+        self.assertEqual(start.name, navigator.improve_id(bound) + ".md")
+        self.assertEqual(bind.name, navigator.improve_id(waiting) + "-bind.md")
         self.assertEqual(bind.read_text(), sent)
         # Bound at the transition or by hand, the first packet is the two instructions: run the improve skill, then
-        # improve-complete; there is no improve-start or improve-bind step left in it (packet re-cut, 2026-10-11).
+        # improve-complete; there is no improve-bind step left in it (packet re-cut, 2026-10-11).
         started = start.read_text()
         self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(bound["active_improve"])), started)
-        self.assertIn("improve-complete", started)
+        self.assertIn(" complete --run-dir=", started)
+        self.assertIn("--action=" + navigator.improve_id(bound), started)
+        self.assertNotIn("improve-complete", started)
         self.assertNotIn("improve-bind", started)
-        self.assertNotIn("improve-start", started)
+        # This state was bound by hand with no start behind it, so the packet may name the one route that works,
+        # improve-start --restart-stopped; no other improve-start form (such as --opening) exists any more.
+        self.assertTrue(all("--restart-stopped" in line for line in re.findall(r"improve-start[^\n]*", started)))
 
     def test_oversized_delivery_template_is_not_truncated_into_invalid_json(self):
         state = navigator.new_state(str(self.repo), "Observe local behavior.", delivery_contract=True)

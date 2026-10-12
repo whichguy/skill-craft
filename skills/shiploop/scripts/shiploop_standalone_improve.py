@@ -807,6 +807,8 @@ def _settle_incomplete_ephemeral(
             "The parent must collect or cancel the actual worker before this settlement."
         ),
     }
+    if binding.get("improve_action"):
+        record["improve_action"] = binding["improve_action"]
     archive[f"{prefix}/receipt.md"] = store.dumps(record, "ShipLoop standalone Improve receipt")
     return record, archive
 

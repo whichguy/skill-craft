@@ -9,11 +9,8 @@ gates, every inner stage's loop run through the bundled Until Loop runtime.
 """
 from __future__ import annotations
 
-import contextlib
-import io
 import json
 import sys
-import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -29,11 +26,23 @@ import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
+import shiploop_standalone_improve as standalone  # noqa: E402
 
 CORE = fx.CORE
 
 
 class QualityLoopTests(fx.RunDriver):
+    def assert_improve_stage_started(self, state):
+        """ShipLoop binds the run's Improve card and starts the review at the transition (owner, 2026-10-11): the
+        model runs neither improve-bind nor improve-start, and the packet asks it to write no opening."""
+        child = state["active_improve"]
+        self.assertEqual(nav.sequence_stage(state), nav.IMPROVE_STAGE)
+        self.assertEqual(Path(child["skill"]["skill_card"]), IMPROVE_CARD.resolve())
+        self.assertTrue(nav.improve_opening_path(child).is_file())
+        self.assertTrue(nav.improve_opening_path(child).with_name("start.json").is_file())
+        self.assertTrue(standalone.receipt_path(child).is_file())
+        self.assertNotIn("write the opening file", nav.improve_handoff_text(CORE, self.run_dir, state))
+        self.assertIn("complete --run-dir=" + str(self.run_dir) + " --action=" + nav.improve_id(state), self.packet())
     def test_verify_is_the_review_stage_and_its_entry_writes_the_rubric_and_the_inventory(self):
         self.assertEqual(quality.STAGE, "verify")
         self.start()
@@ -85,10 +94,7 @@ class QualityLoopTests(fx.RunDriver):
     def test_end_of_work_improve_carries_the_full_rubric(self):
         self.start()
         state = self.drive_to("carry-forward", improve_stage="carry-forward")
-        with contextlib.redirect_stdout(io.StringIO()):
-            nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
-                command="improve-bind", action=state["active_improve"]["action_id"],
-                skill_card=str(IMPROVE_CARD)))
+        self.assert_improve_stage_started(state)
         packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertIn("2. Fail at the door.", packet)
@@ -100,10 +106,7 @@ class QualityLoopTests(fx.RunDriver):
         self.assertIn(prompts.CODE_CRAFT.strip(), prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
         self.start()
         state = self.drive_to("implement", improve_stage="implement")
-        with contextlib.redirect_stdout(io.StringIO()):
-            nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
-                command="improve-bind", action=state["active_improve"]["action_id"],
-                skill_card=str(IMPROVE_CARD)))
+        self.assert_improve_stage_started(state)
         packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertEqual(packet.count("2. Fail at the door."), 1)
@@ -112,10 +115,7 @@ class QualityLoopTests(fx.RunDriver):
     def test_planning_improve_does_not_carry_the_end_focus(self):
         self.start()
         state = self.drive_to("spec", improve_stage="spec")
-        with contextlib.redirect_stdout(io.StringIO()):
-            nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
-                command="improve-bind", action=state["active_improve"]["action_id"],
-                skill_card=str(IMPROVE_CARD)))
+        self.assert_improve_stage_started(state)
         handoff = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn("Planning review focus", handoff)
         self.assertNotIn("End-of-work code review focus", handoff)

@@ -345,6 +345,19 @@ class HookDecisionTests(KeepaliveTestCase):
             self.hook("observe", "grok", payload)
             self.assertIsNone(keepalive.load_binding("grok", f"reader-{query}"), query)
 
+    def test_the_improve_stage_commands_bind_and_the_retired_improve_complete_does_not(self) -> None:
+        """The Improve stage is driven by `complete` (naming its id), improve-bind, a restart through improve-start and improve-reconcile;
+        `improve-complete` is gone, so a command that names it is no driving command."""
+        for verb, binds in (("complete --action=nav-i", True), ("improve-bind --action=nav-i --skill-card=/x/SKILL.md", True),
+                            ("improve-start --action=nav-i --restart-stopped", True),
+                            ("improve-reconcile --action=nav-i --result=/x/r.md", True), ("improve-complete --action=nav-i", False)):
+            session = "improve-" + verb.split()[0]
+            payload = {"hookEventName": "PostToolUse", "sessionId": session,
+                       "toolInput": {"command": f"python3 shiploop {verb} --run-dir={self.run_dir}"},
+                       "toolResult": "=== ShipLoop status === (filtered, no marker)"}
+            self.hook("observe", "grok", payload)
+            self.assertEqual(keepalive.load_binding("grok", session) is not None, binds, verb)
+
     def test_marker_copied_from_elsewhere_does_not_bind(self) -> None:
         payload = self.payload("claude", "observe")
         payload["tool_response"]["stdout"] = f"SHIPLOOP-RUN run=nav-0000 rev=0 dir={self.run_dir}"

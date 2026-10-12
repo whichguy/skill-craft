@@ -62,6 +62,21 @@ def host_work_per_item(step_plans):
     raise AssertionError("did not reach the outer stages")
 
 
+def is_improve_packet(prompt):
+    """The Improve stage's packet: its header names the stage `improve` and the reviewed result."""
+    return prompt.splitlines()[0].startswith('ShipLoop navigator | improve | revision ')
+
+
+def reviewed_stages(events):
+    """For each finish-improve event, the stage whose result it reviews: the nearest produce event before it."""
+    found = []
+    for index, event in enumerate(events):
+        if event['command'] == 'finish-improve':
+            earlier = [e for e in events[:index] if e['command'] == 'produce']
+            found.append(earlier[-1]['from'])
+    return found
+
+
 class BattleshipMeasurementTests(unittest.TestCase):
     """The run-feedback plan's measurement: a metadata-only item costs the host far less."""
 
@@ -122,11 +137,13 @@ class NavigatorDryRunTests(unittest.TestCase):
             for event in report['events']:
                 with self.subTest(scenario=name, stage=event['from'], command=event['command']):
                     prompt = event['prompt']
-                    if prompt.splitlines()[0].endswith('| Improve'):
+                    if is_improve_packet(prompt):
                         # The Improve packet is two instructions (re-cut, 2026-10-11) and carries no policy
                         # locators; those reach the Improve child through the handoff file.
                         # (The pure navigator does not bind at the transition, so the dry run prints the bind step.)
-                        self.assertTrue('improve-bind' in prompt or 'improve-complete' in prompt, prompt)
+                        self.assertEqual(event['from'], 'improve')
+                        self.assertIn('improve-bind', prompt)
+                        self.assertNotIn('improve-complete', prompt)
                         continue
                     self.assertIn('reference.md (#policies', prompt)
                     self.assertIn(
@@ -171,9 +188,9 @@ class NavigatorDryRunTests(unittest.TestCase):
                     self.assertIn('owner', event)
                     self.assertIn('next_owner', event)
                     self.assertIn('completed_instances', event)
-                    if not event['prompt'].splitlines()[0].endswith('| Improve'):
+                    if not is_improve_packet(event['prompt']):
                         # The Improve packet is two instructions (re-cut, 2026-10-11) and no longer prints the request;
-                        # the request reaches the Improve child through the opening it writes.
+                        # the request reaches the Improve child through the opening ShipLoop writes.
                         self.assertIn('Inspect the SDLC graph', event['prompt'])
                     self.assertIn(event['from'], event['prompt'])
                     self.assertFalse(
@@ -185,12 +202,15 @@ class NavigatorDryRunTests(unittest.TestCase):
                 # stage result, an accepted implement step or the end-of-work
                 # carry-forward; every other produce advances directly with no
                 # paired finish-improve.
+                # The finish is an event of the Improve stage; the stage it reviews is the producer before it.
                 checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'implement', 'carry-forward'}
-                self.assertTrue({event['from'] for event in finishes} <= checkpoint_stages)
+                self.assertEqual({event['from'] for event in finishes} - {'improve'}, set())
+                reviewed = reviewed_stages(report['events'])
+                self.assertTrue(set(reviewed) <= checkpoint_stages)
                 planning_produces = sorted(event['from'] for event in produces
                                            if event['from'] in guidance.PLANNING_REVIEW_STAGES)
-                planning_finishes = sorted(event['from'] for event in finishes
-                                           if event['from'] in guidance.PLANNING_REVIEW_STAGES)
+                planning_finishes = sorted(stage for stage in reviewed
+                                           if stage in guidance.PLANNING_REVIEW_STAGES)
                 self.assertEqual(planning_produces, planning_finishes)
                 self.assertTrue(all(event['simulation_only'] for event in report['events']))
 
@@ -207,11 +227,12 @@ class NavigatorDryRunTests(unittest.TestCase):
         # Each item's one implement step gets its step review. W1's carry-forward
         # leaves W2 pending, so only W2's end-of-work carry-forward gets a
         # review; W1's carry-forward advances straight to W2 without one.
-        finish_inner = [event for event in two_items['events']
-                        if event['from'] in ('implement', 'carry-forward')
-                        and event['command'] == 'finish-improve']
-        self.assertEqual([(event['from'], event['owner']) for event in finish_inner],
-                         [('implement', 'W1'), ('implement', 'W2'), ('carry-forward', 'W2')])
+        two_events = two_items['events']
+        finish_inner = [(stage, event['owner'])
+                        for stage, event in zip(reviewed_stages(two_events),
+                                                [e for e in two_events if e['command'] == 'finish-improve'])
+                        if stage in ('implement', 'carry-forward')]
+        self.assertEqual(finish_inner, [('implement', 'W1'), ('implement', 'W2'), ('carry-forward', 'W2')])
         w1_produce = next(event for event in two_items['events']
                           if event['owner'] == 'W1' and event['from'] == 'carry-forward'
                           and event['command'] == 'produce')
@@ -381,17 +402,48 @@ class NavigatorDryRunTests(unittest.TestCase):
                     report = driver.run_scenario(name, scenario, planning_review=mode)
                     self.assertTrue(report['ok'], report.get('error'))
                     self.assertEqual(len(report['events']), events[mode][name])
-                    finishes = {event['from'] for event in report['events'] if event['command'] == 'finish-improve'}
+                    finishes = set(reviewed_stages(report['events']))
                     self.assertLessEqual(finishes, reviewed[mode] | {'carry-forward'})
                     self.assertEqual(finishes, set() if name == 'halted' else reviewed[mode] | {'carry-forward'})
         # a stage-mode script is refused by a none run: the oracle is not the engine's own table
         stale = driver.run_scenario('delivery', driver.scenarios()['delivery'], planning_review='none')
         self.assertFalse(stale['ok'])
-        self.assertIn('event 4: expected spec/active, got test-strategy/active', stale['error'])
-        # and the other way: a none script is refused by a stage run, which parks a child at spec
+        self.assertIn('event 4: expected improve/active, got test-strategy/active', stale['error'])
+        # and the other way: a none script is refused by a stage run, which parks the Improve stage after spec
         early = driver.run_scenario('delivery', driver.scenarios(planning_review='none')['delivery'])
         self.assertFalse(early['ok'])
-        self.assertIn('event 4: expected test-strategy/active, got spec/active', early['error'])
+        self.assertIn('event 4: expected test-strategy/active, got improve/active', early['error'])
+
+    def test_each_reviewed_stage_is_followed_by_an_improve_row(self):
+        """Improve is a stage of its own (owner, 2026-10-11): the dry run shows one `improve` row after each reviewed
+        stage's produce row, with its own packet, and no other produce row is followed by one."""
+        for mode in navigator.PLANNING_REVIEW_MODES:
+            with self.subTest(mode=mode):
+                rows = driver.activity(planning_review=mode)
+                reviewed = driver.REVIEWED3[mode] | {'carry-forward'}
+                for index, row in enumerate(rows):
+                    if row['command'] != 'produce':
+                        continue
+                    followed = row['expect'] == navigator.IMPROVE_STAGE
+                    if followed:
+                        after = rows[index + 1]
+                        self.assertEqual((after['at'], after['command']), (navigator.IMPROVE_STAGE, 'finish-improve'))
+                        self.assertIn(row['at'], reviewed)
+                    elif row['at'] in driver.REVIEWED3[mode]:
+                        self.fail('reviewed stage ' + row['at'] + ' has no improve row after it')
+                report = driver.run_scenario('delivery', driver.scenarios(planning_review=mode)['delivery'],
+                                             planning_review=mode)
+                self.assertTrue(report['ok'], report.get('error'))
+                events = report['events']
+                for index, event in enumerate(events):
+                    if event['command'] == 'produce' and event['to'] == navigator.IMPROVE_STAGE:
+                        after = events[index + 1]
+                        self.assertEqual((after['from'], after['command']), ('improve', 'finish-improve'))
+                        self.assertTrue(is_improve_packet(after['prompt']), after['prompt'].splitlines()[0])
+                        self.assertIn('| the ' + event['from'] + ' result', after['prompt'].splitlines()[0])
+                    if event['command'] == 'finish-improve':
+                        self.assertEqual(events[index - 1]['to'], navigator.IMPROVE_STAGE)
+                        self.assertNotEqual(event['to'], navigator.IMPROVE_STAGE)
 
     def test_protocol_version_flag_is_retired(self):
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
@@ -415,7 +467,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             events = json.loads(result.stdout)['scenarios'][0]['events']
             self.assertEqual([event['to'] for event in events],
-                             ['discovery', 'research', 'spec', 'spec', 'test-strategy'])
+                             ['discovery', 'research', 'spec', 'improve', 'test-strategy'])
 
 
 class BackchainStageTextTests(unittest.TestCase):

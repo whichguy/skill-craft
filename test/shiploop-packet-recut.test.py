@@ -3,7 +3,7 @@
 
 The wording pins in other suites show where each sentence went; these tests check the rules themselves:
 - an Improve packet is two instructions, the improve skill with a literal example and then the done command, and
-  ShipLoop binds its recorded card and writes the handoff the skill reads;
+  ShipLoop binds its recorded card, writes the opening, starts the child and writes the handoff the skill reads;
 - no producer packet mentions an upcoming Improve;
 - every stage's goal is an action that names where its output goes;
 - every "duty items n-m" a loop Work line cites exists in that stage's duty;
@@ -16,6 +16,7 @@ import json
 import re
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -28,6 +29,7 @@ import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
+CORE = types.SimpleNamespace(PACKAGE_ROOT=ROOT / "skills/shiploop", REF_DIR=ROOT / "skills/shiploop/references")
 CASES = {name: case for name, case in json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text()).items()
          if not name.startswith("_")}
 MODES = [(delegation, review, passes) for delegation in prompts.DELEGATIONS for review in ("stage", "none")
@@ -63,6 +65,25 @@ class ImprovePacketTests(unittest.TestCase):
         bound, writes = navigator._improve_entry(run, state)
         return run, bound
 
+    def _started_state(self, temp: str) -> tuple[Path, dict]:
+        """The state after ShipLoop's own transition into the Improve stage: bound, opening written, child started."""
+        card = prompts.installed_improve_card()
+        if not card.is_file():
+            self.skipTest("no installed Improve card beside this ShipLoop package: " + str(card))
+        run = Path(temp) / "run"
+        run.mkdir()
+        state = navigator.new_state(temp, "Add a greeting.", delegation="inline", improve_skill=str(card))
+        navigator.save(run, state)
+        while navigator.current_stage(state) != "spec":
+            state = navigator.apply(state, navigator.current_action(state)["id"],
+                                    {"outcome": "done", "summary": "Synthetic"})
+        before = state
+        after = navigator.apply(state, navigator.current_action(state)["id"],
+                                {"outcome": "done", "summary": "Synthetic spec"})
+        after, writes, _payload = navigator._transition(CORE, run, before, after)
+        navigator.save(run, after, writes)
+        return run, after
+
     def test_shiploop_binds_the_recorded_card_at_the_transition(self) -> None:
         with tempfile.TemporaryDirectory(prefix="recut-improve-") as temp:
             _run, state = self._bound_state(temp)
@@ -87,25 +108,47 @@ class ImprovePacketTests(unittest.TestCase):
 
     def test_the_packet_is_two_instructions_with_a_literal_example(self) -> None:
         with tempfile.TemporaryDirectory(prefix="recut-improve-") as temp:
-            run, state = self._bound_state(temp)
+            run, state = self._started_state(temp)
             packet = navigator.render(None, run, state)
             child = state["active_improve"]
             handoff = navigator.improve_handoff_path(child)
+            improve_id = navigator.improve_id(state)
+            self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "), packet.splitlines()[0])
             self.assertIn("1. Run the improve skill on the spec result.", packet)
             self.assertIn("       /improve " + navigator.IMPROVE_ARGUMENT_PREFIX + str(handoff), packet)
-            self.assertRegex(packet, r"(?m)^2\. When the improve skill has completed, run: .*improve-complete")
+            self.assertRegex(packet, r"(?m)^2\. When the improve skill has completed, run: .* complete .*--action="
+                             + re.escape(improve_id))
+            self.assertNotIn("improve-complete", packet)
+            # ShipLoop started the child: the packet asks for no start, no restart, no opening.
+            self.assertNotIn("improve-start", packet)
+            self.assertNotIn("--restart-stopped", packet)
             # Nothing else instructs: no goal, references, rules, result shapes or stage guidance.
             for absent in ("Goal:", "References (", "Rules", "Result template", "Current stage guidance",
-                           "Checked by", "Done when", "opening file"):
+                           "Checked by", "Done when", "opening file", "Write the opening"):
                 self.assertNotIn(absent, packet, absent)
             # The hooks' machine lines stay.
             self.assertIn("Keepalive marker: ", packet)
             self.assertIn("=== ShipLoop status ===", packet)
             self.assertLess(len(packet), IMPROVE_CEILING)
 
+    def test_shiploop_writes_the_opening_and_starts_the_child_at_the_transition(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="recut-improve-") as temp:
+            _run, state = self._started_state(temp)
+            child = state["active_improve"]
+            self.assertEqual(state["stage"], "spec")                       # the reviewed action is still the producer's
+            self.assertNotEqual(child["improve_action"], child["action_id"])
+            opening = navigator.improve_opening_path(child)
+            self.assertTrue(opening.is_file(), "ShipLoop writes opening.md itself")
+            self.assertIn("## Current context and desired improvements", opening.read_text(encoding="utf-8"))
+            import shiploop_standalone_improve as standalone
+            receipt = standalone.receipt_path(child)
+            self.assertTrue(opening.with_name("start.json").is_file())
+            self.assertTrue(receipt.is_file(), "the bound runtime was started with --receipt packet.json")
+            self.assertEqual(json.loads(receipt.read_text(encoding="utf-8")).get("status"), "active")
+
     def test_emit_writes_the_handoff_the_skill_reads(self) -> None:
         with tempfile.TemporaryDirectory(prefix="recut-improve-") as temp:
-            run, state = self._bound_state(temp)
+            run, state = self._started_state(temp)
             navigator.save(run, state)
             import contextlib
             import io
@@ -114,8 +157,12 @@ class ImprovePacketTests(unittest.TestCase):
             child = state["active_improve"]
             text = navigator.improve_handoff_path(child).read_text(encoding="utf-8")
             self.assertIn(child["contract_marker"], text)        # how the improve skill knows it is a ShipLoop subcall
-            self.assertIn("improve-start", text)
-            self.assertIn("improve-complete", text)
+            self.assertIn("ShipLoop started this review", text)
+            # The only improve-start the hand-off names is the restart of a stopped child.
+            self.assertTrue(all("--restart-stopped" in line for line in re.findall(r"improve-start[^\n]*", text)))
+            self.assertFalse(re.search(r"improve-start[^\n]*--opening", text), "no --opening")
+            self.assertNotIn("improve-complete", text)
+            self.assertIn(" complete --run-dir=", text)
             self.assertIn("improve-commit", text)
 
 

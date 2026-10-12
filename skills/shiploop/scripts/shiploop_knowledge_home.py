@@ -365,7 +365,7 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
                 # import (else the commit gate is the next refusal).  Shorter, so `cut -c1-250` keeps all three steps at
                 # the longest saved checkout path (137 characters); the 'Superseded' exit is on line 2.
                 first = ("Restore " + prefix + "-<n> in " + str(path) + "; if the review changed it, improve-commit it; "
-                         "then run the same complete command again.")
+                         "then run complete again.")
             refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
                             + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
     return "\n".join(refusals)

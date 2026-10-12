@@ -36,6 +36,7 @@ import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
+import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
@@ -319,13 +320,14 @@ class RealCliCase(unittest.TestCase):
         assert named is not None, out
         return Path(named.group(1)).read_text(encoding="utf-8")
 
-    def bound_start(self, out: str) -> tuple[Path, str]:
-        """The opening file and the improve-start command the handoff file of a bound Improve child names."""
-        handoff = self.handoff_of(out)
-        opening = Path(re.search(r"write the opening file (\S+) with exactly", handoff).group(1))
-        start = re.search(r"^Then run: (\S.*improve-start .*)$", handoff, re.M).group(1)
-        start = start.split(" . ShipLoop freezes", 1)[0]  # the command; the sentence after it is prose
-        return opening, start
+    def started_child(self, run: Path) -> tuple[Path, Path]:
+        """The opening ShipLoop wrote and the receipt of the Improve child it started at the transition.
+
+        Since 2026-10-11 the Improve stage is set up by the script: the producer's complete leaves a bound child with its
+        opening, frozen contract and an active receipt, and the model neither writes the opening nor starts the child.
+        """
+        child = self.state(run)["active_improve"]
+        return nav.improve_opening_path(child), standalone.receipt_path(child)
 
     def done_fields(self) -> dict:
         return {"outcome": "done", "summary": "What this step established.", "headline": "A step was established.",
@@ -793,84 +795,71 @@ class RefusalRouteTests(RealCliCase):
         write_block(path, {k: v for k, v in block.items() if k not in named})
         self.accepted(command)
 
-    def test_an_opening_with_a_renamed_heading_is_told_the_exact_heading_to_use(self) -> None:
+    def test_shiploop_writes_the_opening_with_the_four_exact_headings_and_a_renamed_one_is_told_the_heading(self) -> None:
         run, head = self.new_run("spec")
-        command, path, action = printed_callback(head)
+        command, path, _ = printed_callback(head)
         write_block(path, self.done_fields())
-        opening, start = self.bound_start(self.accepted(command))
-        sections = {"Current context and desired improvements": "The user asked for hello.",
-                    "Scope": "a.txt", "Authority": "Local edits only.", "Environment": "Python 3."}
+        out = self.accepted(command)
+        opening, _receipt = self.started_child(run)
+        text = opening.read_text(encoding="utf-8")
+        found = nav._opening_sections(text)  # the gate ShipLoop's own opening passes at the transition
+        self.assertEqual(tuple(found), nav.OPENING_SECTIONS)
+        self.assertTrue(all(body and body != "..." for body in found.values()))
+        self.assertNotIn("write the opening file", out + self.handoff_of(out))
+        # The section gate still names the heading it expected and the one it found.
+        with self.assertRaises(nav.NavigatorError) as caught:
+            nav._opening_sections(text.replace("## Environment", "## Environment and validation"))
+        self.assertIn('no line reading exactly "## Environment"', str(caught.exception))
+        self.assertIn("## Environment and validation", str(caught.exception))  # the heading it found, to rename
 
-        def text(renamed: str | None) -> str:
-            return "\n\n".join(f"## {renamed if renamed and name == 'Environment' else name}\n{body}"
-                               for name, body in sections.items()) + "\n"
+    def test_shiploop_writes_the_opening_and_starts_the_child_at_the_transition(self) -> None:
+        """The printed packet asks the model to do neither: ShipLoop wrote the opening, froze the contract and started the child.
 
-        opening.write_text(text("Environment and validation"), encoding="utf-8")
-        reply = self.refused(start, run)
-        self.assertIn('no line reading exactly "## Environment"', reply)
-        self.assertIn("## Environment and validation", reply)  # the heading it found, to rename
-        self.assertIn("run the same improve-start command again", reply)
-        opening.write_text(text(None), encoding="utf-8")
-        self.assertEqual(json.loads(self.accepted(start))["status"], "active")
-
-    def test_the_opening_file_the_improve_bind_packet_names_is_written_without_making_its_directory(self) -> None:
-        """Batch 1010 A3: the printed step is "write the opening file", and the directory it lands in is ShipLoop's.
-
-        Both round-2 Sonnet runs listed the missing directory, met "write the opening file first" and retried after
-        ``mkdir -p``: a step the packet never told them to take (S-4, S-5).  The directory is made where the path is
-        named, so the printed step is the whole step.
+        Batch 1010 A3 (the missing opening directory) is subsumed: ShipLoop makes the directory and the file itself.
         """
-        sections = {"Current context and desired improvements": "The user asked for hello.",
-                    "Scope": "a.txt", "Authority": "Local edits only.", "Environment": "Python 3."}
         for stage in ("spec", "test-strategy"):
             with self.subTest(stage=stage):
                 run, head = self.new_run(stage)
                 command, path, _ = printed_callback(head)
                 write_block(path, self.fill_done(head))
-                opening, start = self.bound_start(self.accepted(command))
-                self.assertTrue(opening.parent.is_dir(), "the printed opening path's directory exists after bind")
-                self.assertFalse(opening.exists())  # the file is the model's to write
-                self.assertIn("write the opening file first", self.refused(start, run))
-                # A run bound before the directory was made has none; the recovery command restores it.
-                shutil.rmtree(opening.parent)
-                self.assertEqual(self.cli("next", "--run-dir", str(run)).returncode, 0)
-                self.assertTrue(opening.parent.is_dir())
-                opening.write_text("\n\n".join(f"## {name}\n{body}" for name, body in sections.items()) + "\n",
-                                   encoding="utf-8")
-                self.assertEqual(json.loads(self.accepted(start))["status"], "active")
+                out = self.accepted(command)
+                opening, receipt = self.started_child(run)
+                self.assertTrue(opening.is_file())
+                self.assertTrue(opening.with_name("start.json").is_file())
+                self.assertTrue(opening.with_name("parent-return.md").is_file())
+                self.assertEqual(json.loads(receipt.read_text(encoding="utf-8"))["status"], "active")
+                handoff = self.handoff_of(out)
+                for text in (out, handoff):
+                    self.assertNotIn("write the opening file", text)
+                    self.assertNotIn("--opening", text)
+                self.assertNotIn("improve-start", out)
+                self.assertTrue(out.splitlines()[0].startswith("ShipLoop navigator | improve | revision "))
 
-    def test_a_directory_that_cannot_be_made_does_not_stop_the_bind_packet(self) -> None:
-        """Batch 1010 A3 review: emit's mkdir is a courtesy, so its failure must not take the packet down with it.
+    def test_a_directory_that_cannot_be_made_does_not_stop_the_transition_or_its_packet(self) -> None:
+        """Batch 1010 A3 review: the Improve directory is a courtesy, so its failure must not take the transition down.
 
-        A regular file where ``.shiploop-improve`` belongs makes the mkdir fail.  The bind packet must still print its
-        start command, and ``improve-start`` must still say what is missing: the opening file.
+        REPORTED SOURCE DEFECT (2026-10-11, improve-stage port): a regular file where ``.shiploop-improve`` belongs
+        makes ``_start_improve``'s ``opening.parent.mkdir`` raise NotADirectoryError, and ``_improve_stage_start``
+        catches only NavigatorError, so the producer's complete exits 2 ("ShipLoop blocked") instead of leaving the
+        Improve stage pending with the packet naming ``improve-start --restart-stopped``.  Remove this decorator when
+        the source catches OSError there.
         """
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
         write_block(path, self.fill_done(head))
         (self.repo_of(run) / ".shiploop-improve").write_text("a file, not a directory\n", encoding="utf-8")
         out = self.accepted(command)
-        # The packet is the two instructions and still prints; its handoff file cannot be written where the directory
-        # cannot be made (REPORTED: the improve skill then has no handoff to read), so the start command is taken from
-        # the handoff text ShipLoop would write.
-        self.assertIn("/improve " + nav.IMPROVE_ARGUMENT_PREFIX, out)
-        handoff = nav.improve_handoff_text(None, run, self.state(run))
-        start = re.search(r"^Then run: (\S.*improve-start .*)$", handoff, re.M).group(1).split(" . ShipLoop freezes", 1)[0]
-        start = start.replace("python3 shiploop ", f"python3 {CLI} ", 1)  # core=None prints the bare locator
-        self.assertIn("write the opening file first", self.refused(start, run))
+        self.assertTrue(out.splitlines()[0].startswith("ShipLoop navigator | improve | revision "))
+        self.assertIn("--restart-stopped", out)
 
-    def test_an_empty_section_is_refused_naming_it_and_the_filled_opening_is_accepted(self) -> None:
-        run, head = self.new_run("spec")
-        command, path, _ = printed_callback(head)
-        write_block(path, self.done_fields())
-        opening, start = self.bound_start(self.accepted(command))
-        opening.write_text("## Current context and desired improvements\nHello.\n\n## Scope\na.txt\n\n"
-                           "## Authority\nLocal edits only.\n\n## Environment\n...\n", encoding="utf-8")
-        reply = self.refused(start, run)
-        self.assertIn("opening needs non-empty sections: ## Environment", reply)
-        self.assertIn("run the same improve-start command again", reply)
-        opening.write_text(opening.read_text(encoding="utf-8").replace("...", "Python 3."), encoding="utf-8")
-        self.assertEqual(json.loads(self.accepted(start))["status"], "active")
+    def test_an_empty_opening_section_is_refused_naming_it(self) -> None:
+        """The section gate ShipLoop's own opening passes still names an empty section (the model no longer writes one)."""
+        text = ("## Current context and desired improvements\nHello.\n\n## Scope\na.txt\n\n"
+                "## Authority\nLocal edits only.\n\n## Environment\n...\n")
+        with self.assertRaises(nav.NavigatorError) as caught:
+            nav._opening_sections(text)
+        self.assertIn("opening needs non-empty sections: ## Environment", str(caught.exception))
+        self.assertEqual(tuple(nav._opening_sections(text.replace("...", "Python 3."))), nav.OPENING_SECTIONS)
 
     def test_a_condition_no_command_can_confirm_leaves_criteria_by_the_exit_the_refusal_names(self) -> None:
         """Batch 1009 S1: the step plan used to tell the model to mark such a criterion `Confirm by: unconfirmable here`
@@ -1267,13 +1256,15 @@ class OutcomeShapeTests(RealCliCase):
         template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
         self.assertEqual(sorted(template["consumer_entry"]), ["how", "sources"])
 
-    def test_the_improve_start_head_names_the_four_opening_headings(self) -> None:
+    def test_the_opening_shiploop_writes_names_the_four_opening_headings(self) -> None:
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
         write_block(path, self.done_fields())
         handoff = self.handoff_of(self.accepted(command))
+        opening, _receipt = self.started_child(run)
         for name in nav.OPENING_SECTIONS:
-            self.assertIn(f"## {name}\n", handoff)  # the opening template the handoff file prints
+            self.assertIn(f"## {name}\n", opening.read_text(encoding="utf-8"))  # the opening ShipLoop froze into start.json
+            self.assertNotIn(f"## {name}\n", handoff)  # the handoff no longer prints an opening template to fill
 
 
 def full_packet_text(head: str) -> str:
@@ -1585,28 +1576,42 @@ class OpeningAllowanceTests(RealCliCase):
     The Luna 1.16.1 refusal listed whole contract fields (which carry ShipLoop's own text) next to an allowance for
     the model's sections only, so its arithmetic looked 1,165 bytes off (12,478 total, 3,262 over, "about 4,686").
     The allowance was right; the listed sizes were not comparable to it.  Listing each section's own escaped bytes
-    (112b239c) made them comparable, and this test keeps them so, through the real gate.
+    (112b239c) made them comparable, and this test keeps them so, through the real size gate.  Since 2026-10-11 the
+    sections are ShipLoop's own text, written at the transition, so the gate is exercised on the started child's
+    state with a synthetic opening instead of a file a model wrote.
     """
 
     NAMES = ("Current context and desired improvements", "Scope", "Authority", "Environment")
 
-    def at_improve_start(self) -> tuple[Path, Path, str]:
-        """A run with a bound Improve child: its directory, the opening file and the improve-start command."""
+    def at_improve_stage(self) -> tuple[Path, dict]:
+        """A run whose Improve child ShipLoop has started: its run directory and state."""
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
         write_block(path, self.done_fields())
-        opening, start = self.bound_start(self.accepted(command))
-        return run, opening, start
+        self.accepted(command)
+        return run, self.state(run)
 
-    def write_sections(self, opening: Path, sizes: tuple[int, int, int, int]) -> None:
-        """An opening whose four sections hold plain text of exactly these sizes (one byte per character, no escapes)."""
-        opening.write_text("".join(f"## {name}\n{'a' * size}\n\n" for name, size in zip(self.NAMES, sizes)),
-                           encoding="utf-8")
+    def problem(self, run: Path, state: dict, sizes: tuple[int, int, int, int]) -> str | None:
+        """The size gate's verdict on an opening whose four sections hold plain text of exactly these sizes."""
+        text = "".join(f"## {name}\n{'a' * size}\n\n" for name, size in zip(self.NAMES, sizes))
+        contract = nav.improve_start_contract(None, run, state, text)
+        return loop_contract.size_problem(
+            contract, writable=nav.OPENING_CONTRACT_PARTS, allowance=nav.improve_opening_allowance(None, run, state),
+            sizes={name: loop_contract.text_bytes(body) for name, body in nav._opening_sections(text).items()})
+
+    def test_shiploops_own_opening_fits_its_allowance(self) -> None:
+        run, state = self.at_improve_stage()
+        opening, _receipt = self.started_child(run)
+        allowance = nav.improve_opening_allowance(None, run, state)
+        used = sum(loop_contract.text_bytes(body)
+                   for body in nav._opening_sections(opening.read_text(encoding="utf-8")).values())
+        self.assertLessEqual(used, allowance)
+        self.assertIsNone(self.problem(run, state, (1, 1, 1, 1)))
 
     def test_the_stated_allowance_is_the_sections_real_room_and_the_refusal_says_how_it_is_counted(self) -> None:
-        run, opening, start = self.at_improve_start()
-        self.write_sections(opening, (2993, 891, 1057, 4172))  # the sizes of the Luna refusal's four sections
-        reply = self.refused(start, run)
+        run, state = self.at_improve_stage()
+        reply = self.problem(run, state, (2993, 891, 1057, 4172))  # the sizes of the Luna refusal's four sections
+        self.assertIsNotNone(reply)
         listed = {name: int(size.replace(",", "")) for name, size in re.findall(
             r"(Environment|Scope|Authority|Current context and desired improvements) ([\d,]+)", reply)}
         over = int(re.search(r"([\d,]+) over its", reply).group(1).replace(",", ""))
@@ -1622,10 +1627,8 @@ class OpeningAllowanceTests(RealCliCase):
         # ... and the clause is true: the runtime's count of a newline or quote is 2 bytes, of a non-ASCII character 6.
         self.assertEqual((loop_contract.text_bytes("a\n\"b"), loop_contract.text_bytes("\u65e5")), (6, 6))
         # Sections that total the stated allowance are accepted by the same gate; its room ends just above it.
-        self.write_sections(opening, (300, 300, 300, allowance + 5 - 900))
-        self.assertIn("over its 9,216-byte budget", self.refused(start, run))
-        self.write_sections(opening, (300, 300, 300, allowance - 900))
-        self.assertEqual(json.loads(self.accepted(start))["status"], "active")
+        self.assertIn("over its 9,216-byte budget", self.problem(run, state, (300, 300, 300, allowance + 5 - 900)))
+        self.assertIsNone(self.problem(run, state, (300, 300, 300, allowance - 900)))
 
 
 # Stages whose accepted result starts an Improve child (the planning reviews and the last item's carry-forward),

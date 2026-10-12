@@ -34,14 +34,6 @@ SOURCE_SHIPLOOP = ROOT / "skills" / "shiploop"
 SOURCE_IMPROVE = ROOT / "skills" / "improve"
 GENERATED_SHIPLOOP = PLUGINS / "skill-craft" / "skills" / "shiploop"
 GENERATED_IMPROVE = PLUGINS / "skill-craft" / "skills" / "improve"
-DEFAULT_COMMIT_AUTHORITY = (
-    "After the meaningful checks required by the current scope, commit only authorized "
-    "changed product or requirements files. Never commit runtime evidence or inherited "
-    "unrelated staged work, and do not create an empty commit unless an explicit "
-    "audit-every-iteration rule authorizes it."
-)
-
-
 # This expectation is intentionally independent of the prompt catalog and
 # navigator implementation.  A changed graph must update this public-contract
 # test deliberately instead of silently changing its own oracle.
@@ -441,93 +433,85 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         waiting_stage, waiting_action = self._cursor(waiting)
         self.assertEqual((waiting_stage, waiting_action["id"]), (stage, action_id))
         self.assertEqual(waiting["active_improve"]["action_id"], action_id)
-        self._run(
-            self._script(shiploop), "improve-bind", "--run-dir", run,
-            "--action", action_id, "--skill-card", self._card(improve),
-        )
-        bound = self._state(run)["active_improve"]
+        # ShipLoop binds the run's recorded Improve card and starts the review at the transition (owner, 2026-10-11):
+        # the model runs neither improve-bind nor improve-start, and every later command names the Improve stage's id.
+        bound = waiting["active_improve"]
         self.assertEqual(Path(bound["skill"]["skill_card"]), self._card(improve).resolve())
         self.assertEqual(Path(bound["skill"]["runtime_cli"]), self._until(improve).resolve())
         run_id, bound_action = bound["binding_id"].split("/", 1)
         self.assertEqual(bound_action, action_id)
+        improve_id = bound["improve_action"]
+        self.assertNotEqual(improve_id, action_id)
         packet_path = repo / ".shiploop-improve" / run_id / action_id / "packet.json"
-        completion_path = run / "inbox" / f"{action_id}-improve.md"
-        route_path = run / "parent-routes" / f"{action_id}.json"
-        route_path.parent.mkdir(parents=True, exist_ok=True)
-        route_path.write_text(json.dumps({
-            "state": str(run / "state.md"),
-            "completion_input": str(completion_path),
-            "improve_complete_argv": [sys.executable, "-B", str(self._script(shiploop)),
-                                      "improve-complete", "--run-dir", str(run), "--action", action_id],
-            "workspace_return_argv": [sys.executable, "-B", str(self._script(shiploop)),
-                                        "workspace", "return", "--workspace-root", str(run.parent)],
-        }, sort_keys=True) + "\n", encoding="utf-8")
+        self.assertTrue(packet_path.is_file(), "ShipLoop starts the bound child at the transition")
+        for written in ("opening.md", "start.json", "parent-return.md", "handoff.md"):
+            self.assertTrue((packet_path.parent / written).is_file(), written)
+        notes_path = run / "inbox" / f"{action_id}-improve-notes.md"
         return {
             "stage": stage,
             "action": action_id,
+            "improve": improve_id,
             "producer": producer,
             "producer_path": result_path,
             "binding": bound,
             "repo": repo,
             "run": run,
             "shiploop": shiploop,
-            "improve": improve,
+            "improve_skill": improve,
             "packet_path": packet_path,
-            "completion_path": completion_path,
-            "route_path": route_path,
+            "notes_path": notes_path,
+            "parent_return": packet_path.with_name("parent-return.md"),
         }
 
-    def _start_child(self, context: dict, *, marker: str | None = None) -> dict:
-        repo = context["repo"]
-        binding = context["binding"]
-        contract = {
-            "workspace": str(repo.resolve()),
-            "work": "Review the frozen ShipLoop candidate and run current fixture checks.",
-            "exit_condition": "Current fixture evidence is complete after two qualifying trivial reviews.",
-            "repeat_condition": "Continue while useful authorized review work remains; otherwise stop incomplete.",
-            "required_trivial_reviews": 2,
-            "context": {
-                "request": (
-                "Synthetic runtime composition only; do not infer semantic review.\n"
-                + (marker if marker is not None else binding["contract_marker"])
-                ),
-                "scope": f"Only the frozen ShipLoop {context['stage']} action {context['action']}.",
-                "authority": DEFAULT_COMMIT_AUTHORITY,
-                "environment": "Synthetic Python fixture; use only the copied selected package and workspace.",
-                "resources": [
-                    {"purpose": "selected Improve card", "locator": binding["skill"]["skill_card"]},
-                    {"purpose": "bound Until Loop runtime", "locator": binding["skill"]["runtime_cli"]},
-                    {"purpose": "ShipLoop parent state", "locator": str(context["run"] / "state.md")},
-                    {"purpose": "parent completion input", "locator": str(context["completion_path"])},
-                    {"purpose": "exact parent routes", "locator": str(context["route_path"])},
-                    {"purpose": "latest child packet receipt", "locator": str(context["packet_path"])},
-                    {"purpose": "producer callback", "locator": str(context["producer_path"])},
-                ],
-            },
-        }
-        state_directory = self.base / "ephemeral-child-state"
-        state_directory.mkdir(exist_ok=True)
-        context["packet_path"].parent.mkdir(parents=True, exist_ok=True)
-        raw, packet = self._run_child_argv(
-            [sys.executable, "-B", str(self._until(context["improve"])), "start", "--directory", str(state_directory),
-             "--receipt", str(context["packet_path"])],
-            contract,
-        )
+    def _continue_child(self, context: dict) -> dict:
+        """Continue the child ShipLoop started from its receipt: the runtime's own next_argv, never a start."""
+        packet_path = context["packet_path"]
+        raw = packet_path.read_bytes()
+        packet = json.loads(raw)
         self.assertEqual(packet["status"], "active")
+        binding = context["binding"]
+        contract = json.loads((packet_path.parent / "start.json").read_text(encoding="utf-8"))
+        # The frozen contract is ShipLoop's: the binding line, workspace, two required reviews and its locators.
         self.assertEqual(packet["context"], contract["context"])
-        self.assertIn(contract["context"]["request"].splitlines()[-1], packet["context"]["request"])
-        context["packet_path"].parent.mkdir(parents=True, exist_ok=True)
-        context["packet_path"].write_bytes(raw)
+        self.assertEqual(packet["context"]["request"].splitlines()[0], binding["contract_marker"])
+        self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
+        resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
+        self.assertEqual(resources["latest child packet receipt"], str(packet_path))
+        self.assertEqual(resources["ShipLoop parent state"], str(context["run"] / "state.md"))
+        self.assertEqual(resources["exact parent return instructions"], str(context["parent_return"]))
+        opening = (packet_path.parent / "opening.md").read_text(encoding="utf-8")
+        self.assertIn("## Current context and desired improvements", opening)
         state_file = Path(packet["state_file"])
         before_next = state_file.read_bytes()
         cold_raw, cold = self._run_child_argv(packet["next_argv"])
         self.assertEqual(raw, cold_raw)
         self.assertEqual(before_next, state_file.read_bytes())
-        context["packet_path"].write_bytes(cold_raw)
         return {"packet": cold, "state_file": state_file}
 
+    def _plant_foreign_terminal_packet(self, context: dict) -> None:
+        """Run a second child bound to a foreign action to its terminal packet and leave that at this receipt."""
+        foreign = "ShipLoop standalone Improve binding: foreign/action"
+        packet_path = context["packet_path"]
+        contract = json.loads((packet_path.parent / "start.json").read_text(encoding="utf-8"))
+        contract["context"]["request"] = contract["context"]["request"].replace(
+            context["binding"]["contract_marker"], foreign)
+        self.assertIn(foreign, contract["context"]["request"])
+        scratch = self.base / "foreign-child"
+        (scratch / "state").mkdir(parents=True, exist_ok=True)
+        _raw, packet = self._run_child_argv(
+            [sys.executable, "-B", str(self._until(context["improve_skill"])), "start", "--directory",
+             str(scratch / "state"), "--receipt", str(scratch / "packet.json")], contract)
+        for classification, exit_assessment in (("non-trivial", "unsatisfied"), ("trivial", "unsatisfied"),
+                                                ("trivial", "satisfied")):
+            raw, packet = self._run_child_argv(packet["done_argv"], {
+                "classification": classification, "exit_assessment": exit_assessment,
+                "continuation_assessment": "allowed", "evidence": "Synthetic foreign child; no review claim.",
+                "handoff": "Synthetic foreign child handoff."})
+        self.assertEqual(packet["status"], "complete")
+        packet_path.write_bytes(raw)
+
     def _receipt(self, context: dict, *, final_result: dict | None = None) -> list[str]:
-        """Write the child's review files; return improve-complete's extra flags (plan P12)."""
+        """Write the child's review files; return the Improve stage's complete flags (plan P12)."""
         action = context["action"]
         review_root = context["packet_path"].parent / "reviews"
         review_root.mkdir(parents=True, exist_ok=True)
@@ -537,7 +521,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 f"Synthetic fixture observation {index} for {context['stage']}; no semantic review claim.\n",
                 encoding="utf-8",
             )
-        notes = context["run"] / "inbox" / f"{action}-improve-notes.md"
+        notes = context["notes_path"]
         notes.parent.mkdir(parents=True, exist_ok=True)
         notes.write_text("This record proves callback composition, not review quality.\n", encoding="utf-8")
         flags = ["--notes", str(notes)]
@@ -556,7 +540,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 "evidence": f"Synthetic {context['stage']} {label}; no semantic review claim.",
                 "handoff": (
                     f"Synthetic only. Parent state: {context['run'] / 'state.md'}. "
-                    f"Completion input: {context['completion_path']}. Parent route: {context['route_path']}. "
+                    f"Parent return: {context['parent_return']}. "
                     f"Latest packet receipt: {context['packet_path']}. Preserve current scope and binding."
                 ),
             }
@@ -581,10 +565,14 @@ class FullRuntimeCompositionTests(unittest.TestCase):
 
     def _reject_import(self, context: dict, receipt: list[str], label: str) -> None:
         before = (context["run"] / "state.md").read_bytes()
-        self._run(
-            self._script(context["shiploop"]), "improve-complete", "--run-dir", context["run"],
-            "--action", context["action"], *receipt, code=2,
+        refused = self._run(
+            self._script(context["shiploop"]), "complete", "--run-dir", context["run"],
+            "--action", context["improve"], *receipt, code=2,
         )
+        reason = {"unfinished-child": "terminal packet is not complete",
+                  "foreign-child": "terminal context is not bound to this ShipLoop action",
+                  "stale-terminal-child": "terminal packet is unavailable"}[label]
+        self.assertIn(reason, refused.stdout + refused.stderr)
         self.assertEqual(before, (context["run"] / "state.md").read_bytes())
         self.trace["rejections"].append({
             "stage": context["stage"], "action": context["action"], "kind": label,
@@ -593,8 +581,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
 
     def _import_child(self, context: dict, receipt: list[str]) -> dict:
         self._run(
-            self._script(context["shiploop"]), "improve-complete", "--run-dir", context["run"],
-            "--action", context["action"], *receipt,
+            self._script(context["shiploop"]), "complete", "--run-dir", context["run"],
+            "--action", context["improve"], *receipt,
         )
         state = self._state(context["run"])
         self.assertIsNone(state["active_improve"])
@@ -608,17 +596,17 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         packet = json.loads(packet_raw)
         self.assertEqual(packet["status"], "complete")
         self.assertEqual(
-            packet["context"]["request"].splitlines()[-1],
+            packet["context"]["request"].splitlines()[0],
             context["binding"]["contract_marker"],
         )
         self.assertIn(context["stage"], packet["context"]["scope"])
-        self.assertEqual(packet["context"]["authority"], DEFAULT_COMMIT_AUTHORITY)
+        self.assertTrue(packet["context"]["authority"].endswith(str(context["parent_return"]) + "."))
         resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
-        self.assertEqual(resources["parent completion input"], str(context["completion_path"]))
-        self.assertEqual(resources["exact parent routes"], str(context["route_path"]))
+        self.assertEqual(resources["exact parent return instructions"], str(context["parent_return"]))
         self.assertEqual(resources["latest child packet receipt"], str(context["packet_path"]))
-        self.assertIn(str(context["completion_path"]), packet["last_report"]["handoff"])
-        self.assertIn(str(context["route_path"]), packet["last_report"]["handoff"])
+        self.assertIn(str(context["parent_return"]), packet["last_report"]["handoff"])
+        self.assertIn(str(context["packet_path"]), packet["last_report"]["handoff"])
+        self.assertEqual(record["improve_action"], context["improve"])
         self.assertEqual(
             set(record["identities"]),
             {"terminal_packet_sha256", "context_sha256", "last_report_sha256", "evidence_sha256"},
@@ -651,8 +639,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         state_before = (context["run"] / "state.md").read_bytes()
         child_before = context["packet_path"].read_bytes()
         failed = self._run(
-            self._script(context["shiploop"]), "improve-complete", "--run-dir", context["run"],
-            "--action", context["action"], *receipt, code=2,
+            self._script(context["shiploop"]), "complete", "--run-dir", context["run"],
+            "--action", context["improve"], *receipt, code=2,
         )
         self.assertIn("pre-update", failed.stdout + failed.stderr)
         self.assertEqual(state_before, (context["run"] / "state.md").read_bytes())
@@ -674,7 +662,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         before = (context["run"] / "state.md").read_bytes()
         result = self._run(self._script(context["shiploop"]), "next", "--run-dir", context["run"])
         self.assertEqual(before, (context["run"] / "state.md").read_bytes())
-        self.assertIn(context["binding"]["binding_id"], result.stdout)
+        # The Improve stage's packet names its own id (the complete callback) and the hand-off file it reads.
+        self.assertIn("| improve |", result.stdout.splitlines()[0])
+        self.assertIn(context["improve"], result.stdout)
+        self.assertIn(str(context["packet_path"].with_name("handoff.md")), result.stdout)
         self.trace["cold_recoveries"].append({
             "stage": context["stage"], "action": context["action"],
         })
@@ -902,22 +893,22 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         )
         if stage in COLD_RECOVERY_STAGES:
             self._cold_recover(context)
+        child = self._continue_child(context)
+        receipt = self._receipt(context, final_result=final_result)
         if rejection == "stale":
-            receipt = self._receipt(context, final_result=final_result)
+            # complete before any child receipt exists (a child that never started): refused, state unchanged.
+            genuine = context["packet_path"].read_bytes()
+            context["packet_path"].unlink()
             self._reject_import(context, receipt, "stale-terminal-child")
-            child = self._start_child(context)
+            context["packet_path"].write_bytes(genuine)
         elif rejection == "foreign":
-            foreign = "ShipLoop standalone Improve binding: foreign/action"
-            foreign_child = self._start_child(context, marker=foreign)
-            self._submit_child(context, foreign_child)
-            receipt = self._receipt(context, final_result=final_result)
+            # a terminal packet of a child bound to another action sits at this child's receipt.
+            genuine = context["packet_path"].read_bytes()
+            self._plant_foreign_terminal_packet(context)
             self._reject_import(context, receipt, "foreign-child")
-            child = self._start_child(context)
-        else:
-            child = self._start_child(context)
-            receipt = self._receipt(context, final_result=final_result)
-            if rejection == "unfinished":
-                self._reject_import(context, receipt, "unfinished-child")
+            context["packet_path"].write_bytes(genuine)
+        elif rejection == "unfinished":
+            self._reject_import(context, receipt, "unfinished-child")
         self._submit_child(context, child)
         if before_import is not None:
             before_import(context, receipt)
@@ -930,8 +921,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         state_before = (run / "state.md").read_bytes()
         child_before = context["packet_path"].read_bytes()
         self._run(
-            self._script(context["shiploop"]), "improve-complete", "--run-dir", run,
-            "--action", context["action"],
+            self._script(context["shiploop"]), "complete", "--run-dir", run,
+            "--action", context["improve"],
         )
         self._run(
             self._script(context["shiploop"]), "complete", "--run-dir", run,

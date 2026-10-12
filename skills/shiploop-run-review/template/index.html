@@ -1191,9 +1191,11 @@ function improvePacketsText(run){
   if(p.read===0)return "Improve packets: none read (the run has no Improve child)";
   var counts=IMPROVE_CARRIED_LABELS.map(function(l,i){return {label:l[1],n:isCount(p.carried[l[0]])?p.carried[l[0]]:0,i:i};})
     .sort(function(a,b){return b.n-a.n||a.i-b.i;}).map(function(x){return x.label+" "+x.n+"/"+p.read;});
-  var late=isCount(p.carried.goal)&&isCount(p.carried.doneWhen)&&(p.carried.goal<p.read||p.carried.doneWhen<p.read);
+  var none=IMPROVE_CARRIED_LABELS.every(function(l){return p.carried[l[0]]===0;});
+  var late=!none&&isCount(p.carried.goal)&&isCount(p.carried.doneWhen)&&(p.carried.goal<p.read||p.carried.doneWhen<p.read);
   var rel=run&&typeof run.release==="string"&&run.release?", "+run.release:"";
-  return "Improve packets"+rel+": "+counts.join(", ")+(late?". Goal and Done when are printed from "+IMPROVE_GOAL_SINCE+" on, so an earlier release has none by design.":"");
+  /* None of the five: the packet of the release where Improve is a stage of its own is only the run-the-skill instruction and the stage's complete; the review's context is in the hand-off file. */
+  return "Improve packets"+rel+": "+counts.join(", ")+(none?". The Improve stage's packet is only the instruction to run the improve skill and its complete callback; the review's goal, done-when list and checked-by sentence are in the hand-off file it names, so none of the five is in the packet by design.":late?". Goal and Done when are printed from "+IMPROVE_GOAL_SINCE+" on, so an earlier release has none by design.":"");
 }
 /* A visit's exit evidence as text, "script: a check ShipLoop's script ran and recorded"; "" for a class this page does not know. */
 function evidenceLine(key){
@@ -1551,7 +1553,7 @@ var CARRIED_LABELS=[
   ["operates","operates","the 'Current stage guidance:' rules or the 'Considerations for this stage:' list"],
   ["checked","checked","the 'Done when (' list and the 'Improve:' line that says whether a review loop follows, or a 'Checked by:' line"],
   ["produces","produces","the 'Result template:' and the 'Allowed outcomes:' line"],
-  ["recovery","recovery","the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked"],
+  ["recovery","recovery","the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked (the packet re-cut says it as: blocked only when nothing can proceed without a person)"],
   ["inputs","inputs","the 'Results this stage builds on' list"]];
 /* The checklist of one visit: [{key, label, found: true|false|null, na, tip}], null when the row has no `carried` (older export,
    unreadable packet, skipped, seeded or an Improve child's packet). A cross is "not found in the packet text": a statement about

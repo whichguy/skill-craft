@@ -1682,6 +1682,7 @@ class GuidanceTests(unittest.TestCase):
             "release-plan",
             pending["active_improve"]["seed_result"],
             selected_skill,
+            improve_action=pending["active_improve"]["improve_action"],
         )
         navigator.save(self.run, bound_pending)
         pending = store.read_record(self.run / "state.md")
@@ -1697,7 +1698,8 @@ class GuidanceTests(unittest.TestCase):
         )
         self.assertNotIn(release_plan_action, pending["accepted"])
         self.assertFalse(any(entry["action"] == release_plan_action for entry in pending["history"]))
-        self.assertIn("Parent step remains pending until actual Improve completion is imported.", pending_packet)
+        self.assertIn("The reviewed result stays pending until this Improve stage's complete imports the review.",
+                      pending_packet)
         self.assertIn(label + ": " + str(REFERENCES / locator), pending_packet)
         self.assertIn("latest done system-test-author and release-plan records", pending_packet)
         self.assertIn(system_author_action, pending["accepted"])

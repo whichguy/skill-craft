@@ -836,10 +836,10 @@ stands at the commit under test.
   recorded Claude stream shows one), each over the events from the fresh start to
   the tool call that got the next accepted action accepted. The action is the first one the ledger accepted after the
   start (the start row's `engine.accepted` names it exactly; without it, the first one stamped at or after the start's
-  second). The call is the last `complete` or `improve-complete` that names it, did not fail, began before the second of
+  second). The call is the last `complete` that names it or its Improve stage (an older run's `improve-complete`), did not fail, began before the second of
   its accept stamp ended and returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp
-  loses the call and a cut a second later keeps the next one (both seconds are recorded), and an Improve park's parent
-  `complete` returns long before the accept and is not the call. A window the records cannot place this way is
+  loses the call and a cut a second later keeps the next one (both seconds are recorded), and the producer
+  `complete` that parks the action at its Improve stage returns long before the accept and is not the call. A window the records cannot place this way is
   `measured: false` with its reason and is never extended to a later action: the action was accepted by something that
   left no event (an orphan host, a script the window does not see), only a call that parked it was seen, or, in a run
   with no `sessions.jsonl`, another host session began or ended inside the window. A `continued` session does not cut a

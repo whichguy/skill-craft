@@ -962,7 +962,7 @@ def complete_gated(run: Path, state: dict) -> str:
 
 
 def finish_improve(run: Path) -> dict:
-    """The improve-complete branch of dispatch: finish the pending child, run the transition hooks, save."""
+    """The Improve stage's complete branch of dispatch (it imports the review): finish the pending child, run the transition hooks, save."""
     state = store.read_record(run / "state.md")
     action = state["active_improve"]["action_id"]
     updated = nav.finish_improve(state, action, {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"],

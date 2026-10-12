@@ -7,9 +7,10 @@ before changing it, so every later cut shows its saving.  Stdlib only.  No model
     python3 test/shiploop_e2e/packet_anatomy.py <run>/run/packets [<more dirs>] [--out DIR] [--label NAME]
     python3 test/shiploop_e2e/packet_anatomy.py --walk DIR [--case ID]  # no-model walk of the current engine (a cases.json prompt), then measure it
 
-A directory holds `nav-<id>.md` (a producer packet), `nav-<id>-improve.md` (the Improve child's packet) and
-`nav-<id>-improve-bind.md` (the packet that asks for improve-bind).  The stage comes from the head line
-`ShipLoop navigator | <stage> | revision N`.
+A directory holds `nav-<id>.md` (a producer packet or, when its head line names the stage `improve`, the Improve stage's
+packet: the Improve stage is an action of its own) and `nav-<id>-bind.md` (the Improve stage's packet that asks for
+improve-bind).  A run of the older layout has `nav-<id>-improve.md` and `nav-<id>-improve-bind.md` beside the producer's.
+The stage comes from the head line `ShipLoop navigator | <stage> | revision N`.
 
 The classifier follows render() / _render_improve() in skills/shiploop/scripts/shiploop_navigator.py.  A line is given to
 the section whose anchor it matches; a block section keeps the lines after its anchor up to its end rule.  A blank line
@@ -30,7 +31,8 @@ from pathlib import Path
 UNCLASSIFIED = "unclassified"
 PREAMBLE = "delegation-preamble"
 
-HEAD_LINE = re.compile(r"^ShipLoop navigator \| (?P<stage>[^|]+?) \| revision (?P<revision>\d+)\s*$")
+# The Improve stage's head also names the stage it reviews: "ShipLoop navigator | improve | revision N | the spec result".
+HEAD_LINE = re.compile(r"^ShipLoop navigator \| (?P<stage>[^|]+?) \| revision (?P<revision>\d+)(?: \| [^|]+)?\s*$")
 
 
 @dataclass(frozen=True)
@@ -65,10 +67,10 @@ RULES: tuple[Rule, ...] = (
     _r("head", r"^Delegation change:"),
     _r("callback", r"^(Callback for this stage|Next command \(|Callback for this Improve child)"),
     _r("callback", r"^The opening file holds exactly these headings"),
-    # The Improve packet's numbered instructions (round 2): run the improve skill, then improve-complete; an unbound
+    # The Improve packet's numbered instructions (round 2): run the improve skill, then the Improve stage's complete; an unbound
     # packet starts with the no-card notice and the improve-bind command, then the recovery command for the instruction.
     _r("callback", r"^(No Improve card is recorded|Then run the recovery command for the Improve instruction)"),
-    _r("callback", r"^(1\. Run the improve skill on the|2\. When the improve skill has completed)"),
+    _r("callback", r"^(1\. Run the improve skill on the|2\. When the improve skill has completed|ShipLoop could not start this review)"),
     _r("callback", r"^( {7}/improve | {3}\(the Skill tool, skill \"improve\")"),
     _r("goal", r"^(Goal:|Reviewing the returned .*Goal:)"),
     _r("done-when", r"^Done when", "bullets"),
@@ -447,11 +449,13 @@ def stage_groups(stages) -> tuple:
     return STAGE_GROUPS_V4 if any(stage in V4_ONLY_STAGES for stage in stages) else STAGE_GROUPS
 
 
-def packet_kind(name: str) -> str:
+def packet_kind(name: str, stage: str | None = None) -> str:
+    """producer, improve or improve-bind: by the file name in the older layout, by the head line's stage `improve` (and a
+    `-bind` file name) in the layout where the Improve stage is an action of its own."""
     stem = name[:-3] if name.endswith(".md") else name
-    if stem.endswith("-improve-bind"):
+    if stem.endswith("-improve-bind") or (stage == "improve" and stem.endswith("-bind")):
         return "improve-bind"
-    return "improve" if stem.endswith("-improve") else "producer"
+    return "improve" if stem.endswith("-improve") or stage == "improve" else "producer"
 
 
 def read_packets(directories: list[Path]) -> list[dict]:
@@ -461,7 +465,7 @@ def read_packets(directories: list[Path]) -> list[dict]:
             text = path.read_text(encoding="utf-8", errors="replace")
             head = next((HEAD_LINE.match(line) for line in text.splitlines() if HEAD_LINE.match(line)), None)
             stage = head.group("stage") if head else "unknown"
-            packets.append({"file": path.name, "kind": packet_kind(path.name), "stage": stage, "text": text,
+            packets.append({"file": path.name, "kind": packet_kind(path.name, stage), "stage": stage, "text": text,
                             "bytes": len(text.encode("utf-8"))})
     return packets
 
@@ -639,9 +643,10 @@ while True:
     state = nav.apply(state, action, result)
     if state["active_improve"] is not None:
         nav.save(run_dir, state)
-        shiploop("next", f"--run-dir={run_dir}")                   # the improve-bind packet
-        shiploop("improve-bind", f"--run-dir={run_dir}", f"--action={action}", f"--skill-card={card}")
-        shiploop("next", f"--run-dir={run_dir}")                   # the improve-start packet
+        shiploop("next", f"--run-dir={run_dir}")                   # the Improve stage's packet that asks for improve-bind
+        stage_action = state["active_improve"]["improve_action"]   # the Improve stage's own id: what its commands name
+        shiploop("improve-bind", f"--run-dir={run_dir}", f"--action={stage_action}", f"--skill-card={card}")
+        shiploop("next", f"--run-dir={run_dir}")                   # the Improve stage's packet once ShipLoop has started it
         state = store.read_record(run_dir / "state.md")
         state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt from the no-model walk."})
     nav.save(run_dir, state)
@@ -656,7 +661,7 @@ def walk(out: Path, plugin_scripts: Path | None = None, case: str = "hello") -> 
     """Run a request through the CURRENT engine with synthetic results (no model), writing every packet.
 
     Mirrors test/shiploop_e2e/run.py seed_run: `workspace start` in a throwaway git repository, then a loop that applies a
-    synthetic done result per stage; at a reviewed stage it also prints the improve-bind and improve-start packets.
+    synthetic done result per stage; at a reviewed stage it also prints the Improve stage's two packets (before and after its card is bound).
     The request is the prompt of ``case`` in cases.json (any case: the walk's results are synthetic, so no product is
     favoured). Returns the run's packets directory."""
     import os

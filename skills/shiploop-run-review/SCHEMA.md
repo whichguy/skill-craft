@@ -77,7 +77,7 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `stages[].summary`, `stages[].summaryTruncated` | string, `true` | present when the visit's accepted result has a summary: the text from `state.md` history (else the result record's), trimmed and cut at 300 characters; `summaryTruncated` is present only when it was cut. The card prints it as the visit's output. Absent when the records carry none |
 | `stages[].resultFile` | boolean | `true` when `results/<action>.md` exists, `false` when it does not (the accepted result is then read from `state.md`); absent for a visit with no action id. `resultBytes` is its size when it exists |
 | `stages[].carried` | map of boolean | what the visit's **packet text** carried: one key per label of the table in "The packet checklist" below, `true` when the label's markers were found. Computed from the whole producer packet file `<action>.md` and only when it was readable and is the producer's packet; absent otherwise (older export, no packet file, unreadable, or `packetImprove`). A `false` says "not found in the packet text": a statement about the text, not about whether the model needed it |
-| `stages[].improvePacketBytes`, `stages[].improvePacketDoc` | number, `true` | the **new layout** (the engine after ShipLoop 1.22.0): an Improve child's packets go to their own file `packets/<action>-improve.md` and the producer packet that was sent stays intact in `packets/<action>.md`. `improvePacketBytes` is the size of the `-improve.md` file, present only when it exists; `improvePacketDoc` is present only when a `packets` document `<runKey>--<action>-improve` (`kind` `improve`) was written for it. `carried` is read from the producer file, so a reviewed stage's checklist is a real one |
+| `stages[].improvePacketBytes`, `stages[].improvePacketDoc` | number, `true` | the **new layout** (the engine after ShipLoop 1.22.0): an Improve child's packets go to their own file (`packets/<action>-improve.md`; after the release where the Improve stage is an action of its own, `packets/<improve stage id>.md`, the id state.md records in `improve_results[<action>].improve_action`) and the producer packet that was sent stays intact in `packets/<action>.md`. `improvePacketBytes` is the size of that Improve packet file, present only when it exists; `improvePacketDoc` is present only when a `packets` document `<runKey>--<action>-improve` (`kind` `improve`) was written for it. `carried` is read from the producer file, so a reviewed stage's checklist is a real one |
 | `stages[].packetImprove` | `true` | **old layout history** (ShipLoop 1.22.0 and earlier): present only when the visit has no `-improve.md` file and its one packet file is the Improve child's packet (it starts "Current action: Improve the completed ..."). The engine then wrote one packet file per action and rewrote it at every printing, so a visit that started an Improve child kept only the child's last packet and the producer's own is gone; `carried` is then not computed, since every producer label would read false for no fault of the producer's packet. A run of the new layout never has it |
 | `stages[].verify` | object `{records, passed, red?, couldNotRun?, runs?, observed?}` | optional, from R22b: the checks ShipLoop itself ran and recorded for the visit, read by action id from `run/tests/<action>-verifyN.md`. `records` counts every record of the action (a retried test stage has several), `passed` those with `passed` true, `red` those in which a command ran red (the test stage's base run accepts red, so it counts in `passed` too), `couldNotRun` (only when more than 0) those that never reached a verdict. `runs` are the commands of the **last** record, the one that decided the visit: `{status, ran?, failed?, acceptedRan?}` from the record's `status`, `counts.ran`, `counts.failed` and `accepted_ran` (at most 12; no command text, no stdout). `observed` is `{where?, tree12?}` of the last record that names one: where its checks ran (release-verify: `returned-result`, `work-area` or `in-place`) and the first 12 digits of the tree. Absent when the visit has no record: that says nothing about whether a lint gate or the model's own checks ran |
 | `stages[].unverified` | array of `{outcome?, reason?, check?, owner?, dueStage?}` | optional, from R22b: the outcomes the visit's accepted result left unverified (`product-acceptance` and, when it lists them, `handoff`), each text cut at 300 characters. `[]` is a measured "none listed"; absent when the result has no `unverified` key at all |
@@ -176,7 +176,7 @@ finished in one session has none.
 | Field | Type | Notes |
 | --- | --- | --- |
 | `toolUse.wrappers` | array of `{name, runs}` | the model-written scripts that wrap a ShipLoop command and were run (`tool_use.scratch_scripts` with `wraps_shiploop`): the file's name only, and how many tool calls ran it. `[]` is a measured none. A wrapper hides what it runs, so `glue` is a **lower bound** on a Claude run with one: the page prints "glue N + K runs of M wrapper scripts (lower bound)" (r3 Sonnet: glue 2, `done.py` 30 runs, `istart.sh` 7, `ifinish.sh` 4) |
-| `toolUse.packets` | object | `files` and `bytes` of `run/packets/*.md` on disk (Improve children's `-improve.md` files included), `printed` replies that showed a packet and `printedChars` their characters, `readWhole` and `readPartial` the packets the model read with its Read tool whole or by offset, and `shellReads` and `shellChars` the shell commands that named a packet file. Record only: how the model met the packets, never a verdict on whether it needed them |
+| `toolUse.packets` | object | `files` and `bytes` of `run/packets/*.md` on disk (Improve children's files, `<action>-improve.md` or `<improve stage id>.md`, included), `printed` replies that showed a packet and `printedChars` their characters, `readWhole` and `readPartial` the packets the model read with its Read tool whole or by offset, and `shellReads` and `shellChars` the shell commands that named a packet file. Record only: how the model met the packets, never a verdict on whether it needed them |
 | `planning.windowMin`, `planning.hostWindowMin` | number | the planning window (the engine's start to the first accepted `test-spec` with outcome done) in minutes on the engine's clock and on the host's (from the host's first event; the difference is the host's start-up). Absent with `unmeasured.planning` or `unmeasured.planningHostWindow` |
 | `planning.closed`, `planning.through` | boolean, string | whether the window closed and the stage of its last row (an open window is `through` the last stamped stage, never 0) |
 | `planning.improveMin`, `planning.children` | number | the Improve share of the window and the children that ran in it. Absent with `unmeasured.planningImprove` |
@@ -385,7 +385,7 @@ No verdict is stored: the chip is always derived.
 | `kind` | `improve` | present only on the document of an Improve child's packet file (new layout, id `<runKey>--<action>-improve`, `action` the visit's action id); absent on a producer's document |
 
 One document per visit whose packet file `run/packets/<action>.md` exists and could be read as UTF-8, and a second, with `kind`
-`improve`, for a visit whose Improve child's file `run/packets/<action>-improve.md` exists and could be read (the new layout;
+`improve`, for a visit whose Improve child's file (`run/packets/<action>-improve.md`, or `run/packets/<improve stage id>.md`) exists and could be read (the new layout;
 the producer document is then the packet that was sent, intact). A visit with no file (recorded by ShipLoop (`skipped`), seeded or never
 printed) has none and its stage row has no `packetDoc`; a file that cannot be read gets none, and `facts.md` counts the unreadable files. The packets are **not** part of `review-export.json` (a run
 holds megabytes of them: 1.8 MB over 40 visits for the Luna 1.16.1 run); the run directory is their record, `export.py`
@@ -516,7 +516,7 @@ starting 'Checked by:' that the engine prints under the Done-when list from Ship
 | `operates` | the 'Current stage guidance:' rules or the 'Considerations for this stage:' list | every producer packet |
 | `checked` | the 'Done when (' list and the 'Improve:' line that says whether a review loop follows, or a 'Checked by:' line | every producer packet, by the first rule on the older runs; by either rule from ShipLoop 0.54.0 (the 11 runs on disk, skill-craft 1.22.0 working tree to 1.26.0, ShipLoop 0.54.0 to 0.58.0: every producer packet carries a `Checked by:` line; the one file without it, in each run that finished, is the `done` state's, which is no producer's) |
 | `produces` | the 'Result template:' and the 'Allowed outcomes:' line | every producer packet |
-| `recovery` | the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked | every producer packet; the first sentence differs by era |
+| `recovery` | the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked (the packet re-cut says it as: blocked only when nothing can proceed without a person) | every producer packet; the first sentence differs by era |
 | `inputs` | the 'Results this stage builds on' list | every producer packet except `intake`, which reads nothing |
 
 "Found in" is what the packets of every run directory on disk showed (15 runs, ShipLoop 1.16.1 to 1.22.0, 493 packet files):
@@ -529,8 +529,11 @@ runs of ShipLoop 1.16.1 to 1.19.0).
 
 ## The Improve packet checklist (`stages[].improveCarried`, `improvePackets`)
 
-An Improve child's packets are written to `packets/<action>-improve.md` (the new layout, see `stages[].improvePacketBytes`; the file holds the
-last printing). The exporter scores each readable file's whole text for five labels the way it scores a producer packet for `carried`: one
+An Improve child's packets are written to their own file (see `stages[].improvePacketBytes`; the file holds the last printing): `packets/<action>-improve.md`
+up to the release before the Improve stage became an action of its own, and after it `packets/<improve stage id>.md` (`<id>-bind.md` is the packet that
+asks for improve-bind), whose id state.md records in `improve_results[<action>].improve_action` (and `active_improve.improve_action` while the stage
+runs). The exporter finds the file by that id, else by the older name; the packets document of either keeps the id `<runKey>--<action>-improve` and the
+reviewed action as its `action`. The exporter scores each readable file's whole text for five labels the way it scores a producer packet for `carried`: one
 table in `export.py` (`IMPROVE_CARRIED`) holds each label, what is looked for and its pattern, a label is found when a line of the text starts
 with its marker, and a test pins each phrase against the navigator's source, so a change of the engine's wording changes this one table.
 (The harness's `metrics.json` `fidelity.improve_packets` is a temporary copy of this table and is not read.)
@@ -539,8 +542,8 @@ with its marker, and a test pins each phrase against the navigator's source, so 
 | --- | --- | --- |
 | `goal` | `Reviewing the returned <stage> result. Goal:` | from skill-craft 1.25.0 (ShipLoop 0.57.0) |
 | `doneWhen` | `Done when (` | from skill-craft 1.25.0 |
-| `checkedBy` | `Checked by:` (the line that names the improve-complete callback) | every release with the layout |
-| `output` | `The opening file holds exactly these headings` or `Then run:` (the improve-start step) | once an Improve card is bound; the file holds the last printing |
+| `checkedBy` | `Checked by:` (the line that names the Improve callback: improve-complete, then the Improve stage's complete) | every release with the layout, up to the one whose Improve packet is two lines |
+| `output` | `The opening file holds exactly these headings` or `Then run:` (the improve-start step) | once an Improve card is bound, in releases where the model wrote the opening; ShipLoop writes it itself after, so there is no such line |
 | `recovery` | `Recovery command:` | every release with the layout |
 
 `stages[].improveCarried` is `{goal, doneWhen, checkedBy, output, recovery}` of booleans for each visit whose file was read. `improvePackets` is
@@ -549,6 +552,11 @@ next to the run's `release` and are **never a defect**: skill-craft 1.25.0 added
 for both by design. The saved runs: r1 Sonnet (skill-craft 1.24.0) read 8, goal 0, doneWhen 0, checkedBy 8, output 8, recovery 8; r3 Sonnet
 (1.26.0) all five 8 of 8; over the seven saved runs frozen in `docs/experiments/run-review-r23-20261009/figures.json`, 31 files, 19 with all five (the runs of skill-craft 1.25.0 and 1.26.0) and 12 without Goal and Done when (1.22.0 and 1.24.0). The page prints
 "Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, Recovery 8/8, Goal 0/8, Done when 0/8" on its Improve card.
+
+From the release where the Improve stage is an action of its own, its packet is the run-the-improve-skill instruction and the stage's `complete` callback
+(plus the run's status and narrative blocks): the review's goal, done-when list, checked-by sentence and recovery command are printed in the hand-off
+file the packet names, which the exporter does not read, and ShipLoop writes the opening itself. Such a packet carries none of the five labels, so a run of
+that release reads 0 of N for each: by design, like the releases before 1.25.0 for Goal and Done when, and never a defect.
 
 A run of the current layout with no Improve child has `read` 0 and every count 0: a measured none, not unmeasured. A run whose packets cannot be
 scored has no `improvePackets` and says why under `unmeasured.improvePackets`: the old layout (ShipLoop 1.22.0 and earlier wrote one packet

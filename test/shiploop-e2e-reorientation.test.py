@@ -222,8 +222,13 @@ class Stream:
                           output)
 
     def improve_complete(self, action: str, after: float = 1.0, output: str = "ShipLoop navigator | test-strategy | revision 9\n") -> str:
-        """The finish of an Improve child, which is what gets its parent action accepted."""
+        """The finish of an Improve child in a run of the older layout (the verb `improve-complete` is gone), which got its parent accepted."""
         return self.shell(after, f'python3 "{CLI}" improve-complete --run-dir={RUN} --action={action}', output)
+
+    def improve_stage_complete(self, stage_id: str, after: float = 1.0,
+                               output: str = "ShipLoop navigator | test-strategy | revision 9\n") -> str:
+        """The Improve stage's `complete`, which names the stage's own id and gets the action it reviews accepted."""
+        return self.complete(stage_id, after=after, output=output)
 
     def claude(self, after: float, tool: str, arg: dict, output: str = "", message: str | None = None) -> str:
         """One Claude-shaped call: an assistant event with a tool_use block, then the user event with its result."""
@@ -241,9 +246,11 @@ def stamp(stream: "Stream") -> float:
     return float(int(stream.t - 0.05))
 
 
-def accepted_rows(*rows: tuple) -> list[dict]:
-    """The accepted-history rows metrics.stage_results gives: (action, stage, stamp)."""
-    return [{"stage": stage, "outcome": "done", "work_item": None, "action": action, "t": stamp}
+def accepted_rows(*rows: tuple, improve: dict | None = None) -> list[dict]:
+    """The accepted-history rows metrics.stage_results gives: (action, stage, stamp). ``improve`` maps an action to its Improve
+    stage's id (`improve_action`, which a row carries only when state.md records one: the Improve stage's own `complete`)."""
+    return [{"stage": stage, "outcome": "done", "work_item": None, "action": action, "t": stamp,
+             **({"improve_action": improve[action]} if improve and action in improve else {})}
             for action, stage, stamp in rows]
 
 
@@ -322,22 +329,37 @@ class WindowPlacementTest(unittest.TestCase):
 
     PARK = "ShipLoop navigator | spec | revision 4\nNext command (bind the selected Improve card; details below): ...\n"
 
-    def parked(self, with_finish: bool = True) -> tuple:
+    def parked(self, with_finish: bool = True, stage_layout: bool = True) -> tuple:
         s = Stream(first=1000.0).start()
         s.next(after=0.5)
         s.complete("nav-b", after=1.0, output=self.PARK)          # call 2 returns at 1001.7: it only PARKS the action
         s.shell(1500.0, "improve review pass")                     # call 3 at 2501.8
-        if with_finish:
-            s.improve_complete("nav-b", after=200.0)               # call 4 at 2702.0: this one gets nav-b accepted
-        return s, accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", stamp(s)))
+        if with_finish and stage_layout:
+            s.improve_stage_complete("nav-i", after=200.0)         # call 4 at 2702.0: the Improve stage's own id gets nav-b accepted
+        elif with_finish:
+            s.improve_complete("nav-b", after=200.0)               # older layout: improve-complete naming the reviewed action
+        improve = {"nav-b": "nav-i"} if stage_layout else None
+        return s, accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", stamp(s)), improve=improve)
 
-    def test_an_improve_park_ends_at_the_improve_complete_not_at_the_parent_complete_that_returned_long_before(self):
+    def test_an_improve_park_ends_at_the_improve_stages_complete_not_at_the_parent_complete_that_returned_long_before(self):
         s, ledger = self.parked()
         got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
         self.assertTrue(got["measured"], got)
-        self.assertEqual(got["tool_calls"], 4, "next, the parent complete, the review pass and the improve-complete")
-        self.assertEqual(got["seconds"], 1701.8, "to the improve-complete call")
+        self.assertEqual(got["tool_calls"], 4, "next, the parent complete, the review pass and the Improve stage's complete")
+        self.assertEqual(got["seconds"], 1701.8, "to the Improve stage's complete call")
         self.assertEqual(got["seconds_to_accept_stamp"], 1701.0)
+
+    def test_a_run_of_the_older_layout_still_ends_at_its_improve_complete(self):  # a guard: saved runs hold the verb
+        s, ledger = self.parked(stage_layout=False)
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertTrue(got["measured"], got)
+        self.assertEqual((got["tool_calls"], got["seconds"]), (4, 1701.8))
+
+    def test_a_complete_naming_the_improve_stage_is_not_the_submission_when_the_ledger_records_no_stage_id(self):
+        s, _ = self.parked()
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", stamp(s))), TOLD)
+        self.assertFalse(got["measured"], "without the stage id the call that names only nav-i is not recognised")
+        self.assertIn("parked", got["reason"])
 
     def test_a_park_whose_finish_this_window_cannot_see_is_not_measured_and_says_parked(self):
         s, ledger = self.parked(with_finish=False)
@@ -438,13 +460,13 @@ class WindowPlacementTest(unittest.TestCase):
         self.assertEqual((got["measured"], got["tool_calls"]), (True, 1), "the refused repeat is a failed call, not the end")
 
     def test_a_park_that_returns_in_the_accepts_own_second_still_ends_at_the_last_call(self):
-        # The parent complete returns at 1001.7 and the Improve child finishes at 1001.9: both fit the stamp's second, the last one
+        # The parent complete returns at 1001.7 and the Improve stage completes at 1001.9: both fit the stamp's second, the last one
         # is the call that got the action accepted.
         s = Stream(first=1000.0).start()
         s.next(after=0.5)
         s.complete("nav-b", after=1.0, output=self.PARK)
-        s.improve_complete("nav-b", after=0.1)
-        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", 1001.0)), TOLD)
+        s.improve_stage_complete("nav-i", after=0.1)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", 1001.0), improve={"nav-b": "nav-i"}), TOLD)
         self.assertEqual((got["measured"], got["tool_calls"]), (True, 3))
 
     def test_an_unstamped_accept_is_ended_by_the_first_submission_that_did_not_fail(self):

@@ -14,7 +14,8 @@ prints the Markdown. It reads any E2E output directory: a step slice (slice.py),
 packet the run emitted under packet-archive/, or a full run, which keeps only the last copy of each packet
 (run/packets/<action>.md is rewritten on every `next`), so its rows say "retained only".
 
-Nothing here is the model's account. Per packet: its stage and kind (producer or Improve), size, an estimated token
+Nothing here is the model's account. Per packet: its stage and kind (producer or Improve; the Improve stage is an action of its own,
+with its own packet file, and its row names the reviewed action and stage), size, an estimated token
 count (characters / 4, not a tokenizer), its largest sections, the skill references it names and whether each exists,
 how many distinct emissions were observed, and how many `next` calls the host made for that action (from the event
 stream). Per stage: metrics.py's seconds, turns, tool calls and context peak. Across packets: the share of each
@@ -42,6 +43,7 @@ import shiploop_store as store  # noqa: E402
 
 ARCHIVE = "packet-archive"
 REPORT_JSON, REPORT_MD, COMPARE_MD = "packet-report.json", "packet-report.md", "packet-compare.md"
+IMPROVE_STAGE = navigator.IMPROVE_STAGE  # the stage name in an Improve packet's head line
 ESTIMATE = "characters / 4 (an estimate, not a tokenizer count)"
 # Absolute paths a packet names; only those under a skills/<leaf>/ directory are references that must exist (a path in
 # the run directory is often a file the stage is about to write).
@@ -51,6 +53,41 @@ SKILL_PATH = re.compile(r"/skills/[\w-]+/")
 SECTION = re.compile(r"(?m)^(=== .{1,80} ===|#{1,4} .{1,80}|[A-Z][\w ,()'/-]{2,60}:)$")
 NEXT_CALL = re.compile(r"""(?:scripts/shiploop["']?\s+next\b|\bshiploop-next\b|\bshiploop\s+next\b)""")
 OVERLAP_MIN_LINE = 20  # shorter lines (a bare heading, a brace) say nothing about repetition
+
+
+def improve_links(state: dict) -> dict[str, str]:
+    """{Improve stage id: the reviewed action id} from state.md: the imported reviews (`improve_results[<reviewed>]
+    ["improve_action"]`, set when `complete` imports the review) and the current Improve stage (`active_improve`).
+
+    The Improve stage is an action of its own (stage `improve`) with its own packet file `<improve id>.md`, or
+    `<improve id>-bind.md` before a card is bound. A saved run of the old layout has neither field: its Improve packets
+    are `<reviewed action>-improve.md` and `<reviewed action>-improve-bind.md` (`packet_owner` reads both layouts).
+    """
+    found: dict[str, str] = {}
+    results = state.get("improve_results")
+    for reviewed, record in (results.items() if isinstance(results, dict) else ()):
+        identity = record.get("improve_action") if isinstance(record, dict) else None
+        if isinstance(identity, str):
+            found[identity] = reviewed
+    child = state.get("active_improve")
+    if isinstance(child, dict) and isinstance(child.get("improve_action"), str):
+        found[child["improve_action"]] = str(child.get("action_id"))
+    return found
+
+
+def packet_owner(key: str, links: dict[str, str]) -> tuple[str, str]:
+    """(the reviewed or producer action a packet file belongs to, its kind `producer` or `improve`) from the file's stem.
+
+    New layout: `<improve id>` and `<improve id>-bind` for an id in ``links``. Old layout: `<action>-improve` and
+    `<action>-improve-bind`. A stem that is neither is a producer packet (an Improve packet whose stage id state.md does
+    not record, such as a pure-function seed's, is told by its head line: `packet_kind`)."""
+    for suffix in ("-improve-bind", "-improve"):
+        if key.endswith(suffix):
+            return key[:-len(suffix)], "improve"
+    base = key[:-len("-bind")] if key.endswith("-bind") and key[:-len("-bind")] in links else key
+    if base in links:
+        return links[base], "improve"
+    return key, "producer"
 
 
 def find_run_dir(out: Path) -> Path | None:
@@ -183,31 +220,38 @@ def build(out: Path) -> dict:
     except Exception:  # noqa: BLE001 - a record, never a refusal
         pending_action = None
     by_action = {row["action"]: row for row in accepted if row.get("action")}
+    links = improve_links(state)
     texts, archived = emissions(out, run_dir)
     calls = attribute(next_calls(tool_log), accepted, pending_action)
     order = {row["action"]: i for i, row in enumerate(accepted) if row.get("action")}
 
     def key_order(key: str) -> tuple:
-        action = key.removesuffix("-improve")
-        return (order.get(action, len(order)), key.endswith("-improve"))
+        action, kind = packet_owner(key, links)
+        return (order.get(action, len(order)), kind == "improve", key.endswith("bind"))
 
     keys = sorted(texts, key=key_order)
     shares = overlap_shares([texts[key][-1] for key in keys])
     rows = []
     for key, share in zip(keys, shares):
-        action = key.removesuffix("-improve")
+        action, kind = packet_owner(key, links)
         sent = texts[key]
         last = sent[-1]
         known = by_action.get(action) or {}
-        stage = known.get("stage")
+        head = metrics.PACKET_STAGE.search(last)
+        stage = known.get("stage") if kind == "producer" else None
         if stage is None:
-            found = metrics.PACKET_STAGE.search(last)
-            stage = found.group("stage") if found else None
-        rows.append({"packet": key, "action": action, "kind": "improve" if key.endswith("-improve") else "producer",
-                     "stage": stage, "work_item": known.get("work_item"), "outcome": known.get("outcome"),
+            stage = head.group("stage") if head else None
+        if stage == IMPROVE_STAGE:  # the Improve stage's own packet: it reviews the stage that `known` describes
+            kind = "improve"
+        row = {"packet": key, "action": action, "kind": kind, "stage": stage}
+        if kind == "improve":
+            row["reviewed_stage"] = known.get("stage")  # None for an old-layout run that has the `-improve` suffix only
+            if row["reviewed_stage"] is None and stage != IMPROVE_STAGE:
+                row["reviewed_stage"] = stage
+        rows.append({**row, "work_item": known.get("work_item"), "outcome": known.get("outcome"),
                      "emissions": len(sent), "chars": len(last), "est_tokens": len(last) // 4,
                      "chars_all_emissions": sum(map(len, sent)), "repeated_share": share,
-                     "next_calls": None if key.endswith("-improve") else calls.get(action, 0),
+                     "next_calls": None if kind == "improve" else calls.get(action, 0),
                      "sections": sections(last), **references(last)})
     usage = run_metrics.get("tool_use") or {}
     used = usage.get("packets") if isinstance(usage, dict) else None
@@ -242,6 +286,9 @@ def build(out: Path) -> dict:
 
 def offline_packets(case: dict, delegation: str = "inline") -> dict[str, str]:
     """{"<nn>-<stage>[-improve]": packet text} for one step case's inner loop, rendered from a cold read of state.md.
+
+    A `-improve` key is the packet of the Improve stage that follows `<stage>`; the pure functions take the reviewed
+    action id (`finish_improve`), the Improve stage's own id is only what its packet names.
 
     Synthetic results throughout (no model, no project work): the plan's only item is the case's work item and the
     step plan records the case's first check as its test command.
@@ -281,7 +328,9 @@ def offline_packets(case: dict, delegation: str = "inline") -> dict[str, str]:
 def offline_report(name: str, case: dict, delegation: str = "inline") -> dict:
     texts = offline_packets(case, delegation)
     keys = list(texts)
-    rows = [{"packet": key, "stage": key.split("-", 1)[1].removesuffix("-improve"),
+    # An Improve packet is the Improve stage's own: its stage is `improve`, and `reviewed_stage` is the stage it reviews.
+    rows = [{"packet": key, "stage": IMPROVE_STAGE if key.endswith("-improve") else key.split("-", 1)[1],
+             "reviewed_stage": key.split("-", 1)[1].removesuffix("-improve") if key.endswith("-improve") else None,
              "kind": "improve" if key.endswith("-improve") else "producer", "chars": len(texts[key]),
              "est_tokens": len(texts[key]) // 4, "repeated_share": share, "sections": sections(texts[key]),
              **references(texts[key])}
@@ -332,7 +381,8 @@ def render(report: dict) -> str:
               "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for i, row in enumerate(report["packets"], 1):
         big = row["sections"][0] if row["sections"] else {"section": "–", "chars": 0}
-        lines.append(f"| {i} | {row['stage']} | {row['kind']} | {_cell(row['outcome'])} | {row['chars']} | {row['est_tokens']} "
+        reviewed = f" ({row['reviewed_stage']})" if row.get("reviewed_stage") else ""
+        lines.append(f"| {i} | {row['stage']}{reviewed} | {row['kind']} | {_cell(row['outcome'])} | {row['chars']} | {row['est_tokens']} "
                      f"| {row['emissions']} | {_cell(row['next_calls'])} | {_cell(row['repeated_share'])} "
                      f"| {row['skill_references']} | {len(row['missing'])} | {big['section']} ({big['chars']}) |")
     lines += ["", "## Stages (metrics.py)", "", "| stage | outcome | seconds | turns | tool calls | context peak |",

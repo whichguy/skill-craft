@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -29,16 +30,20 @@ import shiploop_test_counts as test_counts  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 
+CORE = types.SimpleNamespace(PACKAGE_ROOT=ROOT / "skills/shiploop", REF_DIR=ROOT / "skills/shiploop/references")
+
 # Declared here, not read from the engine: the producers whose packet restates the Improve child's review focus
 # (packet review 2026-10-10, row 9).
 FOCUS_STAGES = ("spec", "test-strategy")
 
 
 def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> dict:
-    """{(stage, 'producer' | 'improve' | 'improve-handoff'): the packet text a cleared model would read}.
+    """{(stage, 'producer' | 'improve' | 'improve-handoff'): the packet text a cleared model would read; (stage,
+    'improve-ids'): the (reviewed action id, Improve stage id) pair}.
 
-    The Improve packet is two instructions (packet re-cut R3); the run's recorded card is bound at the transition, as
-    ShipLoop does, and the handoff file the packet names is read back under 'improve-handoff'.
+    The Improve packet is two instructions (packet re-cut R3); the run's recorded card is bound and the child started
+    at the transition into the Improve stage, as ShipLoop does (owner, 2026-10-11), and the handoff file the packet
+    names is read back under 'improve-handoff'.
 
     ``state_out``, when given, receives the run's final state, whose ``repo``, ``prompt`` and ``run_id`` name the paths
     the packets print (the repository itself is gone when this returns).
@@ -68,8 +73,11 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
                 extra["test_commands"] = [{"command": "python3 -m unittest", "suite": "focused"}]
             waiting = navigator.apply(state, action["id"], {"outcome": "done", "summary": "Synthetic", **extra})
             if waiting.get("active_improve") is not None:
-                waiting, _ = navigator._improve_entry(run, waiting)
+                store.write_record(run / "state.md", state)
+                waiting, writes, _payload = navigator._transition(CORE, run, state, waiting)
+                navigator.save(run, waiting, writes)
                 found.setdefault((stage, "improve"), cold(waiting))
+                found.setdefault((stage, "improve-ids"), (action["id"], navigator.improve_id(waiting)))
                 found.setdefault((stage, "improve-handoff"),
                                  navigator.improve_handoff_text(None, run, store.read_record(run / "state.md")))
                 waiting = navigator.finish_improve(waiting, action["id"], {"summary": "Synthetic review", "lessons": "x"})
@@ -123,17 +131,30 @@ class PacketCompletenessTests(unittest.TestCase):
                 continue
             handoff = self.found[(stage, "improve-handoff")]
             with self.subTest(stage):
-                # How it operates: the improve skill, called with the handoff path; what it produces: improve-complete.
+                # How it operates: the improve skill, called with the handoff path; what it produces: the Improve
+                # stage's own complete (there is no improve-complete verb, and no start or opening step: ShipLoop
+                # started the child at the transition).
+                self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "), stage)
+                self.assertIn("the " + stage + " result\n", packet.splitlines()[0] + "\n")
                 self.assertIn("1. Run the improve skill on the " + stage + " result.", packet)
                 self.assertIn("/improve ShipLoop Improve: ", packet)
                 self.assertIn("2. When the improve skill has completed, run: ", packet)
-                self.assertIn(" improve-complete ", packet)
+                self.assertRegex(packet, r"(?m)^2\. .* complete --run-dir=\S+ --action=nav-\S+$")
+                reviewed_id, stage_id = self.found[(stage, "improve-ids")]
+                self.assertNotEqual(reviewed_id, stage_id)
+                self.assertIn("--action=" + stage_id, packet)
+                # The callback names the Improve stage's id only (the handoff path is keyed by the reviewed action).
+                callback = next(line for line in packet.splitlines() if line.startswith("2. "))
+                self.assertNotIn(reviewed_id, callback)
+                self.assertNotIn("improve-complete", packet)
+                self.assertNotIn("improve-start", packet)
                 self.assertNotIn("Load the actual Improve skill", packet)
                 self.assertNotIn("Current action:", packet)
                 # Purpose, check and recovery: the handoff file.
                 self.assertIn("Current action: Improve the completed " + stage + " result.", handoff)
                 line = next((line for line in handoff.splitlines() if line.startswith("Checked by: ")), "")
-                self.assertIn("improve-complete", line)
+                self.assertIn("Improve stage's complete command", line)
+                self.assertNotIn("improve-complete", handoff)
                 self.assertIn("Recovery command", handoff)
                 # What the review judges the result against: the stage's Done-when, frozen as the exit condition.
                 row = stage_spec.stage(stage)
@@ -635,7 +656,7 @@ class ReferencesBlockTests(unittest.TestCase):
     def is_improve(packet: str) -> bool:
         """An Improve packet is two instructions (packet re-cut R3): it has no References block; the child reads the
         handoff file."""
-        return packet.splitlines()[0].endswith("| Improve")
+        return packet.splitlines()[0].startswith("ShipLoop navigator | improve |")
 
     def each(self):
         for run, found in self.runs.items():

@@ -152,19 +152,34 @@ class ImproveScheduleTests(unittest.TestCase):
             state = nav.apply(state, action, DONE)
             child = state["active_improve"]
             state["active_improve"] = standalone.binding(
-                state, action, "spec", child["seed_result"], standalone.resolve_skill(str(CARD)))
+                state, action, "spec", child["seed_result"], standalone.resolve_skill(str(CARD)),
+                improve_action=child["improve_action"])
+            # ShipLoop starts the review at the transition; a synthetic state stands in for that start with a receipt.
+            receipt_file = standalone.receipt_path(state["active_improve"])
+            receipt_file.parent.mkdir(parents=True, exist_ok=True)
+            receipt_file.write_text("{}", encoding="utf-8")
             packet = nav.render(None, run, state)
             handoff = nav.improve_handoff_text(None, run, state)
             handoff_path = nav.improve_handoff_path(state["active_improve"])
-        # The packet is two instructions (2026-10-11 re-cut): the improve skill on the handoff file, then improve-complete.
-        # Everything else the old packet said is in the handoff file ShipLoop writes for the child.
+            improve = nav.improve_id(state)
+        # The packet is two instructions (2026-10-11 re-cut): the improve skill on the handoff file, then the Improve
+        # stage's complete (it is its own stage with its own id since 2026-10-11).
         lines = packet.splitlines()
+        self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision "), lines[0])
         self.assertIn("       /improve " + nav.IMPROVE_ARGUMENT_PREFIX + str(handoff_path), lines)
-        self.assertIn("improve-complete", lines[4])
+        self.assertIn(" complete ", lines[4])
+        self.assertIn("--action=" + improve, lines[4])
+        self.assertNotEqual(improve, action)
         self.assertNotIn("improve-start", packet)
+        self.assertNotIn("improve-complete", packet)
         self.assertNotIn("Planning review focus", packet)
-        self.assertIn("improve-start", handoff)
-        self.assertIn("improve-complete", handoff)
+        # The child is already started: the handoff does not ask the model to write an opening or start it.
+        self.assertIn("ShipLoop started this review", handoff)
+        self.assertIn("Do not write the opening or start the runtime yourself", handoff)
+        self.assertIn("improve-start", handoff)  # only the stopped-child restart route, --restart-stopped
+        self.assertIn("--restart-stopped", handoff)
+        self.assertNotIn("improve-complete", handoff)
+        self.assertNotIn("--opening", handoff)
         self.assertIn("Planning review focus", handoff)
         self.assertIn("self-passes by this same executor, not independent reviewers", handoff)
         self.assertNotIn("independent broader review", handoff)  # one text never calls the same review both
@@ -174,8 +189,8 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("- every request outcome maps to at least one acceptance criterion", handoff)
         self.assertNotIn("Capture separate durable review files", handoff)
         text = " ".join(handoff.split())
-        # P12: the child writes review-<n>.md per pass; improve-complete picks the passes itself.
-        self.assertIn("improve-complete imports the last two passes", text)
+        # P12: the child writes review-<n>.md per pass; the complete command picks the passes itself.
+        self.assertIn("The complete command imports the last two passes", text)
         self.assertIn("review-<n>.md", text)
         self.assertNotIn("review_refs length is exactly 2", text)
 
@@ -217,7 +232,7 @@ class ImproveScheduleTests(unittest.TestCase):
                     "action_id": action, "stage": target,
                     "binding_id": state["run_id"] + "/" + action,
                     "workspace": state["repo"], "seed_result": dict(DONE, evidence_refs=[]),
-                    "skill": None,
+                    "skill": None, "improve_action": "nav-" + "1" * 32,
                 }
                 # W1's carry-forward leaves W2 pending, so it is not the end review.
                 with self.assertRaisesRegex(
@@ -278,7 +293,7 @@ class ImproveScheduleTests(unittest.TestCase):
         lines = handoff.splitlines()
         body = lines[next(i for i, line in enumerate(lines) if line.startswith("No Improve card is recorded for this run.")) + 1]
         self.assertIn(" improve-bind ", body)
-        self.assertEqual(body, nav._callback(None, run, "improve-bind", action=action,
+        self.assertEqual(body, nav._callback(None, run, "improve-bind", action=nav.improve_id(waiting),
                                              **{"skill-card": nav.IMPROVE_CARD_BLANK}))
         self.assertIn(str(nav.guidance.installed_improve_card()), handoff)
         self.assertIn("Pause parent without losing child: "
@@ -413,7 +428,8 @@ class PlanningReviewScheduleTests(unittest.TestCase):
                 forged = copy.deepcopy(state)
                 forged["active_improve"] = {
                     "action_id": action, "stage": "spec", "binding_id": state["run_id"] + "/" + action,
-                    "workspace": state["repo"], "seed_result": dict(DONE, evidence_refs=[]), "skill": None}
+                    "workspace": state["repo"], "seed_result": dict(DONE, evidence_refs=[]), "skill": None,
+                    "improve_action": "nav-" + "1" * 32}
                 if refused:
                     with self.assertRaisesRegex(
                             nav.NavigatorError,
@@ -464,7 +480,8 @@ class PlanningReviewScheduleTests(unittest.TestCase):
             action = nav.current_action(state)["id"]
             state = nav.apply(state, action, DONE)
             state["active_improve"] = standalone.binding(
-                state, action, "plan", state["active_improve"]["seed_result"], standalone.resolve_skill(str(CARD)))
+                state, action, "plan", state["active_improve"]["seed_result"], standalone.resolve_skill(str(CARD)),
+                improve_action=state["active_improve"]["improve_action"])
             handoff = nav.improve_handoff_text(None, Path(temp).resolve() / "run", state)
         for present in ("Planning experiments guide", "Planning investigation notebook"):
             self.assertIn(present, handoff)
@@ -564,14 +581,14 @@ class PlanningReviewNoneCliTests(CliRunCase):
         store.write_record(result, {"summary": "Reconcile.", "target": "research", "evidence_refs": []})
         refused = self.cli("improve-reconcile", "--run-dir", run, "--action", action, "--result", result,
                            status=2)
-        self.assertIn("reconciliation requires the bound active initial plan Improve child",
-                      refused.stdout + refused.stderr)
+        # A none run has no Improve stage, so no action id names one (an Improve stage is the only thing these verbs accept).
+        self.assertIn("is not this run's Improve stage", refused.stdout + refused.stderr)
         self.complete(run, assumptions=[])
         state = self.saved(run)
         self.assertEqual(state["stage"], "prepare")
         self.assertIsNone(state.get("active_improve"))
         bind = self.cli("improve-bind", "--run-dir", run, "--action", action, "--skill-card", CARD, status=2)
-        self.assertIn("no matching active Improve parent", bind.stdout + bind.stderr)
+        self.assertIn("is not this run's Improve stage", bind.stdout + bind.stderr)
 
     def test_a_child_forged_at_spec_in_a_none_run_is_refused_when_the_run_loads(self):
         run = self.start("none")
@@ -579,7 +596,8 @@ class PlanningReviewNoneCliTests(CliRunCase):
         saved = self.saved(run)
         saved["active_improve"] = {
             "action_id": action, "stage": "spec", "binding_id": saved["run_id"] + "/" + action,
-            "workspace": saved["repo"], "seed_result": dict(DONE, evidence_refs=[]), "skill": None}
+            "workspace": saved["repo"], "seed_result": dict(DONE, evidence_refs=[]), "skill": None,
+            "improve_action": "nav-" + "1" * 32}
         store.write_record(run / "state.md", saved, title="Saved ShipLoop state")
         before = (run / "state.md").read_bytes()
         refused = self.cli("next", "--run-dir", run, status=2)
@@ -745,9 +763,15 @@ class NoInstalledCardCliTests(CliRunCase):
         refused = self.run_argv(shlex.split(lead.split("SKILL.md): ", 1)[1]), status=2)
         self.assertIn("skill card path must be absolute", refused.stdout + refused.stderr)
         # Selecting the real card, as the packet says to, binds it.
-        action = self.saved(run)["action"]["id"]
+        # The command names the Improve stage's own id, never the reviewed action's.
+        action = self.saved(run)["active_improve"]["improve_action"]
+        self.assertIn("--action=" + action, lead)
         self.cli("improve-bind", "--run-dir", run, "--action", action, "--skill-card", CARD)
         self.assertEqual(self.saved(run)["active_improve"]["skill"]["skill_card"], str(CARD))
+        # Binding leaves a bound child at the transition, so ShipLoop starts it (opening, contract and receipt).
+        child = self.saved(run)["active_improve"]
+        self.assertTrue(standalone.receipt_path(child).exists())
+        self.assertTrue(standalone.receipt_path(child).with_name("opening.md").exists())
         return head, full
 
     def test_a_stage_run_starts_and_its_first_bind_says_no_card_is_recorded_instead_of_printing_a_fake_path(self):

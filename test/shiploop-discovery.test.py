@@ -418,9 +418,11 @@ class InteractionGuidanceTests(unittest.TestCase):
                     self.assertIn(case["design_basis"], producer_packet)
                 self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(recovered_bound["active_improve"])),
                               bound_packet)
-                self.assertIn("improve-complete", bound_packet)
+                improve_id = recovered_bound["active_improve"]["improve_action"]
+                self.assertIn("complete --run-dir=" + str(run_root) + " --action=" + improve_id, bound_packet)
+                self.assertNotIn("improve-complete", bound_packet)
                 self.assertIn("improve-bind", pending_packet)
-                self.assertIn("Parent step remains pending", pending_handoff)
+                self.assertIn("The reviewed result stays pending until this Improve stage's complete imports the review", pending_handoff)
                 self.assertIn("Load the actual Improve skill selected by this host.", pending_handoff)
                 self.assertIn("Selected Improve skill:", bound_handoff)
                 self.assertIn("Invoke the selected actual Improve skill for", bound_handoff)

@@ -684,14 +684,20 @@ class ChainIntegrationTests(ChainFixture):
             "--worktree-parent", str(self.parent)))
         self.assertFalse((self.run / "chains").exists())
 
-    def test_unfinished_chain_blocks_halt_and_improve_import_but_can_pause(self):
+    def test_unfinished_chain_blocks_halt_and_the_producer_complete_but_can_pause(self):
         self.bind()
-        for verb in ("halt", "improve-complete"):
+        # improve-complete is gone (owner, 2026-10-11): the parser refuses it, and the Improve stage's import is the
+        # complete verb, which an unfinished chain's producer (no Improve stage exists yet) cannot reach.
+        gone = subprocess.run([sys.executable, "-B", str(CLI), "improve-complete", "--run-dir", str(self.run),
+                               "--action", self.action], text=True, capture_output=True)
+        self.assertEqual(gone.returncode, 2, gone.stdout + gone.stderr)
+        self.assertIn("invalid choice: 'improve-complete'", gone.stderr)
+        for verb in ("halt", "complete"):
             argv = [sys.executable, "-B", str(CLI), verb, "--run-dir", str(self.run)]
             if verb == "halt":
                 argv += ["--reason", "Synthetic stop"]
             else:
-                argv += ["--action", self.action]
+                argv += ["--action", self.action, "--result", str(self.run / "inbox" / (self.action + ".md"))]
             p = subprocess.run(argv, text=True, capture_output=True)
             self.assertNotEqual(p.returncode, 0)
             self.assertIn("chain is unfinished", p.stderr + p.stdout)
@@ -859,7 +865,7 @@ class ChainIntegrationTests(ChainFixture):
         self.assertIn(str(SCRIPTS.parent / "references/parallel-chain.md"), packet)
         self.assertIn("Parallel-chain guide", packet)
         self.assertIn("default parallel", packet)
-        self.assertIn("observed native slots", packet)
+        self.assertIn("native slots are observed free", " ".join(packet.split()))   # was "observed native slots" (re-cut)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
 
 

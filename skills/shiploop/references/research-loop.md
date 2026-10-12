@@ -515,7 +515,7 @@ the graph directly (under `planning_review: none` that includes `spec`, `test-st
 view and its evidence, but does not claim that the child has completed its
 reviews or that a tested condition holds. The bound child owns its review work,
 applicable experiments, and the investigation's shared allowance. The parent
-alone owns ShipLoop callbacks, including verified `improve-complete` after it
+alone owns ShipLoop callbacks, including the verified Improve-stage `complete` after it
 saves or collects the terminal child evidence and confirms every candidate
 writer has stopped, including, under `delegation: ask-agent`, the actual worker
 and its delegates.
@@ -696,7 +696,7 @@ plan. Only the initial bound Plan Improve child (a `planning_review: stage` run;
 path. It may validly choose zero experiments. A valid confirmation that leaves
 the plan unchanged still exports its decision-note evidence through the existing
 `final_result.evidence_refs`, which the parent verifies and imports through
-`improve-complete`; an inconclusive result remains unresolved.
+the Improve stage's `complete`; an inconclusive result remains unresolved.
 
 A finding that invalidates earlier research, requirements or testing uses that
 selected child's packet-issued pre-dispatch reconciliation route. On return to

@@ -191,6 +191,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
                 waiting = navigator.apply(state, action["id"], seed)
                 self.ephemeral_binding = bridge.binding(
                     waiting, action["id"], stage, seed, self.ephemeral_skill,
+                    improve_action=navigator.improve_id(waiting),
                 )
                 waiting["active_improve"] = self.ephemeral_binding
                 navigator.validate(waiting)

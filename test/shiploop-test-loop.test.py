@@ -227,7 +227,7 @@ class TestLoopTests(unittest.TestCase):
         updated, writes, payload = nav._transition(CORE, self.run_dir, state, updated)
         nav.save(self.run_dir, updated, writes)
         nav._lint_finish(self.run_dir, payload)
-        nav._skill_commit(self.run_dir, state, updated, action)  # as the CLI's improve-complete does after save
+        nav._skill_commit(self.run_dir, state, updated, action)  # as the CLI's Improve stage complete does after save
 
     def settle(self) -> dict:
         """The saved state with any pending Improve child finished."""

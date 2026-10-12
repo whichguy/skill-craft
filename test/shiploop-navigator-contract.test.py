@@ -280,11 +280,18 @@ class NavigatorContractTests(unittest.TestCase):
             self.assertNotRegex(view, r"[Bb]ackchain")
 
     def _assert_two_instruction_improve_packet(self, packet: str) -> None:
+        """The Improve stage's packet (owner, 2026-10-11): its own header, the improve skill, then the stage's complete.
+
+        These fixtures bind the child by hand, so ShipLoop never started it: the packet may also print the one start
+        route that exists, improve-start --restart-stopped, and no other improve-start form."""
+        self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "), packet.splitlines()[0])
         self.assertIn("1. Run the improve skill on the ", packet)
         self.assertIn("/improve ShipLoop Improve: ", packet)
         self.assertIn("2. When the improve skill has completed, run: ", packet)
-        self.assertIn(" improve-complete ", packet)
-        self.assertNotIn(" improve-start ", packet)
+        self.assertRegex(packet, r"(?m)^2\. .* complete --run-dir=\S+ --action=nav-\S+$")
+        self.assertNotIn("improve-complete", packet)
+        self.assertTrue(all("--restart-stopped" in line for line in re.findall(r"improve-start[^\n]*", packet)))
+        self.assertNotIn("--opening", packet)
 
     def _complete_improve(self, state: dict, action: dict, stage: str) -> dict:
         return navigator.finish_improve(state, action["id"], receipt(stage))
@@ -1620,7 +1627,7 @@ class NavigatorContractTests(unittest.TestCase):
                 with self.subTest(render_state=render_state):
                     normalized_packet = " ".join(packet.split())
                     self.assertIn("Child workspace: " + str(self.repo), normalized_packet)
-                    self.assertIn("improve-complete imports the last two passes", normalized_packet)
+                    self.assertIn("complete command imports the last two passes", normalized_packet)
                     self.assertIn(safe_reference, normalized_packet)
                     # Review-note policy belongs to the selected Improve card;
                     # the parent retains its binding and receipt constraints.
@@ -2534,6 +2541,23 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         if completed.stdout:
             completed.stdout = _with_packet_file(completed.stdout)
         return completed
+
+    def test_improve_complete_is_gone_and_improve_start_only_restarts(self) -> None:
+        """Improve is its own stage (owner, 2026-10-11): `complete --action=<improve id>` imports the review, so the
+        side verb is gone, and improve-start is only the restart of a stopped child (no --opening)."""
+        run = self.base / "run-improve-verbs"
+        argv = ("--run-dir", str(run), "--action", "nav-0000000000000000")
+        gone = self.cli("improve-complete", *argv)
+        self.assertEqual(gone.returncode, 2, gone.stdout + gone.stderr)
+        self.assertIn("invalid choice", gone.stderr)
+        for flags in (("--opening", str(self.base / "opening.md")), ()):
+            with self.subTest(flags=flags):
+                refused = self.cli("improve-start", *argv, *flags)
+                self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        # complete carries the flags improve-complete had.
+        for flag in ("--notes", "--final-result", "--no-commit"):
+            with self.subTest(flag=flag):
+                self.assertIn(flag, self.cli("complete", "--help").stdout)
 
     def init(self, run: Path, prompt: str = "add hello") -> str:
         result = self.cli("init", "--repo", str(self.repo), "--run-dir", str(run),
@@ -3992,7 +4016,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
     def finish_improve(self) -> None:
-        """Import the pending Improve child's completion, as the improve-complete route would."""
+        """Import the pending Improve child's completion, as the Improve stage's complete would."""
         state = self.state()
         action = state["active_improve"]["action_id"]
         updated = navigator.finish_improve(state, action, receipt(state["active_improve"]["stage"]))

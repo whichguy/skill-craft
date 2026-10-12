@@ -5654,7 +5654,7 @@ class StageCardLogicTests(unittest.TestCase):
         self.assertEqual(self.lines(c["done"]["lines"])["Minutes"], "3.5 min, 10% of elapsed")
         self.assertNotRegex(json.dumps(c), r'"0 |\b0 KB|undefined|null"')
         withcat = card(run, 0)  # the catalog alone adds purpose, check and readers, still no packet or result claim
-        self.assertEqual((withcat["purpose"], withcat["check"]["kind"]), ("Build the dependency plan and the work-item queue", "review loop"))
+        self.assertEqual((withcat["purpose"], withcat["check"]["kind"]), (engine_spec().STAGE_SPEC["plan"].goal, "review loop"))  # the engine's own goal
         self.assertEqual(self.lines(withcat["written"]["lines"]), {"Read by (declared by the stage spec)": readers_text("plan")})
         self.assertIsNone(run_logic("stageCard({stages:[]},0,null)"))
         self.assertIsNone(run_logic("stageCard(null,0,null)"))
@@ -5977,7 +5977,9 @@ class PacketHeadTests(unittest.TestCase):
 ENGINE_SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 # The harness's seed pattern (test/shiploop_e2e/run.py SEED_SCRIPT) on the checkout's own navigator, with no model: it walks the
 # graph on synthetic results to the first inner stage and PRINTS every packet (navigator.emit), so packets/ is what that engine
-# writes: one file per action up to ShipLoop 1.22.0, a producer file plus `<action>-improve.md` for a reviewed stage after.
+# writes: the producer's file `<action>.md` and, for a reviewed stage, the Improve stage's own file `<improve stage id>.md`
+# (`-bind.md` before its card is bound); up to ShipLoop 1.22.0 one file per action, and between the two releases the Improve
+# child's `<action>-improve.md` beside the producer's.
 REAL_ENGINE_SEED = r"""
 import contextlib, io, json, os, subprocess, sys
 from datetime import datetime, timedelta, timezone
@@ -6015,13 +6017,14 @@ while nav.current_stage(state) != stop:
     nav.save(run_dir, state)
     reviewed = state["active_improve"] is not None
     if reviewed:
-        emit(state)  # the improve-bind packet: asks for the card to be bound
-        bound = subprocess.run([sys.executable, str(scripts / "shiploop"), "improve-bind", f"--run-dir={run_dir}", f"--action={action}",
+        stage_action = state["active_improve"]["improve_action"]  # the Improve stage's own id: what its commands name
+        emit(state)  # the Improve stage's packet that asks for the card to be bound (its -bind.md file)
+        bound = subprocess.run([sys.executable, str(scripts / "shiploop"), "improve-bind", f"--run-dir={run_dir}", f"--action={stage_action}",
                                 f"--skill-card={scripts.parent.parent / 'improve' / 'SKILL.md'}"], capture_output=True, text=True, env=env)
         assert bound.returncode == 0, bound.stderr[-1500:] + bound.stdout[-1500:]
         state = store.read_record(run_dir / "state.md")
-        emit(state)  # the improve-start packet: the bound child's, with every label
-        state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt."})
+        emit(state)  # the Improve stage's packet once ShipLoop has bound the card and started the review
+        state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt.", "improve_action": stage_action})
         nav.save(run_dir, state)
     accepted[action] = (t0 + timedelta(minutes=2 * (len(visits) + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
     visits.append({"stage": stage, "action": action, "reviewed": reviewed})
@@ -6058,6 +6061,21 @@ class ImprovePacketLayoutTests(unittest.TestCase):
     def row(self, run: dict, stage: str) -> dict:
         return next(r for r in run["stages"] if r["stage"] == stage)
 
+    STAGE_ID = "nav-" + "5e" * 16
+
+    def stage_layout_run(self) -> Path:
+        """spec has its producer packet and its Improve stage's own packet file; state.md records the stage's id as `finish` imports it."""
+        out = make_run(self.tmp, loops=False)
+        run_dir = run_dir_of(out)
+        state = export._record(run_dir / "state.md")
+        state["improve_results"] = {IDS["spec"]: {"summary": "reviewed", "improve_action": self.STAGE_ID}}
+        record(run_dir / "state.md", state)
+        (run_dir / "packets" / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220.txt"), encoding="utf-8")
+        (run_dir / "packets" / f"{self.STAGE_ID}.md").write_text(
+            "ShipLoop navigator | improve | revision 5 | the spec result\n1. Run the improve skill on the spec result.\n"
+            f"2. When the improve skill has completed, run: python3 shiploop complete --action={self.STAGE_ID}\n", encoding="utf-8")
+        return out
+
     def new_layout(self) -> Path:
         """spec has its real-shaped producer packet and an Improve child's file beside it; plan is a visit with no Improve child."""
         out = make_run(self.tmp, loops=False)
@@ -6083,6 +6101,43 @@ class ImprovePacketLayoutTests(unittest.TestCase):
         self.assertNotIn("kind", producer)  # the producer's document is as before
         self.assertTrue(producer["text"].startswith("ShipLoop navigator | implement"))
         self.assertEqual(export.validate_doc("runs", run), [])
+
+    def test_the_improve_stage_is_an_action_of_its_own_and_its_packet_file_is_named_by_its_id(self):
+        out = self.stage_layout_run()
+        run, packets, facts = self.build(out)
+        spec = self.row(run, "spec")
+        stage_file = run_dir_of(out) / "packets" / f"{self.STAGE_ID}.md"
+        self.assertEqual((spec["improvePacketDoc"], spec["improvePacketBytes"], spec["packetDoc"]), (True, stage_file.stat().st_size, True))
+        self.assertEqual(spec["carried"], {label: True for label, _, _ in export.CARRIED})  # the producer packet is intact
+        self.assertNotIn("packetImprove", spec)
+        raw = stage_file.read_bytes()
+        doc = packets[f"{self.KEY}--{IDS['spec']}-improve"]  # the document keeps the reviewed action's id in every layout
+        self.assertEqual(doc, {"run": self.KEY, "action": IDS["spec"], "stage": "spec", "bytes": len(raw), "shownBytes": len(raw),
+                               "sha256": hashlib.sha256(raw).hexdigest(), "text": raw.decode(), "kind": "improve"})
+        self.assertEqual(export.validate_doc("packets", doc), [])
+        self.assertNotIn(f"{self.KEY}--{self.STAGE_ID}", packets)  # no document of the stage's own id
+        self.assertEqual(export.validate_doc("runs", run), [])
+        self.assertEqual(run["improvePackets"]["read"], 1)
+
+    def test_a_visit_whose_stage_id_is_recorded_still_reads_a_file_of_the_older_name(self):
+        out = self.stage_layout_run()
+        packets = run_dir_of(out) / "packets"
+        (packets / f"{self.STAGE_ID}.md").rename(packets / f"{IDS['spec']}-improve.md")
+        run, docs, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertEqual((spec["improvePacketDoc"], spec["packetDoc"]), (True, True))
+        self.assertIn(f"{self.KEY}--{IDS['spec']}-improve", docs)
+
+    def test_a_stage_whose_card_was_never_bound_leaves_only_its_bind_file_and_the_reason_says_so(self):
+        out = self.stage_layout_run()
+        packets = run_dir_of(out) / "packets"
+        (packets / f"{self.STAGE_ID}.md").rename(packets / f"{self.STAGE_ID}-bind.md")
+        run, docs, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertNotIn("improvePacketDoc", spec)
+        self.assertNotIn("improvePacketBytes", spec)
+        self.assertNotIn(f"{self.KEY}--{IDS['spec']}-improve", docs)
+        self.assertEqual(run["unmeasured"]["improvePackets"], export.NO_IMPROVE_PACKET_BOUND)
 
     def test_a_visit_with_no_improve_child_has_no_improve_fields_and_no_second_document(self):
         out = self.new_layout()
@@ -6181,27 +6236,35 @@ class ImprovePacketLayoutTests(unittest.TestCase):
                        "`<runKey>--<action>-improve`", "| `kind` | `improve` |", "the E2E session's record register of 2026-10-07"):
             self.assertIn(phrase, schema, phrase)
 
-    def test_the_checkouts_own_navigator_writes_the_layout_the_exporter_reads_for_every_reviewed_stage(self):  # old engine: a guard of the old layout; new engine: fails before this change
+    def test_the_checkouts_own_navigator_writes_the_layout_the_exporter_reads_for_every_reviewed_stage(self):
         """No model: the navigator prints each packet on synthetic results, so this reads what that engine writes. Up to ShipLoop
-        1.22.0 a reviewed stage keeps only the Improve child's packet; after it the producer packet stays and the child's file
-        sits beside it. Either way the exporter must say so, and no reviewed visit may read as if it had both or neither."""
+        1.22.0 a reviewed stage keeps only the Improve child's packet; after it the producer packet stays and the child's file sits
+        beside it; and with the Improve stage an action of its own the child's file is named by the stage's id (`<id>.md`, `<id>-bind.md`
+        before a card is bound). The exporter must say which, and no reviewed visit may read as if it had both or neither."""
         out, visits = real_engine_run(self.tmp)
         packets = next((out / ".shiploop-runs").glob("*/run/packets"))
-        new = any(packets.glob("*-improve.md"))
+        state = export._record(packets.parent / "state.md")
+        stage_ids = {reviewed: record["improve_action"] for reviewed, record in state["improve_results"].items()}
         docs, _ = export.build_run(out, key="real")
         run = docs["runs"]["real"]
         reviewed = [v["stage"] for v in visits if v["reviewed"]]
         self.assertTrue({"spec", "test-strategy", "plan"} <= set(reviewed), reviewed)  # planning_review stage, the default
+        self.assertEqual(sorted(stage_ids), sorted(v["action"] for v in visits if v["reviewed"]))
+        self.assertFalse(list(packets.glob("*-improve.md")), "the Improve stage's files are named by its own id, not by <action>-improve")
         for visit, row in zip(visits, run["stages"]):
             self.assertEqual(row["stage"], visit["stage"])
-            if visit["reviewed"] and new:
+            if visit["reviewed"]:
+                stage_file = packets / f"{stage_ids[visit['action']]}.md"
+                self.assertTrue(stage_file.is_file() and (packets / f"{stage_ids[visit['action']]}-bind.md").is_file(), visit["stage"])
+                self.assertEqual(row["improvePacketBytes"], stage_file.stat().st_size, visit["stage"])
                 self.assertTrue(row["improvePacketDoc"], visit["stage"])
                 self.assertNotIn("packetImprove", row)
                 self.assertTrue(all(row["carried"].values()) or visit["stage"] == "intake", (visit["stage"], row.get("carried")))
-                self.assertIn(f"real--{visit['action']}-improve", docs["packets"])
-            elif visit["reviewed"]:
-                self.assertTrue(row["packetImprove"], visit["stage"])  # the old engine's one file is the child's
-                self.assertNotIn("improvePacketDoc", row)
+                doc = docs["packets"][f"real--{visit['action']}-improve"]
+                self.assertEqual((doc["kind"], doc["action"], doc["stage"]), ("improve", visit["action"], visit["stage"]))
+                self.assertTrue(doc["text"].startswith(f"ShipLoop navigator | improve | revision "), doc["text"][:80])
+                self.assertIn(f"complete --run-dir=", doc["text"])
+                self.assertIn(f"--action={stage_ids[visit['action']]}", doc["text"])  # the callback names the Improve stage, not the reviewed action
             else:
                 self.assertEqual({f for f in ("improvePacketDoc", "improvePacketBytes", "packetImprove") if f in row}, set(), visit["stage"])
                 self.assertIn("carried", row)
@@ -8799,9 +8862,15 @@ class R23bImprovePacketExportTests(unittest.TestCase):
     def test_the_table_has_five_labels_each_anchored_to_the_engines_own_wording(self):
         self.assertEqual(tuple(key for key, _, _ in export.IMPROVE_CARRIED), R23B_IMPROVE_KEYS)
         engine = R23B_NAVIGATOR.read_text(encoding="utf-8")
+        # The review's goal, done-when list, checked-by sentence and recovery command are still printed, now in the hand-off file the
+        # Improve stage's packet names (the packet itself is two lines), so the engine still has the wording each pattern looks for.
         for phrase in ("Reviewing the returned ", ". Goal: ", "Done when (a done result must meet each", '"Checked by: the Improve skill',
-                       "The opening file holds exactly these headings", '"Then run: "', '"Recovery command (it only reads'):
-            self.assertIn(phrase, engine, phrase)  # the navigator still prints the line each pattern looks for
+                       '"Recovery command (reprints the current packet'):
+            self.assertIn(phrase, engine, phrase)
+        # ShipLoop writes the opening and starts the review itself, so neither the opening-file heading line nor the improve-start
+        # `Then run:` step is printed any more: the `output` label has no line to find (SCHEMA.md says so; the old releases still have it).
+        for gone in ("The opening file holds exactly these headings", '"Then run: "'):
+            self.assertNotIn(gone, engine, gone)
 
     def test_a_packet_text_is_scored_label_by_label_on_lines_that_start_with_the_marker(self):
         self.assertEqual(export.improve_carried_markers(R23B_NEW_PACKET), {key: True for key in R23B_IMPROVE_KEYS})
@@ -8859,12 +8928,14 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         lost = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)  # a child ran (improve/ holds it) and no packet file names it
         run, _ = self.build(lost)
         self.assertNotIn("improvePackets", run)
-        self.assertIn("left no packets/<action>-improve.md file", run["unmeasured"]["improvePackets"])
+        self.assertIn("left no Improve packet file", run["unmeasured"]["improvePackets"])
+        self.assertEqual(run["unmeasured"]["improvePackets"], export.NO_IMPROVE_PACKET_FILE)
         # A child that stopped before its card was bound left only the improve-bind packet's own file: the reason says so.
         (run_dir_of(lost) / "packets" / f"{IDS['spec']}-improve-bind.md").write_text("ShipLoop navigator | spec | revision 4\n")
         run, _ = self.build(lost)
         self.assertNotIn("improvePackets", run)
-        self.assertIn("left only packets/<action>-improve-bind.md files", run["unmeasured"]["improvePackets"])
+        self.assertIn("left only the Improve packet that asks for improve-bind", run["unmeasured"]["improvePackets"])
+        self.assertIn("packets/<action>-improve-bind.md", run["unmeasured"]["improvePackets"])
         self.assertEqual(run["unmeasured"]["improvePackets"], export.NO_IMPROVE_PACKET_BOUND)
 
     def test_the_contract_types_the_new_fields_and_schema_md_documents_the_table_and_the_release_it_changed_at(self):
@@ -8883,19 +8954,28 @@ class R23bImprovePacketExportTests(unittest.TestCase):
                        "never a defect**", "`Recovery command:`", "`Reviewing the returned <stage> result. Goal:`", "a measured none", "`unmeasured.improvePackets`"):
             self.assertIn(phrase, text, phrase)
 
-    def test_the_checkouts_own_navigator_writes_improve_packets_that_carry_every_label(self):
-        """The seed binds the Improve card and prints the child's packet, so every label is printed, `output` included, in this
-        checkout's engine. (Before the improve-bind packet kept its own file, the seed's unbound packet was the only one on disk and
-        lacked `output`.)"""
+    def test_the_checkouts_own_navigator_writes_improve_packets_the_exporter_scores_and_that_carry_the_stage_callback(self):
+        """The seed binds the Improve card and prints the Improve stage's packet. In this checkout's engine that packet is the instruction
+        to run the improve skill and the Improve stage's own `complete` (the review's context moved to the hand-off file the packet names),
+        so each visit is scored (a file was read) and none of the five labels is printed: they read false by design (SCHEMA.md). If the
+        engine prints a label in the packet again, this test names the labels to move back into the count."""
         out, visits = real_engine_run(self.tmp)
         packets = next((out / ".shiploop-runs").glob("*/run/packets"))
-        self.assertTrue(any(packets.glob("*-improve.md")), "the engine of this checkout writes the new layout")
-        run = export.build_run(out, key="real")[0]["runs"]["real"]
+        self.assertTrue(any(packets.glob("*-bind.md")), "the engine of this checkout writes the Improve stage's own files")
+        docs = export.build_run(out, key="real")[0]
+        run = docs["runs"]["real"]
         scored = [r for r in run["stages"] if "improveCarried" in r]
         self.assertEqual(len(scored), len([v for v in visits if v["reviewed"]]))
         for row in scored:
-            self.assertEqual(row["improveCarried"], {key: True for key in R23B_IMPROVE_KEYS}, row["stage"])
-        self.assertEqual(run["improvePackets"]["carried"], {key: len(scored) for key in R23B_IMPROVE_KEYS})
+            self.assertEqual(row["improveCarried"], {key: False for key in R23B_IMPROVE_KEYS}, row["stage"])
+        self.assertEqual(run["improvePackets"], {"read": len(scored), "carried": {key: 0 for key in R23B_IMPROVE_KEYS}})
+        for visit in (v for v in visits if v["reviewed"]):
+            text = docs["packets"][f"real--{visit['action']}-improve"]["text"]
+            self.assertIn("1. Run the improve skill on the " + visit["stage"] + " result.", text)
+            self.assertNotIn("improve-complete", text)
+            self.assertNotIn("improve-start", text)  # ShipLoop started the review: the packet does not ask the model to
+            self.assertNotIn("opening", text.lower())
+        self.assertNotIn("improvePackets", run["unmeasured"])
 
 
 def r23b_block(name: str = R23B_R1, **changes) -> dict:
@@ -9922,7 +10002,7 @@ class StageModelTests(unittest.TestCase):
         cards = {c["stage"]: c for c in view["cards"]}
         self.assertEqual([c["phase"] for c in view["cards"] if c["stage"] in ("test-spec", "validate-existing", "verify")],
                          ["Plan", "Build", "Verify"])
-        self.assertEqual(cards["implement"]["purpose"], "Make the planned step's change")
+        self.assertEqual(cards["implement"]["purpose"], engine_spec().STAGE_SPEC["implement"].goal)  # the catalog is the engine's table
         # N2: a script-run row that also has an Improve child says so
         self.assertEqual(cards["implement"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal, lint-gate before it "
                          "accepts done, and an Improve child reviews each step's result."})

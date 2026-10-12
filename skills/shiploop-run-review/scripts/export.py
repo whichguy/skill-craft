@@ -352,7 +352,8 @@ SCHEMA = {
                               # whether the packet file is the Improve child's, not the producer's.
                               "summary": (S, False), "summaryTruncated": (B, False), "resultFile": (B, False),
                               "carried": (("map", B), False), "packetImprove": (B, False),
-                              # an Improve child's own packet file packets/<action>-improve.md (the layout after ShipLoop 1.22.0): its
+                              # an Improve child's own packet file (the layout after ShipLoop 1.22.0: packets/<action>-improve.md; from
+                              # the release where the Improve stage is an action of its own, packets/<improve stage id>.md): its
                               # size, and true when a packets document `<runKey>--<action>-improve` was written for it.
                               "improvePacketBytes": (N, False), "improvePacketDoc": (B, False),
                               # R22b: what ShipLoop's own script checks recorded for the visit (tests/<action>-verifyN.md) and
@@ -2320,11 +2321,13 @@ FIDELITY_MISSING = ("metrics.json has no fidelity block: it was written before t
 # and `validation.accepted_ran` concerns a field each visit's `verify.runs[].acceptedRan` already carries.
 FIDELITY_REASON_PARTS = ("evidence", "validation", "edits", "refusals", "declared")
 FIDELITY_REASON_DROPPED = ("validation.accepted_ran",)
-NO_IMPROVE_PACKET_FILE = "Improve children ran (improve/ holds them) but left no packets/<action>-improve.md file"
+NO_IMPROVE_PACKET_FILE = ("Improve children ran (improve/ holds them) but left no Improve packet file "
+                          "(packets/<improve stage id>.md, or packets/<action>-improve.md before the Improve stage was an action of its own)")
 # ShipLoop writes the packet that asks for improve-bind to its own file; a child that stopped before its card was bound
 # leaves only that one, which is no Improve packet to score.
-NO_IMPROVE_PACKET_BOUND = ("Improve children ran (improve/ holds them) but left only packets/<action>-improve-bind.md "
-                           "files: each stopped before its card was bound, so no Improve packet was written")
+NO_IMPROVE_PACKET_BOUND = ("Improve children ran (improve/ holds them) but left only the Improve packet that asks for improve-bind "
+                           "(packets/<improve stage id>-bind.md, or packets/<action>-improve-bind.md): each stopped before its card "
+                           "was bound, so no Improve packet was written")
 OLD_IMPROVE_LAYOUT = ("no packets/<action>-improve.md file, and a packet file holds an Improve child's packet: ShipLoop 1.22.0 or earlier "
                       "wrote one packet file per action, so the Improve child's packets were not kept apart")
 
@@ -2473,7 +2476,7 @@ def _improve_packets(stages: list[dict], children: dict, bind_only: bool = False
     if scored:
         return {"read": len(scored), "carried": {key: sum(1 for c in scored if c[key]) for key in IMPROVE_KEYS}}, None
     if any("improvePacketBytes" in row for row in stages):
-        return None, "the packets/<action>-improve.md files could not be read as UTF-8, so no Improve packet was scored"
+        return None, "the Improve packet files could not be read as UTF-8, so no Improve packet was scored"
     if any(row.get("packetImprove") for row in stages):
         return None, OLD_IMPROVE_LAYOUT
     if children:
@@ -2645,31 +2648,60 @@ CARRIED = (
     ("produces", "the 'Result template:' and the 'Allowed outcomes:' line",
      (((r"^Result template:",), (r"^Allowed outcomes:",)),)),
     ("recovery", "the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line "
-                 "from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked",
+                 "from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked "
+                 "(the packet re-cut says it as: blocked only when nothing can proceed without a person)",
      (((r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
-       (r"a problem this run can fix itself is repaired in this stage, not blocked",)),)),
+       (r"a problem this run can fix itself is repaired in this stage, not blocked",
+        r"blocked only when nothing can proceed without a person")),)),
     ("inputs", "the 'Results this stage builds on' list",
      (((r"^Results this stage builds on",),),)),
 )
 CARRIED_RX = tuple((label, tuple(tuple(tuple(re.compile(rx, re.M) for rx in group) for group in rule) for rule in rules))
                    for label, _, rules in CARRIED)
-# Two layouts of a visit's packet files. Old (ShipLoop 1.22.0 and earlier): one file per action, rewritten at every
+# Three layouts of a visit's packet files. Old (ShipLoop 1.22.0 and earlier): one file per action, rewritten at every
 # printing, so a visit that started an Improve child keeps only the child's last packet, which has this line, and the
-# producer's own packet is gone; such a file is not read for labels (`packetImprove`). New: the producer's packet stays
+# producer's own packet is gone; such a file is not read for labels (`packetImprove`). Next: the producer's packet stays
 # in packets/<action>.md and an Improve child's packets go to packets/<action>-improve.md, so the producer packet is
-# intact and is what `carried` reads. A visit is told by its files: a `-improve.md` beside the producer file is the new layout.
+# intact and is what `carried` reads. Current: the Improve stage is an action of its own (stage `improve`, its id recorded in
+# state.md `improve_results[<action>].improve_action` when its `complete` imports the review, and in `active_improve` while it
+# runs) and its packet is packets/<improve stage id>.md (`<id>-bind.md` before a card is bound). A visit is told by its files: an
+# Improve packet file beside the producer file is not the old layout. The document of the Improve packet keeps the id
+# `<runKey>--<action>-improve` (the reviewed action's) in every layout, so the page finds it the same way.
 IMPROVE_PACKET = re.compile(r"^Current action: Improve the completed ", re.M)
 IMPROVE_SUFFIX = "-improve"
-# What an Improve child's packet (packets/<action>-improve.md) carries for a model that holds only that packet: one row per label,
+
+
+def _improve_stage_ids(state: dict) -> dict[str, str]:
+    """{reviewed action: its Improve stage's id} from state.md: the imported reviews and the Improve stage in progress."""
+    found: dict[str, str] = {}
+    results = state.get("improve_results")
+    for reviewed, record in (results.items() if isinstance(results, dict) else ()):
+        if isinstance(reviewed, str) and isinstance(record, dict) and isinstance(record.get("improve_action"), str):
+            found[reviewed] = record["improve_action"]
+    child = state.get("active_improve")
+    if isinstance(child, dict) and isinstance(child.get("action_id"), str) and isinstance(child.get("improve_action"), str):
+        found[child["action_id"]] = child["improve_action"]
+    return found
+
+
+def _improve_packet_file(packets: Path, action, stage_ids: dict[str, str]) -> Path | None:
+    """The Improve packet file of a visit, else None: the Improve stage's own `<id>.md`, else the older `<action>-improve.md`."""
+    names = ([f"{stage_ids[action]}.md"] if isinstance(action, str) and action in stage_ids else []) + [f"{action}{IMPROVE_SUFFIX}.md"]
+    return next((packets / name for name in names if (packets / name).is_file()), None)
+# What an Improve child's packet (packets/<action>-improve.md, or packets/<improve stage id>.md) carries for a model that holds only that packet: one row per label,
 # (key, what is looked for, pattern), the patterns anchored to the lines the navigator prints (_goal_lines in its active-Improve branch,
 # _checked_line's Improve variant in _render_improve, _first_callback_lines, the run footer). A packet is scored line by line like
 # CARRIED. Goal and Done when are printed from skill-craft 1.25.0 (ShipLoop 0.57.0) on: an earlier release has none by design, so the
 # count is read beside the run's release and is never a defect. A test pins each phrase against the navigator's source.
+# From the release where the Improve stage's packet is only "run the improve skill, then its complete" (the review's context moved
+# to the hand-off file the packet names, which prints the first, second, third and fifth line and no opening instruction), the
+# packet file carries none of the five, so every label reads false by design; the hand-off file is not exported.
 IMPROVE_CARRIED = (
     ("goal", "the review's 'Reviewing the returned <stage> result. Goal:' line (skill-craft 1.25.0 on)", r"^Reviewing the returned .* result\. Goal: "),
     ("doneWhen", "the 'Done when (' list the review holds the result to (skill-craft 1.25.0 on)", r"^Done when \("),
-    ("checkedBy", "the 'Checked by:' line that names the improve-complete callback", r"^Checked by:"),
-    ("output", "the opening file's heading line, or the 'Then run:' improve-start line", r"^(?:The opening file holds exactly these headings|Then run: )"),
+    ("checkedBy", "the 'Checked by:' line that names the Improve callback (improve-complete, then the Improve stage's complete)", r"^Checked by:"),
+    ("output", "the opening file's heading line, or the 'Then run:' improve-start line (releases before ShipLoop wrote the opening itself)",
+     r"^(?:The opening file holds exactly these headings|Then run: )"),
     ("recovery", "the Recovery command line ('Recovery command:' up to skill-craft 1.27.0, then 'Recovery command (')",
      r"^Recovery command[:(]|^Recovery command \("),
 )
@@ -2716,13 +2748,15 @@ def _packet_doc(run_key: str, action: str, stage: str, path: Path, kind: str | N
     return doc, raw.decode("utf-8")
 
 
-def packet_docs(run_key: str, packets: Path, stages: list[dict]) -> tuple[dict[str, dict], int]:
+def packet_docs(run_key: str, packets: Path, stages: list[dict],
+                improve_files: dict[str, Path] | None = None) -> tuple[dict[str, dict], int]:
     """({doc id: packets document}, the packet files that could not be read) for every visit that has a packet file.
     A visit with no file (skipped, seeded or never printed) gets none. The producer file `<action>.md` gives the document
     `<runKey>--<action>` and the row's `packetDoc` true, and from the whole file's text `carried` (carried_markers). An
     Improve child's file `<action>-improve.md` (new layout) gives a second document `<runKey>--<action>-improve` with `kind`
-    `improve` and the row's `improvePacketDoc` true; the producer file is then intact, so `carried` is read from it. With no
-    such file (old layout) a producer file that is the Improve child's packet (it has the child's first lines) is marked
+    `improve` and the row's `improvePacketDoc` true; the producer file is then intact, so `carried` is read from it. In the
+    layout where the Improve stage is an action of its own, that file is `improve_files[action]` (`<improve stage id>.md`).
+    With no such file (old layout) a producer file that is the Improve child's packet (it has the child's first lines) is marked
     `packetImprove` instead and no label is read from it."""
     found, unreadable = {}, 0
     for row in stages:
@@ -2743,7 +2777,8 @@ def packet_docs(run_key: str, packets: Path, stages: list[dict]) -> tuple[dict[s
                 else:
                     row["carried"] = carried_markers(text)
         if new_layout:
-            read = _packet_doc(run_key, action, row["stage"], packets / f"{action}{IMPROVE_SUFFIX}.md", "improve")
+            read = _packet_doc(run_key, action, row["stage"],
+                               (improve_files or {}).get(action) or packets / f"{action}{IMPROVE_SUFFIX}.md", "improve")
             if read is None:
                 unreadable += 1
             else:
@@ -2794,6 +2829,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     seeded_ids, seeded_note = (_seeded(invocation.get("seeded"), history, "invocation.json") if sliced
                                else _seeded(result.get("seeded"), history))
     packets = run_dir / "packets"
+    stage_ids = _improve_stage_ids(state)
+    improve_files: dict[str, Path] = {}
     issued = packets.is_dir() and any(p.is_file() for p in packets.iterdir())  # some packet exists: absence means something
     children = _improve_children(run_dir)
     verify_blocks, verify_unreadable = _verify_by_action(run_dir / "tests")
@@ -2830,9 +2867,12 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         row = {"stage": stage, "outcome": outcome, "min": None if minutes is None else round(minutes, 1)}
         if isinstance(action, str):
             row["action"] = action
-        for field, path in (("packetBytes", packets / f"{action}.md"), ("improvePacketBytes", packets / f"{action}{IMPROVE_SUFFIX}.md"),
+        improve_file = _improve_packet_file(packets, action, stage_ids)
+        if improve_file is not None:
+            improve_files[action] = improve_file
+        for field, path in (("packetBytes", packets / f"{action}.md"), ("improvePacketBytes", improve_file),
                             ("resultBytes", results / f"{action}.md")):
-            if path.is_file():
+            if path is not None and path.is_file():
                 row[field] = path.stat().st_size
         if isinstance(action, str):
             row["resultFile"] = (results / f"{action}.md").is_file()  # false: the accepted result is read from state.md
@@ -3019,9 +3059,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         if row.get("action") in evidence_classes:
             row["evidenceClass"] = evidence_classes[row["action"]]
 
-    packet_set, unreadable = packet_docs(key, packets, stages)
-    improve_packets, improve_packets_why = _improve_packets(stages, children,
-                                                            any(packets.glob(f"*{IMPROVE_SUFFIX}-bind.md")))
+    packet_set, unreadable = packet_docs(key, packets, stages, improve_files)
+    bind_only = (any(packets.glob(f"*{IMPROVE_SUFFIX}-bind.md"))
+                 or any((packets / f"{stage_id}-bind.md").is_file() for stage_id in stage_ids.values()))
+    improve_packets, improve_packets_why = _improve_packets(stages, children, bind_only)
     if improve_packets is not None:
         run["improvePackets"] = improve_packets
     else:

@@ -117,6 +117,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIsNotNone(waiting.get("active_improve"), stage + " is not an Improve checkpoint")
         binding = bridge.binding(
             waiting, action, stage, waiting["active_improve"]["seed_result"], self.skill,
+            improve_action=waiting["active_improve"]["improve_action"],
         )
         waiting = copy.deepcopy(waiting)
         waiting["active_improve"] = binding
@@ -232,6 +233,22 @@ class NavigatorV4Tests(unittest.TestCase):
             },
             "stale_check_note": "Synthetic stopped receipt for navigator-only projection testing.",
         }
+
+    def test_a_run_whose_improve_child_has_no_improve_stage_is_retired(self) -> None:
+        """Owner, 2026-10-11: a run saved before Improve became its own stage is refused, not migrated."""
+        state = self.at_plan()
+        waiting = navigator.apply(state, navigator.current_action(state)["id"], self.result("plan"))
+        child = waiting["active_improve"]
+        self.assertEqual(navigator.sequence_stage(waiting), navigator.IMPROVE_STAGE)
+        self.assertEqual(navigator.improve_id(waiting), child["improve_action"])
+        self.assertNotEqual(child["improve_action"], child["action_id"])
+        navigator.validate(waiting)
+        old = copy.deepcopy(waiting)
+        del old["active_improve"]["improve_action"]
+        with self.assertRaisesRegex(
+                navigator.NavigatorError,
+                "invalid active Improve binding \\(a run started before Improve became its own stage is retired: "):
+            navigator.validate(old)
 
     def test_a_saved_state_without_a_lint_option_is_refused(self) -> None:
         state = navigator.new_state("/tmp/repo", "Build it.")
@@ -397,9 +414,10 @@ class NavigatorV4Tests(unittest.TestCase):
             self.assertTrue(all(call.kwargs.get("terminal") is True for call in close_mock.call_args_list))
 
     def test_actual_stopped_cli_settlement_archives_and_replays_without_live_child_reads(self) -> None:
-        _waiting, action, receipt, path, evidence, binding = self.real_stopped_plan()
+        waiting, action, receipt, path, evidence, binding = self.real_stopped_plan()
+        improve = waiting["active_improve"]["improve_action"]   # the commands name the Improve stage, not the plan
 
-        settled = self.cli_reconcile(action, path)
+        settled = self.cli_reconcile(improve, path)
         self.assertEqual(settled.returncode, 0, settled.stdout + settled.stderr)
         state_path = self.run / "state.md"
         first_state = state_path.read_bytes()
@@ -426,19 +444,20 @@ class NavigatorV4Tests(unittest.TestCase):
         # must never read the mutable child packet or evidence again.
         bridge.receipt_path(binding).write_text("not a runtime packet", encoding="utf-8")
         evidence.write_text("Changed after archival.\n", encoding="utf-8")
-        replay = self.cli_reconcile(action, path)
+        replay = self.cli_reconcile(improve, path)
         self.assertEqual(replay.returncode, 0, replay.stdout + replay.stderr)
         self.assertEqual(state_path.read_bytes(), first_state)
 
         changed = dict(receipt, summary="A different reconciliation request.")
         path.write_text(store.dumps(changed, "Stopped Improve reconciliation receipt"), encoding="utf-8")
-        rejected = self.cli_reconcile(action, path)
+        rejected = self.cli_reconcile(improve, path)
         self.assertNotEqual(rejected.returncode, 0)
         self.assertEqual(state_path.read_bytes(), first_state)
 
     def test_stopped_settlement_transaction_rolls_forward_as_one_batch(self) -> None:
         waiting, action, _receipt, path, _evidence, _binding = self.real_stopped_plan()
-        args = SimpleNamespace(command="improve-reconcile", action=action, result=str(path))
+        args = SimpleNamespace(command="improve-reconcile", action=waiting["active_improve"]["improve_action"],
+                               result=str(path))
         actual_transaction = store.transaction
 
         def interrupt_after_first_target(root, writes, deletes=None, **_kwargs):
@@ -574,7 +593,9 @@ class NavigatorV4Tests(unittest.TestCase):
         waiting, action, _child = self.bound_plan_child(state)
         packet = navigator.render(None, root, waiting)
         self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(_child)), packet)
-        self.assertIn("improve-complete", packet)
+        # ShipLoop starts the Improve stage; here no runtime has started, so the packet also prints the restart route.
+        self.assertIn("complete --run-dir=" + str(root) + " --action=" + _child["improve_action"], packet)
+        self.assertNotIn("improve-complete", packet)
         improve = handoff_of(waiting)
         self.assertIn(str(ROOT / "skills" / "shiploop" / "references" / "planning-experiments.md"), improve)
         self.assertIn(str(notebook), improve)
@@ -582,9 +603,12 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("collect or confirm the recorded native worker owner", improve)
         self.assertIn("do not duplicate verbose logs", " ".join(improve.split()))  # was "...the full parent packet or..."
         self.assertIn("use the context-first opening as the compact planning summary", improve)
-        context_pos = improve.index("Context-first opening: before start, write the opening file")
-        invoke_pos = improve.index("Then say 'Run /improve'")
-        self.assertLess(context_pos, invoke_pos)
+        # ShipLoop writes the opening and starts the child at the transition (owner, 2026-10-11): the hand-off says
+        # so and never asks the model to write the opening or start the runtime.
+        self.assertIn("ShipLoop started this review when the Improve stage began", improve)
+        self.assertIn("Do not write the opening or start the runtime yourself", improve)
+        self.assertNotIn("write the opening file", improve)
+        self.assertIn("Then say 'Run /improve'", improve)
         self.assertIn("improve-reconcile", improve)
         cancel_rule = ("Freeze in repeat_condition: if a finding invalidates an accepted discovery, "
                        "research, spec or test-strategy premise")
@@ -688,7 +712,7 @@ class NavigatorV4Tests(unittest.TestCase):
     def test_cold_reconciled_v4_plan_packet_lists_current_sources_and_revalidates_queue(self) -> None:
         waiting, action, _receipt, path, _evidence, _binding = self.real_stopped_plan()
         old_sources = revision.current_actions(waiting)
-        settled = self.cli_reconcile(action, path)
+        settled = self.cli_reconcile(waiting["active_improve"]["improve_action"], path)
         self.assertEqual(settled.returncode, 0, settled.stdout + settled.stderr)
         state = store.read_record(self.run / "state.md")
         while navigator.current_stage(state) != "plan":
