@@ -90,7 +90,8 @@ def normalise_paths(value: Any) -> List[str]:
             raise ItemScopeError("paths must stay inside the repository: " + entry)
         rows.append(path)
     if len(set(rows)) != len(rows):
-        raise ItemScopeError("paths must not repeat")
+        repeated = sorted({row for row in rows if rows.count(row) > 1})
+        raise ItemScopeError("paths must not repeat: " + ", ".join(repeated))
     return rows
 
 
@@ -139,6 +140,7 @@ def left_out(state: Mapping[str, Any], work_item: str, stage: str,
 
 
 def declared(state: Mapping[str, Any], work_item: str) -> List[str]:
+    """Paths the work item's step plan declared, or an empty list."""
     _action, result = test_loop._step_plan(state, work_item)
     return list(result.get("paths") or ())
 

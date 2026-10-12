@@ -101,17 +101,29 @@ class Synthetic(unittest.TestCase):
 
 
 class ContractTests(Synthetic):
-    def test_a_contract_of_any_size_is_written_and_the_runtime_starts_from_it(self):
-        """No size budget: verify's contract names the run directory many times, so a deep run directory (an E2E build
-        directory, say) took it over the old 9,216-byte budget and blocked every item; now the loop starts."""
-        self.root = self.root / ("d" * 200) / ("d" * 200) / ("d" * 200)
-        self.root.mkdir(parents=True)
-        state = self.state_for("verify")
-        writes = self.write(state)
-        text = writes[loops.contract_path("A-verify")]
-        self.assertGreater(len(json.dumps(json.loads(text), separators=(",", ":"), sort_keys=True).encode()), 8_000)  # a large contract (the old budget was 9,216)
-        packet = self.runtime(["start", "--receipt", str(loops.receipt_path(self.root, "A-verify"))], text)
-        self.assertEqual(packet["status"], "active", packet)
+    def test_growing_contracts_and_reports_round_trip_without_truncation(self):
+        """Exercise content growth, not a byte budget that changes with checkout and temporary paths."""
+        for case_count in (1, 1000):
+            with self.subTest(case_count=case_count):
+                state = self.state_for("test")
+                command = "python3 -m unittest " + " ".join(f"tests.test_case_{n}" for n in range(case_count))
+                state["accepted"]["A-sp"]["test_commands"] = [{"command": command, "suite": "focused"}]
+                text = self.write(state)[loops.contract_path("A-test")]
+                contract = json.loads(text)
+                self.assertIn(command, contract["work"])
+                # Separate receipts keep each sample a fresh runtime invocation. Commands are instructions only.
+                receipt = self.root / "loops" / f"content-{case_count}.json"
+                packet = self.runtime(["start", "--receipt", str(receipt)], text)
+                self.assertEqual(packet["status"], "active", packet)
+                self.assertEqual(packet["work"], contract["work"])
+                self.assertEqual(packet["context"], contract["context"])
+                report = dict(TRIVIAL,
+                              evidence="\n".join(f"Case {n}: synthetic evidence — café." for n in range(case_count)),
+                              handoff="\n".join(f"Case {n}: retain this finding — 日本語." for n in range(case_count)))
+                terminal = self.report(receipt, report)
+                self.assertEqual(terminal["status"], "complete", terminal)
+                self.assertEqual(terminal["last_report"], report)
+                self.assertEqual(json.loads(receipt.read_text()), terminal)
 
     def test_every_inner_stage_contract_is_in_the_runtime_schema_and_the_runtime_starts_from_it(self):
         validate = _runtime_module()._validate_contract

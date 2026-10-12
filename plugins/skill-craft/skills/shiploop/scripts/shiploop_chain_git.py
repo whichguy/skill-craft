@@ -740,6 +740,9 @@ def _is_ancestor(repo: Path, base: str, descendant: str, *, label: str) -> None:
 
 
 def _assert_allocated_worker(plan: Mapping[str, Any], worker: Mapping[str, str], *, exact_base: bool) -> Dict[str, str]:
+    """Verify the allocated worker matches its plan: path, shared Git common directory, its own Git directory and,
+    when ``exact_base``, the planned base; returns its identity.
+    """
     target = plan["target"]
     path = Path(plan["path"])
     actual = _identity_values(worker)

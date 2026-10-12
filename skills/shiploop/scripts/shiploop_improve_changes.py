@@ -27,6 +27,7 @@ import shiploop_test_loop as test_loop
 
 
 def bind_path(action: str) -> str:
+    """Run-relative path of the binding file for Improve ``action``."""
     return "improve/" + action + "-bind.md"
 
 
@@ -74,14 +75,14 @@ def review_changes(run_dir: Path, repo: Path, action: str) -> Optional[Tuple[Lis
         return None
     top = Path(now["toplevel"])
     try:
-        changed = [p for p in _diff(top, str(bound["tree"]), now["tree"]) if not lint._runtime_path(p)]
+        changed = [path for path in _diff(top, str(bound["tree"]), now["tree"]) if not lint._runtime_path(path)]
         head = lint._git(top, "rev-parse", "--verify", "-q", "HEAD^{tree}")
         head_tree = head.stdout.decode("ascii", "replace").strip() if head.returncode == 0 else \
             "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
         dirty = set(_diff(top, head_tree, now["tree"]))
     except lint.LintError:
         return None
-    return changed, [p for p in changed if p in dirty]
+    return changed, [path for path in changed if path in dirty]
 
 
 def uncommitted(changes: Optional[Tuple[List[str], List[str]]], receipt: Mapping[str, Any]) -> List[str]:

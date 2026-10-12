@@ -28,7 +28,7 @@ _DOC_STATUS_LABELS = {
 }
 
 
-def _e(value: Any, default: str = "") -> str:
+def _escape_html(value: Any, default: str = "") -> str:
     if value is None:
         value = default
     return escape(str(value), quote=True)
@@ -94,6 +94,7 @@ def _phase_rows(facts: Mapping[str, Any]) -> list[Mapping[str, Any]]:
 
 
 def _phase_card(row: Mapping[str, Any], index: int, plan_accepted: bool) -> str:
+    """Render one phase of the run strip as an HTML card with its state and progress."""
     name = _value(row.get("name"), _PHASES[index])
     phase_key = name.casefold()
     state = _value(row.get("state"), "pending").casefold()
@@ -125,9 +126,9 @@ def _phase_card(row: Mapping[str, Any], index: int, plan_accepted: bool) -> str:
     return (
         '<article class="phase-card phase-' + state + '">'
         '<div class="phase-top"><span class="phase-number">0' + str(index + 1) + '</span>'
-        '<span class="phase-state">' + _e(progress) + '</span></div>'
-        '<h3>' + _e(name) + '</h3>'
-        '<div class="meter" role="progressbar" aria-label="' + _e(name)
+        '<span class="phase-state">' + _escape_html(progress) + '</span></div>'
+        '<h3>' + _escape_html(name) + '</h3>'
+        '<div class="meter" role="progressbar" aria-label="' + _escape_html(name)
         + ' progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'
         + str(round(percent)) + '"><span style="width:' + str(round(percent)) + '%"></span></div>'
         '</article>'
@@ -135,6 +136,9 @@ def _phase_card(row: Mapping[str, Any], index: int, plan_accepted: bool) -> str:
 
 
 def _narrative(snapshot: Mapping[str, Any], facts: Mapping[str, Any]) -> str:
+    """Render the run narrative HTML: the stop reason when the run stopped, otherwise the current state, from the
+    snapshot and facts.
+    """
     run = snapshot.get("run")
     run = run if isinstance(run, Mapping) else {}
     stop = facts.get("stop")
@@ -152,9 +156,9 @@ def _narrative(snapshot: Mapping[str, Any], facts: Mapping[str, Any]) -> str:
     parts = [
         '<section class="panel narrative-panel" aria-labelledby="narrative-heading">',
         '<div class="section-heading"><div><p class="eyebrow">RUN NARRATIVE</p>'
-        '<h2 id="narrative-heading">' + _e(title) + '</h2></div></div>',
-        '<div class="focus-row"><span class="focus-label">' + _e(label) + '</span>'
-        '<p>' + (_e(text) if text else '<span class="muted">No additional detail recorded.</span>') + '</p></div>',
+        '<h2 id="narrative-heading">' + _escape_html(title) + '</h2></div></div>',
+        '<div class="focus-row"><span class="focus-label">' + _escape_html(label) + '</span>'
+        '<p>' + (_escape_html(text) if text else '<span class="muted">No additional detail recorded.</span>') + '</p></div>',
     ]
     achieved = facts.get("achieved", [])
     if isinstance(achieved, (list, tuple)) and achieved:
@@ -163,9 +167,9 @@ def _narrative(snapshot: Mapping[str, Any], facts: Mapping[str, Any]) -> str:
             if not isinstance(row, Mapping):
                 continue
             text = _value(row.get("text"))
-            parts.append('<li><strong>' + _e(row.get("label")) + '</strong>')
+            parts.append('<li><strong>' + _escape_html(row.get("label")) + '</strong>')
             if text:
-                parts.append('<span>' + _e(text) + '</span>')
+                parts.append('<span>' + _escape_html(text) + '</span>')
             parts.append('</li>')
         parts.append('</ul></div>')
     ahead = facts.get("ahead", [])
@@ -174,9 +178,9 @@ def _narrative(snapshot: Mapping[str, Any], facts: Mapping[str, Any]) -> str:
         for row in ahead:
             if not isinstance(row, Mapping):
                 continue
-            parts.append('<li><strong>' + _e(row.get("label")) + '</strong>')
+            parts.append('<li><strong>' + _escape_html(row.get("label")) + '</strong>')
             if row.get("text"):
-                parts.append('<span>' + _e(row.get("text")) + '</span>')
+                parts.append('<span>' + _escape_html(row.get("text")) + '</span>')
             parts.append('</li>')
         parts.append('</ul></div>')
     parts.append('</section>')
@@ -212,15 +216,15 @@ def _work_items(snapshot: Mapping[str, Any]) -> str:
             plan = _value(row.get("plan"))
             parts.append(
                 '<article class="work-card"><div class="work-heading"><div>'
-                '<span class="work-id">' + _e(row.get("id"), "Item") + '</span>'
-                '<h3>' + _e(row.get("title"), "Untitled work item") + '</h3></div>'
-                '<span class="pill pill-' + state_class + '">' + _e(status) + '</span></div>'
+                '<span class="work-id">' + _escape_html(row.get("id"), "Item") + '</span>'
+                '<h3>' + _escape_html(row.get("title"), "Untitled work item") + '</h3></div>'
+                '<span class="pill pill-' + state_class + '">' + _escape_html(status) + '</span></div>'
             )
             if plan:
-                parts.append('<p class="work-plan">' + _e(plan) + '</p>')
+                parts.append('<p class="work-plan">' + _escape_html(plan) + '</p>')
             if dependencies:
                 parts.append('<p class="dependencies"><span>Depends on</span> ')
-                parts.append(", ".join(_e(item) for item in dependencies))
+                parts.append(", ".join(_escape_html(item) for item in dependencies))
                 parts.append('</p>')
             parts.append('</article>')
         parts.append('</div>')
@@ -236,6 +240,9 @@ def _svg_lines(value: Any, *, width: int, max_lines: int) -> list[str]:
 def _graph_model(graph: Mapping[str, Any]) -> tuple[
     list[Mapping[str, Any]], list[str], list[tuple[int, int]], list[int], list[str], bool
 ]:
+    """Normalize graph data for rendering: valid nodes, display ids, dependency edges as index pairs, ranks,
+    diagnostics and whether dependencies are known.
+    """
     raw_nodes = graph.get("nodes", [])
     nodes = [node for node in raw_nodes if isinstance(node, Mapping)] \
         if isinstance(raw_nodes, (list, tuple)) else []
@@ -335,6 +342,9 @@ def _graph_svg(
     ranks: list[int],
     dependencies_known: bool,
 ) -> str:
+    """Draw one graph as inline SVG, layered by rank when dependencies are known; an empty graph renders a short
+    notice.
+    """
     if not nodes:
         return '<p class="empty-state">The accepted graph contains no implementation steps.</p>'
 
@@ -371,7 +381,7 @@ def _graph_svg(
         '<svg class="dependency-svg" role="img" aria-labelledby="graph-title-' + str(graph_index)
         + ' graph-desc-' + str(graph_index) + '" viewBox="0 0 ' + str(width) + ' ' + str(height)
         + '" width="' + str(width) + '" height="' + str(height) + '">'
-        '<title id="graph-title-' + str(graph_index) + '">' + _e(label) + ' implementation dependencies</title>'
+        '<title id="graph-title-' + str(graph_index) + '">' + _escape_html(label) + ' implementation dependencies</title>'
         '<desc id="graph-desc-' + str(graph_index) + '">Arrows point from prerequisites to dependent steps.'
         + (' Dependencies are not recorded; node positions do not imply order.' if not dependencies_known else '')
         + '</desc><defs><marker id="' + marker_id
@@ -417,13 +427,13 @@ def _graph_svg(
             '<g class="graph-node status-' + status_class + '"><rect x="' + str(x) + '" y="' + str(y)
             + '" width="' + str(node_width) + '" height="' + str(node_height) + '" rx="11"/>'
             '<text class="graph-node-id" x="' + str(x + 13) + '" y="' + str(y + 23) + '">'
-            + _e(_svg_lines(heading, width=27, max_lines=1)[0]) + '</text>'
+            + _escape_html(_svg_lines(heading, width=27, max_lines=1)[0]) + '</text>'
             '<text class="graph-node-title" x="' + str(x + 13) + '" y="' + str(y + 48) + '">'
             + "".join('<tspan x="' + str(x + 13) + '" dy="' + ("0" if line_index == 0 else "17")
-                      + '">' + _e(line) + '</tspan>'
+                      + '">' + _escape_html(line) + '</tspan>'
                       for line_index, line in enumerate(title_lines))
             + '</text><text class="graph-node-status" x="' + str(x + 13) + '" y="' + str(y + 98)
-            + '">' + _e(status) + '</text></g>'
+            + '">' + _escape_html(status) + '</text></g>'
         )
     parts.append('</svg></div>')
     if dependencies_known and not edges:
@@ -441,7 +451,7 @@ def _graph_text(nodes: list[Mapping[str, Any]], display_ids: list[str], edges: l
     for source, target in edges:
         incoming[target].append(source)
     parts = [
-        '<details class="graph-text" data-state-key="' + _e(state_key) + '" open>'
+        '<details class="graph-text" data-state-key="' + _escape_html(state_key) + '" open>'
         '<summary>Text dependency list · ' + str(len(nodes)) + ' steps</summary><ul>',
     ]
     for index, node in enumerate(nodes):
@@ -450,20 +460,20 @@ def _graph_text(nodes: list[Mapping[str, Any]], display_ids: list[str], edges: l
         plan = _value(node.get("plan"))
         action = _value(node.get("action"), _value(node.get("stage")))
         workitem = _value(node.get("workitem"))
-        parts.append('<li><strong>' + _e(display_ids[index]) + '</strong>')
-        parts.append(' — ' + _e(title))
+        parts.append('<li><strong>' + _escape_html(display_ids[index]) + '</strong>')
+        parts.append(' — ' + _escape_html(title))
         if workitem:
-            parts.append(' <span class="graph-text-meta">(' + _e(workitem) + ')</span>')
+            parts.append(' <span class="graph-text-meta">(' + _escape_html(workitem) + ')</span>')
         if action:
-            parts.append(' <span class="graph-text-meta">(' + _e(action) + ')</span>')
-        parts.append('<span class="graph-text-meta"> · Status: ' + _e(status) + '</span>')
+            parts.append(' <span class="graph-text-meta">(' + _escape_html(action) + ')</span>')
+        parts.append('<span class="graph-text-meta"> · Status: ' + _escape_html(status) + '</span>')
         if plan:
-            parts.append('<p class="graph-plan">' + _e(plan) + '</p>')
+            parts.append('<p class="graph-plan">' + _escape_html(plan) + '</p>')
         if dependencies_known:
             prerequisites = incoming[index]
             if prerequisites:
                 parts.append('<p class="graph-dependencies"><strong>Depends on:</strong> '
-                             + ", ".join(_e(display_ids[source]) for source in prerequisites) + '</p>')
+                             + ", ".join(_escape_html(display_ids[source]) for source in prerequisites) + '</p>')
             else:
                 parts.append('<p class="graph-dependencies">No prerequisites recorded.</p>')
         else:
@@ -495,8 +505,8 @@ def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
         state = _value(graph.get("status"), "unavailable").lower()
         state_label = state.replace("-", " ").title()
         parts.append('<article class="graph-group"><div class="graph-group-heading">'
-                     '<h3>' + _e(label) + '</h3><span class="pill pill-' +
-                     ("accepted" if state == "accepted" else "other") + '">' + _e(state_label) +
+                     '<h3>' + _escape_html(label) + '</h3><span class="pill pill-' +
+                     ("accepted" if state == "accepted" else "other") + '">' + _escape_html(state_label) +
                      '</span></div>')
         if state != "accepted":
             message = {
@@ -505,7 +515,7 @@ def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
             }.get(state, "Graph status is unknown; no implementation steps are displayed.")
             if graph.get("reason"):
                 message += " " + _value(graph.get("reason"))
-            parts.append('<p class="empty-state">' + _e(message) + '</p></article>')
+            parts.append('<p class="empty-state">' + _escape_html(message) + '</p></article>')
             continue
 
         nodes, display_ids, edges, ranks, diagnostics, dependencies_known = _graph_model(graph)
@@ -516,7 +526,7 @@ def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
                                      "graph-text-" + stable_key))
         if diagnostics:
             parts.append('<ul class="graph-diagnostics" aria-label="Graph diagnostics">'
-                         + "".join('<li>' + _e(message) + '</li>' for message in diagnostics)
+                         + "".join('<li>' + _escape_html(message) + '</li>' for message in diagnostics)
                          + '</ul>')
         parts.append('</article>')
     parts.append('</section>')
@@ -543,32 +553,32 @@ def _documents(snapshot: Mapping[str, Any]) -> str:
             label = _DOC_STATUS_LABELS.get(status, status or "Unknown")
             state_key = "doc-" + _value(row.get("id"), str(index))
             parts.append(
-                '<details class="document" data-state-key="' + _e(state_key) + '">'
-                '<summary><span class="document-title">' + _e(title) + '</span>'
+                '<details class="document" data-state-key="' + _escape_html(state_key) + '">'
+                '<summary><span class="document-title">' + _escape_html(title) + '</span>'
                 '<span class="pill pill-' + ("accepted" if status == "accepted-result" else "other")
-                + '">' + _e(label) + '</span></summary><div class="document-body">'
+                + '">' + _escape_html(label) + '</span></summary><div class="document-body">'
             )
             if row.get("summary"):
-                parts.append('<p class="document-summary">' + _e(row.get("summary")) + '</p>')
+                parts.append('<p class="document-summary">' + _escape_html(row.get("summary")) + '</p>')
             path = _value(row.get("path"))
             if path:
-                parts.append('<p class="file-path"><span>Path</span> ' + _e(path) + '</p>')
+                parts.append('<p class="file-path"><span>Path</span> ' + _escape_html(path) + '</p>')
             href = _local_file_uri(row.get("uri"))
             if href:
-                parts.append('<p><a class="file-link" href="' + _e(href) + '">Open local source</a></p>')
+                parts.append('<p><a class="file-link" href="' + _escape_html(href) + '">Open local source</a></p>')
             acceptance = _value(row.get("acceptance"))
             if acceptance:
                 parts.append('<p class="document-summary"><strong>Acceptance</strong> '
-                             + _e(acceptance) + '</p>')
+                             + _escape_html(acceptance) + '</p>')
             error = _value(row.get("error"))
             if error:
-                parts.append('<p class="document-error">' + _e(error) + '</p>')
+                parts.append('<p class="document-error">' + _escape_html(error) + '</p>')
             sha256 = _value(row.get("sha256"))
             if sha256:
-                parts.append('<p class="file-path"><span>SHA-256</span> <code>' + _e(sha256) + '</code></p>')
+                parts.append('<p class="file-path"><span>SHA-256</span> <code>' + _escape_html(sha256) + '</code></p>')
             content = _value(row.get("content"))
             if content:
-                parts.append('<pre class="preview" tabindex="0">' + _e(content) + '</pre>')
+                parts.append('<pre class="preview" tabindex="0">' + _escape_html(content) + '</pre>')
             else:
                 parts.append('<p class="empty-state">No inline preview is available.</p>')
             parts.append('</div></details>')
@@ -593,9 +603,9 @@ def _activity(snapshot: Mapping[str, Any]) -> tuple[str, str]:
         for row in reversed(rows):
             parts.append(
                 '<li><div class="activity-marker"></div><div class="activity-content">'
-                '<div class="activity-meta"><span>' + _e(row.get("stage"), "Stage unknown") + '</span>'
-                '<time datetime="' + _e(row.get("time")) + '">' + _e(row.get("time"), "Time unknown") + '</time></div>'
-                '<p class="activity-summary">' + _e(row.get("summary"), "No summary") + '</p>'
+                '<div class="activity-meta"><span>' + _escape_html(row.get("stage"), "Stage unknown") + '</span>'
+                '<time datetime="' + _escape_html(row.get("time")) + '">' + _escape_html(row.get("time"), "Time unknown") + '</time></div>'
+                '<p class="activity-summary">' + _escape_html(row.get("summary"), "No summary") + '</p>'
             )
             details = []
             if row.get("workitem"):
@@ -607,7 +617,7 @@ def _activity(snapshot: Mapping[str, Any]) -> tuple[str, str]:
             if row.get("seq") is not None:
                 details.append("event " + _value(row.get("seq")))
             if details:
-                parts.append('<p class="activity-detail">' + _e(" · ".join(details)) + '</p>')
+                parts.append('<p class="activity-detail">' + _escape_html(" · ".join(details)) + '</p>')
             parts.append('</div></li>')
         parts.append('</ol>')
     parts.append('</section>')
@@ -623,7 +633,7 @@ def _status_details(snapshot: Mapping[str, Any]) -> str:
         '<summary><span class="status-summary-copy"><span class="eyebrow">DETAILS</span>'
         '<strong>Full status block</strong></span>'
         '<span class="disclosure">Show</span></summary>'
-        '<pre class="status-pre" tabindex="0">' + _e(status) + '</pre></details>'
+        '<pre class="status-pre" tabindex="0">' + _escape_html(status) + '</pre></details>'
     )
 
 
@@ -873,35 +883,35 @@ def render(snapshot: Mapping[str, Any]) -> str:
         '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
         'style-src \'unsafe-inline\'; script-src \'unsafe-inline\'; img-src \'none\'; '
         'connect-src \'none\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'>'
-        '<meta name="color-scheme" content="light"><title>ShipLoop progress · ' + _e(prompt) + '</title>',
+        '<meta name="color-scheme" content="light"><title>ShipLoop progress · ' + _escape_html(prompt) + '</title>',
         _STYLE,
-        '</head><body><main data-progress-view data-mode="' + _e(mode)
+        '</head><body><main data-progress-view data-mode="' + _escape_html(mode)
         + '" data-final="' + ("true" if final else "false")
         + '" data-refresh-seconds="' + str(refresh_seconds)
         + '" data-stale-after-seconds="' + str(stale_after_seconds)
-        + '" data-observed-at="' + _e(observed_at)
-        + '" data-source-changed-at="' + _e(source_changed_at)
-        + '" data-last-activity-at="' + _e(latest_activity) + '">',
+        + '" data-observed-at="' + _escape_html(observed_at)
+        + '" data-source-changed-at="' + _escape_html(source_changed_at)
+        + '" data-last-activity-at="' + _escape_html(latest_activity) + '">',
         '<div class="masthead"><div class="brand">SHIPLOOP / RUN VIEW</div>'
-        '<div class="schema">' + _e(snapshot.get("schema"), "Progress snapshot") + '</div></div>',
+        '<div class="schema">' + _escape_html(snapshot.get("schema"), "Progress snapshot") + '</div></div>',
         '<header class="hero"><div class="hero-top"><div><p class="eyebrow">RUN GOAL</p>'
-        '<h1>' + _e(prompt) + '</h1></div><span class="status-badge status-' + status_class
-        + '">' + _e(status) + '</span></div><p class="prompt">Run details and accepted progress, from the saved snapshot.</p>'
-        '<div class="hero-meta"><span>Run <b>' + _e(run.get("id"), "Unknown") + '</b></span>'
-        '<span>Revision <b>' + _e(run.get("revision"), "Unknown") + '</b></span>'
-        '<span>Stage <b>' + _e(stage) + '</b></span>'
-        + ('<span>Owner <b>' + _e(owner) + '</b></span>' if owner else '')
-        + '</div>' + ('<p class="stop-reason">' + _e(reason) + '</p>' if reason else '') + '</header>',
+        '<h1>' + _escape_html(prompt) + '</h1></div><span class="status-badge status-' + status_class
+        + '">' + _escape_html(status) + '</span></div><p class="prompt">Run details and accepted progress, from the saved snapshot.</p>'
+        '<div class="hero-meta"><span>Run <b>' + _escape_html(run.get("id"), "Unknown") + '</b></span>'
+        '<span>Revision <b>' + _escape_html(run.get("revision"), "Unknown") + '</b></span>'
+        '<span>Stage <b>' + _escape_html(stage) + '</b></span>'
+        + ('<span>Owner <b>' + _escape_html(owner) + '</b></span>' if owner else '')
+        + '</div>' + ('<p class="stop-reason">' + _escape_html(reason) + '</p>' if reason else '') + '</header>',
         '<section class="observer" aria-label="Snapshot freshness and refresh controls">'
-        '<strong id="observer-age">' + _e(freshness_label) + ' calculating…</strong>'
+        '<strong id="observer-age">' + _escape_html(freshness_label) + ' calculating…</strong>'
         '<span id="source-changed-age">Source change time: calculating…</span>'
         '<span id="last-activity-age">Latest run activity: calculating…</span>'
         '<span id="page-opened">Page opened: calculating…</span>'
         '<div class="toolbar"><button class="button" id="refresh-toggle" type="button"'
-        + refresh_button_disabled + '>' + _e(refresh_button_label) + '</button>'
+        + refresh_button_disabled + '>' + _escape_html(refresh_button_label) + '</button>'
         + '<button class="button" id="refresh-now" type="button">Refresh now</button></div>'
         '<span id="refresh-state" class="sr-only" aria-live="polite"></span>'
-        + ('<span class="observer-error">Observer error: ' + _e(observer.get("error")) + '</span>'
+        + ('<span class="observer-error">Observer error: ' + _escape_html(observer.get("error")) + '</span>'
            if observer.get("error") else '') + '</section>',
         '<noscript><p class="noscript">This saved snapshot is readable without JavaScript. Browser refresh controls need JavaScript.</p></noscript>',
         '<section class="phase-strip" aria-label="Run phases">'
@@ -911,11 +921,11 @@ def render(snapshot: Mapping[str, Any]) -> str:
         + _dependency_graphs(snapshot) + _work_items(snapshot)
         + _documents(snapshot) + _status_details(snapshot)
         + ('<section class="terminal-report"><strong>Terminal report</strong> · '
-           '<a href="' + _e(terminal_uri) + '">Open the saved report</a></section>' if terminal_uri else '')
+           '<a href="' + _escape_html(terminal_uri) + '">Open the saved report</a></section>' if terminal_uri else '')
         + '</div><aside class="column">' + activity_html
         + ('<section class="panel warnings"><div class="section-heading"><div><p class="eyebrow">ATTENTION</p>'
            '<h2>Warnings</h2></div></div><ul>'
-           + "".join('<li>' + _e(item) + '</li>' for item in warnings
+           + "".join('<li>' + _escape_html(item) + '</li>' for item in warnings
                      if item is not None)
            + '</ul></section>' if warnings else '')
         + '</aside></div>',

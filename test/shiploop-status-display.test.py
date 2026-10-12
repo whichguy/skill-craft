@@ -300,8 +300,8 @@ class StatusBlockTests(unittest.TestCase):
         nxt = subprocess.run(cli + ["next", "--run-dir", str(root)], env=ENV,
                              text=True, capture_output=True, timeout=30)
         self.assertEqual(nxt.returncode, 0, nxt.stderr)
-        # An active-state `next` now writes the full packet to packets/<action>.md
-        # and prints only a head that points at it. At an inner stage reached
+        # `next` writes the full packet and prints it when it fits the host output window;
+        # otherwise it prints a head pointing to that intact file. At an inner stage reached
         # without a transition it also writes that stage's Until Loop contract
         # (rebuilt from state). Those are the intended new writes, and every
         # other existing file is untouched.
@@ -313,8 +313,14 @@ class StatusBlockTests(unittest.TestCase):
             intended.add(root / loops.contract_path(cursor[1]))
         self.assertEqual(set(after) - set(before), intended)
         self.assertEqual({path: data for path, data in after.items() if path not in intended}, before)
-        self.assertIn(f"Full packet: {packet_path}", nxt.stdout)
         written = packet_path.read_text(encoding="utf-8")
+        # Path lengths can select either presentation; neither limits the saved prompt or result content.
+        if len(written) <= navigator.PRINT_LIMIT:
+            self.assertEqual(nxt.stdout, written)
+        else:
+            self.assertIn(f"Full packet: {packet_path}", nxt.stdout)
+        self.assertEqual(nxt.stdout.count(BEGIN), 1)
+        self.assertIn(block, nxt.stdout)
         self.assertEqual(written.count(BEGIN), 1)
         self.assertIn(block, written)
 

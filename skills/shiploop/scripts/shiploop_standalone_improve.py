@@ -159,6 +159,7 @@ def _read(path: Path, label: str) -> bytes:
 
 def _json(raw: bytes, label: str) -> dict[str, Any]:
     def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        """``object_pairs_hook`` that rejects a JSON object repeating a key."""
         result: dict[str, Any] = {}
         for key, value in pairs:
             if key in result:

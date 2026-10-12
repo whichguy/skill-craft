@@ -28,11 +28,15 @@ REF_DIR = PACKAGE_ROOT / "references"
 
 
 def die(code: int, msg: str) -> None:
+    """Print ``error: <msg>`` to stderr and exit with ``code``."""
     print(f"error: {msg}", file=sys.stderr)
     raise SystemExit(code)
 
 
 def refuse_package_path(path: Path) -> None:
+    """Exit blocked when ``path`` resolves inside the skill package, so a run never writes into the installed
+    skill.
+    """
     try:
         path.resolve().relative_to(PACKAGE_ROOT)
     except ValueError:
@@ -41,25 +45,31 @@ def refuse_package_path(path: Path) -> None:
 
 
 def run_dir_from_arg(raw: Optional[str], *, walk: bool) -> Path:
+    """Resolve the run directory: ``raw`` (or its ``.shiploop`` child), else, with ``walk``, the nearest
+    ``.shiploop`` above the current directory, else ``./.shiploop``.
+    """
     if raw:
-        p = Path(raw).expanduser()
-        if p.name != ".shiploop" and (
-            (p / ".shiploop" / "state.md").is_file()
-            or (p / ".shiploop" / "state.json").is_file()
+        given = Path(raw).expanduser()
+        if given.name != ".shiploop" and (
+            (given / ".shiploop" / "state.md").is_file()
+            or (given / ".shiploop" / "state.json").is_file()
         ):
-            p = p / ".shiploop"
-        return p
+            given = given / ".shiploop"
+        return given
     if not walk:
         return Path.cwd() / ".shiploop"
-    cur = Path.cwd().resolve()
-    for parent in [cur, *cur.parents]:
-        cand = parent / ".shiploop"
-        if (cand / "state.md").is_file() or (cand / "state.json").is_file():
-            return cand
+    current = Path.cwd().resolve()
+    for parent in [current, *current.parents]:
+        candidate = parent / ".shiploop"
+        if (candidate / "state.md").is_file() or (candidate / "state.json").is_file():
+            return candidate
     return Path.cwd() / ".shiploop"
 
 
 def load_state(run_dir: Path) -> Dict[str, Any]:
+    """Read ``state.md`` from ``run_dir`` as an object, exiting blocked with the path when it is missing, a
+    symlink, or malformed.
+    """
     refuse_package_path(run_dir)
     state_path = run_dir / "state.md"
     if not state_path.is_file():
@@ -81,6 +91,9 @@ def load_state(run_dir: Path) -> Dict[str, Any]:
 
 @contextmanager
 def run_lock(run_dir: Path) -> Iterator[None]:
+    """Hold the exclusive run lock for one command: refuses symlinked or multi-link locks, then recovers any
+    pending transaction before yielding.
+    """
     refuse_package_path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     lock = run_dir / ".lock"

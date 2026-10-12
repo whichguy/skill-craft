@@ -110,6 +110,9 @@ READS: Dict[str, Tuple[str, ...]] = {
 
 
 class Quote(NamedTuple):
+    """One living file quoted whole into a packet: its name, absolute path and text (None when absent, blank or
+    unreadable).
+    """
     file: str             # the living file's name under HOME, as READS names it
     path: Path            # absolute, in the execution checkout
     text: Optional[str]   # the whole file, uncut; None when it is absent, blank or cannot be read
@@ -291,7 +294,7 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
         # Line 1 is what a model that reads only the first line of a refusal needs: the action and the files.  The
         # paths are absolute because the shell's directory is the original checkout, while these files belong in
         # this execution checkout.  The `- /abs` lines stay one per line for the callback contract to follow.
-        paths = [str(repo / p) for p in missing]
+        paths = [str(repo / name) for name in missing]
         return ("Before " + stage + " is done, write: " + ", ".join(paths) + "\n"
                 "ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
                 "The files, one per line:\n" + "".join("- " + p + "\n" for p in paths)
@@ -450,6 +453,9 @@ _ENTRY_FILES = {"R": ("spec.md", "retired"), "AD": (ARCHITECTURE, "superseded")}
 
 
 class Entry(NamedTuple):
+    """One entry span of a living file, exactly as written, and whether it sits under a retired or superseded
+    heading.
+    """
     text: str        # the span's lines exactly as in the file, trailing blank lines dropped, never cut
     retired: bool    # under a heading that starts with Retired (spec.md) or Superseded (architecture.md)
 
@@ -487,6 +493,7 @@ def _entries(text: str, prefix: str) -> Dict[str, Entry]:
     found: Dict[str, Entry] = {}
 
     def is_start(index: int) -> bool:
+        """True when line ``index`` opens an entry of this prefix outside a code fence."""
         match = _ENTRY_START.match(lines[index])
         return bool(match) and not fenced[index] and match.group(1).split("-")[0] == prefix
 
@@ -600,6 +607,7 @@ LESSONS_SUBJECT = re.compile(r"^docs\(shiploop\): record (\S+) knowledge at rele
 
 
 class Lessons(NamedTuple):
+    """A commit's lessons: its ID, subject and message body."""
     commit: str    # the full commit ID
     subject: str
     body: str      # the message body, stripped

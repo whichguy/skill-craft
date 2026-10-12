@@ -50,7 +50,7 @@ import threading
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path, PurePosixPath
-from typing import Any, Container, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Container, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 try:  # Scripts are normally imported with their directory on sys.path.
     import shiploop_store as store
@@ -317,11 +317,11 @@ def _git_timeout() -> float:
     raw = os.environ.get("SHIPLOOP_GIT_TIMEOUT", "")
     try:
         value = float(raw) if raw else 45.0
-    except ValueError:
-        _fail("SHIPLOOP_GIT_TIMEOUT must be a number of seconds")
-        raise AssertionError
+    except ValueError as exc:
+        _fail(f"SHIPLOOP_GIT_TIMEOUT must be a number of seconds, got {raw!r}")
+        raise AssertionError("_fail returned") from exc
     if value <= 0:
-        _fail("SHIPLOOP_GIT_TIMEOUT must be positive")
+        _fail(f"SHIPLOOP_GIT_TIMEOUT must be positive, got {value}")
     return value
 
 
@@ -841,10 +841,11 @@ def _workspace_snapshot_lock(root: Path):
             pass
 
 
-def _locked_existing_root(function):
+def _locked_existing_root(function: Callable[..., Any]) -> Callable[..., Any]:
     """Wrap a public operation whose external workspace root already exists."""
     @wraps(function)
     def wrapped(workspace_root: Path, *args: Any, **kwargs: Any):
+        """Run ``function`` on the resolved workspace root while holding the workspace lock."""
         root = _resolved_directory(Path(workspace_root), label="workspace root")
         with _workspace_lock(root):
             return function(root, *args, **kwargs)
@@ -1334,7 +1335,7 @@ def plan_return(workspace_root: Path, fresh: Iterable[str] = ()) -> Dict[str, An
 
 
 def _validate_plan(
-    root: Path, manifest: Mapping[str, Any], plan: Mapping[str, Any], candidate: Mapping[str, Any], changes: Mapping[str, str], history: Sequence[str],
+    manifest: Mapping[str, Any], plan: Mapping[str, Any], candidate: Mapping[str, Any], changes: Mapping[str, str], history: Sequence[str],
     *, allow_pending: bool = False,
 ) -> List[Dict[str, Any]]:
     required = {"schema", "version", "status", "return_policy", "source_fingerprint", "candidate_fingerprint", "paths"}
@@ -1457,13 +1458,13 @@ def review_return(workspace_root: Path, keep: Iterable[str] = (), exclude: Itera
         _fail("no return plan is awaiting review; run plan-return first")
     plan = _record(root, RETURN_PLAN, "return plan")
     candidate, changes, history = _candidate(manifest, root)
-    rows = _validate_plan(root, manifest, plan, candidate, changes, history, allow_pending=True)
+    rows = _validate_plan(manifest, plan, candidate, changes, history, allow_pending=True)
     chosen = _decisions(rows, keep, exclude)
     for row in rows:
         row["disposition"] = chosen.get(row["path"], row["disposition"])
     reviewed = {**plan, "paths": rows,
                 "status": "pending" if any(row["disposition"] == "pending" for row in rows) else "ready"}
-    _validate_plan(root, manifest, reviewed, candidate, changes, history, allow_pending=True)
+    _validate_plan(manifest, reviewed, candidate, changes, history, allow_pending=True)
     if chosen:
         _write(root, {RETURN_PLAN: (reviewed, "ShipLoop return plan")})
     return {
@@ -1483,7 +1484,7 @@ def expected_return(workspace_root: Path) -> Optional[str]:
     manifest = _manifest(root)
     worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
     candidate, changes, history = _candidate(manifest, root)
-    rows = _validate_plan(root, manifest, _record(root, RETURN_PLAN, "return plan"), candidate, changes, history,
+    rows = _validate_plan(manifest, _record(root, RETURN_PLAN, "return plan"), candidate, changes, history,
                           allow_pending=True)
     if any(row["disposition"] == "pending" for row in rows):
         return None
@@ -1862,6 +1863,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
         _fail("blocked workspace cannot return work")
 
     def source_unchanged() -> bool:
+        """True when the source tree still matches the previous result, or the manifest's initial fingerprint."""
         if previous is not None:
             return _source_result_matches(source, root, previous)
         return _fingerprint_equal(
@@ -1873,7 +1875,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
         _fail("source checkout drifted since preparation; return is blocked")
     plan = _record(root, RETURN_PLAN, "return plan")
     candidate, changes, history = _candidate(manifest, root)
-    rows = _validate_plan(root, manifest, plan, candidate, changes, history)
+    rows = _validate_plan(manifest, plan, candidate, changes, history)
     # The final Improve child must retain its terminal receipt until the parent
     # imports it after return. Permit only excluded, untracked child evidence;
     # a committed/staged receipt or a protected path in history still blocks.
@@ -1899,6 +1901,9 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     def record(
         kind: str, expected_source: Mapping[str, Any], extras: Sequence[str], mutate: Any
     ) -> Dict[str, Any]:
+        """Persist the return receipt of ``kind`` for ``expected_source``; its status is ``applying`` while
+        ``mutate`` is pending and ``returned`` once none is.
+        """
         receipt: Dict[str, Any] = {
             "schema": RECEIPT_SCHEMA, "version": VERSION,
             "status": "returned" if mutate is None else "applying", "kind": kind,
@@ -1936,11 +1941,15 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
         return receipt
 
     def fast_forward() -> None:
+        """Fast-forward the source to the workspace branch; a failure leaves the source outcome unknown, to be
+        reconciled from the persisted intent.
+        """
         result = _git(source, "merge", "--ff-only", "--no-overwrite-ignore", manifest["branch"])
         if result.returncode:
             _fail("fast-forward merge reported failure; source outcome is unknown and the persisted intent must be reconciled")
 
     def fast_forward_target() -> Dict[str, Any]:
+        """Expected source state after the fast-forward: the workspace head and tree on the source branch."""
         return {
             "head": _head(worktree),
             "branch": manifest["source_branch"],
@@ -1948,6 +1957,9 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
         }
 
     def apply(delta: bytes) -> Any:
+        """Apply the reviewed ``delta`` to the source working tree after a ``--check``, or just return it when the
+        source is adopted as is.
+        """
         # Never mutate the source index in the working-tree route.  ``--check``
         # happens before the persisted intent, which lets retry recognize an
         # apply that completed just before a process crash.
@@ -1957,6 +1969,9 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
             _fail("reviewed delta cannot be applied cleanly; source was not returned")
 
         def run() -> None:
+            """Apply ``delta`` for real; a failure leaves the source outcome unknown, to be reconciled from the
+            persisted intent.
+            """
             if _git(source, "apply", "-", input_bytes=delta).returncode:
                 _fail("return apply reported failure; source outcome is unknown and the persisted intent must be reconciled")
         return run

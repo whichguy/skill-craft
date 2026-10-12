@@ -45,14 +45,18 @@ class CommitError(RuntimeError):
 
 
 class Committed(NamedTuple):
+    """Result of a commit helper: the new commit, the paths it holds, and the paths skipped as credential-like."""
     commit: str            # the new commit ID, "" when nothing was committed
     paths: List[str]       # repository-relative paths in that commit
     skipped: List[str]     # changed paths left uncommitted because they look like they hold a credential
 
 
 def git(repo: Path, *args: str, env: Optional[Mapping[str, str]] = None) -> subprocess.CompletedProcess:
-    merged = {k: v for k, v in os.environ.items()
-              if k not in _REDIRECTION and not k.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
+    """Run ``git`` in ``repo`` without prompts or hooks, scrubbing inherited repository-redirecting environment;
+    never raises on a nonzero exit.
+    """
+    merged = {key: value for key, value in os.environ.items()
+              if key not in _REDIRECTION and not key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
     merged["GIT_TERMINAL_PROMPT"] = "0"
     merged.update(env or {})
     return subprocess.run(["git", "-c", "core.hooksPath=/dev/null", "-C", str(repo), *args],
