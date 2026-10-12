@@ -26,6 +26,26 @@ sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
 
 CLI = SCRIPTS / "shiploop"
+CODE_CRAFT_HEADINGS = (
+    "Code craft. Write for the next maintainer",
+    "1. Match the house.",
+    "2. Fail at the door.",
+    "3. State the contract where it lives.",
+    "4. Spend tokens on information.",
+    "5. Small, not thin.",
+    "6. Make failure diagnosable.",
+    "7. Write text that can be translated.",
+    "8. Put it where it belongs.",
+    "9. Compose before you build.",
+)
+
+
+def missing_code_craft_headings(instructions: list[str]) -> tuple[str, ...]:
+    """Return missing or repeated Code craft headings from worker instructions."""
+    text = "\n".join(instructions)
+    return tuple(heading for heading in CODE_CRAFT_HEADINGS if text.count(heading) != 1)
+
+
 # Chains bind the repository's own Plan Dispatcher package: the one supported
 # version, so a dispatcher change is exercised by the chain suites at once.
 CONTEXT_FIXTURE = ROOT / "skills/plan-dispatcher"

@@ -13,6 +13,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shiploop_chain_support import missing_code_craft_headings
+
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -44,7 +47,12 @@ manifest = json.loads(manifest_path.read_text())
 # inheriting its parent's cwd, skill context, or conversation. This observes
 # transport/readability; it does not simulate a model's engineering judgment.
 guidance_references = {}
-for label in ("Coding decision guide", "Repeatable test-suite guide", "Implementation constitution"):
+for label in (
+    "Coding decision guide",
+    "House-style guidance",
+    "Service discovery guidance",
+    "Target-native test selection",
+):
     prefix = label + ": "
     locators = [text[len(prefix):] for text in packet["instructions"] if text.startswith(prefix)]
     if len(locators) != 1:
@@ -55,6 +63,9 @@ for label in ("Coding decision guide", "Repeatable test-suite guide", "Implement
     if not path.read_text().strip():
         raise SystemExit("empty worker guidance: " + label)
     guidance_references[label] = str(path)
+missing_code_craft = missing_code_craft_headings(packet["instructions"])
+if missing_code_craft:
+    raise SystemExit("missing or duplicate worker Code craft rules: " + ", ".join(missing_code_craft))
 
 brief_path = checked_reference(packet["planning_brief"], "planning_brief")
 brief = brief_path.read_text()
