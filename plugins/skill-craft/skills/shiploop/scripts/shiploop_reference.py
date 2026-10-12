@@ -51,6 +51,7 @@ POLICIES = (
     ("Real-boundary selection guide", "testing-and-documentation.md#surface-selection"),
     ("Interaction design guide", "behavioral-requirements.md#actors-channels-and-state-ownership"),
     ("Worktree and artifact policy", "workspace-lifecycle.md"),
+    ("Navigator contract", "navigator.md"),
 )
 
 AWAITING_TEXT = """\

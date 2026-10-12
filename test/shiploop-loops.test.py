@@ -196,13 +196,18 @@ class InvokeLinesTests(Synthetic):
             loops.INVOKE_LINE, "Argument:", "    Work: " + value["work"], "    Exit when ALL of these hold:",
             *exits, "    " + value["repeat_condition"], "    Contract: " + str(contract_file),
             "    Receipt: " + str(receipt)])
-        self.assertTrue(lines[0] == "" and "there is no iteration limit" in lines[1])
+        self.assertTrue(lines[0] == "" and "no iteration limit" in lines[1])
+        # Packet re-cut (2026-10-11): how to invoke and the start command are one line, and the loop's rules and the
+        # receipt rules are one closing line.
         how = next(line for line in lines if line.startswith("How to invoke:"))
         self.assertIn("Skill tool with skill until-loop", how)
         self.assertIn(loops.runtime(state)["runtime_card"], how)
-        self.assertIn("Start (the card runs exactly this; the contract file wins over the argument text): " + start,
-                      lines)
-        self.assertEqual(lines[-2:], [loops.RECEIPT_RULE, loops.RECEIPT_REF_LINE])
+        self.assertIn('section "Start from a parent-written contract"', how)
+        # Round 2: the card holds the start command and the receipt rules; the packet prints neither.
+        self.assertFalse([line for line in lines if start in line or line.startswith("Start (")])
+        self.assertFalse([line for line in lines if loops.RECEIPT_RULE in line])
+        self.assertEqual(lines[-1], " ".join(loops.LOOP_RULE.split()))
+        self.assertEqual(lines.index(how), len(lines) - 2)
         self.assertIn("Never write or edit the receipt", loops.RECEIPT_RULE)
         self.assertNotIn(loops.RESUME_LINE, lines)
 
@@ -306,9 +311,11 @@ class NavigatorLoopTests(fx.RunDriver):
 
     def run_loop(self, reports: list, *, contract_edit=None) -> dict:
         """Start the packet's printed command, submit ``reports`` in order; the runtime writes the receipt."""
-        prefix = "Start (the card runs exactly this; the contract file wins over the argument text): "
-        start = next(line for line in self.packet().splitlines() if line.startswith(prefix))
-        words = shlex.split(start[len(prefix):])
+        # The packet prints no start command (re-cut round 2); the card holds it, so build it as the card says.
+        lines = self.packet().splitlines()
+        self.assertTrue(any(line.startswith("How to invoke:") for line in lines))
+        contract_file = next(l for l in lines if l.strip().startswith("Contract: ")).strip()[len("Contract: "):]
+        words = shlex.split(loops.start_command(loops.runtime(self.state()), self.receipt(), Path(contract_file)))
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:
@@ -370,7 +377,8 @@ class NavigatorLoopTests(fx.RunDriver):
                     self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())]))
         # Editing the contract file itself cannot reshape the loop: ShipLoop rebuilds it from state.
         contract_file = self.run_dir / loops.contract_path(self.action())
-        contract_file.write_text(contract_file.read_text().replace("Run every recorded command", "Skim"))
+        self.assertIn("Do duty items", contract_file.read_text())  # the edit below must change the file (re-cut wording)
+        contract_file.write_text(contract_file.read_text().replace("Do duty items", "Skim duty items"))
         self.run_loop([TRIVIAL])
         with self.assertRaisesRegex(nav.NavigatorError, "not from a run of this action's contract"):
             self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())]))

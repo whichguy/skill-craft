@@ -2189,8 +2189,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         # 2026-10-11 dedupe: the return route and receipt print only at release-plan, release-check, release and
         # handoff (navigator.RETURN_STAGES); an intake packet names only where product work happens.
         self.assertNotIn("Return receipt: ", initial_packet)
-        self.assertIn("Execution checkout: " + str(initial_state["repo"]), initial_packet)
-        self.assertIn("The original branch is returned only at release or handoff.", initial_packet)
+        self.assertIn("WORKTREE = " + str(initial_state["repo"]), initial_packet)
+        self.assertIn("returned to the original branch only at release or handoff", initial_packet)
         self.assertEqual((run / "state.md").read_bytes(), initial_state_bytes)
 
         worktree = root / "worktree"

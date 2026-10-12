@@ -602,9 +602,13 @@ class RemovalTests(HomeFixture):
                 with self.subTest(file=str(path.relative_to(ROOT)), pattern=pattern):
                     self.assertEqual(re.findall(pattern, text), [])
 
+    SKILL_INDEX_TEMPLATE = "each skill index file outside HOME/ and SHIPLOOP.md"
+
     def test_engine_scripts_name_shiploop_md_only_in_the_host_authored_locator_line(self) -> None:
         for name in self.ENGINE_SCRIPTS:
             for number, line in enumerate((ROOT / "skills/shiploop/scripts" / name).read_text(encoding="utf-8").splitlines(), 1):
+                if self.SKILL_INDEX_TEMPLATE in line:
+                    continue  # the carry-forward result template says a skill index outside HOME/ may sit beside SHIPLOOP.md
                 if "SHIPLOOP.md" in line or "Repository knowledge index" in line:
                     with self.subTest(file=name, line=number):
                         self.assertIn(self.LOCATOR, line)

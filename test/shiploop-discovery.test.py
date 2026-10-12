@@ -103,6 +103,9 @@ class InteractionGuidanceTests(unittest.TestCase):
         before_action = dict(navigator.current_action(recovered))
 
         packet = navigator.render(None, run_root, recovered)
+        if recovered.get("active_improve"):
+            # The Improve packet is two instructions; the guidance rides in the handoff file it names (re-cut R3).
+            packet += "\n" + navigator.improve_handoff_text(None, run_root, recovered)
 
         # A packet prints a policy locator only when its stage text names that guide; every other packet points to
         # reference.md#policies, which lists the same locator (2026-10-11 dedupe).
@@ -228,11 +231,10 @@ class InteractionGuidanceTests(unittest.TestCase):
         producer_flat = " ".join(producer.split())
         for cue in (
             "interaction design guide's matching subsections",
-            "incoming/outgoing events, connection lifecycle",
-            "the baseline and the delta",
-            "the actors, events, connections and state owner",
-            "the planned recovery checks",
-            "the design guidance's identity/version or digest (or the named fallback)",
+            "give baseline and delta",
+            "actors, events, connections and state owner",
+            "planned recovery checks",
+            "design guidance identity and version or digest (or named fallback)",
             "evidence_refs",
         ):
             with self.subTest(prompt="producer", cue=cue):
@@ -240,23 +242,25 @@ class InteractionGuidanceTests(unittest.TestCase):
 
     def test_v3_planning_stages_keep_design_basis_records_stage_local(self) -> None:
         """Require record-routing cues, not an LLM judgment about their substance."""
+        # Packet re-cut (2026-10-11): plan's duty 8 writes the Design basis in `summary` and puts the per-item
+        # locators in `context` and `evidence_refs`.
         required_cues = (
-            "Retain a compact Design basis paragraph or exact section links:",
+            "write a Design basis in `summary`",
             (
-                "For UI, include component/interaction/skin premises, selected design "
-                "guidance locator plus identity/version or digest (or named fallback),"
+                "UI: component, interaction and skin premises, the design guidance locator with identity, "
+                "version or digest (or the named fallback)"
             ),
             "evidence_refs",
         )
         # step-plan's duty (item 7, 2026-10-11 dedupe) states the Design basis paragraph in its own words.
         step_plan_cues = (
-            "add a Design basis paragraph",
-            "Recheck the Interaction design guide's matching subsections",
-            "the baseline and the delta;",
-            "the actors, events, connections and state owner;",
-            "the planned recovery checks;",
-            "the design guidance's identity/version or digest (or the named fallback)",
-            "the locators of its sources and checks",
+            "a Design basis paragraph",
+            "rechecking the Interaction design guide's matching subsections",
+            "Give baseline and delta;",
+            "actors, events, connections and state owner;",
+            "planned recovery checks;",
+            "design guidance identity and version or digest (or named fallback)",
+            "locators of sources and checks",
             "evidence_refs",
         )
         for stage, cues in (("plan", required_cues), ("step-plan", step_plan_cues)):
@@ -266,8 +270,8 @@ class InteractionGuidanceTests(unittest.TestCase):
                     self.assertIn(cue, prompt)
         # The plan keeps its design basis as ordinary notes.  step-plan now records expectations, check commands
         # and step skills as result fields of its own (8-stage inner loop, 2026-10-10), so the cue is plan's alone.
-        self.assertIn("ordinary notes, not new result fields.",
-                      " ".join(navigator_prompts.prompt("plan").split()))
+        # The re-cut states the record's home outright ("in `summary`"), which replaces the old "ordinary notes" line.
+        self.assertIn("write a Design basis in `summary`", " ".join(navigator_prompts.prompt("plan").split()))
 
         implementation_prompt = " ".join(
             navigator_prompts.prompt("implement").split()
@@ -389,6 +393,8 @@ class InteractionGuidanceTests(unittest.TestCase):
                 pending_packet = navigator.render(None, run_root, pending)
                 self.assertEqual((run_root / "state.md").read_bytes(), pending_bytes)
 
+                # Read before binding: bind_synthetic_v3_child updates the child in place.
+                pending_handoff = navigator.improve_handoff_text(None, run_root, pending)
                 bound = self.bind_synthetic_v3_child(pending)
                 navigator.save(run_root, bound)
                 bound_bytes = (run_root / "state.md").read_bytes()
@@ -400,16 +406,24 @@ class InteractionGuidanceTests(unittest.TestCase):
                 self.assertEqual(
                     recovered_bound["active_improve"]["action_id"], action["id"]
                 )
-                for packet in (producer_packet, pending_packet, bound_packet):
+                # The Improve packet is two instructions (re-cut R3); everything else the child needs, including
+                # the producer's result (summary and evidence_refs), is in the handoff file the packet names.
+                bound_handoff = navigator.improve_handoff_text(None, run_root, recovered_bound)
+                self.assertIn("Interaction design guide", producer_packet)
+                for packet in (producer_packet, pending_packet + pending_handoff, bound_packet + bound_handoff):
                     self.assertIn(self.locator, packet)
                     self.assertIn(case["source"], packet)
                     self.assertIn(case["decision"], packet)
-                    if case.get("design_basis"):
-                        self.assertIn(case["design_basis"], packet)
-                self.assertIn("Parent step remains pending", pending_packet)
-                self.assertIn("Load the actual Improve skill selected by this host.", pending_packet)
-                self.assertIn("Selected Improve skill:", bound_packet)
-                self.assertIn("Invoke the selected actual Improve skill for", bound_packet)
+                if case.get("design_basis"):
+                    self.assertIn(case["design_basis"], producer_packet)
+                self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(recovered_bound["active_improve"])),
+                              bound_packet)
+                self.assertIn("improve-complete", bound_packet)
+                self.assertIn("improve-bind", pending_packet)
+                self.assertIn("Parent step remains pending", pending_handoff)
+                self.assertIn("Load the actual Improve skill selected by this host.", pending_handoff)
+                self.assertIn("Selected Improve skill:", bound_handoff)
+                self.assertIn("Invoke the selected actual Improve skill for", bound_handoff)
 
 
 if __name__ == "__main__":

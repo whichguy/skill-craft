@@ -328,9 +328,15 @@ class PacketLineTests(unittest.TestCase):
                     # (INLINE_BACKCHAIN_AUDIT), which names the printed `backchain-check` itself, instead of
                     # the full BACKCHAIN_CHECK line (2026-10-11 dedupe).
                     inline_step_plan = stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
-                    expected = int(stage in prompts.BACKCHAIN_STAGES and not inline_step_plan)
+                    # The spec and plan duties fold the Backchain item (packet re-cut, 2026-10-11): the check
+                    # instruction is a duty item there, and prompt() prints no second BACKCHAIN_CHECK line.
+                    folded = stage in prompts.BACKCHAIN_FOLDED_STAGES
+                    expected = int(stage in prompts.BACKCHAIN_STAGES and not inline_step_plan and not folded)
                     packet = prompts.prompt(stage, delegation=delegation)
                     self.assertEqual(packet.count(prompts.BACKCHAIN_CHECK), expected)
+                    if folded:
+                        self.assertIn("Run the printed `backchain-check` after each candidate revision", packet)
+                        self.assertIn("receipt", packet)
                     if inline_step_plan:
                         self.assertEqual(packet.count(prompts.INLINE_BACKCHAIN_AUDIT), 1)
                         self.assertIn("`backchain-check`", prompts.INLINE_BACKCHAIN_AUDIT)

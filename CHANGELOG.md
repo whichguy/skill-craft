@@ -4,6 +4,64 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.1.0
+
+- Skills: improve 0.4.0, shiploop 1.1.0
+
+### improve 0.4.0
+
+- The improve skill accepts `ShipLoop Improve: <handoff path>` as its argument. ShipLoop's Improve packet now only invokes
+  the skill and names the done command (owner, 2026-10-11). The handoff file ShipLoop writes takes the place of the packet
+  in the "ShipLoop whole-skill subcall" section: the binding marker, the result under review, the start, commit and
+  return commands, and the evidence files.
+
+### shiploop 1.1.0
+
+- Packets print what the consumer contract hands each stage, by value and uncut.
+  - **Knowledge files read.** Each file `knowledge_home.READS` gives the stage is quoted whole after the status block,
+    each line prefixed `  | `, or marked "not written yet". The References block names them in one line. This replaces
+    the per-stage consult list of headings, because heading matching missed most saved homes (owner decision D1).
+  - **Hand-off values.** "Handed off by earlier stages" quotes each `CONSUMES` value from `handoff_sources`:
+    - the follows IDs with their spec or architecture entries, marked when retired, or "no entry in HOME/<file>";
+    - the criteria, focused commands and system commands;
+    - the test cases with oracle, red and green;
+    - not_covered;
+    - the open items with check, reason, consumer, owner and producer;
+    - the lessons;
+    - the spec and architecture diff since the run baseline.
+
+    A missing value prints "not recorded by <stage>".
+  - **Result-shape block.** It prints the shape of each hand-off field the gate requires and the template leaves out:
+    - follows at step-plan;
+    - test_cases at test-spec;
+    - lessons at release-verify;
+    - not_covered, optional, at implement;
+    - assumptions at each open-item stage.
+
+    A done result that follows the packet is no longer refused once per missing key.
+  - **Duty wording.** test-spec records its cases in `test_cases` and a due-later case as an open item; verify and
+    system-test-author record later checks and unrunnable cases as open items in `assumptions`.
+  - **Working-tree return.** The handoff packet prints the lessons commit message for the user to commit, since a
+    working-tree return makes no commit.
+- A completed Improve child that ended on one unchanged trivial pass, with files changed after its bind, now restarts
+  through `improve-start --restart-stopped`. Before this change, `improve-complete` refused it and told the model to "run
+  the loop's next review", but that loop was already complete and `--restart-stopped` refused any child that was not
+  stopped. The run had no route forward and paused (live node-add-route slice, 2026-10-11). The refusal's first line now
+  ends with the restart command. A test runs that command through the real CLI.
+- The ShipLoop packets are re-cut for concision (owner, 2026-10-11); the plan and rubric are in
+  docs/shiploop-packet-recut-2026-10-11.md.
+  - **Duties.** Every stage's goal is one action sentence that says where its output goes, and every duty is a short
+    numbered list.
+  - **Shared rules.** Cut to the five that live runs showed are needed.
+  - **Code craft.** Prints in full at implement only. Each step's Improve review and verify apply it.
+  - **Loop mechanics.** These live on the Until Loop card.
+  - **Printing.** A packet at or under 16k characters prints whole.
+  - **Improve packet.** Two instructions: run the improve skill with the handoff path, then run `improve-complete`.
+    ShipLoop binds the recorded card itself, and everything else goes in the handoff file beside the opening.
+  - **No advance mention.** No producer packet mentions Improve ahead of time, and Improve never mentions Backchain.
+
+  On the live node-fix-bug slice, the packet characters written fell from 546k to 212k.
+
 ### skill-craft 2.0.1
 
 - Skills: improve 0.3.1

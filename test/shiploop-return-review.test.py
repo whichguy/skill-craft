@@ -672,14 +672,18 @@ class ReturnRouteTests(ReturnReviewCase):
         root, _ = self.start("duties")
         plan = " ".join(self.render(root, "release-plan").split())  # the duty text is wrapped
         check = " ".join(self.render(root, "release-check").split())
-        self.assertEqual(plan.count("write the rollback for the source return the packet states"), 1)
+        self.assertEqual(plan.count("write it for the source return the packet states"), 1)
         self.assertNotIn("run the packet's plan-return and review-return commands now", plan)
-        for part in ("run the packet's plan-return and review-return commands now as a dry run of the return",
-                     "plan-return may commit leftover product files to the run branch",
-                     "compare the expected return review-return reports with the rollback in release-plan.md",
-                     "after any such correction run plan-return again"):
+        # Packet re-cut (2026-10-11): the release-check duty states the dry run in its own words; the leftover-commit
+        # note moved to the workspace lifecycle reference (it says plan-return commits leftovers onto the run branch).
+        for part in ("run the packet's plan-return command, then decide every undecided path with review-return",
+                     "a dry run; decisions are kept for the return at release",
+                     "Compare review-return's expected return with the procedure in HOME/environment.md",
+                     "rerun plan-return"):
             self.assertEqual(check.count(part), 1, part)
-        self.assertNotIn("write the rollback for the source return the packet states", check)
+        lifecycle = " ".join((ROOT / "skills/shiploop/references/workspace-lifecycle.md").read_text(encoding="utf-8").split())
+        self.assertIn("onto the run branch", lifecycle)
+        self.assertNotIn("write it for the source return the packet states", check)
 
     def test_worktree_packets_state_the_run_route_from_workspace_md_and_the_release_stages_and_operations_carry_the_rollback(self) -> None:
         """Consumer contract D2: the standing release procedure lives in environment.md, and in an isolated run the script's
@@ -697,8 +701,11 @@ class ReturnRouteTests(ReturnReviewCase):
                 self.assertNotIn("A dirty-source working-tree return is not a Git merge or commit", packet)
                 self.assertEqual("Rollback of the return" in packet, stage in rollback_stages)
                 if stage == "operations":
-                    # No return block: one "Execution checkout" line, then the route and its rollback.
-                    self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 1)
+                    # No return block: the WORKTREE reference line names the execution checkout (packet re-cut,
+                    # 2026-10-11), then the route and its rollback.
+                    self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 0)
+                    self.assertEqual(sum(line.startswith("WORKTREE = ") and "all product work" in line
+                                         for line in packet.splitlines()), 1)
                     self.assertEqual(packet.count("Return route (from workspace.md)"), 1)
                     self.assertIn("reset --keep " + manifest["source_head"], packet)
                     for absent in ("Return plan:", "Workspace authority"):
@@ -706,9 +713,12 @@ class ReturnRouteTests(ReturnReviewCase):
                     continue
                 if stage not in navigator.RETURN_STAGES:
                     # Only release-plan, release-check, release and handoff print the return block (2026-10-11
-                    # dedupe); every other worktree packet prints one "Execution checkout" line and no route.
-                    self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 1)
-                    self.assertIn("The original branch is returned only at release or handoff.", packet)
+                    # dedupe); every other worktree packet names the checkout on the WORKTREE reference line only
+                    # (packet re-cut, 2026-10-11) and prints no route.
+                    self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 0)
+                    self.assertEqual(sum(line.startswith("WORKTREE = ") and "all product work" in line
+                                         for line in packet.splitlines()), 1)
+                    self.assertIn("returned to the original branch only at release or handoff", packet)
                     for absent in ("Return route", "Return plan:", "Rollback of the return", "Workspace authority"):
                         self.assertNotIn(absent, packet)
                     continue

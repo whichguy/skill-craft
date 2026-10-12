@@ -182,9 +182,9 @@ class CrossRunTests(unittest.TestCase):
     @staticmethod
     def _reference_text(packet: str) -> str:
         """The run reference file the packet points to (one line names it; 2026-10-11 dedupe)."""
-        lead = "Every other policy and guide, and the long form of the rules: "
-        line = next((line for line in packet.splitlines() if line.startswith(lead)), "")
-        path = Path(line[len(lead):].split(" (#policies", 1)[0])
+        lead = "every other policy and guide, and the rules' long form: "
+        line = next((line for line in packet.splitlines() if lead in line), "")
+        path = Path(line.split(lead, 1)[-1].split(" (#policies", 1)[0])
         assert path.is_file(), (path, packet)
         return path.read_text(encoding="utf-8")
 
@@ -220,9 +220,9 @@ class CrossRunTests(unittest.TestCase):
     def _assert_handoff_rule_in_reference(self, packet: str) -> None:
         """The requirements rules (REQUIREMENTS_RULES) live in reference.md#requirements, not in the packet.
 
-        The packet's STAGE_RULES "Requirements" bullet carries the obligation and names that section.
+        The packet's RULES paragraph points at reference#rules, which holds the long form.
         """
-        self.assertIn("reference#rules, #requirements, #progress", packet)
+        self.assertIn("reference#rules", packet)
         section = self._reference_text(packet).split("{#requirements}", 1)[1].split("\n## ", 1)[0]
         self.assertIn("Follow the packet's Reference handoff policy", section)
         self.assertIn("Follow the packet's Maintained requirements policy", section)

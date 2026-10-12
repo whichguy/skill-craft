@@ -62,79 +62,28 @@ _NO_LIMIT = "there is no iteration limit."
 
 WORK: Mapping[str, str] = {
     "step-plan": (
-        "Draft or revise this action's result at {run}/inbox/{action}.md from the knowledge files the ShipLoop "
-        "packet quotes; then run the `complete "
-        "--check-only` command printed in the packet {run}/packets/{action}.md on the draft and fix each refusal."),
+        "Do duty items 1-12 of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then run "
+        "the `complete --check-only` command printed there and fix each refusal."),
     "test-spec": (
-        "Write or fix one test_cases row in {run}/inbox/{action}.md per case for this item's criteria: criterion "
-        "and R-<n>, "
-        "surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its "
-        "command row; then run the complete command with --check-only printed in the packet {run}/packets/{action}.md (it checks the ids) and fix any "
-        "mismatch."),
+        "Do duty items 1-6 of {run}/packets/{action}.md, one `test_cases` row per case; then run the `complete "
+        "--check-only` command printed there and fix each refusal."),
     "validate-existing": (
-        "Take the first expectation whose check does not match its state (works: passes; absent: nothing there; "
-        "broken: fails as the request reports); find with a small discriminating observation whether the fact or "
-        "the check is wrong; fix the environment, or make a known small fix to a broken works expectation in the "
-        "working tree, touching only that expectation's paths (ShipLoop commits it on accept); then rerun every "
-        "expectation's check."),
+        "Take the first expectation whose check does not match its state and do duty items 1-2 of "
+        "{run}/packets/{action}.md for it; then rerun every expectation's check."),
     "implement": (
-        "Make {step_change} on its paths against its criteria, in the house style and the Code craft "
-        "rubric; then run every recorded check command and the lint command printed in the packet "
-        "{run}/packets/{action}.md, recording each exit code in {run}/notes/{action}.md. For each failure or new "
-        "finding on a changed line find its cause and change the work, never the check, its expected result or "
-        "the recorded command. Write no tests and start no later step."),
+        "Do duty items 1-4 of {run}/packets/{action}.md for {step_change}. Write no tests and start no later step."),
     "test": (
-        "Write or fix tests for every test case quoted in the packet not yet covered (titled with its ID as its "
-        "own word, registered in the focused and regression commands, asserting the spec's oracle, never the "
-        "code's behaviour); run every recorded command, the red-check command and the lint command printed in the "
-        "packet {run}/packets/{action}.md; for each failure find its cause with one small observation (product "
-        "defect, invalid test, environment) and fix the product code, changing a test only for an independent "
-        "reason you record in {run}/notes/{action}.md."),
+        "Do duty items 1-4 of {run}/packets/{action}.md for every test case quoted in the packet until every case "
+        "is a passing test the focused command runs; write each test change's independent reason in "
+        "{run}/notes/{action}.md."),
     "document": (
-        "Run each changed public behaviour (from the change inventory) and update the README, API, operator and "
-        "error documentation from what you observe, including the errors a user can see and how to turn on "
-        "diagnostics; state known limits and caveats; link to the authoritative home instead of copying a "
-        "contract; then reread every document you changed and run its commands and examples. Record in "
-        "{run}/notes/{action}.md why a behaviour needs no documentation, why the README did not change, or why "
-        "an example cannot run here."),
+        "Do duty items 1-5 of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
     "verify": (
-        "1. Run every recorded command (focused, regression, check) and record each exit code and test count. "
-        "2. For each completion criterion, name the passing command or the inspection that confirms it now "
-        "(stale, skipped or missing evidence is not a confirmation); classify every test-spec case passed, "
-        "failed, blocked or not due (with its phase and owner); a pass on another surface only supports. "
-        "3. From the change inventory {run}/lint/{action}-inventory.md, list every new or changed public entry "
-        "point (exported function, CLI, request or event handler, callback); walk one valid, one boundary and one "
-        "invalid input to its return, error or side effect, and write one trace line per path in "
-        "{run}/notes/{action}.md; a wrong, unhandled or untested path is a finding (add a test for an untested "
-        "path). 4. Review the whole item's diff against the step plan's steps and paths, the Code craft rubric "
-        "{run}/quality/code-craft.md and architecture.md: argument checks and contract docstrings at each entry "
-        "point, missing error paths, silent failures, comments that restate or are stale, dead code, user text "
-        "that is concatenated or bypasses the catalog, names outside the planned namespace or exported wider "
-        "than needed, stored data off the planned schema, a near-copy of existing logic, a plain interaction "
-        "where the plan called for a rich one, and a deviation from architecture.md with no new AD-<n>. "
-        "5. Chained or parallel work only: confirm the chain's finish commit is an ancestor of HEAD, inspect the "
-        "combined diff, conflicts and the shared interfaces between steps. 6. Classify: material = wrong "
-        "behaviour on a traced path, a missing or wrong argument check, contract, error path or test, a failing "
-        "command, a misleading comment, logic that should have been composed; trivial = wording, ordering, a "
-        "sharper name. Do not reopen a finding an earlier iteration fixed unless its code changed. 7. Fix every "
-        "finding within scope by changing the work, never a check or its expected result; if anything changed, "
-        "rerun step 1 and record the results."),
+        "Do duty items 1-7 of {run}/packets/{action}.md in order; the review gate needs one complete iteration that "
+        "finds only trivial issues."),
     "carry-forward": (
-        "Update the knowledge home in place: {repo}/docs/shiploop/environment.md ## Commands (every command that "
-        "worked) and ## Harnesses and suites (suites, focused/smoke/full commands), architecture.md ## Decisions "
-        "(each AD-<n> this item added; a superseded one moves to ## Superseded, never deleted) and ## Real-boundary "
-        "checks (pending ones with owner), spec.md (each R-<n> this item satisfied, with its test IDs; keep "
-        "unaffected clauses; an open gap under its R-<n>). Record open risks, system-test obligations and release "
-        "prerequisites, each with an owner, as open items in this result's assumptions. Read {run}/state.md "
-        "work_items (every pending title and context); map every observation that affects later work to an "
-        "owner: a defect in completed work becomes a corrective item ahead of its consumers, a needed research or "
-        "preparation prerequisite becomes its own item ahead of every consumer; explain each removal or merge in "
-        "this result's summary. Skill decision: read the skill index (or README/AGENTS.md skill links; a missing index "
-        "is not a blocker) and the skills your host offers; choose none, reuse, update or create. Create or update "
-        "only when the same procedure ran in two or more steps or items of this run, or a pending item or R-<n> "
-        "says it will recur, and no existing skill covers it; keep it in the repository (environment.md ## Skills "
-        "names the directory), never install it globally, add a dependency or publish it; link it from the index; "
-        "run it once on this run's real procedure and write the output to {run}/notes/{action}-skill-trial.md."),
+        "Do duty items 1-3 of {run}/packets/{action}.md; write the skill trial to "
+        "{run}/notes/{action}-skill-trial.md."),
 }
 
 REPEAT: Mapping[str, str] = {
@@ -495,6 +444,13 @@ def start_command(bound: Mapping[str, str], receipt: Path, contract_file: Path) 
 
 
 INVOKE_LINE = "INVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop."
+# How an inner stage works inside its loop: printed once, in the invoke block (packet re-cut, 2026-10-11).
+LOOP_RULE = """\
+ShipLoop wrote the loop contract; do not edit it. Call an exit condition satisfied only when a command or file shows
+it after your last edit. If ShipLoop refuses done after the loop ends, fix the cause, start the loop again with the
+same command, and submit again.
+"""
+
 RECEIPT_RULE = ("Never write or edit the receipt. If it exists and is active, run its next_argv instead of starting "
                 "again.")
 RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one last; ShipLoop checks this file, so "
@@ -532,8 +488,7 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         return []
     root = Path(root)
     stage, action_id, _ = found
-    lines = ["", "Until Loop (this stage's work runs inside it; the loop script counts iterations; there is no "
-             "iteration limit):"]
+    lines = ["", "Until Loop (no iteration limit; the loop script counts the iterations):"]
     try:
         bound = runtime(state)
         value = contract(root, state, action_id)
@@ -550,13 +505,11 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         "    " + value["repeat_condition"],  # each repeat text opens with "Repeat while"
         "    Contract: " + str(contract_file),
         "    Receipt: " + str(receipt),
-        "How to invoke: on Claude Code, the Skill tool with skill until-loop and the argument above; on any other "
-        "host, open the card " + bound["runtime_card"] + " and follow its first section, \"Start from a "
-        "parent-written contract\".",
-        "Start (the card runs exactly this; the contract file wins over the argument text): "
-        + start_command(bound, receipt, contract_file),
-        RECEIPT_RULE,
-        RECEIPT_REF_LINE,
+        # The start command and the receipt rules are the card's ("Start from a parent-written contract"); the packet
+        # keeps the invocation and what is ShipLoop's own (owner-approved aggressive re-cut, 2026-10-11).
+        "How to invoke: on Claude Code, the Skill tool with skill until-loop and the argument above; elsewhere, the card "
+        + bound["runtime_card"] + ", section \"Start from a parent-written contract\".",
+        " ".join(LOOP_RULE.split()),
     ]
     if os.path.lexists(receipt):
         lines.append(RESUME_LINE)
