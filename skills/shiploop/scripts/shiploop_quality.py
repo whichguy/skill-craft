@@ -6,9 +6,8 @@ inner stages).  Its contract, invoke block and terminal check now belong to
 verify's review reads: the rubric file ShipLoop writes on entry to verify, and
 the change-inventory lines its packet prints.
 
-The loop helpers the test loop still imports through this module
-(``check_loop_packet``, ``start_command``, ``condition_lines`` and the receipt
-lines) are the same objects as in ``shiploop_loops``: one implementation.
+The loop helpers (``check_loop_packet``, ``start_command``, ``condition_lines``
+and the receipt lines) live only in ``shiploop_loops``; import them from there.
 Rendering reads files and never runs Git or the runtime.
 """
 
@@ -38,15 +37,8 @@ def inventory_lines(root: Path, state: Mapping[str, Any], work_item: str, action
 
 
 __all__ = (
-    "QualityError",
-    "RECEIPT_LINE",
-    "RECEIPT_REF_LINE",
-    "RESUME_LINE",
     "RUBRIC_PATH",
     "STAGE",
-    "check_loop_packet",
-    "condition_lines",
     "inventory_lines",
     "rubric_writes",
-    "start_command",
 )
