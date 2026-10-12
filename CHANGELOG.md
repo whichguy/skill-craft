@@ -4,6 +4,27 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.3.0
+
+- Skills: improve 0.4.1, shiploop 1.3.0
+
+### improve 0.4.1
+
+- The bundled Until Loop runtime is upstream 0.8.3 (whichguy/until-loop v0.8.3, 908db9c): stale size-limit wording removed and a test flake fixed; no behavior change. The README now points at PROVENANCE.json for the version and commit instead of repeating them, and the callback-evidence guide no longer justifies brevity by a state-size limit (there is none).
+
+### shiploop 1.3.0
+
+- The last consumer-contract 4c removals, after the renderer swap. The first removals shipped in 1.0.0; these six were
+  kept for the swap.
+  - **References block.** It no longer defines a `FEATURE` symbol or lists the old feature folder and the
+    `features/README.md` list. Its "Knowledge files" line lists the three living files.
+  - **Knowledge lines.** The plan packet no longer prints the `Spec: docs/shiploop/spec.md @ <sha>` first-line pin, and
+    early stages no longer print the "Earlier features" clause. The home line says "spec, environment and architecture".
+  - **Loop contracts.** The unused `{feature}` token fill is gone.
+  - **Engine.** `knowledge_home` drops `feature_dir`, `FEATURE_LIST`, `_GROUNDING`, `GROUNDING_LABELS`, `grounding`,
+    `earlier_features` and `spec_pin`.
+- ShipLoop no longer limits the size of an inner-loop contract (the bundled Until Loop is now 0.8.3, which has no size limit either). The 16 KiB state budget (9,216-byte contract budget, report reserve and bookkeeping reserve) is gone with the Until Loop runtime's own cap (Until Loop 0.8.1+): `improve-start` accepts any opening, step-plan accepts any `test_commands` list, and the Backchain guidance and Improve context no longer print a byte allowance. A deep run directory could previously push the verify stage's contract over the budget and block every item. Contract building, the one-contract-per-action rule, exit and repeat conditions and receipts are unchanged.
+
 ### skill-craft 2.2.2
 
 - Skills: shiploop-run-review 0.2.1

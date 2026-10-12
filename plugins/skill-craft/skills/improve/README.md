@@ -157,7 +157,8 @@ recursive discovery still finds only Improve. Install or distribute the whole
 leaf. A successful installation does not establish that every host can execute
 every project check.
 
-The bundled Until Loop runtime is 0.7.0.
+The bundled Until Loop runtime's version is recorded in
+[runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json).
 The package has a relocation regression and focused runtime checks; those
 checks do not prove universal model judgment, a completed multi-host rollout,
 or a particular repository's review quality.
@@ -165,10 +166,10 @@ or a particular repository's review quality.
 ## Provenance and packaging boundary
 
 The callback runtime is vendored from
-[whichguy/until-loop](https://github.com/whichguy/until-loop) commit
-80e6caca28aaeb9038e7c209809cc2071aab22ac (runtime 0.7.0). Its
-scripts/until_loop_ephemeral.py is byte-identical to upstream, with SHA-256
-0fc7f2f57cf0cfa9535f3512bb2633a4e50977eda85e5b263f2da8206bbb6647.
+[whichguy/until-loop](https://github.com/whichguy/until-loop) commit and
+version recorded in PROVENANCE.json. Its scripts/until_loop_ephemeral.py is
+byte-identical to upstream (the manifest holds its SHA-256), so a runtime change
+is a re-vendor, never a local edit.
 
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the
