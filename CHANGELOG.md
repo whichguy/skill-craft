@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.2.2
+
+- Skills: shiploop-run-review 0.2.1
+
+### shiploop-run-review 0.2.1
+
+- Run Review recognizes current compact Improve handoff packets and explains that historical checklist labels are not used in that layout.
+
 ### skill-craft 2.2.1
 
 - Skills: shiploop 1.2.1
