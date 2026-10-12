@@ -46,6 +46,14 @@ Dispatcher report. The existing Dispatcher actions remain the sole scheduler
 and own semantic acceptance, integration, settlement and dependency release.
 Do not repeat task preparation, run the legacy capability gate or workspace
 helper preparation path, or assemble a second worker brief.
+
+This compact profile requires a distinct native handle for each attempt, including
+later queue items and retries. `launched` checks all retained attempts under the
+existing Dispatcher lock and refuses reuse before changing state; identical
+registration replay for the same running attempt remains inert. The refusal
+names the earlier attempt and state evidence. Reconcile the actual host before
+proceeding. Distinct recorded handles do not authenticate host behavior or prove
+fresh contexts; native launch evidence still belongs to the coordinator.
 The exact marker is the only selector; absent or different marker values retain
 the legacy guidance in [Ask-Agent compatibility and managed Git preflight](#ask-agent-compatibility-and-managed-git-preflight).
 

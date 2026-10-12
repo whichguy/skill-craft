@@ -23,8 +23,8 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.4.1 | Review and improve until two clean passes |
 | [improve-agent](skills/improve-agent/SKILL.md) | `/skill-craft:improve-agent` | 0.1.3 | Run Improve in a fresh native agent |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | `/skill-craft:improve-system-prompt` | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the… |
-| [in-parallel](skills/in-parallel/SKILL.md) | `/skill-craft:in-parallel` | 0.1.0 | Use for "in parallel" or when one goal should be divided among independent native agents and returned as one verified… |
-| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.3 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
+| [in-parallel](skills/in-parallel/SKILL.md) | `/skill-craft:in-parallel` | 0.1.1 | Use for "in parallel" or when one goal should be divided among independent native agents and returned as one verified… |
+| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.4 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
 | [plan-test](skills/plan-test/SKILL.md) | `/skill-craft:plan-test` | 0.1.3 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex… |
 | [prompt-align](skills/prompt-align/SKILL.md) | `/skill-craft:prompt-align` | 0.1.2 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring… |
 | [prompt-audit](skills/prompt-audit/SKILL.md) | `/skill-craft:prompt-audit` | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology… |

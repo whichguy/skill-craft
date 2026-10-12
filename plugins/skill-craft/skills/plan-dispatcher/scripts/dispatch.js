@@ -24,26 +24,11 @@ const PARENT_EXIT_CRITERIA_CHECK = 'Check the returned per-item receipt (the res
 
 const PARENT_HANDOFF_CONSUMPTION = `Read the returned summary, its declared supporting files, and the evidence needed for the current decision. Preserve relevant findings, open questions and surviving evidence locators in the existing parent handoff before releasing the workspace. If the enclosing workflow archives results, use those archived locations after import. ${PARENT_EXIT_CRITERIA_CHECK} Evaluate the worker's recommendation against the current action and contract, then submit the requested verification facts and follow the script's returned continuation.`;
 
-const AGENT_HARNESS_MARKER = Object.freeze({
-  schema: 'agent-harness/v1',
-  ask_agent_interface: 'compact',
-});
+const {usesAgentHarness} = state;
 const AGENT_HARNESS_COORDINATOR = 'This graph selects the compact Ask-Agent consumer interface. The coordinator owns this fresh Dispatcher run from init; the plan initiator is not a second owner. Use this coordinator only for this new run. Never take over a ShipLoop callback or reuse an existing ShipLoop run implicitly. Continue to use this Dispatcher run, its owner, and its current actions as the only scheduler.';
 const AGENT_HARNESS_PREPARE = 'For each claimed task, use the selected Ask-Agent task package compact prepare --packet interface exactly once, before start. Retain the packet path, packet.binding_sha256 and packet.sha256 with the assignment. Launch the emitted launch.prompt unchanged at launch.cwd. Do not repeat package capability discovery, invoke the legacy workspace helper prepare path, rerun task preparation, reconstruct the packet, or assemble a second worker brief.';
 const AGENT_HARNESS_WORKER = 'The actual native worker runs the packet-pinned worker-start command exactly once from its assigned directory, follows the returned action_packet, and runs its exact worker-finish command. Do not ask the worker to write Dispatcher artifacts or execute report_argv.';
 const AGENT_HARNESS_RETURN = 'After collecting the actual native result, the coordinator runs the retained compact task package verify-return command unchanged, using the original packet and binding hash. The coordinator then writes the Dispatcher result artifact and envelope from the collected, verified return and publishes them through this run\'s report call. Continue from the exact returned next_argv; the worker never publishes the Dispatcher report.';
-
-function usesAgentHarness(graph) {
-  const marker = graph && graph.source && graph.source.agent_harness;
-  if (!marker || typeof marker !== 'object' || Array.isArray(marker)) {
-    return false;
-  }
-  const keys = Object.keys(marker).sort();
-  return keys.length === 2 &&
-    keys[0] === 'ask_agent_interface' && keys[1] === 'schema' &&
-    marker.schema === AGENT_HARNESS_MARKER.schema &&
-    marker.ask_agent_interface === AGENT_HARNESS_MARKER.ask_agent_interface;
-}
 
 function requireObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object`);

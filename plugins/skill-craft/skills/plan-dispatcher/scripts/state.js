@@ -36,6 +36,18 @@ const ATTEMPT_STATUSES = new Set([
 const RECEIPT_STATUSES = new Set(['SUCCEEDED', 'FAILED', 'BLOCKED']);
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+// The same exact profile selects both compact guidance and its launch invariants.
+function usesAgentHarness(graph) {
+  const marker = graph && graph.source && graph.source.agent_harness;
+  if (!marker || typeof marker !== 'object' || Array.isArray(marker)) {
+    return false;
+  }
+  const keys = Object.keys(marker).sort();
+  return keys.length === 2 &&
+    keys[0] === 'ask_agent_interface' && keys[1] === 'schema' &&
+    marker.schema === 'agent-harness/v1' && marker.ask_agent_interface === 'compact';
+}
+
 function fail(message, code) {
   const error = new Error(message);
   if (code) {
@@ -1863,6 +1875,18 @@ function launched(dir, owner, attempt, handle) {
     }
 
     if (record.status === 'launching') {
+      // Include terminal and retried attempts: each queue item gets a fresh
+      // context. Check under the existing state lock before changing any state.
+      if (usesAgentHarness(state.graph)) {
+        const prior = Object.values(state.attempts).find(other =>
+          other.attempt !== attempt && other.handle !== null && sameJson(other.handle, handle));
+        if (prior) {
+          fail('compact Ask-Agent tasks require a fresh native handle; already bound to ' +
+            prior.attempt + ' (step ' + prior.step + ', status ' + prior.status + '). ' +
+            'Reconcile the native host before registering another worker. Evidence: ' +
+            path.join(dir, STATE_FILE), 'EHANDLEREUSE');
+        }
+      }
       record.handle = cloneJson(handle);
       record.status = 'running';
       stepState.status = 'running';
@@ -2138,6 +2162,7 @@ function main() {
 }
 
 module.exports = {
+  usesAgentHarness,
   validateGraph,
   graphIdentity,
   init,

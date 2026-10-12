@@ -4,7 +4,7 @@ description: >-
   Use for "in parallel" or when one goal should be divided among independent
   native agents and returned as one verified aggregate. One coordinator owns
   decomposition, progress, acceptance, and optional Git delivery.
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux

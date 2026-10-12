@@ -81,7 +81,10 @@ The lifecycle is:
    not the helper, starts the worker.
 2. After each native launch returns, record its actual host handle with
    `launched --run ABS --attempt ID --handle NATIVE_ID`. A task label is not a
-   handle. If launch success is uncertain, inspect the host's actual native
+   handle. A handle already bound to another attempt is refused, including
+   accepted or retried attempts; every new work item requires a fresh context.
+   Repeating the same handle registration for the same running attempt is safe.
+   If launch success is uncertain, inspect the host's actual native
    inventory; do not launch again based on elapsed time, a notification, or a
    saved file.
 3. After the host confirms terminal completion and the coordinator has the

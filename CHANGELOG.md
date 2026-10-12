@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.3.1
+
+- Skills: in-parallel 0.1.1, plan-dispatcher 0.6.4
+
+### in-parallel 0.1.1
+
+- Require a distinct recorded native handle for every queued item and retry, preserving the one-item, one-fresh-agent contract while retaining coordinator responsibility for native launch evidence.
+
+### plan-dispatcher 0.6.4
+
+- For the compact Ask Agent profile, reject native handles already bound to another attempt under the Dispatcher lock, including accepted and retried attempts. Keep same-attempt registration replay and ordinary Dispatcher behavior unchanged.
+
 ### skill-craft 2.3.0
 
 - Skills: improve 0.4.1, shiploop 1.3.0
