@@ -119,6 +119,7 @@ def _parent_fd(base: Path, parts: tuple[str, ...]) -> int:
 def _read_beneath(base: Path, relative: str | Path, max_bytes: int) -> tuple[bytes, int]:
     """Read one stable, single-link regular file through no-follow dirfds."""
     parts = _relative_parts(relative)
+    shown = os.fspath(relative)  # how the file is named in any error below
     directory = _parent_fd(base, parts[:-1])
     descriptor = -1
     name = parts[-1]
@@ -132,7 +133,7 @@ def _read_beneath(base: Path, relative: str | Path, max_bytes: int) -> tuple[byt
         if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
             raise _UnsafeSource("file is not a regular single-link file")
         if before.st_size > max_bytes:
-            raise _UnsafeSource("file exceeds its read limit")
+            raise _UnsafeSource(f"{shown!r} is {before.st_size:,} bytes, over its read limit of {max_bytes:,}")
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
         try:
             descriptor = os.open(name, flags, dir_fd=directory)
@@ -140,7 +141,7 @@ def _read_beneath(base: Path, relative: str | Path, max_bytes: int) -> tuple[byt
             raise _UnsafeSource("file cannot be opened safely") from exc
         opened = os.fstat(descriptor)
         if not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1 or not _same_identity(before, opened):
-            raise _UnsafeSource("file changed while opening")
+            raise _UnsafeSource(f"{shown!r} changed while opening")
         chunks: list[bytes] = []
         size = 0
         while True:
@@ -150,15 +151,15 @@ def _read_beneath(base: Path, relative: str | Path, max_bytes: int) -> tuple[byt
             chunks.append(chunk)
             size += len(chunk)
             if size > max_bytes:
-                raise _UnsafeSource("file exceeds its read limit")
+                raise _UnsafeSource(f"{shown!r} grew past its read limit of {max_bytes:,} bytes while reading")
         after = os.fstat(descriptor)
         try:
             named_after = os.stat(name, dir_fd=directory, follow_symlinks=False)
         except OSError as exc:
-            raise _UnsafeSource("file changed while reading") from exc
+            raise _UnsafeSource(f"{shown!r} changed while reading") from exc
         if (not stat.S_ISREG(after.st_mode) or after.st_nlink != 1
                 or not _same_identity(opened, after) or not _same_identity(after, named_after)):
-            raise _UnsafeSource("file changed while reading")
+            raise _UnsafeSource(f"{shown!r} changed while reading")
         return b"".join(chunks), after.st_mtime_ns
     finally:
         if descriptor != -1:

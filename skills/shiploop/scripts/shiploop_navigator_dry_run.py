@@ -158,7 +158,7 @@ def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAUL
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
         if not isinstance(scenario, dict):
-            raise ValueError('scenario must be an object')
+            raise ValueError(f'scenario {name!r} must be an object, got {type(scenario).__name__}')
         extra = sorted(set(scenario) - {'steps'})
         if extra:
             raise ValueError('scenario has unsupported fields: ' + ', '.join(extra))

@@ -2,7 +2,7 @@
 
 **Test command:** `test/run-all.sh --group quick --changed-from origin/main`
 **Started:** 2026-10-11          **Status:** active
-**Iteration counter:** 1
+**Iteration counter:** 2
 **Seed mode:** defect
 **Product residual survey:** n/a (defect)
 **Plan tier:** 2
@@ -33,15 +33,9 @@
 | V3 | Regression: quick tier green | suite | test/run-all.sh | `test/run-all.sh --group quick --changed-from origin/main` exit 0 | pass |
 
 ## Backlog
-- [ ] P1: [implementation] six error messages carry no value or position (shiploop_progress_data.py, shiploop_navigator_dry_run.py) — error-context criterion
-  - Evidence: _UnsafeSource("file exceeds its read limit"/"file changed while opening"/"file changed while reading") x5 and ValueError("scenario must be an object") name no path, limit or type
-  - Decision: add the relative path, the limit or the offending type to each message, keeping the message prefix
-  - Preserve: exception types, control flow, any message a test matches exactly
-  - Unknown: none (grep found no test or doc matching these messages exactly)
-  - Acceptance: messages name their context and the quick tier is green
 - [ ] P1: [implementation] 45 private functions of 25+ lines have no docstring (shiploop_chain*.py, shiploop_lint.py and others) — commenting criterion
   - Evidence: bigundoc scan lists 45 at 25+ lines after the first pass documented the 40 largest
-  - Decision: document them in file batches, each docstring checked against the function body; this cycle takes the chain family
+  - Decision: document all 45 in one cycle via a write -> adversarial-verify workflow (names are unique per file, so insertion is by name); each docstring is checked against the function body by two independent verifiers before it is applied
   - Preserve: code behaviour (docstring-only change)
   - Unknown: none
   - Acceptance: every private function of 25+ lines in the batch has an accurate docstring and the quick tier is green
@@ -57,15 +51,15 @@
 
 ## Next
 - **Action:** execute
-- **Item:** P1:error-context (progress_data + navigator_dry_run)
-- **Why:** smallest remaining open item; its Unknown is resolved
+- **Item:** P1:docstrings-private-25plus (all 45, workflow)
+- **Why:** last open item; ultracode workflow with adversarial verify keeps accuracy high
 
 ## Last cycle
-**N:** 1
+**N:** 2
 **Date:** 2026-10-11
-**Thesis:** shiploop_quality.__all__ and docstring name seven objects the module no longer defines; trimming them to what exists fixes `import *` without touching any caller
+**Thesis:** six error messages (five _UnsafeSource in shiploop_progress_data._read_beneath, one ValueError in navigator_dry_run.run_scenario) name no file, limit or type; adding them gives a reader the context where the error was observed
 **Test result:** PASS
 **Outcome:** confirmed
 **Error signature:** none
 **Committed:** yes
-**Notes for next cycle:** quick tier exit 0 (19 suites, footprint of one file); V2 (every module imports on /usr/bin/python3 3.9) pass; star import now works. Spec sync: V1 n/a (item complete), V2/V3 kept. soft-check not run (Node soft-check optional). Replan: native, 2 open P1 remain, order unchanged (error-context before commenting); Next deferred unchanged. open intent: error-context | Decision: add path/limit/type to six messages | Preserve: exception types and flow.
+**Notes for next cycle:** quick tier exit 0 (27 suites). Probed: message for a 50-byte file with limit 10 reads "'big.txt' is 50 bytes, over its read limit of 10", same for str and Path input (os.fspath). Spec sync n/a: plan unchanged since iter 1 (no V-row tied to this item). Replan: native, one open P1 remains; streak 0. open intent: docstrings | Decision: all 45 in one cycle via workflow | Preserve: behaviour (docstring-only).
