@@ -54,7 +54,7 @@ def _need(condition: bool, message: str) -> None:
 # --------------------------------------------------------------------------- the loops table
 # Work and repeat texts come from the reviewed drafts' contracts (docs/experiments/inner-loop-redesign-20261010/
 # drafts.json) with the coverage fixes; the exit condition is the row's done_when, numbered.  Tokens in braces are
-# filled from state by ``_fill`` (run directory, action, repository, feature directory, implement step); nothing else
+# filled from state by ``_fill`` (run directory, action, repository, implement step); nothing else
 # varies, so a contract rebuilt at complete equals the one written at entry.
 
 _NEVER_CANCEL = "Never stop cancelled: a user's stop is the ShipLoop packet's pause command."
@@ -246,12 +246,12 @@ def command_listing(commands: Sequence[Mapping[str, Any]]) -> str:
 COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; the packet shows each floor):"
 
 
-def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, item: str, title: str,
+def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
            commands: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
     """One stage's contract from plain values; ``contract`` supplies them from state, ``command_list_problem`` from
     a submitted command list with the longest values a run may have."""
-    values = {"run": str(root), "action": action_id, "repo": repo, "feature": feature}
+    values = {"run": str(root), "action": action_id, "repo": repo}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
@@ -332,10 +332,7 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
-    # ``feature`` fills the {feature} token the inner-loop session's WORK texts still use; removed after the renderer
-    # swap (consumer contract 4c), with the token.
-    return _build(root, stage, action_id, repo=repo, feature=str(Path(repo) / knowledge_home.feature_dir(state)),
-                  item=item, title=_work_title(state, item), plan_action=plan_action,
+    return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)
 
 
@@ -384,15 +381,13 @@ def command_list_problem(root: Optional[Path], state: Optional[Mapping[str, Any]
             item = items[index].get("id")
     if root is not None and state is not None and item:
         repo = str(state["repo"])
-        values = {"root": Path(root), "repo": repo, "feature": str(Path(repo) / knowledge_home.feature_dir(state)),
-                  "item": str(item), "title": _work_title(state, str(item))}
+        values = {"root": Path(root), "repo": repo, "item": str(item), "title": _work_title(state, str(item))}
     else:
-        values = {"root": Path(_PATH_STANDIN), "repo": _PATH_STANDIN, "feature": _PATH_STANDIN, "item": "W" * 64,
-                  "title": "t" * 200}
+        values = {"root": Path(_PATH_STANDIN), "repo": _PATH_STANDIN, "item": "W" * 64, "title": "t" * 200}
 
     def build(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-        return _build(values["root"], "test", _ACTION_STANDIN, repo=values["repo"], feature=values["feature"],
-                      item=values["item"], title=values["title"], plan_action=_ACTION_STANDIN, commands=rows)
+        return _build(values["root"], "test", _ACTION_STANDIN, repo=values["repo"], item=values["item"],
+                      title=values["title"], plan_action=_ACTION_STANDIN, commands=rows)
 
     try:
         full = loop_contract.compact_bytes(build([dict(row) for row in commands]))

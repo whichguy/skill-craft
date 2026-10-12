@@ -4388,31 +4388,28 @@ _INNER_GATES = {
 }
 
 
-# The References block (owner, 2026-10-11): a stage that starts after a context clear finds the knowledge files, this
-# run's feature files and its records here, every path defined once.  Its global part (HOME, FEATURE, RUN, WORKTREE) reads
+# The References block (owner, 2026-10-11): a stage that starts after a context clear finds the knowledge files and this
+# run's records here, every path defined once.  Its global part (HOME, RUN, WORKTREE) reads
 # the same in every packet of a run, except the "not written yet" markers; its stage-local part is the stage's consult
 # note (the files ``knowledge.READS`` names, quoted whole after the status block) and the earlier products it builds
 # on (``_PRODUCTS``).  The rest of the packet's prose names files
 # by these symbols; a command the model runs verbatim keeps its absolute paths, so it still runs.
 #
-# Every file name comes from knowledge_home's tables (SECTIONS, the grounding labels, STAGE_FILES, FEATURE_LIST,
-# feature_dir), so a change there (docs/shiploop-consumer-contract-plan-2026-10-11.md 3.4-3.5 would drop the feature
-# folder and test-strategy.md) changes the block with no edit here.
+# Every file name comes from knowledge_home's tables (LIVING, STAGE_FILES), so a change there changes the block with no
+# edit here.
 REFERENCES_HEAD = "References (defined once; the packet names files by these symbols):"
-REFERENCE_SYMBOLS = ("HOME", "FEATURE", "RUN", "WORKTREE")
-_FEATURE = "{feature}/"
+REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE")
 BUILDS_ON_HEAD = ("Results this stage builds on (open each not already in your context; report a conflict instead of "
                   "choosing silently):")
 
 def reference_paths(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
     """{symbol: absolute path} for the References block's global symbols."""
     repo = Path(str(state["repo"]))
-    return {"HOME": str(repo / knowledge.HOME), "FEATURE": str(repo / knowledge.feature_dir(state)),
-            "RUN": str(Path(root)), "WORKTREE": str(repo)}
+    return {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo)}
 
 
 def symbolic(text: str, root: Path, state: Mapping[str, Any]) -> str:
-    """``text`` with each absolute HOME, FEATURE, RUN or WORKTREE path written as its symbol (longest prefix first).
+    """``text`` with each absolute HOME, RUN or WORKTREE path written as its symbol (longest prefix first).
 
     For prose only: a command the model runs verbatim keeps its absolute paths.  A relative or root path is never
     replaced, so a symbol cannot stand for a fragment of a word.
@@ -4424,20 +4421,13 @@ def symbolic(text: str, root: Path, state: Mapping[str, Any]) -> str:
 
 
 def reference_name(name: str) -> str:
-    """A knowledge_home file name ("spec.md", "{feature}/plan.md") as the packet's symbol path."""
-    return "FEATURE/" + name[len(_FEATURE):] if name.startswith(_FEATURE) else "HOME/" + name
+    """A knowledge_home file name ("spec.md") as the packet's symbol path."""
+    return "HOME/" + name
 
 
-def reference_files() -> tuple[list[str], list[str]]:
-    """(the files listed under HOME, those under FEATURE), as knowledge_home names them, from its tables only: the
-    files with named sections, then the feature list; this run's feature files in the order the stages write them."""
-    home_list = str(Path(knowledge.FEATURE_LIST).relative_to(knowledge.HOME))
-    home = [*knowledge.SECTIONS, home_list]
-    feature = []
-    for stage in stage_spec.STAGES:
-        feature += [name for name in knowledge.STAGE_FILES.get(stage, ())
-                    if name.startswith(_FEATURE) and name not in feature]
-    return home, feature
+def reference_files() -> list[str]:
+    """The files listed under HOME, as knowledge_home names them: the living files, in their order."""
+    return list(knowledge.LIVING)
 
 
 def reference_writer(name: str) -> str:
@@ -4446,35 +4436,27 @@ def reference_writer(name: str) -> str:
     return stage + " writes it" if stage else "ShipLoop writes it at its next knowledge commit"
 
 
+# The living files' packet words.
+_LIVING_LABELS = {"spec.md": "living spec", "environment.md": "environment", knowledge.ARCHITECTURE: "architecture"}
+
+
 def _reference_global_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
     paths = reference_paths(root, state)
-    labels = {name: label for label, name in knowledge._GROUNDING}  # the grounding files' packet words
     repo = Path(str(state["repo"]))
-
-    def path_of(name: str) -> Path:
-        return (Path(paths["FEATURE"]) / name[len(_FEATURE):] if name.startswith(_FEATURE)
-                else Path(paths["HOME"]) / name)
 
     def entry(name: str) -> str:
         # The file's headings are not listed (packet re-cut, 2026-10-11): a stage that reads it gets it quoted whole,
         # and a duty names the section it writes.
-        return ("- " + reference_name(name) + (": " + labels[name] if name in labels else "")
-                + ("" if knowledge._filled(path_of(name)) else " (not written yet: " + reference_writer(name) + ")"))
+        return (reference_name(name) + (": " + _LIVING_LABELS[name] if name in _LIVING_LABELS else "")
+                + ("" if knowledge._filled(Path(paths["HOME"]) / name) else " (not written yet: "
+                   + reference_writer(name) + ")"))
 
-    home, feature = reference_files()
-    # A feature file is listed when it exists or this stage writes it; the others say nothing this stage acts on.
-    stage = current_stage(state)
-    writes = set(knowledge.STAGE_FILES.get(stage, ())) | set(knowledge.CLOSES.get(stage, ()))
-    feature = [name for name in feature if name in writes or knowledge._filled(path_of(name))]
-    feature_dir = str(Path(knowledge.feature_dir(state)).relative_to(knowledge.HOME))
     return [REFERENCES_HEAD,
             "HOME = " + paths["HOME"] + " (knowledge home) · RUN = " + paths["RUN"] + " (run records)",
             "WORKTREE = " + str(repo) + " (all product work; a working directory, never a --result value"
             + ("; an isolated worktree, returned to the original branch only at release or handoff)"
                if state.get("execution_mode") == "navigator-worktree" else ")"),
-            "Knowledge files: " + "; ".join(row[2:] for row in (entry(name) for name in home)),
-            *(["FEATURE = HOME/" + feature_dir + ": " + "; ".join(row[2:] for row in (entry(name) for name in feature))]
-              if feature else [])]
+            "Knowledge files: " + "; ".join(entry(name) for name in reference_files())]
 
 
 def reads_pointer(stage: str) -> list[str]:
@@ -4719,9 +4701,6 @@ def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
 # The knowledge home's packet lines (the E2E session's architecture and spec-retire builds, 2026-10-10: "Lines for the
 # packet owner" in docs/shiploop-architecture-file-journal-2026-10-10.md (L1, L2, L5/L6) and
 # docs/shiploop-spec-retire-journal-2026-10-10.md (a-d)), around ``knowledge_home.stage_lines``.
-_EARLIER_FEATURE_STAGES = ("intake", "discovery", "research", "spec", "plan")
-
-
 def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
     """The knowledge home's lines for this stage, with paths written as the References block's symbols.
 
@@ -4729,12 +4708,6 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
     now: every file listed in every packet, a missing one marked with its writer, and the stage's consult note.
     """
     lines = list(knowledge.stage_lines(state, stage))
-    folder = "FEATURE"
-    if len(lines) > 1:
-        lines[1] = lines[1].replace("Earlier runs' spec, environment and features are there",
-                                    "Earlier runs' spec, environment, architecture and features are there")
-        if stage in _EARLIER_FEATURE_STAGES:
-            lines[1] += " " + knowledge.earlier_features(state)
     if stage in stage_spec.INNER:
         # The References block names the knowledge home and its files; an inner stage needs no second description.
         lines = [line for line in lines if not line.startswith("Repository knowledge home")]
@@ -4754,11 +4727,6 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
     if stage == "prepare":
         lines.append("If HOME/architecture.md is missing, write it from the plan result's structural choices: it holds "
                      + knowledge.ARCHITECTURE_HOLDS + ".")
-    if stage == "plan":
-        pin = knowledge.spec_pin(state)
-        if pin is not None:
-            lines.append("Begin " + folder + "/plan.md with this exact first line, which names the living-spec "
-                         "version this plan implements: Spec: " + pin)
     # A quoted commit message ("  | ...", the inherited learnings) is the commit's own text: it is not rewritten.  The
     # home's repository-relative name ("docs/shiploop/") is HOME too.
     return [line if line.startswith("  |") else symbolic(line, root, state).replace(knowledge.HOME + "/", "HOME/")
