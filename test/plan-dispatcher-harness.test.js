@@ -86,6 +86,67 @@ function state(dir) {
 
 after(() => fs.rmSync(root, {recursive: true, force: true}));
 
+test('compact launches reject reused handles atomically and preserve same-attempt replay', () => {
+  const {dir} = initialize(['A', 'B'], true);
+  const workspace = makeWorkspace();
+  const attempts = ['A', 'B'].map(step => {
+    const {attempt} = claim(dir, step);
+    cli('start', dir, {owner: 'coordinator', attempt, context: readOnlyContext(workspace)});
+    return attempt;
+  });
+  cli('launched', dir, {owner: 'coordinator', attempt: attempts[0], handle: {host: 'fixture', id: 'one'}});
+  const before = fs.readFileSync(path.join(dir, STATE_FILE));
+  cli('launched', dir, {owner: 'coordinator', attempt: attempts[0], handle: {id: 'one', host: 'fixture'}});
+  assert.deepEqual(fs.readFileSync(path.join(dir, STATE_FILE)), before);
+  const refused = cli('launched', dir, {owner: 'coordinator', attempt: attempts[1], handle: {id: 'one', host: 'fixture'}}, true);
+  assert.match(refused.error, /fresh native handle.*already bound/i);
+  assert.ok(refused.error.includes(attempts[0]));
+  assert.ok(refused.error.includes(path.join(dir, STATE_FILE)));
+  assert.deepEqual(fs.readFileSync(path.join(dir, STATE_FILE)), before);
+  cli('launched', dir, {owner: 'coordinator', attempt: attempts[1], handle: 'different-worker'});
+  assert.equal(state(dir).attempts[attempts[1]].status, 'running');
+});
+
+test('compact launches remember handles of accepted and retried attempts', () => {
+  for (const disposition of ['accepted', 'retried']) {
+    const {dir} = initialize(['A', 'B'], true);
+    const workspace = makeWorkspace();
+    const {attempt: original} = claim(dir, 'A');
+    const started = cli('start', dir, {owner: 'coordinator', attempt: original, context: readOnlyContext(workspace)});
+    cli('launched', dir, {owner: 'coordinator', attempt: original, handle: 'used-worker'});
+    if (disposition === 'accepted') {
+      fs.writeFileSync(started.packet.outputs.artifact, JSON.stringify({result: 'fixture completed'}));
+      cli('report', dir, {...started.packet.report_envelope, status: 'SUCCEEDED',
+        evidence: {path: started.packet.outputs.artifact, sha256: digest(fs.readFileSync(started.packet.outputs.artifact))}});
+      const receipt = cli('receipt', dir, {attempt: original});
+      cli('settle', dir, {owner: 'coordinator', attempt: original, verification: {
+        receipt_sha256: receipt.sha256, passed: true, reason: 'Fixture result independently checked', evidence: evidence({checked: true}),
+      }});
+    } else {
+      cli('retry', dir, {owner: 'coordinator', attempt: original, confirmed_stopped: true, reason: 'Fixture worker stopped'});
+    }
+    assert.equal(state(dir).attempts[original].status, disposition);
+    const {attempt: next} = claim(dir, disposition === 'accepted' ? 'B' : 'A');
+    cli('start', dir, {owner: 'coordinator', attempt: next, context: readOnlyContext(workspace)});
+    const before = fs.readFileSync(path.join(dir, STATE_FILE));
+    const refused = cli('launched', dir, {owner: 'coordinator', attempt: next, handle: 'used-worker'}, true);
+    assert.match(refused.error, /fresh native handle.*already bound/i);
+    assert.deepEqual(fs.readFileSync(path.join(dir, STATE_FILE)), before);
+    cli('launched', dir, {owner: 'coordinator', attempt: next, handle: 'fresh-worker'});
+  }
+});
+
+test('ordinary Dispatcher graphs keep their existing handle contract', () => {
+  const {dir} = initialize(['A', 'B']);
+  const workspace = makeWorkspace();
+  for (const step of ['A', 'B']) {
+    const {attempt} = claim(dir, step);
+    cli('start', dir, {owner: 'coordinator', attempt, context: readOnlyContext(workspace)});
+    cli('launched', dir, {owner: 'coordinator', attempt, handle: 'shared-host-session'});
+  }
+  assert.equal(Object.values(state(dir).attempts).filter(row => row.status === 'running').length, 2);
+});
+
 test('three active read-only attempts may share one canonical workspace', () => {
   const {dir} = initialize(['A', 'B', 'C']);
   const workspace = makeWorkspace();

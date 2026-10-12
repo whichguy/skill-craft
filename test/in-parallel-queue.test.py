@@ -188,6 +188,22 @@ class InParallelQueueTests(unittest.TestCase):
         self.assertEqual(self._dispatch(run).get("status"), "NO_NEW_LAUNCH")
         return records, scheduled
 
+    def test_distinct_queue_items_require_distinct_native_handles(self) -> None:
+        run = self._new_run(self._tasks("fresh-context", 2), "fresh-contexts", capacity=2)
+        first, second = self._dispatch(run)["launches"]
+        handle = self._confirm_launch(run, first)
+        before = self._harness("status", "--run", str(run))["active"]
+        # Replaying a known registration is safe; assigning its context to another item is not.
+        self._harness("launched", "--run", str(run), "--attempt", first["attempt"], "--handle", handle)
+        refused = self._harness("launched", "--run", str(run), "--attempt", second["attempt"],
+                                "--handle", handle, success=False)
+        self.assertEqual(refused["code"], "HELPER_FAILED")
+        self.assertIn("fresh native handle", refused["observed"]["diagnostic"])
+        self.assertEqual(self._harness("status", "--run", str(run))["active"], before)
+        self.assertTrue(all(Path(path).is_file() for path in refused["evidence"]))
+        self.assertNotEqual(self._confirm_launch(run, second), handle)
+        self.assertEqual(self._active_attempts(run, 2), {first["attempt"], second["attempt"]})
+
     def test_small_omitted_capacity_and_current_edit_serialization(self) -> None:
         small_tasks = self._tasks("small", 2)
         small_run = self._new_run(small_tasks, "default-cap-small")

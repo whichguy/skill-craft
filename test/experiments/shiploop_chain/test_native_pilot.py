@@ -278,8 +278,12 @@ class NativePilotTests(unittest.TestCase):
         self.assertFalse((self.pilot_dir / "holds").exists())
         self.assertIn("planning_context", packet)
         self.assertTrue(packet["reference_material"])
-        for instruction in packet["instructions"]:
-            self.assertIn(instruction, assignment)
+        # JSON escapes embedded newlines and quotes; inspect the worker's decoded
+        # instructions rather than requiring their unescaped text in the prompt.
+        embedded_instructions = json.loads(self.inline_packet(assignment))["instructions"]
+        self.assertEqual(embedded_instructions, packet["instructions"])
+        self.assertTrue(any("\n" in instruction for instruction in embedded_instructions),
+                        "The real worker packet must exercise multiline guidance transport")
         self.assertNotIn("caller_workspace_record", started)
         self.assertEqual(workspace_record["schema"], "shiploop-native-pilot-managed-workspace/v1")
         self.assertEqual(workspace_record["workspace"], packet["context"]["workspace"])
