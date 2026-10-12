@@ -284,6 +284,7 @@ def _assert_untracked(workspace: Path, source: Path) -> None:
 
 def _json_object(data: bytes, label: str) -> dict[str, Any]:
     def pairs(values: list[tuple[str, Any]]) -> dict[str, Any]:
+        """``object_pairs_hook`` that rejects a JSON object repeating a key."""
         result: dict[str, Any] = {}
         for key, value in values:
             if key in result:
@@ -292,6 +293,7 @@ def _json_object(data: bytes, label: str) -> dict[str, Any]:
         return result
 
     def invalid_constant(value: str) -> None:
+        """``parse_constant`` hook that rejects NaN and the infinities."""
         raise ValueError(f"invalid JSON constant: {value}")
 
     try:
@@ -377,6 +379,9 @@ def _scan_tree(root: Path, label: str) -> tuple[dict[str, Path], set[str]]:
     directories: set[str] = {""}
 
     def visit(directory: Path, relative: PurePosixPath) -> None:
+        """Walk ``directory`` depth first in name order, validating every entry's type and recording it under its
+        ``relative`` path.
+        """
         try:
             entries = sorted(os.scandir(directory), key=lambda entry: entry.name)
         except OSError as exc:
@@ -401,6 +406,7 @@ def _scan_tree(root: Path, label: str) -> tuple[dict[str, Path], set[str]]:
 
 
 def _handoff(value: Mapping[str, Any], expected: Mapping[str, str]) -> dict[str, Any]:
+    """Validate a worker handoff document against the expected identity and return its normalized form."""
     required = {
         "schema",
         "run_id",
@@ -576,6 +582,7 @@ def _receipt_body(
     handoff: Mapping[str, Any],
     records: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
+    """Assemble the receipt body for an archived handoff: its files with digests and archived locations."""
     archives = [
         {
             "path": row["path"],
@@ -712,6 +719,9 @@ def _receipt_shape(
     returned: bool,
     allow_missing_workspace: bool = False,
 ) -> dict[str, Any]:
+    """Check a receipt's field set and types (``returned`` selects the returned form) and return its normalized
+    form.
+    """
     if not isinstance(receipt, dict):
         _fail("receipt must be an object")
     required = {
@@ -778,6 +788,9 @@ def _validate_receipt(
     require_immutable: bool = True,
     allow_missing_workspace: bool = False,
 ) -> dict[str, Any]:
+    """Validate a handoff receipt's shape, digests and archive against the expected workspace and handoff; returns
+    the normalized receipt or raises ChainHandoffError.
+    """
     value = _receipt_shape(
         receipt,
         returned=True,
@@ -936,7 +949,7 @@ def _make_immutable(target: Path) -> None:
             raise ChainHandoffError(f"cannot make archive directory read-only: {exc}") from exc
 
 
-def _discard_new_archive(target: Path, known_files: set[Path], known_directories: set[Path]) -> None:
+def _discard_new_archive(known_files: set[Path], known_directories: set[Path]) -> None:
     """Undo only paths this invocation reserved; unexpected paths are retained."""
     for path in sorted(known_files, key=lambda item: (len(item.parts), str(item)), reverse=True):
         if not os.path.lexists(path):
@@ -971,6 +984,9 @@ def _load_replay(
     workspace: Path,
     handoff_path: Path,
 ) -> dict[str, Any]:
+    """Load the archived receipt for ``handoff_digest`` and validate it against the expected identity, so an import
+    replays without redoing work.
+    """
     target = archive_dir / handoff_digest
     _no_symlinks(target, "archive target")
     details = _lstat(target, "archive target")
@@ -1049,7 +1065,7 @@ def _recover_or_complete(
         )
     except BaseException:
         if created:
-            _discard_new_archive(target, known_files, known_directories)
+            _discard_new_archive(known_files, known_directories)
         raise
     return _load_replay(archive_dir, handoff_digest, expected, workspace, handoff_path)
 

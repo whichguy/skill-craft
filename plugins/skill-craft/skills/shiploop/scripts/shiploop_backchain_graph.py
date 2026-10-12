@@ -56,6 +56,7 @@ class CheckUnavailable(Exception):
 # ---------------------------------------------------------------- JS semantics
 
 def js_trim(value: str) -> str:
+    """Trim exactly the characters JavaScript's ``String.prototype.trim`` removes."""
     return value.strip(JS_WHITESPACE)
 
 
@@ -136,17 +137,18 @@ def js_number_text(value: Any) -> str:
     sign, digits, exponent = decimal.Decimal(repr(value)).normalize().as_tuple()
     del sign
     text = "".join(map(str, digits))
-    k = len(text)
-    n = int(exponent) + k
-    if k <= n <= 21:
-        return text + "0" * (n - k)
-    if 0 < n <= 21:
-        return text[:n] + "." + text[n:]
-    if -6 < n <= 0:
-        return "0." + "0" * -n + text
-    power = n - 1
+    # ECMAScript Number::toString names: ``digit_count`` is k, ``point_position`` is n.
+    digit_count = len(text)
+    point_position = int(exponent) + digit_count
+    if digit_count <= point_position <= 21:
+        return text + "0" * (point_position - digit_count)
+    if 0 < point_position <= 21:
+        return text[:point_position] + "." + text[point_position:]
+    if -6 < point_position <= 0:
+        return "0." + "0" * -point_position + text
+    power = point_position - 1
     mark = "e+" if power >= 0 else "e-"
-    return (text if k == 1 else text[0] + "." + text[1:]) + mark + str(abs(power))
+    return (text if digit_count == 1 else text[0] + "." + text[1:]) + mark + str(abs(power))
 
 
 def _js_string(value: Any) -> str:
@@ -233,12 +235,19 @@ def jsonable(value: Any) -> Any:
 # ---------------------------------------------------------------- lib.js port
 
 def schema_errors(plan: Any) -> List[str]:
+    """Return one ``<path> <message>`` string per way ``plan`` departs from the closed plan schema; empty when it
+    conforms.
+    """
     errors: List[str] = []
 
     def report(path: str, message: str) -> None:
+        """Record a schema error against ``path``."""
         errors.append(f"{path} {message}")
 
     def closed(value: Any, path: str, required: Iterable[str], allowed: Iterable[str]) -> bool:
+        """Check ``value`` is an object whose keys all lie in ``allowed`` and include every ``required`` key;
+        report each departure.
+        """
         if not isinstance(value, dict):
             report(path, "must be an object")
             return False
@@ -385,11 +394,13 @@ def schema_errors(plan: Any) -> List[str]:
 
 
 def existing_steps(plan: Any) -> List[Dict[str, Any]]:
+    """The plan's step objects; entries that are not objects are skipped."""
     steps = _get(plan, "steps")
     return [step for step in steps if isinstance(step, dict)] if isinstance(steps, list) else []
 
 
 def known_step_ids(plan: Any) -> Dict[str, bool]:
+    """Ordered set of the string ids declared by the plan's steps (a dict used as an ordered set)."""
     return dict.fromkeys(step["id"] for step in existing_steps(plan) if _is_str(_get(step, "id")))
 
 
@@ -448,6 +459,9 @@ def depth_groups(plan: Any) -> List[List[str]]:
     in_progress: set = set()
 
     def depth_for(root: str) -> int:
+        """Longest-path depth of ``root`` over its suppliers, computed with an explicit stack; a supplier already
+        on the path counts as depth 0.
+        """
         if root in depths:
             return depths[root]
         in_progress.add(root)
@@ -474,7 +488,8 @@ def depth_groups(plan: Any) -> List[List[str]]:
             else:
                 in_progress.add(supplier)
                 frames.append([supplier, iter(dependencies.get(supplier, {})), -1])
-        assert result is not None
+        if result is None:
+            raise RuntimeError(f"depth_groups: no depth computed for step {root!r}")
         return result
 
     groups: Dict[int, List[str]] = {}
@@ -484,6 +499,7 @@ def depth_groups(plan: Any) -> List[List[str]]:
 
 
 def compute_parallel_groups(plan: Any) -> List[List[str]]:
+    """The depth groups that hold more than one step, i.e. the steps that may run in parallel."""
     return [group for group in depth_groups(plan) if len(group) > 1]
 
 
@@ -526,10 +542,16 @@ def package(plan: Any) -> Any:
 
 
 def groups_equal_as_sets(left: Any, right: Any) -> bool:
+    """True when two lists of groups hold the same members per group and the same groups, ignoring order
+    (JavaScript SameValueZero member equality).
+    """
     if not isinstance(left, list) or not isinstance(right, list):
         return False
 
     def normalized(groups: List[Any]) -> List[Optional[str]]:
+        """Canonical sorted keys for ``groups``: members de-duplicated, sorted by UTF-16 order and joined; a non-
+        list group becomes None.
+        """
         out: List[Optional[str]] = []
         for group in groups:
             if not isinstance(group, list):
@@ -543,7 +565,7 @@ def groups_equal_as_sets(left: Any, right: Any) -> bool:
         return sorted(out, key=lambda text: _utf16("null" if text is None else text))
 
     left_keys, right_keys = normalized(left), normalized(right)
-    return len(left_keys) == len(right_keys) and all(a == b for a, b in zip(left_keys, right_keys))
+    return len(left_keys) == len(right_keys) and all(left_key == right_key for left_key, right_key in zip(left_keys, right_keys))
 
 
 def validate_structure(plan: Any) -> Dict[str, Any]:
@@ -551,6 +573,7 @@ def validate_structure(plan: Any) -> Dict[str, Any]:
     failures: List[Dict[str, Any]] = []
 
     def fail(invariant: int, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
+        """Record a failure of ``invariant`` with its message and optional detail."""
         failure: Dict[str, Any] = {"invariant": invariant, "message": message}
         if detail is not None:
             failure["detail"] = detail
@@ -629,6 +652,7 @@ def validate_structure(plan: Any) -> Dict[str, Any]:
     goal_text = normalize_need_string(goal) if _is_str(goal) else ""
 
     def satisfies_goal(step: Dict[str, Any]) -> bool:
+        """True when one of the step's ``produces`` entries matches a need or the text of the goal."""
         produces = _get(step, "produces")
         for raw in (produces if isinstance(produces, list) else []):
             if not _is_str(raw):
@@ -734,6 +758,7 @@ def _counts(plan: Any) -> Dict[str, int]:
     steps = existing_steps(plan)
 
     def entries(step: Dict[str, Any], key: str, kind: type) -> int:
+        """Count the items of type ``kind`` in the step's ``key`` list; 0 when it is not a list."""
         value = _get(step, key)
         return sum(isinstance(item, kind) for item in value) if isinstance(value, list) else 0
 
@@ -776,6 +801,7 @@ def check(path: Any) -> Dict[str, Any]:
 
 
 def receipt_text(record: Dict[str, Any]) -> str:
+    """The receipt record as indented JSON with a trailing newline."""
     return json.dumps(record, indent=2) + "\n"
 
 
@@ -829,6 +855,9 @@ def record(root: Path, action: str, data: bytes, record_: Dict[str, Any]) -> Pat
 
 
 def summary(record_: Dict[str, Any]) -> str:
+    """One-line verdict for a check record: valid or invalid with its failed invariants, plus step and parallel-
+    group counts.
+    """
     counts = record_["counts"]
     if record_["ok"]:
         verdict = f"valid, {record_['completion']}"

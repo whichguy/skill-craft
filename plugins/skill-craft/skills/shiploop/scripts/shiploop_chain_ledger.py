@@ -255,6 +255,9 @@ def _validate_event(
     seq_from_name: int,
     event_id_from_name: str,
 ) -> None:
+    """Check one ledger event has exactly the expected fields and that its sequence number and id match its file
+    name.
+    """
     expected_keys = {
         "schema",
         "seq",

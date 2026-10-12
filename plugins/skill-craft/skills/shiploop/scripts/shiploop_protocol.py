@@ -17,6 +17,7 @@ import shlex
 import sys
 import time
 from pathlib import Path
+from typing import Any, Mapping, Optional, Sequence, TextIO
 
 import shiploop_git
 import shiploop_navigator as navigator
@@ -25,10 +26,12 @@ import shiploop_store as store
 
 
 class ProtocolError(RuntimeError):
+    """A command was refused; the message is shown to the caller."""
     pass
 
 
-def need(ok, message):
+def need(ok: object, message: str) -> None:
+    """Raise ProtocolError with ``message`` unless ``ok``."""
     if not ok:
         raise ProtocolError(message)
 
@@ -98,17 +101,18 @@ def _require_card_for_unreviewed_planning(requested: "str | None", card: str) ->
 class _Paths:
     """A printed line that holds a path list: ``head``, the paths, ``tail``.  ``_fit`` decides how many paths show."""
 
-    def __init__(self, head, paths, tail=""):
+    def __init__(self, head: str, paths: Sequence[str], tail: str = "") -> None:
         self.head, self.paths, self.tail = head, list(paths), tail
 
-    def text(self, room):
+    def text(self, room: int) -> str:
         """The line within ``room`` characters; a longer list is cut at a path and the rest counted."""
         room -= len(self.head) + len(self.tail)
         whole = ", ".join(self.paths)
         if len(whole) <= room:
             return self.head + whole + self.tail
 
-        def more(count):
+        def more(count: int) -> str:
+            """Suffix naming how many further items were left out."""
             return f", and {count} more"
 
         room -= len(more(len(self.paths)))
@@ -121,7 +125,7 @@ class _Paths:
         return self.head + ", ".join(shown) + more(len(self.paths) - len(shown)) + self.tail
 
 
-def _fit(parts, limit=None):
+def _fit(parts: Sequence[str | _Paths], limit: Optional[int] = None) -> list[str]:
     """The lines of one command's output, as text of at most ``limit`` characters (default ``PRINT_LIMIT``) in all.
 
     A plain string is a fixed line and prints whole.  Each ``_Paths`` takes an even share of the room the fixed lines
@@ -141,12 +145,12 @@ def _fit(parts, limit=None):
     return lines
 
 
-def _emit(parts, stream=None):
+def _emit(parts: Sequence[str | _Paths], stream: Optional[TextIO] = None) -> None:
     for line in _fit(parts):
         print(line, file=stream or sys.stdout)
 
 
-def _recorded_parts(reviewed):
+def _recorded_parts(reviewed: Mapping[str, Any]) -> list[str | _Paths]:
     """What a review-return call recorded, for the model that has to confirm it.
 
     The excludes are counted here and listed once, with the other excludes a review decided, by ``_review_parts``.
@@ -159,7 +163,8 @@ def _recorded_parts(reviewed):
               if excluded else [])]
 
 
-def _review_parts(core, root, summary, expected=None, policy=None):
+def _review_parts(core: Any, root: Path, summary: Mapping[str, Any], expected: Optional[str] = None,
+                  policy: Optional[str] = None) -> list[str | _Paths]:
     """The plan's tally, the excludes a review decided, and the next command, which is always the last line.
 
     While paths are undecided the next command is the review that decides them; with none left it is the return, after
@@ -202,7 +207,7 @@ def _new_run_card(explicit: str) -> str:
         return ""
 
 
-def workspace_command(core, argv):
+def workspace_command(core: Any, argv: Sequence[str]) -> int:
     """One CLI family; workspace effects stay outside the opaque navigator."""
     import shiploop_workspace as workspace
 
@@ -381,7 +386,7 @@ def workspace_command(core, argv):
         return 2
 
 
-def workspace_completion_guard(root, previous, updated):
+def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated: Mapping[str, Any]) -> None:
     """A new isolated run cannot declare completion before verified return."""
     if (previous.get("execution_mode") == "navigator-worktree"
             and updated.get("status") == "done"):
@@ -424,7 +429,7 @@ def _count_callback_attempt(root: Path) -> None:
         pass
 
 
-def _improve_pass(state) -> int:
+def _improve_pass(state: Mapping[str, Any]) -> int:
     """The active Improve review's pass number from its runtime receipt; 0 when unknown."""
     child = state.get("active_improve")
     if not isinstance(child, dict) or not child.get("skill"):
@@ -437,7 +442,7 @@ def _improve_pass(state) -> int:
         return 0
 
 
-def hook_status(core, argv):
+def hook_status(core: Any, argv: Sequence[str]) -> int:
     """Answer whether a run can still move, for keepalive hooks and the driver.
 
     Read-only and lock-free: it runs when a host is about to end a turn, so it
@@ -483,7 +488,7 @@ def hook_status(core, argv):
     return 0
 
 
-def _grant_refusal(core, raw_argv, run_dir):
+def _grant_refusal(core: Any, raw_argv: Sequence[str], run_dir: Optional[Path]) -> Optional[int]:
     """Exit 3 with the repair when an isolated run's grants are gone; else None."""
     if run_dir is None or not (Path(run_dir).parent / "workspace.md").is_file():
         return None
@@ -500,7 +505,7 @@ def _grant_refusal(core, raw_argv, run_dir):
     return None
 
 
-def _argv_run_dir(raw_argv):
+def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
     """The --run-dir value of a chain/lint command line, if given."""
     for index, value in enumerate(raw_argv):
         if value == "--run-dir" and index + 1 < len(raw_argv):
@@ -510,7 +515,8 @@ def _argv_run_dir(raw_argv):
     return None
 
 
-def main(core, argv=None):
+def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
+    """Dispatch one ShipLoop command line; returns the process exit code."""
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "view":
         import shiploop_progress

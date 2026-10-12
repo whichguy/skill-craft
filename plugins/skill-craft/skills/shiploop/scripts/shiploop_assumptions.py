@@ -163,6 +163,7 @@ def wrong_consumers(rows: List[Mapping[str, Any]], stage: str) -> List[Tuple[str
 
 
 class OpenItem(NamedTuple):
+    """An open assumption row and where it was recorded: its stage, work item and action."""
     stage: str                 # the stage whose result recorded the row
     workitem: Any              # its work item, or None for a root stage
     action: str                # the result's action
