@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.10.0
+version: 0.10.1
 license: MIT
 platforms:
   - linux
@@ -360,14 +360,22 @@ contribution range. If the captured source was dirty, apply only the verified
 any private `S` from parent history. Revalidate the target and run combined
 checks before acceptance. The helper's `integration_strategy` is guidance
 bound to the captured state; the parent still checks the current target.
+After successful integration and combined checks, the parent closes the
+worker's worktree through the selected helper's
+[acceptance-bound close](references/workspace-operations.md#close-after-acceptance),
+once the worker and any delegates have stopped. Keep referenced evidence outside
+the removable tree. Retain branches and commits; report a refused close as
+cleanup-pending. Failed, unmerged and return-only worktrees remain intact.
 
 For `mode: ephemeral`, `verify-return` reports
 `workspace_evidence.ephemeral_audit` with `status: ephemeral-audit`,
 `findings_only: true`, changed paths, baseline/current fingerprints, HEAD and
 branch, and `scratch_retained`. It has no inspection, delivery, patch, commit or
 integration fields. Return findings only; do not integrate its scratch changes.
-`report-only` has no filesystem edits. Scripts do not collect native results,
-integrate changes or clean up the worktree.
+`report-only` has no filesystem edits. These findings-only modes have no merge
+event and keep their worktrees unless cleanup is separately requested. The task
+scripts do not collect native results, integrate changes or remove worktrees;
+the parent invokes the workspace helper for eligible cleanup.
 
 ### Helper-managed route
 

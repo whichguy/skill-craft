@@ -1,6 +1,6 @@
 # Parallel Ask Agent worktree experiments
 
-This test harness measures a real Grok parent delegating deterministic work to
+This test harness measures a real Grok or Claude Code parent delegating deterministic work to
 three or five native agents. Each child receives a distinct helper-managed Git
 worktree copied from the caller's dirty linked worktree. Patch and commit cases
 import only verified worker contributions; ephemeral cases retain scoped
@@ -10,7 +10,7 @@ scratch changes in child worktrees and do not integrate them.
 flowchart TB
     A[Freeze skill and dirty caller snapshot]
     B[Prepare one worktree and binding per child]
-    C[Launch fresh native Grok workers]
+    C[Launch fresh native workers]
     D[Run scoped tasks and worker checks]
     E[Collect terminal results and verify returns]
     F{Delivery mode}
@@ -26,7 +26,7 @@ flowchart TB
     I --> R --> J --> K
 ```
 
-The external controller starts only the parent. Ask Agent and Grok's native
+The external controller starts only the parent. Ask Agent and the selected host's native
 tools own child preparation, launch, and collection. This apparatus is not an
 Ask Agent runtime implementation, scheduler, or integration plugin.
 
@@ -288,3 +288,56 @@ Use the existing offline facade to exercise these controls. Compare payload
 bytes for identical prepared tasks separately from elapsed time. A smaller
 bootstrap does not by itself establish fewer tokens, faster native execution,
 provider queue latency or a production speedup.
+
+## Run the same delivery cases with Sonnet
+
+Use an already authenticated Claude Code CLI and a new retained output directory:
+
+```sh
+python3 -B test/experiments/ask_agent_parallel_worktrees/claude_suite.py \
+  --suite delivery-qualification --live \
+  --output /absolute/new/sonnet-experiment \
+  --model sonnet --effort medium
+```
+
+This runs `commit3-a`, `commit5-a`, and `ephemeral3-a` using the same frozen
+skill, dirty-parent fixture, production lifecycle scripts, and post-exit
+filesystem checks. `--case NAME` selects one case. `--claude-binary PATH`
+selects the CLI. Omitting the live suite runs only offline Claude adapter tests.
+Both requested and actually served models are retained; an alias alone does
+not prove the served model. The controller uses the existing Claude subscription
+session with per-invocation settings, without installing anything or changing
+persistent configuration.
+
+```mermaid
+flowchart TB
+    A[Shared fixture and compact bindings]
+    B[Claude argument adapter]
+    C[Sonnet parent uses native Agent]
+    D[Fresh background workers]
+    E[Worker start, owned edit, worker finish]
+    F[Native completion notifications]
+    G[Shared return and filesystem gates]
+    H[Claude transcript audit]
+    A --> B --> C --> D --> E --> F --> G --> H
+```
+
+The adapter changes native tool arguments, while the scripts and return gates
+remain shared. Claude workers have no native `cwd` argument on the probed
+host. Every worker Bash command must begin by entering its assigned helper
+worktree, and file tools must use absolute paths. The audit checks this command
+scope and the helper's measured root; inherited transcript `cwd` metadata is
+not worktree binding evidence. Fresh contexts disable fork/resume and omit
+native `isolation: worktree`, which would create a second checkout.
+
+The Claude auditor reads raw Claude records, including session-bound hooks and
+copied child transcripts; it does not relabel them as Grok evidence. A case
+passes only when all five phases exit zero and `claude-native-audit.json`
+reports `PASS` with `passed: true`. Missing or contradictory evidence stops
+the suite and retains later cases as `NOT_RUN`. Retry in a new directory after
+diagnosis; never overwrite an earlier failed attempt.
+
+These are functional qualification trials with instrumentation. A single
+Sonnet/Grok elapsed-time comparison is exploratory: different hosts, prompts,
+model versions, load, and caching can affect results. Overlapping recorded
+worker lifetimes establish orchestration overlap, not simultaneous CPU use.

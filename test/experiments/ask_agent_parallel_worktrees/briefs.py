@@ -596,10 +596,52 @@ def build_compact_briefs(run):
                             "sha256": fixture.sha256_file(path), "binding_sha256": binding["binding_sha256"]})
     index = {"schema": "ask-agent.compact-dispatch/v1", "run_id": manifest["run_id"],
              "assignments": assignments, "max_emitted_bytes": 20_000}
-    fixture.write_exclusive_json(directory / "index.json", index)
+    index_path=directory / "index.json"
+    fixture.write_exclusive_json(index_path, index)
+    if setup.get("compact_startup_contract") == "action-packet/v1":
+        setup_path=run / "operator" / "setup-result.json"
+        if setup_path.is_symlink() or not setup_path.is_file():
+            _fail("COMPACT_SETUP_INVALID", "Compact setup summary source is not a regular retained file",
+                  {"regular_setup_path": str(setup_path)},
+                  {"symlink": setup_path.is_symlink(), "is_file": setup_path.is_file()},
+                  [setup_path, index_path])
+        return _compact_dispatch_summary(run, manifest, assignments, index_path)
     return {"status": "PREPARED", "worker_ids": [item["worker_id"] for item in assignments],
             "assignment_paths": [item["path"] for item in assignments],
-            "index_path": str((directory / "index.json").resolve())}
+            "index_path": str(index_path.resolve())}
+
+
+def _compact_dispatch_summary(run, manifest, assignments, index_path):
+    setup_path=run / "operator" / "setup-result.json"
+    if setup_path.is_symlink() or not setup_path.is_file() or index_path.is_symlink() or not index_path.is_file():
+        _fail("COMPACT_DISPATCH_INVALID", "Compact setup or index is not a regular retained file",
+              {"regular_setup_and_index": True},
+              {"setup_symlink": setup_path.is_symlink(), "setup_file": setup_path.is_file(),
+               "index_symlink": index_path.is_symlink(), "index_file": index_path.is_file()},
+              [setup_path, index_path])
+    setup_bytes=setup_path.read_bytes()
+    index_bytes=index_path.read_bytes()
+    try:
+        setup=json.loads(setup_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _fail("COMPACT_SETUP_INVALID", f"Compact setup summary source is not valid JSON: {exc}",
+              {"valid_setup_json": True}, {"error": type(exc).__name__}, [setup_path, index_path])
+    if (setup.get("status") != "PREPARED" or setup.get("run_id") != manifest.get("run_id")
+            or setup.get("treatment") != "compact"
+            or setup.get("compact_startup_contract") != "action-packet/v1"):
+        _fail("COMPACT_SETUP_INVALID", "Compact dispatch summary requires the matching prepared v4 setup",
+              {"status": "PREPARED", "run_id": manifest.get("run_id"),
+               "compact_startup_contract": "action-packet/v1"},
+              {"status": setup.get("status"), "run_id": setup.get("run_id"),
+               "compact_startup_contract": setup.get("compact_startup_contract")},
+              [setup_path, index_path])
+    return {"schema": "ask-agent.compact-dispatch-summary/v1",
+            "status": "PREPARED", "run_id": manifest["run_id"],
+            "worker_ids": [item["worker_id"] for item in assignments],
+            "setup_path": str(setup_path.resolve()),
+            "setup_sha256": hashlib.sha256(setup_bytes).hexdigest(),
+            "index_path": str(index_path.resolve()),
+            "index_sha256": hashlib.sha256(index_bytes).hexdigest()}
 
 
 def emit_compact_worker(run, worker_id):

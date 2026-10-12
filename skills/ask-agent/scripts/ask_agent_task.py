@@ -11,7 +11,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import shlex
 import signal
@@ -28,7 +28,8 @@ import ask_agent_workspace as workspace  # noqa: E402
 BINDING_SCHEMA = "ask-agent.task.binding.v1"
 VERSION = 1
 TOOL_OUTPUT_WARNING_BYTES = 20_000
-PROTECTED_PARTS = frozenset({".git", ".ask-agent", ".worktrees"})
+PROTECTED_PARTS = workspace.PROTECTED_PARTS
+GIT_PATH_SEPARATOR = workspace.GIT_PATH_SEPARATOR
 TASK_INTERFACE = "references/task-interface.md"
 SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 NEXT_STEPS = {
@@ -109,22 +110,24 @@ def _path_patterns(value: Any, *, anchor: str = "request") -> list[str]:
                 "The parent needs an explicit path boundary for filesystem review.", anchor=anchor)
     patterns: set[str] = set()
     for item in value:
-        if not isinstance(item, str) or not item or "\\" in item or _has_control(item) or item.startswith("/"):
+        if (not isinstance(item, str) or not item or "\\" in item or _has_control(item)
+                or item.startswith(GIT_PATH_SEPARATOR) or PureWindowsPath(item).drive):
             _reject("invalid_write_set", "exact relative POSIX paths or slash-marked directory prefixes", item,
-                    "Absolute, empty, or platform-dependent paths are not a portable scope boundary.", anchor=anchor)
+                    "Absolute, empty, or platform-dependent paths are not a portable scope boundary; Git paths use `/` and do not have Windows drives.", anchor=anchor)
         if any(char in item for char in "*?[]"):
             _reject("unsupported_write_pattern", "exact paths or directory prefixes ending in `/`", item,
                     "Glob matching can cross path components and would make scope wider than it appears.", anchor=anchor)
-        directory_prefix = item.endswith("/")
+        directory_prefix = item.endswith(GIT_PATH_SEPARATOR)
         normalized = item[:-1] if directory_prefix else item
-        parts = normalized.split("/")
+        parts = normalized.split(GIT_PATH_SEPARATOR)
         if any(part in {"", ".", ".."} for part in parts):
             _reject("invalid_write_set", "paths without empty, dot, or parent components", item,
                     "Unnormalized path components make the write boundary ambiguous.", anchor=anchor)
         if any(part in PROTECTED_PARTS for part in parts):
             _reject("protected_write_set", "paths that cannot select Git or Ask Agent runtime paths", item,
                     "The path selects a protected repository or workspace location.", anchor=anchor)
-        patterns.add(PurePosixPath(normalized).as_posix() + ("/" if directory_prefix else ""))
+        patterns.add(PurePosixPath(normalized).as_posix()
+                     + (GIT_PATH_SEPARATOR if directory_prefix else ""))
     return sorted(patterns)
 
 
@@ -252,11 +255,14 @@ def _request(raw: Any) -> dict[str, Any]:
 
 
 def _matches(path: str, write_set: Sequence[str]) -> bool:
-    return any(path.startswith(item) if item.endswith("/") else path == item for item in write_set)
+    return any(path.startswith(item) if item.endswith(GIT_PATH_SEPARATOR) else path == item
+               for item in write_set)
 
 
 def _overlaps_dirty(path: str, write_set: Sequence[str]) -> bool:
-    return any(path == item.rstrip("/") or path.startswith(item.rstrip("/") + "/") for item in write_set)
+    return any(path == item.rstrip(GIT_PATH_SEPARATOR)
+               or path.startswith(item.rstrip(GIT_PATH_SEPARATOR) + GIT_PATH_SEPARATOR)
+               for item in write_set)
 
 
 def _digest(binding: Mapping[str, Any]) -> str:

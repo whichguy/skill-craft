@@ -347,13 +347,16 @@ separate parent acceptance and `close` step after reports are consumed.
 
 ## Close after acceptance
 
-**Legacy helper-managed route only.** A consumer-owned workspace stays with its
-consumer; Ask Agent does not call `close` or remove it.
+**Receipt-bound helper worktrees only, including compact worktree tasks.**
+Current and consumer-owned workspaces stay with their owner and are never
+removed through this operation.
 
 Calling `close --receipt /actual/receipt.json` without acceptance retains work.
-The parent may create an acceptance JSON file after reading the handoff,
-verifying integration (or report consumption), and confirming all native workers
-and consumers are finished. Keep that file outside the removable worktree.
+After successful edit integration and combined checks, the parent creates an
+acceptance JSON file and calls `close` once native workers, delegates and
+consumers have stopped. Keep the file and referenced evidence outside the
+removable worktree. Findings-only cleanup after report consumption requires a
+separate request; return-only and unsuccessful edit work stays retained.
 
 ```json
 {

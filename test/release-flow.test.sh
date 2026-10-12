@@ -22,6 +22,13 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 git init -q -b main . && git add -A && git commit -qm base
 # The working tree may lag its last release; start from a released state.
 bash scripts/sync-plugin-views.sh >/dev/null
+# This synthetic baseline release consumes the notes already present in the
+# copied working tree, just as a real release would.
+for note in changes/*/*.md; do
+  if [[ -f "$note" ]]; then
+    rm -f "$note"
+  fi
+done
 git add -A && git commit -qm "release: baseline" -m "Skill-Craft-Release: baseline" --allow-empty
 base="$(git rev-parse HEAD)"
 boundary() { python3 -B scripts/check-release-boundary.py "$@" 2>&1; }
@@ -36,7 +43,7 @@ mkdir -p changes/shiploop changes/improve
 printf -- '---\nbump: minor\n---\nShipLoop fixture change.\n' > changes/shiploop/fixture.md
 printf -- '---\nbump: patch\n---\nImprove fixture change.\n' > changes/improve/fixture.md
 git add -A && git commit -qm "feat: fixture"
-boundary --base "$base" >/dev/null || fail "feature commit with notes must pass"
+out="$(boundary --base "$base")" || fail "feature commit with notes must pass: $out"
 
 # 2. Hand-editing a version or plugins/ is refused.
 sed -i.bak "s/^version: .*/version: 99.0.0/" skills/architect/SKILL.md && rm skills/architect/SKILL.md.bak

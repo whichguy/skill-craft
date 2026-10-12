@@ -1,6 +1,6 @@
 # Ask Agent parallel experiment contract
 
-This directory is an experimental harness for measuring a native Grok parent
+This directory is an experimental harness for measuring a native Grok or Claude Code parent
 delegating a fixed fixture task to three or five Ask Agent workers. It is not an
 Ask Agent runtime, scheduler, plugin, or security boundary. The current source
 of truth for a trial is its retained `manifest.json`, operator records, raw
@@ -424,3 +424,63 @@ and detects replaced indexed records. Indexed handles remain parent assertions
 until that independent check. A failed writer or audit preserves existing
 files, caller contributions and worker scratch for diagnosis; no automatic retry,
 overwrite, cleanup or claim of success is permitted.
+
+
+## Claude native evidence
+
+`claude_suite.py --suite delivery-qualification --live --output NEW_DIRECTORY`
+selects a separate Claude host adapter. The five phases are shared fixture
+preparation, Claude prompt preparation, Claude launch and transcript capture,
+shared post-exit verification, and the frozen Claude native auditor. Live
+cases preserve the same `commit3-a`, `commit5-a`, and `ephemeral3-a` semantics.
+Offline Claude adapter tests and `--list` must never launch a model.
+
+The controller starts one parent process, never worker model processes. It
+records requested model/effort, CLI identity, prompt and apparatus hashes,
+native stream observations, process status, session-bound hook payloads, and
+exact copies of native parent/child transcripts with provenance. Capture uses
+paths supplied by the matching native session hooks, not a global transcript
+search. An absent, duplicate, conflicting, stale, or unreadable required
+capture is an error. No previous launch, capture, or audit may be overwritten.
+Session settings disable forked subagents and unrelated MCP configuration;
+they do not alter persistent user settings. The run uses existing subscription
+authentication, not an API-key fallback.
+
+The Claude dispatch adapter retains the original compact assignment and its
+hash, and a deterministic translated native argument object with its hash.
+Its generated prompt preserves the complete common assignment and adds the
+host's explicit shell/file path rules. Only actual native Agent arguments are
+passed: fresh general-purpose, native background, and exact prompt. The nonempty
+`description` is a display label, not worker identity; preserve its actual value
+in the native evidence but do not reject punctuation changes. The allowed
+argument keys remain exact. No invented `cwd`, resume, fork, or second native
+worktree is allowed. Child Bash
+commands must enter the assigned helper worktree for every call; file-tool
+paths must be absolute and scoped. Root correctness requires the production
+context check and fixture probe evidence, not inherited transcript cwd text.
+
+The native audit must correlate parent Agent calls, started task identities,
+child start/stop evidence, child tool calls/results, and successful native
+completion notifications before parent return verification and integration.
+Automatically backgrounded shell tasks are excluded only when typed `local_bash`
+start and completion events correlate with a real native Bash call; they are
+never counted as workers. Unknown or incomplete task identities remain errors.
+A parent assertion, filesystem artifact, or final narrative cannot substitute
+for a missing native lifecycle event. Every child must execute its one start
+and one finish wrapper with the exact binding. The shared artifact gates
+remain mandatory, including delivery-mode-specific commit or ephemeral
+semantics, parent dirty/index/HEAD preservation, and package integrity.
+
+The successful verification summary, final result writer, and native terminal
+response retain the compact terminal boundary. Report requested and served
+model identities separately. Native stdout may contain multiple init/result
+messages while background completion notifications trigger parent turns;
+that is not multiple independent parents. An unrecognized or incomplete
+format must fail qualification rather than be guessed into a success.
+
+A campaign passes only when all five phase exits are integer zero and every
+selected case has an exact `PASS`, `passed: true` Claude verdict. Independent
+post-exit filesystem and frozen-input checks are required. Retain failures and
+worktrees; do not automatically delete, retry, or promote an audit-only replay
+to a new live trial. Timing intervals are observed host lifetimes, not CPU
+concurrency or causal model-speed claims.

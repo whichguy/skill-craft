@@ -12,6 +12,8 @@ import tempfile
 import unittest
 from typing import Any, Iterable
 
+from git_fixture import isolate_git_environment
+
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +26,7 @@ class AskAgentDeliveryTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(prefix="ask-agent-delivery-test-")
         self.root = Path(self.tmp.name)
+        isolate_git_environment(self, self.root / "test-home")
         self.source = self.root / "source"
         self.store = self.root / "workspace-store"
         self.invoke_from = self.root / "unrelated-invocation"
@@ -187,7 +190,7 @@ class AskAgentDeliveryTests(unittest.TestCase):
         self._git(worker, "commit", "-q", "-m", message)
         return self._git(worker, "rev-parse", "HEAD").stdout.strip()
 
-    def _source_snapshot(self) -> dict[str, bytes | str]:
+    def _source_snapshot(self) -> dict[str, Any]:
         index = Path(self._git(self.source, "rev-parse", "--git-path", "index").stdout.strip())
         if not index.is_absolute():
             index = self.source / index
@@ -197,7 +200,25 @@ class AskAgentDeliveryTests(unittest.TestCase):
             "cached": self._git_bytes(self.source, "diff", "--cached", "--binary").stdout,
             "working": self._git_bytes(self.source, "diff", "--binary").stdout,
             "status": self._git_bytes(self.source, "status", "--porcelain=v1", "-z", "--untracked-files=all").stdout,
+            "files": self._source_files(),
         }
+
+    def _source_files(self) -> dict[str, tuple[int, bytes]]:
+        files: dict[str, tuple[int, bytes]] = {}
+        for path in sorted(self.source.rglob("*")):
+            relative = path.relative_to(self.source)
+            if ".git" in relative.parts:
+                continue
+            if path.is_symlink():
+                info = path.lstat()
+                content = os.fsencode(os.readlink(path))
+            elif path.is_file():
+                info = path.stat()
+                content = path.read_bytes()
+            else:
+                continue
+            files[relative.as_posix()] = (info.st_mode, content)
+        return files
 
     def _make_dirty_source(self) -> None:
         (self.source / "inherited.txt").write_text("caller staged\n", encoding="utf-8")
@@ -226,6 +247,8 @@ class AskAgentDeliveryTests(unittest.TestCase):
         return path
 
     def test_patch_delivery_applies_only_worker_delta_to_dirty_parent(self) -> None:
+        (self.source / ".gitignore").write_text("# caller ignore control\n", encoding="utf-8")
+        (self.source / ".claspignore").write_text("# caller clasp control\n", encoding="utf-8")
         self._make_dirty_source()
         before = self._source_snapshot()
         prepared = self._prepare("dirty patch")
@@ -263,6 +286,10 @@ class AskAgentDeliveryTests(unittest.TestCase):
         self.assertEqual(after["head"], before["head"])
         self.assertEqual(after["raw_index"], before["raw_index"])
         self.assertEqual(after["cached"], before["cached"])
+        expected_files = dict(before["files"])
+        app_mode, _ = expected_files["app.txt"]
+        expected_files["app.txt"] = (app_mode, b"base application\nworker patch contribution\n")
+        self.assertEqual(after["files"], expected_files)
 
     def test_patch_delivery_keeps_private_checkpoint_separate_from_dirty_caller_handoff(self) -> None:
         for overlaps_product_file in (False, True):

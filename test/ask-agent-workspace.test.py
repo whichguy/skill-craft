@@ -19,6 +19,8 @@ import unittest
 from unittest import mock
 from typing import Any, Iterable, Mapping
 
+from git_fixture import isolate_git_environment
+
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,13 +33,7 @@ class AskAgentWorkspaceCliTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(prefix="ask-agent-workspace-test-")
         self.root = Path(self.tmp.name)
-        # The developer's global Git configuration and attributes (for example
-        # core.autocrlf or `* text=auto`) must not reach the fixtures.
-        home = self.root / "test-home"
-        (home / ".config").mkdir(parents=True)
-        isolated = mock.patch.dict(os.environ, {"HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config")})
-        isolated.start()
-        self.addCleanup(isolated.stop)
+        isolate_git_environment(self, self.root / "test-home")
         self.primary = self.root / "primary"
         self.source = self.root / "linked-caller"
         self.store = self.root / "workspace-store"
@@ -623,6 +619,37 @@ raise SystemExit(module.main(sys.argv[2:]))
         self.assertTrue(worktree.exists(), close)
         if result.returncode == 0:
             self.assertEqual(close.get("status"), "retained", close)
+
+    def test_safe_relative_path_validation_preserves_git_names(self) -> None:
+        baseline = self._cli_success("current-state", "--source", str(self.source))
+        baseline_path = self.root / "current-state-baseline.json"
+        baseline_path.write_text(json.dumps(baseline), encoding="utf-8")
+
+        malformed = [
+            "./nested/file.txt",
+            "nested//file.txt",
+            "nested//",
+            "../nested/file.txt",
+            "/nested/file.txt",
+            "nested\\file.txt",
+        ]
+        for path in malformed:
+            with self.subTest(path=path):
+                self._cli_error("current-state", "--source", str(self.source), "--write-set", path)
+
+        nested = self.source / "資料"
+        nested.mkdir()
+        (nested / "報告.md").write_text("unicode Git filename\n", encoding="utf-8")
+        # POSIX Git permits colons in filenames; scope parsing must preserve them.
+        (self.source / "C:notes").write_text("colon Git filename\n", encoding="utf-8")
+        result = self._cli_success(
+            "current-state", "--source", str(self.source), "--baseline", str(baseline_path),
+            "--write-set", "資料/", "--write-set", "C:notes",
+        )
+        self.assertEqual(result["changed_paths"], ["C:notes", "資料/報告.md"], result)
+        self.assertEqual(result["write_set"], ["C:notes", "資料"], result)
+        self.assertEqual(result["outside_write_set"], [], result)
+        self.assertEqual(result["verdict"], "changed-within-write-set", result)
 
     def test_clean_linked_caller_retries_same_attempt_and_fresh_attempt_is_unique(self) -> None:
         source_before = self._snapshot(self.source)

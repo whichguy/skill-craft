@@ -17,6 +17,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+from git_fixture import isolate_git_environment
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "ask-agent"
@@ -48,7 +50,7 @@ class AskAgentTaskTests(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.base = Path(temp.name).resolve()
         self.home = self.base / "home"
-        (self.home / ".config").mkdir(parents=True)
+        isolate_git_environment(self, self.home)
         self.repo = self.base / "repo"
         (self.repo / "src").mkdir(parents=True)
         (self.repo / "tests").mkdir()
@@ -61,7 +63,7 @@ class AskAgentTaskTests(unittest.TestCase):
         self.other = self.base / "other"
         self.other.mkdir()
         self.store = self.base / "workspace-store"
-        self.env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        self.env = os.environ.copy()
         self.env.update({
             "HOME": str(self.home), "XDG_CONFIG_HOME": str(self.home / ".config"),
             "XDG_STATE_HOME": str(self.home / ".state"), "PYTHONDONTWRITEBYTECODE": "1",
@@ -745,6 +747,29 @@ class AskAgentTaskTests(unittest.TestCase):
         self.assert_error(invalid_json, invalid_output, "invalid_request")
         bad_args, bad_output = self.run_cli("prepare", packet=self.request())
         self.assert_error(bad_args, bad_output, "invalid_cli")
+
+    def test_write_scope_paths_use_git_posix_segments(self) -> None:
+        malformed = [
+            "./src/app.py",
+            "src//app.py",
+            "../src/app.py",
+            "/tmp/outside",
+            "src\\app.py",
+            "C:notes",
+            "C:/notes",
+            "C:\\notes",
+        ]
+        for path in malformed:
+            with self.subTest(path=path):
+                result, output = self.run_cli(
+                    "prepare", "--skill-card", str(SKILL / "SKILL.md"), "--request", "-",
+                    packet=self.request(write_set=[path]),
+                )
+                self.assert_error(result, output, "invalid_write_set")
+
+        valid_path = "reports/日本語/result.md"
+        prepared = self.prepare(self.request(write_set=[valid_path]))
+        self.assertEqual(prepared["binding"]["task"]["write_set"], [valid_path])
 
     def test_binding_and_package_tampering_are_rejected(self) -> None:
         binding = self.prepare(self.request())["binding"]
