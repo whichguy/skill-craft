@@ -234,7 +234,7 @@ def _strings(value: Any) -> Iterator[str]:
 # Only commands that drive the run bind; a read-only query (hook-status, status,
 # report, context) from another session must never claim someone else's run.
 COMMAND_RUN_DIR = re.compile(
-    r"\bshiploop\s+(?:init|next|resume|complete|improve-bind|improve-start|improve-complete|improve-reconcile)\b"
+    r"\bshiploop\s+(?:init|next|resume|complete|improve-bind|improve-start|improve-reconcile)\b"
     r"[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
 
 
@@ -256,7 +256,7 @@ def command_run_dir(payload: Any) -> str | None:
 # transcript that happens to contain a marker is not one.
 DRIVING_COMMAND = re.compile(
     r"shiploop[\w.-]*['\"]?\s+(?:workspace\s+start|init|next|resume|complete|improve-bind|improve-start|"
-    r"improve-complete|improve-reconcile)\b")
+    r"improve-reconcile)\b")
 
 
 def invoking_command(payload: Mapping[str, Any]) -> str | None:

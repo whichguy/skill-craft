@@ -305,7 +305,7 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
 
     A close requires its files; any other stage is checked only when it changed the home,
     because ShipLoop commits the home after every accepted stage that changed it.  ``command`` is the callback the
-    refusal tells the model to run again (``complete``, or ``improve-complete`` for a reviewed result).  A drop is seen
+    refusal tells the model to run again (``complete``; ``improve`` is the Improve stage's complete).  A drop is seen
     only in an edit still uncommitted: an edit a review already committed through ``improve-commit`` is the baseline.
     """
     repo = Path(str(state["repo"]))
@@ -337,19 +337,19 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
         # Line 1 is for a model that reads only it: where (absolute: the shell's directory is the original checkout), what to
         # write instead, and the command.  Every place follows, one per line, never the text.  Line 2 keeps the words the
         # refusal has always had, so refusals can still be counted by them.
-        return ("Reword " + leaks[0] + " to name an alias, not a value or an assignment; then run the same " + command
+        return ("Reword " + leaks[0] + " to name an alias, not a value or an assignment; then run the same complete"
                 + " command again.\n"
                 "These knowledge lines look like credentials; name where each secret is kept (an alias, or the mechanism "
                 "that supplies it, such as the name of an environment variable), never its value or code that assigns it. "
                 "The lines:\n" + "\n".join("- " + place for place in leaks)
-                + ("\nA file this review changed and left uncommitted needs improve-commit before improve-complete; "
-                   "improve-complete prints the exact improve-commit command when one is owed."
-                   if command == "improve-complete" else ""))
+                + ("\nA file this review changed and left uncommitted needs improve-commit before complete; "
+                   "complete prints the exact improve-commit command when one is owed."
+                   if command == "improve" else ""))
     # A plain mention anywhere in the file keeps an ID (a heading, a table row, a line under Retired or Superseded); nothing
     # is dropped from a file HEAD does not hold yet.  Line 1 is the fix, the absolute path and the command, with no ID
     # list, so a long list can never cut the fix off a model that reads the first 250 characters; the IDs follow, in full.
     # The baseline is HEAD, so an edit already committed (a review's, through improve-commit) is not seen: only one still
-    # uncommitted, which is why the knowledge gate runs before the commit gate on the improve-complete route.
+    # uncommitted, which is why the knowledge gate runs before the commit gate on the Improve stage's route.
     refusals = []
     for name, ids, what, kind, section in _RETAINED:
         path = repo / HOME / name
@@ -365,7 +365,7 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
                 # import (else the commit gate is the next refusal).  Shorter, so `cut -c1-250` keeps all three steps at
                 # the longest saved checkout path (137 characters); the 'Superseded' exit is on line 2.
                 first = ("Restore " + prefix + "-<n> in " + str(path) + "; if the review changed it, improve-commit it; "
-                         "then run " + command + ".")
+                         "then run the same complete command again.")
             refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
                             + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
     return "\n".join(refusals)

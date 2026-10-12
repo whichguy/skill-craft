@@ -275,7 +275,8 @@ def _marked_request_binding_id(request: Any, label: str) -> str | None:
 
 def _binding_identity(binding: Mapping[str, Any]) -> tuple[str, str, Path, str]:
     """Validate stable binding identity without resolving its selected package."""
-    _need(isinstance(binding, Mapping) and set(binding) == _BINDING_FIELDS,
+    # ShipLoop's own binding also names the Improve stage's action (owner, 2026-10-11); a standalone one does not.
+    _need(isinstance(binding, Mapping) and set(binding) in (_BINDING_FIELDS, _BINDING_FIELDS | {"improve_action"}),
           "standalone Improve binding has an unsupported schema")
     _need(binding.get("version") == VERSION, "unsupported standalone Improve binding version")
     action = _action(binding.get("action_id"), "binding action")
@@ -318,7 +319,7 @@ def receipt_path(binding: Mapping[str, Any]) -> Path:
 
 def binding(
     state: Mapping[str, Any], parent_action: str, stage: str,
-    pending_result: Mapping[str, Any] | None, skill: Mapping[str, Any],
+    pending_result: Mapping[str, Any] | None, skill: Mapping[str, Any], *, improve_action: str | None = None,
 ) -> dict[str, Any]:
     """Make a non-mutating parent-to-child binding for one graph action."""
     _need(isinstance(state, Mapping), "ShipLoop state must be an object")
@@ -335,7 +336,7 @@ def binding(
     binding_id = f"{run_id}/{action}"
     # An ephemeral child has one private tempfile per invocation.  It has no
     # ambient workspace ownership record for this parent to inspect.
-    return {
+    bound = {
         "version": VERSION,
         "binding_id": binding_id,
         # Retain the parent's supplied absolute locator for cold recovery and
@@ -349,6 +350,9 @@ def binding(
         "contract_marker": _binding_marker(binding_id),
         "seed_result": _copy(dict(pending_result or {}), "pending result"),
     }
+    if improve_action is not None:
+        bound["improve_action"] = _action(improve_action, "Improve stage action")
+    return bound
 
 
 def _local_reference(workspace: Path, locator: str, value: Any, label: str) -> str:

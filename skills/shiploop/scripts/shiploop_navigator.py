@@ -301,10 +301,76 @@ def retired_json_run_reason(run_dir: Path) -> str:
             "longer supports (only navigator protocol 4). " + FRESH_RUN_HINT)
 
 
+# The Improve stage's name in the sequence: after each reviewed stage the run issues an action of this stage, whose
+# packet runs the improve skill and whose `complete` imports the review (owner, 2026-10-11).
+IMPROVE_STAGE = "improve"
+
+
 # Stages whose accepted result can carry an Improve record: every planning
 # stage, plus carry-forward (only the final one starts a child, but an earlier
 # end review stays recorded when a later Improve added work items).
 _IMPROVE_STAGES = guidance.PLANNING_REVIEW_STAGES | stage_spec.with_improve("step") | stage_spec.with_improve("last-item")
+
+
+def improve_id(state: Mapping[str, Any]) -> str:
+    """The current Improve stage's action id: what its packet, its `complete` and every improve-* command name."""
+    child = state.get("active_improve")
+    _need(child is not None, "no Improve stage is current")
+    return child["improve_action"]
+
+
+def _reviewed_action(state: Mapping[str, Any], action_id: Any) -> str | None:
+    """The reviewed action behind an Improve stage id: the current one, or an imported one (for a replay)."""
+    child = state.get("active_improve")
+    if child is not None and action_id == child.get("improve_action"):
+        return child["action_id"]
+    for reviewed, record in (state.get("improve_results") or {}).items():
+        if isinstance(record, Mapping) and action_id is not None and record.get("improve_action") == action_id:
+            return reviewed
+    return None
+
+
+_REVIEW_NOISE = re.compile(r"nav-[0-9a-f]{8,}|/\S+|\b[0-9a-f]{7,40}\b")
+
+
+def _review_sentences(text: str) -> list[str]:
+    """A review's sentences, with action ids, paths, hashes, case and spacing removed (the duplicate check's unit)."""
+    plain = _REVIEW_NOISE.sub(" ", text.lower())
+    parts = re.split(r"(?<=[.;:!?])\s+|\n+", plain)
+    return [" ".join(part.split()) for part in parts if len(part.split()) >= 2]
+
+
+def _duplicate_review_gate(core: Any, root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> None:
+    """Refuse a review whose text another Improve stage of this run already submitted (live run, 2026-10-11).
+
+    A model scripted three of four reviews from one template ("Findings: none material; no edits."), changing only
+    the line that named the result. A review is refused when it has at least three sentences and all but one of them
+    appear in one review of another Improve stage of this run. A review varied by hand still passes: this catches
+    the copied template, not every faked review.
+    """
+    import shiploop_standalone_improve as standalone
+    mine_dir = standalone.receipt_path(child).parent
+    base = mine_dir.parent
+    for review in sorted((mine_dir / "reviews").glob("review-*.md")):
+        mine = _review_sentences(review.read_text(encoding="utf-8", errors="replace"))
+        if len(mine) < 3:
+            continue
+        for other in sorted(base.glob("*/reviews/review-*.md")):
+            if other.parent.parent == mine_dir:
+                continue
+            theirs = set(_review_sentences(other.read_text(encoding="utf-8", errors="replace")))
+            shared = sum(1 for sentence in mine if sentence in theirs)
+            _need(shared < len(mine) - 1,
+                  "Review this " + child["stage"] + " result itself: " + str(review) + " repeats the review "
+                  + str(other) + " of another Improve stage (" + str(shared) + " of its " + str(len(mine))
+                  + " sentences). Run the improve skill on this result, write what this review checked and found, "
+                  "then run: " + _callback(core, root, "complete", action=child["improve_action"]))
+
+
+def _improve_child_for(state: Mapping[str, Any], action_id: Any) -> Mapping[str, Any] | None:
+    """The active Improve child when ``action_id`` names its Improve stage, else None."""
+    child = state.get("active_improve")
+    return child if child is not None and action_id == child.get("improve_action") else None
 
 
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
@@ -899,6 +965,11 @@ def current_action(state: Mapping[str, Any]) -> Mapping[str, str]:
     return _active_cursor(state)[1]
 
 
+def sequence_stage(state: Mapping[str, Any]) -> str:
+    """The stage the run's sequence stands at: ``improve`` while an Improve stage is current, else the cursor's stage."""
+    return IMPROVE_STAGE if state.get("active_improve") is not None else current_stage(state)
+
+
 def _next_stage(stage: str, state: Mapping[str, Any]) -> str:
     stages = sum(graph(state), ())
     return "done" if stage == "handoff" else stages[stages.index(stage) + 1]
@@ -1196,8 +1267,13 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     child = state.get("active_improve")
     if child is not None:
         _need(isinstance(child, Mapping) and set(child) in ({
-            "action_id", "stage", "binding_id", "workspace", "seed_result", "skill"
-        }, {"version", "action_id", "stage", "binding_id", "workspace", "seed_result", "skill", "contract_marker"}), "invalid active Improve binding")
+            "action_id", "stage", "binding_id", "workspace", "seed_result", "skill", "improve_action"
+        }, {"version", "action_id", "stage", "binding_id", "workspace", "seed_result", "skill", "contract_marker",
+            "improve_action"}),
+              "invalid active Improve binding (a run started before Improve became its own stage is retired: "
+              + FRESH_RUN_HINT + ")")
+        _need(isinstance(child["improve_action"], str) and _ACTION_ID.fullmatch(child["improve_action"]) is not None
+              and child["improve_action"] != child["action_id"], "invalid Improve stage action")
         _need(child["action_id"] == effective_action_id and child["stage"] == _active_cursor(state)[0],
               "Improve binding does not match current parent action")
         _need(child["binding_id"] == state["run_id"] + "/" + effective_action_id,
@@ -1424,14 +1500,16 @@ ROLLBACK_STAGES = ("release-plan", "release-check", "release", "operations")
 def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
     """Where the full packet for the current action is kept for the host to read.
 
-    An Improve child's packets are a different packet for the same action, so they keep their own file: the producer
-    packet that was sent stays on disk for audit. The packet that asks for improve-bind (no card bound yet) is a third
-    packet and keeps a third file, so improve-start's packet does not overwrite it.
+    The Improve stage is an action of its own, so its packet is its own file (``<improve action>.md``); the producer
+    packet that was sent stays on disk for audit. The packet that asks for improve-bind (no card bound yet) keeps a
+    separate file, so the packet after the bind does not overwrite it.
     """
     improve = state.get("active_improve")
-    action_id = (improve or {}).get("id") or current_action(state).get("id") or f"rev-{state['revision']}"
-    suffix = "" if not improve else "-improve-bind" if improve["skill"] is None else "-improve"
-    return Path(root) / PACKET_DIR / f"{action_id}{suffix}.md"
+    if improve:
+        return Path(root) / PACKET_DIR / (improve["improve_action"] + ("-bind" if improve["skill"] is None else "")
+                                          + ".md")
+    action_id = current_action(state).get("id") or f"rev-{state['revision']}"
+    return Path(root) / PACKET_DIR / f"{action_id}.md"
 
 
 # Printed characters at most: below the ~20,000-character cut some hosts (Grok)
@@ -1607,7 +1685,7 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     if phase == "inner" and owner is not None:
         group = next(name for name, stages in guidance.INNER_GROUPS if stage in stages)
         now_label = f"{title(items[index])} ({index + 1} of {len(items)}) \u203a {group} \u203a {stage}"
-    now_text = (f"Improve is reviewing the {state['active_improve']['stage']} result"
+    now_text = (f"{IMPROVE_STAGE}: the improve skill is reviewing the {state['active_improve']['stage']} result"
                 if state.get("active_improve") else guidance.STAGE_PURPOSE.get(stage, ""))
 
     stop = None
@@ -2189,9 +2267,9 @@ def _check_submitted_unverified(stage: str, result: Any) -> None:
 
 class NextStep(NamedTuple):
     """Where a hand-off refusal's fix goes and what the model runs next (contract rule 4, X3, X4)."""
-    path: Path    # the result file: <run>/inbox/<action>.md, or <action>-final-result.md on improve-complete
+    path: Path    # the result file: <run>/inbox/<action>.md, or <action>-final-result.md on an Improve stage
     tail: str     # "then run the same complete command again.", ...
-    seed: bool    # improve-complete without --final-result: the fix goes into a final result still to be written
+    seed: bool    # an Improve stage's complete without --final-result: the fix goes into a final result to write
 
 
 def _next_step(root: Path, action_id: str, command: str, final_result: Any = None) -> NextStep:
@@ -2200,10 +2278,10 @@ def _next_step(root: Path, action_id: str, command: str, final_result: Any = Non
         return NextStep(_result_input_path(Path(root), action_id), "then run the same complete command again.", False)
     final = Path(root) / "inbox" / (action_id + "-final-result.md")
     if final_result is None:
-        # Rerunning the printed improve-complete would re-check the seed and refuse again (routes-audit M2).
-        return NextStep(final, "then run improve-complete again with --final-result set to that file.", True)
+        # Rerunning the printed complete would re-check the seed and refuse again (routes-audit M2).
+        return NextStep(final, "then run the same complete command again with --final-result set to that file.", True)
     path = Path(str(final_result)) if isinstance(final_result, (str, Path)) else final
-    return NextStep(path, "then run the same improve-complete command again.", False)
+    return NextStep(path, "then run the same complete command again.", False)
 
 
 class _Fault(NamedTuple):
@@ -2263,7 +2341,7 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
             return _Fault("Fix the follows IDs in {result}", "fixes follows",
                           ["Cite only IDs with an entry (a line that starts with the ID) in " + str(spec) + " (R-) or "
                            + str(architecture) + " (AD-): drop each other ID, or add its entry to the living file"
-                           + ("; improve-commit that edit first." if command == "improve-complete" else "."),
+                           + ("; improve-commit that edit first." if command == "improve" else "."),
                            "No entry: " + ", ".join(absent) + "."])
     if stage in assumptions.OPEN_ITEM_STAGES:
         if "assumptions" not in result:
@@ -2300,7 +2378,7 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
                   next_step: NextStep) -> None:
     """Refuse a done result whose hand-off fields its consumers cannot use (consumer contract, slice 4a).
 
-    Runs on complete (``--check-only`` too) and improve-complete, right after ``_knowledge_gate``, on the result those
+    Runs on complete (``--check-only`` too, and on an Improve stage), right after ``_knowledge_gate``, on the result those
     gates check.  It canonicalises first (X5), so a wrong type is the shape refusal ``apply`` would give, never a
     TypeError.  A refusal's line 1 is the fix, one absolute path (the result file) and ``next_step``; line 2 the shape and
     who quotes it; the failing IDs follow in full.  Checks: step-plan's follows exist as entries; test-spec's cases
@@ -2557,13 +2635,16 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
         return _apply_result(state, action_id, canonical)
     if child is not None:
         _need(canonical == child["seed_result"],
-              "step awaits actual Improve; use improve-complete or pause without replacing its child")
+              "step awaits its Improve stage; run that stage's complete, or pause without replacing its child")
         return deepcopy(dict(state))
     updated = deepcopy(dict(state))
+    # The Improve stage is an action of its own in the sequence (owner, 2026-10-11): its id is what its packet and
+    # `complete` name; the review's files stay keyed by the reviewed action.
     updated["active_improve"] = {
         "action_id": action_id, "stage": stage,
         "binding_id": state["run_id"] + "/" + action_id,
         "workspace": state["repo"], "seed_result": canonical, "skill": None,
+        "improve_action": _new_action(IMPROVE_STAGE)["id"],
     }
     updated["revision"] += 1
     validate(updated)
@@ -2834,8 +2915,28 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     after = _document_entry(root, after)
     after, bind_writes = _improve_entry(root, after)
     writes = {**writes, **bind_writes}
+    for relative, text in bind_writes.items():
+        # The child's contract reads the bind snapshot's run directory before save writes it.
+        store.atomic_write_text(root / relative, text)
+    _improve_stage_start(core, root, after)
     lint_writes, payload = _lint_transition(core, root, before, after)
     return after, {**writes, **lint_writes}, payload
+
+
+def _improve_stage_start(core: Any, root: Path, after: Mapping[str, Any]) -> None:
+    """Start the Improve stage's review once its card is bound (owner, 2026-10-11): the improve skill continues it.
+
+    A start the runtime refuses leaves the stage pending: its packet then names improve-start --restart-stopped.
+    """
+    import shiploop_standalone_improve as standalone
+    child = after.get("active_improve")
+    if (after.get("status") != "active" or child is None or child.get("skill") is None
+            or standalone.receipt_path(child).exists()):
+        return
+    try:
+        _start_improve(core, root, after)
+    except NavigatorError as exc:
+        print("ShipLoop could not start the Improve review: " + str(exc), file=sys.stderr)
 
 
 def _improve_entry(root: Path, after: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
@@ -2852,7 +2953,8 @@ def _improve_entry(root: Path, after: dict[str, Any]) -> tuple[dict[str, Any], d
     import shiploop_standalone_improve as standalone
     try:
         selected = standalone.resolve_skill(card)
-        bound = standalone.binding(after, child["action_id"], child["stage"], child["seed_result"], selected)
+        bound = standalone.binding(after, child["action_id"], child["stage"], child["seed_result"], selected,
+                                   improve_action=child["improve_action"])
     except Exception:  # an unresolvable card leaves the bind command in the packet; nothing else changes
         return after, {}
     updated = dict(after)
@@ -3117,16 +3219,16 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
     if owed:
         message_path = improve_commit_message_path(child)
         raise NavigatorError(improve_changes.commit_refusal(
-            owed, str(message_path), _callback(core, root, "improve-commit", action=action_id,
+            owed, str(message_path), _callback(core, root, "improve-commit", action=improve_id(state),
                                                message=str(message_path)),
-            _callback(core, root, "improve-complete", action=action_id)))
+            _callback(core, root, "complete", action=improve_id(state))))
     if changes is not None and changes[0] and _unchanged_first_pass(child):
         raise NavigatorError("The Improve runtime ended on one unchanged trivial pass, but these files changed "
                              "since the review was bound: " + ", ".join(changes[0]) + ". Review them again, "
-                             "reporting each pass that changes a file non-trivial: record why in the opening file, "
-                             "then run: " + _callback(core, root, "improve-start", action=action_id,
-                                                      opening=str(improve_opening_path(child)))
-                             + " --restart-stopped")
+                             "reporting each pass that changes a file non-trivial: start the review again with "
+                             + _callback(core, root, "improve-start", action=improve_id(state))
+                             + " --restart-stopped, run the improve skill on it, then run: "
+                             + _callback(core, root, "complete", action=improve_id(state)))
     if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
         return
     commands = improve_changes.rerun_commands(state)
@@ -3698,12 +3800,12 @@ def status_block(state: Mapping[str, Any]) -> str:
     elif phase == "inner":
         group = next(name for name, stages in guidance.INNER_GROUPS if stage in stages)
         where = (f"Work items > {item_name(items[index])} ({index + 1} of {len(items)})"
-                 f" > {group} > {stage}" + (" (Improve review)" if child else ""))
+                 f" > {group} > {stage}" + (f" > {IMPROVE_STAGE}" if child else ""))
     else:
         stages = prelude if phase == "preparation" else outer
         where = (f"{'Preparation' if phase == 'preparation' else 'Release'} > {stage}"
                  f" ({stages.index(stage) + 1} of {len(stages)}"
-                 + (", Improve review)" if child else ")"))
+                 + (f") > {IMPROVE_STAGE}" if child else ")"))
     lines = [
         STATUS_BEGIN,
         "Where:     " + where,
@@ -3742,8 +3844,7 @@ def status_block(state: Mapping[str, Any]) -> str:
 
     if status == "active":
         if child:
-            lines.append(f"Next:      Improve review of the {child['stage']} result "
-                         "(the Improve skill runs its own review loop)")
+            lines.append(f"Next:      {IMPROVE_STAGE}: run the improve skill on the {child['stage']} result")
         else:
             lines.append(f"Next:      {stage}: {guidance.STAGE_PURPOSE[stage]}")
     elif awaiting(state) is not None:
@@ -4964,20 +5065,14 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         return ["Next command (bind the selected Improve card; details below): "
-                + _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card})]
+                + _callback(core, root, "improve-bind", action=improve_id(state), **{"skill-card": card})]
     import shiploop_standalone_improve as standalone
     if not standalone.receipt_path(child).exists():
-        # Both routes: ShipLoop writes the contract and starts the child (the Ask-Agent
-        # route's hand-built contract lost its binding line, 551b8b49).
-        opening = improve_opening_path(child)
-        return ["Next command (start the bound Improve child after writing its opening file "
-                + str(opening) + "; details below): "
-                + _callback(core, root, "improve-start", action=action_id, opening=str(opening)),
-                "The opening file holds exactly these headings, each followed by its content: "
-                + ", ".join('"## ' + name + '"' for name in OPENING_SECTIONS)
-                + " (a renamed or empty section is refused)."]
-    return ["Callback for this Improve child (parent only; after the runtime returns complete; "
-            "never 'complete'): " + _callback(core, root, "improve-complete", action=action_id)]
+        # ShipLoop starts the review at the transition; a start the runtime refused is retried with this command.
+        return ["Next command (ShipLoop could not start this Improve review; start it again): "
+                + _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped"]
+    return ["Callback for this Improve stage (after the improve skill has completed): "
+            + _callback(core, root, "complete", action=improve_id(state))]
 
 
 def _improve_line(state: Mapping[str, Any], stage: str) -> str:
@@ -5079,22 +5174,26 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
     """An Improve packet: invoke the improve skill, then run the done command (plus the hooks' machine lines)."""
     child = state["active_improve"]
     action_id, stage = child["action_id"], child["stage"]
-    lines = [f"ShipLoop navigator | {stage} | revision {state['revision']} | Improve"]
+    lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result"]
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         lines += [("No Improve card is recorded for this run. " if not state.get("improve_skill") else "")
                   + "Next command (bind the Improve skill's SKILL.md, absolute path; ShipLoop looks for its own at "
                   + str(guidance.installed_improve_card()) + "): "
-                  + _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card}),
+                  + _callback(core, root, "improve-bind", action=improve_id(state), **{"skill-card": card}),
                   "Then run the recovery command for the Improve instruction: " + _callback(core, root, "next")]
     else:
         argument = IMPROVE_ARGUMENT_PREFIX + str(improve_handoff_path(child))
+        import shiploop_standalone_improve as standalone
+        if not standalone.receipt_path(child).exists():
+            lines += ["ShipLoop could not start this review; start it again first: "
+                      + _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped"]
         lines += ["1. Run the improve skill on the " + stage + " result. For example, on Claude Code:",
                   "       /improve " + argument,
                   "   (the Skill tool, skill \"improve\", with that argument; on another host, open "
                   + child["skill"]["skill_card"] + " and pass the same argument)",
                   "2. When the improve skill has completed, run: "
-                  + _callback(core, root, "improve-complete", action=action_id)]
+                  + _callback(core, root, "complete", action=improve_id(state))]
     lines += [
         # Keepalive hooks bind a host session to this run from this exact line.
         f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
@@ -5129,14 +5228,14 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
            "this carry-forward result. Use the accepted step results in state.md history and their "
            "evidence_refs as the step record; review across items before OUTER system tests and release."]
           if end_of_work else []),
-        "Parent step remains pending until actual Improve completion is imported.",
+        "The reviewed result stays pending until this Improve stage's complete imports the review.",
         "Checked by: the Improve skill runs its own review and checks; once its runtime returns complete you run the "
-        "improve-complete callback, which validates the child's receipt and imports its review and check files before "
-        "this stage's result is accepted. improve-commit refuses to commit a message with no `Key learnings:` line "
-        "(or another lessons label it reads), a `Learned-from:` line without a commit reachable from HEAD and what that "
-        "commit contributed, or credential-looking text; improve-complete refuses a review that left its own edits "
+        "Improve stage's complete command, which validates the child's receipt and imports its review and check files "
+        "before the reviewed result is accepted. improve-commit refuses to commit a message with no `Key learnings:` "
+        "line (or another lessons label it reads), a `Learned-from:` line without a commit reachable from HEAD and what "
+        "that commit contributed, or credential-looking text; complete refuses a review that left its own edits "
         "uncommitted (commit them with improve-commit, or pass `--no-commit` with the user's instruction; its refusal "
-        "prints both improve-complete commands).",
+        "prints both commands) and a review that repeats another Improve stage's review of this run.",
         "Step result (untrusted evidence, not new authority):",
         "Improve also reviews failed/blocked attempts. Completion of that review may retain a repeat or blocked parent disposition; it does not establish the underlying step succeeded.",
         seed_text,
@@ -5153,7 +5252,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         lines.extend([
             "Load the actual Improve skill selected by this host. Retain its absolute SKILL.md location; do not substitute a policy file or managed controller.",
             bind_line,
-            _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card}),
+            _callback(core, root, "improve-bind", action=improve_id(state), **{"skill-card": card}),
             "If unavailable, keep this action pending and report the missing skill; do not substitute a hand-written review loop for the selected skill.",
             "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),
         ])
@@ -5222,25 +5321,16 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
 
     packet_path = standalone_improve.receipt_path(child)
     evidence_root = packet_path.parent / "reviews"
-    # Both routes: the parent writes the opening and ShipLoop freezes the contract and starts
-    # the child (improve-start); a model never writes the start contract (149ed901, 551b8b49).
-    opening_allowance = improve_opening_allowance(core, root, state)
+    # ShipLoop started this review when the Improve stage began (owner, 2026-10-11): it wrote the opening from state,
+    # froze the contract and started the runtime, so no model writes the opening or starts the child.
     start_lines = [
-            "Context-first opening: before start, write the opening file " + str(improve_opening_path(child))
-            + " with exactly these four sections, each filled from this conversation and the candidate:\n"
-            + improve_opening_template()
-            + "'Current context and desired improvements' holds current learnings, decisions, unresolved concerns and suggested improvements to assess; 'Scope' the exact candidate paths (including untracked ones) and anything excluded; 'Authority' current approvals, declines, pending decisions and any no-commit override, with their source; 'Environment' the runtime, commands and checks that apply. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions. "
-            "Size budget: the opening is frozen into the Until Loop's state, which the runtime caps at "
-            + f"{loop_contract.STATE_LIMIT:,} bytes in all (contract, latest report, progress). improve-start refuses a contract over "
-            + f"{loop_contract.CONTRACT_BUDGET:,} bytes so the first review report still fits; ShipLoop's own text leaves the four sections "
-            + (f"about {opening_allowance:,} bytes together" if opening_allowance else "little more than a few thousand bytes together")
-            + " (non-ASCII text counts several bytes per character). Put long detail in a file and name its path in the section; "
-            "keep inline the reasoning a later review needs. A refusal says how far over you are and which section to shorten.",
-            "Then run: " + _callback(core, root, "improve-start", action=action_id, opening=str(improve_opening_path(child)))
-            + " . ShipLoop freezes the child contract from the opening (binding line, workspace, work, exit and repeat conditions, commit policy, exclusions and every return locator; written to start.json beside the receipt), starts the bound runtime with the receipt below and prints the child's first packet. Do not write the start contract or start the runtime yourself. If this child already started, recover it from its receipt as described below instead.",
+        "ShipLoop started this review when the Improve stage began: it wrote the opening "
+        + str(improve_opening_path(child)) + " from the run's state, froze the child contract (start.json beside "
+        "the receipt below) and started the bound runtime. Continue the child from its receipt: run its next_argv "
+        "once, then follow the returned instruction. Do not write the opening or start the runtime yourself.",
     ]
     if not planning_reconcile:
-        # Beside improve-start, not 20 KB below it: a review that wrote the commit message to the wrong file name was
+        # Beside the start, not 20 KB below it: a review that wrote the commit message to the wrong file name was
         # refused, and another searched for the command (packet review 2026-10-10, P-improve-1).
         # The message rules improve-commit enforces (_lessons_and_citations_refusal, the --remote-change path), so a
         # first message is not refused for a Key learnings line no packet named; the command ends the line.
@@ -5254,7 +5344,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "alias>, <what changed>, <where its evidence is>` and append `--remote-change` to the command. Each goes "
             "on a line of its own starting in column 1, not inside one paragraph. Do not write the message with a "
             "shell heredoc or run git commit yourself: a hand-typed commit skips these checks. Then run: "
-            + _callback(core, root, "improve-commit", action=action_id,
+            + _callback(core, root, "improve-commit", action=improve_id(state),
                         message=str(improve_commit_message_path(child))))
     if inline:
         ownership_lines = [
@@ -5267,7 +5357,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ownership_lines = [
             *start_lines,
             "Parent assignment preparation: the opening carries the conversation-only learnings, decisions and unresolved concerns (the navigator cannot supply conversation-only learnings). Then say 'Run /improve' with the selected card, the concrete run binding and this started child's receipt. Do not forward this entire parent packet or repeat the skill's execution instructions.",
-            "For a genuinely new invocation, after improve-start has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
+            "For a genuinely new invocation, after ShipLoop has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
             "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
@@ -5280,7 +5370,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *ownership_lines,
         "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
         "Child latest packet receipt: " + str(packet_path),
-        # Inline: improve-bind pins the card and runtime, improve-start freezes the contract (binding line,
+        # Inline: ShipLoop binds the card and runtime and freezes the contract (binding line,
         # start inputs, planning repeat clause) and starts the runtime with the receipt; only the
         # model's remaining obligations are stated here (SPEC S-5, S-7).
         *([] if inline else [
@@ -5298,8 +5388,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         + "To continue after a stop that cannot be reconciled, once its blocker is resolved or the user "
         "authorizes continuing, "
         + ("confirm no candidate write is in progress" if inline else "confirm the recorded owner stopped")
-        + (", record the decision in the opening file and rerun the improve-start command with "
-           "--restart-stopped: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json and "
+        + (", run " + _callback(core, root, "improve-start", action=improve_id(state))
+           + " --restart-stopped: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json and "
            "the sibling reviews directory as reviews.stopped-<same timestamp>, then starts a new child with "
            "the same binding line. Do not rename them yourself. ")
         + "Its review-<n>.md files and checks.md must be ones the new child writes. "
@@ -5326,14 +5416,14 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                 "Keep the full parent packet, prompts and verbose "
                 "logs behind those locators; do not duplicate them in the child context.",
                 "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                # The planning packet prints no improve-commit command; improve-start writes it and its message rules
+                # The planning packet prints no improve-commit command; the start writes it and its message rules
                 # to parent-return.md, which the frozen contract also names.
                 "To commit a review iteration's changes, run the improve-commit command in "
                 + str(packet_path.with_name("parent-return.md")) + "; its message rules are there. ShipLoop commits "
                 "exactly the files this review changed. Do not run git commit yourself.",
             ]
         ),
-        "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
+        "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before running the complete command. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
     ]
     reconcile_lines: list[str] = []
     if planning_reconcile:
@@ -5358,8 +5448,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             ("Parent-only stopped-child callback; it imports the preserved stopped " if inline else
              "Parent-only stopped-child callback after collection; it imports the preserved stopped ")
             + "packet and immutable evidence, then restarts the requested planning suffix:",
-            _callback(core, root, "improve-reconcile", action=action_id, result=str(reconcile_path)),
-            "A successful child still follows the normal improve-complete callback below.",
+            _callback(core, root, "improve-reconcile", action=improve_id(state), result=str(reconcile_path)),
+            "A successful child still follows the normal complete callback below.",
         ]
     lines.extend([
         "Selected Improve skill: " + skill["skill_card"],
@@ -5388,10 +5478,10 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. When the first pass is trivial and leaves the workspace unchanged, the runtime checks that from Git and completes after that one pass.",
         "Changes: change what is warranted in code, tests or documentation, and commit it; "
         + _improve_rerun_clause(child["stage"])
-        + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to improve-complete with --no-commit.",
+        + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the complete command with --no-commit.",
         "Evidence: write each review pass to " + str(evidence_root / "review-<n>.md") + " (n = the pass "
         "number: review-1.md, review-2.md, ...) and the current check output to "
-        + str(evidence_root / "checks.md") + ". improve-complete imports the last two passes (the last "
+        + str(evidence_root / "checks.md") + ". The complete command imports the last two passes (the last "
         "one when the first pass changed nothing) and checks.md; nothing else to list. A plan/RED "
         "disposition is checked against its own criteria, not future product success.",
         "Optional, for later steps: lessons in a plain-text file passed as --notes " + str(notes_path) + ".",
@@ -5420,7 +5510,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ("Parent callback; run only after the runtime returned complete, its terminal packet is saved at "
          "the receipt above:" if inline else
          "Parent-only callback; execute only after collecting and verifying successful bound runtime completion:"),
-        _callback(core, root, "improve-complete", action=action_id),
+        _callback(core, root, "complete", action=improve_id(state)),
         "If incomplete, retain the child, its packet receipt and review notes; do not call complete on the producer again or advance the graph.",
         "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),
     ])
@@ -6098,15 +6188,14 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     in a ``Remote change`` section, and with no file pending that is the whole commit.  A ``Remote change``
     section without the flag changes nothing.
     """
-    child = state.get("active_improve")
-    action_id = getattr(args, "action", None)
-    _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
-          and child["skill"] is not None,
-          "no bound current Improve child for this action (it may already be imported); to read the current "
+    child = _improve_child_for(state, getattr(args, "action", None))
+    _need(state["status"] == "active" and child is not None and child["skill"] is not None,
+          "no bound current Improve stage with this action (it may already be imported); to read the current "
           "packet run: " + _callback(core, root, "next"))
+    action_id = child["action_id"]
     message_path = improve_commit_message_path(child)
     remote = bool(getattr(args, "remote_change", False))
-    command = (_callback(core, root, "improve-commit", action=action_id, message=str(message_path))
+    command = (_callback(core, root, "improve-commit", action=improve_id(state), message=str(message_path))
                + (" --remote-change" if remote else ""))
     _need(getattr(args, "message", None) == str(message_path),
           "the commit message must be the printed file " + str(message_path) + "; run: " + command)
@@ -6120,7 +6209,7 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     _need(changes is not None,
           "ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for "
           "you: leave the files as they are. The bound child stops here; the parent imports the review once the "
-          "loop's terminal packet exists. Parent, run: " + _callback(core, root, "improve-complete", action=action_id))
+          "loop's terminal packet exists. Parent, run: " + _callback(core, root, "complete", action=improve_id(state)))
     pending = changes[1]
     if remote:
         _need(bool(commit_lessons.remote_change(message)),
@@ -6134,7 +6223,7 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
         if commit_lessons.remote_change(message):  # the section was not recorded: say so rather than drop it silently
             print("A Remote change section changes nothing without --remote-change. If this iteration did change a "
                   "remote system, write the message to " + str(message_path) + " again, then run: "
-                  + _callback(core, root, "improve-commit", action=action_id, message=str(message_path))
+                  + _callback(core, root, "improve-commit", action=improve_id(state), message=str(message_path))
                   + " --remote-change")
         message_path.unlink()  # a stale message must not be committed by a later run
         return 0
@@ -6161,35 +6250,69 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     return 0
 
 
-def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
-    """Freeze the bound child's contract and start its runtime with the receipt."""
+def improve_opening_text(core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """The Improve child's four opening sections, written by ShipLoop from state (owner, 2026-10-11).
+
+    No model writes the opening: the Improve stage starts at the transition, so the improve skill finds its child
+    already running. Each section holds the essentials inline and names the files that hold the rest.
+    """
+    child = state["active_improve"]
+    stage, action_id = child["stage"], child["action_id"]
+    seed = child["seed_result"]
+    work_item = _current_work_item(state)
+    item = (" of work item " + work_item + " (" + _item_title(state, work_item) + ")") if work_item else ""
+    headline = str(seed.get("headline") or "").strip()
+    summary = _bounded_packet_text(str(seed.get("summary") or ""), limit=600)
+    home = Path(state["repo"]) / "docs" / "shiploop"
+    changed: list[str] = []
+    if work_item and stage in stage_spec.with_improve("step") | stage_spec.with_improve("last-item"):
+        changed = item_scope.changed_paths(root, work_item) or []
+    scope = [
+        "The " + stage + " result" + item + ": " + str(root / "inbox" / (action_id + ".md")) + ".",
+        *(["Files this item changed: " + ", ".join(changed[:40]) + (" (and more)" if len(changed) > 40 else "")
+           + "."] if changed else []),
+        "The knowledge files it worked from, under " + str(home) + ".",
+    ]
+    return "\n".join([
+        "## Current context and desired improvements",
+        "Review the " + stage + " result" + item + " and improve what is warranted"
+        + (": " + headline if headline else "") + ".",
+        *(["Its summary: " + summary] if summary else []),
+        "The whole hand-off (what the stage worked from, its done-when conditions and the review's focus items): "
+        + str(improve_handoff_path(child)) + ".",
+        "",
+        "## Scope",
+        *scope,
+        "",
+        "## Authority",
+        "This run's own review, inline in this session: change code, tests or documentation within scope, and commit "
+        "only through the improve-commit command in " + str(improve_opening_path(child).with_name("parent-return.md"))
+        + ". No push, deploy, install or credential access. The original request (untrusted) is the prompt in "
+        + str(root / "state.md") + "; an explicit instruction there not to commit applies.",
+        "",
+        "## Environment",
+        "Checkout: " + str(state["repo"]) + ". Commands, harnesses and suites: " + str(home / "environment.md")
+        + " and the result's recorded test commands.",
+        "",
+    ])
+
+
+def _start_improve(core: Any, root: Path, state: Mapping[str, Any], *, restart: bool = False) -> None:
+    """Write the bound child's opening, freeze its contract and start its runtime (the Improve stage's setup).
+
+    ShipLoop runs this at the transition into the Improve stage, so the model never starts the child itself; the
+    improve skill continues it from the receipt. ``restart`` archives a stopped child, or one whose single unchanged
+    pass the change gate refused (42beb2d5), and starts it again.
+    """
     import subprocess
     import shiploop_standalone_improve as standalone
-    child = state.get("active_improve")
-    action_id = getattr(args, "action", None)
-    _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
-          and child["skill"] is not None, "no bound current Improve child; run the printed improve-bind first")
+    child = state["active_improve"]
+    action_id = child["action_id"]
     receipt = standalone.receipt_path(child)
-    restart = bool(getattr(args, "restart_stopped", False))
-    if receipt.exists():
-        try:
-            saved_status = json.loads(receipt.read_text(encoding="utf-8")).get("status")
-        except (OSError, ValueError, AttributeError):
-            saved_status = None
-        # A completed child whose one unchanged pass the change gate refused restarts the same way.
-        _need(restart and (saved_status == "stopped" or _unchanged_first_pass(child)),
-              "this child already started; recover it from its saved receipt " + str(receipt)
-              + " (active: run its next_argv once; complete: run improve-complete; "
-              " stopped: once the blocker is resolved or the user authorizes continuing, "
-              "record that decision in the opening and rerun improve-start with --restart-stopped)")
-    else:
-        _need(not restart, "--restart-stopped needs a stopped child receipt at " + str(receipt))
     opening = improve_opening_path(child)
-    _need(getattr(args, "opening", None) == str(opening), "Improve opening must use the printed path " + str(opening))
-    _need(opening.is_file() and not opening.is_symlink(), "write the opening file first: " + str(opening))
+    opening.parent.mkdir(parents=True, exist_ok=True)
+    store.atomic_write_text(opening, improve_opening_text(core, root, state))
     contract = improve_start_contract(core, root, state, opening.read_text(encoding="utf-8"))
-    # Refuse here, before anything is written or archived: a contract that fills the runtime's state file
-    # leaves no room for the first review report, and that is only discovered after the review is done.
     opening_text = opening.read_text(encoding="utf-8")
     problem = loop_contract.size_problem(
         contract, writable=OPENING_CONTRACT_PARTS, allowance=improve_opening_allowance(core, root, state),
@@ -6211,7 +6334,7 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         "## The one ShipLoop command the child runs: improve-commit", "",
         "To commit a review iteration's changes, write the commit message to " + str(message_path)
         + " with a file-writing tool (not a shell heredoc), then run:",
-        _callback(core, root, "improve-commit", action=action_id, message=str(message_path)),
+        _callback(core, root, "improve-commit", action=improve_id(state), message=str(message_path)),
         "ShipLoop commits exactly the files this review changed and has not committed. A refusal's first line is "
         "the fix and the command to run next: make the fix, then run that command.",
         "- Lessons: the message needs a line \"Key learnings: <what this iteration taught that a later iteration or "
@@ -6227,12 +6350,12 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         "--remote-change that section changes nothing.",
         "- A review that changed no file makes no commit: improve-commit says \"Nothing to commit\" and removes "
         "the message file. Never run git commit yourself: it skips these checks. If the user or repository said "
-        "not to commit, do not run improve-commit; the parent passes that instruction to improve-complete with "
+        "not to commit, do not run improve-commit; the parent passes that instruction to the complete command with "
         "--no-commit.", "",
         "## The parent's return", "",
         "Only after the runtime wrote a complete terminal packet to " + str(receipt) + ", run:",
-        _callback(core, root, "improve-complete", action=action_id),
-        "The child never runs the improve-complete command; a stopped or blocked child leaves the parent pending.",
+        _callback(core, root, "complete", action=improve_id(state)),
+        "The child never runs the complete command; a stopped or blocked child leaves the Improve stage pending.",
         ""]))
     start = receipt.with_name("start.json")
     store.atomic_write_text(start, loop_contract.dumps(contract))
@@ -6242,14 +6365,31 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         [sys.executable, "-B", child["skill"]["runtime_cli"], "start", "--directory", str(state_dir),
          "--receipt", str(receipt)],
         input=json.dumps(contract, ensure_ascii=False).encode("utf-8"), capture_output=True, timeout=60)
-    # stdout is exactly the runtime's packet (as from the runtime's own start), so it parses as JSON.
-    sys.stderr.write("Improve child started from the frozen contract " + str(start)
-                     + "; its receipt is " + str(receipt) + ". Follow the runtime packet on stdout.\n")
-    sys.stdout.write(done.stdout.decode("utf-8", "replace"))
     if done.returncode:
-        sys.stderr.write(done.stderr.decode("utf-8", "replace"))
-        raise NavigatorError("the bound Until Loop runtime refused the start contract (exit "
-                             + str(done.returncode) + "); fix the opening and rerun improve-start")
+        raise NavigatorError("the bound Until Loop runtime refused the Improve stage's start contract (exit "
+                             + str(done.returncode) + "): " + done.stderr.decode("utf-8", "replace").strip())
+
+
+def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
+    """improve-start --restart-stopped: start the Improve stage's review again after a stop or a refused pass."""
+    import shiploop_standalone_improve as standalone
+    child = _improve_child_for(state, getattr(args, "action", None))
+    _need(state["status"] == "active" and child is not None and child["skill"] is not None,
+          "no bound current Improve stage with this action; to read the current packet run: "
+          + _callback(core, root, "next"))
+    receipt = standalone.receipt_path(child)
+    try:
+        saved_status = json.loads(receipt.read_text(encoding="utf-8")).get("status") if receipt.exists() else None
+    except (OSError, ValueError, AttributeError):
+        saved_status = None
+    _need(not receipt.exists() or saved_status == "stopped" or _unchanged_first_pass(child),
+          "this review is still running; continue it from its saved receipt " + str(receipt)
+          + " (active: run its next_argv once; complete: run " + _callback(core, root, "complete",
+                                                                         action=improve_id(state)) + ")")
+    _start_improve(core, root, state, restart=receipt.exists())
+    print("Improve review started again from " + str(improve_opening_path(child)) + "; its receipt is "
+          + str(receipt) + ". Run the improve skill on it as the packet says:")
+    emit(core, root, state)
     return 0
 
 
@@ -6261,7 +6401,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     terminal_knowledge_closed = False
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
-        "improve-bind", "improve-start", "improve-commit", "improve-complete", "improve-reconcile", "delegation",
+        "improve-bind", "improve-start", "improve-commit", "improve-reconcile", "delegation",
         "lint-mode"
     }, f"navigator does not support command {command!r}")
     validate(state)
@@ -6270,11 +6410,14 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         planning_revision.validate_archives(state, root)
     except planning_revision.PlanningRevisionError as exc:
         raise NavigatorError(str(exc)) from exc
-    if command in ("complete", "improve-complete", "halt") and state.get("chain_bindings"):
+    # `complete` on an Improve stage imports its review (owner, 2026-10-11: Improve is a stage of its own).
+    improve_import = command == "complete" and _reviewed_action(state, getattr(args, "action", None)) is not None
+    if command in ("complete", "halt") and state.get("chain_bindings"):
         import shiploop_chain
         try:
             guarded_action = (current_action(state)["id"] if command == "halt"
-                              else getattr(args, "action", None))
+                              else _reviewed_action(state, getattr(args, "action", None))
+                              or getattr(args, "action", None))
             shiploop_chain.guard_completion(root, state, guarded_action)
         except ValueError as exc:
             raise NavigatorError(str(exc)) from exc
@@ -6297,12 +6440,16 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         print(_render_report(state, root), end="")
         return 0
     if command == "improve-start":
-        return _improve_start(core, root, state, args)
+        return _improve_restart(core, root, state, args)
     if command == "improve-commit":
         return _improve_commit(core, root, state, args)
-    if command in ("improve-bind", "improve-complete", "improve-reconcile"):
+    if command in ("improve-bind", "improve-reconcile") or improve_import:
         import shiploop_standalone_improve as standalone
-        action_id = getattr(args, "action", None)
+        stage_action = getattr(args, "action", None)
+        action_id = _reviewed_action(state, stage_action)
+        _need(action_id is not None,
+              f"action {stage_action!r} is not this run's Improve stage; to read the current packet run: "
+              + _callback(core, root, "next"))
         extra_writes = {}
         try:
             if command == "improve-bind":
@@ -6312,7 +6459,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 selected = standalone.resolve_skill(getattr(args, "skill_card", ""))
                 _need(child["skill"] is None or child["skill"] == selected,
                       "cannot change the selected skill on an active child")
-                bound = standalone.binding(state, action_id, child["stage"], child["seed_result"], selected)
+                bound = standalone.binding(state, child["action_id"], child["stage"], child["seed_result"],
+                                           selected, improve_action=child["improve_action"])
                 updated = deepcopy(dict(state))
                 if bound != child:
                     updated["active_improve"] = bound
@@ -6321,9 +6469,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     for relative, text in improve_changes.bind_writes(root, Path(state["repo"]),
                                                                       action_id).items():
                         store.atomic_write_text(root / relative, text)
-            elif command == "improve-complete":
-                _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
-                      "unsafe Improve parent action")
+            elif improve_import:
                 prior = state["improve_results"].get(action_id)
                 if prior is not None:
                     # A repeated call after a successful import changes nothing.
@@ -6352,15 +6498,17 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
-                                    child["seed_result"] if final_result is None else final_result, "improve-complete")
+                                    child["seed_result"] if final_result is None else final_result, "improve")
                     _handoff_gate(root, state, child["stage"],
-                                  child["seed_result"] if final_result is None else final_result, "improve-complete",
-                                  next_step=_next_step(root, action_id, "improve-complete",
+                                  child["seed_result"] if final_result is None else final_result, "improve",
+                                  next_step=_next_step(root, action_id, "improve",
                                                        None if final_result is None
                                                        else getattr(args, "final_result", None)))
                     _improve_change_gate(core, root, state, action_id, child, receipt)
+                    _duplicate_review_gate(core, root, state, child)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)
+                    record["improve_action"] = child["improve_action"]
                     updated = finish_improve(state, action_id, record, final_result)
                 if completion_guard is not None and updated != state:
                     completion_guard(state, updated)

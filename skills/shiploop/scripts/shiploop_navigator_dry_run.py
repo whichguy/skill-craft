@@ -69,9 +69,10 @@ def activity(planning_review='stage', *, two=False):
             rows.append({'at': stage, 'command': 'produce', 'expect': target,
                          'result': producer, 'status': status})
             continue
-        rows.append({'at': stage, 'command': 'produce', 'expect': stage,
+        # Every reviewed stage is followed by its own Improve stage in the sequence (owner, 2026-10-11).
+        rows.append({'at': stage, 'command': 'produce', 'expect': navigator.IMPROVE_STAGE,
                      'result': producer, 'status': 'active'})
-        rows.append({'at': stage, 'command': 'finish-improve', 'expect': target,
+        rows.append({'at': navigator.IMPROVE_STAGE, 'command': 'finish-improve', 'expect': target,
                      'receipt': _improve_receipt(stage), 'status': status})
     return rows
 
@@ -83,15 +84,22 @@ def _insert_before(rows, stage, command, extra):
     return rows
 
 
+def _insert_into_review(rows, stage, extra):
+    """Insert declarations before the Improve stage that follows ``stage``'s first produce row."""
+    produced = next(i for i, row in enumerate(rows) if row['at'] == stage and row['command'] == 'produce')
+    rows[produced + 1:produced + 1] = extra
+    return rows
+
+
 def scenarios(planning_review='stage'):
     """Declarations for protocol 4: most producers advance without an Improve child."""
     # a child that asks for another attempt: at plan when the run reviews it, else at the first stage that has one
     repeat_at = 'plan' if 'plan' in REVIEWED3[planning_review] else 'system-test-author'
-    repeat = _insert_before(activity(planning_review), repeat_at, 'finish-improve', [
-        {'at': repeat_at, 'command': 'finish-improve', 'receipt': _improve_receipt(repeat_at),
+    repeat = _insert_into_review(activity(planning_review), repeat_at, [
+        {'at': navigator.IMPROVE_STAGE, 'command': 'finish-improve', 'receipt': _improve_receipt(repeat_at),
          'final_result': {'outcome': 'repeat', 'summary': 'More investigation needed.'},
          'expect': repeat_at},
-        {'at': repeat_at, 'command': 'produce', 'expect': repeat_at,
+        {'at': repeat_at, 'command': 'produce', 'expect': navigator.IMPROVE_STAGE,
          'result': {'outcome': 'done', 'summary': 'Synthetic second attempt.'}},
     ])
     paused = _insert_before(activity(planning_review), 'test', 'produce', [
@@ -171,7 +179,7 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
                 raise ValueError('each step needs at and expect')
-            current_stage = navigator.current_stage(state)
+            current_stage = navigator.sequence_stage(state)
             current_action = navigator.current_action(state)
             if current_stage != step['at']:
                 raise ValueError(f"event {index}: expected current {step['at']}, got {current_stage}")
@@ -190,7 +198,7 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
                     'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}))
             elif command == 'finish-improve':
                 state = navigator.finish_improve(
-                    state, current_action['id'], step.get('receipt'),
+                    state, state['active_improve']['action_id'], step.get('receipt'),
                     step.get('final_result'))
             elif command == 'done':
                 state = navigator.apply(state, current_action['id'], step.get('result', {
@@ -199,7 +207,7 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
                 state = navigator.control(state, command, 'Synthetic control event.')
             else:
                 raise ValueError(f'unknown synthetic command: {command}')
-            next_stage = navigator.current_stage(state)
+            next_stage = navigator.sequence_stage(state)
             row.update(
                 command=command,
                 to=next_stage,

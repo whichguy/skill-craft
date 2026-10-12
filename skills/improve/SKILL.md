@@ -109,13 +109,14 @@ move. Keep explicitly excluded scratch or pre-existing user paths outside that
 candidate. When the inventory is large, retain one exact inventory locator
 rather than recopying every path into each review record.
 
-When the ShipLoop packet prints an `improve-start` command, write the opening
-file it names and run that command: ShipLoop freezes the child contract (binding
-line, workspace, conditions, commit policy and return locators) and starts the
-bound runtime with the receipt for you. Otherwise start the bound runtime with
-`--receipt <the printed host receipt path>`: the
-runtime then writes every child packet there itself, the terminal packet before
-it deletes its state, and ShipLoop imports only a packet written that way. Never
+ShipLoop starts the child itself when its Improve stage begins: it writes the
+opening from the run's state, freezes the child contract (binding line,
+workspace, conditions, commit policy and return locators) and starts the bound
+runtime with the receipt. Read the printed host receipt and continue the child
+from it: for `active` status run its `next_argv` once, then follow the returned
+instruction. Do not write the opening or start the runtime yourself. The runtime
+writes every child packet to the receipt itself, the terminal packet before it
+deletes its state, and ShipLoop imports only a packet written that way. Never
 write or edit that receipt by hand.
 
 The child `context.resources` must retain the parent latest-packet receipt
@@ -384,8 +385,8 @@ whole-skill subcall, write each review pass to its `review-<n>.md` and the curre
 check output to `checks.md`, in the reviews directory beside the receipt; ShipLoop
 derives the outcome, key changes and check state itself from those files and
 writes the summary. Pass any lessons for later steps as a plain-text file to
-`improve-complete --notes`, and a revised step result only when the review changed
-a decision, via `--final-result`. Do not add runtime
+the Improve stage's `complete --notes`, and a revised step result only when the
+review changed a decision, via `--final-result`. Do not add runtime
 fields, reopen a completed loop, or issue another callback to format this report.
 A blocked, stopped or interrupted run returns the same useful account labeled
 partial, with its blocker or recovery action; it is not completion.

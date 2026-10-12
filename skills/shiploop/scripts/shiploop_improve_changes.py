@@ -1,7 +1,7 @@
 """What an Improve review changed in the candidate, and whether it committed it.
 
 At ``improve-bind`` ShipLoop snapshots the candidate's working tree
-(``improve/<action>-bind.md``).  At ``improve-complete`` it compares the current
+(``improve/<action>-bind.md``).  At the Improve stage's ``complete`` it compares the current
 tree with that snapshot:
 
 * A file the review changed that still differs from ``HEAD`` is an uncommitted
@@ -95,8 +95,8 @@ def commit_refusal(paths: List[str], message_path: str, command: str, complete_c
     """The import refusal for the review's uncommitted edits.
 
     Line 1 is the fix and the exact command (last, so it can be copied).  The exit for a user's or repository's
-    instruction not to commit is improve-complete's ``--no-commit`` flag, which fills the receipt's ``no_commit``;
-    both improve-complete lines print the command, so a parent that has lost its packet needs nothing else.
+    instruction not to commit is complete's ``--no-commit`` flag (on the Improve stage), which fills the receipt's ``no_commit``;
+    both complete lines print the command, so a parent that has lost its packet needs nothing else.
     """
     return ("Commit this review's changes first: write the message to " + message_path + " with a file tool, "
             "then run: " + command + "\n"
@@ -104,7 +104,7 @@ def commit_refusal(paths: List[str], message_path: str, command: str, complete_c
             + "".join("- " + path + "\n" for path in paths)
             + "improve-commit commits exactly these files and needs a \"Key learnings:\" line in the message "
               "(\"Key learnings: none\" when nothing was learned); a git commit typed by hand skips that check.\n"
-              "Then run the improve-complete command again: " + complete_command + "\n"
+              "Then run the complete command again: " + complete_command + "\n"
               "If the user or repository said not to commit, record their instruction instead: "
             + complete_command + " --no-commit \"<their instruction>\"")
 
