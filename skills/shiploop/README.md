@@ -248,9 +248,8 @@ the selected Until Loop runtime remains child-execution authority.
 
 ### Current Improve and Until Loop binding
 
-The canonical Improve package bundles Until Loop **0.7.0**, pinned to
-upstream commit `80e6caca28aaeb9038e7c209809cc2071aab22ac`
-(`skills/improve/runtime/until-loop/PROVENANCE.json`). Its default child uses
+The canonical Improve package bundles Until Loop at the version and upstream
+commit recorded in `skills/improve/runtime/until-loop/PROVENANCE.json`. Its default child uses
 `scripts/until_loop_ephemeral.py`, and its card (`ADAPTER.md`) can be invoked by
 the model and starts a parent-written contract file unchanged, which is how
 every inner stage's loop starts; the provenance manifest records the copied

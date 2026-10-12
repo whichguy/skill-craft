@@ -143,9 +143,8 @@ and, for context-bearing runs, a nonblank `handoff` for complete continuity.
 Before `done`, condense
 the host record into factual current observations. A useful report identifies
 the candidate, review result, work/check result, any commit receipt, relevant
-review-material and reviewer/fallback locators, and the remaining gap. It must
-fit the runtime's small state file, so link to or retain long output in the host
-record rather than copying it verbatim.
+review-material and reviewer/fallback locators, and the remaining gap. Keep it compact: the report replaces the previous one, so link to or retain long
+output in the host record rather than copying it verbatim.
 
 For example, a material first cycle might report:
 

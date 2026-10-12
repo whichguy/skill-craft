@@ -464,10 +464,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 # ShipLoop starts this child too; the worker continues it (551b8b49).
                 self.assertIn(" improve-start ", packet)
                 self.assertIn("continues the already-started loop from the receipt's next_argv", packet)
-            # Both routes tell the model how many bytes its four opening sections may use (batch 1003, F3).
-            self.assertRegex(packet, r"Size budget: the opening is frozen into the Until Loop's state, which the "
-                                     r"runtime caps at 16,384 bytes.*refuses a contract over 9,216 bytes.*"
-                                     r"sections about [\d,]+ bytes together")
+            # Neither route states a byte limit for the opening: the Until Loop runtime has none.
+            self.assertNotIn("Size budget", packet)
+            self.assertNotRegex(packet, r"\bbytes together\b|16,384|9,216")
             # Neither route asks the model to copy the binding line or state start inputs; it appears once, as the
             # handoff file's first line (the improve skill's subcall trigger).
             self.assertEqual(packet.count(self.bound["contract_marker"]), 1)
@@ -992,36 +991,24 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIsNone(state["active_improve"])
         self.assertEqual(state["improve_results"][self.action]["runtime_phase"], "complete")
 
-    def test_improve_start_refuses_an_oversized_opening_before_anything_is_written(self):
-        """A contract that fills the runtime's state file could never save its first report (batch 1003, F3)."""
+    def test_improve_start_freezes_a_large_opening_whole(self):
+        """The Until Loop runtime has no state limit, so ShipLoop refuses no opening for its size."""
         receipt = bridge.receipt_path(self.bound)
         opening = receipt.with_name("opening.md")
         start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
         opening.parent.mkdir(parents=True, exist_ok=True)
-
-        def sections(environment):
-            return ("## Current context and desired improvements\nTighten the spec examples.\n\n"
-                    "## Scope\nproduct/contracts/cold-recovery.md\n\n"
-                    "## Authority\nLocal edits and scoped commits; no push.\n\n"
-                    "## Environment\n" + environment + "\n")
-
-        environment = ("Python 3 fixture; the long runtime inventory follows. " * 260).strip()
-        opening.write_text(sections(environment), encoding="utf-8")
-        refused = self.invoke(*start, status=2)
-        self.assertIn("over its 9,216-byte budget", refused.stderr)
-        # The refusal names the opening's own headings and how many bytes the sections may use, not contract parts.
-        self.assertIn("Environment ", refused.stderr)
-        self.assertNotIn("context.environment", refused.stderr)
-        self.assertRegex(refused.stderr, r"may use about [\d,]+ bytes in all")
-        # the sizes listed are the sections' own bytes, comparable to that allowance (F4), not whole contract fields
-        self.assertIn(f"Environment {loop_contract.text_bytes(environment):,}", refused.stderr)
-        self.assertIn("put long detail in a file whose path you name", refused.stderr)
-        self.assertFalse(receipt.exists(), "nothing was started")
-        self.assertFalse(receipt.with_name("start.json").exists(), "no contract was written")
-
-        opening.write_text(sections("Python 3 fixture; no network."), encoding="utf-8")
+        # about 40 KB of Environment, escaped non-ASCII included: far past the old 9,216-byte contract budget
+        environment = ("Python 3 fixture; the long runtime inventory follows. " * 600 + "環境" * 1900).strip()
+        opening.write_text(
+            "## Current context and desired improvements\nTighten the spec examples.\n\n"
+            "## Scope\nproduct/contracts/cold-recovery.md\n\n"
+            "## Authority\nLocal edits and scoped commits; no push.\n\n"
+            "## Environment\n" + environment + "\n", encoding="utf-8")
         started = self.invoke(*start)
         self.assertEqual(json.loads(started.stdout)["status"], "active")
+        frozen = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
+        self.assertEqual(frozen["context"]["environment"], environment)
+        self.assertGreater(len(json.dumps(frozen, separators=(",", ":"), sort_keys=True).encode()), 40_000)
 
     def test_improve_commit_commits_only_the_reviews_uncommitted_changes(self):
         """The model writes the message with a file tool; ShipLoop stages and commits."""
@@ -1617,8 +1604,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on 2 trivial passes.")
 
 
-class LoopContractSizeTests(unittest.TestCase):
-    """The Until Loop saves its whole state in 16 KiB; a contract must leave room for the first report."""
+class LoopContractShapeTests(unittest.TestCase):
+    """A ShipLoop-written contract is in the Until Loop runtime's schema, whatever its size: the runtime has no limit."""
 
     @staticmethod
     def contract(request="r", environment="e"):
@@ -1636,93 +1623,35 @@ class LoopContractSizeTests(unittest.TestCase):
         spec.loader.exec_module(module)
         return module
 
-    def test_the_bound_runtime_has_no_state_limit_and_shiploop_keeps_its_own_budget(self):
+    def test_neither_the_runtime_nor_shiploop_limits_a_contract_s_size(self):
         runtime = (ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py").read_text()
-        # Until Loop 0.8.1 removed its state-size cap (owner, 2026-10-11); ShipLoop's tighter 16 KiB contract budget is
-        # its own policy (its prompts and refusals state the number) and is queued for removal separately.
+        # Until Loop 0.8.1 removed its state-size cap (owner, 2026-10-11); ShipLoop's own 16 KiB budget went with it.
         self.assertNotIn("MAX_STATE_BYTES", runtime)
-        self.assertEqual(loop_contract.STATE_LIMIT, 16 * 1024)
-        self.assertEqual(loop_contract.CONTRACT_BUDGET + loop_contract.STATE_OVERHEAD + loop_contract.REPORT_RESERVE,
-                         loop_contract.STATE_LIMIT)
+        for removed in ("STATE_LIMIT", "CONTRACT_BUDGET", "REPORT_RESERVE", "STATE_OVERHEAD", "compact_bytes",
+                        "text_bytes", "size_problem"):
+            with self.subTest(removed=removed):
+                self.assertFalse(hasattr(loop_contract, removed))
 
-    def test_contract_bytes_are_the_runtime_s_serialization_including_non_ascii_text(self):
+    def test_the_runtime_accepts_a_large_contract_with_non_ascii_text(self):
         runtime = self.runtime()
-        with tempfile.TemporaryDirectory() as workspace:  # the runtime requires an existing absolute directory
+        with tempfile.TemporaryDirectory() as workspace, tempfile.TemporaryDirectory() as state_dir:
+            # the runtime requires an existing absolute workspace directory
             for text in ("plain ascii", "日本語の環境", "em dash \u2014 and \u201cquotes\u201d", "emoji \U0001f600 text"):
                 with self.subTest(text=text):
-                    contract = self.contract(request=text * 40, environment=text)
+                    contract = self.contract(request=text * 4000, environment=text * 400)
                     contract["workspace"] = workspace
+                    self.assertGreater(len(json.dumps(contract, separators=(",", ":"), sort_keys=True).encode()), 20_000)
                     normalized = runtime._validate_contract(contract, input_contract=True)
-                    # 0.8.0 adds "exit_checks": [] (17 bytes), which STATE_OVERHEAD absorbs; ShipLoop counts what it wrote.
                     self.assertEqual(normalized.pop("exit_checks"), [])
-                    expected = len(json.dumps(normalized, separators=(",", ":"), sort_keys=True).encode("utf-8"))
-                    self.assertEqual(loop_contract.compact_bytes(contract), expected)
-        # a non-ASCII character is escaped to 6 bytes (12 for an emoji), far above its UTF-8 length
-        self.assertGreater(loop_contract.compact_bytes(self.contract(request="\u2014" * 100)),
-                           loop_contract.compact_bytes(self.contract(request="x" * 100)) + 400)
+                    self.assertEqual(normalized, contract)  # nothing added, dropped or normalised
+                    self.assertEqual(runtime.start(contract, state_dir)["status"], "active")
 
-    def test_a_small_contract_fits_and_the_budget_is_an_exact_boundary(self):
-        self.assertIsNone(loop_contract.size_problem(self.contract()))
-        base = loop_contract.compact_bytes(self.contract(request=""))
-        exact = self.contract(request="x" * (loop_contract.CONTRACT_BUDGET - base))
-        self.assertEqual(loop_contract.compact_bytes(exact), loop_contract.CONTRACT_BUDGET)
-        self.assertIsNone(loop_contract.size_problem(exact))
-        over = self.contract(request="x" * (loop_contract.CONTRACT_BUDGET - base + 1))
-        self.assertIn("1 over its 9,216-byte budget", loop_contract.size_problem(over))
-
-    def test_a_japanese_opening_is_refused_at_its_real_size(self):
-        # 8,757 bytes counted as UTF-8 slipped through before; the runtime stores it at about 13.5 KB.
-        problem = loop_contract.size_problem(self.contract(environment="環境" * 1900))
-        self.assertIsNotNone(problem)
-
-    def test_the_refusal_names_the_sections_the_model_wrote_and_how_far_over_it_is(self):
-        contract = self.contract(environment="e" * 9000, request="r" * 4000)
-        problem = loop_contract.size_problem(
-            contract, writable={"context.request": "Current context and desired improvements",
-                                "context.environment": "Environment"}, allowance=4300)
-        total = loop_contract.compact_bytes(contract)
-        self.assertIn(f"{total - loop_contract.CONTRACT_BUDGET:,} over its 9,216-byte budget", problem)
-        self.assertLess(problem.index("Environment 9,"), problem.index("Current context and desired improvements 4,"))
-        # given the sections' own sizes, those are listed instead of the wrapped contract fields
-        own = loop_contract.size_problem(
-            contract, writable={"context.request": "Current context and desired improvements",
-                                "context.environment": "Environment"}, allowance=4300,
-            sizes={"Environment": 9000, "Current context and desired improvements": 2600})
-        self.assertIn("Environment 9,000, Current context and desired improvements 2,600", own)
-        self.assertEqual(loop_contract.text_bytes("日本"), 12)  # escaped like the runtime: 6 bytes per character
-        self.assertNotIn("context.", problem)
-        self.assertIn("may use about 4,300 bytes in all", problem)
-        self.assertIn("16,384 bytes", problem)
-        # without a writable map the generic text lists contract parts
-        self.assertIn("context.environment", loop_contract.size_problem(contract))
-
-    def test_the_backchain_budget_is_stated_at_every_stage_that_can_start_a_loop(self):
-        guidance = prompts._backchain_guidance("plan")
-        self.assertIn("Until Loop state budget", guidance)
-        self.assertIn("16,384 bytes", guidance)
-        self.assertIn("at most 9,216 bytes", guidance)
-        self.assertIn("separators=(',', ':'), sort_keys=True", guidance)
-        self.assertNotIn("{state_limit", guidance)
-        # every stage that can start a Backchain Until Loop child states it: plan, and the repair/revise
-        # route at the audit stages (the 1.16.1 Luna run built an 11.9 KB step-plan contract without it)
-        self.assertEqual(set(prompts.BACKCHAIN_STAGES), {"plan", "spec", "step-plan", "carry-forward", "product-acceptance"})
-        for stage in prompts.BACKCHAIN_STAGES:
+    def test_the_backchain_guidance_states_no_byte_limit_at_any_stage(self):
+        for stage in sorted(prompts.BACKCHAIN_STAGES) + ["intake"]:
             with self.subTest(stage=stage):
-                self.assertIn("Until Loop state budget", prompts._backchain_guidance(stage))
-        # the Improve-owner text starts no whole Backchain child, and a stage with no Backchain action has no loop
-        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("plan", improve_owner=True))
-        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("step-plan", improve_owner=True))
-        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("intake"))
-
-    def test_the_measuring_command_in_the_guidance_gives_the_number_the_check_uses(self):
-        guidance = prompts._backchain_guidance("plan")
-        command = re.search(r"`(python3 -c \".*?\" CONTRACT_FILE)`", guidance).group(1)
-        with tempfile.TemporaryDirectory() as temp:
-            contract = Path(temp) / "contract.json"
-            contract.write_text(json.dumps(self.contract(request="日本語 \u2014 " * 50)), encoding="utf-8")
-            argv = [sys.executable, "-c", re.search(r'-c "(.*)" CONTRACT_FILE', command).group(1), str(contract)]
-            out = subprocess.run(argv, capture_output=True, text=True, check=True).stdout.strip()
-        self.assertEqual(int(out), loop_contract.compact_bytes(self.contract(request="日本語 \u2014 " * 50)))
+                text = " ".join(prompts._backchain_guidance(stage).split())
+                for gone in ("Until Loop state budget", "16,384", "9,216", "CONTRACT_FILE", "sort_keys=True"):
+                    self.assertNotIn(gone, text)
 
 
 class ImproveCommitContractTests(ImproveCliFixture):
@@ -2185,50 +2114,23 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertNotEqual(before, self.git("rev-parse", "HEAD").strip())
         self.assertIn("Key learnings: exact examples catch drift.", self.head_message())
 
-    # The commit-policy clause of 658ff4e3, before improve-commit joined the contract (the parent-return path follows it).
-    BASE_COMMIT_CLAUSE = ("Commit policy: the selected Improve card's scoped-commit policy with the task's explicit overrides "
-                          "above; stage only intended paths, never runtime receipts or unrelated staging, no empty "
-                          "commit. No push or merge. The child never runs a ShipLoop callback: after the terminal "
-                          "packet the parent runs the return in ")
-    # Spike S (batch 1012): the thinnest of 92 saved Improve contracts is a carry-forward child with 1,081 of the 9,216
-    # bytes left (r1-battleship-grok-none, 8,135 bytes); Sonnet and Grok contracts median 5,658 at spec.
-    THINNEST_SAVED_HEADROOM = 1081
     IMPROVE_STAGES = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan",
                       "carry-forward")
 
-    def test_the_commit_clause_costs_what_the_thinnest_saved_contract_can_spare_on_every_stage_and_route(self):
-        """Guard (passes before the clause grows): the saved thinnest case still fits, on both routes."""
+    def test_every_stage_builds_its_improve_contract_on_both_routes_with_the_commit_clause(self):
+        """Size-free smoke over every Improve stage and route (the old guard measured the clause's byte cost)."""
         self.begin("plan")
         state = store.read_record(self.run / "state.md")
         parent_return = str(bridge.receipt_path(self.bound).with_name("parent-return.md"))
-
-        def build(stage, route, environment="x"):
-            chosen = dict(state, active_improve=dict(state["active_improve"], stage=stage), delegation=route)
-            return navigator.improve_start_contract(None, self.run, chosen, "".join(
-                "## " + name + "\n" + (environment if name == "Environment" else "x") + "\n\n"
-                for name in navigator.OPENING_SECTIONS))
-
-        added_by_stage, rows = set(), set()
         for stage in self.IMPROVE_STAGES:
-            inline = build(stage, "inline")
-            authority = inline["context"]["authority"]
-            clause = authority[authority.index("Commit policy:"):]
-            added = (loop_contract.text_bytes(clause)
-                     - loop_contract.text_bytes(self.BASE_COMMIT_CLAUSE + parent_return + "."))
-            added_by_stage.add(added)
-            # the saved case: the model-written Environment fills the inline contract until, under the old clause,
-            # only the thinnest saved headroom was left
-            pad = (loop_contract.CONTRACT_BUDGET - self.THINNEST_SAVED_HEADROOM
-                   - (loop_contract.compact_bytes(inline) - added) + 1)
             for route in ("inline", "ask-agent"):
                 with self.subTest(stage=stage, route=route):
-                    thin = build(stage, route, "a" * pad)
-                    self.assertLessEqual(loop_contract.compact_bytes(thin), loop_contract.CONTRACT_BUDGET)
-                    self.assertIsNone(loop_contract.size_problem(thin))
-            rows.add(loop_contract.compact_bytes(build(stage, "ask-agent")) - loop_contract.compact_bytes(inline))
-        # one clause for every stage, so it costs the same everywhere; the delegated route's resource row is its own
-        self.assertEqual(len(added_by_stage), 1)
-        self.assertLessEqual(max(added_by_stage) + max(rows), self.THINNEST_SAVED_HEADROOM)
+                    chosen = dict(state, active_improve=dict(state["active_improve"], stage=stage), delegation=route)
+                    built = navigator.improve_start_contract(None, self.run, chosen, "".join(
+                        "## " + name + "\nx\n\n" for name in navigator.OPENING_SECTIONS))
+                    authority = built["context"]["authority"]
+                    self.assertIn("Commit policy:", authority)
+                    self.assertIn(parent_return, authority)
 
     def commit_gate_refusal(self):
         """Run the child to its terminal packet with an uncommitted edit; the refusal improve-complete gives."""
@@ -2349,8 +2251,8 @@ class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
         EphemeralImproveCliTests.test_user_stopped_child_restarts_with_the_same_binding_then_imports)
     test_improve_start_freezes_the_contract_and_starts_the_runtime = (
         EphemeralImproveCliTests.test_improve_start_freezes_the_contract_and_starts_the_runtime)
-    test_improve_start_refuses_an_oversized_opening_before_anything_is_written = (
-        EphemeralImproveCliTests.test_improve_start_refuses_an_oversized_opening_before_anything_is_written)
+    test_improve_start_freezes_a_large_opening_whole = (
+        EphemeralImproveCliTests.test_improve_start_freezes_a_large_opening_whole)
 
 
 if __name__ == "__main__":

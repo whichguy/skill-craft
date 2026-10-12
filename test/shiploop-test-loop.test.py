@@ -370,9 +370,9 @@ class TestLoopTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, "must list test_commands"):
             nav._check_submitted_test_commands("step-plan", DONE)
 
-    def test_a_command_list_too_large_for_the_loop_contract_is_refused_where_it_is_submitted(self):
-        """The test stage's contract lists every command and is written at a transition, so an oversized list needs a
-        refusal point (F3): step-plan's gate builds that contract with the submitted list."""
+    def test_a_long_command_list_is_accepted_where_it_is_submitted_and_the_test_contract_lists_every_command(self):
+        """The test stage's contract lists every recorded command; the Until Loop runtime has no size limit, so
+        step-plan's gate refuses no list for its length."""
         def rows(count, ids):
             return [{"command": f"python3 -m unittest -v test_{n}", "suite": "focused",
                      "ids": [f"test_{n}_{i}_" + "a" * 70 for i in range(ids)]} for n in range(count)]
@@ -381,21 +381,18 @@ class TestLoopTests(unittest.TestCase):
             return dict(DONE, test_commands=commands, paths=["src/a.py"], criteria=[{"id": "C1", "text": "x"}],
                         steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "paths": ["src/a.py"]}])
 
-        self.assertIsNone(loops.command_list_problem(None, None, rows(2, 3)))
         nav._check_submitted_test_commands("step-plan", plan(rows(2, 3)))
-        problem = loops.command_list_problem(None, None, rows(6, 15))
-        self.assertRegex(problem, r"^test_commands renders to [\d,]+ bytes in the test stage's Until Loop contract, "
-                                  r"which has room for about [\d,]+")
-        self.assertIn("Shorten the ids lists", problem)
-        with self.assertRaisesRegex(nav.NavigatorError, "test_commands renders to"):
-            nav._check_submitted_test_commands("step-plan", plan(rows(6, 15)))
-        # with this run's own paths the same check applies at the real gate
+        nav._check_submitted_test_commands("step-plan", plan(rows(6, 15)))  # about 10 KB: over the old 9,216-byte budget
+        nav._check_submitted_test_commands("step-plan", plan(rows(40, 40)))
+        # the real gate takes it too, and the test stage's contract then carries every command
+        long_rows = [dict(row, criteria=["C1"]) for row in rows(12, 15)]
         self.start()
-        self.drive_to("step-plan")
-        self.assert_refused(plan(rows(6, 15)), "test_commands renders to", loop=True)
-        self.assertIsNone(loops.command_list_problem(None, None, []))
-        # a malformed row is the shape check's to refuse, not this one's
-        self.assertIsNone(loops.command_list_problem(None, None, [{"command": "pytest"}]))
+        self.drive_to("test", step_plan={"test_commands": long_rows, "paths": ["a.py"],
+                                         "criteria": [{"id": "C1", "text": "The item's focused check passes."}]})
+        contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
+        self.assertGreater(len(json.dumps(contract, separators=(",", ":"), sort_keys=True).encode()), 16_384)
+        for row in long_rows:
+            self.assertIn(loops.command_listing([row]).split(". ", 1)[1], contract["work"])
 
     def test_the_test_stage_loops_on_its_exact_commands(self):
         self.start()

@@ -32,7 +32,6 @@ CARD = ROOT / "skills" / "improve" / "SKILL.md"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_knowledge_home as knowledge  # noqa: E402
-import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
@@ -1579,13 +1578,11 @@ class InnerGateRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["skill"], SKILL_NONE)
 
 
-class OpeningAllowanceTests(RealCliCase):
-    """The oversize-opening refusal states the room the sections have, and the room it states is real.
+class LargeOpeningTests(RealCliCase):
+    """improve-start refuses no opening for its size: the Until Loop runtime has no state limit.
 
-    The Luna 1.16.1 refusal listed whole contract fields (which carry ShipLoop's own text) next to an allowance for
-    the model's sections only, so its arithmetic looked 1,165 bytes off (12,478 total, 3,262 over, "about 4,686").
-    The allowance was right; the listed sizes were not comparable to it.  Listing each section's own escaped bytes
-    (112b239c) made them comparable, and this test keeps them so, through the real gate.
+    The Luna 1.16.1 run was refused at 12,478 contract bytes; a gate that looked at size also had to explain its
+    arithmetic.  With no limit there is nothing to explain, and the same four sections are accepted whole.
     """
 
     NAMES = ("Current context and desired improvements", "Scope", "Authority", "Environment")
@@ -1603,28 +1600,9 @@ class OpeningAllowanceTests(RealCliCase):
         opening.write_text("".join(f"## {name}\n{'a' * size}\n\n" for name, size in zip(self.NAMES, sizes)),
                            encoding="utf-8")
 
-    def test_the_stated_allowance_is_the_sections_real_room_and_the_refusal_says_how_it_is_counted(self) -> None:
+    def test_an_opening_far_over_the_old_budget_is_accepted_and_nothing_names_a_limit(self) -> None:
         run, opening, start = self.at_improve_start()
-        self.write_sections(opening, (2993, 891, 1057, 4172))  # the sizes of the Luna refusal's four sections
-        reply = self.refused(start, run)
-        listed = {name: int(size.replace(",", "")) for name, size in re.findall(
-            r"(Environment|Scope|Authority|Current context and desired improvements) ([\d,]+)", reply)}
-        over = int(re.search(r"([\d,]+) over its", reply).group(1).replace(",", ""))
-        allowance = int(re.search(r"may use about ([\d,]+) bytes in all", reply).group(1).replace(",", ""))
-        self.assertEqual(sorted(listed), sorted(self.NAMES))
-        # The arithmetic the reply invites agrees with its allowance: the sections total less the overage is the
-        # room, to within the four placeholder bytes ShipLoop's own measure of its fixed text includes.
-        self.assertEqual(sum(listed.values()), 9113)
-        self.assertIn(sum(listed.values()) - over - allowance, range(0, 5))
-        # What the allowance counts is said once, where the number is.
-        self.assertIn("counted as above: escaped like JSON, so a newline or a quote costs 2 bytes and a non-ASCII "
-                      "character 6, and a file's byte size undercounts it", reply)
-        # ... and the clause is true: the runtime's count of a newline or quote is 2 bytes, of a non-ASCII character 6.
-        self.assertEqual((loop_contract.text_bytes("a\n\"b"), loop_contract.text_bytes("\u65e5")), (6, 6))
-        # Sections that total the stated allowance are accepted by the same gate; its room ends just above it.
-        self.write_sections(opening, (300, 300, 300, allowance + 5 - 900))
-        self.assertIn("over its 9,216-byte budget", self.refused(start, run))
-        self.write_sections(opening, (300, 300, 300, allowance - 900))
+        self.write_sections(opening, (2993, 891, 1057, 30000))  # the Luna refusal's sections, Environment grown 7x
         self.assertEqual(json.loads(self.accepted(start))["status"], "active")
 
 

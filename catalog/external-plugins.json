@@ -23,7 +23,7 @@
     {
       "name": "until-loop",
       "description": "Interpret natural-language work and evidence-based exit conditions; frozen exit checks run in the host's own shell (hooks see every check) and are recorded by a private callback runtime.",
-      "version": "0.8.2",
+      "version": "0.8.3",
       "author": {
         "name": "whichguy"
       },
@@ -32,7 +32,7 @@
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
         "ref": "main",
-        "sha": "f7d97f6a23683753ffbda78dfac887528705df2b"
+        "sha": "908db9c60d99d60c1f07399e62ca08df9503daab"
       },
       "policy": {
         "installation": "AVAILABLE",
