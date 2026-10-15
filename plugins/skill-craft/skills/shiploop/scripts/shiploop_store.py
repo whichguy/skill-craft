@@ -291,6 +291,12 @@ def _validated_manifest(
     writes: Mapping[str, str],
     deletes: Sequence[str],
 ) -> Manifest:
+    """Check a transaction's ``writes`` mapping and ``deletes`` sequence against ``root`` and return them as a
+    canonical manifest. The result is a pair: ``(path, text)`` write tuples sorted by path, and the delete paths
+    sorted. It writes nothing. Raises ``StorageError`` if either argument has the wrong type or non-string
+    entries, a delete path repeats, a path is both written and deleted, or ``_checked_target`` rejects any path,
+    for example an unsafe one, one that escapes ``root``, or one naming ``transaction.md``.
+    """
     if not isinstance(writes, Mapping):
         raise StorageError("transaction writes must be a mapping")
     if isinstance(deletes, (str, bytes)) or not isinstance(deletes, Sequence):
@@ -346,6 +352,11 @@ def _journal_payload(manifest: Manifest) -> Dict[str, Any]:
 
 
 def _manifest_from_journal(root: Path, payload: Any) -> Manifest:
+    """Rebuild a transaction manifest from a decoded ``transaction.md`` journal ``payload``, an object with exactly
+    the keys ``schema``, ``transaction_id``, ``version``, ``writes`` and ``deletes``. Writes are
+    ``path``/``text`` objects and deletes are path strings. ``root`` must already be resolved. Returns path-
+    sorted writes and sorted deletes. Raises ``StorageError`` for a bad payload or unsafe path.
+    """
     if not isinstance(payload, dict):
         raise StorageError("transaction journal must contain a JSON object")
     expected_keys = {"schema", "transaction_id", "version", "writes", "deletes"}

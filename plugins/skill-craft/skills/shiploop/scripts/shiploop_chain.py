@@ -1106,6 +1106,11 @@ def _require_planning_context(binding: Mapping[str, Any], attempt: str) -> None:
 
 
 def _planning_worker_instructions(packet: dict[str, Any]) -> None:
+    """Append worker guidance to the ``instructions`` list of ``packet`` in place and return nothing. It adds the
+    implementation-stage reference locators (without the parallel-chain guide), the code-craft prompt, handoff
+    and blocking rules, and planning-context rules when ``packet`` has a ``planning_context`` key. Entries
+    already present are skipped; ``packet`` must already hold an ``instructions`` list.
+    """
     reference_dir = Path(__file__).resolve().parents[1] / "references"
     instructions = [
         f"{label}: {reference_dir / relative}"
@@ -2391,6 +2396,11 @@ def _serial_action_instruction(action: Any) -> tuple[str, str | None]:
 
 
 def _serial_next_response(response: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a deep copy of a dispatcher response rewritten for serial mode. Only list-valued ``active`` and
+    ``actions`` are rewritten: ``active`` items lose ``handle`` and any ``recovery`` is mapped to a serial
+    action; ``actions`` items get a mapped ``action`` (unknown becomes ``inspect``) and new ``instruction``.
+    Always overwrites ``instruction``. Raises ``ChainError`` for a non-mapping list item.
+    """
     result = deepcopy(dict(response))
     active = result.get("active")
     if isinstance(active, list):
@@ -3050,6 +3060,13 @@ def _per_step_import_record(rows: list[dict[str, Any]], attempt: str) -> dict[st
 def _per_step_validate_import_receipt(receipt: Any, *, dispatcher_run_id: str, step: str,
                                       attempt: str, base_commit: str, workspace: str,
                                       handoff: Mapping[str, str]) -> dict[str, Any]:
+    """Validate a handoff helper import receipt and return a deep copy as a ``dict``; nothing is written or
+    mutated. Raises ``ChainError`` for a non-mapping, a missing key, a wrong ``schema``, a run, step, attempt,
+    base commit or workspace mismatch, a ``status`` other than ``SUCCEEDED``, ``FAILED`` or ``BLOCKED``, a
+    ``commit`` that is not a full SHA on ``SUCCEEDED`` or is set otherwise, a blank ``summary``, a different
+    handoff ``sha256``, non-list ``archives`` or ``deletion_manifest``, a bad ``receipt_sha256``, or a relative
+    ``receipt_path``. An unhashable ``status`` raises ``TypeError``.
+    """
     if not isinstance(receipt, Mapping):
         _fail("handoff helper returned an invalid import receipt")
     required = ("schema", "run_id", "step", "attempt", "base_commit", "workspace", "status", "commit", "summary",
@@ -3232,6 +3249,13 @@ def _validate_managed_returned_delivery(binding: Mapping[str, Any], allocation: 
 
 
 def _write_parent_immutable_json(path_text: Any, value: Mapping[str, Any], label: str) -> dict[str, str]:
+    """Write ``value`` as canonical JSON plus a trailing newline to the absolute file ``path_text`` without
+    replacing an existing file, and return a dict with ``path`` and ``sha256`` for the bytes. The parent
+    directory must already exist and ``path_text`` must be a direct file in its resolved parent. A new file is
+    written to a temporary file in that parent, flushed, fsynced and hard-linked into place. An existing file
+    with identical bytes is left alone; different bytes, or an invalid path, raise ``ChainError`` using
+    ``label`` in the message.
+    """
     path = _is_absolute_text(path_text, label + " path")
     parent = _resolved_existing(path.parent, label + " parent", directory=True)
     destination = parent / path.name
@@ -4112,6 +4136,11 @@ def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dic
 
 
 def _packet(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild the worker packet of a started per-step attempt and return the dispatcher's ``packet`` response with
+    ``packet`` replaced by it and ``shiploop_chain`` set to the binding summary. The packet is built from the
+    retained dispatcher packet, allocation record and accepted dependencies; ``executor`` carries over if
+    present. Raises ``ChainError`` if the attempt was not started or a check fails.
+    """
     attempt = _parse_packet(value)
     _verify_frozen(binding)
     chain_dir = _binding_dir(root, binding["action_id"])
@@ -4448,6 +4477,13 @@ def guard_completion(root: Path, state: Mapping[str, Any], action_id: Any) -> No
 
 
 def _parser() -> _ArgumentParser:
+    """Build and return the command-line parser for ``shiploop chain``, with a required ``operation`` subcommand.
+    ``bind`` and ``planning-inputs`` have their own options, and the other operations (``next``, ``history``,
+    ``pending``, ``claim``, ``start``, ``done``, ``finish`` and so on) share ``--run-dir`` and ``--action``,
+    plus a required ``--input`` for every one except ``next``, ``history`` and ``pending``. It only constructs
+    the parser and writes nothing; because the parser class overrides ``error``, bad arguments raise
+    ``ChainError`` instead of printing usage and exiting.
+    """
     parser = _ArgumentParser(prog="shiploop chain", add_help=True)
     subs = parser.add_subparsers(dest="operation", required=True)
     common = ("next", "history", "pending", "claim", "start", "launched", "import-handoff", "prepare", "done", "retry", "packet", "cleanup", "finish")
