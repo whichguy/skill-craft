@@ -46,3 +46,40 @@ shard `shiploop-chain-lifecycle` (single class, 52 tests) in `test/suite_catalog
 `shiploop-cross-run` and `shiploop-status-display` failed at `HEAD` before any edit (progress-file side
 effects); `shiploop-chain-lifecycle` timed out at 1200 s under load and passed alone. Upstream moved 26
 commits during the work (ShipLoop 1.3.0); the rebased tree passed the quick tier (53 suites, exit 0).
+
+## Improve-loop campaign, 2026-10-11 to 2026-10-15 (commits `3c1a7bd4`, `5ebf3851`, `02330e13`, `37a5d59f`)
+
+Target: the same scripts, defect seed, autonomous, 4-cycle cap, quick tier as the test command. Status at exit:
+`stopped (max-cycles)` with one open P1 (status: firm).
+
+| Cycle | Item | Outcome | Evidence |
+|---|---|---|---|
+| 1 | `shiploop_quality.__all__` and docstring named seven objects the module no longer defines, so `import *` raised `AttributeError` | confirmed | quick tier exit 0 (19 suites) |
+| 2 | six error messages named no file, limit or type | confirmed | quick tier exit 0 (27 suites) |
+| 3 | document 45 private functions of 25+ lines | partial: 19 landed | quick tier PASS (42 suites) |
+| 4 | the 26 rejected in cycle 3 | partial: 24 landed, 2 remain | quick tier exit 0 (45 suites) |
+
+### Findings and learnings
+
+1. **Pipeline for docstrings (firm).** Draft, two skeptics with different lenses, revise once, recheck. Agents write each
+   draft straight to a JSON file so no text is retyped. Docstring-only proof: the syntax tree with docstrings stripped is
+   identical to the previous commit in every changed file.
+2. **A completeness lens that asks for exhaustiveness rejects nearly everything (firm).** Cycle 3 rejected 26 of 45; about
+   5 objections each, almost all "does not say X", only a handful factual. Cycle 4 kept the accuracy lens strict and
+   narrowed completeness to omissions that mislead a caller: 24 of 26 passed. The 2 that still failed were rejected for
+   real precision errors the skeptic showed by running code (`_parent_fd` validates nothing, so "stays beneath base
+   without following symlinks" holds only for pre-validated components; `_expected_dirty_source` writes temporary
+   index files only for a non-empty patch or any extras). Both remain undocumented and are the open P1.
+3. **`worktree-enter.js` moves the primary checkout's uncommitted work (firm).** It resolved the launch repo to the primary
+   checkout of the shared git directory, carried 77 uncommitted paths into the campaign worktree and cleaned them
+   from the primary. Restored from a tar backup of the carried paths and hash-verified (77 files, 0 mismatches) before
+   deleting the worktree. Campaigns now run from an independent clone. Recorded in memory.
+4. **External limits (exploratory).** Two workflow attempts hit the account's monthly spend limit (89 then 43 agents
+   errored); resuming after the weekly reset replayed completed agents from cache. A background shell wrapper was killed
+   (exit 144) while its test runner kept going; the verdict is the runner's own `run-all.sh: PASS` line, not the wrapper's exit code.
+5. **Shell traps (firm).** Under zsh an unquoted newline-separated list is one argument; macOS bash 3.2 has no `mapfile`.
+   An empty path list let `git add --` succeed and produced a commit with only the ledger deletion. Caught before any
+   push by listing the commit's files; amended. Always check a commit's file list, and make an empty list fatal.
+
+Open: 2 private functions to document (above); cyclomatic complexity of 85 functions (deferred, behaviour-risky);
+unused parameters on test-pinned APIs (deferred, tests call them with the extra arguments).
