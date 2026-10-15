@@ -130,6 +130,11 @@ def _correction_source(value: Any, label: str) -> dict[str, str]:
 
 
 def _authority(value: Any) -> dict[str, str]:
+    """Check a delivery authority mapping and return a dict of its fields; text is not stripped. ``approval_ref``
+    is returned only for ``repo-policy``, where it is required, and ``scope`` only when given. Raises
+    ``ConsumerDeliveryError`` for a non-mapping, unknown or missing field, invalid value, or non-null
+    ``approval_ref`` or ``standing`` scope on another kind.
+    """
     _need(isinstance(value, Mapping), "delivery authority must be an object")
     allowed = {"status", "kind", "reference", "approval_ref", "target", "operation", "scope"}
     required = {"status", "kind", "reference", "target", "operation"}
@@ -247,6 +252,11 @@ def _contract(value: Any) -> dict[str, Any]:
 
 
 def _observation_rows(value: Any) -> list[dict[str, Any]]:
+    """Validate delivery observations, returning new dicts. ``value`` must be a nonempty list of objects with
+    exactly ``obligation_id``, ``status``, ``candidate``, ``target`` and ``evidence_refs``. IDs unique, matching
+    ``_OBLIGATION_ID``; ``status`` a known status; ``candidate`` and ``target`` nonblank; ``evidence_refs`` a
+    nonempty list of unique nonblank strings. Else raises ``ConsumerDeliveryError``.
+    """
     _need(isinstance(value, list) and bool(value), "delivery observations must be a nonempty list")
     rows: list[dict[str, Any]] = []
     ids: set[str] = set()

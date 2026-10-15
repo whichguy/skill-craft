@@ -2,7 +2,7 @@
 
 **Test command:** `test/run-all.sh --group quick --changed-from origin/main`
 **Started:** 2026-10-11          **Status:** active
-**Iteration counter:** 2
+**Iteration counter:** 3
 **Seed mode:** defect
 **Product residual survey:** n/a (defect)
 **Plan tier:** 2
@@ -33,12 +33,12 @@
 | V3 | Regression: quick tier green | suite | test/run-all.sh | `test/run-all.sh --group quick --changed-from origin/main` exit 0 | pass |
 
 ## Backlog
-- [ ] P1: [implementation] 45 private functions of 25+ lines have no docstring (shiploop_chain*.py, shiploop_lint.py and others) — commenting criterion
-  - Evidence: bigundoc scan lists 45 at 25+ lines after the first pass documented the 40 largest
-  - Decision: document all 45 in one cycle via a write -> adversarial-verify workflow (names are unique per file, so insertion is by name); each docstring is checked against the function body by two independent verifiers before it is applied
-  - Preserve: code behaviour (docstring-only change)
+- [ ] P1: [implementation] 26 private functions of 25+ lines still have no docstring (shiploop_workspace 6, shiploop_chain_handoff 5, shiploop_chain 3, others) — commenting criterion
+  - Evidence: cycle 3 ran a write -> two-skeptic verify -> revise -> recheck workflow over 45; 19 passed and landed; 26 were rejected, but the objections were mostly "does not say X" omissions (about 5 per docstring) and only a handful were factual errors
+  - Decision: rerun the 26 with the accuracy lens kept strict (every stated claim true) and the completeness lens narrowed to omissions that would mislead a caller or hide a raise or side effect, not exhaustiveness; allow up to 600 characters
+  - Preserve: behaviour (docstring-only; verify by comparing the syntax tree with docstrings stripped)
   - Unknown: none
-  - Acceptance: every private function of 25+ lines in the batch has an accurate docstring and the quick tier is green
+  - Acceptance: each remaining function has an accurate docstring or is dropped with a Notes line; quick tier green
 
 ## Deferred (P2)
 - [ ] P2: reduce cyclomatic complexity of the 85 functions over McCabe 10 — weak:multi-campaign — behaviour-risky refactor, needs per-function design
@@ -51,15 +51,15 @@
 
 ## Next
 - **Action:** execute
-- **Item:** P1:docstrings-private-25plus (all 45, workflow)
-- **Why:** last open item; ultracode workflow with adversarial verify keeps accuracy high
+- **Item:** P1:docstrings-private-25plus (remaining 26, narrowed completeness lens)
+- **Why:** only open item; this is the last allowed cycle (4/4)
 
 ## Last cycle
-**N:** 2
-**Date:** 2026-10-11
-**Thesis:** six error messages (five _UnsafeSource in shiploop_progress_data._read_beneath, one ValueError in navigator_dry_run.run_scenario) name no file, limit or type; adding them gives a reader the context where the error was observed
+**N:** 3
+**Date:** 2026-10-15
+**Thesis:** documenting the 45 private functions of 25+ lines is safest with an adversarial pipeline (draft, two skeptics with different lenses, revise, recheck) whose drafts are written to files by the agents themselves, so no docstring text is retyped
 **Test result:** PASS
-**Outcome:** confirmed
+**Outcome:** partial
 **Error signature:** none
 **Committed:** yes
-**Notes for next cycle:** quick tier exit 0 (27 suites). Probed: message for a 50-byte file with limit 10 reads "'big.txt' is 50 bytes, over its read limit of 10", same for str and Path input (os.fspath). Spec sync n/a: plan unchanged since iter 1 (no V-row tied to this item). Replan: native, one open P1 remains; streak 0. open intent: docstrings | Decision: all 45 in one cycle via workflow | Preserve: behaviour (docstring-only).
+**Notes for next cycle:** 19 of 45 docstrings passed both skeptics and landed (9 files, 95 added lines); the syntax tree with docstrings stripped is identical to the previous commit in all 9 files, so the change is docstring-only. 26 rejected, mostly for omissions rather than errors. Quick tier PASS (42 suites); the background wrapper was killed (exit 144) but the orphaned runner finished and printed PASS. Two earlier workflow attempts hit the account's monthly spend limit (89 then 43 agents errored) before the weekly reset on Oct 15; resuming replayed cached agents. Spec sync n/a: plan unchanged in V-rows. open intent: docstrings | Decision: rerun 26 with narrowed completeness lens | Preserve: docstring-only.

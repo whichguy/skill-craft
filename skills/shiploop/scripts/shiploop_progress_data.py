@@ -168,6 +168,11 @@ def _read_beneath(base: Path, relative: str | Path, max_bytes: int) -> tuple[byt
 
 
 def _directory_exists_beneath(base: Path, relative: str | Path) -> bool:
+    """Report whether ``relative`` names an existing directory beneath ``base``, without following symlinks.
+    Returns ``False`` if a component is missing beneath a usable base. Raises ``_UnsafeSource`` for an unusable
+    base, an unsafe path, or a component that is a symlink, not a directory, cannot be opened, or changes while
+    opening. Any other ``OSError`` from statting a component propagates unchanged.
+    """
     parts = _relative_parts(relative)
     descriptor = _directory_fd(base)
     flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
@@ -495,6 +500,11 @@ def _activity(state: Mapping[str, Any], root: Path, timeline: Mapping[str, Any],
 
 
 def _valid_bound_graph(graph: Any) -> list[dict[str, Any]]:
+    """Check a bound chain ``graph``; return its steps as new dicts of ``id``, ``deps`` (copied) and ``contract``
+    (not copied). Needs ``version`` equal to 1 and 1 to ``_MAX_GRAPH_NODES`` steps, each with a unique ``id`` of
+    1 to 200 characters, none below U+0020, distinct ``deps`` naming graph ids, ``contract`` None or a mapping
+    with string ``task``. Raises ``ValueError`` if not; cycles go unchecked.
+    """
     if not isinstance(graph, Mapping) or graph.get("version") != 1:
         raise ValueError(f"invalid bound graph: need a mapping with version 1, got {type(graph).__name__} version "
                          f"{graph.get('version') if isinstance(graph, Mapping) else 'n/a'}")

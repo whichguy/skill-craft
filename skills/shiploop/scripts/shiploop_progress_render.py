@@ -188,6 +188,11 @@ def _narrative(snapshot: Mapping[str, Any], facts: Mapping[str, Any]) -> str:
 
 
 def _work_items(snapshot: Mapping[str, Any]) -> str:
+    """Build the progress page's work items panel HTML from ``snapshot``. The header shows Plan accepted or Plan
+    pending per ``plan_accepted``. If falsy, only a pending notice follows; if truthy and ``work_items`` is not
+    a non-empty list or tuple, an empty notice follows. Otherwise each mapping row becomes an escaped card (id,
+    title, status pill, non-empty plan and dependencies); other rows are skipped.
+    """
     rows = snapshot.get("work_items", [])
     rows = rows if isinstance(rows, (list, tuple)) else []
     plan_accepted = bool(snapshot.get("plan_accepted"))
@@ -534,6 +539,11 @@ def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
 
 
 def _documents(snapshot: Mapping[str, Any]) -> str:
+    """Render the Key files panel as HTML from the ``documents`` list or tuple in ``snapshot``. A missing, empty or
+    mistyped entry gives an empty-state message. Each mapping row becomes a collapsible entry of title, status
+    pill, optional fields and a preview or placeholder. Non-mapping rows are skipped; a list of only those gives
+    no message. Values are HTML-escaped; only local ``file:`` URIs are linked.
+    """
     rows = snapshot.get("documents", [])
     rows = rows if isinstance(rows, (list, tuple)) else []
     parts = [
@@ -588,6 +598,11 @@ def _documents(snapshot: Mapping[str, Any]) -> str:
 
 
 def _activity(snapshot: Mapping[str, Any]) -> tuple[str, str]:
+    """Render the "Recent activity" panel from the ``activity`` rows of ``snapshot``. Returns the panel HTML,
+    listing mapping rows in reverse input order, and the ``time`` of the last mapping row as unescaped text, so
+    rows must be oldest first. That time is an empty string when there are no such rows or it is missing or
+    ``None``. A non-list/tuple ``activity`` and non-mapping rows are skipped.
+    """
     rows = snapshot.get("activity", [])
     rows = [row for row in rows if isinstance(row, Mapping)] if isinstance(rows, (list, tuple)) else []
     latest = _value(rows[-1].get("time")) if rows else ""

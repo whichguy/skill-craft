@@ -4738,6 +4738,11 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
 
 
 def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
+    """Return the stage-specific refusal phrases for ``stage`` that ``_checked_line`` lists before
+    ``_COMMON_GATES``, or an empty list when none apply. They come from ``stage`` and module-level stage tables
+    read at call time; ``state`` is not read. Raises ``KeyError`` if a ``RECORDED_COMMANDS`` field owned by
+    ``stage`` has no ``_RECORDED_GATES`` entry.
+    """
     gates = []
     if stage == "plan":
         gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
@@ -5813,6 +5818,11 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
 
 
 def _submitted_result(root: Path, args: Any, *, suffix: str = "") -> Any:
+    """Returns the JSON from the one ``shiploop-state`` fence of the result file submitted for ``args.action``,
+    without a shape check. ``args.result`` must equal ``root/inbox/<action><suffix>.md`` (``suffix`` is keyword-
+    only) and name a single-link regular file with no symlink up to ``root``. Raises ``NavigatorError`` for a
+    bad action, path, file or fence, or for string values that look like credentials.
+    """
     action_id = getattr(args, "action", None)
     _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
           "unsafe navigator action ID")

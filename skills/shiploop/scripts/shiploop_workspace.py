@@ -335,6 +335,11 @@ def _index_digest(repo: Path) -> str:
 
 
 def _ensure_supported(repo: Path, *, reject_runtime: bool = True) -> None:
+    """Raise ``WorkspaceError`` unless ``repo`` is a supported Git worktree; it only reads. Rejected: conflicts,
+    submodules, unsafe paths, assume-unchanged/skip-worktree entries, clean/smudge/process filters, enabled
+    sparse checkout or split index (a failing probe of those two counts as off). ``reject_runtime`` (default
+    true) also rejects runtime paths in the index or ``HEAD`` and an unborn ``HEAD``.
+    """
     if _git_text(repo, "rev-parse", "--is-inside-work-tree") != "true":
         _fail("repository is not a Git worktree")
     unresolved = _git_bytes(repo, "ls-files", "-u", "-z")
@@ -388,6 +393,11 @@ def _index_paths(repo: Path) -> List[str]:
 
 
 def _untracked(repo: Path) -> List[Dict[str, str]]:
+    """List the untracked, non-ignored files of the top-level work tree ``repo`` as rows sorted by ``path``, each
+    with ``path``, ``sha256`` and ``kind``. The kind is ``file`` (content digest) or ``symlink`` (digest of the
+    link's target text). Raises ``WorkspaceError`` for an unsafe path, a failed ``git status``, an unreadable
+    file, or an entry that is not a file or symlink, such as a nested repository.
+    """
     raw = _git_bytes(
         repo,
         "status",
@@ -1549,6 +1559,11 @@ def rollback_lines(workspace_root: Path) -> List[str]:
 def _candidate_tree_with_kept_untracked(
     worktree: Path, root: Path, candidate_tree: str, rows: Sequence[Mapping[str, Any]]
 ) -> str:
+    """Return the Git tree id of ``candidate_tree`` plus the ``worktree`` files that ``rows`` mark as added, in the
+    final delta and kept, skipping paths already in the tree; with none it returns ``candidate_tree``. It uses a
+    temporary index under ``root``, deleted best-effort, so the real index is untouched, but it writes new blob
+    and tree objects to the repository. Raises ``WorkspaceError`` on failure.
+    """
     kept = [row["path"] for row in rows if row["in_final_delta"] and row["change"] == "added" and row["disposition"] == "keep"]
     if not kept:
         return candidate_tree
@@ -1733,6 +1748,11 @@ def _expected_dirty_source(
 def _source_result_matches(
     source: Path, root: Path, receipt: Mapping[str, Any]
 ) -> bool:
+    """Return whether ``source`` still matches the result in ``receipt``, or ``False`` for a bad receipt or
+    ``WorkspaceError``; other exceptions propagate. A ``fast-forward-merge`` receipt checks HEAD, branch, tree
+    and empty ``git status`` output, read-only. Other kinds need an exact ``_fingerprint`` match, which writes
+    temporary index files in ``root`` and Git objects into ``source``.
+    """
     if (
         receipt.get("schema") != RECEIPT_SCHEMA
         or receipt.get("version") != VERSION

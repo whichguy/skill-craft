@@ -455,6 +455,11 @@ def _replay_or_conflict(
     occurred_at: Optional[str],
     recorded_at: Optional[str],
 ) -> Optional[Dict[str, Any]]:
+    """Return the row in ``rows`` with id ``event_id`` when it is an exact replay (the same row, not a copy), or
+    ``None`` when no id matches. ``data_json`` must be the ``_canonical_data`` form. A matching id with a
+    different ``kind``, ``data_json`` or ``occurred_at`` raises ``LedgerError``; ``None`` is compared literally
+    for ``occurred_at``. A differing non-``None`` ``recorded_at`` raises too.
+    """
     for row in rows:
         event = row["event"]
         if event["event_id"] != event_id:

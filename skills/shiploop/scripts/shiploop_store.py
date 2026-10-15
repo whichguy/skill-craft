@@ -346,6 +346,11 @@ def _journal_payload(manifest: Manifest) -> Dict[str, Any]:
 
 
 def _manifest_from_journal(root: Path, payload: Any) -> Manifest:
+    """Rebuild a transaction manifest from a decoded ``transaction.md`` journal ``payload``, an object with exactly
+    the keys ``schema``, ``transaction_id``, ``version``, ``writes`` and ``deletes``. Writes are
+    ``path``/``text`` objects and deletes are path strings. ``root`` must already be resolved. Returns path-
+    sorted writes and sorted deletes. Raises ``StorageError`` for a bad payload or unsafe path.
+    """
     if not isinstance(payload, dict):
         raise StorageError("transaction journal must contain a JSON object")
     expected_keys = {"schema", "transaction_id", "version", "writes", "deletes"}

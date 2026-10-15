@@ -688,6 +688,11 @@ def _complete_archive(
     handoff: Mapping[str, Any],
     records: Mapping[str, Mapping[str, Any]],
 ) -> None:
+    """Complete the archive at ``target`` for one handoff, returning nothing. ``target`` must hold only an
+    interrupted prefix of it (a matching ``intent.json``, no ``receipt.json``). Missing files are written from
+    the ``records`` bytes, sources are re-checked as untracked and unchanged, then ``receipt.json`` is written
+    and the tree made read-only. Raises, usually ``ChainHandoffError``, with no cleanup.
+    """
     intent = _intent_body(workspace, handoff_path, handoff_digest, expected)
     _validate_partial_archive(target, intent, handoff, records)
     archive_files = target / "files"

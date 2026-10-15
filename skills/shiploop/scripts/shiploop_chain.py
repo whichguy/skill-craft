@@ -1106,6 +1106,11 @@ def _require_planning_context(binding: Mapping[str, Any], attempt: str) -> None:
 
 
 def _planning_worker_instructions(packet: dict[str, Any]) -> None:
+    """Append worker guidance to the ``instructions`` list of ``packet`` in place and return nothing. It adds the
+    implementation-stage reference locators (without the parallel-chain guide), the code-craft prompt, handoff
+    and blocking rules, and planning-context rules when ``packet`` has a ``planning_context`` key. Entries
+    already present are skipped; ``packet`` must already hold an ``instructions`` list.
+    """
     reference_dir = Path(__file__).resolve().parents[1] / "references"
     instructions = [
         f"{label}: {reference_dir / relative}"
@@ -2391,6 +2396,11 @@ def _serial_action_instruction(action: Any) -> tuple[str, str | None]:
 
 
 def _serial_next_response(response: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a deep copy of a dispatcher response rewritten for serial mode. Only list-valued ``active`` and
+    ``actions`` are rewritten: ``active`` items lose ``handle`` and any ``recovery`` is mapped to a serial
+    action; ``actions`` items get a mapped ``action`` (unknown becomes ``inspect``) and new ``instruction``.
+    Always overwrites ``instruction``. Raises ``ChainError`` for a non-mapping list item.
+    """
     result = deepcopy(dict(response))
     active = result.get("active")
     if isinstance(active, list):
@@ -4112,6 +4122,11 @@ def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dic
 
 
 def _packet(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild the worker packet of a started per-step attempt and return the dispatcher's ``packet`` response with
+    ``packet`` replaced by it and ``shiploop_chain`` set to the binding summary. The packet is built from the
+    retained dispatcher packet, allocation record and accepted dependencies; ``executor`` carries over if
+    present. Raises ``ChainError`` if the attempt was not started or a check fails.
+    """
     attempt = _parse_packet(value)
     _verify_frozen(binding)
     chain_dir = _binding_dir(root, binding["action_id"])
