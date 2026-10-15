@@ -14,14 +14,14 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `notes/` | Host-written run notes. ShipLoop creates the empty directory whenever it prints a packet, so a model never needs `mkdir`; the notes and the pass log stay the host's to write. Notes named in results' `evidence_refs` include the canonical `notes/environment-lifecycle.md`. `notes/<action>.md` is the optional pass log: the host creates it when a pass starts and appends what each pass checked and what is left. Every packet names this action's pass log with the same conditional rule (open it first after a reset if it exists; if it does not, nothing was logged) and the context index lists it under "In progress"; neither reads the file, so neither can say whether it exists. It is a recovery aid, never a completion gate and never evidence: ShipLoop's own test-run records are the evidence, and every inner stage keeps its iteration state in its Until Loop receipt. |
 | `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. It stays after acceptance for two uses: replay (a repeated `complete` of the same action is compared with `accepted`) and the pending draft after a kill. It is refused as a planning dependency because it is mutable. |
 | `results/<action>.md` | The accepted result for one action, written by the script in the same transaction as `state.md`, and the "Read first" copy a packet points at. `state.md` `accepted[<action>]` stays the authority: on a planning-return path `planning_context.collect` fails when the file's parsed content differs from state (parsed equality, not bytes; an ordinary run does not check it). |
-| `improve/<action>/` | The imported Improve child record for one parent action: its receipt, terminal packet, the trivial-pass review files (two, or one for an unchanged first pass) and copied evidence. |
+| `improve/<action>/` | The imported Improve child record, keyed by the reviewed action (the Improve stage has its own action id, but its files stay under the reviewed one): its receipt, terminal packet, the trivial-pass review files (two, or one for an unchanged first pass) and copied evidence. |
 | `workspace.md`, `return-plan.md`, `return-receipt.md` | For workspace runs (in the workspace root): the original checkout, branch and baseline, the return plan whose dispositions `review-return` records, and the guarded return receipt that completion requires. |
 | `report.html` | Derived report written for done and halted runs; not workflow state. For a worktree run it lists, read live from Git, the branches and worktrees the run left in the source repository with the command to remove each; ShipLoop never removes them itself. |
 | `progress.html` | Self-contained live plan, activity and key-file previews, published by a read-only observer. Browser refresh reads the whole file; no web server is needed. |
 | `progress-observer.json`, `.progress.lock`, `.progress-stop`, `.progress-disabled` | Display process status, singleton lock, cooperative stop request and restart preference. None owns workflow state or proves the workflow is running. See [live progress view](status-display.md#live-html-progress-view). |
 | `status.md` | Derived copy of the user-facing [status block](status-display.md), rewritten by every saved transition in the same transaction as `state.md`; not workflow state. |
 | `decisions/<action>.md` | The user's own reply to a question (or a person's report after steps) a blocked result was `awaiting`, recorded by `resume --answer`/`--observed`. |
-| `improve/<action>-bind.md` | The candidate's tree when that Improve child was bound; the import compares against it to find the review's own uncommitted edits. |
+| `improve/<action>-bind.md` | The candidate's tree when that Improve child was bound (`<action>` is the reviewed action); the import compares against it to find the review's own uncommitted edits. |
 | `loops/<action>-contract.json`, `loops/<action>-terminal.json` | An inner stage's Until Loop contract, written by ShipLoop on entry to the action, and the receipt the runtime writes (every packet, the terminal one last). ShipLoop checks the receipt against the contract rebuilt from state, never against the file. Never edit either. |
 | `expectations/` | `validate-existing`'s records: `<action>.md` lists each expectation check's result at entry, one `.txt` per check holds its command and output, and `<item>-preparatory-commit.txt` names the preparatory fix commit the test stage's base run starts from. |
 | `tests/` | ShipLoop's own test runs: `<action>-base<N>.md` (the test stage's base run), `<action>-verify<N>.md` (candidate runs and reruns), `<action>-red-check.md` (the latest `shiploop red-check`) and `<action>-check-only.md` (the candidate run of the latest `complete --check-only`); the last two are replaced on each call and never counted. |
@@ -29,10 +29,11 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `lint/` | Script-owned lint output, never exit-criteria evidence: per-item base snapshots (`items/`), per-action records and patches, byte-exact tool logs (`logs/`, mode 0600), scratch space (`tmp/`) and pending fix journals. See the [lint catalog](lint-catalog.md). |
 
 The live Improve child keeps its own receipt at
-`<workspace>/.shiploop-improve/<run-id>/<action>/packet.json` in the execution
+`<workspace>/.shiploop-improve/<run-id>/<reviewed action>/packet.json` in the execution
 worktree; see [Improve context ownership](improve-context.md). Beside that receipt
-`improve-start` writes `parent-return.md`: the `improve-commit` command with its
-message rules (the one command the child runs), then the `improve-complete`
+ShipLoop writes `opening.md`, `start.json` and `parent-return.md` when it starts the child at the
+transition into the Improve stage: the `improve-commit` command with its
+message rules (the one command the child runs), then the Improve stage's `complete`
 command the parent runs; the child's commit message goes to `commit-message.md`
 there. Implementation
 chains keep their own append-only ledger; see

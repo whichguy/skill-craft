@@ -372,7 +372,7 @@ class GrokAdapterTests(unittest.TestCase):
             with self.subTest(status=status, final_code=final_code):
                 records = [
                     {"type": "tool_call", "toolCallId": "call", "rawInput": {
-                        "argv": ["python3", str(self.cli), "improve-complete"]}},
+                        "argv": ["python3", str(self.cli), "complete"]}},
                     {"type": "tool_call_update", "toolCallId": "call", "status": "in_progress",
                      "rawOutput": {"exit_code": 0}},
                 ]
@@ -464,35 +464,36 @@ class GrokAdapterTests(unittest.TestCase):
         self.assertEqual(["direct", "python"], summary["tool_invocation"]["call_ids"])
         self.assertEqual({"direct": "next", "python": "init"}, summary["tool_invocation"]["subcommands"])
 
-    def test_summarize_events_recognizes_direct_and_python_v3_improve_callbacks(self) -> None:
-        events = self.root / "v3-improve-callback-events.ndjson"
+    def test_summarize_events_recognizes_direct_and_python_improve_stage_callbacks(self) -> None:
+        """The Improve stage is an action of its own: its commands (improve-bind and its `complete`) name its id."""
+        events = self.root / "improve-stage-callback-events.ndjson"
         run_dir = self.repo / ".shiploop"
         records = [
             {
                 "type": "tool_call",
                 "toolCallId": "direct-bind",
                 "rawInput": {"argv": [str(self.cli), "improve-bind", "--run-dir", str(run_dir),
-                                     "--action", "PLAN", "--skill-card", "/tmp/improve/SKILL.md"]},
+                                     "--action", "IMPROVE-PLAN", "--skill-card", "/tmp/improve/SKILL.md"]},
             },
             {
                 "type": "tool_call",
                 "toolCallId": "direct-complete",
-                "rawInput": {"command": f"{self.cli} improve-complete --run-dir={run_dir} --action=PLAN --result=/tmp/plan-improve.md"},
+                "rawInput": {"command": f"{self.cli} complete --run-dir={run_dir} --action=IMPROVE-PLAN"},
             },
             {
                 "type": "tool_call",
                 "toolCallId": "python-complete",
-                "rawInput": {"command": f"python3 {self.cli} improve-complete --run-dir={run_dir} --action=PLAN --result=/tmp/plan-improve.md"},
+                "rawInput": {"command": f"python3 {self.cli} complete --run-dir={run_dir} --action=IMPROVE-PLAN"},
             },
             {
                 "type": "tool_call",
                 "toolCallId": "cat-mention",
-                "rawInput": {"command": f"cat {self.cli} improve-complete"},
+                "rawInput": {"command": f"cat {self.cli} complete"},
             },
             {
                 "type": "tool_call",
                 "toolCallId": "echo-mention",
-                "rawInput": {"command": f"echo {self.cli} improve-complete"},
+                "rawInput": {"command": f"echo {self.cli} complete"},
             },
         ]
         events.write_text("\n".join(json.dumps(record) for record in records), encoding="utf-8")
@@ -503,34 +504,55 @@ class GrokAdapterTests(unittest.TestCase):
         self.assertEqual(
             {
                 "direct-bind": "improve-bind",
-                "direct-complete": "improve-complete",
-                "python-complete": "improve-complete",
+                "direct-complete": "complete",
+                "python-complete": "complete",
             },
             summary["tool_invocation"]["subcommands"],
         )
         self.assertEqual(
-            ["improve-bind", "improve-complete", "improve-complete"],
+            ["improve-bind", "complete", "complete"],
             [call["argv_tail"][0] for call in summary["cli_calls"]],
         )
 
-    def test_summarize_events_keeps_v3_improve_complete_after_supported_python_heredoc(self) -> None:
-        events = self.root / "v3-heredoc-complete-events.ndjson"
+    def test_the_retired_improve_complete_verb_earns_no_credit_as_a_direct_argv_or_after_a_heredoc(self) -> None:
+        events = self.root / "retired-improve-complete-events.ndjson"
+        run_dir = self.repo / ".shiploop"
+        heredoc = (
+            "python3 - <<'PY'\n"
+            "print('x')\n"
+            "PY\n"
+            f"python3 {self.cli} improve-complete --run-dir={run_dir} --action=REAL"
+        )
+        records = [
+            {"type": "tool_call", "toolCallId": "direct",
+             "rawInput": {"argv": [str(self.cli), "improve-complete", f"--run-dir={run_dir}", "--action=PLAN"]}},
+            {"type": "tool_call", "toolCallId": "heredoc", "rawInput": {"command": heredoc}},
+        ]
+        events.write_text("\n".join(json.dumps(record) for record in records), encoding="utf-8")
+
+        summary = summarize_events(events, self.cli)
+
+        self.assertEqual([], summary["tool_invocation"]["call_ids"])
+        self.assertEqual([], [call["argv_tail"] for call in summary["cli_calls"]])
+
+    def test_summarize_events_keeps_the_complete_callback_after_supported_python_heredoc(self) -> None:
+        events = self.root / "heredoc-complete-events.ndjson"
         run_dir = self.repo / ".shiploop"
         command = (
             "python3 - <<'PY'\n"
-            f"print('python3 {self.cli} improve-complete --action=fake')\n"
+            f"print('python3 {self.cli} complete --action=fake')\n"
             "PY\n"
-            f"python3 {self.cli} improve-complete --run-dir={run_dir} --action=REAL --result=/tmp/plan-improve.md"
+            f"python3 {self.cli} complete --run-dir={run_dir} --action=REAL --result=/tmp/plan-improve.md"
         )
         events.write_text(
-            json.dumps({"type": "tool_call", "toolCallId": "v3-heredoc", "rawInput": {"command": command}}),
+            json.dumps({"type": "tool_call", "toolCallId": "heredoc", "rawInput": {"command": command}}),
             encoding="utf-8",
         )
 
         summary = summarize_events(events, self.cli)
 
         self.assertEqual(
-            [["improve-complete", f"--run-dir={run_dir}", "--action=REAL", "--result=/tmp/plan-improve.md"]],
+            [["complete", f"--run-dir={run_dir}", "--action=REAL", "--result=/tmp/plan-improve.md"]],
             [call["argv_tail"] for call in summary["cli_calls"]],
         )
 

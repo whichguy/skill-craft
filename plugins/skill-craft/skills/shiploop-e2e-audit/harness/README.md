@@ -701,8 +701,10 @@ Choose any prelude boundary: `intake`, `discovery`, `research`, `spec`,
 `test-strategy` or `plan`. Only navigator protocol 4 runs are observed; a
 run of any other protocol has no supported boundary. In a `stage` run `spec`, `test-strategy`
 and `plan` are Improve checkpoints: each is accepted only after its Improve
-child returns, so callback auditing requires `improve-complete` for them, and
-their earlier producer `complete` call does not establish stage acceptance.
+stage (an action of its own, with its own id) is completed, so callback auditing requires the Improve stage's `complete` (it names
+the stage's id, which state.md records as `improve_results[<action>].improve_action`) for them, and
+their earlier producer `complete` call does not establish stage acceptance. A saved run of the older layout (no `improve_action`)
+still needs `improve-complete`.
 In a `none` run (the run's recorded `planning_review`) they are not: each is accepted by its `complete` callback.
 Other stages are accepted by their `complete` callback. INNER
 boundaries are not exposed because the same stage recurs across work items and
@@ -843,8 +845,8 @@ selected on disk; they do not prove that a model obeyed every instruction or
 reveal its hidden context. Actual script use must be observed in structured
 tool events. A full pass additionally requires observed start, every accepted
 action's own callback, and the worktree return, bound to that new
-run's paths/action IDs. An action with an Improve record needs `improve-complete`
-(`improve-reconcile` for a stopped protocol-4 plan child); every other action
+run's paths/action IDs. An action with an Improve record needs its Improve stage's `complete`, naming the stage's id
+(`improve-reconcile` for a stopped protocol-4 plan child; `improve-complete` in a saved run of the older layout); every other action
 needs `complete`. An `init` call plus completed-looking files is insufficient.
 For shell strings, only the final executable command can receive automatic
 lifecycle credit. Earlier commands share a final status that does not establish

@@ -582,7 +582,7 @@ not instructions. In an isolated run the knowledge follow-up return carries that
 your branch; after a working-tree return it does not, and the report prints its exact
 message for you to commit.
 
-An Improve review's commit goes through `improve-commit` (git commit typed by hand
+An Improve review's commit goes through `improve-commit --action <improve id>` (git commit typed by hand
 skips its checks). The message needs a line `Key learnings: <text>` (also
 `Lessons:`, `Learned:`, or a `## Key learnings` heading with the text under it), each
 starting in column 1 of its own line;

@@ -56,6 +56,10 @@ from salesforce_proof import target_preflight_errors  # noqa: E402
 # navigator can enter an ambiguous per-work-item inner loop.
 PARTIAL_STAGES = ("intake", "discovery", "research", "spec", "test-strategy", "plan")
 _SUPPORTED_PROTOCOLS = frozenset((4,))
+# Older layout (a saved run, no `improve_action` in the record): an Improve child's finish was its own verb, `improve-complete`, naming
+# the reviewed action. Since the Improve stage is an
+# action of its own, the review is imported by that stage's `complete` (and a stopped child by `improve-reconcile`), each naming the
+# stage's id, which state.md records in improve_results[<reviewed action>]["improve_action"].
 _IMPROVE_CALLBACK = "improve-complete"
 _RECONCILE_CALLBACK = "improve-reconcile"
 _PRODUCER_CALLBACKS = frozenset(("complete",))
@@ -106,10 +110,13 @@ def _action_callbacks(state: Mapping[str, Any]) -> dict[str, frozenset[str]]:
 
     Protocol 4 accepts most producer results directly through
     ``complete``. An action with an Improve record
-    was accepted by importing its Improve child instead: ``improve-complete``,
-    or ``improve-reconcile`` for a stopped initial plan child.  An action
-    ShipLoop recorded by script (``_SCRIPT_RECORDED``) had no callback and is
-    left out.
+    was accepted by importing its Improve review instead: the Improve stage's
+    own ``complete`` (a record that holds its ``improve_action``), or
+    ``improve-reconcile`` for a stopped initial plan child; a record without
+    ``improve_action`` is a saved run of the older layout, whose verb was
+    ``improve-complete``.  An action ShipLoop recorded by script
+    (``_SCRIPT_RECORDED``) had no callback and is left out.  ``_callback_targets``
+    says which id each of those calls names.
     """
     records = state.get("improve_results")
     records = records if isinstance(records, Mapping) else {}
@@ -128,9 +135,26 @@ def _action_callbacks(state: Mapping[str, Any]) -> dict[str, frozenset[str]]:
             callbacks[action] = _PRODUCER_CALLBACKS
         elif isinstance(record, Mapping) and record.get("runtime_phase") == "stopped":
             callbacks[action] = frozenset((_RECONCILE_CALLBACK,))
+        elif isinstance(record, Mapping) and isinstance(record.get("improve_action"), str):
+            callbacks[action] = _PRODUCER_CALLBACKS  # the Improve stage's own complete
         else:
             callbacks[action] = frozenset((_IMPROVE_CALLBACK,))
     return callbacks
+
+
+def _callback_targets(state: Mapping[str, Any]) -> dict[str, str]:
+    """{the id an accepting callback names: the accepted action}: the Improve stage's id for a reviewed action whose record holds
+    one, else the action's own id.  A producer ``complete`` that names a reviewed action's own id parks it at its Improve stage and
+    accepts nothing, so that id is not a target."""
+    records = state.get("improve_results")
+    records = records if isinstance(records, Mapping) else {}
+    targets: dict[str, str] = {}
+    for entry in state.get("history", []):
+        if isinstance(entry, dict) and isinstance(entry.get("action"), str):
+            record = records.get(entry["action"])
+            stage_id = record.get("improve_action") if isinstance(record, Mapping) else None
+            targets[stage_id if isinstance(stage_id, str) else entry["action"]] = entry["action"]
+    return targets
 
 
 def read_json(path: Path) -> Any:
@@ -1292,6 +1316,7 @@ def lifecycle_observation(events: dict, navigation: dict, prompt: str, repo: Pat
         return {"complete": False, "reason": "unsupported-navigator-protocol",
                 "run_id": state.get("run_id"), "protocol_version": protocol_version}
     expected_callbacks = _action_callbacks(state)
+    callback_targets = _callback_targets(state)
     required_actions = set(expected_callbacks)
     callback_commands = set().union(*expected_callbacks.values()) if expected_callbacks else set()
     callbacks: set[str] = set()
@@ -1319,7 +1344,7 @@ def lifecycle_observation(events: dict, navigation: dict, prompt: str, repo: Pat
             started = True
         if tail[:1] == ["init"] and same_path(flags.get("--repo"), repo) and same_path(flags.get("--run-dir"), run_dir):
             started = True
-        action = flags.get("--action")
+        action = callback_targets.get(flags.get("--action"))
         # ``complete --check-only`` runs the stage's gates without accepting anything, so it is not a callback.
         if (tail[:1] and "--check-only" not in tail and action in expected_callbacks and tail[0] in expected_callbacks[action]
                 and same_path(flags.get("--run-dir"), run_dir)):

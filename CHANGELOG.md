@@ -4,6 +4,43 @@ Written by scripts/release.py.
 
 ## 2026-10-15
 
+### skill-craft 2.4.0
+
+- Skills: improve 0.4.2, shiploop 1.4.0, shiploop-e2e-audit 0.7.3, shiploop-run-review 0.2.2
+
+### improve 0.4.2
+
+- On a ShipLoop Improve stage the child is already started: ShipLoop writes the opening and starts the runtime at the
+  transition. The skill continues the child from its receipt and never writes the opening or runs `improve-start`.
+  Lessons and a revised result go to the Improve stage's `complete` (`--notes`, `--final-result`).
+
+### shiploop 1.4.0
+
+- Improve is now a stage of its own in ShipLoop's sequence (owner, 2026-10-11). After each reviewed stage, the run
+  issues an `improve` action with its own id. Its packet says to run the improve skill on the result, then run
+  `complete --action=<improve id>`.
+  - **ShipLoop sets the review up at the transition.** It binds the card, writes the opening from the run's state,
+    freezes the contract and starts the runtime. The model never writes the opening or starts the child.
+  - **`complete` imports the review.** `improve-complete` is removed; its `--notes`, `--final-result` and
+    `--no-commit` flags are on `complete`.
+  - **`improve-start` only restarts** a stopped or refused review, with `--restart-stopped`.
+  - **Other Improve commands** (`improve-bind`, `improve-commit`, `improve-reconcile`) take the Improve stage's id.
+  - **The packet file** is `packets/<improve id>.md`. The status block and the dry run show `improve` as its own step.
+  - **Duplicate reviews are refused.** `complete` refuses a review that repeats another Improve stage's review in the
+    same run. In the 2.1.0 live run, a model-written script faked three of four reviews from one template.
+  - **Old runs are refused.** A run whose Improve child predates this change cannot be resumed; start a fresh run.
+
+### shiploop-e2e-audit 0.7.3
+
+- The audit harness follows ShipLoop's Improve stage: a `complete` naming the Improve stage's id is attributed to the
+  stage it reviews, and `improve-complete` is no longer an allowed callback.
+
+### shiploop-run-review 0.2.2
+
+- The export reads Improve as a stage of its own: it finds the Improve packet by the stage id that state.md records
+  (`packets/<improve stage id>.md`), and still reads the older `packets/<action>-improve.md` layout. It recognises the
+  Improve stage's `complete` as the return step of the compact packet.
+
 ### skill-craft 2.3.3
 
 - Skills: shiploop 1.3.2

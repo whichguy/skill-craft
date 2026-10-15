@@ -409,9 +409,8 @@ def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated:
 
 
 CALLBACK_ATTEMPTS = "callback-attempts"
-PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-complete",
-                          "improve-reconcile"})
-CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-complete", "improve-reconcile"})
+PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-reconcile"})
+CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-reconcile"})
 
 
 def _callback_attempts(root: Path) -> int:
@@ -563,7 +562,6 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         "improve-bind",
         "improve-start",
         "improve-commit",
-        "improve-complete",
         "improve-reconcile",
         "next",
         "status",
@@ -602,26 +600,27 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         if name == "improve-bind":
             sub.add_argument("--skill-card", required=True)
         if name == "improve-start":
-            sub.add_argument("--opening", required=True,
-                             help="the printed opening file: the four sections only the parent knows")
-            sub.add_argument("--restart-stopped", action="store_true",
-                             help="archive a stopped child's receipt and reviews, then start a new child")
+            # ShipLoop starts every Improve stage itself at the transition; this verb only restarts one.
+            sub.add_argument("--restart-stopped", action="store_true", required=True,
+                             help="archive the Improve stage's stopped or refused review and start it again")
         if name == "improve-commit":
             sub.add_argument("--message", required=True,
                              help="the printed commit-message file, written with a file tool")
             sub.add_argument("--remote-change", dest="remote_change", action="store_true",
                              help="record a change to a remote system that left no file change: the message needs a "
                                   "'Remote change:' section, and with no file pending the commit holds no files")
-        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-complete",
-                    "improve-reconcile"):
+        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-reconcile"):
             sub.add_argument("--action", required=True)
-        if name in ("complete", "improve-reconcile"):
+        if name == "improve-reconcile":
             sub.add_argument("--result", required=True)
+        if name == "complete":
+            # Every producer stage needs it; an improve stage takes it only for a changed result (--final-result).
+            sub.add_argument("--result")
         if name == "complete":
             sub.add_argument("--check-only", dest="check_only", action="store_true",
                              help="run this stage's script gates on the result and report, without completing the "
                                   "action (an Until Loop's way to observe its exit conditions before done)")
-        if name == "improve-complete":
+        if name == "complete":
             sub.add_argument("--notes", help="optional plain-text lessons from the review, for later steps")
             sub.add_argument("--final-result", dest="final_result",
                              help="optional step-result record, only when the review changed a decision")

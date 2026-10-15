@@ -42,7 +42,7 @@ def assess_isolation(initial: dict, final: dict, events: dict, *, prompt: str, m
         key = old_dirs.get(str(Path(directory).resolve()))
         if key and argv[:1] == ["next"]:
             recovered.append({"run_id": key, "call_id": call.get("call_id"), "run_dir": directory})
-        if key and argv[:1] in (["complete"], ["done"], ["improve-complete"]):
+        if key and argv[:1] in (["complete"], ["done"], ["improve-reconcile"]):
             completed.append({"run_id": key, "call_id": call.get("call_id"), "action": flags.get("--action")})
     changed = sorted(key for key in old.keys() & current.keys() if old[key]["state"] != current[key]["state"])
     accepted_prompts = {prompt, prompt.removeprefix("/shiploop ")}

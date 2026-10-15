@@ -184,7 +184,7 @@ class DagReplayTests(unittest.TestCase):
         self.assertTrue(report["ok"], report.get("error"))
         expected = [event for event in report["events"] if event.get("expected_error_observed")]
         self.assertEqual(3, len(expected))
-        self.assertIn("step awaits actual Improve", expected[0]["engine_error"])
+        self.assertIn("step awaits its Improve stage", expected[0]["engine_error"])
         self.assertIn("conflicting Improve completion replay", expected[1]["engine_error"])
         self.assertIn("stale Improve parent action", expected[2]["engine_error"])
         self.assertTrue(all(event["from"] in {"spec", "test-strategy"} for event in expected))

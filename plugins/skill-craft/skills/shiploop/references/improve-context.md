@@ -2,16 +2,29 @@
 
 Use this host-owned boundary for a bound navigator Improve
 child using the ephemeral Until Loop runtime. At an Improve checkpoint, one
-valid producer submission parks the invoking parent and binds the child for the **whole Improve invocation**. The child owns
+valid producer submission moves the run into the `improve` stage, a stage of its own with its own
+action id, and ShipLoop binds the card, writes the opening and starts the child for the **whole
+Improve invocation**. The child owns
 its reviews, applicable experiments, and shared investigation allowance; do not
 create a worker or a fresh context for each review iteration. The parent remains
-ShipLoop's control channel and alone may run verified `improve-complete`, with
+ShipLoop's control channel and alone may run the Improve stage's verified `complete --action=<improve id>`
+(it takes `--notes`, `--final-result` and `--no-commit`, no `--result`), with
 no separate record to submit, after
 the runtime has written the terminal packet to the receipt and every candidate writer has stopped. A parent
 pause retains the child; an unfinished child route is not proof that its
 executor stopped. A direct `/improve` call remains the normal standalone
 entrypoint and needs no bound packet; this binding is only the automatic
 internal handoff for an existing ShipLoop run.
+
+Every model-facing command here names the Improve stage's id (`improve_id`, printed in its
+packet): `complete`, `improve-bind`, `improve-start --restart-stopped`, `improve-commit` and
+`improve-reconcile`. A command given the reviewed action's id is refused with "action '<id>' is not
+this run's Improve stage". The child's files stay under the reviewed action
+(`.shiploop-improve/<run>/<reviewed action>/`). The Improve packet is the file
+`packets/<improve id>.md` (`packets/<improve id>-bind.md` before a card is bound); it holds two
+lines, the improve skill call on the handoff and the `complete` callback, and the handoff file
+(`handoff.md` beside the receipt) holds everything the review needs. (Before 2026-10-11 the model
+wrote the opening, ran `improve-start --opening` and finished with `improve-complete`.)
 
 ## Route by the run's delegation
 
@@ -39,8 +52,8 @@ apply to both routes.
 
 ## Default route: the parent runs Improve (`delegation: inline`)
 
-INNER Improve packets begin with "Keep the invoking parent alive and run this
-Improve invocation inline." PRELUDE and OUTER Improve packets carry the same
+INNER Improve handoffs begin with "Keep the invoking parent alive and run this
+Improve invocation inline." PRELUDE and OUTER Improve handoffs carry the same
 runtime lines without that prefix. The parent conversation runs the selected
 Improve card's ShipLoop whole-skill subcall once, in the exact Child
 workspace; its review iterations share this context. Do not hand the invocation
@@ -50,31 +63,32 @@ test-runner or executor agent unless the user asked for independent review. Do
 not clear, hand off or pause for a clear during the invocation. This
 conversation is both executor and parent: the only candidate writer until the
 runtime returns a terminal packet, then the sole submitter of ShipLoop
-callbacks. No script checks who executes; `improve-complete` imports this child
+callbacks. No script checks who executes; the Improve stage's `complete` imports this child
 from its receipt and the reviews directory's `review-<n>.md`/`checks.md` files.
 
-Before start, verify the process cwd and Git root against the packet and follow
-the unchanged workspace and commit rules below. Freeze the exact candidate
-scope, selected packages, explicit user/repository authority including any
-no-commit override, and evidence paths; carry current approvals, declines and
-pending decisions into the opening's Authority section. Write the opening file
-the packet names (beside the receipt) with four sections: `## Current context
-and desired improvements` (the context-first opening below), `## Scope`,
-`## Authority` and `## Environment`. Then run the packet's `improve-start`
-command. ShipLoop freezes the child contract from it: the binding line alone and
-first in `context.request`, the workspace, work, exit and repeat conditions,
-commit policy, exclusions, and `context.resources` locators for the receipt,
-review evidence directory (where each pass writes `review-<n>.md` and `checks.md`),
-parent `state.md`, and the
-exact parent return (`parent-return.md` beside the receipt), so the terminal
-packet can locate the parent return after context loss. It writes that contract
-to `start.json` beside the receipt. Never write the contract or start the
-runtime yourself; never copy the binding line into the opening. An existing
-invocation keeps its frozen authority.
+ShipLoop sets the child up at the transition into the Improve stage, so the model writes no
+opening and starts no runtime. It writes `opening.md` itself from state (four sections: `## Current
+context and desired improvements`, `## Scope`, `## Authority` and `## Environment`), then freezes
+the child contract from it: the binding line alone and first in `context.request`, the workspace,
+work, exit and repeat conditions, commit policy, exclusions, and `context.resources` locators for the
+receipt, review evidence directory (where each pass writes `review-<n>.md` and `checks.md`), parent
+`state.md`, and the exact parent return (`parent-return.md` beside the receipt), so the terminal
+packet can locate the parent return after context loss. It writes that contract to `start.json`
+beside the receipt and starts the runtime with `--receipt`, so a bound run already has an active
+`packet.json` when the Improve packet is printed. Before the review, verify the process cwd and Git
+root against the packet and follow the unchanged workspace and commit rules below. Never write the
+contract or start the runtime yourself. An existing invocation keeps its frozen authority. The model
+continues the child from the receipt: run the improve skill on the handoff the packet names, and
+follow the receipt's `next_argv` and `done_argv`.
 
-To commit a review iteration's changes on this route, write the message to the
-packet's `commit-message.md` (beside the receipt) with a file-writing tool and
-run the packet's `improve-commit` command; the same command and its message rules
+If ShipLoop could not start the child (the runtime refused the contract), the stage stays pending
+and its packet says so; run `improve-start --action <improve id> --restart-stopped`. If the recorded
+card no longer resolves, the packet prints `improve-bind --action <improve id> --skill-card ...`
+instead; the transition then starts the child.
+
+To commit a review iteration's changes on this route, write the message to
+`commit-message.md` (beside the receipt) with a file-writing tool and
+run the `improve-commit --action <improve id>` command; the same command and its message rules
 are in `parent-return.md` beside the receipt, which the frozen contract names, so
 a child that lost its packet still finds them. ShipLoop stages and commits exactly
 the files this review changed and has not committed (work that was uncommitted
@@ -86,17 +100,20 @@ contributed>` lines are optional and checked; `--remote-change` with a `Remote
 change:` line records a change to a remote system as a commit with no files. A
 refusal's first line is the fix and the command to run next.
 
-`improve-start` starts the runtime once, before any review work, with
-`--receipt` set to the printed **Child latest packet receipt** and its state in
-the run directory's `until-loop/`, and prints the child's first packet: the
+ShipLoop starts the runtime once, before any review work, with
+`--receipt` set to the per-action receipt path and its state in
+the run directory's `until-loop/`: the
 runtime writes every start, next and done packet to the receipt itself, the
 terminal one before it deletes its state, so the receipt survives a lost
-context. Do not write or edit it. `improve-start` refuses once the receipt
-exists; recover a started child from its receipt instead. Only after the runtime
+context. Do not write or edit it. `improve-start` only restarts: it requires
+`--restart-stopped`, takes no opening, and archives a stopped child, or one whose single unchanged
+pass the change gate refused, before starting it again; it refuses while the receipt shows the
+review still running. Recover a started child from its receipt instead. Only after the runtime
 has written the terminal packet,
-run the packet's parent return and
-callback (`improve-complete`, with no separate record: it imports the reviews
-directory's own `review-<n>.md`/`checks.md`). Runtime completion alone never advances the action, and no ShipLoop
+run the packet's callback (`complete --action=<improve id>`, with no separate record: it imports the reviews
+directory's own `review-<n>.md`/`checks.md`). It refuses a `review-<n>.md` of three or more
+sentences when all but one of them repeat a review of another Improve stage of this run: run
+the improve skill on this result and write what this review checked and found. Runtime completion alone never advances the action, and no ShipLoop
 callback runs earlier. For the selected initial Plan Improve child (a `planning_review: stage`
 run; a `none` run has no Plan Improve child and no such route), the
 parent-only `improve-reconcile` route applies once the runtime has returned its
@@ -153,30 +170,26 @@ callback or return itself.
 
 ## Prepare the context-first assignment
 
-Before starting Improve on either route, the parent writes the opening
-**Current context and desired improvements** section from its current
-understanding of the task, repository and exact candidate worktree. Include
-**Current learnings** inside that section: a compact current-state brief of
-facts and corrections, decisions and their rationale, hypotheses, and execution
-pitfalls, as short labeled bullets. Suggested improvements remain candidates to
-assess, not findings or authorization. On the delegated route, put this
-completed opening first in the native worker prompt, before the skill
-invocation, route markers and orchestration details. The navigator supplies
-instructions and locators; it cannot synthesize facts from the parent's
-conversation. The parent must fill the opening with the actual context, not
-freeze or forward an empty template.
+ShipLoop writes the opening **Current context and desired improvements** section
+itself, from state (`improve_opening_text`): the reviewed stage and work item, the
+result's headline and summary, the files the item changed, and the locators for
+the whole handoff, the accepted result and the knowledge files. The navigator
+cannot synthesize facts from the parent's conversation, so the model adds
+context the opening lacks through the review itself: material user corrections,
+repository conventions and design decisions with their rationale, observed
+failures/checks with revision or content identity, and worktree-specific pitfalls
+or inherited work to preserve, recorded in the review notes and the replacement
+handoff. Distinguish facts, hypotheses and suggested next work. Retain material
+unresolved findings and failed attempts; they can be more useful than successful
+lessons. If context is unavailable on recovery, name that gap instead of
+inventing it. On the delegated route, put the opening ShipLoop wrote (read
+`opening.md` beside the receipt) first in the native worker prompt, before the
+skill invocation, route markers and orchestration details.
 
-Explain what the candidate is meant to achieve, what already changed, what
-appears to need improvement and why, and what remains uncertain. Bring forward
-material user corrections, repository conventions and design decisions with
-their rationale, observed failures/checks with revision or content identity,
-and worktree-specific pitfalls or inherited work to preserve. Read relevant
-accepted results/run notes and any required excerpt locators before summarizing.
-Distinguish facts, hypotheses and suggested next work. Retain material unresolved
-findings and failed attempts; they can be more useful than successful lessons.
-If context is unavailable on recovery, name that gap instead of inventing it.
-
-Use this order, filling values from the current task:
+ShipLoop's opening has the four sections `## Current context and desired
+improvements`, `## Scope`, `## Authority` and `## Environment`. On the delegated
+route the parent composes the worker prompt in this order, putting that opening
+first:
 
 ```markdown
 ## Current context and desired improvements
@@ -201,10 +214,10 @@ and cleanup.>
 ```
 
 That whole template is the delegated worker prompt. On the default route there
-is no worker prompt: the parent freezes the opening section in the child
-contract, runs `/improve` with the selected card itself, and keeps the
-workspace, authority and return facts in `context.authority` and
-`context.resources`; the route/owner markers and owner outputs do not apply.
+is no worker prompt: ShipLoop freezes the opening in the child contract, the
+parent runs `/improve` with the selected card itself, and the workspace,
+authority and return facts are in `context.authority` and `context.resources`;
+the route/owner markers and owner outputs do not apply.
 
 Omit empty learning categories, or state when none are known. Preserve essential
 meaning inline with locators for supporting detail; there is no word, bullet or
@@ -218,7 +231,7 @@ and an already frozen scope remain binding.
 
 Retain this opening once near the start of the child's existing
 `context.request`, alongside the canonical request and binding marker; the
-marker stays on its own line, alone and first on the default route. Use the
+marker stays on its own line, alone and first. Use the
 existing handoff to retain, correct or retire learnings across iterations. For
 planning this opening supplies the compact planning summary; keep full
 packets and verbose logs behind their existing locators rather than copying
@@ -235,9 +248,10 @@ These are existing contract and handoff contents, not a new result schema.
 
 ## Complete assignment and return
 
-Carry the current approval/decline decision record, which is Ask Agent's on the
-delegated route, into the existing child `context.authority` before start.
-Summarize its practical implications in the opening without reducing a binding
+The current approval/decline decision record, which is Ask Agent's on the
+delegated route, is carried in the child's `context.authority`, frozen by ShipLoop
+at the transition; a decision made later goes through the review notes and the
+handoff. Summarize its practical implications in the review without reducing a binding
 decline to a review suggestion. Existing approvals remain usable under their
 conditions; pending approval is not consent. Keep action/target boundaries and
 parent-only ownership explicit.
@@ -254,7 +268,7 @@ evidence and handoff on the default route, includes:
   successful terminal `complete` child, ShipLoop derives the outcome and key
   changes from the last one or two `review-<n>.md` files and `checks.md` and
   writes the summary itself; pass lessons for later steps as a plain-text file
-  via `improve-complete --notes`, and a revised step result only when the review
+  via `complete --notes`, and a revised step result only when the review
   changed a decision, via `--final-result`. An incomplete child returns a partial
   summary in its return and
   retained handoff/evidence, following the existing recovery route without
@@ -277,7 +291,7 @@ the terminal JSON receipt, and two callbacks do not replace two real reviews.
 
 ## Parent acceptance and recovery
 
-Only the parent may run `improve-complete`, and only after every candidate writer
+Only the parent may run the Improve stage's `complete`, and only after every candidate writer
 has stopped and it verifies the candidate edits, current checks, and exact
 successful terminal receipt against this action. On the delegated route, first
 collect the actual native return and confirm the worker and its delegates
@@ -287,12 +301,12 @@ incomplete; a paused parent still retains its child and an unfinished child
 route does not prove its executor stopped. The only settlement exception is the
 packet-issued `stopped` reconciliation route for the selected initial Plan
 Improve child using the bundled ephemeral runtime; it still requires confirmed
-owner evidence and the parent's `improve-reconcile`, never `improve-complete`.
+owner evidence and the parent's `improve-reconcile`, never the Improve stage's `complete`.
 On the default route that evidence is the stopped packet returned in this
 conversation with no candidate write in progress. Resolve conflicting scope or
 stale checks before acceptance; changes after convergence require fresh review
 evidence, not an unchanged old receipt.
-To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress, record the decision in the opening file and rerun `improve-start` with `--restart-stopped`: ShipLoop archives `packet.json` as `packet.stopped-<UTC timestamp>.json` and the sibling `reviews` directory as `reviews.stopped-<same timestamp>`, then starts a new child with the same binding line. On the delegated route, confirm the recorded owner stopped first; the parent then runs the same `improve-start --restart-stopped` and dispatches a worker to continue the new child. Its `review-<n>.md` and `checks.md` files must be ones the new child writes, since ShipLoop imports those into `review_refs` and `check_refs` at completion. To pause instead, run the parent pause command and leave the child active; never report `cancelled` for a pause.
+To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress, record the decision in the review notes and run `improve-start --action <improve id> --restart-stopped`: ShipLoop archives `packet.json` as `packet.stopped-<UTC timestamp>.json` and the sibling `reviews` directory as `reviews.stopped-<same timestamp>`, rewrites the opening from its own text, then starts a new child with the same binding line. The same verb restarts a child whose single unchanged pass the change gate refused. On the delegated route, confirm the recorded owner stopped first; the parent then runs the same `improve-start --restart-stopped` and dispatches a worker to continue the new child. Its `review-<n>.md` and `checks.md` files must be ones the new child writes, since ShipLoop imports those into `review_refs` and `check_refs` at completion. To pause instead, run the parent pause command and leave the child active; never report `cancelled` for a pause.
 On the delegated route, append the actual acceptance outcome,
 candidate/check/diff evidence, and any later caller-delivery outcome to
 `host-owner.md`; retain earlier launch and stop events. This record is not
@@ -300,7 +314,7 @@ authorization to bypass the runtime's importer.
 
 On success the edits are already in the bound candidate; there is no second
 worker patch to merge. At final `handoff` in workspace mode, the parent performs
-the packet's existing guarded workspace return before `improve-complete`.
+the packet's existing guarded workspace return before the Improve stage's `complete`.
 For other stages it imports once using the exact parent callback, then follows
 the returned packet. Do not report delivery to the caller just because Improve
 or its worker finished: a failed return retains the candidate and is still
@@ -323,14 +337,14 @@ Loop runtime is not supported and is refused at bind and import.
 ## Opt-in delegated route: Ask Agent executor (`delegation: ask-agent`)
 
 This route applies when the run's delegation is `ask-agent`, including a saved
-run without the setting. Its INNER Improve packets begin "Keep the invoking
+run without the setting. Its INNER Improve handoffs begin "Keep the invoking
 parent alive and follow Improve's selected context ownership." One fresh native
 worker owns the whole invocation. The worker retains useful within-loop context
 while the parent receives a compact return and durable locators. This reduces
 parent-context growth, not necessarily total tokens or latency.
 
 For a new delegated invocation, run the host-selected `improve-agent` card for
-this bound child. That card resolves the host-selected Ask Agent card, requires
+this bound child, after ShipLoop has started it at the transition. That card resolves the host-selected Ask Agent card, requires
 its declared `ask-agent/consumer-owned-workspace/v1` capability, selects
 `workspace_route: consumer-owned` and `delivery_mode: in-place`, composes the
 context-first assignment and the worker contract, and verifies the return. It
@@ -415,13 +429,14 @@ The packet's ShipLoop callbacks and workspace-return commands are **parent-only*
 except `improve-commit`, which the worker uses to commit a review iteration (the
 frozen contract says so and points at `parent-return.md` for the command).
 Do not ask the worker to read the entire parent conversation or run another
-ShipLoop instance. For a genuinely new child the parent writes the opening and
-runs the packet's `improve-start` command before dispatch, as on the default
-route: ShipLoop freezes the contract (binding line first in `context.request`,
-the host-owner locator among its resources) and starts the runtime. The worker
-continues that child from the saved receipt's `next_argv` and never writes the
-contract, starts the runtime or replaces the child. (A hand-built contract lost
-its binding line in a live Codex run, so `improve-complete` refused the review.)
+ShipLoop instance. For a genuinely new child ShipLoop has already written the
+opening, frozen the contract (binding line first in `context.request`, the
+host-owner locator among its resources) and started the runtime at the
+transition, as on the default route; the parent dispatches the worker after
+that. The worker continues that child from the saved receipt's `next_argv` and
+never writes the contract, starts the runtime or replaces the child. (A
+hand-built contract lost its binding line in a live Codex run, so the Improve
+stage's `complete` refused the review.)
 
 When a relevant main-context decision changes, the parent appends its source,
 action/target, conditions and forwarding status to `host-owner.md`, then forwards

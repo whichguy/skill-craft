@@ -39,7 +39,6 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "improve-bind",
         "improve-start",
         "improve-commit",
-        "improve-complete",
         "improve-reconcile",
         "next",
         "status",
@@ -428,7 +427,7 @@ def _standalone_python_completion_callback(line: str) -> bool:
     return (
         len(tokens) >= 3
         and tokens[0] == "python3"
-        and tokens[2] in {"complete", "improve-complete"}
+        and tokens[2] == "complete"
     )
 
 
@@ -438,8 +437,8 @@ def _strip_supported_python_heredoc(value: str) -> str | None:
     The body is opaque: no token, path, or command-looking text in it can count
     as an invocation.  This intentionally supports only a standalone
     ``python3 - <<'PY'`` header, an exact ``PY`` terminator, and one standalone
-    literal ``python3 <selected-cli> complete ...`` or
-    ``python3 <selected-cli> improve-complete ...`` line after the terminator.
+    literal ``python3 <selected-cli> complete ...`` line after the terminator
+    (the Improve stage's review is imported by its own ``complete`` too).
     All other heredoc forms remain unsupported and are rejected downstream.
     """
     lines = value.splitlines(keepends=True)

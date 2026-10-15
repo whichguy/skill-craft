@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.3.2
+# ShipLoop navigator 1.4.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
@@ -234,12 +234,18 @@ route; unavailable remote checks remain unrun even when local tests pass.
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
 actual card (`--planning-review none` requires it: no planning child binds the card before the first
 `implement` step's Improve child). If omitted, `init` records the card installed beside ShipLoop when it
-validates, and the first checkpoint's packet prints the command `improve-bind --action ... --skill-card ...`
-with that path; where none validates the checkpoint stays pending on a marked blank. The
-packet is authoritative for argument values and recovery. It then supplies one
-actual Improve handoff; a recorded child is resumed through its own state, and
-`improve-complete` imports its last review pass(es) and check output once, with
-no separate record to submit. New
+validates, and ShipLoop binds that card to each Improve stage itself; only when the recorded card
+no longer resolves does the Improve packet print `improve-bind --action <improve id> --skill-card ...`
+with the path, and where none validates the stage stays pending on a marked blank. The
+packet is authoritative for argument values and recovery.
+
+Improve is a stage of its own (`improve`) with its own action id after each reviewed stage. At the
+transition ShipLoop writes the child's opening, freezes its contract and starts it, so the packet is
+two lines: run the improve skill on the handoff, then `complete --action=<improve id>`. That
+`complete` imports the child's last review pass(es) and check output once, with no separate record
+to submit, and refuses a review that repeats another Improve stage's. A recorded child is resumed
+through its own state. (Before 2026-10-11 the model wrote the opening, ran `improve-start --opening`
+and finished with `improve-complete`; `improve-complete` is gone and `improve-start` only restarts.) New
 children commit verified scoped improvements in their bound worktree under
 the selected Improve policy, unless an explicit user or repository no-commit
 override applies. The parent verifies the commit evidence and owns integration;
@@ -270,8 +276,8 @@ flowchart LR
   A --> N[Next producer]
 ```
 
-The host saves complete raw `start`, `next` and `done` JSON responses at
-`<workspace>/.shiploop-improve/<parent-run-id>/<action>/packet.json`. This file
+The runtime writes complete raw `start`, `next` and `done` JSON responses at
+`<workspace>/.shiploop-improve/<parent-run-id>/<reviewed action>/packet.json`. This file
 is a receipt and recovery locator, not another loop controller. Until Loop owns
 one independent temporary file for the active child. Separate parents/actions
 have separate receipts and runtime files; overlapping product edits still need
@@ -300,7 +306,7 @@ to two; with `exit_assessment: satisfied`, Until Loop returns `status: complete`
 and deletes its temporary file. These are three separate execution/report
 cycles. The LLM judges the evidence and classification; the runtime applies the
 counter and transition. ShipLoop validates the terminal packet's parent/workspace
-identity, context and gate, then archives it as `improve/<action>/terminal.json`
+identity, context and gate, then archives it as `improve/<reviewed action>/terminal.json`
 alongside two distinct final review files and current check evidence. Only an
 accepted import releases the parent action. Duplicate matching parent callbacks
 remain idempotent.
@@ -977,9 +983,11 @@ shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN
 # Callbacks the packet prints
 shiploop complete --run-dir RUN --action ACTION --result RESULT.md
-shiploop improve-bind --run-dir RUN --action ACTION --skill-card ABSOLUTE_SKILL_CARD
-shiploop improve-complete --run-dir RUN --action ACTION [--notes LESSONS.md] [--final-result RESULT.md] [--no-commit=TEXT]
-shiploop improve-reconcile --run-dir RUN --action ACTION --result RECONCILIATION.md
+shiploop complete --run-dir RUN --action IMPROVE_ID [--notes LESSONS.md] [--final-result RESULT.md] [--no-commit=TEXT]   # the Improve stage's import
+shiploop improve-bind --run-dir RUN --action IMPROVE_ID --skill-card ABSOLUTE_SKILL_CARD
+shiploop improve-start --run-dir RUN --action IMPROVE_ID --restart-stopped
+shiploop improve-commit --run-dir RUN --action IMPROVE_ID --message MESSAGE_FILE [--remote-change]
+shiploop improve-reconcile --run-dir RUN --action IMPROVE_ID --result RECONCILIATION.md
 # Run control
 shiploop pause    --run-dir RUN --reason=TEXT
 shiploop resume   --run-dir RUN
@@ -1022,8 +1030,10 @@ never gates.
 `--delegation` selects the simulated route (inline by default). See
 [graph dry runs](references/graph-dry-run.md).
 
-The packet is authoritative for `complete`, `improve-bind`, `improve-complete`
-and `improve-reconcile` arguments and for recovery. A parent imports only
+The packet is authoritative for `complete`, `improve-bind`, `improve-start`,
+`improve-commit` and `improve-reconcile` arguments and for recovery; the improve-* verbs and the
+Improve stage's `complete` take the Improve stage's id, and a command given the reviewed action's id
+is refused. A parent imports only
 matching accepted child evidence and never replaces a blocked child with a
 hand-written review loop outside the selected Improve skill. `scripts/shiploop-next`
 and `scripts/shiploop-complete` are thin wrappers around `next` and `complete`;

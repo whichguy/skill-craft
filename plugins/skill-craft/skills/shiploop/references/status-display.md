@@ -20,11 +20,11 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 
 | Line | Content |
 |---|---|
-| Where | Phase, then item (N of M) and its stage group, then the stage. `(Improve review)` while an Improve child owns the step. |
+| Where | Phase, then item (N of M) and its stage group, then the stage. `> improve` follows it while the Improve stage owns the step. |
 | Run | Preparation, work items (completed/total) and Release. |
 | Item / Stages | During a work item, its 8 stages in five phases: Plan, Validate existing, Build, Verify, Carry forward. In preparation and release, each stage. |
 | Done | The latest accepted result's first sentence, marked when Improve reviewed it or the outcome was repeat, blocked, replan or reconcile. While a child is parked, the result it is reviewing. |
-| Next / Stopped | The current stage and its one-line purpose, or the Improve review in progress. A paused, blocked or halted run shows its reason; the packet prints the resume command. |
+| Next / Stopped | The current stage and its one-line purpose, or, at the Improve stage, `improve: run the improve skill on the <stage> result`. A paused, blocked or halted run shows its reason; the packet prints the resume command. |
 | Item plan | The first sentence of the item's accepted `step-plan` summary, or of the item's `context` before that. Omitted when neither exists. |
 | Completed | Completed items, the three most recent with the first sentence of their `carry-forward` summary. |
 
