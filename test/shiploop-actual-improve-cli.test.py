@@ -1799,6 +1799,54 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
 
+    def test_a_restarted_review_that_honestly_finds_nothing_more_is_accepted(self):
+        """Review of 2026-10-12: the restart a refused unchanged pass names kept the original bind snapshot, so a
+        restarted review that found nothing more to change ended on one unchanged pass and was refused again, with the
+        same message, until the model contrived another edit.  The restart takes a fresh snapshot of the committed tree."""
+        self.begin()
+        _raw, first = self.start_ephemeral_child()
+        self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
+        self.edit()
+        self.write("docs: fix the example\n\nKey learnings: none\n")
+        self.invoke(*self.commit_args)
+        completion, _receipt = self.completion_receipt()
+        line = self.line_one(self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve,
+                                         *completion, status=2).stderr)
+        restart = shlex.split(re.search(r"start the review again with (.+? --restart-stopped)", line).group(1))
+        self.run_argv(restart)
+        receipt = bridge.receipt_path(self.bound)
+        restarted = json.loads(receipt.read_text(encoding="utf-8"))
+        # the second review reads the committed tree and finds nothing: one honest unchanged pass
+        _raw, done = self.done_ephemeral(restarted, self.child_report("trivial", "satisfied", "allowed", "nothing more"))
+        self.assertTrue(done["progress"]["unchanged_first_pass"])
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
+    def test_restarting_after_an_unchanged_pass_refuses_while_the_edit_is_uncommitted(self):
+        """The fresh baseline must not hide an uncommitted edit: the restart names improve-commit first."""
+        self.begin()
+        _raw, first = self.start_ephemeral_child()
+        self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
+        self.edit()  # not committed
+        stderr = self.invoke(CLI, "improve-start", "--run-dir", self.run, "--action", self.improve,
+                             "--restart-stopped", status=2).stderr
+        self.assertIn("Commit this review's changes first", self.line_one(stderr))
+
+    def test_check_only_on_the_improve_stage_is_refused_and_imports_nothing(self):
+        """Review of 2026-10-12: --check-only on the Improve stage's id ran the real import.  It previews a producer
+        stage's draft; the Improve stage has none, so it is refused with the command to run instead."""
+        self.begin()
+        self.finish_ephemeral()
+        completion, _receipt = self.completion_receipt()
+        before = (self.run / "state.md").read_bytes()
+        stderr = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, "--check-only",
+                             *completion, status=2).stderr
+        self.assertIn("--check-only previews a producer stage's draft result", self.line_one(stderr))
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)  # the named command works
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
     def test_a_result_summary_with_opening_headings_still_starts_the_improve_stage(self):
         """Review of 2026-10-12 (P1): the opening pastes the result's summary, and a summary line "## Scope" made the
         contract parser read the opening as repeating that section, so the stage never started and the printed restart

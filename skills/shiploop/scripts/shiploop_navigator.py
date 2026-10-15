@@ -5325,7 +5325,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     else:
         ownership_lines = [
             *start_lines,
-            "Parent assignment preparation: the opening carries the conversation-only learnings, decisions and unresolved concerns (the navigator cannot supply conversation-only learnings). Then say 'Run /improve' with the selected card, the concrete run binding and this started child's receipt. Do not forward this entire parent packet or repeat the skill's execution instructions.",
+            "Parent assignment preparation: ShipLoop's opening (opening.md beside the receipt) holds the stage result, scope, authority and environment; put it first in the worker prompt and add this conversation's learnings, decisions and unresolved concerns (the navigator cannot supply conversation-only learnings). Then say 'Run /improve' with the selected card, the concrete run binding and this started child's receipt. Do not forward this entire parent packet or repeat the skill's execution instructions.",
             "For a genuinely new invocation, after ShipLoop has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
             "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
@@ -6368,6 +6368,20 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
           "this review is still running; continue it from its saved receipt " + str(receipt)
           + " (active: run its next_argv once; complete: run " + _callback(core, root, "complete",
                                                                          action=improve_id(state)) + ")")
+    if receipt.exists() and saved_status != "stopped":
+        # A completed review that ended on one unchanged pass is restarted because files changed after its bind.  Those
+        # files are committed (the gate refuses otherwise), so the new review's baseline is the tree as it stands now:
+        # an honest second pass that changes nothing then ends clean instead of meeting the same refusal again.
+        changes = improve_changes.review_changes(root, Path(state["repo"]), child["action_id"])
+        owed = improve_changes.uncommitted(changes, {})
+        if owed:
+            message_path = improve_commit_message_path(child)
+            raise NavigatorError(improve_changes.commit_refusal(
+                owed, str(message_path), _callback(core, root, "improve-commit", action=improve_id(state),
+                                                   message=str(message_path)),
+                _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped"))
+        for relative, text in improve_changes.bind_writes(root, Path(state["repo"]), child["action_id"]).items():
+            store.atomic_write_text(root / relative, text)
     _start_improve(core, root, state, restart=receipt.exists())
     print("Improve review started again from " + str(improve_opening_path(child)) + "; its receipt is "
           + str(receipt) + ". Run the improve skill on it as the packet says:")
@@ -6428,6 +6442,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     if command in ("improve-bind", "improve-reconcile") or improve_import:
         import shiploop_standalone_improve as standalone
         stage_action = getattr(args, "action", None)
+        _need(not (improve_import and getattr(args, "check_only", False)),
+              "--check-only previews a producer stage's draft result; the Improve stage has no draft to check, and its "
+              "complete imports the finished review. Run it without --check-only after the improve skill has completed: "
+              + _callback(core, root, "complete", action=stage_action))
         action_id = _reviewed_action(state, stage_action)
         _need(action_id is not None,
               f"action {stage_action!r} is not this run's Improve stage; to read the current packet run: "
