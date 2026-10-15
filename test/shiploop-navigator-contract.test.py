@@ -2507,7 +2507,8 @@ class SkillCardContextBoundaryTests(unittest.TestCase):
                       " ".join(prompts.IMPROVE_INNER_CONTEXT.split()))
         self.assertIn('INNER **producer** packets begin with "Clear and then execute the prompt."',
                       card)
-        self.assertIn('Improve packets instead begin "Keep the invoking parent alive"', card)
+        # The Improve stage's packet is two lines; the prefix is the first line of its handoff file (2026-10-12).
+        self.assertIn('Improve handoffs instead begin "Keep the invoking parent alive"', card)
         self.assertTrue(improve_prefix.startswith("Keep the invoking parent alive"))
         self.assertNotIn("prefix both producer and Improve assignments", card)
 
@@ -3613,7 +3614,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
     # (document, words of the sentence) -> why it may stay unqualified.  A sentence that says a planning result
     # is reviewed is not here: it says when (`stage` runs) in its own words.
     SENTENCES = {
-        ("SKILL.md", "Their Improve packets carry a planning review focus"):
+        ("SKILL.md", "Their Improve handoffs carry a planning review focus"):
             "the same list item's first sentence names `planning_review` and the stages its reviews cover",
         ("references/behavioral-requirements.md", "The spec producer and its Improve review apply them"):
             DESCRIBES_THE_CONTENT,
