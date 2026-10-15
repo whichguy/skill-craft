@@ -188,6 +188,11 @@ def _narrative(snapshot: Mapping[str, Any], facts: Mapping[str, Any]) -> str:
 
 
 def _work_items(snapshot: Mapping[str, Any]) -> str:
+    """Build the progress page's work items panel HTML from ``snapshot``. The header shows Plan accepted or Plan
+    pending per ``plan_accepted``. If falsy, only a pending notice follows; if truthy and ``work_items`` is not
+    a non-empty list or tuple, an empty notice follows. Otherwise each mapping row becomes an escaped card (id,
+    title, status pill, non-empty plan and dependencies); other rows are skipped.
+    """
     rows = snapshot.get("work_items", [])
     rows = rows if isinstance(rows, (list, tuple)) else []
     plan_accepted = bool(snapshot.get("plan_accepted"))
@@ -445,6 +450,13 @@ def _graph_svg(
 
 def _graph_text(nodes: list[Mapping[str, Any]], display_ids: list[str], edges: list[tuple[int, int]],
                 dependencies_known: bool, state_key: str) -> str:
+    """Render a graph's steps as an HTML ``<details>`` block holding a plain-text list, one ``<li>`` per node. Each
+    item shows the ``display_ids`` entry, title, and status (falling back to "unspecified"), plus the work item,
+    action, and plan only when they are present, and the prerequisites derived from ``edges`` when
+    ``dependencies_known`` is true, otherwise a note that order is unknown. ``state_key`` goes into the ``data-
+    state-key`` attribute. Returns the HTML string, or an empty string when ``nodes`` is empty; it writes
+    nothing and mutates none of its arguments.
+    """
     if not nodes:
         return ""
     incoming: list[list[int]] = [[] for _ in nodes]
@@ -484,6 +496,13 @@ def _graph_text(nodes: list[Mapping[str, Any]], display_ids: list[str], edges: l
 
 
 def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
+    """Render the Steps and dependencies panel as an HTML string from the ``graphs`` list or tuple in ``snapshot``;
+    any other value is treated as no graphs. If there is no mapping entry, an empty-state message is shown.
+    Entries whose ``status`` is ``accepted`` (compared case-insensitively) get an SVG, a text dependency list
+    and any diagnostics; if such a graph has no valid nodes, the SVG is replaced by an empty-state note and the
+    text list is omitted. Other statuses get an explanatory message plus the optional ``reason``, and non-
+    mapping entries get a malformed-entry note.
+    """
     raw_graphs = snapshot.get("graphs", [])
     graphs = raw_graphs if isinstance(raw_graphs, (list, tuple)) else []
     parts = [
@@ -534,6 +553,11 @@ def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
 
 
 def _documents(snapshot: Mapping[str, Any]) -> str:
+    """Render the Key files panel as HTML from the ``documents`` list or tuple in ``snapshot``. A missing, empty or
+    mistyped entry gives an empty-state message. Each mapping row becomes a collapsible entry of title, status
+    pill, optional fields and a preview or placeholder. Non-mapping rows are skipped; a list of only those gives
+    no message. Values are HTML-escaped; only local ``file:`` URIs are linked.
+    """
     rows = snapshot.get("documents", [])
     rows = rows if isinstance(rows, (list, tuple)) else []
     parts = [
@@ -588,6 +612,11 @@ def _documents(snapshot: Mapping[str, Any]) -> str:
 
 
 def _activity(snapshot: Mapping[str, Any]) -> tuple[str, str]:
+    """Render the "Recent activity" panel from the ``activity`` rows of ``snapshot``. Returns the panel HTML,
+    listing mapping rows in reverse input order, and the ``time`` of the last mapping row as unescaped text, so
+    rows must be oldest first. That time is an empty string when there are no such rows or it is missing or
+    ``None``. A non-list/tuple ``activity`` and non-mapping rows are skipped.
+    """
     rows = snapshot.get("activity", [])
     rows = [row for row in rows if isinstance(row, Mapping)] if isinstance(rows, (list, tuple)) else []
     latest = _value(rows[-1].get("time")) if rows else ""

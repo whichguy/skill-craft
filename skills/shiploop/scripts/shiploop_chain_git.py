@@ -920,6 +920,12 @@ def _prepared_proof(
     expected_target: str,
     candidate_commit: str,
 ) -> Dict[str, str]:
+    """Build the proof that a prepared worker candidate still matches its source and target, using only read-only
+    Git queries. Requires the target HEAD to equal ``expected_target`` and ``candidate_commit`` to be the
+    allocated worker's HEAD, descending from both ``source_commit`` and ``expected_target``, and to equal one of
+    them or be a recognized prepared merge. Returns a dict with ``source_commit``, ``expected_target``,
+    ``candidate_commit`` and ``workspace`` (the worker repo path); any failed check raises ``ChainGitError``.
+    """
     target, expected = _expected_target(plan, expected_target)
     worker, source = _source_workspace(plan, source_commit)
     repo = Path(worker["repo"])

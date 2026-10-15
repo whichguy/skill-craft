@@ -2,6 +2,22 @@
 
 Written by scripts/release.py.
 
+## 2026-10-15
+
+### skill-craft 2.3.3
+
+- Skills: shiploop 1.3.2
+
+### shiploop 1.3.2
+
+- Second script quality pass: `shiploop_quality` no longer lists in `__all__` (or its
+  docstring) helpers it does not define, so `from shiploop_quality import *` works again.
+  Progress-data read errors now name the file and its size limit, and a malformed dry-run scenario
+  reports its type.
+  19 more private functions have docstrings that were checked against their code by two
+  independent reviewers.
+  24 further private functions are documented the same way, leaving two for a later pass.
+
 ## 2026-10-11
 
 ### skill-craft 2.3.2

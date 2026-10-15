@@ -1193,6 +1193,13 @@ class _BaseTree:
             raise
 
     def _make(self) -> Path:
+        """Create the temporary detached git worktree at ``self.tree`` for the lint base, copy the item's test
+        files into it, and return the directory that stands for the repository. When the base has no ``commit``
+        it first makes a dangling commit of the base ``tree`` with a fixed ShipLoop identity. It sets
+        ``self.added`` and symlinks each ``DEPENDENCY_DIRS`` name that is a directory in the checkout and not
+        already present in the returned directory. Raises ``TestLoopError`` if the commit or worktree cannot be
+        made; the file copies and git calls can also raise ``OSError`` or ``lint.LintError``.
+        """
         identity = {"GIT_AUTHOR_NAME": "ShipLoop", "GIT_AUTHOR_EMAIL": "shiploop@localhost",
                     "GIT_COMMITTER_NAME": "ShipLoop", "GIT_COMMITTER_EMAIL": "shiploop@localhost"}
         commit = str(self.base.get("commit") or "")
