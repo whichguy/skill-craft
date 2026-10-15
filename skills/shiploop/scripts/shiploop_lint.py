@@ -1532,6 +1532,13 @@ def _ruff_check(invoker: _Invoker, top: Path, files: List[_File], ruff: str) -> 
 
 
 def _shellcheck(invoker: _Invoker, top: Path, files: List[_File], shellcheck: str) -> None:
+    """Lint the files with ``shellcheck`` through ``invoker`` and record coverage and findings on each ``_File``;
+    returns ``None``. Files are grouped by flags: those for which ``_shellcheckrc`` finds no config get
+    ``SHELLCHECK_DEFAULT``, the rest none. A group whose ``invoker.run`` returns ``None`` is left untouched; one
+    that times out or exits other than 0 or 1 is marked ``uncovered`` with a syntax-only ``coverage`` note.
+    Otherwise findings go to ``_classify_findings``, with a base-blob lint over stdin when a file has findings
+    and a base.
+    """
     groups: Dict[Tuple[str, ...], List[_File]] = {}
     for item in files:
         flags = () if _shellcheckrc(top, item.path) else SHELLCHECK_DEFAULT

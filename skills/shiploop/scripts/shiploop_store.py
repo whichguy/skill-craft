@@ -291,6 +291,12 @@ def _validated_manifest(
     writes: Mapping[str, str],
     deletes: Sequence[str],
 ) -> Manifest:
+    """Check a transaction's ``writes`` mapping and ``deletes`` sequence against ``root`` and return them as a
+    canonical manifest. The result is a pair: ``(path, text)`` write tuples sorted by path, and the delete paths
+    sorted. It writes nothing. Raises ``StorageError`` if either argument has the wrong type or non-string
+    entries, a delete path repeats, a path is both written and deleted, or ``_checked_target`` rejects any path,
+    for example an unsafe one, one that escapes ``root``, or one naming ``transaction.md``.
+    """
     if not isinstance(writes, Mapping):
         raise StorageError("transaction writes must be a mapping")
     if isinstance(deletes, (str, bytes)) or not isinstance(deletes, Sequence):

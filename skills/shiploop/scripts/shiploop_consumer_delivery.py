@@ -164,6 +164,13 @@ def _authority(value: Any) -> dict[str, str]:
 
 
 def _obligations(value: Any) -> list[dict[str, Any]]:
+    """Validate the list of delivery obligations in a contract and return it as a new list of dicts, one per
+    obligation, in input order. Each item must be an object with exactly the keys ``id``, ``consumer``,
+    ``target``, ``kind``, ``phase``, ``expected`` and ``required``. Raises ``ConsumerDeliveryError`` for a non-
+    list, an unsafe or repeated ``id``, an invalid ``kind``, a ``phase`` that does not match its ``kind``, a
+    non-boolean ``required``, or a non-text or blank ``consumer``, ``target`` or ``expected``. It does not
+    mutate its input or write anything.
+    """
     _need(isinstance(value, list), "delivery obligations must be a list")
     rows: list[dict[str, Any]] = []
     ids: set[str] = set()
@@ -394,6 +401,12 @@ def _apply_observations(
     action: str,
     stage: str,
 ) -> None:
+    """Validates delivery observation ``rows`` against the accepted contract in ``projection`` and records each one
+    in ``projection['observations']`` by obligation id, as a deep copy tagged with ``source_action`` and
+    ``source_stage``. Returns ``None``. Raises ``ConsumerDeliveryError`` if there is no accepted contract, a row
+    names an unknown obligation, its status is not allowed for that obligation kind at ``stage``, or its
+    candidate or target does not match. Rows apply in order, so rows before a failing one stay recorded.
+    """
     contract = projection.get("contract")
     _need(isinstance(contract, Mapping), "delivery observation has no accepted contract")
     by_id = {row["id"]: row for row in contract["obligations"]}

@@ -381,6 +381,13 @@ def _absolute_local_reference(workspace: Path, locator: str, value: Any, label: 
 
 
 def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[str, Any]:
+    """Validate a successful Improve receipt and return a normalized copy. ``receipt`` must be a mapping with
+    ``summary``, ``review_refs`` and ``check_refs``; ``lessons``, ``final_result`` and ``no_commit`` are
+    optional and any other key is rejected. ``review_refs`` must hold one or two distinct paths and
+    ``check_refs`` at least one. Each path is rewritten by ``_local_reference`` relative to ``workspace`` and
+    must already exist on disk as a regular single-link file with no symlink in its path. Writes nothing and
+    does not mutate its input; raises ``StandaloneImproveError`` on a violation it checks.
+    """
     _need(isinstance(receipt, Mapping), "Improve receipt must be an object")
     allowed = {"summary", "review_refs", "check_refs", "lessons", "final_result", "no_commit"}
     _need(set(receipt) <= allowed and {"summary", "review_refs", "check_refs"} <= set(receipt),

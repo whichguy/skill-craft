@@ -673,6 +673,13 @@ def _fingerprint_matches_snapshot(
 
 
 def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bool]:
+    """Validate the requested workspace root and return ``(resolved_root, existing)``, creating the root when it is
+    new. It rejects a root inside ``repo`` or ``common``, a root containing ``repo``, and a symlink or non-
+    directory root. An existing directory with a non-symlink ``workspace.md`` entry is returned with
+    ``existing`` true and nothing written; any other is rejected as occupied. A new root calls
+    ``shiploop_grants.require``, then creates at most one missing parent level and the root. Rejections raise
+    ``WorkspaceError``; the grants call can raise ``GrantError``, which is not one.
+    """
     root = requested.absolute()
     _no_symlink_components(root.parent, label="workspace root parent")
     if _inside(root, repo) or _inside(repo, root) or _inside(root, common):
@@ -864,6 +871,13 @@ def _locked_existing_root(function: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def _validate_manifest(root: Path, manifest: Mapping[str, Any]) -> Dict[str, Any]:
+    """Check that a loaded workspace ``manifest`` is well formed for the workspace ``root`` and return a shallow
+    ``dict`` copy of it. It writes nothing and does not modify ``manifest``. Raises ``WorkspaceError`` when the
+    schema, version, field types, workspace branch, path lists, initial fingerprint or clean-start baseline are
+    invalid, when ``status`` is a hashable value other than the four known statuses, or when ``run_dir`` or
+    ``worktree`` is not the ``run`` or ``worktree`` directory directly under ``root``. An unhashable ``status``
+    (a list or dict) raises ``TypeError`` instead.
+    """
     required = {
         "schema", "version", "status", "source_repo", "source_branch", "source_head",
         "worktree", "run_dir", "branch", "baseline_commit", "baseline_tree",
@@ -1008,6 +1022,13 @@ def _prepare_locked(
     selected: Sequence[str],
     excluded: Sequence[str],
 ) -> Dict[str, Any]:
+    """Return the manifest for one workspace root, creating the workspace unless ``existing`` is true. An existing
+    root is checked against ``source`` and the capture options, then ``assert_binding``, whatever its
+    ``status``, so a ``blocked`` manifest is returned too. A new root gets a ``run`` directory, a branch, a
+    linked ``worktree`` at the baseline commit (a private one if the tree differs from ``HEAD``) and a manifest.
+    Raises ``WorkspaceError`` and cleans nothing up, so use a fresh root after a new-root failure; a source
+    change at the final recheck leaves the worktree and a ``blocked`` manifest.
+    """
     if existing:
         manifest = _manifest(root)
         if Path(manifest["source_repo"]) != source:
@@ -1348,6 +1369,13 @@ def _validate_plan(
     manifest: Mapping[str, Any], plan: Mapping[str, Any], candidate: Mapping[str, Any], changes: Mapping[str, str], history: Sequence[str],
     *, allow_pending: bool = False,
 ) -> List[Dict[str, Any]]:
+    """Check a return plan against the workspace ``manifest`` and the current candidate, and return its path rows
+    sorted by ``path``. Raises ``WorkspaceError`` when the plan's schema, version, status, policy or
+    fingerprints do not match, when its rows do not match the candidate's paths and change facts, when a caller-
+    excluded or protected path is not ``exclude``, or when a ShipLoop knowledge path is excluded without a
+    caller exclusion. Raises ``PendingDispositions`` if any row is still ``pending`` and ``allow_pending`` is
+    false. Writes nothing.
+    """
     required = {"schema", "version", "status", "return_policy", "source_fingerprint", "candidate_fingerprint", "paths"}
     if set(plan) != required or plan.get("schema") != PLAN_SCHEMA or plan.get("version") != VERSION:
         _fail("return plan has an unsupported schema")
@@ -1621,6 +1649,13 @@ def _patch(
 
 
 def _apply_cached_tree(repo: Path, root: Path, baseline_tree: str, patch: bytes) -> str:
+    """Return the Git tree id that results from applying ``patch`` to ``baseline_tree`` in ``repo``, or
+    ``baseline_tree`` itself when ``patch`` is empty. The patch goes through ``git apply --cached``, first as a
+    ``--check``, against a temporary index file under ``root`` that is deleted best-effort, so the real index
+    and working files are untouched, but ``git write-tree`` adds tree objects to the repository. Raises
+    ``WorkspaceError`` if the temporary index cannot be created, a Git step fails, the patch does not apply, or
+    the resulting tree id is not hex-formatted.
+    """
     if not patch:
         return baseline_tree
     descriptor, index = _temporary_index(root)

@@ -450,6 +450,13 @@ def _graph_svg(
 
 def _graph_text(nodes: list[Mapping[str, Any]], display_ids: list[str], edges: list[tuple[int, int]],
                 dependencies_known: bool, state_key: str) -> str:
+    """Render a graph's steps as an HTML ``<details>`` block holding a plain-text list, one ``<li>`` per node. Each
+    item shows the ``display_ids`` entry, title, and status (falling back to "unspecified"), plus the work item,
+    action, and plan only when they are present, and the prerequisites derived from ``edges`` when
+    ``dependencies_known`` is true, otherwise a note that order is unknown. ``state_key`` goes into the ``data-
+    state-key`` attribute. Returns the HTML string, or an empty string when ``nodes`` is empty; it writes
+    nothing and mutates none of its arguments.
+    """
     if not nodes:
         return ""
     incoming: list[list[int]] = [[] for _ in nodes]
@@ -489,6 +496,13 @@ def _graph_text(nodes: list[Mapping[str, Any]], display_ids: list[str], edges: l
 
 
 def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
+    """Render the Steps and dependencies panel as an HTML string from the ``graphs`` list or tuple in ``snapshot``;
+    any other value is treated as no graphs. If there is no mapping entry, an empty-state message is shown.
+    Entries whose ``status`` is ``accepted`` (compared case-insensitively) get an SVG, a text dependency list
+    and any diagnostics; if such a graph has no valid nodes, the SVG is replaced by an empty-state note and the
+    text list is omitted. Other statuses get an explanatory message plus the optional ``reason``, and non-
+    mapping entries get a malformed-entry note.
+    """
     raw_graphs = snapshot.get("graphs", [])
     graphs = raw_graphs if isinstance(raw_graphs, (list, tuple)) else []
     parts = [

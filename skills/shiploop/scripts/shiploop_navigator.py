@@ -624,6 +624,13 @@ def _result_shape_problem(value: Mapping[str, Any]) -> str | None:
 def _canonical_result(
     value: Any, *, stage: str, delivery_contract: bool = False
 ) -> dict[str, Any]:
+    """Validate a submitted stage result and return its canonical form as a new ``dict``. The ``value`` must be a
+    mapping with only keys from ``_RESULT_KEYS``, a ``summary`` and an ``outcome`` of ``done``, ``repeat``,
+    ``blocked``, ``replan``, ``revise`` or ``reconcile``, where some outcomes are limited by ``stage``. Optional
+    fields such as ``work_items``, ``criteria`` or ``awaiting`` are accepted only at the stages and outcomes
+    that own them. ``delivery_assessment`` needs ``delivery_contract`` true. Raises ``NavigatorError`` with a
+    correction message on a violation.
+    """
     _need(isinstance(value, Mapping), "result must be an object")
     keys = set(value)
     problem = _result_shape_problem(value)
@@ -2860,6 +2867,13 @@ def _improve_entry(root: Path, after: dict[str, Any]) -> tuple[dict[str, Any], d
 
 def _validate_existing_entry(root: Path, before: Mapping[str, Any],
                              after: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    """Run the item's expectation checks when ``validate-existing`` is newly entered and, if every check matches,
+    record that stage done by script. Returns ``(state, writes)``: ``after`` with no writes when the stage is
+    not newly entered, an Improve child is active, or ``expectations.entry`` raises (a note goes to stderr);
+    ``after`` with the record writes when a check does not match; otherwise a copy of ``after`` with the stage
+    accepted and the item moved on, plus the record writes. The checks are shell commands that save output files
+    during the call; the record is returned, not saved.
+    """
     stage, action, workitem = _active_cursor(after)
     if stage != "validate-existing" or not isinstance(action, Mapping) or after.get("active_improve"):
         return after, {}

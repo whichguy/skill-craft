@@ -3060,6 +3060,13 @@ def _per_step_import_record(rows: list[dict[str, Any]], attempt: str) -> dict[st
 def _per_step_validate_import_receipt(receipt: Any, *, dispatcher_run_id: str, step: str,
                                       attempt: str, base_commit: str, workspace: str,
                                       handoff: Mapping[str, str]) -> dict[str, Any]:
+    """Validate a handoff helper import receipt and return a deep copy as a ``dict``; nothing is written or
+    mutated. Raises ``ChainError`` for a non-mapping, a missing key, a wrong ``schema``, a run, step, attempt,
+    base commit or workspace mismatch, a ``status`` other than ``SUCCEEDED``, ``FAILED`` or ``BLOCKED``, a
+    ``commit`` that is not a full SHA on ``SUCCEEDED`` or is set otherwise, a blank ``summary``, a different
+    handoff ``sha256``, non-list ``archives`` or ``deletion_manifest``, a bad ``receipt_sha256``, or a relative
+    ``receipt_path``. An unhashable ``status`` raises ``TypeError``.
+    """
     if not isinstance(receipt, Mapping):
         _fail("handoff helper returned an invalid import receipt")
     required = ("schema", "run_id", "step", "attempt", "base_commit", "workspace", "status", "commit", "summary",
@@ -3242,6 +3249,13 @@ def _validate_managed_returned_delivery(binding: Mapping[str, Any], allocation: 
 
 
 def _write_parent_immutable_json(path_text: Any, value: Mapping[str, Any], label: str) -> dict[str, str]:
+    """Write ``value`` as canonical JSON plus a trailing newline to the absolute file ``path_text`` without
+    replacing an existing file, and return a dict with ``path`` and ``sha256`` for the bytes. The parent
+    directory must already exist and ``path_text`` must be a direct file in its resolved parent. A new file is
+    written to a temporary file in that parent, flushed, fsynced and hard-linked into place. An existing file
+    with identical bytes is left alone; different bytes, or an invalid path, raise ``ChainError`` using
+    ``label`` in the message.
+    """
     path = _is_absolute_text(path_text, label + " path")
     parent = _resolved_existing(path.parent, label + " parent", directory=True)
     destination = parent / path.name
@@ -4463,6 +4477,13 @@ def guard_completion(root: Path, state: Mapping[str, Any], action_id: Any) -> No
 
 
 def _parser() -> _ArgumentParser:
+    """Build and return the command-line parser for ``shiploop chain``, with a required ``operation`` subcommand.
+    ``bind`` and ``planning-inputs`` have their own options, and the other operations (``next``, ``history``,
+    ``pending``, ``claim``, ``start``, ``done``, ``finish`` and so on) share ``--run-dir`` and ``--action``,
+    plus a required ``--input`` for every one except ``next``, ``history`` and ``pending``. It only constructs
+    the parser and writes nothing; because the parser class overrides ``error``, bad arguments raise
+    ``ChainError`` instead of printing usage and exiting.
+    """
     parser = _ArgumentParser(prog="shiploop chain", add_help=True)
     subs = parser.add_subparsers(dest="operation", required=True)
     common = ("next", "history", "pending", "claim", "start", "launched", "import-handoff", "prepare", "done", "retry", "packet", "cleanup", "finish")

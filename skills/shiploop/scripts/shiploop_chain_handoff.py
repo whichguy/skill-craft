@@ -283,6 +283,11 @@ def _assert_untracked(workspace: Path, source: Path) -> None:
 
 
 def _json_object(data: bytes, label: str) -> dict[str, Any]:
+    """Parse ``data`` as UTF-8 JSON and return the top-level object as a ``dict``. It writes and mutates nothing.
+    ``label`` only names the input in error messages. It raises ``ChainHandoffError`` if the bytes are not valid
+    UTF-8 JSON, if any object repeats a key, if the text contains ``NaN`` or an infinity constant, or if the
+    top-level value is not an object.
+    """
     def pairs(values: list[tuple[str, Any]]) -> dict[str, Any]:
         """``object_pairs_hook`` that rejects a JSON object repeating a key."""
         result: dict[str, Any] = {}
@@ -320,6 +325,13 @@ def _signature(details: os.stat_result) -> dict[str, int]:
 
 
 def _regular_source(path: Path, label: str) -> tuple[dict[str, int], bytes]:
+    """Read the regular file at ``path`` and return its stat signature together with its full contents. Returns
+    ``(signature, data)``, where ``signature`` is a dict with ``device``, ``inode``, ``size``, ``mtime_ns`` and
+    ``ctime_ns`` taken before opening, and ``data`` is the bytes read; it writes nothing. Raises
+    ``ChainHandoffError`` naming ``label`` if the path is missing, passes through a symlink, is not a regular
+    file, has more than one hard link, cannot be opened, or its signature changes between the initial ``lstat``
+    and the end of the read.
+    """
     _no_symlinks(path, label)
     before = _lstat(path, label)
     if not stat.S_ISREG(before.st_mode):
@@ -477,6 +489,13 @@ def _snapshot(
     handoff_digest: str,
     expected: Mapping[str, str],
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    """Read and check a worker handoff directory without writing anything, and return the parsed handoff with a
+    record for each source file. It reads ``handoff_path`` and checks it against ``handoff_digest``, validates
+    it against ``expected``, and requires the directory to hold exactly ``handoff.json`` plus the declared
+    files, each untracked by Git in ``workspace`` and matching its declared SHA-256. Returns ``(parsed,
+    records)``, where ``records`` maps each relative path to its source record. Raises ``ChainHandoffError`` on
+    any mismatch, including ``handoff.json`` changing during the scan.
+    """
     initial = _source_record(handoff_path, "handoff.json", handoff_digest)
     parsed = _handoff(_json_object(initial["bytes"], "handoff.json"), expected)
     handoff_dir = handoff_path.parent
@@ -1051,6 +1070,13 @@ def _recover_or_complete(
     *,
     created: bool,
 ) -> dict[str, Any]:
+    """Finish the handoff archive in ``target`` and return the receipt dict from ``_load_replay``. When ``created``
+    is true it first writes ``intent.json``; it then always calls ``_complete_archive`` to write the rest of the
+    archive. If the ``intent.json`` write or ``_complete_archive`` raises, the exception is re-raised, and when
+    ``created`` is true the archive paths owned by ``target`` are first removed on a best-effort basis; a
+    resumed archive (``created`` false) is not cleaned up. Errors from ``_owned_archive_paths`` or
+    ``_load_replay`` propagate with no cleanup.
+    """
     known_files, known_directories = _owned_archive_paths(target, handoff)
     try:
         if created:
@@ -1192,6 +1218,12 @@ def _current_matches(entry: Mapping[str, Any]) -> bool:
 
 
 def _remove_empty_directories(handoff_root: Path, manifest: list[Mapping[str, Any]]) -> tuple[list[str], list[str]]:
+    """Remove the now-empty directories left behind after temporary handoff files are deleted. It collects
+    ``handoff_root`` and every parent directory of a ``manifest`` entry ``path`` that lies inside it, then tries
+    ``os.rmdir`` on each, deepest first, skipping paths that no longer exist. Returns a ``(removed, retained)``
+    pair of path-string lists; a directory whose ``rmdir`` raises ``OSError`` is retained rather than forced.
+    Raises ``ChainHandoffError`` if a candidate path involves a symlink or is not a directory.
+    """
     candidates: set[Path] = {handoff_root}
     for entry in manifest:
         current = Path(entry["path"]).parent

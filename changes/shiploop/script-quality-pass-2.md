@@ -7,3 +7,4 @@ Progress-data read errors now name the file and its size limit, and a malformed 
 reports its type.
 19 more private functions have docstrings that were checked against their code by two
 independent reviewers.
+24 further private functions are documented the same way, leaving two for a later pass.
