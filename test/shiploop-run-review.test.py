@@ -414,7 +414,9 @@ class RunReviewTest(unittest.TestCase):
         out = make_run(self.tmp, loops=False)
         local = out / "work" / ".shiploop" / "run"
         record(local / "state.md", {"status": "active"})
-        os.utime(local / "state.md", (T0.timestamp() + 10**6,) * 2)  # newer, but not the graded run
+        # Newer than every other file, but not the graded run.  Relative to now: T0 + 10**6 s (2026-10-14) stopped being newer than
+        # a file written today, which failed this test on every branch from that day on.
+        os.utime(local / "state.md", (max(T0.timestamp(), __import__("time").time()) + 10**6,) * 2)
         self.assertEqual(export.find_run_dir(out, str(out / ".shiploop-runs" / "work-1" / "run")).name, "run")
         self.assertEqual(export.find_run_dir(out, str(out / ".shiploop-runs" / "work-1" / "run")).parent.name, "work-1")
         self.assertEqual(export.find_run_dir(out), local)
