@@ -118,7 +118,11 @@ class StepPacketTests(unittest.TestCase):
             with contextlib.redirect_stdout(shown):
                 full = navigator.emit(None, run_dir, store.read_record(run_dir / "state.md"))
         printed = shown.getvalue()
-        self.assertLessEqual(len(printed), navigator.PRINT_LIMIT)
+        # The head leads with the stage's duties (2026-10-16), and step-plan's alone are 9,000 characters, so its head
+        # (19,400) passes PRINT_LIMIT, which bounds a packet printed whole.  It stays under the ~20,000-character cut
+        # some hosts apply to shell output.
+        self.assertLessEqual(len(printed), 20_000)
+        self.assertIn("Current stage guidance:", printed)
         self.assertGreater(len(full), len(printed))  # the packet file holds the rest
 
     def test_offline_report_counts_every_packet(self) -> None:

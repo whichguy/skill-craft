@@ -169,7 +169,7 @@ class DelegationStateTests(unittest.TestCase):
         self.assertTrue(entry.startswith(
             "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit its "
             "callback\nyourself; never clear or hand it off. After lost context, run the Recovery command.\n"))
-        self.assertNotIn("Clear and then", entry)
+        self.assertNotIn("Execute the prompt in a fresh context", entry)
         self.assertIn("Pause without consuming the action:", entry)
         # step-plan is a planning-review stage, so completing it starts an
         # actual Improve child.
@@ -183,7 +183,7 @@ class DelegationStateTests(unittest.TestCase):
                 packet = self.render(advance(state, stage))
                 self.assertTrue(packet.startswith("Continue in this context and execute the prompt. Delegation: inline"))
                 self.assertIn("never clear or hand it off", packet.split("\n\n", 1)[0])
-                self.assertNotIn("Clear and then", packet)
+                self.assertNotIn("Execute the prompt in a fresh context", packet)
 
     def test_ask_agent_step_plan_splits_independent_changes_into_separate_steps(self):
         # Live 2026-10-04 (p1-temperature-plain): without this rule the model put two modules
@@ -233,7 +233,7 @@ class DelegationStateTests(unittest.TestCase):
         switched = nav.set_delegation(at_test_author, "inline")
         self.assertEqual(switched["delegation_hold"], {"action": action, "route": "ask-agent"})
         pending = self.render(switched)
-        self.assertEqual(pending.split("\n\n", 1)[0], "Clear and then execute the prompt.")
+        self.assertEqual(pending.split("\n\n", 1)[0], "Execute the prompt in a fresh context.")
         self.assertIn("Prefer a native fresh worker", pending)
         change = "Delegation change: this action keeps ask-agent; actions issued after it use inline."
         self.assertIn(change, pending)

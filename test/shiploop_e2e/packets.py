@@ -284,7 +284,7 @@ def build(out: Path) -> dict:
     return report
 
 
-def offline_packets(case: dict, delegation: str = "inline") -> dict[str, str]:
+def offline_packets(case: dict, delegation: str = "inline", printed: bool = False) -> dict[str, str]:
     """{"<nn>-<stage>[-improve]": packet text} for one step case's inner loop, rendered from a cold read of state.md.
 
     A `-improve` key is the packet of the Improve stage that follows `<stage>`; the pure functions take the reviewed
@@ -300,7 +300,12 @@ def offline_packets(case: dict, delegation: str = "inline") -> dict[str, str]:
 
         def cold(current: dict) -> str:
             store.write_record(run_dir / "state.md", current)
-            return navigator.render(None, run_dir, store.read_record(run_dir / "state.md"))
+            cold_state = store.read_record(run_dir / "state.md")
+            text = navigator.render(None, run_dir, cold_state)
+            if printed and len(text) > navigator.PRINT_LIMIT and cold_state["status"] == "active":
+                # What emit prints for a packet over the limit: the head, with the rest in the file.
+                return navigator.packet_head(None, run_dir, cold_state, run_dir / "packets" / "packet.md")
+            return text
 
         state = navigator.new_state(temp, case["prompt"], delegation=delegation)
         for _ in range(200):
