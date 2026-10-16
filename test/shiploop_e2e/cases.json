@@ -233,5 +233,33 @@
       ],
       "refuse_ports_source": "the request: 'server.js starts the server on the port in the PORT environment variable (default 3000)'. A product defaults to 3000, and a mutant of the line that reads PORT listens there whatever PORT says; the quality phase refuses it and counts the refusals"
     }
+  },
+  "chess-salesforce": {
+    "style": "hosted-platform",
+    "prompt": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`, and create no other metadata (no custom objects, fields, permission sets or flows), so the work can be removed afterwards. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (an exception class you define inside `SLChessEngine`) when the move is not legal. `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and lets a person pick a piece and then a destination; it calls an `@AuraEnabled` method in `SLChessController` that returns the legal moves for a FEN and applies a move. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit. Do not stop until the tests pass in the org.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" project --org de",
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" deployed --org de --prefix SLChess",
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" tests --org de --prefix SLChess --min-tests 8",
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" rules --org de"
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt; rules uses published perft counts as the independent oracle",
+    "platform": {
+      "kind": "salesforce",
+      "org": "de",
+      "prefix": "SLChess",
+      "preflight": "python3 \"$E2E_CHECKS/chess_salesforce.py\" preflight --org de --prefix SLChess",
+      "before": "python3 \"$E2E_CHECKS/chess_salesforce.py\" snapshot  --org de --prefix SLChess",
+      "cleanup": "python3 \"$E2E_CHECKS/chess_salesforce.py\" cleanup   --org de --prefix SLChess",
+      "home_links": [
+        ".sfdx",
+        ".sf"
+      ],
+      "source": "owner go 2026-10-16: deploy to the Developer Edition org `de`, prefix SLChess, remove afterwards; Grok 4.7 medium"
+    },
+    "budget": {
+      "seeded_minutes": 90,
+      "source": "owner (2026-09-27): a small request should not take hours; a hosted-platform build gets 90"
+    }
   }
 }

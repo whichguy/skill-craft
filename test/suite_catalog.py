@@ -153,6 +153,8 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-quality.test.py",
     "test/shiploop-e2e-packet-anatomy.test.py",
     "test/shiploop-e2e-commit-counters.test.py",
+    "test/shiploop-e2e-chess-salesforce.test.py",
+    "test/shiploop-e2e-platform.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -299,6 +301,12 @@ _DURATION_SECONDS = {
     # load average about 6; the 86 tests of task h took 14.8 s at load about 5). Far under QUICK_MAX_SECONDS.
     # 2026-10-10 (batch 1012 task R): the retire commit is a script commit and not a knowledge record (3 more tests on top of task I's reader tests).
     "test/shiploop-e2e-commit-counters.test.py": 24.5,
+    # The chess-salesforce case's checks against the fake `sf` (test/shiploop_e2e/fake_sf.py): 64 tests, each subcommand run as a
+    # subprocess against the fake. Local wall seconds, 2026-10-16: 14.6 s at load average about 5. Far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-chess-salesforce.test.py": 15.0,
+    # The case `platform` hooks (preflight, before, home_links, always-run cleanup, scrub): 33 tests, most of them a whole run.main
+    # over a fake host and one tiny platform command. Local wall seconds, 2026-10-16: 9.3 s at load average about 5. Far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-platform.test.py": 10.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.

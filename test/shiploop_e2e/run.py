@@ -97,6 +97,7 @@ from __future__ import annotations
 import argparse
 import atexit
 from collections import Counter
+import contextlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import hashlib
@@ -554,7 +555,7 @@ class LiveView:
 
     def emit(self, line: str):
         if self.enabled:
-            print(f"[{time.time() - self.start:6.0f}s] {line}", flush=True)
+            print(f"[{time.time() - self.start:6.0f}s] {scrub(line)}", flush=True)  # the terminal and its logs keep no credential
 
     def flush_text(self):
         if self.text.strip():
@@ -1331,11 +1332,13 @@ def untracked(work: Path) -> set[str]:
     return {ln[3:] for ln in done.stdout.splitlines() if ln.startswith("?? ")} if done.returncode == 0 else set()
 
 
-def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | None = None) -> list[dict]:
+def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | None = None, scrubbed: bool = False) -> list[dict]:
     """Run each check in `work`, then delete any untracked file the checks created.
 
     A follow-on run copies this checkout; a leftover (a server log, say) would
     make ShipLoop see a dirty start and return only a working-tree delta.
+
+    ``scrubbed`` (a case with a platform) removes credentials from the stored output.
     """
     before = untracked(work)
     results = []
@@ -1347,6 +1350,7 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
             code, output = done.returncode, (done.stdout + done.stderr)[-2000:]
         except subprocess.TimeoutExpired:
             code, output = None, "timeout"
+        output = scrub(output) if scrubbed else output
         results.append({"command": command, "pass": code == 0, "returncode": code, "output": output})
     for leftover in sorted(untracked(work) - before):
         (work / leftover).unlink(missing_ok=True)
@@ -1358,7 +1362,7 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
 PRODUCT_AT_STOP_TIMEOUT = 180
 
 
-def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict | None = None) -> dict | None:
+def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict | None = None, scrubbed: bool = False) -> dict | None:
     """For a run whose ShipLoop did not reach done: do the case checks pass in ShipLoop's unreturned worktree?
 
     Information only (SPEC S-11): it never touches ``checks``, ``committed``, ``pass`` or the exit code, because a run that
@@ -1377,7 +1381,7 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
     if not checks:
         return {**head, "ran": False, "reason": "the case declares no checks", "engine": position}
     entries = []
-    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env):
+    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env, scrubbed=scrubbed):
         timed_out = done["returncode"] is None
         entry = {"command": done["command"], "pass": done["pass"], "returncode": done["returncode"], "timed_out": timed_out}
         if not done["pass"] and not timed_out:
@@ -1387,6 +1391,195 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
     passed = sum(entry["pass"] for entry in entries)
     return {**head, "ran": True, "worktree": shiploop["worktree"], "engine": position, "checks": entries,
             "passed": passed, "failed": len(entries) - passed - timed, "timed_out": timed, "total": len(entries)}
+
+
+# ---------------------------------------------------------------- platform hooks
+# A case may carry a `platform` object: the commands that make a hosted platform (an org, an account, a cloud project) safe to
+# give a model, and that remove what the run made there. The harness knows nothing about any platform; it runs the commands the
+# case names (README, "Platform hooks"):
+#   preflight  with the HOST's environment, before any model call: non-zero aborts the run (a bad home link shows up here)
+#   before     once, on a fresh run only, with E2E_PLATFORM_DIR=<output>/platform: a snapshot of what exists before the model
+#   cleanup    after grading, always (a `finally`: failure, crash, Ctrl-C): remove what the run created
+#   home_links names under the real HOME linked into a throwaway HOME (Grok, Codex), so the model's CLI is already signed in
+# Every command output the harness stores or prints goes through scrub().
+PLATFORM_COMMANDS = ("preflight", "before", "cleanup")
+PLATFORM_TIMEOUT = 900  # seconds, one command's ceiling; a command that never ends, not a tuning value
+PLATFORM_TAIL = 2000  # characters of scrubbed output kept per command
+
+# Values of these keys are credentials wherever they appear (JSON, escaped JSON inside an event stream, `key: value`, `key=value`).
+SECRET_KEYS = ("accessToken", "refreshToken", "clientSecret", "sfdxAuthUrl")
+_SECRET_VALUE = re.compile(r"(?P<head>(?:" + "|".join(SECRET_KEYS) + r")(?:\\*[\"'])?\s*[:=]\s*(?:\\*[\"'])?)(?P<value>[^\s\"'\\,}]+)")
+# A Salesforce session token, whatever key (if any) carries it: <org id>!<session>.
+_SESSION_TOKEN = re.compile(r"00D[A-Za-z0-9]{12,15}![A-Za-z0-9._]{20,}")
+REDACTED = "[redacted]"
+
+
+def scrub(text) -> str:
+    """``text`` with every credential replaced by ``[redacted]``: the value of a key named accessToken, refreshToken, clientSecret
+    or sfdxAuthUrl, and any string shaped like a Salesforce session token. Idempotent; text with neither is returned unchanged."""
+    text = text if isinstance(text, str) else ("" if text is None else str(text))
+    text = _SECRET_VALUE.sub(lambda match: match.group("head") + REDACTED, text)
+    return _SESSION_TOKEN.sub(REDACTED, text)
+
+
+def scrub_files(folder: Path) -> list[str]:
+    """Scrub, in place, the regular files directly in ``folder`` (the harness's own records: event stream, transcript, prompts,
+    stderr), not the work folder or the host's throwaway profile. Byte-preserving where nothing matches. Returns the names changed."""
+    changed = []
+    for path in sorted(folder.iterdir()):
+        if path.is_symlink() or not path.is_file():
+            continue
+        try:
+            raw = path.read_text(encoding="utf-8", errors="surrogateescape")
+            clean = scrub(raw)
+            if clean != raw:
+                path.write_text(clean, encoding="utf-8", errors="surrogateescape")
+                changed.append(path.name)
+        except OSError:
+            continue
+    return changed
+
+
+def case_platform(name: str) -> dict | None:
+    """The validated `platform` object of a named case, None for a case without one (and for a custom prompt)."""
+    if name == "custom":
+        return None
+    spec = (json.loads(CASES.read_text()).get(name) or {}).get("platform")
+    if spec is None:
+        return None
+    return validate_platform(name, spec)
+
+
+def validate_platform(name: str, spec) -> dict:
+    problems = []
+    if not isinstance(spec, dict):
+        raise SystemExit(f"case {name!r}: platform must be an object")
+    for key in PLATFORM_COMMANDS:
+        if key in spec and not (isinstance(spec[key], str) and spec[key].strip()):
+            problems.append(f"{key} must be a non-empty command string")
+    if spec.get("before") and not spec.get("cleanup"):
+        problems.append("before without cleanup: nothing would remove what the run makes")
+    links = spec.get("home_links", [])
+    if not (isinstance(links, list) and all(isinstance(n, str) and n and "/" not in n and n not in (".", "..") for n in links)):
+        problems.append("home_links must be a list of plain names under the home folder (no path separators)")
+    if problems:
+        raise SystemExit(f"case {name!r}: platform: " + "; ".join(problems))
+    return spec
+
+
+def platform_env(base: dict, platform_dir: Path) -> dict:
+    return dict(base, E2E_CHECKS=str(HERE / "checks"), E2E_PLATFORM_DIR=str(platform_dir))
+
+
+def run_platform_command(command: str, cwd: Path, env: dict, timeout: int = PLATFORM_TIMEOUT) -> dict:
+    """Run one platform command in a shell of its own session; {command, returncode, ok, output} with the output scrubbed and
+    cut to its tail (a timeout is returncode None). A Ctrl-C while it runs is noted and waited out once, so a cleanup that has
+    begun is not abandoned; a second Ctrl-C leaves it running and says so."""
+    proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, errors="replace", start_new_session=True)
+    interrupts, code, output = 0, None, ""
+    deadline = time.time() + timeout
+    while True:
+        try:
+            output, _ = proc.communicate(timeout=max(1, deadline - time.time()))
+            code = proc.returncode
+            break
+        except subprocess.TimeoutExpired:
+            listeners.end_group(proc.pid)  # the harness's one group kill (S-12): the shell and whatever it started
+            output, _ = proc.communicate()
+            output += f"\ntimeout after {timeout}s"
+            break
+        except KeyboardInterrupt:
+            interrupts += 1
+            if interrupts > 1:
+                output, code = "abandoned by a second Ctrl-C; it may still be running", None
+                break
+            print("Ctrl-C: waiting for the platform command to finish (press again to abandon it)", flush=True)
+    return {"command": command, "returncode": code, "ok": code == 0, "output": scrub(output)[-PLATFORM_TAIL:]}
+
+
+def link_homes(names: list[str], env: dict) -> list[dict]:
+    """Symlink ``<throwaway home>/<name>`` to ``~/<name>`` for each name that exists, and say what happened to each name.
+
+    Only existence is checked (a stat), never the contents: the harness does not read credentials. A host on the real HOME (Claude)
+    needs nothing; a name that does not exist is skipped silently and recorded as absent.
+    """
+    real, target = Path.home(), Path(env.get("HOME") or Path.home())
+    if target.resolve() == real.resolve():
+        return [{"name": name, "linked": False, "reason": "the host runs in the real HOME"} for name in names]
+    records = []
+    for name in names:
+        source, link = real / name, target / name
+        if not source.exists():
+            records.append({"name": name, "linked": False, "reason": "absent from the real HOME"})
+        elif link.is_symlink() and os.readlink(link) == str(source):
+            records.append({"name": name, "linked": True, "target": str(source)})
+        elif os.path.lexists(link):
+            records.append({"name": name, "linked": False, "reason": "already present in the throwaway HOME; not replaced"})
+        else:
+            link.symlink_to(source)
+            records.append({"name": name, "linked": True, "target": str(source)})
+    return records
+
+
+def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
+    """Make the home links, then run the case's preflight command with the host's environment; {home_links, preflight}.
+    ``preflight`` is None where the case names no command."""
+    platform_dir = out / "platform"
+    platform_dir.mkdir(exist_ok=True)
+    links = link_homes(spec.get("home_links") or [], host_env)
+    command = spec.get("preflight")
+    check = run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None
+    return {"home_links": links, "preflight": check}
+
+
+def cleanup_banner(out: Path, spec: dict, record: dict) -> str:
+    platform_dir = out / "platform"
+    manual = f"E2E_PLATFORM_DIR={shlex.quote(str(platform_dir))} E2E_CHECKS={shlex.quote(str(HERE / 'checks'))} {spec['cleanup']}"
+    tail = [line for line in str(record.get("output") or "").splitlines() if line.strip()][-5:]
+    return "\n".join([
+        "!" * 78,
+        f"PLATFORM CLEANUP FAILED: what this run created in the platform may still be there ({out}).",
+        "Remove it now by running, from any directory:",
+        f"  {manual}",
+        *(f"  | {line}" for line in tail),
+        "!" * 78])
+
+
+class PlatformGuard:
+    """Owns the platform cleanup of one invocation. ``arm`` it once the model may start (or has started); ``finish`` runs the
+    cleanup once, from the normal path after grading and again from main's `finally`, which is what covers a crash, a
+    KeyboardInterrupt and a SystemExit. A guard that was never armed does nothing."""
+
+    def __init__(self):
+        self.spec: dict | None = None
+        self.out: Path | None = None
+        self.done = False
+        self.record: dict | None = None
+
+    def arm(self, spec: dict, out: Path) -> None:
+        self.spec, self.out, self.done, self.record = spec, out, False, None
+
+    def finish(self) -> dict | None:
+        if self.spec is None or self.done:
+            return self.record
+        self.done = True
+        command = self.spec.get("cleanup")
+        if not command:
+            self.record = {"ran": False, "ok": True, "reason": "the case names no cleanup command"}
+            return self.record
+        try:
+            done = run_platform_command(command, self.out, platform_env(dict(os.environ), self.out / "platform"))
+            self.record = {"ran": True, "ok": done["ok"], "returncode": done["returncode"], "output": done["output"]}
+        except BaseException as exc:  # noqa: BLE001 - the record of a cleanup that could not run is the point
+            self.record = {"ran": True, "ok": False, "returncode": None,
+                           "output": scrub(f"cleanup could not run: {type(exc).__name__}: {exc}")[-PLATFORM_TAIL:]}
+        if not self.record["ok"]:
+            print(cleanup_banner(self.out, self.spec, self.record), flush=True)
+        with contextlib.suppress(OSError):
+            (self.out / "platform").mkdir(exist_ok=True)
+            (self.out / "platform" / "cleanup-record.json").write_text(json.dumps(self.record, indent=2) + "\n")
+        return self.record
 
 
 def parser() -> argparse.ArgumentParser:
@@ -2542,14 +2735,17 @@ def run_suite(args, argv: list[str]) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Run one case (or a suite) and return the exit code; see _main."""
     held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
+    guard = PlatformGuard()  # a case's platform cleanup, armed inside once the model may start, run here whatever happens
     try:
-        return _main(argv, held)
+        return _main(argv, held, guard)
     finally:
+        guard.finish()  # a crash, a Ctrl-C or an exit after the model started still removes what the run created
         for handle in held:
             handle.close()
 
 
-def _main(argv: list[str] | None, held: list) -> int:
+def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = None) -> int:
+    guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
     if args.baseline_report:
@@ -2563,11 +2759,19 @@ def _main(argv: list[str] | None, held: list) -> int:
         for line in problems:
             print(f"refused: {line}", flush=True)
         refused = bool(problems)
+        spec = None if args.prompt else case_platform(args.case)  # the case's platform checks run here too
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
             args.host = name
             check = out / name
             check.mkdir()
-            _, _, versions = marketplace_preflight(args, check, the_host(args).env(check / "home"))
+            host_env = the_host(args).env(check / "home")
+            _, _, versions = marketplace_preflight(args, check, host_env)
+            if spec:
+                versions["platform"] = platform_preflight(spec, host_env, check)
+                found = versions["platform"]["preflight"]
+                print(f"platform preflight ({name}): " + ("no command" if found is None else
+                      ("OK" if found["ok"] else "REFUSED: ") + (found["output"].strip()[-300:] if not found["ok"] else "")), flush=True)
+                refused = refused or (found is not None and not found["ok"])
             (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
             refused = refused or bool(versions["gate"])
         return 1 if refused else 0
@@ -2596,6 +2800,8 @@ def _main(argv: list[str] | None, held: list) -> int:
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
         planning_review = planning_review_choice(args.planning_review, earlier)
+        # The platform the run started with (invocation.json), not whatever cases.json says now: its cleanup is what undoes it.
+        platform_spec = validate_platform(name, (earlier.get("platform") or {})["spec"]) if (earlier.get("platform") or {}).get("spec") else None
         prompt = (out / "prompt.txt").read_text().strip()
         work = out / "work"
         state = grade_shiploop(out)
@@ -2657,6 +2863,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
         name, prompt, checks, follows = load_case(args)
+        platform_spec = case_platform(name)
         planning_review = planning_review_choice(args.planning_review, None)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
@@ -2719,6 +2926,20 @@ def _main(argv: list[str] | None, held: list) -> int:
     args.effort = args.effort or host.effort
     args.skill = args.skill or host.skill
     env = host.env(out / "home")
+    earlier_platform = earlier_result.get("platform") or {}
+    platform_state: dict = {}
+    if platform_spec and regrade:
+        platform_state = {key: earlier_platform.get(key) for key in ("home_links", "preflight")}  # nothing starts: restate the run's own
+    elif platform_spec:
+        # Before the marketplace install and before any model call: the host's own environment, so a bad home link shows here.
+        platform_state = platform_preflight(platform_spec, env, out)
+        refusal = platform_state["preflight"]
+        if refusal is not None and not refusal["ok"]:
+            if not resumed:  # a resumed run already has a result.json worth more than a refusal stub
+                (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "output": str(out),
+                                                             "platform": {**platform_state, "refused": True}}, indent=2) + "\n")
+            raise SystemExit(f"platform preflight refused the run before any model started (exit {refusal['returncode']}): "
+                             f"{refusal['output'].strip()[-600:]} (see {out / 'result.json'})")
     if regrade:
         # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity and the plugin
         # verdict the run recorded (see the invocation record below). Claude's init event shows the plugin on
@@ -2837,6 +3058,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
                                           **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
+    if platform_spec:
+        invocation["platform"] = {"spec": platform_spec, "dir": str(out / "platform"), **platform_state}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{stamp}.json").write_text(
@@ -2851,6 +3074,11 @@ def _main(argv: list[str] | None, held: list) -> int:
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
+            if platform_spec:
+                linked = [link["name"] for link in platform_state["home_links"] or [] if link["linked"]]
+                print(f"  platform  home links {', '.join(linked) or 'none'}; cleanup runs after grading, always. By hand: "
+                      f"E2E_PLATFORM_DIR={shlex.quote(str(out / 'platform'))} E2E_CHECKS={shlex.quote(str(HERE / 'checks'))} "
+                      f"{platform_spec.get('cleanup')}", flush=True)
             if needs:
                 print(f"  environment  {environment.browser_line(start_environment.get('browser') or {})}"
                       if "browser" in needs and start_environment.get("observed") else
@@ -2859,6 +3087,27 @@ def _main(argv: list[str] | None, held: list) -> int:
                 print("  environment  a custom prompt declares no need by itself, so no browser capability is recorded "
                       "(pass --need browser if this run uses a browser)", flush=True)
 
+    platform_dir = out / "platform"
+    before_record_file = platform_dir / "before-record.json"
+    platform_before = None
+    if platform_spec and not regrade:
+        if resumed:
+            # A resume does not snapshot again: the first run's snapshot is what the cleanup compares with.
+            platform_before = (json.loads(before_record_file.read_text()) if before_record_file.is_file()
+                               else {"ran": False, "reason": "the earlier invocation recorded no snapshot"})
+        elif platform_spec.get("before"):
+            platform_before = run_platform_command(platform_spec["before"], out, platform_env(dict(os.environ), platform_dir))
+            before_record_file.write_text(json.dumps(platform_before, indent=2) + "\n")
+            if not platform_before["ok"]:
+                (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "output": str(out), "platform": {
+                    **platform_state, "before": platform_before, "refused": True}}, indent=2) + "\n")
+                raise SystemExit(f"platform before command failed (exit {platform_before['returncode']}), so no model started: "
+                                 f"{platform_before['output'].strip()[-600:]} (see {out / 'result.json'})")
+        guard.arm(platform_spec, out)  # from here the model may start: the cleanup runs after grading, whatever happens
+    elif platform_spec and regrade and not (earlier_platform.get("cleanup") or {}).get("ok"):
+        guard.arm(platform_spec, out)  # a run whose cleanup never succeeded is cleaned when it is graded again
+    if platform_spec and regrade:
+        platform_before = earlier_platform.get("before")
     deadline = time.time() + args.timeout
     if resumed and not regrade:
         # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
@@ -2949,6 +3198,8 @@ def _main(argv: list[str] | None, held: list) -> int:
         process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
         # A requested stop is not a host failure: no process verdict (None, which no verdict list counts).
         process["pass"] = None if process["status"] == "stopped" else process["status"] == "exited"
+    if platform_spec and not regrade:
+        scrub_files(out)  # the event stream is a record: a credential the model's tool output showed is not kept in it
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
@@ -2979,13 +3230,16 @@ def _main(argv: list[str] | None, held: list) -> int:
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
-    check_results = run_checks(work, checks, env=check_env)
+    # A regrade of a platform run that was cleaned cannot ask the platform again: it restates the checks the run made while the
+    # work was deployed, rather than replace a pass with checks that find nothing there.
+    restated = bool(regrade and platform_spec and (earlier_platform.get("cleanup") or {}).get("ok") and earlier_result.get("checks"))
+    check_results = earlier_result["checks"] if restated else run_checks(work, checks, env=check_env, scrubbed=bool(platform_spec))
     engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     try:
         # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
         # check which timed out leaves is stopped with the rest in a run that launched a host. A regrade reaps nothing (the run
         # it grades may have a live host), so there the server stays up: stop it by pid (README).
-        at_stop = product_at_stop(shiploop, engine, checks, check_env)
+        at_stop = earlier_result.get("product_at_stop") if restated else product_at_stop(shiploop, engine, checks, check_env, scrubbed=bool(platform_spec))
     except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
         at_stop = {"information_only": True, "ran": False,
                    "reason": "could not be computed: " + (" ".join(str(exc).split())[:200] or type(exc).__name__)}
@@ -2993,6 +3247,17 @@ def _main(argv: list[str] | None, held: list) -> int:
         # A check may leave a server too (a timed-out check leaves its `node server.js &`). A regrade reaps nothing: it
         # starts no host, and the run it grades may have a live one.
         left_behind.append(listeners.reap(out))
+    platform_block = None
+    if platform_spec:
+        # After grading, so the checks saw the deployed work; the guard's `finally` in main() is the same call for a run that never gets here.
+        cleanup = guard.finish() or earlier_platform.get("cleanup") or {"ran": False, "ok": False, "reason": "no cleanup record"}
+        scrub_files(out)
+        earlier_cleanups = list(earlier_platform.get("earlier_cleanups") or [])
+        if resumed and not regrade and earlier_platform.get("cleanup"):
+            earlier_cleanups.append(earlier_platform["cleanup"])
+        platform_block = {"spec": platform_spec, "dir": str(platform_dir), **platform_state, "before": platform_before,
+                          "cleanup": cleanup, **({"earlier_cleanups": earlier_cleanups} if earlier_cleanups else {}),
+                          **({"checks_restated": "the platform was already cleaned; these are the checks made while deployed"} if restated else {})}
     left = (earlier_result.get("left_behind") if regrade
             else listeners.merge_left_behind([earlier_result.get("left_behind") if resumed else None, *left_behind]))
     case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
@@ -3017,7 +3282,8 @@ def _main(argv: list[str] | None, held: list) -> int:
     verdicts = [invoked["pass"], plugin["pass"], *([] if process["pass"] is None else [process["pass"]]),
                 shiploop["pass"], committed["pass"],
                 *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
-                *(c["pass"] for c in check_results)]
+                *(c["pass"] for c in check_results),
+                *([bool(platform_block["cleanup"].get("ok"))] if platform_block else [])]  # a platform left dirty is a failed run
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
     termination = termination_facts(process, engine, resume_stop,
@@ -3037,6 +3303,8 @@ def _main(argv: list[str] | None, held: list) -> int:
             end_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
         result_start = start_environment
     run_environment = environment.result_block(out, result_start, end_environment)
+    if platform_block and isinstance(run_environment, dict):
+        run_environment = {**run_environment, "platform_home_links": platform_state.get("home_links")}  # what the model could reach
     # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
@@ -3062,6 +3330,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               "identity_unmeasured": identity_unmeasured,
               "process": process, "termination": termination, "outcome_class": outcome, "outcome_basis": outcome_basis,
               "environment": run_environment,
+              **({"platform": platform_block} if platform_block else {}),
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
@@ -3178,6 +3447,11 @@ def _main(argv: list[str] | None, held: list) -> int:
     print(f"  checks    expected from {expectations['checks']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
+    if platform_block:
+        cleaned = platform_block["cleanup"]
+        print(f"  platform  {mark(cleaned.get('ok'))}  cleanup "
+              + ("ran" if cleaned.get("ran") else "did not run") + f"; home links "
+              + (", ".join(link["name"] for link in platform_state.get("home_links") or [] if link["linked"]) or "none"))
     print(f"  {exported}")
     if before:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
@@ -3255,6 +3529,9 @@ def _main(argv: list[str] | None, held: list) -> int:
 
         failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", check_observed(c))
                       for c in check_results if not c["pass"])
+        if platform_block and not platform_block["cleanup"].get("ok"):
+            failed.append(("platform", "the case's cleanup command exits 0 and leaves the platform as it found it",
+                           str(platform_block["cleanup"].get("output") or platform_block["cleanup"].get("reason"))[-300:]))
         print(f"  mismatch  {write_mismatch(out, name, args.host, failed)}")
     # The delivered-quality phase runs last: it can take minutes after the host ended and a task launcher's limit is near 30, so
     # the result, the metrics, the Run Review export and the baseline row are all written before it, and it adds its block to
