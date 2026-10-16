@@ -6,7 +6,9 @@ and builds PATH from that directory plus /usr/bin:/bin only, so no other `sf` ca
 every call whose --target-org is not `de`, so a check that fell back on the default org would fail loudly.
 
 The oracle's expected answers are not trusted: a small independent move generator (REFERENCE, below) re-derives every perft count, each
-game's final status and every literal answer, so a mistyped FEN or count in the check fails here instead of failing a run.
+game's plies and statuses and every literal answer, so a mistyped FEN, count or move in the check fails here instead of failing a run.
+The Apex scripts are not trusted either: APEX SUBSET translates the few Apex constructs they use to Python and runs each script against
+the REFERENCE, so a script that computes something other than the answer the check expects fails here too.
 """
 
 from __future__ import annotations
@@ -15,13 +17,16 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 E2E = ROOT / "test" / "shiploop_e2e"
@@ -192,6 +197,99 @@ def ref_play(moves: list[str]) -> str:
     return fen
 
 
+# ------------------------------------------------------------------------------------------------------------ APEX SUBSET
+# Runs the anonymous Apex the check sends, in Python, against the REFERENCE. It understands exactly what those scripts use, one
+# statement per line: declarations, `+=`, for-each and counted loops, if/else, try/catch, break, System.debug and calls on the engine
+# and the controller. Anything else raises, so a new construct in a script is added here on purpose.
+
+class AStr(str):
+    """An Apex String: `+` joins by converting to text, split() returns a list."""
+    def __add__(self, other):
+        return AStr(str(self) + str(other))
+
+    def __radd__(self, other):
+        return AStr(str(other) + str(self))
+
+    def split(self, sep=None, maxsplit=-1):
+        return AList(AStr(part) for part in str.split(self, sep))
+
+
+class AList(list):
+    def size(self):
+        return len(self)
+
+    def contains(self, item):
+        return item in self
+
+
+class IllegalMoveException(Exception):
+    pass
+
+
+def apex_to_python(script: str) -> str:
+    def expr(text: str) -> str:
+        lits = []  # string literals are set aside so no rewrite touches their text
+        text = re.sub(r"'(?:[^'\\]|\\.)*'", lambda m: lits.append("AStr(%s)" % m.group(0)) or "\0%d\0" % (len(lits) - 1), text)
+        text = re.sub(r"new List<String>\{([^}]*)\}", r"AList([\1])", text)
+        text = text.replace("String.join(", "join(").replace("&&", " and ").replace("||", " or ")
+        text = re.sub(r"\btrue\b", "True", re.sub(r"\bfalse\b", "False", re.sub(r"!(?!=)", " not ", text)))
+        return re.sub(r"\0(\d+)\0", lambda m: lits[int(m.group(1))], text)
+
+    out, depth = [], 0
+    for line in (raw.strip() for raw in script.splitlines()):
+        if match := re.fullmatch(r"(?:String|Integer|Boolean|List<String>) (\w+) = (.*);|(\w+) (\+?=) (.*);", line):
+            name, op, rhs = (match[1], "=", match[2]) if match[1] else (match[3], match[4], match[5])
+            code = "%s %s %s" % (name, op, expr(rhs))
+        elif match := re.fullmatch(r"for \(\w+ (\w+) : (.*)\) \{", line):
+            code = "for %s in %s:" % (match[1], expr(match[2]))
+        elif match := re.fullmatch(r"for \(Integer (\w+) = (\d+); \1 < (.*); \1\+\+\) \{", line):
+            code = "for %s in range(%s, %s):" % (match[1], match[2], expr(match[3]))
+        elif match := re.fullmatch(r"if \((.*)\) \{", line):
+            code = "if %s:" % expr(match[1])
+        elif match := re.fullmatch(r"\} catch \(([\w.]+) (\w+)\) \{", line):
+            code = "except %s as %s:" % (match[1], match[2])
+        elif match := re.fullmatch(r"System\.debug\((.*)\);", line):
+            code = "debug(%s)" % expr(match[1])
+        elif match := re.fullmatch(r"(.*);", line):
+            code = "break" if line == "break;" else expr(match[1])
+        elif line in ("try {", "} else {"):
+            code = "try:" if line == "try {" else "else:"
+        elif line != "}":
+            raise ValueError("APEX SUBSET cannot translate: " + line)
+        else:
+            depth -= 1
+            continue
+        depth -= line.startswith("}")
+        out.append("    " * depth + code)
+        depth += line.endswith("{")
+    return "\n".join(out)
+
+
+def run_apex_script(script: str, **classes) -> dict[str, str]:
+    """The value of each RESULT marker the script prints (the first print of a marker wins, as in the check's log parsing)."""
+    seen = {}
+
+    def debug(text) -> None:
+        match = re.fullmatch(r"RESULT\|([^|]+)\|(.*)", str(text), re.DOTALL)
+        if match:
+            seen.setdefault(match[1], match[2])
+
+    exec(apex_to_python(script), {"AStr": AStr, "AList": AList, "debug": debug, "join": lambda items, sep: AStr(str(sep).join(items)),
+                                  **classes})
+    return seen
+
+
+def reference_engine() -> SimpleNamespace:
+    """What SLChessEngine and SLChessController answer, from the REFERENCE; an illegal move raises like the engine does."""
+    def apply(fen: str, move: str) -> AStr:
+        if move not in ref_legal(fen):
+            raise IllegalMoveException(move)
+        return AStr(ref_apply(fen, move))
+
+    return SimpleNamespace(startFen=lambda: AStr(cs.START), legalMoves=lambda fen: AList(AStr(m) for m in ref_legal(fen)), applyMove=apply,
+                           status=lambda fen: AStr(ref_status(fen)), IllegalMoveException=IllegalMoveException)
+
+
 class FakeOrg(unittest.TestCase):
     """A temp dir holding the shim, the fake's state and log, a throwaway HOME and the platform dir."""
 
@@ -254,6 +352,10 @@ class FakeOrg(unittest.TestCase):
         if destructive is not None:
             out = [c for c in out if ("destructive" in c) == destructive]
         return out
+
+    def destroyed(self, call: dict) -> dict:
+        """The members a destructive deploy named, by type, without the types it did not name."""
+        return {kind: names for kind, names in call["destructive"].items() if names}
 
     def run_check(self, *args: str, env: dict | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess:
         return subprocess.run([sys.executable, "-I", str(CHECKS), *args], capture_output=True, text=True,
@@ -372,6 +474,38 @@ class TestFakeMirrorsTheRealCli(FakeOrg):
         self.assertEqual(self.sf("data", "query", "--use-tooling-api", "-q", "SELECT Name FROM ExternalString", "--target-org", "de")[0], 1)
         self.assertEqual(self.sf("data", "query", "--use-tooling-api", "-q", "SELECT DeveloperName FROM FlexiPage", "--target-org", "de")[0], 0)
 
+    def test_only_a_not_supported_message_looks_like_a_missing_object_any_other_failure_is_plain(self) -> None:
+        self.edit(query_errors={"FlexiPage": "Request timed out, please retry", "ExternalString": "sObject type 'ExternalString' is not supported."})
+        names = {}
+        for kind, field in (("FlexiPage", "DeveloperName"), ("ExternalString", "Name")):
+            code, doc = self.sf("data", "query", "--use-tooling-api", "-q", "SELECT %s FROM %s" % (field, kind), "--target-org", "de")
+            names[kind] = (code, doc["name"])
+        self.assertEqual(names, {"FlexiPage": (1, "QueryFailed"), "ExternalString": (1, "INVALID_TYPE")})
+
+    def test_a_deploy_creates_the_tab_app_and_page_it_holds_and_a_destructive_deploy_removes_them(self) -> None:
+        project = self.tmp / "ui-project"
+        base = project / "force-app" / "main" / "default"
+        for folder, name in (("tabs", "SLChess_Board.tab-meta.xml"), ("applications", "SLChess.app-meta.xml"),
+                             ("flexipages", "SLChess_Home.flexipage-meta.xml")):
+            (base / folder).mkdir(parents=True)
+            (base / folder / name).write_text("<x/>")
+        code, doc = self.sf("project", "deploy", "start", "--source-dir", "force-app", "--target-org", "de", cwd=project)
+        self.assertEqual((code, doc["result"]["numberComponentsDeployed"]), (0, 3))
+        state = self.state()
+        self.assertEqual((state["types"]["CustomTab"][-1], state["types"]["CustomApplication"][-1], state["types"]["FlexiPage"][-1]),
+                         ("SLChess_Board", "SLChess", "SLChess_Home"))
+        manifest = self.tmp / "manifest"
+        manifest.mkdir()
+        (manifest / "package.xml").write_text(cs.empty_package_xml())
+        (manifest / "destructiveChanges.xml").write_text(cs.destructive_xml(
+            {"CustomApplication": ["SLChess"], "CustomTab": ["SLChess_Board"], "FlexiPage": ["SLChess_Home"]}))
+        code, _doc = self.sf("project", "deploy", "start", "--manifest", str(manifest / "package.xml"),
+                             "--post-destructive-changes", str(manifest / "destructiveChanges.xml"), "--target-org", "de")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.state()["types"], BASE_TYPES)
+        (call,) = self.deploys(destructive=True)
+        self.assertEqual(call["type_order"], ["CustomApplication", "CustomTab", "FlexiPage"])
+
 
 class TestParsing(unittest.TestCase):
     def test_parse_json_skips_leading_warning_text(self) -> None:
@@ -405,16 +539,20 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(cs.plan_removal(["slChessBoard", "SLChessBoard"], set(), "slChess")[0], ["slChessBoard"])
 
     def test_destructive_xml_lists_exactly_the_members_and_no_wildcard(self) -> None:
-        xml = cs.destructive_xml(["SLChessEngine", "SLChessEngineTest"], ["slChessBoard"])
+        xml = cs.destructive_xml({"ApexClass": ["SLChessEngine", "SLChessEngineTest"], "LightningComponentBundle": ["slChessBoard"]})
         self.assertIn("<members>SLChessEngine</members>", xml)
         self.assertIn("<members>slChessBoard</members>", xml)
         self.assertNotIn("*", xml)
         self.assertNotIn("<types>", cs.empty_package_xml())
 
-    def test_the_destructive_manifest_lists_components_before_the_classes_they_import(self) -> None:
-        xml = cs.destructive_xml(["SLChessProbe", "SLChessProbeTest"], ["slChessProbe"])
-        self.assertLess(xml.index("<name>LightningComponentBundle</name>"), xml.index("<name>ApexClass</name>"))
-        self.assertEqual(xml.count("<types>"), 2)
+    def test_the_destructive_manifest_lists_what_refers_to_something_before_it(self) -> None:
+        xml = cs.destructive_xml({"ApexClass": ["SLChessProbe", "SLChessProbeTest"], "LightningComponentBundle": ["slChessProbe"],
+                                  "CustomTab": ["SLChess_Probe"], "CustomApplication": ["SLChess_Probe"], "FlexiPage": ["SLChess_Probe"]})
+        order = ["CustomApplication", "CustomTab", "FlexiPage", "LightningComponentBundle", "ApexClass"]
+        self.assertEqual(sorted(order, key=lambda kind: xml.index("<name>%s</name>" % kind)), order)  # an app lists tabs, a tab shows the component
+        self.assertEqual(xml.count("<types>"), 5)
+        self.assertEqual(cs.destructive_xml({"ApexClass": ["SLChessProbe"], "CustomTab": []}).count("<types>"), 1)  # a type with no members is not named
+        self.assertEqual(cs.REMOVABLE, tuple(order))
 
 
 class TestPreflight(FakeOrg):
@@ -462,11 +600,27 @@ class TestPreflight(FakeOrg):
             self.assertIn("%s %s" % (kind, name), self.out(proc))
         self.assertIn("not clean", self.out(proc))
 
+    def test_the_tab_app_and_page_the_request_names_are_refused_when_already_in_the_org(self) -> None:
+        for kind, name in (("CustomTab", "SLChess_Board"), ("CustomApplication", "SLChess"), ("FlexiPage", "SLChess_Board")):
+            self.set_state(dict(fk.default_state(), alias="de"))
+            self.add(**{kind: [name]})
+            proc = self.run_check(*self.args())
+            self.assertEqual(proc.returncode, 1, kind)
+            self.assertIn("%s %s" % (kind, name), self.out(proc))
+
     def test_a_type_the_org_cannot_query_is_skipped_and_said(self) -> None:
         self.edit(query_errors={"ExternalString": "sObject type 'ExternalString' is not supported."})
         proc = self.run_check(*self.args())
         self.assertEqual(proc.returncode, 0, self.out(proc))
         self.assertIn("not queryable here: ExternalString", self.out(proc))
+
+    def test_a_transient_failure_on_a_type_query_fails_the_preflight_instead_of_skipping_the_type(self) -> None:
+        self.edit(query_errors={"FlexiPage": "Request timed out, please retry"})
+        self.add(FlexiPage=["SLChessHome"])  # what a skipped type would have hidden
+        proc = self.run_check(*self.args())
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("timed out", self.out(proc))
+        self.assertNotIn("not queryable here", self.out(proc))
 
     def test_the_org_is_found_in_either_bucket_the_real_cli_may_use(self) -> None:
         for buckets, expected in ((["other"], 0), (["nonScratchOrgs"], 0), (["other", "nonScratchOrgs"], 0), ([], 1)):
@@ -537,12 +691,28 @@ class TestSnapshot(FakeOrg):
         self.assertNotIn("ExternalString", before["other_types"])
         self.assertNotIn("ExternalString", before["counts"])
 
+    def test_a_transient_failure_on_a_type_query_fails_the_snapshot_instead_of_recording_the_type_unavailable(self) -> None:
+        self.edit(query_errors={"FlexiPage": "Request timed out, please retry"})
+        proc = self.run_check("snapshot", "--org", "de", "--prefix", "SLChess")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("timed out", self.out(proc))
+        self.assertFalse((self.platform / "before.json").exists())
+
     def test_snapshot_refuses_an_org_holding_a_prefixed_item_of_another_type(self) -> None:
         self.add(FlexiPage=["SLChessHome"])
         proc = self.run_check("snapshot", "--org", "de", "--prefix", "SLChess")
         self.assertEqual(proc.returncode, 1)
         self.assertIn("FlexiPage SLChessHome", self.out(proc))
         self.assertFalse((self.platform / "before.json").exists())
+
+    def test_snapshot_refuses_an_org_already_holding_the_requested_tab_or_app(self) -> None:
+        for kind, name in (("CustomTab", "SLChess_Board"), ("CustomApplication", "SLChess")):
+            self.set_state(dict(fk.default_state(), alias="de"))
+            self.add(**{kind: [name]})
+            proc = self.run_check("snapshot", "--org", "de", "--prefix", "SLChess")
+            self.assertEqual(proc.returncode, 1, kind)
+            self.assertIn("%s %s" % (kind, name), self.out(proc))
+            self.assertFalse((self.platform / "before.json").exists())
 
     def test_the_platform_dir_defaults_to_platform_in_the_cwd(self) -> None:
         env = dict(self.env)
@@ -564,7 +734,8 @@ class TestCleanup(FakeOrg):
 
     def deployed_like_a_model(self) -> None:
         self.snapshot()
-        self.add(apex=["SLChessEngine", "SLChessController", "SLChessEngineTest"], lwc=["slChessBoard"])
+        self.add(apex=["SLChessEngine", "SLChessController", "SLChessEngineTest"], lwc=["slChessBoard"],
+                 CustomTab=["SLChess_Board"], CustomApplication=["SLChess"])
 
     def test_removes_only_new_prefixed_items_and_verifies(self) -> None:
         self.deployed_like_a_model()
@@ -572,10 +743,83 @@ class TestCleanup(FakeOrg):
         self.assertEqual(proc.returncode, 0, self.out(proc))
         state = self.state()
         self.assertEqual((sorted(state["apex_classes"]), sorted(state["lwc"])), (sorted(BASE_APEX), sorted(BASE_LWC)))
+        self.assertEqual(state["types"], BASE_TYPES)
         record = json.loads((self.platform / "cleanup.json").read_text())
         self.assertTrue(record["verified"])
         self.assertEqual(sorted(r["name"] for r in record["removed"]),
-                         ["SLChessController", "SLChessEngine", "SLChessEngineTest", "slChessBoard"])
+                         ["SLChess", "SLChessController", "SLChessEngine", "SLChessEngineTest", "SLChess_Board", "slChessBoard"])
+
+    def test_the_tab_app_and_page_go_in_the_same_single_destructive_deploy_apps_first(self) -> None:
+        self.deployed_like_a_model()
+        self.add(FlexiPage=["SLChess_Home"])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        (call,) = self.deploys(destructive=True)  # one transaction handles the references between them
+        self.assertEqual(self.destroyed(call), {"CustomApplication": ["SLChess"], "CustomTab": ["SLChess_Board"], "FlexiPage": ["SLChess_Home"],
+                                                "LightningComponentBundle": ["slChessBoard"],
+                                                "ApexClass": ["SLChessController", "SLChessEngine", "SLChessEngineTest"]})
+        self.assertEqual(call["type_order"], ["CustomApplication", "CustomTab", "FlexiPage", "LightningComponentBundle", "ApexClass"])
+        self.assertEqual(self.state()["types"], BASE_TYPES)  # the baseline tabs, apps and pages are all still there
+
+    def test_a_prefixed_name_that_was_in_the_snapshot_is_kept_in_the_new_types_too(self) -> None:
+        self.snapshot()
+        before = self.before()
+        before["other_types"]["CustomTab"] = sorted(before["other_types"]["CustomTab"] + ["SLChess_Keep"])
+        (self.platform / "before.json").write_text(json.dumps(before))
+        self.add(CustomTab=["SLChess_Keep", "SLChess_Board"])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("SLChess_Keep", self.state()["types"]["CustomTab"])
+        self.assertNotIn("SLChess_Board", self.state()["types"]["CustomTab"])
+        (call,) = self.deploys(destructive=True)
+        self.assertEqual(self.destroyed(call), {"CustomTab": ["SLChess_Board"]})
+
+    def test_tab_app_and_page_look_alikes_are_refused_not_deleted_and_fail_the_verification(self) -> None:
+        self.snapshot()
+        look_alikes = {"CustomTab": "slChess_Board", "CustomApplication": "slchess", "FlexiPage": "SLCHESS_Home"}
+        self.add(CustomTab=["SLChess_Board", look_alikes["CustomTab"]], CustomApplication=[look_alikes["CustomApplication"]],
+                 FlexiPage=[look_alikes["FlexiPage"]])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 1)
+        (call,) = self.deploys(destructive=True)
+        self.assertEqual(self.destroyed(call), {"CustomTab": ["SLChess_Board"]})  # only the exact prefix goes
+        for kind, name in look_alikes.items():
+            self.assertIn(name, self.state()["types"][kind])
+            self.assertIn("extra %s %s" % (kind, name), proc.stdout)
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertEqual({(r["type"], r["name"]) for r in record["refused"]}, set(look_alikes.items()))
+
+    def test_a_leftover_prefixed_tab_or_app_after_the_deploy_fails_the_verification_and_names_it(self) -> None:
+        self.deployed_like_a_model()
+        proc = self.run_check(*self.CLEAN, env={"FAKE_SF_NOOP_DESTRUCTIVE": "1"})
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("extra CustomApplication SLChess", proc.stdout)
+        self.assertIn("extra CustomTab SLChess_Board", proc.stdout)
+        self.assertNotIn("remove by hand", proc.stdout)  # these two types are removable, so a leftover is a failed removal
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertEqual((record["verified"], record["extra"]["CustomTab"]), (False, ["SLChess_Board"]))
+
+    def test_a_removable_type_the_snapshot_could_not_query_is_never_removed_from(self) -> None:
+        self.edit(query_errors={"CustomTab": "sObject type 'CustomTab' is not supported."})
+        self.snapshot()
+        self.edit(query_errors={})
+        self.add(CustomTab=["SLChess_Board"])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))  # as for any type the snapshot could not see: skipped and said
+        self.assertIn("not covered (query failed at the snapshot): CustomTab", proc.stdout)
+        self.assertIn("SLChess_Board", self.state()["types"]["CustomTab"])
+        self.assertEqual(self.deploys(), [])
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertEqual([(r["type"], r["name"]) for r in record["refused"]], [("CustomTab", "SLChess_Board")])
+
+    def test_a_transient_failure_while_looking_for_a_removable_type_stops_before_any_deploy(self) -> None:
+        self.deployed_like_a_model()
+        self.edit(query_errors={"FlexiPage": "Request timed out, please retry"})
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("timed out", self.out(proc))
+        self.assertEqual(self.deploys(), [])
+        self.assertIn("SLChessEngine", self.state()["apex_classes"])
 
     def test_the_verified_message_lists_exactly_the_types_and_counts_it_covered(self) -> None:
         self.deployed_like_a_model()
@@ -588,29 +832,44 @@ class TestCleanup(FakeOrg):
         self.assertIn("LastModifiedDate unchanged on 17 baseline", proc.stdout)
         self.assertNotIn("not covered", proc.stdout)
 
+    def test_the_verified_message_says_which_types_it_removes_and_which_it_only_compares(self) -> None:
+        self.deployed_like_a_model()
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        removes = "removes when new and prefixed (SLChess*, slChess* for bundles): CustomApplication, CustomTab, FlexiPage, LightningComponentBundle, ApexClass"
+        self.assertIn(removes, proc.stdout)
+        self.assertIn("only compares, never removes: ApexTrigger, ApexPage, ApexComponent, AuraDefinitionBundle, StaticResource, CustomObject, "
+                      "PermissionSet, ExternalString", proc.stdout)
+        self.assertIn("removed CustomApplication SLChess, CustomTab SLChess_Board, LightningComponentBundle slChessBoard, ApexClass SLChessController",
+                      proc.stdout)
+
     def test_an_extra_item_of_a_type_cleanup_cannot_remove_fails_the_run_and_is_never_deleted(self) -> None:
         self.deployed_like_a_model()
-        self.add(FlexiPage=["SLChessHome"])
+        self.add(StaticResource=["SLChessPieces"])
         proc = self.run_check(*self.CLEAN)
         self.assertEqual(proc.returncode, 1)
-        self.assertIn("not removable by this cleanup: remove by hand: FlexiPage SLChessHome", self.out(proc))
+        self.assertIn("not removable by this cleanup: remove by hand: StaticResource SLChessPieces", self.out(proc))
         state = self.state()
-        self.assertIn("SLChessHome", state["types"]["FlexiPage"])
+        self.assertIn("SLChessPieces", state["types"]["StaticResource"])
         self.assertNotIn("SLChessEngine", state["apex_classes"])  # what it can remove, it still removed
         (call,) = self.deploys(destructive=True)
-        self.assertNotIn("SLChessHome", json.dumps(call["destructive"]))
+        self.assertNotIn("SLChessPieces", json.dumps(call["destructive"]))
         record = json.loads((self.platform / "cleanup.json").read_text())
-        self.assertEqual((record["verified"], record["extra"]), (False, {"FlexiPage": ["SLChessHome"]}))
+        self.assertEqual((record["verified"], record["extra"]), (False, {"StaticResource": ["SLChessPieces"]}))
 
-    def test_an_item_of_every_recorded_type_is_reported_under_its_own_type(self) -> None:
+    def test_an_item_of_every_recorded_type_is_removed_if_the_request_allows_it_and_reported_under_its_own_type_if_not(self) -> None:
         self.snapshot()
         extras = {spec[0]: "SLChessLeft%d" % i for i, spec in enumerate(cs.WATCHED)}
         self.add(**{kind: [name] for kind, name in extras.items()})
         proc = self.run_check(*self.CLEAN)
         self.assertEqual(proc.returncode, 1)
         for kind, name in extras.items():
-            self.assertIn("not removable by this cleanup: remove by hand: %s %s" % (kind, name), proc.stdout)
-        self.assertEqual(self.deploys(), [])  # nothing prefixed in Apex or components, and the rest is never removed
+            if kind in cs.REMOVABLE:
+                self.assertNotIn(name, self.state()["types"][kind])
+            else:
+                self.assertIn("not removable by this cleanup: remove by hand: %s %s" % (kind, name), proc.stdout)
+        (call,) = self.deploys(destructive=True)  # only the three types the request allows; the rest is never removed
+        self.assertEqual(self.destroyed(call), {kind: [extras[kind]] for kind in ("CustomApplication", "CustomTab", "FlexiPage")})
 
     def test_a_baseline_item_that_disappeared_is_reported_missing(self) -> None:
         self.snapshot()
@@ -679,8 +938,9 @@ class TestCleanup(FakeOrg):
         self.deployed_like_a_model()
         self.assertEqual(self.run_check(*self.CLEAN).returncode, 0)
         (call,) = self.deploys(destructive=True)
-        self.assertEqual(call["destructive"], {"ApexClass": ["SLChessController", "SLChessEngine", "SLChessEngineTest"],
-                                               "LightningComponentBundle": ["slChessBoard"]})
+        self.assertEqual(self.destroyed(call), {"CustomApplication": ["SLChess"], "CustomTab": ["SLChess_Board"],
+                                                "ApexClass": ["SLChessController", "SLChessEngine", "SLChessEngineTest"],
+                                                "LightningComponentBundle": ["slChessBoard"]})
         self.assertEqual(call["manifest_types"], 0)
         self.assertIn("--post-destructive-changes", call["argv"])
         self.assertEqual(call["argv"][call["argv"].index("--target-org") + 1], "de")
@@ -697,7 +957,7 @@ class TestCleanup(FakeOrg):
         self.assertIn("SLChessKeep", self.state()["apex_classes"])
         self.assertNotIn("SLChessEngine", self.state()["apex_classes"])
         (call,) = self.deploys(destructive=True)
-        self.assertEqual(call["destructive"]["ApexClass"], ["SLChessEngine"])
+        self.assertEqual(self.destroyed(call), {"ApexClass": ["SLChessEngine"]})
 
     def test_a_look_alike_name_is_refused_not_deleted_and_the_run_fails_verification(self) -> None:
         self.deployed_like_a_model()
@@ -773,16 +1033,30 @@ class TestCleanup(FakeOrg):
 
 CONTROLLER = ("public with sharing class SLChessController {\n"
               "    @AuraEnabled public static List<String> legalMoves(String fen) { return SLChessEngine.legalMoves(fen); }\n"
-              "    @AuraEnabled public static String applyMove(String fen, String move) { return SLChessEngine.applyMove(fen, move); }\n}\n")
+              "    @AuraEnabled public static String applyMove(String fen, String move) { return SLChessEngine.applyMove(fen, move); }\n"
+              "    @AuraEnabled public static String status(String fen) { return SLChessEngine.status(fen); }\n}\n")
 BOARD_JS = ("import { LightningElement } from 'lwc';\n"
             "import legalMoves from '@salesforce/apex/SLChessController.legalMoves';\n"
             "import applyMove from '@salesforce/apex/SLChessController.applyMove';\n"
             "export default class SlChessBoard extends LightningElement {}\n")
 BOARD_HTML = '<template><template for:each={squares} for:item="square"><div key={square.id}>{square.label}</div></template></template>'
+XML = '<?xml version="1.0" encoding="UTF-8"?>\n'
+BOARD_META = XML + ('<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>60.0</apiVersion>'
+                    "<isExposed>true</isExposed><targets>%s</targets></LightningComponentBundle>\n")
+TARGET_TAB = "<target>lightning__Tab</target>"
+TARGET_PAGE = "<target>lightning__AppPage</target>"
+TAB_XML = XML + '<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata"><label>Chess</label>%s<motif>Custom57: Grid</motif></CustomTab>\n'
+TAB_BOARD = TAB_XML % "<lwcComponent>slChessBoard</lwcComponent>"
+APP_XML = XML + ('<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata"><formFactors>Large</formFactors><label>Chess</label>'
+                 "<navType>Standard</navType>%s<uiType>Lightning</uiType></CustomApplication>\n")
+APP_BOARD = APP_XML % "<tabs>standard-home</tabs><tabs>SLChess_Board</tabs>"
+PAGE_XML = XML + '<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata"><masterLabel>Chess</masterLabel><type>AppPage</type></FlexiPage>\n'
 
 
 def make_project(tmp: Path, classes=("SLChessEngine", "SLChessController", "SLChessEngineTest"), bundle="slChessBoard", extra=(),
-                 controller=CONTROLLER, js=BOARD_JS, html=BOARD_HTML) -> Path:
+                 controller=CONTROLLER, js=BOARD_JS, html=BOARD_HTML, targets=TARGET_TAB, files=None) -> Path:
+    """A project that passes `project`. `files` replaces or adds files under force-app/main/default (a value of None removes one):
+    the tab, the app and the component meta file are among the defaults, so a test changes just the one it is about."""
     project = tmp / "proj"
     shutil.rmtree(project, ignore_errors=True)
     base = project / "force-app" / "main" / "default"
@@ -796,6 +1070,14 @@ def make_project(tmp: Path, classes=("SLChessEngine", "SLChessController", "SLCh
     (base / "lwc" / ".eslintrc.json").write_text("{}")
     (base / "lwc" / "jsconfig.json").write_text("{}")
     (project / "sfdx-project.json").write_text(json.dumps({"packageDirectories": [{"path": "force-app"}]}))
+    defaults = {"lwc/%s/%s.js-meta.xml" % (bundle, bundle): BOARD_META % targets, "tabs/SLChess_Board.tab-meta.xml": TAB_BOARD,
+                "applications/SLChess.app-meta.xml": APP_BOARD}
+    for rel, text in {**defaults, **(files or {})}.items():
+        target = base / rel
+        if text is None:
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
     for rel in extra:
         target = base / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -813,6 +1095,7 @@ class TestProject(FakeOrg):
     def test_a_complete_project_passes(self) -> None:
         proc = self.run_project(self.make())
         self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("tab, app", proc.stdout)
         self.assertEqual(self.calls(), [])  # no sf call at all
 
     def test_missing_engine_fails(self) -> None:
@@ -838,11 +1121,14 @@ class TestProject(FakeOrg):
     def test_a_class_without_the_prefix_fails(self) -> None:
         self.assertEqual(self.run_project(self.make(classes=("SLChessEngine", "Helper"))).returncode, 1)
 
-    def test_other_metadata_fails(self) -> None:
-        for extra in ("objects/Thing__c/Thing__c.object-meta.xml", "flows/F.flow-meta.xml", "permissionsets/P.permissionset-meta.xml"):
+    def test_other_metadata_fails_even_when_it_carries_the_prefix(self) -> None:
+        for extra in ("objects/Thing__c/Thing__c.object-meta.xml", "flows/F.flow-meta.xml", "permissionsets/P.permissionset-meta.xml",
+                      "permissionsets/SLChess_P.permissionset-meta.xml", "objects/SLChess__c/SLChess__c.object-meta.xml",
+                      "staticresources/SLChess_a.resource-meta.xml", "triggers/SLChessT.trigger-meta.xml",
+                      "profiles/Admin.profile-meta.xml", "labels/CustomLabels.labels-meta.xml"):
             proc = self.run_project(self.make(extra=(extra,)))
             self.assertEqual(proc.returncode, 1, extra)
-            self.assertIn("other metadata", self.out(proc))
+            self.assertIn("other metadata main/default/%s" % extra, self.out(proc))
 
     def failing(self, message: str, **kwargs) -> None:
         proc = self.run_project(self.make(**kwargs))
@@ -855,9 +1141,10 @@ class TestProject(FakeOrg):
     def test_a_controller_without_an_aura_enabled_method_fails(self) -> None:
         self.failing("has no @AuraEnabled method", controller=CONTROLLER.replace("@AuraEnabled ", ""))
 
-    def test_a_controller_missing_one_of_the_two_methods_fails_and_names_it(self) -> None:
+    def test_a_controller_missing_one_of_the_three_methods_fails_and_names_it(self) -> None:
         self.failing("declares no static method applyMove", controller=CONTROLLER.replace("applyMove(String", "apply(String"))
         self.failing("declares no static method legalMoves", controller=CONTROLLER.replace("legalMoves(String", "moves(String"))
+        self.failing("declares no static method status", controller=CONTROLLER.replace("String status(", "String state("))
 
     def test_a_component_that_never_imports_the_controller_fails(self) -> None:
         self.failing("does not import @salesforce/apex/SLChessController",
@@ -871,10 +1158,56 @@ class TestProject(FakeOrg):
         proc = self.run_project(self.make(html="<template><template iterator:sq={squares}><div key={sq.value.id}></div></template></template>"))
         self.assertEqual(proc.returncode, 0, self.out(proc))
 
+    # the tab, the app and the optional app page
+    def test_a_project_without_the_tab_or_the_app_fails_and_names_the_file(self) -> None:
+        self.failing("no force-app/**/tabs/SLChess_Board.tab-meta.xml", files={"tabs/SLChess_Board.tab-meta.xml": None})
+        self.failing("no force-app/**/applications/SLChess.app-meta.xml", files={"applications/SLChess.app-meta.xml": None})
+
+    def test_a_tab_without_lwc_component_fails(self) -> None:
+        self.failing("tab SLChess_Board.tab-meta.xml has no <lwcComponent>slChessBoard</lwcComponent>",
+                     files={"tabs/SLChess_Board.tab-meta.xml": TAB_XML % ""})
+
+    def test_a_tab_that_shows_another_component_fails(self) -> None:
+        self.failing("tab SLChess_Board.tab-meta.xml shows lwcComponent chessBoard, not slChessBoard",
+                     files={"tabs/SLChess_Board.tab-meta.xml": TAB_XML % "<lwcComponent>chessBoard</lwcComponent>"})
+
+    def test_a_tab_may_show_a_prefixed_app_page_that_is_in_the_project(self) -> None:
+        pages = {"tabs/SLChess_Board.tab-meta.xml": TAB_XML % "<flexiPage>SLChess_Home</flexiPage>",
+                 "flexipages/SLChess_Home.flexipage-meta.xml": PAGE_XML}
+        proc = self.run_project(self.make(files=pages, targets=TARGET_TAB + TARGET_PAGE))
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("app page", proc.stdout)
+        self.failing("has no <lwcComponent>", files=dict(pages, **{"flexipages/SLChess_Home.flexipage-meta.xml": None}), targets=TARGET_TAB + TARGET_PAGE)
+
+    def test_an_app_that_lists_no_tab_of_the_project_fails(self) -> None:
+        self.failing("app SLChess.app-meta.xml lists no <tabs> entry naming one of this project's SLChess* tabs",
+                     files={"applications/SLChess.app-meta.xml": APP_XML % "<tabs>standard-home</tabs>"})
+        self.failing("lists no <tabs> entry", files={"applications/SLChess.app-meta.xml": APP_XML % "<tabs>SLChess_Gone</tabs>"})
+
+    def test_the_component_meta_must_expose_the_tab_target_and_the_page_target_when_there_is_a_page(self) -> None:
+        self.failing("js-meta.xml does not expose the lightning__Tab target", targets=TARGET_PAGE)
+        page = {"flexipages/SLChess_Home.flexipage-meta.xml": PAGE_XML}
+        self.failing("does not expose lightning__AppPage", files=page, targets=TARGET_TAB)
+        self.assertEqual(self.run_project(self.make(files=page, targets=TARGET_TAB + TARGET_PAGE)).returncode, 0)
+
+    def test_a_component_without_a_meta_file_fails(self) -> None:
+        self.failing("has no .js-meta.xml file", files={"lwc/slChessBoard/slChessBoard.js-meta.xml": None})
+
+    def test_a_tab_app_or_page_without_the_prefix_or_in_the_wrong_folder_is_other_metadata(self) -> None:
+        for rel in ("tabs/Board.tab-meta.xml", "applications/Chess.app-meta.xml", "flexipages/Home.flexipage-meta.xml",
+                    "tabs/SLChess_X.app-meta.xml", "applications/SLChess_X.tab-meta.xml", "tabs/slChess_Other.tab-meta.xml"):
+            self.failing("other metadata main/default/%s" % rel, extra=(rel,))
+
+    def test_a_second_prefixed_tab_is_allowed_when_it_also_shows_the_component(self) -> None:
+        proc = self.run_project(self.make(files={"tabs/SLChess_Two.tab-meta.xml": TAB_BOARD}))
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.failing("tab SLChess_Two.tab-meta.xml has no <lwcComponent>", files={"tabs/SLChess_Two.tab-meta.xml": TAB_XML % ""})
+
 
 class TestDeployedAndTests(FakeOrg):
     def deploy_all(self, tests=("SLChessEngineTest", "SLChessMovesTest")) -> None:
-        self.add(apex=["SLChessEngine", "SLChessController", *tests], lwc=["slChessBoard"])
+        self.add(apex=["SLChessEngine", "SLChessController", *tests], lwc=["slChessBoard"], CustomTab=["SLChess_Board"],
+                 CustomApplication=["SLChess"])
 
     def run_deployed(self, *extra: str) -> subprocess.CompletedProcess:
         return self.run_check("deployed", "--org", "de", "--prefix", "SLChess", *extra)
@@ -890,6 +1223,48 @@ class TestDeployedAndTests(FakeOrg):
         self.assertEqual(proc.returncode, 1)
         self.assertIn("SLChessController", self.out(proc))
         self.assertIn("slChessBoard", self.out(proc))
+        self.assertIn("CustomTab SLChess_Board not found", self.out(proc))
+        self.assertIn("CustomApplication SLChess not found", self.out(proc))
+
+    def test_deployed_needs_the_tab_and_the_app_each_on_its_own(self) -> None:
+        for missing, message in (("CustomTab", "CustomTab SLChess_Board not found"), ("CustomApplication", "CustomApplication SLChess not found")):
+            self.set_state(dict(fk.default_state(), alias="de"))
+            self.deploy_all()
+            state = self.state()
+            state["types"][missing] = BASE_TYPES[missing]
+            self.set_state(state)
+            proc = self.run_deployed()
+            self.assertEqual(proc.returncode, 1, missing)
+            self.assertIn(message, self.out(proc))
+            self.assertEqual(self.out(proc).count("not found"), 1)
+
+    def test_a_tab_or_app_of_the_orgs_own_or_with_another_case_does_not_count(self) -> None:
+        self.deploy_all()
+        state = self.state()
+        state["types"]["CustomTab"] = BASE_TYPES["CustomTab"] + ["slChess_Board"]
+        state["types"]["CustomApplication"] = BASE_TYPES["CustomApplication"] + ["slchess"]
+        self.set_state(state)
+        proc = self.run_deployed()
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("CustomTab SLChess_Board not found", self.out(proc))
+        self.assertIn("CustomApplication SLChess not found", self.out(proc))
+
+    def test_deployed_queries_only_prefixed_tabs_apps_and_pages(self) -> None:
+        self.deploy_all()
+        self.assertEqual(self.run_deployed().returncode, 0)
+        queries = [c["argv"][c["argv"].index("-q") + 1] for c in self.calls() if c["argv"][:2] == ["data", "query"]]
+        for kind in ("CustomTab", "CustomApplication", "FlexiPage"):
+            self.assertIn("SELECT DeveloperName FROM %s WHERE DeveloperName LIKE 'SLChess%%'" % kind, queries)
+
+    def test_the_app_page_is_required_only_when_it_is_named(self) -> None:
+        self.deploy_all()
+        self.assertEqual(self.run_deployed().returncode, 0)
+        proc = self.run_deployed("--pages", "SLChess_Home")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("FlexiPage SLChess_Home not found", self.out(proc))
+        self.add(FlexiPage=["SLChess_Home"])
+        self.assertEqual(self.run_deployed("--pages", "SLChess_Home").returncode, 0)
+        self.assertIn("app page SLChess_Home", self.run_deployed("--pages", "SLChess_Home").stdout)
 
     def test_deployed_needs_a_test_class(self) -> None:
         self.deploy_all(tests=())
@@ -987,7 +1362,35 @@ class TestRules(FakeOrg):
             for call in re.findall(r"SLChess\w*\.\w+", script):
                 self.assertIn(call, {"SLChessEngine.legalMoves", "SLChessEngine.applyMove", "SLChessEngine.status",
                                      "SLChessEngine.startFen", "SLChessEngine.IllegalMoveException",
-                                     "SLChessController.legalMoves", "SLChessController.applyMove"})
+                                     "SLChessController.legalMoves", "SLChessController.applyMove", "SLChessController.status"})
+
+    def test_each_game_is_one_anonymous_apex_that_plays_every_ply_through_the_controller(self) -> None:
+        scripts = {name: script for name, script, _marks in cs.rule_cases()}
+        for name, moves, special, (after, bad) in cs.GAMES:
+            script = scripts[name]
+            self.assertEqual(re.findall(r"'([a-h][1-8][a-h][1-8][qrbn]?)'", re.search(r"moves = new List<String>\{([^}]*)\}", script)[1]), moves)
+            for call in ("SLChessController.legalMoves(fen)", "SLChessController.applyMove(fen, move)", "SLChessController.status(fen)"):
+                self.assertIn(call, script)
+            self.assertEqual(script.count("RESULT|"), 1)  # one marker for the whole game
+            self.assertIn("SLChessEngine.applyMove(fen, '%s')" % bad, script)  # the engine itself refuses the illegal move
+            self.assertIn("catch (SLChessEngine.IllegalMoveException", script)
+            self.assertEqual(len([line for line in script.splitlines() if line.startswith("for ")]), 1)
+
+    def test_a_game_whose_last_status_is_wrong_fails_rules_and_shows_where(self) -> None:
+        for name, wrong in (("game_opera", "ply 33 d1d8 leaves status check, expected checkmate"),
+                            ("game_second", "ply 17 c7c8r is not in legalMoves")):
+            proc = self.run_rules(self.canned(**{name: wrong}))
+            self.assertEqual(proc.returncode, 1, name)
+            self.assertIn("FAIL %s expected=ok got=%s" % (name, wrong), proc.stdout)
+            self.assertEqual(proc.stdout.splitlines()[-1].split("failed: ")[1], name)  # and nothing else failed
+
+    def test_a_game_that_is_not_played_to_the_end_never_passes_by_default(self) -> None:
+        canned = json.loads(self.canned().read_text())
+        del canned["game_second"]
+        (self.tmp / "apex3.json").write_text(json.dumps(canned))
+        proc = self.run_rules(self.tmp / "apex3.json")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("FAIL game_second expected=ok got=MISSING", proc.stdout)
 
     def test_a_wrong_count_fails_and_shows_expected_and_got(self) -> None:
         proc = self.run_rules(self.canned(**{"start.p2": "399"}))
@@ -1104,6 +1507,63 @@ class TestOracleAgainstTheReference(unittest.TestCase):
         self.assertEqual((ref_status(cs.STALEMATE_FEN), ref_legal(cs.STALEMATE_FEN)), ("stalemate", []))
         self.assertNotIn("e2e5", ref_legal(cs.START))  # the move the illegal case expects to be refused
 
+    def play_game(self, moves: list[str], special: dict[int, str], refusal: tuple[int, str]) -> list[str]:
+        """What the reference finds wrong with a game as the check states it (an empty list: every ply legal, every status as stated,
+        the illegal move refused where the check says, and nothing left to play at the end)."""
+        problems, fen = [], cs.START
+        for ply, move in enumerate(moves, 1):
+            if move not in ref_legal(fen):
+                return problems + ["ply %d %s is not legal in %s" % (ply, move, fen)]
+            fen = ref_apply(fen, move)
+            if ref_status(fen) != special.get(ply, "ongoing"):
+                problems.append("ply %d %s leaves %s, the check says %s" % (ply, move, ref_status(fen), special.get(ply, "ongoing")))
+            if ply == refusal[0] and refusal[1] in ref_legal(fen):
+                problems.append("%s is legal after ply %d, the check expects a refusal" % (refusal[1], ply))
+        if ref_legal(fen) or ref_status(fen) not in ("checkmate", "stalemate"):
+            problems.append("the game does not end in checkmate or stalemate: %s" % ref_status(fen))
+        return problems
+
+    def test_every_ply_of_every_game_is_legal_ends_as_stated_and_the_refusal_is_a_refusal(self) -> None:
+        self.assertEqual([name for name, *_rest in cs.GAMES], ["game_opera", "game_second"])
+        for name, moves, special, refusal in cs.GAMES:
+            self.assertEqual(self.play_game(moves, special, refusal), [], name)
+            self.assertIn(refusal[0], range(1, len(moves)))  # in the middle, not after the last ply
+            self.assertEqual(max(special), len(moves))  # the last ply is always stated
+
+    def test_the_opera_game_is_the_one_the_brief_gives(self) -> None:
+        self.assertEqual(len(cs.OPERA), 33)
+        self.assertEqual(cs.OPERA[:4] + cs.OPERA[-1:], ["e2e4", "e7e5", "g1f3", "d7d6", "d1d8"])  # 1. e4 e5 2. Nf3 d6 ... 17. Rd8#
+        statuses, fen = {}, cs.START
+        for ply, move in enumerate(cs.OPERA, 1):
+            fen = ref_apply(fen, move)
+            if ref_status(fen) != "ongoing":
+                statuses[ply] = ref_status(fen)
+        self.assertEqual(statuses, {21: "check", 29: "check", 31: "check", 33: "checkmate"})
+        self.assertIn("e1c1", cs.OPERA)  # the queenside castle
+        self.assertEqual(statuses, cs.GAMES[0][2])
+
+    def test_the_second_game_has_an_en_passant_capture_a_promotion_and_ends_in_checkmate(self) -> None:
+        en_passant, promotions, fen = [], [], cs.START
+        for ply, move in enumerate(cs.SECOND, 1):
+            board, _white, _castling, ep, *_rest = ref_parse(fen)
+            if board[ref_sq(move[:2])].upper() == "P" and ref_sq(move[2:4]) == ep and ref_sq(move[2:4]) not in board:
+                en_passant.append(ply)
+            if len(move) == 5:
+                promotions.append(ply)
+            fen = ref_apply(fen, move)
+        self.assertEqual((en_passant, promotions), ([5], [17]))
+        self.assertEqual((ref_status(fen), ref_legal(fen)), ("checkmate", []))
+        self.assertEqual(cs.GAMES[1][2], {11: "check", 17: "checkmate"})
+
+    def test_a_mistyped_game_is_found_here(self) -> None:
+        name, moves, special, refusal = cs.GAMES[1]
+        broken = moves[:6] + ["d7d6"] + moves[7:]  # black's own pawn is not where that move needs it
+        self.assertTrue(self.play_game(broken, special, refusal)[0].startswith("ply 7 d7d6 is not legal"))
+        self.assertIn("leaves checkmate, the check says ongoing", self.play_game(moves, {11: "check"}, refusal)[0])
+        self.assertIn("ply 16 g7g6 leaves ongoing, the check says checkmate", self.play_game(moves, {**special, 16: "checkmate"}, refusal)[0])
+        self.assertIn("is legal after ply 11", self.play_game(moves, special, (11, "b8d7"))[0])
+        self.assertIn("does not end in checkmate or stalemate", self.play_game(moves[:-1], {11: "check"}, refusal)[0])
+
     def test_every_marker_has_a_reference_answer_and_it_is_the_one_the_check_expects(self) -> None:
         answers = {}
         for name, fen, _one, two in cs.PERFT:
@@ -1122,6 +1582,8 @@ class TestOracleAgainstTheReference(unittest.TestCase):
             "status.start": ref_status(cs.START), "status.check": ref_status(cs.CHECK_FEN), "promo.moves": ",".join(ref_legal(cs.PROMO_FEN)),
             "controller.moves": str(len(ref_legal(cs.START))), "controller.apply": after_e4,
         })
+        for name, moves, special, refusal in cs.GAMES:
+            answers[name] = "ok" if not self.play_game(moves, special, refusal) else "broken"
         expected = {marker: value for _n, _s, marks in cs.rule_cases() for marker, value in marks if marker != "illegal"}
         self.assertEqual(sorted(answers), sorted(expected))  # a new marker needs a reference answer here
         self.assertEqual(answers, expected)
@@ -1129,6 +1591,71 @@ class TestOracleAgainstTheReference(unittest.TestCase):
     def test_the_two_square_push_sets_the_en_passant_square_whether_or_not_a_capture_is_possible(self) -> None:
         self.assertEqual(ref_apply(cs.START, "e2e4").split(" ")[3], "e3")  # no black pawn can capture on e3
         self.assertEqual(ref_apply("4k3/8/8/8/8/8/P7/4K3 w - - 0 1", "a2a4").split(" ")[3], "a3")
+
+
+class TestScriptsAgainstTheReference(unittest.TestCase):
+    """The Apex scripts themselves, run in Python (APEX SUBSET) against the REFERENCE: what each prints is what the check expects."""
+
+    def run_case(self, name: str, engine=None, script: str | None = None) -> dict[str, str]:
+        engine = engine or reference_engine()
+        source = script or next(s for n, s, _marks in cs.rule_cases() if n == name)
+        return run_apex_script(source, SLChessEngine=engine, SLChessController=engine)
+
+    def test_every_rule_script_prints_the_values_the_check_expects(self) -> None:
+        for name, script, marks in cs.rule_cases():
+            seen = run_apex_script(script, SLChessEngine=reference_engine(), SLChessController=reference_engine())
+            self.assertEqual({marker: seen.get(marker) for marker, _expected in marks}, dict(marks), name)
+
+    def test_the_translator_is_strict_about_what_it_does_not_know(self) -> None:
+        with self.assertRaises(ValueError):
+            apex_to_python("while (true) {\n}\n")
+        self.assertEqual(run_apex_script("Integer n = 0;\nfor (Integer i = 0; i < 3; i++) {\nn += i;\n}\nSystem.debug('RESULT|n|' + n);\n"), {"n": "3"})
+
+    def test_a_script_that_computes_something_other_than_the_expected_answer_is_found(self) -> None:
+        start = next(s for n, s, _marks in cs.rule_cases() if n == "start")
+        self.assertEqual(self.run_case("start", script=start)["start.p2"], "400")
+        self.assertEqual(self.run_case("start", script=start.replace("total +=", "total ="))["start.p2"], "20")  # a depth-2 count that forgets to sum
+        castle = next(s for n, s, _marks in cs.rule_cases() if n == "castling")
+        self.assertNotEqual(self.run_case("castling", script=castle.replace("e1g1", "e1c1"))["castle.board"], "r3k2r/8/8/8/8/8/8/R4RK1")
+
+    def test_the_game_scripts_fail_with_a_message_when_the_engine_is_wrong(self) -> None:
+        engine = reference_engine()
+        late_status = SimpleNamespace(**dict(vars(engine), status=lambda fen: AStr("check" if ref_status(fen) == "checkmate" else ref_status(fen))))
+        self.assertEqual(self.run_case("game_opera", late_status)["game_opera"], "ply 33 d1d8 leaves status check, expected checkmate")
+        self.assertEqual(self.run_case("game_second", late_status)["game_second"], "ply 17 c7c8r leaves status check, expected checkmate")
+        no_promotion = SimpleNamespace(**dict(vars(engine), legalMoves=lambda fen: AList(AStr(m) for m in ref_legal(fen) if not m.endswith("r"))))
+        self.assertEqual(self.run_case("game_second", no_promotion)["game_second"], "ply 17 c7c8r is not in legalMoves")
+        accepting = SimpleNamespace(**dict(vars(engine), applyMove=lambda fen, move: AStr(ref_apply(fen, move) if move in ref_legal(fen) else fen)))
+        self.assertEqual(self.run_case("game_opera", accepting)["game_opera"], "after ply 21 SLChessEngine.applyMove accepted the illegal move h7h6")
+
+    def test_a_controller_that_swallows_the_refusal_is_found_but_one_that_wraps_it_is_not(self) -> None:
+        engine = reference_engine()
+        swallowing = SimpleNamespace(**dict(vars(engine), applyMove=lambda fen, move: AStr(ref_apply(fen, move) if move in ref_legal(fen) else fen)))
+
+        def run(controller) -> str:
+            script = next(s for n, s, _marks in cs.rule_cases() if n == "game_second")
+            return run_apex_script(script, SLChessEngine=engine, SLChessController=controller)["game_second"]
+
+        self.assertEqual(run(swallowing), "after ply 11 SLChessController.applyMove accepted the illegal move h7h5")
+
+        def wrapping(fen: str, move: str) -> AStr:
+            try:
+                return engine.applyMove(fen, move)
+            except IllegalMoveException as exc:
+                raise RuntimeError("AuraHandledException: %s" % exc)  # what a controller that reports the message to the component throws
+
+        self.assertEqual(run(SimpleNamespace(**dict(vars(engine), applyMove=wrapping))), "ok")
+
+    def test_the_game_scripts_stop_at_the_first_problem_and_check_nothing_is_left_to_play(self) -> None:
+        engine = reference_engine()
+        more = SimpleNamespace(**dict(vars(engine), legalMoves=lambda fen: AList([AStr("a2a3")]) if ref_status(fen) == "checkmate" else engine.legalMoves(fen)))
+        self.assertEqual(self.run_case("game_second", more)["game_second"], "the last position still has 1 legal moves")
+
+    def test_the_selftest_probe_script_prints_what_the_probe_class_returns(self) -> None:
+        for answer, expected in ((2, "2"), (3, "3")):
+            seen = run_apex_script(cs.probe_script("SLChessProbe"), SLChessProbe=SimpleNamespace(two=lambda answer=answer: answer))
+            self.assertEqual(seen, {"probe": expected})
+        self.assertIn("RESULT|probe|", cs.probe_script("SLChessProbe"))
 
 
 class TestSelftest(FakeOrg):
@@ -1145,14 +1672,27 @@ class TestSelftest(FakeOrg):
             self.assertIn("PASS %s:" % step, proc.stdout)
         self.assertTrue(proc.stdout.startswith("selftest proves, in order: preflight"), proc.stdout[:80])
         self.assertIn("PASS apex-run: RESULT|probe| expected=2 got=2", proc.stdout)
+        self.assertIn("tab SLChess_Probe; app SLChess_Probe; app page SLChess_Probe", proc.stdout)
         (run,) = [c for c in self.calls() if "--file" in c["argv"]]
         self.assertEqual((run["apex_markers"], run["argv"][run["argv"].index("--target-org") + 1]), (["probe"], "de"))
         state = self.state()
         self.assertEqual((sorted(state["apex_classes"]), sorted(state["lwc"])), (sorted(BASE_APEX), sorted(BASE_LWC)))
-        (add,) = self.deploys(destructive=False)
+        self.assertEqual(state["types"], BASE_TYPES)
+        (add,) = self.deploys(destructive=False)  # one deploy holds the class, its test, the component, the tab, the app and the page
         self.assertEqual(add["argv"][add["argv"].index("--target-org") + 1], "de")
         (rm,) = self.deploys(destructive=True)
-        self.assertEqual(rm["destructive"], {"ApexClass": ["SLChessProbe", "SLChessProbeTest"], "LightningComponentBundle": ["slChessProbe"]})
+        self.assertEqual(self.destroyed(rm), {"ApexClass": ["SLChessProbe", "SLChessProbeTest"], "LightningComponentBundle": ["slChessProbe"],
+                                              "CustomTab": ["SLChess_Probe"], "CustomApplication": ["SLChess_Probe"], "FlexiPage": ["SLChess_Probe"]})
+
+    def test_the_one_deploy_makes_the_tab_the_app_and_the_page_and_a_removal_that_does_nothing_is_reported(self) -> None:
+        proc = self.run_selftest(FAKE_SF_NOOP_DESTRUCTIVE="1")  # the removal does nothing, so the org still shows what the deploy made
+        self.assertEqual(proc.returncode, 1)
+        state = self.state()
+        self.assertEqual({kind: state["types"][kind][-1] for kind in ("CustomTab", "CustomApplication", "FlexiPage")},
+                         {kind: "SLChess_Probe" for kind in ("CustomTab", "CustomApplication", "FlexiPage")})
+        self.assertIn("extra CustomApplication SLChess_Probe", proc.stdout)
+        self.assertIn("MANUAL CLEANUP NEEDED: remove the SLChess* and slChess* items (CustomApplication, CustomTab, FlexiPage, "
+                      "LightningComponentBundle, ApexClass) from org 'de'", proc.stdout)
 
     def test_a_probe_that_answers_anything_but_two_fails_the_rehearsal_and_still_cleans_up(self) -> None:
         proc = self.run_selftest(probe="3")
@@ -1160,6 +1700,7 @@ class TestSelftest(FakeOrg):
         self.assertIn("FAIL apex-run: RESULT|probe| expected=2 got=3", proc.stdout)
         self.assertIn("PASS cleanup:", proc.stdout)
         self.assertEqual(sorted(self.state()["apex_classes"]), sorted(BASE_APEX))
+        self.assertEqual(self.state()["types"], BASE_TYPES)
 
     def test_the_apex_run_step_reports_the_same_errors_rules_does(self) -> None:
         proc = self.run_selftest(probe={"compileProblem": "Variable does not exist: SLChessProbe"})
@@ -1171,12 +1712,44 @@ class TestSelftest(FakeOrg):
         self.assertIn("PASS cleanup:", proc.stdout)
 
     def test_the_probe_is_an_aura_enabled_class_and_a_component_that_imports_it(self) -> None:
-        klass, test, bundle = cs.write_probe(self.tmp / "probe-project", "SLChess")
+        names = cs.write_probe(self.tmp / "probe-project", "SLChess")
         classes = self.tmp / "probe-project" / "force-app" / "main" / "default"
-        self.assertEqual((klass, test, bundle), ("SLChessProbe", "SLChessProbeTest", "slChessProbe"))
+        self.assertEqual(names, {"class": "SLChessProbe", "test": "SLChessProbeTest", "bundle": "slChessProbe", "tab": "SLChess_Probe",
+                                 "app": "SLChess_Probe", "page": "SLChess_Probe"})
         self.assertIn("@AuraEnabled(cacheable=true) public static Integer two()", (classes / "classes" / "SLChessProbe.cls").read_text())
         self.assertIn("import two from '@salesforce/apex/SLChessProbe.two';", (classes / "lwc" / "slChessProbe" / "slChessProbe.js").read_text())
         self.assertIn("SLChessProbe.two()", (classes / "classes" / "SLChessProbeTest.cls").read_text())
+
+    def test_the_probe_tab_app_and_page_are_well_formed_metadata_in_the_shape_the_metadata_api_defines(self) -> None:
+        cs.write_probe(self.tmp / "probe-project", "SLChess")
+        base = self.tmp / "probe-project" / "force-app" / "main" / "default"
+        ns = "{http://soap.sforce.com/2006/04/metadata}"
+
+        def parse(rel: str) -> ET.Element:
+            root = ET.parse(base / rel).getroot()
+            self.assertTrue(root.tag.startswith(ns), rel)
+            return root
+
+        def text(root: ET.Element, *path: str) -> list[str]:
+            return [e.text for e in root.findall("/".join(ns + p for p in path))]
+
+        meta = parse("lwc/slChessProbe/slChessProbe.js-meta.xml")
+        self.assertEqual((text(meta, "isExposed"), text(meta, "targets", "target")), (["true"], ["lightning__Tab", "lightning__AppPage"]))
+        tab = parse("tabs/SLChess_Probe.tab-meta.xml")
+        self.assertEqual((tab.tag, text(tab, "lwcComponent"), len(text(tab, "label")), len(text(tab, "motif"))), (ns + "CustomTab", ["slChessProbe"], 1, 1))
+        app = parse("applications/SLChess_Probe.app-meta.xml")
+        self.assertEqual((app.tag, text(app, "tabs"), text(app, "uiType"), text(app, "navType"), text(app, "formFactors"), len(text(app, "label"))),
+                         (ns + "CustomApplication", ["SLChess_Probe"], ["Lightning"], ["Standard"], ["Large"], 1))
+        page = parse("flexipages/SLChess_Probe.flexipage-meta.xml")
+        self.assertEqual((page.tag, text(page, "type"), text(page, "template", "name"), text(page, "masterLabel")),
+                         (ns + "FlexiPage", ["AppPage"], ["flexipage:defaultAppHomeTemplate"], ["SLChess probe"]))
+        (region,) = page.findall(ns + "flexiPageRegions")
+        self.assertEqual((text(region, "name"), text(region, "type"), text(region, "itemInstances", "componentInstance", "componentName")),
+                         (["main"], ["Region"], ["c:slChessProbe"]))
+        # every file the probe writes sits where `project` allows it, under the case prefix
+        self.assertEqual(sorted(p.name for p in base.rglob("*-meta.xml")), sorted(
+            ["SLChessProbe.cls-meta.xml", "SLChessProbeTest.cls-meta.xml", "slChessProbe.js-meta.xml", "SLChess_Probe.tab-meta.xml",
+             "SLChess_Probe.app-meta.xml", "SLChess_Probe.flexipage-meta.xml"]))
 
     def test_a_failing_probe_test_still_cleans_up(self) -> None:
         results = self.tmp / "tests.json"
@@ -1206,6 +1779,180 @@ class TestSelftest(FakeOrg):
         self.assertEqual(self.deploys(), [])
         self.assertIn("SLChessLeftover", self.state()["apex_classes"])
 
+    def test_keep_needs_the_reference(self) -> None:
+        proc = self.run_check("selftest", "--org", "de", "--keep")
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("--keep needs --reference", proc.stderr)
+        self.assertEqual(self.calls(), [])
+
+
+class TestSelftestReference(FakeOrg):
+    """`selftest --reference`: a known-good project is deployed, graded by the four checks the case runs and removed (or kept)."""
+
+    def canned(self, **override) -> str:
+        values = {marker: expected for _name, _script, marks in cs.rule_cases() for marker, expected in marks}
+        values.update(override)
+        path = self.tmp / "apex.json"
+        path.write_text(json.dumps(values))
+        return str(path)
+
+    def run_reference(self, *extra: str, project: Path | None = None, **override) -> subprocess.CompletedProcess:
+        env = {"FAKE_SF_APEX": self.canned(**override.pop("canned", {}))}
+        env.update(override)
+        project = project or make_project(self.tmp)
+        return self.run_check("selftest", "--org", "de", "--reference", str(project), *extra, env=env)
+
+    def test_the_whole_flow_runs_against_the_fake_and_the_org_is_back_at_its_baseline(self) -> None:
+        project = make_project(self.tmp)
+        before = sorted(str(p.relative_to(project)) for p in project.rglob("*"))
+        proc = self.run_reference(project=project)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        for step in ("fixture", "preflight", "snapshot", "deploy", "deployed", "tests", "rules", "cleanup"):
+            self.assertIn("PASS %s:" % step, proc.stdout)
+        self.assertTrue(proc.stdout.startswith("selftest proves, in order: fixture"), proc.stdout[:60])
+        self.assertIn("rules: %d of %d markers passed; failed: none" % (self.markers(), self.markers()), proc.stdout)
+        self.assertIn("PASS game_opera expected=ok got=ok", proc.stdout)
+        self.assertIn("PASS SLChessEngineTest: outcome=Passed testsRan=10 failing=0; PASS tests: 10 ran, 0 failing, need at least 8", proc.stdout)
+        state = self.state()
+        self.assertEqual((sorted(state["apex_classes"]), sorted(state["lwc"]), state["types"]), (sorted(BASE_APEX), sorted(BASE_LWC), BASE_TYPES))
+        (add,) = self.deploys(destructive=False)
+        self.assertEqual(add["argv"][:3], ["project", "deploy", "start"])
+        self.assertIn("force-app", add["argv"])
+        self.assertNotEqual(Path(add["cwd"]).resolve(), project.resolve())  # deployed from a copy: sf may write beside the project
+        self.assertEqual(sorted(str(p.relative_to(project)) for p in project.rglob("*")), before)  # the fixture is untouched
+        (rm,) = self.deploys(destructive=True)
+        self.assertEqual(self.destroyed(rm), {"CustomApplication": ["SLChess"], "CustomTab": ["SLChess_Board"], "LightningComponentBundle": ["slChessBoard"],
+                                              "ApexClass": ["SLChessController", "SLChessEngine", "SLChessEngineTest"]})
+
+    def markers(self) -> int:
+        return sum(len(marks) for _n, _s, marks in cs.rule_cases())
+
+    def test_the_four_graded_checks_run_with_the_cases_arguments(self) -> None:
+        self.assertEqual(self.run_reference().returncode, 0)
+        calls = [c["argv"] for c in self.calls()]
+        queries = [a[a.index("-q") + 1] for a in calls if a[:2] == ["data", "query"]]
+        self.assertIn("SELECT DeveloperName FROM CustomTab WHERE DeveloperName LIKE 'SLChess%'", queries)  # deployed, with the tab and the app
+        tests = [a for a in calls if a[:3] == ["apex", "run", "test"]]
+        self.assertEqual([a[a.index("--class-names") + 1] for a in tests], ["SLChessEngineTest"])
+        self.assertEqual(len([a for a in calls if a[:2] == ["apex", "run"] and "--file" in a]), len(cs.rule_cases()))
+        case = json.loads((E2E / "cases.json").read_text())["chess-salesforce"]
+        self.assertEqual(cs.CASE_MIN_TESTS, int(re.search(r"--min-tests (\d+)", next(c for c in case["checks"] if " tests " in c))[1]))
+
+    def test_a_reference_that_fails_the_tests_check_does_not_pass_and_is_still_removed(self) -> None:
+        results = self.tmp / "tests.json"
+        results.write_text(json.dumps({"outcome": "Failed", "testsRan": 10, "failing": 1}))
+        proc = self.run_reference(FAKE_SF_TESTS=str(results))
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("FAIL tests:", proc.stdout)
+        self.assertIn("PASS cleanup:", proc.stdout)
+        self.assertEqual(self.state()["types"], BASE_TYPES)
+        self.assertEqual(sorted(self.state()["apex_classes"]), sorted(BASE_APEX))
+
+    def test_a_wrong_rules_answer_fails_names_the_marker_and_the_org_is_still_cleaned(self) -> None:
+        proc = self.run_reference(canned={"game_second": "ply 9 a6c8 is not in legalMoves", "start.p2": "399"})
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("FAIL rules: rules: %d of %d markers passed; failed: start.p2,game_second" % (self.markers() - 2, self.markers()), proc.stdout)
+        self.assertIn("    FAIL start.p2 expected=400 got=399", proc.stdout)
+        self.assertIn("PASS cleanup:", proc.stdout)
+        self.assertEqual(self.state()["types"], BASE_TYPES)
+
+    def test_a_failed_deploy_stops_the_checks_and_cleans(self) -> None:
+        proc = self.run_reference(FAKE_SF_FAIL="deploy")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("FAIL deploy:", proc.stdout)
+        self.assertNotIn("deployed:", proc.stdout)
+        self.assertIn("PASS cleanup:", proc.stdout)
+
+    def test_a_missing_reference_fails_with_a_clear_message_before_any_sf_call(self) -> None:
+        proc = self.run_check("selftest", "--org", "de", "--reference", str(self.tmp / "no-such-reference"))
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("FAIL fixture: the reference project %s does not exist" % (self.tmp / "no-such-reference"), proc.stdout)
+        self.assertEqual(self.calls(), [])
+        self.assertFalse(self.platform.exists())
+
+    def test_an_incomplete_reference_fails_and_names_what_is_missing_before_any_sf_call(self) -> None:
+        for files, missing in (({"tabs/SLChess_Board.tab-meta.xml": None}, "no force-app/**/tabs/SLChess_Board.tab-meta.xml"),
+                               ({"applications/SLChess.app-meta.xml": None}, "no force-app/**/applications/SLChess.app-meta.xml")):
+            proc = self.run_check("selftest", "--org", "de", "--reference", str(make_project(self.tmp, files=files)))
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("FAIL fixture: the reference project %s is incomplete: " % (self.tmp / "proj") , proc.stdout)
+            self.assertIn(missing, proc.stdout)
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        proc = self.run_check("selftest", "--org", "de", "--reference", str(empty))
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("incomplete: sfdx-project.json missing or not JSON", proc.stdout)
+        self.assertEqual(self.calls(), [])
+
+    def test_a_dirty_org_stops_the_reference_flow_before_any_deploy(self) -> None:
+        self.add(CustomTab=["SLChess_Board"])
+        proc = self.run_reference()
+        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(self.deploys(), [])
+        self.assertIn("CustomTab SLChess_Board", proc.stdout)
+        self.assertIn("SLChess_Board", self.state()["types"]["CustomTab"])  # not ours to remove: the snapshot never happened
+
+    def test_keep_never_cleans_prints_the_command_and_exits_zero_when_the_checks_pass(self) -> None:
+        proc = self.run_reference("--keep")
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertEqual(self.deploys(destructive=True), [])
+        self.assertNotIn("cleanup:", proc.stdout.replace("cleanup --org", ""))
+        state = self.state()
+        self.assertTrue({"SLChessEngine", "SLChessController", "SLChessEngineTest"} <= set(state["apex_classes"]))
+        self.assertIn("SLChess_Board", state["types"]["CustomTab"])
+        self.assertIn("SLChess", state["types"]["CustomApplication"])
+        self.assertIn("slChessBoard", state["lwc"])
+        self.assertIn("KEPT: nothing was removed from org 'de'", proc.stdout)
+        self.assertIn("/lightning/n/SLChess_Board", proc.stdout)
+        command = [line for line in proc.stdout.splitlines() if line.startswith("python3 ")]
+        self.assertEqual(len(command), 1)
+        argv = shlex.split(command[0])
+        self.assertEqual((argv[0], Path(argv[1]).name, argv[2:6]), ("python3", "chess_salesforce.py", ["cleanup", "--org", "de", "--prefix"]))
+        self.assertEqual(Path(argv[1]).resolve(), CHECKS.resolve())
+        # the command it prints removes the app and verifies the org against the snapshot that was kept
+        by_hand = self.run_check(*argv[2:])
+        self.assertEqual(by_hand.returncode, 0, self.out(by_hand))
+        self.assertEqual(self.state()["types"], BASE_TYPES)
+        self.assertEqual(sorted(self.state()["apex_classes"]), sorted(BASE_APEX))
+
+    def test_keep_with_a_failing_check_exits_one_and_still_keeps_and_prints_the_command(self) -> None:
+        proc = self.run_reference("--keep", canned={"start.p2": "399"})
+        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(self.deploys(destructive=True), [])
+        self.assertIn("FAIL rules:", proc.stdout)
+        self.assertIn("cleanup --org de --prefix SLChess --platform-dir", proc.stdout)
+
+    def test_keep_after_a_failed_snapshot_has_nothing_to_keep_and_leaves_no_directory_behind(self) -> None:
+        self.add(apex=["SLChessLeftover"])
+        proc = self.run_reference("--keep")
+        self.assertEqual(proc.returncode, 1)
+        self.assertNotIn("KEPT", proc.stdout)
+        self.assertEqual([p.name for p in (self.tmp / "tmpdir").iterdir()], [])
+
+    def test_keep_uses_the_platform_dir_it_is_given_for_the_snapshot(self) -> None:
+        kept = self.tmp / "kept"
+        proc = self.run_reference("--keep", "--platform-dir", str(kept))
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertTrue((kept / "before.json").is_file())
+        self.assertIn("--platform-dir %s" % kept, proc.stdout)
+
+    def test_a_failure_leaves_the_raw_log_where_the_platform_dir_points(self) -> None:
+        kept = self.tmp / "kept"
+        proc = self.run_reference("--keep", "--platform-dir", str(kept), canned={"start.p2": "399"})
+        self.assertEqual(proc.returncode, 1)
+        self.assertTrue((kept / "rules-raw.txt").is_file())
+
+    def test_the_committed_reference_fixture_is_there_passes_project_and_runs_the_whole_flow(self) -> None:
+        self.assertTrue(cs.REFERENCE.is_dir(), "the reference fixture %s is missing (worker K3 writes it)" % cs.REFERENCE)
+        for needed in ("sfdx-project.json", "force-app", "README.md"):
+            self.assertTrue((cs.REFERENCE / needed).exists(), "the reference fixture has no %s" % needed)
+        ok, message = cs.do_project("SLChess", cs.REFERENCE)
+        self.assertTrue(ok, message)
+        proc = self.run_check("selftest", "--org", "de", "--reference", env={"FAKE_SF_APEX": self.canned()})
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("PASS fixture:", proc.stdout)
+        self.assertEqual(self.state()["types"], BASE_TYPES)
+
 
 class TestCaseDefinition(unittest.TestCase):
     """The prompt states what the checks grade, and the case carries the note a resumed model needs (cases.json, `chess-salesforce`)."""
@@ -1224,6 +1971,35 @@ class TestCaseDefinition(unittest.TestCase):
                 "depth-2 legal-move enumeration", "inside one transaction"):
             self.assertIn(sentence, self.prompt)
 
+    def test_the_prompt_asks_for_a_board_a_person_can_open_and_play(self) -> None:
+        for sentence in (
+                "`tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file "
+                "exposes the `lightning__Tab` target)",
+                "a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab)",
+                "if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`)",
+                "all named with the prefix `SLChess`", "Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, "
+                "profiles, labels or flows), and do not change profiles or permission sets",
+                "a game two people can play by turns on one screen", "whose turn it is and the game status (check, checkmate, stalemate)",
+                "refuses an illegal destination", "lets a pawn promote (queen is acceptable as the default)", "has a New game button",
+                "`status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them",
+                "graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`)",
+                "a whole game of about 35 plies played through `SLChessController`"):
+            self.assertIn(sentence, self.prompt)
+
+    def test_the_prompt_makes_the_exception_public_and_pins_only_the_commands_that_talk_to_the_org(self) -> None:
+        self.assertIn("(a public exception class you define inside `SLChessEngine`)", self.prompt)
+        self.assertIn("Use `--target-org de` on every `sf` command that talks to the org;", self.prompt)
+        self.assertNotIn("on every `sf` command;", self.prompt)
+
+    def test_the_prompt_allows_exactly_the_kinds_of_metadata_the_checks_and_the_cleanup_handle(self) -> None:
+        allowed = {"tabs": "CustomTab", "applications": "CustomApplication", "flexipages": "FlexiPage"}
+        self.assertEqual(sorted(cs.SCOPED_META), sorted(allowed))
+        self.assertEqual(sorted(set(allowed.values()) | {"LightningComponentBundle", "ApexClass"}), sorted(cs.REMOVABLE))
+        for folder in allowed:
+            self.assertIn("`%s/SLChess" % folder, self.prompt)
+        self.assertEqual(cs.expected_names("SLChess"), {"classes": ["SLChessEngine", "SLChessController"], "lwc": ["slChessBoard"],
+                                                         "tabs": ["SLChess_Board"], "apps": ["SLChess"], "pages": []})
+
     def test_the_test_count_the_prompt_asks_for_is_the_one_the_check_requires(self) -> None:
         asked = int(re.search(r"at least (\d+) Apex test methods", self.prompt).group(1))
         required = int(re.search(r"--min-tests (\d+)", next(c for c in self.case["checks"] if " tests " in c)).group(1))
@@ -1235,6 +2011,7 @@ class TestCaseDefinition(unittest.TestCase):
 
     def test_the_checks_are_the_same_subcommands_as_before(self) -> None:
         self.assertEqual([c.split()[2] for c in self.case["checks"]], ["project", "deployed", "tests", "rules"])
+        self.assertNotIn("--tabs", self.case["checks"][1])  # the defaults are the names the prompt gives
 
     def test_the_resume_note_tells_a_resumed_model_its_deployment_is_gone(self) -> None:
         note = self.case["platform"]["resume_note"]
@@ -1256,13 +2033,15 @@ class TestNoCredentialsAnywhere(FakeOrg):
         ]
         for step in steps:
             outputs.append(self.run_check(*step, env=env))
-        self.add(apex=["SLChessEngine", "SLChessController", "SLChessEngineTest"], lwc=["slChessBoard"])
+        self.add(apex=["SLChessEngine", "SLChessController", "SLChessEngineTest"], lwc=["slChessBoard"], CustomTab=["SLChess_Board"],
+                 CustomApplication=["SLChess"])
         outputs.append(self.run_check("project", "--org", "de", cwd=project, env=env))
         outputs.append(self.run_check("deployed", "--org", "de", env=env))
         outputs.append(self.run_check("tests", "--org", "de", "--min-tests", "8", env=env))
         outputs.append(self.run_check("rules", "--org", "de", env=dict(env, FAKE_SF_APEX=str(canned))))
         outputs.append(self.run_check("cleanup", "--org", "de", env=env))
         outputs.append(self.run_check("selftest", "--org", "de", env=dict(env, FAKE_SF_APEX=str(canned))))
+        outputs.append(self.run_check("selftest", "--org", "de", "--reference", str(project), env=dict(env, FAKE_SF_APEX=str(canned))))
         failing = self.run_check("rules", "--org", "de", env=dict(env, FAKE_SF_APEX=str(canned), FAKE_SF_FAIL="apex"))
         outputs.append(failing)
         self.assertEqual([p.returncode for p in outputs[:-1]], [0] * (len(outputs) - 1), [self.out(p) for p in outputs])

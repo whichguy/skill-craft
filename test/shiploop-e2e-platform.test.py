@@ -11,7 +11,9 @@ executables, and no real platform, org or model is ever reached. They say nothin
   cleanup    after grading, always: success, failure, crash, KeyboardInterrupt; a failure is printed loudly
   model_bin  a guarded stand-in command written to <output>/platform/bin and put first on the host's PATH (real HOME inside),
              pinned first again in the throwaway HOME's shell startup files (path_helper) and checked per shell
-  coverage   the guard's own log against the sf commands in the transcript: a run the guard never saw is an invalid trial
+  coverage   the guard's own log against the sf commands in the transcript: a run the guard never saw, or that went around the
+             wrapper by a path, is an invalid trial
+  keep       --keep-platform: a finished delivery is left in the platform, any other ending cleans as always
   resume_note a sentence for the prompt of a resumed run whose platform was reset
   scrub      one function through which every stored or printed command output goes
 """
@@ -104,11 +106,12 @@ def product():
     subprocess.run(["git", *ident, "commit", "-q", "--allow-empty", "-m", "product"], check=True)
 """
 
-# FAKE_MODE: done (product + done run), stuck (ends with ShipLoop active), fail (exits 1 with no work). Every start leaves
-# PLAT_MODEL_MARK, so a platform command can say whether the model had started when it ran. A model that "shows" a credential
-# puts it in its event stream, as a tool result would.
+# FAKE_MODE: done (product + done run), stuck (ends with ShipLoop active), blocked (ends with ShipLoop blocked), fail (exits 1 with
+# no work), hang (never ends: the harness's --timeout does), stop (asks the harness to end the run, then never ends). Every start
+# leaves PLAT_MODEL_MARK, so a platform command can say whether the model had started when it ran. A model that "shows" a
+# credential puts it in its event stream, as a tool result would. FAKE_COMMANDS (a JSON list) is what its shell tool "ran".
 FAKE_GROK = f"""#!{sys.executable}
-import json, os, subprocess, sys
+import json, os, subprocess, sys, time
 from pathlib import Path
 {PRODUCT}
 argv = sys.argv[1:]
@@ -127,7 +130,8 @@ Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": str(home
     n for n in os.listdir(home) if os.path.islink(os.path.join(home, n))), "path_head": os.environ["PATH"].split(os.pathsep)[0]}}))
 print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["shiploop", "improve"]}}))
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "python3 /x/skills/shiploop/scripts/shiploop next"}}}}))
-print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "sf org display --json"}}}}))
+for command in json.loads(os.environ.get("FAKE_COMMANDS", '["sf org display --json"]')):
+    print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": command}}}}))
 for _ in range(int(os.environ.get("FAKE_SF_CALLS", "0"))):  # the model reaching the guard: the first PATH folder holds the wrapper
     subprocess.run([os.environ["PATH"].split(os.pathsep)[0] + "/sf", "org", "list"], check=True, capture_output=True)
 print(json.dumps({{"type": "text", "data": '{{"accessToken": "{TOKEN}"}}'}}))
@@ -138,9 +142,13 @@ if mode == "done":
     import shutil
     shutil.rmtree(".shiploop", ignore_errors=True)
     product()
-elif mode == "stuck":
+elif mode in ("stuck", "blocked"):
     Path(".shiploop").mkdir(exist_ok=True)
-    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active" if mode == "stuck" else "blocked", "stage": "test-refine", "revision": 25}})
+elif mode in ("hang", "stop"):
+    if mode == "stop":
+        Path("../stop").write_text("stop")  # the stop file sits beside the work folder, in the run's output folder
+    time.sleep(60)
 print(json.dumps({{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}))
 """
 
@@ -195,7 +203,7 @@ class PlatformCase(unittest.TestCase):
                                                "PLAT_MODEL_MARK": str(self.tmp / "model-started")})
         patched.start()
         self.addCleanup(patched.stop)
-        for var in ("PLAT_FAIL", "FAKE_MODE", "FAKE_SF_CALLS"):
+        for var in ("PLAT_FAIL", "FAKE_MODE", "FAKE_SF_CALLS", "FAKE_COMMANDS"):
             self.addCleanup(os.environ.pop, var, None)
         for patch in (mock.patch.object(listeners, "observe", return_value=[]),
                       mock.patch.object(environment, "autodetect_browser", return_value=None)):
@@ -804,7 +812,7 @@ class ShellTest(PlatformCase):
 
     def simulate_path_helper(self, home: Path, decoy: Path) -> None:
         """What /etc/zprofile and /etc/profile do before the user's own startup files: a folder put ahead of the host's PATH."""
-        for name in (".zprofile", ".bash_profile"):
+        for name in (".zprofile", ".bash_profile", ".profile"):
             (home / name).write_text(f'export PATH={shlex.quote(str(decoy))}":$PATH"\n')
 
 
@@ -897,6 +905,39 @@ class ResolutionTest(ShellTest):
         self.assertFalse((self.tmp / "executed").exists())
 
 
+class OwnShellTest(ShellTest):
+    """H-7: a login `sh` and the host's own $SHELL are shells the model may start too."""
+
+    def own_shell(self) -> Path:
+        shell = self.tmp / "ownsh"
+        shell.write_text('#!/bin/sh\nexec /bin/sh "$@"\n')
+        shell.chmod(0o755)
+        return shell
+
+    def test_a_login_sh_is_among_the_shells_checked(self):
+        self.assertIn(("/bin/sh", "-lc"), run.RESOLUTION_SHELLS)
+        self.assertIn(("/bin/sh", "-lc"), run.resolution_shells({}))
+
+    def test_the_hosts_own_shell_is_checked_login_and_interactive_when_it_is_none_of_the_listed_ones(self):
+        shell = self.own_shell()
+        self.assertEqual(run.resolution_shells({"SHELL": str(shell)})[len(run.RESOLUTION_SHELLS):],
+                         [(str(shell), "-lc"), (str(shell), "-ilc")])
+        for env in ({}, {"SHELL": ""}, {"SHELL": "/bin/zsh"}, {"SHELL": "/bin/bash"}, {"SHELL": str(self.tmp / "no-such-shell")},
+                    {"SHELL": str(self.tmp)}):  # absent, empty, already listed, not there, not executable
+            with self.subTest(env=env):
+                self.assertEqual(run.resolution_shells(env), list(run.RESOLUTION_SHELLS))
+
+    def test_a_wrapper_that_the_hosts_own_shell_does_not_find_first_is_a_problem(self):
+        home, bin_dir, decoy = self.folders()
+        shell = self.own_shell()
+        env = dict(self.env(home, decoy, bin_dir), SHELL=str(shell))
+        problems = run.shell_resolution_problems(["e2etool"], bin_dir, env)
+        for flag in ("-lc", "-ilc"):
+            self.assertTrue(any(f"`{shell} {flag}`" in problem for problem in problems), (flag, problems))
+        self.assertEqual(run.shell_resolution_problems(["e2etool"], bin_dir, dict(self.env(home, bin_dir, decoy), SHELL=str(shell))), [])
+        self.assertFalse((self.tmp / "executed").exists(), "command -v never runs the command")
+
+
 class ShellPreflightTest(ShellTest):
     def host(self, name: str = "grok") -> tuple[dict, Path]:
         out = self.tmp / f"pf-{name}"
@@ -915,7 +956,7 @@ class ShellPreflightTest(ShellTest):
         self.assertIn("resolves to /x/mytool", state["preflight"]["output"])
         self.assertEqual(state["model_bin_resolution"], {"ok": False, "problems": ["`mytool` resolves to /x/mytool under `/bin/zsh -lc`"]})
         self.assertEqual(state["shell_path_pinned"], [".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"])
-        self.assertNotIn("guard_log_lines_at_launch", state)
+        self.assertNotIn("guard_log_preflight", state)
 
     def test_a_good_resolution_is_recorded_and_the_cases_command_runs_behind_it(self):
         env, out = self.host()
@@ -923,7 +964,7 @@ class ShellPreflightTest(ShellTest):
         state = run.platform_preflight(self.platform(model_bin=self.model_bin(), home_links=None), env, out)
         self.assertEqual(state["model_bin_resolution"], {"ok": True, "problems": []})
         self.assertTrue(state["preflight"]["ok"])
-        self.assertEqual(state["guard_log_lines_at_launch"], 0)
+        self.assertEqual(state["guard_log_preflight"], [0, 0], "no wrapper call: the preflight wrote no guard-log line")
         self.assertEqual(self.verbs(), ["preflight"])
 
     def test_a_case_without_a_model_bin_pins_nothing_and_checks_nothing(self):
@@ -931,7 +972,7 @@ class ShellPreflightTest(ShellTest):
         (out / "home").mkdir()
         with mock.patch.object(run, "shell_resolution_problems", side_effect=AssertionError("checked")):
             state = run.platform_preflight(self.platform(), env, out)
-        for key in ("shell_path_pinned", "model_bin_resolution", "guard_log_lines_at_launch", "model_bin"):
+        for key in ("shell_path_pinned", "model_bin_resolution", "guard_log_preflight", "model_bin"):
             self.assertNotIn(key, state)
         self.assertEqual(os.listdir(out / "home"), [".sfdx"])
 
@@ -1015,7 +1056,7 @@ class ShellPreflightTest(ShellTest):
         self.assertFalse(stub["pass"])
         self.assertEqual(stub["platform"]["shell_path_pinned"], [], "nothing was written into the real home")
         self.assertFalse(stub["platform"]["model_bin_resolution"]["ok"])
-        self.assertEqual(sorted(path.name for path in self.real_home.iterdir()), [".bash_profile", ".sfdx", ".zprofile"])
+        self.assertEqual(sorted(path.name for path in self.real_home.iterdir()), [".bash_profile", ".profile", ".sfdx", ".zprofile"])
 
     def test_preflight_only_refuses_the_same_run_and_names_the_shells(self):
         self.use_case(self.with_bin())
@@ -1034,6 +1075,21 @@ class ShellPreflightTest(ShellTest):
         self.assertEqual(self.verbs(), [])
 
 
+# The command ShipLoop's `workspace start` is run with on every ShipLoop run of the Salesforce case (run 1, shortened): the case prompt
+# is an argument, and it names `sf` commands in prose, with the quote idiom of a prompt that holds an apostrophe.
+WORKSPACE_START = (
+    'SKILL_ROOT="/x/live1/home/.grok/installed-plugins/skill-craft-e56c8527/skills/shiploop"\n'
+    'CLI="$SKILL_ROOT/scripts/shiploop"\n'
+    'REPO="/x/live1/work"\n'
+    'python3 "$CLI" workspace start --repo "$REPO" --delivery-contract --prompt=\'Deploy with `sf project deploy start --target-org de` '
+    'and run the tests with `sf apex run test --target-org de`; never run `sf org display`. Cover fool\'"\'"\'s mate and stalemate. '
+    'Do not stop until the tests pass.\'')
+# A ShipLoop note written through a python heredoc (run 1): sf appears in prose inside the body, with an apostrophe in it.
+NOTES_HEREDOC = (
+    "python3 << 'PY'\nfrom pathlib import Path\nPath('notes/lifecycle.md').write_text(\"\"\"# Lifecycle\n"
+    "- Operation: `sf project deploy start --target-org de`, then it's `sf org list` once.\n\"\"\")\nPY")
+
+
 class ModelCommandTest(PlatformCase):
     """What the transcript shows the model ran, against what the guard logged."""
 
@@ -1041,6 +1097,9 @@ class ModelCommandTest(PlatformCase):
         path = self.tmp / "events.jsonl"
         path.write_text("".join((event if isinstance(event, str) else json.dumps(event)) + "\n" for event in events))
         return path
+
+    def commands(self, *commands: str) -> Path:
+        return self.events(*({"rawInput": {"command": command}} for command in commands))
 
     def test_sf_is_found_in_a_command_whatever_the_host_calls_the_event(self):
         for label, event in (
@@ -1057,9 +1116,16 @@ class ModelCommandTest(PlatformCase):
     def test_the_forms_the_model_runs_sf_in_are_all_accepted(self):
         for command in ("sf org list", "cd w && sf project deploy start -o de", "HOME=/Users/x sf apex run", "sfdx force:org:list",
                         'python3 -c \'import subprocess; subprocess.run(["sf", "data", "query"])\'',
-                        "subprocess.run(['sfdx', 'x'])", "/opt/homebrew/bin/sf org list", "/opt/homebrew/bin/sfdx", "echo x | sf --help"):
+                        "subprocess.run(['sfdx', 'x'])", "/opt/homebrew/bin/sf org list", "/opt/homebrew/bin/sfdx", "echo x | sf --help",
+                        'ORGS="$(sf org list --json)"', "ORGS=$(sf org list --json)", "echo `sf org list`", "sf",
+                        "for c in A B; do sf apex run test --class-names $c; done", "if sf org list; then echo ok; fi",
+                        "env -i FOO=1 sf org list", "timeout 60 sf org list", "time sf org list", "command sf org list",
+                        "exec sf org list", "nohup sf org list &", "xargs sf org list", '"sf" org list', "$(command -v sf) org list",
+                        'eval "sf org list"', "bash -c 'echo hi; sf org list'", "sf org list --json > out.json 2>err.txt",
+                        "sf \\\n  org list", "git commit -m \"$(cat <<'EOF'\nfix\nEOF\n)\" && sf org list",
+                        "cat <<EOF > notes.txt\nsf org list\nEOF\nsf org list"):
             with self.subTest(command=command):
-                self.assertTrue(run.model_sf_commands(self.events({"rawInput": {"command": command}})), command)
+                self.assertTrue(run.model_sf_commands(self.commands(command)), command)
 
     def test_a_command_that_only_mentions_sf_and_text_outside_a_command_are_not_counted(self):
         events = self.events(
@@ -1071,21 +1137,68 @@ class ModelCommandTest(PlatformCase):
         self.assertEqual(run.model_sf_commands(events), [])
         self.assertEqual(run.model_sf_commands(self.tmp / "missing.jsonl"), [])
 
+    def test_the_prompt_a_note_a_lookup_and_a_comment_name_sf_without_running_it(self):
+        """Run 1: every ShipLoop run starts with `workspace start --prompt='<case prompt>'`, which names sf commands, and a note
+        written through a heredoc does too. None of these starts sf (H-1), though each one holds the words `sf org list` or
+        `sf project deploy start`."""
+        for command in (WORKSPACE_START, NOTES_HEREDOC, 'command -v sf || echo "sf missing"', "which sf", "type -p sf",
+                        "# sf version without org\nls", "echo sf org list", "grep -r 'sf org' .", "cat <<'EOF'\nsf org list\nEOF",
+                        'cat <<< "sf org list"', "git commit -m 'sf deploy'", "cd sf && ls", "ls /opt/homebrew/bin/sf",
+                        "echo $(date) sf org list", "printf '%s' \"sf org list\" | wc -c", "FOO=sf true", "export SF_ORG=de"):
+            with self.subTest(command=command[:60]):
+                self.assertEqual(run.sf_words(command), [])
+        self.assertEqual(run.model_sf_commands(self.commands(WORKSPACE_START, NOTES_HEREDOC)), [])
+
+    def test_a_real_call_beside_such_text_is_counted_once_and_by_the_word_that_ran_it(self):
+        for command in (WORKSPACE_START + "\nsf org list --json", NOTES_HEREDOC + "\nHOME=/x sf org list",
+                        "command -v sf && sf version", 'echo "sf missing"; /opt/homebrew/bin/sf version'):
+            with self.subTest(command=command[-40:]):
+                self.assertEqual(len(run.sf_words(command)), 1, run.sf_words(command))
+        self.assertEqual(run.sf_words(NOTES_HEREDOC + "\nHOME=/x sf org list"), ["sf"])
+        self.assertEqual(run.sf_words('echo "sf missing"; /opt/homebrew/bin/sf version'), ["/opt/homebrew/bin/sf"])
+        # a python heredoc that calls sf through subprocess is a call, by the list form, with its path when it has one
+        body = "python3 << 'PY'\nimport subprocess\nsubprocess.run([\"/opt/homebrew/bin/sf\", \"org\", \"list\"])\nPY"
+        self.assertEqual(run.sf_words(body), ["/opt/homebrew/bin/sf"])
+
+    def test_text_the_shell_scanner_cannot_close_does_not_hang_or_raise(self):
+        for command in ("echo 'unclosed", 'echo "unclosed $(sf org list', "cat <<EOF\nnever closed", "a <<- 'X'\n\tbody\n\tX\nsf x", "`unclosed",
+                        "$(", "\\", "<<", "<<<", "()", ";;|&"):
+            with self.subTest(command=command[:30]):
+                self.assertIsInstance(run.sf_words(command), list)
+        self.assertEqual(run.sf_words("a <<- 'X'\n\tbody sf org list\n\tX\nsf x"), ["sf"], "the tab-indented terminator ends the body")
+
     def test_the_same_command_in_a_call_and_its_update_is_counted_once(self):
         call = {"type": "tool_call", "rawInput": {"command": "sf org list"}}
         found = run.model_sf_commands(self.events(call, dict(call, type="tool_call_update"), {"rawInput": {"command": "sfdx x"}}))
         self.assertEqual(found, ["sf org list", "sfdx x"])
 
-    def test_coverage_counts_calls_not_end_lines_and_not_the_lines_before_the_launch(self):
+    def test_a_command_that_starts_sf_by_a_path_outside_the_wrapper_goes_around_it(self):
+        bin_dir = self.tmp / "run" / "platform" / "bin"
+        for command, direct in (
+                ("/opt/homebrew/bin/sf org list", True), ("HOME=/Users/x ~/.local/share/sf/client/bin/sf apex run", True),
+                ("cd w && /usr/local/bin/sfdx force:org:list", True), ("./node_modules/.bin/sf org list", True),
+                ("$HOME/.local/share/sf/client/bin/sf org list", True), ("'/opt/homebrew/bin/sf' org list", True),
+                ("python3 -c 'import subprocess; subprocess.run([\"/opt/homebrew/bin/sf\", \"org\"])'", True),
+                (f"{bin_dir}/sf org list", False), (f"{bin_dir}/../bin/sf org list", False), ("sf org list", False),
+                ("$(command -v sf) org list", False), ("ls /opt/homebrew/bin/sf", False), ("command -v /opt/homebrew/bin/sf", False),
+                ("bash -lc 'cd w && /opt/homebrew/bin/sf org list'", True)):
+            with self.subTest(command=command):
+                self.assertEqual(bool(run.direct_sf_commands(self.commands(command), bin_dir)), direct)
+
+    def test_coverage_counts_calls_not_end_lines_and_not_any_invocations_preflight(self):
         out = self.tmp / "run"
         (out / "platform").mkdir(parents=True)
-        log = [{"call": "p", "decision": "allowed"}, {"call": "p", "end": True, "exit": 0},  # the preflight's
+        log = [{"call": "p", "decision": "allowed"}, {"call": "p", "end": True, "exit": 0},  # the first invocation's preflight
                {"call": "a", "decision": "allowed"}, {"call": "a", "end": True, "exit": 0},
-               {"call": "b", "decision": "denied"}, {"call": "c", "decision": "allowed"}]  # c was cut off: no end line
+               {"call": "b", "decision": "denied"},
+               {"call": "q", "decision": "allowed"}, {"call": "q", "end": True, "exit": 0},  # a resume's preflight
+               {"call": "c", "decision": "allowed"}]  # c was cut off: no end line
         (out / "platform" / "sf-calls.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log) + "not json\n")
         (out / "events.jsonl").write_text(json.dumps({"rawInput": {"command": "sf org list"}}) + "\n")
-        self.assertEqual(run.guard_coverage(out, 2), {"model_sf_commands": 1, "guard_calls": 3, "bypassed": False})
-        self.assertEqual(run.guard_log_lines(out), 7)
+        self.assertEqual(run.guard_coverage(out, [(0, 2), (5, 7)]),
+                         {"model_sf_commands": 1, "guard_calls": 3, "direct_sf_commands": 0, "bypassed": False})
+        self.assertEqual(run.guard_coverage(out, [(0, 2)])["guard_calls"], 4, "a resume's preflight call, left in, would be counted")
+        self.assertEqual(run.guard_log_lines(out), 9)
 
     def test_coverage_flags_a_bypass_only_when_commands_exist_and_the_guard_saw_none(self):
         out = self.tmp / "run"
@@ -1093,16 +1206,46 @@ class ModelCommandTest(PlatformCase):
         (out / "platform" / "sf-calls.jsonl").write_text(json.dumps({"call": "p", "decision": "allowed"}) + "\n"
                                                            + json.dumps({"call": "p", "end": True}) + "\n")
         (out / "events.jsonl").write_text(json.dumps({"rawInput": {"command": "sf org list"}}) + "\n")
-        self.assertEqual(run.guard_coverage(out, 2), {"model_sf_commands": 1, "guard_calls": 0, "bypassed": True})
-        self.assertFalse(run.guard_coverage(out, 0)["bypassed"], "counted from the start the preflight's call is a guard call")
+        self.assertEqual(run.guard_coverage(out, [(0, 2)]),
+                         {"model_sf_commands": 1, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": True})
+        self.assertFalse(run.guard_coverage(out, [])["bypassed"], "counted from the start the preflight's call is a guard call")
         (out / "events.jsonl").write_text(json.dumps({"rawInput": {"command": "ls"}}) + "\n")
-        self.assertEqual(run.guard_coverage(out, 2), {"model_sf_commands": 0, "guard_calls": 0, "bypassed": False})
+        self.assertEqual(run.guard_coverage(out, [(0, 2)]),
+                         {"model_sf_commands": 0, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": False})
         (out / "platform" / "sf-calls.jsonl").unlink()
-        self.assertEqual(run.guard_coverage(out, 0), {"model_sf_commands": 0, "guard_calls": 0, "bypassed": False})
+        self.assertEqual(run.guard_coverage(out, []), {"model_sf_commands": 0, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": False})
+
+    def test_a_direct_call_is_a_bypass_in_its_own_right_even_when_the_guard_saw_other_calls(self):
+        out = self.tmp / "run"
+        (out / "platform").mkdir(parents=True)
+        (out / "platform" / "sf-calls.jsonl").write_text(json.dumps({"call": "a", "decision": "allowed"}) + "\n")
+        (out / "events.jsonl").write_text(json.dumps({"rawInput": {"command": "sf org list"}}) + "\n"
+                                          + json.dumps({"rawInput": {"command": "/opt/homebrew/bin/sf data query -q x"}}) + "\n"
+                                          + json.dumps({"rawInput": {"command": f"{out}/platform/bin/sf org list"}}) + "\n")
+        coverage = run.guard_coverage(out, [])
+        self.assertEqual(coverage, {"model_sf_commands": 3, "guard_calls": 1, "direct_sf_commands": 1, "bypassed": True})
+        self.assertEqual(len(run.bypass_lines(coverage)), 1)
+        self.assertIn("by a path outside the wrapper", run.bypass_lines(coverage)[0])
+        unseen = run.bypass_lines(dict(coverage, direct_sf_commands=0, guard_calls=0))
+        self.assertEqual(len(unseen), 1)
+        self.assertIn("saw no model call", unseen[0])
+        self.assertEqual(run.bypass_lines(dict(coverage, direct_sf_commands=0)), [], "a guarded call and no direct one: nothing to say")
+
+    def test_each_invocation_records_the_range_of_log_lines_its_own_preflight_wrote(self):
+        out = self.tmp / "run"
+        out.mkdir()
+        (out / "invocation.json").write_text(json.dumps({"platform": {"guard_log_preflight": [0, 2]}}))
+        (out / "invocation-resume-grok-1.json").write_text(json.dumps({"platform": {"guard_log_preflight": [4, 6]}}))
+        (out / "invocation-resume-grok-2.json").write_text(json.dumps({"platform": {"home_links": []}}))  # a regrade: no preflight
+        (out / "invocation-resume-grok-3.json").write_text(json.dumps({"platform": {"guard_log_preflight": "x"}}))
+        (out / "invocation-resume-grok-4.json").write_text("not json")
+        self.assertEqual(run.preflight_ranges(out), [(0, 2), (4, 6)])
+        self.assertEqual(run.preflight_ranges(self.tmp / "nowhere"), [])
 
 
 class CoverageRunTest(PlatformCase):
-    """An sf wrapper in a run: the guard log against the (fake) model's transcript, which always shows one `sf` command."""
+    """An sf wrapper in a run: the guard log against the (fake) model's transcript, which shows one `sf org display` command unless a
+    test says what the model ran (FAKE_COMMANDS)."""
 
     def sf_case(self, **override) -> dict:
         spec = self.platform(model_bin={"sf": f"{shlex.quote(sys.executable)} {shlex.quote(str(self.tmp / 'guard_tool.py'))}"},
@@ -1110,52 +1253,107 @@ class CoverageRunTest(PlatformCase):
         spec["preflight"] = f"sf probe && {self.command('preflight')}"
         return spec
 
+    def baseline_rows(self) -> list[dict]:
+        return [json.loads(line) for line in self.baselines.read_text().splitlines()] if self.baselines.exists() else []
+
     def test_a_model_that_reached_the_guard_passes_and_the_run_says_what_the_guard_saw(self):
         self.use_case(self.sf_case())
         os.environ["FAKE_SF_CALLS"] = "2"
         code, result, printed = self.invoke("grok", "done")
         self.assertEqual(code, 0, result)
         block = result["platform"]
-        self.assertEqual(block["guard_log_lines_at_launch"], 2, "the preflight's own probe: a decision and an end line")
-        self.assertEqual(block["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 2, "bypassed": False})
-        self.assertEqual(json.loads((Path(result["output"]) / "invocation.json").read_text())["platform"]["guard_log_lines_at_launch"], 2)
+        self.assertEqual(block["guard_log_preflight_ranges"], [[0, 2]], "the preflight's own probe: a decision and an end line")
+        self.assertNotIn("guard_log_preflight", block, "the pair is each invocation's own record; the result carries all of them")
+        self.assertEqual(block["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 2, "direct_sf_commands": 0, "bypassed": False})
+        self.assertEqual(json.loads((Path(result["output"]) / "invocation.json").read_text())["platform"]["guard_log_preflight"], [0, 2])
         self.assertIn("  platform  PASS  cleanup ran;", printed)
-        self.assertIn("guard saw 2 model calls (transcript shows 1 sf commands)", printed)
+        self.assertIn("guard saw 2 model calls (transcript shows 1 sf-looking commands)", printed)
         self.assertNotIn("invalid trial", printed)
+        self.assertEqual(len(self.baseline_rows()), 1, "a valid finished trial is a baseline row")
 
-    def test_a_model_the_guard_never_saw_is_an_invalid_trial_and_fails_the_run(self):
+    def test_a_model_the_guard_never_saw_is_an_invalid_trial_that_fails_the_run_and_is_no_baseline_row(self):
         self.use_case(self.sf_case())
         code, result, printed = self.invoke("grok", "done")  # the fake model's transcript shows `sf org display` and never calls the wrapper
         self.assertEqual(code, 1)
         self.assertFalse(result["pass"], "everything else about the run is right")
-        self.assertEqual(result["platform"]["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 0, "bypassed": True})
+        self.assertEqual(result["platform"]["guard_coverage"],
+                         {"model_sf_commands": 1, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": True})
         self.assertTrue(result["platform"]["cleanup"]["ok"])
         self.assertIn("  platform  FAIL  cleanup ran;", printed)
-        self.assertIn("guard saw 0 model calls (transcript shows 1 sf commands)", printed)
-        self.assertIn("the guard saw no model call although the transcript shows 1 sf commands", printed)
+        self.assertIn("guard saw 0 model calls (transcript shows 1 sf-looking commands)", printed)
+        self.assertIn("the guard saw no model call although the transcript shows 1 sf-looking commands", printed)
         self.assertIn("an invalid trial, not a ShipLoop verdict", printed)
         self.assertIn("guard", (Path(result["output"]) / "mismatch.md").read_text())
+        # H-5: not a ShipLoop verdict, so not FAILED and not a row that later same-cell comparisons would read
+        self.assertIsNone(result["outcome_class"])
+        self.assertTrue(result["outcome_basis"].startswith("invalid trial: the guard saw no model call"), result["outcome_basis"])
+        self.assertEqual(self.baseline_rows(), [])
+        self.assertIn("baseline  nothing compared: an invalid trial", printed)
+
+    def test_a_run_whose_prompt_and_notes_only_mention_sf_is_not_flagged(self):
+        """H-1: the run ends before the model's first guarded call; the commands it did run are the case prompt and a note."""
+        self.use_case(self.sf_case())
+        os.environ["FAKE_COMMANDS"] = json.dumps([WORKSPACE_START, NOTES_HEREDOC, 'command -v sf || echo "sf missing"'])
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["platform"]["guard_coverage"],
+                         {"model_sf_commands": 0, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": False})
+        self.assertTrue(result["pass"])
+        self.assertNotIn("invalid trial", printed)
+        self.assertEqual(result["outcome_class"], "PASS")
+        self.assertEqual(len(self.baseline_rows()), 1)
+
+    def test_a_model_that_runs_the_real_cli_by_a_path_after_a_guarded_call_is_an_invalid_trial(self):
+        """H-3: the guard saw a call, and the model then went around the wrapper."""
+        self.use_case(self.sf_case())
+        os.environ["FAKE_SF_CALLS"] = "1"
+        os.environ["FAKE_COMMANDS"] = json.dumps(["sf org list", "/opt/homebrew/bin/sf data query -q x"])
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 1)
+        self.assertEqual(result["platform"]["guard_coverage"],
+                         {"model_sf_commands": 2, "guard_calls": 1, "direct_sf_commands": 1, "bypassed": True})
+        self.assertFalse(result["pass"])
+        self.assertIn("1 by a path outside the wrapper", printed)
+        self.assertIn("the model started sf by a path outside the wrapper in 1 sf-looking commands", printed)
+        self.assertNotIn("saw no model call", printed)
+        self.assertEqual(self.baseline_rows(), [])
+        self.assertIn("by a path outside the wrapper", (Path(result["output"]) / "mismatch.md").read_text())
 
     def test_a_platform_whose_wrappers_are_not_sf_has_no_coverage(self):
         self.use_case(self.platform(model_bin=self.model_bin(), home_links=None, preflight=None))
         code, result, printed = self.invoke("grok", "done")
         self.assertEqual(code, 0, result)
         self.assertNotIn("guard_coverage", result["platform"])
-        self.assertIn("guard_log_lines_at_launch", result["platform"])
+        self.assertEqual(result["platform"]["guard_log_preflight_ranges"], [[0, 0]])
         self.assertNotIn("guard saw", printed)
 
-    def test_a_resume_counts_from_the_first_launch_and_keeps_that_count(self):
+    def test_a_resume_s_own_preflight_calls_are_not_the_model_s(self):
+        """H-2: each invocation's preflight calls the wrapper; only the model's calls count, on a resumed run too."""
         self.use_case(self.sf_case())
         os.environ["FAKE_SF_CALLS"] = "1"
         _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         self.assertEqual(first["platform"]["guard_coverage"]["guard_calls"], 1)
         result, _ = self.resume("grok", out, "done")
-        self.assertEqual(result["platform"]["guard_log_lines_at_launch"], 2, "the first launch's, not the resume's")
-        self.assertEqual(json.loads((out / "invocation.json").read_text())["platform"]["guard_log_lines_at_launch"], 2)
-        # first model call + the resume preflight's probe + the resumed model's call (a resume's own preflight call is counted)
-        self.assertEqual(result["platform"]["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 3, "bypassed": False})
+        self.assertEqual(result["platform"]["guard_log_preflight_ranges"], [[0, 2], [4, 6]], "one range per invocation")
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["platform"]["guard_log_preflight"], [0, 2])
+        (resume_file,) = out.glob("invocation-resume-grok-*.json")
+        self.assertEqual(json.loads(resume_file.read_text())["platform"]["guard_log_preflight"], [4, 6])
+        # the first model call and the resumed model's call: the resume preflight's probe is not one
+        self.assertEqual(result["platform"]["guard_coverage"],
+                         {"model_sf_commands": 1, "guard_calls": 2, "direct_sf_commands": 0, "bypassed": False})
         self.assertTrue(result["pass"], result)
+
+    def test_a_resumed_model_that_bypasses_the_guard_completely_is_found_out(self):
+        self.use_case(self.sf_case())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        self.assertTrue(first["platform"]["guard_coverage"]["bypassed"])
+        result, _ = self.resume("grok", out, "done")
+        self.assertEqual(result["platform"]["guard_coverage"],
+                         {"model_sf_commands": 1, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": True},
+                         "the resume's own preflight probe must not read as a model call")
+        self.assertFalse(result["pass"])
 
     def test_a_regrade_grades_the_bypass_again_from_what_is_on_disk(self):
         self.use_case(self.sf_case())
@@ -1165,13 +1363,284 @@ class CoverageRunTest(PlatformCase):
         regraded, _ = self.resume("grok", out, "done", "--grade-only")
         self.assertTrue(regraded["platform"]["guard_coverage"]["bypassed"])
         self.assertFalse(regraded["pass"])
-        # a run recorded before the field existed has no first-launch count: it is not judged
+        # a run recorded before the field existed has no preflight range: it is not judged
         record = json.loads((out / "invocation.json").read_text())
-        del record["platform"]["guard_log_lines_at_launch"]
+        del record["platform"]["guard_log_preflight"]
         (out / "invocation.json").write_text(json.dumps(record))
         old, _ = self.resume("grok", out, "done", "--grade-only")
         self.assertNotIn("guard_coverage", old["platform"])
         self.assertTrue(old["pass"], old)
+
+
+class KeepPlatformTest(PlatformCase):
+    """--keep-platform: a finished delivery is left in the platform for a person to use; every other ending cleans as it always did."""
+
+    CLEANED = ["preflight", "before", "cleanup"]
+    KEPT = {"ran": False, "ok": True, "kept": True, "reason": "--keep-platform"}
+
+    def argv(self, *extra: str, tag: str = "a", mode: str = "done", host: str = "grok") -> list[str]:
+        os.environ["FAKE_MODE"] = mode
+        return ["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(self.tmp / f"out-{host}-{tag}"), "--case", "plat",
+                "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra]
+
+    def go(self, *extra: str, tag: str = "a", mode: str = "done") -> tuple[int, str, Path]:
+        """One run of the harness without invoke's read of result.json; (exit code, printed, output folder)."""
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(self.argv(*extra, tag=tag, mode=mode))
+        return code, printed.getvalue(), self.tmp / f"out-grok-{tag}"
+
+    def result(self, out: Path) -> dict:
+        return json.loads((out / "result.json").read_text())
+
+    def test_it_is_refused_where_there_is_no_platform_to_keep(self):
+        self.use_case(None)
+        with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
+            self.go("--keep-platform")
+        self.assertIn("no platform", str(raised.exception))
+        self.assertIn("'plat'", str(raised.exception))
+        self.assertFalse((self.tmp / "out-grok-a").exists(), "refused before the output folder was made")
+        self.assertFalse(self.model_started())
+        # a custom prompt never has a platform
+        self.use_case(self.platform())
+        with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "out-custom"), "--prompt", "x",
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--keep-platform"])
+        self.assertIn("'custom' has no platform", str(raised.exception))
+        self.assertEqual(self.verbs(), [])
+
+    def test_it_is_refused_for_a_suite_a_preflight_only_run_and_a_baseline_report(self):
+        for flag in (("--suite", "focused"), ("--preflight-only",), ("--baseline-report",)):
+            with self.subTest(flag=flag[0]), self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
+                run.main([*flag, "--keep-platform"])
+            self.assertIn("--keep-platform", str(raised.exception))
+            self.assertIn(flag[0], str(raised.exception))
+
+    def test_a_resume_of_a_run_without_a_platform_is_refused_too(self):
+        self.use_case(None)
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
+            self.resume("grok", Path(first["output"]), "done", "--keep-platform")
+        self.assertIn("no platform", str(raised.exception))
+
+    def test_a_finished_delivery_is_kept_and_the_block_says_what_remains_and_how_to_remove_it(self):
+        self.use_case(self.platform())
+        code, result, printed = self.invoke("grok", "done", "--keep-platform")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(self.verbs(), ["preflight", "before"], "no cleanup ran")
+        out = Path(result["output"])
+        self.assertEqual(result["platform"]["cleanup"], self.KEPT)
+        self.assertEqual(json.loads((out / "platform" / "cleanup-record.json").read_text()), self.KEPT)
+        self.assertNotIn("keep_not_honoured", result["platform"])
+        self.assertTrue(result["pass"])
+        self.assertEqual(result["outcome_class"], "PASS")
+        self.assertIs(json.loads((out / "invocation.json").read_text())["keep_platform"], True)
+        command = run.manual_cleanup_command(out, self.platform())
+        self.assertIn("  platform  PASS  platform KEPT (--keep-platform), no cleanup run; home links .sfdx", printed)
+        self.assertEqual(printed.count("PLATFORM KEPT (--keep-platform)"), 1)
+        self.assertEqual(printed.count(command), 2, "once at the start of the run, once in the kept block")
+        self.assertIn("cleanup runs after grading unless --keep-platform keeps a finished delivery", printed)
+        # unmissable: the last thing printed, after the report, and it states what stays and that only the person removes it
+        block = printed[printed.index("=" * 78):]
+        self.assertGreater(printed.index("PLATFORM KEPT"), printed.index("  quality   "))
+        self.assertTrue(block.rstrip().endswith("=" * 78))
+        self.assertIn("The cleanup did not run, so everything the run deployed stays until you remove it", block)
+        self.assertIn("Nothing else removes it", block)
+        self.assertIn(f"  {command}\n", block)
+        self.assertIn(str(out / "platform"), block)
+        # the printed command is the one that removes it, pasted into a shell
+        done = subprocess.run(command, shell=True, capture_output=True, text=True)
+        self.assertEqual((done.returncode, done.stdout.strip()), (0, "ok cleanup"), done.stderr)
+        self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
+
+    def test_a_kept_record_is_what_the_reader_of_result_json_sees_and_a_regrade_keeps_it(self):
+        self.use_case(self.platform())
+        _, result, _ = self.invoke("grok", "done", "--keep-platform")
+        out = Path(result["output"])
+        calls = self.calls()
+        regraded, printed = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.calls(), calls, "a regrade neither cleans a kept platform nor asks it again")
+        self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
+        self.assertIn("checks_restated", regraded["platform"])
+        self.assertTrue(regraded["pass"])
+        again, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        self.assertEqual(self.calls(), calls)
+        self.assertEqual(again["platform"]["cleanup"], self.KEPT)
+        self.assertIn("NOT honoured (no cleanup was pending", printed)
+        self.assertNotIn("PLATFORM KEPT (--keep-platform)", printed, "the block belongs to the run that kept it")
+
+    def test_pass_does_not_depend_on_the_cleanup_when_the_platform_is_kept(self):
+        self.use_case(self.platform())
+        os.environ["PLAT_FAIL"] = "cleanup"
+        code, result, printed = self.invoke("grok", "done", "--keep-platform")
+        self.assertEqual(code, 0, result)
+        self.assertTrue(result["pass"])
+        self.assertNotIn("PLATFORM CLEANUP FAILED", printed)
+        self.assertEqual(self.verbs(), ["preflight", "before"])
+        # the same environment without the flag is the failed cleanup it always was
+        code, result, printed = self.invoke("grok", "done", tag="b")
+        self.assertEqual(code, 1)
+        self.assertFalse(result["pass"])
+        self.assertIn("PLATFORM CLEANUP FAILED", printed)
+
+    def test_the_default_run_is_unchanged(self):
+        self.use_case(self.platform())
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertNotIn("kept", result["platform"]["cleanup"])
+        self.assertNotIn("keep_not_honoured", result["platform"])
+        self.assertIs(json.loads((Path(result["output"]) / "invocation.json").read_text())["keep_platform"], False)
+        self.assertNotIn("KEPT", printed)
+        self.assertNotIn("keep-platform", printed)
+        self.assertIn("cleanup runs after grading, always", printed)
+
+    def test_every_other_ending_still_cleans_and_says_the_keep_was_not_honoured(self):
+        self.use_case(self.platform())
+        cases = (("stuck", (), "ShipLoop is active, not done"), ("blocked", (), "ShipLoop is blocked, not done"),
+                 ("fail", (), "ShipLoop is unknown, not done"), ("hang", ("--timeout", "2"), "the host timed out"),
+                 ("stop", (), "the run was stopped (stopped by "))
+        for mode, extra, why in cases:
+            with self.subTest(mode=mode):
+                self.plat_log.unlink(missing_ok=True)
+                code, printed, out = self.go("--keep-platform", "--max-resumes", "0", *extra, mode=mode, tag=mode)
+                result = self.result(out)
+                self.assertEqual(self.verbs(), self.CLEANED)
+                self.assertTrue(result["platform"]["cleanup"]["ran"] and result["platform"]["cleanup"]["ok"])
+                self.assertNotIn("kept", result["platform"]["cleanup"])
+                self.assertIn(why, result["platform"]["keep_not_honoured"])
+                self.assertIn("--keep-platform NOT honoured (", printed)
+                self.assertIn(why, printed)
+                self.assertIn("so the platform was cleaned as usual", printed)
+                self.assertNotIn("PLATFORM KEPT", printed)
+                self.assertIs(json.loads((out / "invocation.json").read_text())["keep_platform"], True)
+
+    def test_a_failed_case_check_cleans_even_when_everything_else_finished(self):
+        self.use_case(self.platform())
+        cases = json.loads(run.CASES.read_text())
+        cases["plat"]["checks"] = ["false"]
+        run.CASES.write_text(json.dumps(cases))
+        code, printed, out = self.go("--keep-platform")
+        self.assertEqual(code, 1)
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertIn("a case check failed (false)", self.result(out)["platform"]["keep_not_honoured"])
+        self.assertNotIn("PLATFORM KEPT", printed)
+
+    def test_an_invalid_trial_is_cleaned_not_kept(self):
+        spec = self.platform(model_bin={"sf": f"{shlex.quote(sys.executable)} {shlex.quote(str(self.tmp / 'guard_tool.py'))}"},
+                             home_links=None)
+        spec["preflight"] = f"sf probe && {self.command('preflight')}"
+        self.use_case(spec)
+        code, printed, out = self.go("--keep-platform")  # the model's transcript shows sf and the guard never saw a call
+        self.assertEqual(code, 1)
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertIn("an invalid trial: the guard did not govern the model's sf", self.result(out)["platform"]["keep_not_honoured"])
+
+    def test_a_crash_a_ctrl_c_or_an_exit_still_cleans(self):
+        self.use_case(self.platform())
+        for tag, exception in (("boom", RuntimeError("boom")), ("ctrl-c", KeyboardInterrupt()), ("exit", SystemExit("stop"))):
+            with self.subTest(exception=type(exception).__name__):
+                self.plat_log.unlink(missing_ok=True)
+                with mock.patch.object(run, "summarize_events", side_effect=exception), \
+                        contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(type(exception)):
+                    run.main(self.argv("--keep-platform", tag=tag))
+                self.assertEqual(self.verbs(), self.CLEANED)
+                recorded = json.loads((self.tmp / f"out-grok-{tag}" / "platform" / "cleanup-record.json").read_text())
+                self.assertTrue(recorded["ran"] and recorded["ok"])
+                self.assertNotIn("kept", recorded)
+                self.assertNotIn("PLATFORM KEPT", printed.getvalue())
+
+    def test_a_crash_after_the_decision_to_keep_still_says_how_to_remove_it(self):
+        self.use_case(self.platform())
+        out = self.tmp / "out-grok-late"
+        with mock.patch.object(run, "review_export", side_effect=RuntimeError("late")), \
+                contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(RuntimeError):
+            run.main(self.argv("--keep-platform", tag="late"))
+        self.assertEqual(self.verbs(), ["preflight", "before"], "the decision was made on a finished delivery: nothing cleans")
+        self.assertEqual(printed.getvalue().count("PLATFORM KEPT (--keep-platform)"), 1)
+        self.assertIn(run.manual_cleanup_command(out, self.platform()), printed.getvalue())
+        self.assertEqual(json.loads((out / "platform" / "cleanup-record.json").read_text()), self.KEPT)
+
+    def test_a_resumed_run_keeps_the_platform_only_when_the_resume_passes_the_flag_again(self):
+        self.use_case(self.platform())
+        for tag, again in (("plain", ()), ("again", ("--keep-platform",))):
+            with self.subTest(resume=tag):
+                self.plat_log.unlink(missing_ok=True)
+                _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform", tag=tag)
+                out = Path(first["output"])
+                self.assertTrue(first["platform"]["cleanup"]["ran"], "the first segment was not finished: cleaned")
+                self.assertIn("not done", first["platform"]["keep_not_honoured"])
+                result, _ = self.resume("grok", out, "done", *again)
+                (resume_file,) = out.glob("invocation-resume-grok-*.json")
+                self.assertIs(json.loads(resume_file.read_text())["keep_platform"], bool(again))
+                if again:
+                    self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "preflight"])
+                    self.assertEqual(result["platform"]["cleanup"], self.KEPT)
+                    self.assertEqual(len(result["platform"]["earlier_cleanups"]), 1, "the first segment's cleanup stays on record")
+                else:
+                    self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "preflight", "cleanup"])
+                    self.assertTrue(result["platform"]["cleanup"]["ran"])
+                    self.assertNotIn("kept", result["platform"]["cleanup"])
+
+    def test_the_command_that_continues_a_run_carries_the_flag(self):
+        self.use_case(self.platform())
+        out = self.tmp / "r"
+        for given, expected in ((("--keep-platform",), True), ((), False)):
+            args = run.parser().parse_args(["--host", "grok", "--model", "m", *given])
+            self.assertEqual("--keep-platform" in shlex.split(run.resume_command(out, args)), expected)
+        _, result, printed = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform", tag="line")
+        resume_lines = [line for line in printed.splitlines() if line.startswith("resume:") or line.startswith("  resume ")]
+        self.assertTrue(resume_lines and all("--keep-platform" in line for line in resume_lines), resume_lines)
+
+    def test_the_kept_decision_is_a_pure_function_of_how_the_run_ended(self):
+        stop = self.tmp / "stop"
+        good = dict(shiploop={"pass": True}, engine={"status": "done"}, process={"status": "exited", "pass": True},
+                    stop_seen=False, stop_file=stop, checks=[{"command": "c", "pass": True}], invalid=False)
+        self.assertIsNone(run.keep_refusal(**good))
+        for change, why in (
+                ({"stop_seen": True}, "the run was stopped"), ({"process": {"status": "stopped", "pass": None}}, "the run was stopped"),
+                ({"process": {"status": "timeout", "pass": False}}, "the host timed out"),
+                ({"engine": {"status": "blocked"}}, "ShipLoop is blocked, not done"), ({"engine": {"status": "active"}}, "ShipLoop is active"),
+                ({"engine": {}}, "ShipLoop is unknown"), ({"shiploop": {"pass": False, "status": "done"}}, "ShipLoop wrote no report"),
+                ({"process": {"status": "failed", "returncode": 1, "pass": False}}, "the host ended failed rc=1"),
+                ({"checks": [{"command": "a", "pass": True}, {"command": "b", "pass": False}]}, "a case check failed (b)"),
+                ({"invalid": True}, "an invalid trial")):
+            with self.subTest(why=why):
+                self.assertIn(why, run.keep_refusal(**{**good, "stop_seen": False, **change}))
+        stop.write_text("stop")
+        self.assertIn("the run was stopped", run.keep_refusal(**good))
+        stop.unlink()
+        with mock.patch.object(run.TERMINATION, "is_set", return_value=True):
+            self.assertIn("the run was stopped", run.keep_refusal(**good))
+        self.assertIsNone(run.keep_refusal(**{**good, "process": {"status": "not observed", "pass": None}}), "a regrade observed no exit")
+
+    def test_the_guard_keeps_only_what_is_pending_and_a_later_finish_cleans_nothing(self):
+        out = self.tmp / "guard-out"
+        out.mkdir()
+        marker = self.tmp / "cleaned"
+        spec = {"kind": "test", "cleanup": f"touch {shlex.quote(str(marker))}"}
+        unarmed = run.PlatformGuard()
+        self.assertIsNone(unarmed.keep("--keep-platform"))
+        guard = run.PlatformGuard()
+        guard.arm(spec, out)
+        self.assertTrue(guard.armed())
+        self.assertEqual(guard.keep("--keep-platform"), self.KEPT)
+        self.assertFalse(guard.armed())
+        self.assertIsNone(guard.keep("--keep-platform"), "kept once")
+        self.assertEqual(guard.finish(), self.KEPT)
+        self.assertFalse(marker.exists(), "finish after keep must not clean")
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            guard.print_kept()
+            guard.print_kept()
+        self.assertEqual(printed.getvalue().count("PLATFORM KEPT"), 1)
+        self.assertIn("in the test (", printed.getvalue())
+        self.assertIn(run.manual_cleanup_command(out, spec), printed.getvalue())
+        # a case that names no cleanup says so instead of printing a command
+        bare = run.PlatformGuard()
+        bare.arm({"kind": "test"}, out)
+        bare.keep("--keep-platform")
+        self.assertIn("the case names no cleanup command", bare.banner)
 
 
 class ManualCleanupTest(PlatformCase):
@@ -1387,6 +1856,36 @@ class ResumeNoteTest(PlatformCase):
         self.assertIsNone(run.resume_platform_note(None, {"cleanup": {"ran": True}}, regrade=False))
         self.assertIsNone(run.resume_platform_note(spec, {}, regrade=False))
         self.assertEqual(run.resume_platform_note(spec, {"cleanup": {"ran": True}}, regrade=False), self.NOTE)
+
+
+class ResumeAfterCrashTest(ResumeNoteTest):
+    """H-4: a run that ended by Ctrl-C or a crash ran its cleanup but never wrote result.json; the resumed model is told all the same."""
+
+    def test_a_resume_after_a_ctrl_c_or_a_crash_is_told_the_platform_was_reset(self):
+        self.use_case(self.platform(resume_note=self.NOTE))
+        for tag, exception in (("ctrl-c", KeyboardInterrupt()), ("crash", RuntimeError("boom"))):
+            with self.subTest(exception=type(exception).__name__):
+                with mock.patch.object(run, "summarize_events", side_effect=exception), \
+                        contextlib.redirect_stdout(io.StringIO()), self.assertRaises(type(exception)):
+                    self.invoke("grok", "stuck", "--max-resumes", "0", tag=tag)
+                out = self.tmp / f"out-grok-{tag}"
+                self.assertFalse((out / "result.json").exists(), "the run never reached its result")
+                self.assertTrue(json.loads((out / "platform" / "cleanup-record.json").read_text())["ran"])
+                self.resume("grok", out, "done")
+                self.assertIn(self.NOTE, self.resumed_prompt(out))
+
+    def test_a_resume_after_a_crash_before_the_model_started_is_not_told(self):
+        """No cleanup record, no reset: a platform that was never touched needs no note."""
+        self.use_case(self.platform(resume_note=self.NOTE))
+        self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = self.tmp / "out-grok-a"
+        (out / "result.json").unlink()
+        (out / "platform" / "cleanup-record.json").unlink()
+        self.resume("grok", out, "done")
+        self.assertNotIn(self.NOTE, self.resumed_prompt(out))
+        self.assertIsNone(run.earlier_cleanup_record(out / "platform"), "no record there, and none inside platform/platform")
+        (out / "platform" / "cleanup-record.json").write_text("[1]")
+        self.assertIsNone(run.earlier_cleanup_record(out), "a record that is not an object is no record")
 
 
 class UnchangedCaseTest(PlatformCase):

@@ -12,14 +12,17 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
     own configuration (`org display|login|logout|create|delete`, `auth`, `login`, `logout`, `config`, `alias`, `plugins`, `update`,
     `org open`, `sfdxAuthUrl`, `--sfdx-url-file`), data writes (`data delete|create|update|upsert|import|export|bulk`), `project
     delete`, any deploy with `--post-destructive-changes`, `--pre-destructive-changes`, `--metadata-dir` or a manifest holding
-    `<members>*</members>`, `--flags-dir` on any command (the CLI reads flag values from that directory after this check, so the
-    call could not be judged), a bare `--`, and every command not in ALLOW (the refusal lists what is allowed).
+    `<members>*</members>`, a deploy that does not wait (`--async`, `--wait 0`: it would keep running in the org after the command
+    returned), `--flags-dir` on any command (the CLI reads flag values from that directory after this check, so the call could not
+    be judged), a bare `--`, and every command not in ALLOW (the refusal lists what is allowed).
   * PINNED: a command that talks to an org must carry `--target-org <org>` (or `-o <org>`), every occurrence equal to the case's
     org; a missing or different one is refused, so no command falls back to the default org.
-  * SCOPED: `project deploy start|validate` may carry only the components the owner approved: Apex classes named <prefix>* and LWC
-    bundles named <lwcPrefix>* (SLChess -> slChess). Every `--source-dir` tree, `--metadata` entry and
-    `--manifest` is checked (with none of them, the `packageDirectories` of sfdx-project.json in the working directory); anything
-    else, a path that leaves the working directory, or an unreadable manifest is refused with what to change.
+  * SCOPED: `project deploy start|validate` may carry only the components the owner approved: ApexClass, CustomTab,
+    CustomApplication and FlexiPage named <prefix>* (an underscore suffix is fine: SLChess_Board) and LightningComponentBundle named
+    <lwcPrefix>* (SLChess -> slChess). Every `--source-dir` tree, `--metadata` entry and `--manifest` is checked (with none of them,
+    the `packageDirectories` of the sfdx-project.json at or above the working directory); anything else, a path that leaves the
+    project, or an unreadable manifest is refused with what to change. The tab, app and app page name check is on the file name, the
+    --metadata entry and the manifest member only, never on the file's content.
   * LOCAL commands (`--version`, `--help`, `help`, `project generate`, `lightning generate`, `apex generate`, `template generate`,
     `org list`) pass unchanged. `--help` or `-h` after an allowed command, or a group of allowed commands, passes too, without
     `--target-org`: the CLI prints help and runs nothing. A denied command stays denied with `--help`.
@@ -28,13 +31,20 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
 Every call appends a DECISION line to $E2E_PLATFORM_DIR/sf-calls.jsonl before anything runs (call id, timestamp, scrubbed argv,
 decision and reason), and an allowed call appends an END line when the real sf has finished (the same call id, `"end": true`, the
 exit code, the first 200 characters of scrubbed stderr, `interrupted`). The calls are the lines without an `end` key. A call that
-cannot be logged is denied. SIGTERM and SIGHUP while the real sf runs are forwarded to it, logged as `interrupted` and exit 143.
-stdout is never logged. The real sf's output is captured, so it reaches the model when the command ends, not as it runs; its exit
-code passes through unchanged apart from the scrub: a value of accessToken/refreshToken/clientSecret/sfdxAuthUrl and any string
-shaped like a session token become `[redacted]`.
+cannot be logged is denied; so is a call the guard could not judge (an exception in the policy). SIGTERM, SIGHUP and SIGINT while the
+real sf runs are forwarded to it, logged as `interrupted` and exit 143. stdout is never logged. The real sf's output is captured,
+so it reaches the model when the command ends, not as it runs; its exit code passes through unchanged apart from the scrub: a
+value of accessToken/refreshToken/clientSecret/sfdxAuthUrl and any string shaped like a session token become `[redacted]`.
 
 The real sf is the first `sf` on PATH outside the wrapper's own directory ($E2E_MODEL_BIN_DIR and $E2E_PLATFORM_DIR/bin), so the
 wrapper never calls itself; in hermetic tests that `sf` is test/shiploop_e2e/fake_sf.py.
+
+Known limits (adversarial only; the harness's cleanup and its comparison with the recorded baseline are the backstop, not this file):
+the deploy scope does not bound what else runs in the org, because `apex run --file` and `apex run test` execute arbitrary Apex there
+(including the DML the `data` denials stop); sfdx-project.json is writable by the model, and its packageDirectories (the default
+scope), registryCustomizations and replacements change what the CLI deploys; `project retrieve start` accepts `--output-dir`,
+`--target-metadata-dir` and `--zip-file-name` anywhere on disk; and the policy judges the tree at one instant, so a background writer
+can change it between this check and the CLI reading it.
 """
 from __future__ import annotations
 
@@ -42,6 +52,7 @@ import json
 import os
 import re
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -58,6 +69,10 @@ ARG_LIMIT = 300  # characters of one argument kept in the log
 KILL_GRACE = 5.0  # seconds a signalled sf gets to exit before it is killed
 SCOPE_SHOWN = 5  # out-of-scope files a refusal names
 SCOPE_WALK = 50000  # entries one deploy may make the guard look at before it is refused as too large
+MANIFEST_LIMIT = 1_000_000  # bytes of a manifest the guard reads
+SHOWN_LIMIT = 80  # characters of a model- or file-chosen name a refusal repeats
+REASON_LIMIT = 2000  # characters of a reason kept in the log
+SIGNALS = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)  # forwarded to the real sf while it runs
 
 # (command words) -> exact match unless listed in PREFIX_OK. Org-talking commands are PINNED; the rest are LOCAL.
 PINNED = {
@@ -88,7 +103,26 @@ DENY_REASONS = [  # (command prefix, why) for a clear message; anything else not
     (("plugins",), "changes the CLI"), (("update",), "changes the CLI"),
 ]
 
-DEPLOY_TYPES = ("ApexClass", "LightningComponentBundle")
+# The metadata types the owner approved that live in one flat folder, and the file suffixes of each; their names start with the case
+# prefix (SLChess_Board is fine). The component bundle (lwc/<lwcPrefix>*/...) is the fifth kind and has its own rule. Tab, app and app
+# page files are judged on the file name (and the --metadata entry or manifest member) only, never on what the file says.
+FLAT_TYPES = {
+    "ApexClass": ("classes", (".cls", ".cls-meta.xml")),
+    "CustomTab": ("tabs", (".tab-meta.xml",)),
+    "CustomApplication": ("applications", (".app-meta.xml",)),
+    "FlexiPage": ("flexipages", (".flexipage-meta.xml",)),
+}
+FLAT_FOLDERS = {folder: suffixes for folder, suffixes in FLAT_TYPES.values()}
+BUNDLE_TYPE = "LightningComponentBundle"
+LWC_CONFIG_FILES = ("jsconfig.json", ".eslintrc.json")  # the two files sf generates next to the bundles in lwc/
+# The folders the CLI types a file by when ANY of them is above it (strictDirectoryName in source-deploy-retrieve's registry of the
+# installed sf, measured 2026-10): a class file under one of them is deployed as that folder's type, whatever its own folder says.
+STRICT_DIRS = frozenset("""ActionableEventOrchDefSettings ActionableEventTypeDefSettings IndustriesManufacturingSettings
+    ObjectHierarchyRelationship accessControlPolicies aiAgentDefinitionVersions aiAuthoringBundles appTemplates
+    appointmentAssignmentPolicies appointmentSchedulingPolicies aura botBlocks botTemplates bots contentTypes documents emailservices
+    experiencePropertyTypeBundles experiences fieldRestrictionRules genAiFunctions genAiPlannerBundles integArtifactDefs
+    integrationHub lightningTypes lwc mktDataSources objectTranslations objects restrictionRules siteDotComSites sites staticresources
+    uiBundles uiWidgets waveTemplates""".split())
 # The flags of `project deploy start|validate` that take a value (long name -> short char), and the ones oclif lets repeat AND read
 # the bare words after them as more values (`-d a b` is two directories). Needed to tell a path from the value of another flag.
 DEPLOY_OPTIONS = {
@@ -98,6 +132,9 @@ DEPLOY_OPTIONS = {
 }
 DEPLOY_SHORT = {short: name for name, short in DEPLOY_OPTIONS.items() if short}
 DEPLOY_GREEDY = ("--source-dir", "--metadata", "--tests", "--coverage-formatters")
+# The boolean short flags of the deploy commands (-c --ignore-conflicts, -r --ignore-errors, -g --ignore-warnings). oclif reads
+# `-rd evil` as -r and then -d, so they are peeled off the front of a short-flag token before it is looked up.
+DEPLOY_BOOLEAN_SHORTS = "crg"
 
 
 # ---------------------------------------------------------------------------------------------------------------- scrub
@@ -121,10 +158,19 @@ def command_words(argv: list[str]) -> tuple[tuple[str, ...], list[str]]:
     return tuple(words), argv[i:]
 
 
-def flag_values(argv: list[str], long_name: str, short: str | None = None) -> list[str]:
-    """Every value given to a flag, in the `--flag v`, `--flag=v`, `-f v`, `-f=v` and `-fv` spellings ('' where a value is missing)."""
+def peel(token: str, booleans: str) -> str:
+    """A short-flag token without the boolean short flags fused in front of it (`-rd` -> `-d` when `r` is a boolean flag)."""
+    while len(token) > 2 and token[0] == "-" and token[1] in booleans:
+        token = "-" + token[2:]
+    return token
+
+
+def flag_values(argv: list[str], long_name: str, short: str | None = None, booleans: str = "") -> list[str]:
+    """Every value given to a flag, in the `--flag v`, `--flag=v`, `-f v`, `-f=v` and `-fv` spellings ('' where a value is missing).
+    `booleans` names the boolean short flags of the command, which may be fused in front of `-f` (`-co de`)."""
     found = []
     for i, token in enumerate(argv):
+        token = peel(token, booleans)
         name, eq, inline = token.partition("=")
         if name == long_name:
             found.append(inline if eq else (argv[i + 1] if i + 1 < len(argv) else ""))
@@ -174,7 +220,9 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
         return False, f"`{' '.join(words) or argv[0]}` is not in the allow list (default deny); allowed: {allowed_commands()}"
     if helping:
         return True, "help"
-    given = flag_values(rest, "--target-org", "-o")
+    deploying = match[:2] == ("project", "deploy")
+    booleans = DEPLOY_BOOLEAN_SHORTS if deploying else ""
+    given = flag_values(rest, "--target-org", "-o", booleans)
     wrong = [value for value in given if value != org]
     if wrong:
         return False, f"--target-org must be {org!r} on every command (got {wrong[0]!r})"
@@ -186,16 +234,34 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
         wrong = [value for value in flag_values(rest, "--from-org") if value != org]
         if wrong:
             return False, f"--from-org must be {org!r} (got {wrong[0]!r})"
-    if match[:2] == ("project", "deploy"):
+    if deploying:
         for flag in ("--post-destructive-changes", "--pre-destructive-changes", "--metadata-dir"):
             if has_flag(rest, flag):
                 return False, f"deploy {flag} is denied (destructive or unreviewable package)"
+        if match[2] in ("start", "validate", "quick", "resume"):
+            no_wait = deploy_no_wait(rest, booleans)
+            if no_wait:
+                return False, (f"deploy {no_wait} is denied: the deploy would keep running in the org after the command returns; "
+                               "leave it out and wait for the deploy to finish")
         if match[2] in ("start", "validate"):
             problems = deploy_scope_problems(rest, cwd or os.getcwd(), prefix)
             if problems:
-                scope = f" (approved: Apex classes named {prefix}*, LWC bundles named {lwc_prefix(prefix)}*)" if prefix else ""
+                scope = f" (approved: {approved_text(prefix, lwc_prefix(prefix))})" if prefix else ""
                 return False, f"deploy is outside the approved scope{scope}: " + "; ".join(problems)
     return True, "allowed"
+
+
+def deploy_no_wait(rest: list[str], booleans: str) -> str | None:
+    """`--async` or a wait of zero minutes (as written), the two ways a deploy command returns while the deploy keeps running."""
+    if has_flag(rest, "--async"):
+        return "--async"
+    for value in flag_values(rest, "--wait", "-w", booleans):
+        try:
+            if float(value) <= 0:
+                return f"--wait {clip(value)}"
+        except ValueError:  # no value or not a number: the CLI refuses it
+            pass
+    return None
 
 
 # ---------------------------------------------------------------------------------------------------------------- deploy scope
@@ -211,18 +277,33 @@ def lwc_prefix(prefix: str) -> str:
     return caps[:len(caps) - keep].lower() + prefix[len(caps) - keep:]
 
 
+def type_prefixes(prefix: str, lwc: str) -> dict[str, str]:
+    """The name every approved metadata type must start with."""
+    return {**{kind: prefix for kind in FLAT_TYPES}, BUNDLE_TYPE: lwc}
+
+
+def approved_text(prefix: str, lwc: str) -> str:
+    return f"{', '.join(FLAT_TYPES)} named {prefix}*, {BUNDLE_TYPE} named {lwc}*"
+
+
 def shown(text: str) -> str:
     return re.sub(r"[\x00-\x1f\x7f]", "?", text)
 
 
-def inside(real: str, real_cwd: str) -> bool:
-    return real == real_cwd or real.startswith(real_cwd.rstrip(os.sep) + os.sep)
+def clip(text: str, limit: int = SHOWN_LIMIT) -> str:
+    """`shown`, cut to `limit` characters: a name the model or a manifest chose can be of any length."""
+    text = shown(text)
+    return text if len(text) <= limit else text[:limit] + "..."
 
 
-def relative(path: str, cwd: str, real_cwd: str) -> str:
-    rel = os.path.relpath(path, cwd)
+def inside(real: str, real_root: str) -> bool:
+    return real == real_root or real.startswith(real_root.rstrip(os.sep) + os.sep)
+
+
+def relative(path: str, root: str, real_root: str) -> str:
+    rel = os.path.relpath(path, root)
     if rel == ".." or rel.startswith(".." + os.sep):  # reached through a differently spelled (symlinked) working directory
-        rel = os.path.relpath(os.path.realpath(path), real_cwd)
+        rel = os.path.relpath(os.path.realpath(path), real_root)
     return rel
 
 
@@ -239,12 +320,13 @@ def deploy_inputs(rest: list[str]) -> dict[str, list[str]]:
                 name, eq, inline = token.partition("=")
                 attached = inline if eq else None
             else:
+                token = peel(token, DEPLOY_BOOLEAN_SHORTS)
                 name = DEPLOY_SHORT.get(token[:2], token)
                 attached = token[2:].removeprefix("=") if len(token) > 2 else None
             if name not in DEPLOY_OPTIONS:
                 continue
             current = name
-            if attached is None and i < len(rest) and not rest[i].startswith("-"):
+            if attached is None and i < len(rest):  # the next word is the value, even one that starts with `-` (as oclif reads it)
                 attached, i = rest[i], i + 1
             if name in found and attached is not None:
                 found[name].append(attached)
@@ -253,28 +335,48 @@ def deploy_inputs(rest: list[str]) -> dict[str, list[str]]:
     return found
 
 
-def package_dirs(cwd: str) -> list[str] | None:
+def comma_parts(value: str) -> list[str]:
+    """A --source-dir value read both ways: as one path, and (when it holds a comma) as a comma list."""
+    return [value] + [part for part in value.split(",") if part] if "," in value else [value]
+
+
+def project_root(real_cwd: str) -> str | None:
+    """The nearest folder at or above the working directory that holds sfdx-project.json (where sf finds the project), or None."""
+    current = real_cwd
+    while True:
+        if os.path.isfile(os.path.join(current, "sfdx-project.json")):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
+def package_dirs(root: str) -> list[str] | None:
     try:
-        paths = [entry["path"] for entry in json.loads(Path(cwd, "sfdx-project.json").read_text())["packageDirectories"]]
+        paths = [entry["path"] for entry in json.loads(Path(root, "sfdx-project.json").read_text())["packageDirectories"]]
     except (OSError, ValueError, KeyError, TypeError):
         return None
     return paths if paths and all(isinstance(path, str) and path for path in paths) else None
 
 
 def in_scope(parts: list[str], prefix: str, lwc: str) -> bool:
-    """Whether a file at this path (relative to the working directory) is an approved Apex class file or part of an approved bundle."""
-    name = parts[-1]
-    parent = parts[-2] if len(parts) > 1 else ""
-    if parent == "classes" and name.startswith(prefix) and name.endswith((".cls", ".cls-meta.xml")):
-        return True
-    if parent == "lwc" and name in ("jsconfig.json", ".eslintrc.json"):
-        return True
-    return any(parts[i - 1] == "lwc" and parts[i].startswith(lwc) for i in range(1, len(parts) - 1))
+    """Whether a file at this path (relative to the project) is an approved file: a class, tab, app or app page file of the right
+    suffix straight in its own folder, or a file of an approved bundle. The CLI types a file by ANY strict folder above it (lwc, aura,
+    objects ...), not by its own parent, so a class file under one of those is judged by that folder."""
+    name, dirs = parts[-1], parts[:-1]
+    if any(folder in STRICT_DIRS and folder != "lwc" for folder in dirs):
+        return False
+    if "lwc" in dirs:  # every lwc folder on the path must lead straight into an approved bundle (or be the folder of the config files)
+        return all(dirs[i + 1].startswith(lwc) if i + 1 < len(dirs) else name in LWC_CONFIG_FILES
+                   for i, folder in enumerate(dirs) if folder == "lwc")
+    suffixes = FLAT_FOLDERS.get(dirs[-1]) if dirs else None
+    return suffixes is not None and name.startswith(prefix) and name.endswith(suffixes)
 
 
-def out_of_scope(path: str, cwd: str, real_cwd: str, prefix: str, lwc: str, limit: int) -> list[str]:
-    """Up to `limit` paths (relative to the working directory) under `path`, a file or a directory tree walked through its symlinks,
-    that the approved scope does not cover; a link that leads outside the working directory counts. Empty directories are fine."""
+def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, limit: int) -> list[str]:
+    """Up to `limit` paths (relative to the project) under `path`, a file or a directory tree walked through its symlinks, that the
+    approved scope does not cover; a link that leads outside the project counts. Empty directories are fine."""
     bad: list[str] = []
     stack: list[tuple[str, tuple[str, ...]]] = [(path, ())]
     looked = 0
@@ -284,12 +386,12 @@ def out_of_scope(path: str, cwd: str, real_cwd: str, prefix: str, lwc: str, limi
             continue
         looked += 1
         if looked > SCOPE_WALK:
-            bad.append(f"more than {SCOPE_WALK} entries under {shown(relative(path, cwd, real_cwd))}")
+            bad.append(f"more than {SCOPE_WALK} entries under {shown(relative(path, root, real_root))}")
             break
         real = os.path.realpath(current)
-        rel = shown(relative(current, cwd, real_cwd))
-        if not inside(real, real_cwd):
-            bad.append(f"{rel} (leads outside the working directory)")
+        rel = shown(relative(current, root, real_root))
+        if not inside(real, real_root):
+            bad.append(f"{rel} (leads outside the project directory)")
         elif os.path.isdir(current):
             if real in above:  # a symlink loop
                 continue
@@ -305,69 +407,100 @@ def out_of_scope(path: str, cwd: str, real_cwd: str, prefix: str, lwc: str, limi
 
 
 def metadata_problem(entry: str, prefix: str, lwc: str) -> str | None:
+    """Why a --metadata entry is not an approved `Type:Name`, or None. A single trailing * is the CLI's own wildcard (ApexClass:SLChess*
+    stays inside the prefix); a manifest keeps refusing any star."""
     kind, _, member = entry.strip().partition(":")
-    wanted = {"ApexClass": prefix, "LightningComponentBundle": lwc}.get(kind)
-    if wanted is None or not re.fullmatch(re.escape(wanted) + r"\w*", member):
-        return f"--metadata {shown(entry)!r} must be ApexClass:{prefix}<name> or LightningComponentBundle:{lwc}<name> (no other type, no wildcard)"
+    wanted = type_prefixes(prefix, lwc).get(kind)
+    if wanted is None or not re.fullmatch(re.escape(wanted) + r"\w*\*?", member):
+        names = ", ".join(f"{name}:{start}<name>" for name, start in type_prefixes(prefix, lwc).items())
+        return f"--metadata {clip(entry)!r} must be one of {names} (no other type; a * only at the very end)"
     return None
 
 
 def manifest_problems(path: str, cwd: str, prefix: str, lwc: str) -> list[str]:
-    shown_path = shown(path)
+    """The problems of the manifest at `path`. It is read under both spellings of the path (as written, and with `link/..` folded
+    away lexically) because the CLI may open either; the problems are the union."""
+    joined = os.path.join(cwd, path)
+    problems: list[str] = []
+    for spelling in dict.fromkeys((joined, os.path.normpath(joined))):
+        problems += manifest_file_problems(spelling, clip(path, 200), prefix, lwc)
+    return list(dict.fromkeys(problems))[:SCOPE_SHOWN]
+
+
+def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str) -> list[str]:
     try:
-        data = Path(cwd, path).read_bytes()
+        fd = os.open(full, os.O_RDONLY | os.O_NONBLOCK)  # never waits for the writer of a pipe
     except OSError:
         return [f"manifest {shown_path!r} cannot be read"]
+    try:  # judged on the open file, so what is checked is what is read
+        regular = stat.S_ISREG(os.fstat(fd).st_mode)
+        data = os.read(fd, MANIFEST_LIMIT + 1) if regular else b""
+    except OSError:
+        return [f"manifest {shown_path!r} cannot be read"]
+    finally:
+        os.close(fd)
+    if not regular or len(data) > MANIFEST_LIMIT:
+        return [f"manifest {shown_path!r} must be a regular file of at most {MANIFEST_LIMIT // 1_000_000} MB (not a pipe, device or folder)"]
     if WILDCARD_RE.search(data.decode("utf-8", errors="replace")):
         return [f"manifest {shown_path!r} holds a wildcard member (<members>*</members>); list the {prefix}* components by name"]
     try:
         root = ET.fromstring(data)
-    except ET.ParseError:
+    except (ET.ParseError, LookupError, ValueError):  # LookupError: an encoding the parser does not know
         return [f"manifest {shown_path!r} is not valid XML"]
+    wanted_by_type = type_prefixes(prefix, lwc)
     problems = []
     for types in (element for element in root.iter() if element.tag.rsplit("}", 1)[-1] == "types"):
         children = [(child.tag.rsplit("}", 1)[-1], (child.text or "").strip()) for child in types]
         kind = next((text for tag, text in children if tag == "name"), "")
-        wanted = {"ApexClass": prefix, "LightningComponentBundle": lwc}.get(kind)
+        wanted = wanted_by_type.get(kind)
         if wanted is None:
-            problems.append(f"manifest {shown_path!r} lists type {shown(kind)!r}; only ApexClass and LightningComponentBundle are approved")
+            problems.append(f"manifest {shown_path!r} lists type {clip(kind)!r}; only {', '.join(wanted_by_type)} are approved")
             continue
         for tag, member in children:
             if tag == "members" and not re.fullmatch(re.escape(wanted) + r"\w*", member):
-                problems.append(f"manifest {shown_path!r}: {kind} member {shown(member)!r} must start with {wanted} and hold no wildcard")
+                problems.append(f"manifest {shown_path!r}: {kind} member {clip(member)!r} must start with {wanted} and hold no wildcard")
     return problems[:SCOPE_SHOWN]
 
 
 def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str) -> list[str]:
     """Why a `project deploy start|validate` with these flags would carry more than the approved scope, or [] when it would not.
 
-    The scope is Apex classes named <prefix>* and LWC bundles named <lwcPrefix>* (SLChess -> slChess; see lwc_prefix). Every
-    --source-dir path (a comma list is read both ways), --metadata entry and --manifest is checked; with none of them the scope is
-    the packageDirectories of sfdx-project.json in `cwd`. A source path must stay inside `cwd` (symlinks included); every file under
-    it must be `classes/<prefix>*.cls`, `classes/<prefix>*.cls-meta.xml`, inside `lwc/<lwcPrefix>*/`, or `lwc/jsconfig.json` /
-    `lwc/.eslintrc.json`; empty directories are fine."""
+    The scope is ApexClass, CustomTab, CustomApplication and FlexiPage named <prefix>* and LightningComponentBundle named
+    <lwcPrefix>* (SLChess -> slChess; see lwc_prefix). Every --source-dir path (a comma list is read both ways), --metadata entry and
+    --manifest is checked; with none of them the scope is the packageDirectories of the sfdx-project.json at or above `cwd` (the
+    project root, where sf finds it; `cwd` itself when there is none). A source path is folded lexically (`link/../x` is `x`, as the
+    CLI deploys it) and must stay inside the project root (symlinks included); every file under it must be `classes/<prefix>*.cls`,
+    `classes/<prefix>*.cls-meta.xml`, `tabs/<prefix>*.tab-meta.xml`, `applications/<prefix>*.app-meta.xml`,
+    `flexipages/<prefix>*.flexipage-meta.xml`, inside `lwc/<lwcPrefix>*/`, or `lwc/jsconfig.json` / `lwc/.eslintrc.json`; empty
+    directories are fine. The tab, app and app page checks are on file names, --metadata entries and manifest members, not on content."""
     if not prefix:
         return ["the wrapper has no --prefix, so no deploy scope is defined"]
     lwc = lwc_prefix(prefix)
     given = deploy_inputs(rest_argv)
-    problems: list[str] = []
-    paths = [part for value in given["--source-dir"] for part in ([value] + [p for p in value.split(",") if p] if "," in value else [value])]
-    if not any(given.values()):
-        paths = package_dirs(cwd)
-        if paths is None:
-            return [f"no --source-dir, --metadata or --manifest was given and the packageDirectories of sfdx-project.json in the working "
-                    f"directory cannot be read; name what to deploy, for example --source-dir force-app/main/default/classes/{prefix}Engine.cls"]
     real_cwd = os.path.realpath(cwd)
+    found = project_root(real_cwd)
+    root = cwd if found in (None, real_cwd) else found
+    real_root = os.path.realpath(root)
+    if any(given.values()):  # (the path as written, the folder it is relative to)
+        paths = [(part, cwd) for value in given["--source-dir"] for part in comma_parts(value)]
+    else:
+        listed = package_dirs(root)
+        if listed is None:
+            return [f"no --source-dir, --metadata or --manifest was given and the packageDirectories of the sfdx-project.json at or above the "
+                    f"working directory cannot be read; name what to deploy, for example --source-dir force-app/main/default/classes/{prefix}Engine.cls"]
+        paths = [(path, root) for path in listed]
+    problems: list[str] = []
     bad: list[str] = []
-    for path in paths:
-        full = os.path.join(cwd, path)
-        if not inside(os.path.realpath(full), real_cwd):
-            problems.append(f"source path {shown(path)!r} is outside the working directory")
+    for path, base in paths:
+        full = os.path.normpath(os.path.join(base, path))
+        if not inside(os.path.realpath(full), real_root):
+            problems.append(f"source path {clip(path, 200)!r} is outside the project directory")
         elif len(bad) < SCOPE_SHOWN:
-            bad += out_of_scope(full, cwd, real_cwd, prefix, lwc, SCOPE_SHOWN - len(bad))
+            bad += out_of_scope(full, root, real_root, prefix, lwc, SCOPE_SHOWN - len(bad))
     if bad:
-        problems.append(f"not an Apex class named {prefix}* or part of an LWC bundle named {lwc}*: {', '.join(bad)}"
-                        " (deploy only those, for example --source-dir on the class file or the bundle folder)")
+        problems.append(f"not a class, tab, app or app page named {prefix}* or part of an LWC bundle named {lwc}*: {', '.join(bad)}"
+                        " (deploy only those, for example --source-dir on the class file or the bundle folder; a file retrieved from the org"
+                        " is not yours to deploy: delete it or narrow the path)")
     for value in given["--metadata"]:
         for entry in value.split(","):
             problem = metadata_problem(entry, prefix, lwc)
@@ -414,7 +547,7 @@ def write_log(entry: dict) -> bool:
 def log_decision(call: str, argv: list[str], org: str, prefix: str, allowed: bool, reason: str) -> bool:
     return write_log({"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "call": call, "org": org, "prefix": prefix,
                       "argv": [scrub(token)[:ARG_LIMIT] for token in argv], "decision": "allowed" if allowed else "denied",
-                      "reason": scrub(reason)})
+                      "reason": scrub(reason)[:REASON_LIMIT]})
 
 
 def log_end(call: str, code: int | None, stderr: str, interrupted: bool) -> bool:
@@ -468,10 +601,13 @@ def main(args: list[str]) -> int:
     if deny_all:
         allowed, reason = False, "this command is not available in this run; use `sf` with --target-org " + org
     else:
-        allowed, reason = decide(argv, org, prefix=prefix)
+        try:
+            allowed, reason = decide(argv, org, prefix=prefix)
+        except Exception as exc:  # a crash is a refusal with a decision line, never a traceback and an unlogged call
+            allowed, reason = False, f"the guard could not judge this call ({type(exc).__name__})"
     if not allowed:
         logged = log_decision(call, argv, org, prefix, False, reason)
-        print(f"sf_guard: denied: {reason}" + ("" if logged else " (and the call could not be logged)"), file=sys.stderr)
+        print(f"sf_guard: denied: {reason[:REASON_LIMIT]}" + ("" if logged else " (and the call could not be logged)"), file=sys.stderr)
         return 2
     state: dict = {"proc": None, "interrupted": False, "at": 0.0}
 
@@ -481,7 +617,7 @@ def main(args: list[str]) -> int:
         if state["proc"] is not None:
             state["proc"].send_signal(signal.SIGTERM)
 
-    for number in (signal.SIGTERM, signal.SIGHUP):
+    for number in SIGNALS:
         signal.signal(number, interrupt)
     if not log_decision(call, argv, org, prefix, True, reason):
         print("sf_guard: denied: the call could not be logged (E2E_PLATFORM_DIR is unset or not writable)", file=sys.stderr)
@@ -497,6 +633,8 @@ def main(args: list[str]) -> int:
         log_end(call, 126, str(exc), False)
         print(f"sf_guard: the real `sf` could not be started: {scrub(str(exc))}", file=sys.stderr)
         return 126
+    for number in SIGNALS:  # the child is gone: a later signal ends this process instead of being swallowed while the output is written
+        signal.signal(number, signal.SIG_DFL)
     log_end(call, code, err, state["interrupted"])
     sys.stdout.write(scrub(out))
     sys.stdout.flush()

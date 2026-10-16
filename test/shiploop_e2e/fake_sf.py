@@ -14,9 +14,14 @@ points the fake at its state with environment variables:
                     types            {metadata type: names} for the other queryable types (default: the baseline counts of the same
                                      org: 12 CustomTab, 16 FlexiPage, 37 CustomApplication, 1 CustomObject, 1 PermissionSet)
                     dates            {type: {name: LastModifiedDate}}; a name without an entry has BASE_DATE, a deploy sets DEPLOY_DATE
-                    query_errors     {type: message}: a query on that type fails, like an edition without the object
+                    query_errors     {type: message}: a query on that type fails. A message that says "not supported" is answered
+                                     like an edition without the object (INVALID_TYPE); any other text, like a timeout, comes back as
+                                     a plain QueryFailed error
   FAKE_SF_LOG     file; one JSON line is appended per call: {"argv", "target_org", "refused", ...}. A destructive deploy
-                  also logs {"destructive": {"ApexClass": [...], "LightningComponentBundle": [...]}, "manifest_types": N}.
+                  also logs {"destructive": {"CustomApplication": [...], "CustomTab": [...], "FlexiPage": [...],
+                  "LightningComponentBundle": [...], "ApexClass": [...]}, "type_order": [...], "manifest_types": N}: the members of
+                  each of those five types (an empty list for a type the manifest does not name) and the types in the order the
+                  destructive manifest listed them.
   FAKE_SF_ORGS    comma list of --target-org values the fake accepts (default "fake-org"). Any other value, or a missing
                   --target-org on a command that needs one, is refused with exit 1 and a JSON error: this proves no check
                   ever relies on the default org or names a different org.
@@ -29,9 +34,14 @@ points the fake at its state with environment variables:
                   {"failure": "<message>"} (the CLI itself fails, as the real one did for "Compilation failed at Line 2 ...").
                   The log has the shape the real CLI returns in `result.logs`: a version line, one `Execute Anonymous:` line per
                   source line, then EXECUTION_STARTED, CODE_UNIT_STARTED, the USER_DEBUG lines and the closing events.
-                  A marker with no canned value answers `MISSING`.
+                  A marker with no canned value answers `MISSING`. A whole-game script has one marker (`game_opera`), so one
+                  canned value (`ok`, or the text of the first thing that went wrong) stands for the game.
   FAKE_SF_FAIL    comma list of operations that fail with exit 1: any of query, deploy, destructive, test, apex.
   FAKE_SF_NOOP_DESTRUCTIVE   "1": a destructive deploy reports success but removes nothing (to test the verify step).
+
+A deploy of a source directory creates what it holds: Apex classes, Lightning web component bundles, and the tabs, applications
+and flexipages (`tabs/<Name>.tab-meta.xml`, `applications/<Name>.app-meta.xml`, `flexipages/<Name>.flexipage-meta.xml`). A
+destructive deploy removes the named members of those five types.
 
 Queries mirror the real CLI: the Tooling API types need --use-tooling-api, StaticResource and PermissionSet (IsOwnedByProfile = false)
 must be queried without it, and every type answers its name field and LastModifiedDate. `sf --version` prints one plain line.
@@ -75,6 +85,8 @@ BASELINE_TYPES = {
 KINDS = {"ApexClass": ("apex_classes", "Name", "01p"), "LightningComponentBundle": ("lwc", "DeveloperName", "0Rb"),
          **{kind: (None, "Name" if kind in ("ApexTrigger", "ApexPage", "ApexComponent", "StaticResource", "PermissionSet", "ExternalString")
                    else "DeveloperName", "0Xx") for kind in BASELINE_TYPES}}
+DEPLOYABLE = ("CustomApplication", "CustomTab", "FlexiPage", "LightningComponentBundle", "ApexClass")  # what a deploy may create or remove
+SOURCE_SUFFIX = {"CustomTab": ".tab-meta.xml", "CustomApplication": ".app-meta.xml", "FlexiPage": ".flexipage-meta.xml"}  # in tabs/, applications/, flexipages/
 STANDARD_API = {"StaticResource", "PermissionSet"}  # every other object here is queried with --use-tooling-api
 
 
@@ -173,7 +185,8 @@ def run_query(state: dict, soql: str, tooling: bool) -> int:
         return fail("sObject type '%s' is not supported%s." % (obj, " by the Tooling API" if tooling else " without --use-tooling-api"),
                     "INVALID_TYPE")
     if obj in state.get("query_errors", {}):
-        return fail(state["query_errors"][obj], "INVALID_TYPE")
+        message = state["query_errors"][obj]
+        return fail(message, "INVALID_TYPE" if "not supported" in message else "QueryFailed")
     names = list(names_of(state, obj))
     if match.group("where"):
         for cond in re.split(r"\s+AND\s+", match.group("where"), flags=re.IGNORECASE):
@@ -222,7 +235,8 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
         if "destructive" in fail_ops():
             return fail("fake sf: destructive deploy failed on request", "DeployFailed")
         manifest = first(flags, "--manifest", "-x")
-        members: dict[str, list[str]] = {"ApexClass": [], "LightningComponentBundle": []}
+        members: dict[str, list[str]] = {kind: [] for kind in DEPLOYABLE}
+        order: list[str] = []
         try:
             tree = ET.parse(destructive)
         except (OSError, ET.ParseError) as exc:
@@ -234,9 +248,11 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
             names = [c.text.strip() for c in types if c.tag.endswith("members") and c.text]
             if kind in members:
                 members[kind].extend(names)
+                order.append(kind)
             elif names:
                 return fail("fake sf: unsupported destructive type %s" % kind)
         entry["destructive"] = members
+        entry["type_order"] = order
         entry["manifest_types"] = 0
         if manifest:
             try:
@@ -247,7 +263,8 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
             return fail("fake sf: wildcard destructive change refused", "WildcardRefused")
         if os.environ.get("FAKE_SF_NOOP_DESTRUCTIVE") != "1":
             for kind, names in members.items():
-                state[KINDS[kind][0]] = [n for n in names_of(state, kind) if n not in names]
+                current = names_of(state, kind)
+                current[:] = [n for n in current if n not in names]
                 for n in names:
                     state.get("dates", {}).get(kind, {}).pop(n, None)
             save_state(state, path)
@@ -273,6 +290,10 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
         for bundle in sorted(candidates):
             touch(state, "LightningComponentBundle", bundle.name)
             deployed += 1
+        for kind, suffix in SOURCE_SUFFIX.items():
+            for item in sorted(root.rglob("*" + suffix)):
+                touch(state, kind, item.name[:-len(suffix)])
+                deployed += 1
     save_state(state, path)
     return emit({"status": 0, "result": {"success": True, "status": "Succeeded", "numberComponentsDeployed": deployed,
                                          "numberComponentErrors": 0}})
