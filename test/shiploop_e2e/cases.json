@@ -251,10 +251,10 @@
       "preflight": "python3 \"$E2E_CHECKS/chess_salesforce.py\" preflight --org de --prefix SLChess",
       "before": "python3 \"$E2E_CHECKS/chess_salesforce.py\" snapshot  --org de --prefix SLChess",
       "cleanup": "python3 \"$E2E_CHECKS/chess_salesforce.py\" cleanup   --org de --prefix SLChess",
-      "home_links": [
-        ".sfdx",
-        ".sf"
-      ],
+      "model_bin": {
+        "sf": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --",
+        "sfdx": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --"
+      },
       "source": "owner go 2026-10-16: deploy to the Developer Edition org `de`, prefix SLChess, remove afterwards; Grok 4.7 medium"
     },
     "budget": {

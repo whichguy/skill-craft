@@ -1115,21 +1115,22 @@ nothing about any platform; it runs the shell commands the case names, in this o
 | key | when | environment | on failure |
 |---|---|---|---|
 | `home_links` | before the preflight | names under the real `HOME`; for a host on a throwaway `HOME` (Grok, Codex) each name that exists becomes a symlink `<throwaway home>/<name>` to `~/<name>`. Only existence is checked, never contents. A name that is absent is skipped and recorded; Claude runs in the real `HOME` and needs nothing | recorded, never a failure |
-| `preflight` | before any model call, also in `--preflight-only --case <name>` | the host's own (so a bad link shows here) | the run is refused with the command's scrubbed output; no model starts |
+| `model_bin` | before the preflight (and again on a resume) | an object `{command name: shell command}`. For each name the harness writes an executable `#!/bin/sh` script `<output>/platform/bin/<name>` that runs `env HOME=<real home> <command> "$@"` with `E2E_CHECKS`, `E2E_PLATFORM_DIR` and `E2E_MODEL_BIN_DIR` baked in as literals, and puts that folder first on the PATH of the host's launch (every host) and of the `preflight`. `before`, `cleanup` and the checks keep the harness's PATH, so they reach the real CLI. The command is the case's policy (the Salesforce case runs `checks/sf_guard.py`); the harness knows none. Recorded as `platform.model_bin` / `environment.platform_model_bin` ({name: wrapper path}) | recorded, never a failure; a wrapper that does not work fails the preflight |
+| `preflight` | before any model call, also in `--preflight-only --case <name>` | the host's own (so a bad link shows here, and the `model_bin` wrappers are first on its PATH) | the run is refused with the command's scrubbed output; no model starts |
 | `before` | once, on a fresh run (not `--resume-run`) | the harness's | the run is refused; no model starts |
 | `cleanup` | after grading, always: in a `finally`, so a failed run, a crash, a Ctrl-C and a SystemExit still run it. A resume runs it again at its end; a regrade runs it only if the run's record shows no successful cleanup | the harness's | a loud banner with the exact command to rerun by hand; the run fails |
 
 `result.json` gets a `platform` block (`spec`, `home_links`, `preflight`, `before`, `cleanup` as `{ran, ok, returncode, output}`,
 `earlier_cleanups` after a resume), `environment.platform_home_links` names what the model could reach, and `invocation.json`
 repeats the spec and links. The start of the run prints the manual cleanup command. `<output>/platform/cleanup-record.json` is
-written by the cleanup itself. A regrade of a run whose cleanup succeeded restates the checks made while the work was deployed
+written by the cleanup itself. With `model_bin`, `<output>/platform/sf-calls.jsonl` (written by `checks/sf_guard.py`, the Salesforce case's wrapper policy) holds one scrubbed line per call the model made (argv, allowed or denied and why, the exit code and the first 200 characters of stderr of an allowed call; never stdout): the run's script-run evidence of what the model did in the org. A regrade of a run whose cleanup succeeded restates the checks made while the work was deployed
 (`platform.checks_restated`): asking a cleaned platform again would find nothing and replace a pass with a fail.
 
 Credentials: every command output the harness stores or prints goes through `run.scrub`, which replaces the value of a key named
 `accessToken`, `refreshToken`, `clientSecret` or `sfdxAuthUrl` and any string shaped like a Salesforce session token
 (`00D...!...`) with `[redacted]`. In a case with a platform the same scrub also covers the harness's own records
 (`events.jsonl`, `transcript.md`, check outputs, the live view). A platform command must never print or write a credential
-itself, and a case never types, stores or passes one: the only mechanism is `home_links`. A harness that is killed with SIGKILL
+itself, and a case never types, stores or passes one: the only mechanism is the owner's existing login, reached either by `home_links` (a CLI whose login is a file under HOME) or by a `model_bin` wrapper (a CLI whose login lives in the macOS keychain, which a throwaway HOME hides: the wrapper runs the real CLI with the real HOME and applies the case's policy). The isolated HOME is hygiene, not a security boundary: the same OS user can read any absolute path, so the policy is in the wrapper, and a model that calls the CLI by absolute path or changes its own PATH goes around it. A harness that is killed with SIGKILL
 cannot clean up: run the cleanup command printed at the start (with that run's `E2E_PLATFORM_DIR`), then resume.
 
 ### Launching long runs

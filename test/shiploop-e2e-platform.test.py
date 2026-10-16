@@ -9,6 +9,7 @@ executables, and no real platform, org or model is ever reached. They say nothin
   before     once, on a fresh run only
   home_links symlinks of existing names in the real HOME into a throwaway HOME (Grok, Codex), recorded
   cleanup    after grading, always: success, failure, crash, KeyboardInterrupt; a failure is printed loudly
+  model_bin  a guarded stand-in command written to <output>/platform/bin and put first on the host's PATH (real HOME inside)
   scrub      one function through which every stored or printed command output goes
 """
 
@@ -47,7 +48,7 @@ home = os.environ["HOME"]
 here = os.environ["E2E_PLATFORM_DIR"]
 with open(os.environ["PLAT_LOG"], "a") as log:
     log.write(json.dumps({{"verb": verb, "home": home, "cwd": os.getcwd(), "platform_dir": here,
-                          "checks": os.environ.get("E2E_CHECKS"),
+                          "checks": os.environ.get("E2E_CHECKS"), "path_head": os.environ.get("PATH", "").split(os.pathsep)[0],
                           "model_started": os.path.exists(os.environ["PLAT_MODEL_MARK"]),
                           "links": sorted(n for n in os.listdir(home) if os.path.islink(os.path.join(home, n)))}}) + "\\n")
 if verb == "before":
@@ -58,6 +59,16 @@ if os.environ.get("PLAT_FAIL") == verb:
     print('boom {{"accessToken": "{TOKEN}"}} and {SESSION}')
     sys.exit(3)
 print("ok " + verb)
+"""
+
+# The model_bin command: a stand-in for a CLI the model would run. It records what it saw (the real HOME, the baked variables).
+TOOL = """
+import json, os, sys
+with open(os.environ["PLAT_LOG"], "a") as log:
+    log.write(json.dumps({"verb": "tool", "argv": sys.argv[1:], "home": os.environ.get("HOME"),
+                          "checks": os.environ.get("E2E_CHECKS"), "platform_dir": os.environ.get("E2E_PLATFORM_DIR"),
+                          "bin_dir": os.environ.get("E2E_MODEL_BIN_DIR")}) + "\\n")
+print("tool ok")
 """
 
 PRODUCT = f"""
@@ -97,7 +108,7 @@ if argv[:2] == ["plugin", "list"]:
 os.chdir(argv[argv.index("--cwd") + 1])
 Path(os.environ["PLAT_MODEL_MARK"]).write_text("started")
 Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": str(home), "links": sorted(
-    n for n in os.listdir(home) if os.path.islink(os.path.join(home, n)))}}))
+    n for n in os.listdir(home) if os.path.islink(os.path.join(home, n))), "path_head": os.environ["PATH"].split(os.pathsep)[0]}}))
 print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["shiploop", "improve"]}}))
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "python3 /x/skills/shiploop/scripts/shiploop next"}}}}))
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "sf org display --json"}}}}))
@@ -121,7 +132,7 @@ from pathlib import Path
 {PRODUCT}
 argv = sys.argv[1:]
 Path(os.environ["PLAT_MODEL_MARK"]).write_text("started")
-Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": os.environ["HOME"]}}))
+Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": os.environ["HOME"], "path_head": os.environ["PATH"].split(os.pathsep)[0]}}))
 plugin = argv[argv.index("--plugin-dir") + 1] if "--plugin-dir" in argv else None
 print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model", "claude_code_version": "0.0.1-fake",
                   "slash_commands": ["skill-craft:shiploop"],
@@ -144,6 +155,7 @@ class PlatformCase(unittest.TestCase):
             path.chmod(path.stat().st_mode | stat.S_IXUSR)
             self.fakes[name] = path
         (self.tmp / "plat.py").write_text(PLAT)
+        (self.tmp / "tool.py").write_text(TOOL)
         self.plugin = self.tmp / "build" / "plugins" / "skill-craft"
         (self.plugin / ".claude-plugin").mkdir(parents=True)
         (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
@@ -180,6 +192,10 @@ class PlatformCase(unittest.TestCase):
                 "cleanup": self.command("cleanup"), "home_links": [".sfdx", ".sf"], "source": "this test"}
         spec.update(override)
         return {key: value for key, value in spec.items() if value is not None}
+
+    def model_bin(self) -> dict:
+        """A guarded command named `mytool` (it runs tool.py) and the preflight that proves it works from the host's PATH."""
+        return {"mytool": f"{shlex.quote(sys.executable)} {shlex.quote(str(self.tmp / 'tool.py'))}"}
 
     def use_case(self, platform: dict | None, name: str = "plat") -> str:
         case = {"style": "smoke", "prompt": "Create hello.py.", "checks": ["true"], "checks_source": "this test"}
@@ -277,13 +293,17 @@ class SchemaTest(unittest.TestCase):
     def test_a_malformed_platform_is_refused_with_every_problem_named(self):
         for bad, words in (({"cleanup": ""}, "cleanup"), ({"before": "x"}, "before without cleanup"),
                            ({"preflight": 3}, "preflight"), ({"home_links": [".sf/x"]}, "home_links"),
-                           ({"home_links": [".."]}, "home_links"), ({"home_links": ".sf"}, "home_links"), ("text", "object")):
+                           ({"home_links": [".."]}, "home_links"), ({"home_links": ".sf"}, "home_links"), ("text", "object"),
+                           ({"model_bin": ["sf"]}, "model_bin"), ({"model_bin": {"a/b": "x"}}, "model_bin"),
+                           ({"model_bin": {"sf": ""}}, "model_bin"), ({"model_bin": {"sf": 3}}, "model_bin"),
+                           ({"model_bin": {"": "x"}}, "model_bin")):
             with self.subTest(bad=bad), self.assertRaises(SystemExit) as raised:
                 run.validate_platform("c", bad)
             self.assertIn(words, str(raised.exception))
 
     def test_a_well_formed_platform_is_returned_as_given(self):
-        spec = {"kind": "k", "preflight": "p", "before": "b", "cleanup": "c", "home_links": [".sf"], "org": "x"}
+        spec = {"kind": "k", "preflight": "p", "before": "b", "cleanup": "c", "home_links": [".sf"], "org": "x",
+                "model_bin": {"sf": "guard --org x"}}
         self.assertIs(run.validate_platform("c", spec), spec)
 
 
@@ -522,6 +542,126 @@ class RunTest(PlatformCase):
             run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--prompt", "x",
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertEqual(self.verbs(), [])
+
+
+class ModelBinTest(PlatformCase):
+    """platform.model_bin: a wrapper per name in <output>/platform/bin, first on the host's PATH (and on the preflight's), run with the
+    real HOME and the baked E2E_* variables. Only the cases that name it get any of this."""
+
+    def with_bin(self, **override) -> dict:
+        probe = self.model_bin()
+        spec = self.platform(model_bin=probe, home_links=None, **override)
+        spec["preflight"] = f"mytool probe && {self.command('preflight')}"
+        return spec
+
+    def tool_calls(self) -> list[dict]:
+        return [call for call in self.calls() if call["verb"] == "tool"]
+
+    def test_the_wrapper_is_written_first_on_the_hosts_path_and_the_preflight_runs_through_it(self):
+        self.use_case(self.with_bin())
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        out = Path(result["output"])
+        wrapper = out / "platform" / "bin" / "mytool"
+        self.assertTrue(wrapper.is_file() and os.access(wrapper, os.X_OK))
+        text = wrapper.read_text()
+        self.assertTrue(text.startswith("#!/bin/sh\n"))
+        self.assertIn(f"HOME={shlex.quote(str(self.real_home))}", text)
+        self.assertTrue(text.rstrip().endswith('"$@"'))
+        # The preflight (the host's environment) found the wrapper first on its PATH and ran it, with the real HOME.
+        tool, preflight, before, cleanup = self.calls()
+        self.assertEqual((tool["verb"], preflight["verb"]), ("tool", "preflight"))
+        self.assertEqual(tool["argv"], ["probe"])
+        self.assertEqual(Path(tool["home"]), self.real_home)
+        self.assertEqual(Path(preflight["home"]), out / "home", "the platform command itself still ran in the host's HOME")
+        self.assertEqual(Path(preflight["path_head"]), out / "platform" / "bin")
+        # The model's launch has it too; the harness's own before and cleanup do not (they must reach the real CLI).
+        self.assertEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
+        self.assertNotEqual(Path(before["path_head"]), out / "platform" / "bin")
+        self.assertNotEqual(Path(cleanup["path_head"]), out / "platform" / "bin")
+        # Recorded: names and the wrapper path only.
+        recorded = {"mytool": str(wrapper)}
+        self.assertEqual(result["platform"]["model_bin"], recorded)
+        self.assertEqual(result["environment"]["platform_model_bin"], recorded)
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["platform"]["model_bin"], recorded)
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["platform"]["spec"]["model_bin"], self.model_bin())
+        self.assertIn("guarded commands mytool", printed)
+        self.assertTrue(result["pass"])
+        self.assertEqual(self.credential_files(out), [])
+
+    def test_the_wrapper_needs_nothing_from_the_model_s_environment(self):
+        self.use_case(self.with_bin())
+        _, result, _ = self.invoke("grok", "done")
+        out = Path(result["output"])
+        before = len(self.tool_calls())
+        env = {"PATH": "/usr/bin:/bin", "PLAT_LOG": str(self.plat_log), "HOME": str(out / "home")}  # no E2E_* and a throwaway HOME
+        done = subprocess.run([str(out / "platform" / "bin" / "mytool"), "a", "b c"], env=env, capture_output=True, text=True)
+        self.assertEqual((done.returncode, done.stdout.strip()), (0, "tool ok"), done.stderr)
+        call = self.tool_calls()[before]
+        self.assertEqual(call["argv"], ["a", "b c"])
+        self.assertEqual(Path(call["home"]), self.real_home)
+        self.assertEqual(Path(call["checks"]), Path(run.HERE) / "checks")
+        self.assertEqual(Path(call["platform_dir"]), out / "platform")
+        self.assertEqual(Path(call["bin_dir"]), out / "platform" / "bin")
+
+    def test_a_claude_host_gets_the_same_path_and_the_wrapper(self):
+        self.use_case(self.with_bin())
+        code, result, _ = self.invoke("claude", "done")
+        self.assertEqual(code, 0, result)
+        out = Path(result["output"])
+        self.assertEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
+        self.assertEqual(self.tool_calls()[0]["argv"], ["probe"])
+
+    def test_a_failing_wrapper_refuses_the_run_before_the_model_starts(self):
+        spec = self.with_bin()
+        spec["model_bin"] = {"mytool": "false"}
+        self.use_case(spec)
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.invoke("grok", "done")
+        self.assertIn("preflight refused", str(refused.exception))
+        self.assertFalse(self.model_started())
+        self.assertEqual(self.verbs(), [])
+
+    def test_preflight_only_runs_the_preflight_through_the_wrapper(self):
+        self.use_case(self.with_bin())
+        out = self.tmp / "pf"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(
+                run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})):
+            code = run.main(["--preflight-only", "--case", "plat", "--output", str(out), "--host", "grok",
+                             "--grok-bin", str(self.fakes["grok"])])
+        self.assertEqual(code, 0, printed.getvalue())
+        self.assertEqual(self.verbs(), ["tool", "preflight"])
+        self.assertTrue((out / "grok" / "platform" / "bin" / "mytool").is_file())
+        self.assertEqual(Path(self.calls()[1]["path_head"]), out / "grok" / "platform" / "bin")
+        self.assertIn("mytool", json.loads((out / "grok" / "preflight.json").read_text())["platform"]["model_bin"])
+
+    def test_a_resume_writes_the_wrapper_again_and_a_regrade_restates_it(self):
+        self.use_case(self.with_bin())
+        code, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        (out / "platform" / "bin" / "mytool").unlink()
+        result, _ = self.resume("grok", out, "done")
+        self.assertTrue((out / "platform" / "bin" / "mytool").is_file(), "the resumed model runs behind the wrapper too")
+        self.assertEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
+        calls = self.calls()
+        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(regraded["platform"]["model_bin"], result["platform"]["model_bin"])
+        self.assertEqual(self.calls(), calls)
+
+    def test_a_platform_without_model_bin_is_unchanged(self):
+        self.use_case(self.platform())
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        out = Path(result["output"])
+        self.assertNotIn("model_bin", result["platform"])
+        self.assertNotIn("platform_model_bin", result["environment"])
+        self.assertNotIn("model_bin", json.loads((out / "invocation.json").read_text())["platform"])
+        self.assertFalse((out / "platform" / "bin").exists())
+        self.assertNotIn("guarded commands", printed)
+        for call in self.calls():
+            self.assertNotEqual(Path(call["path_head"]), out / "platform" / "bin")
+        self.assertNotEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
 
 
 class ResumeTest(PlatformCase):

@@ -1401,6 +1401,9 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
 #   before     once, on a fresh run only, with E2E_PLATFORM_DIR=<output>/platform: a snapshot of what exists before the model
 #   cleanup    after grading, always (a `finally`: failure, crash, Ctrl-C): remove what the run created
 #   home_links names under the real HOME linked into a throwaway HOME (Grok, Codex), so the model's CLI is already signed in
+#   model_bin  {command name: shell command}: a guarded stand-in for each name, written to <output>/platform/bin and put first on
+#              the host's PATH. It runs the command with the REAL HOME and the model's argv as "$@", so the case's policy decides
+#              what the model may do and the real CLI keeps working where a throwaway HOME hides its login (a keychain)
 # Every command output the harness stores or prints goes through scrub().
 PLATFORM_COMMANDS = ("preflight", "before", "cleanup")
 PLATFORM_TIMEOUT = 900  # seconds, one command's ceiling; a command that never ends, not a tuning value
@@ -1462,6 +1465,10 @@ def validate_platform(name: str, spec) -> dict:
     links = spec.get("home_links", [])
     if not (isinstance(links, list) and all(isinstance(n, str) and n and "/" not in n and n not in (".", "..") for n in links)):
         problems.append("home_links must be a list of plain names under the home folder (no path separators)")
+    bins = spec.get("model_bin", {})
+    if not (isinstance(bins, dict) and all(isinstance(n, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", n)
+                                           and isinstance(c, str) and c.strip() for n, c in bins.items())):
+        problems.append("model_bin must be an object of plain command names to non-empty shell commands")
     if problems:
         raise SystemExit(f"case {name!r}: platform: " + "; ".join(problems))
     return spec
@@ -1469,6 +1476,24 @@ def validate_platform(name: str, spec) -> dict:
 
 def platform_env(base: dict, platform_dir: Path) -> dict:
     return dict(base, E2E_CHECKS=str(HERE / "checks"), E2E_PLATFORM_DIR=str(platform_dir))
+
+
+def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
+    """Write ``<platform_dir>/bin/<name>`` for each name: an executable ``#!/bin/sh`` script that runs the case's command with the
+    real HOME and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
+    none). Returns {name: path}. The command is the case's own text, run as the case wrote it."""
+    folder = platform_dir / "bin"
+    folder.mkdir(parents=True, exist_ok=True)
+    baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder)}
+    written = {}
+    for name, command in bins.items():
+        path = folder / name
+        path.write_text("#!/bin/sh\n# written by the E2E harness (platform.model_bin); the case's policy decides what the model may run\n"
+                        + "".join(f"export {key}={shlex.quote(value)}\n" for key, value in baked.items())
+                        + f"exec env HOME={shlex.quote(str(real_home))} {command} \"$@\"\n")
+        path.chmod(0o755)
+        written[name] = str(path)
+    return written
 
 
 def run_platform_command(command: str, cwd: Path, env: dict, timeout: int = PLATFORM_TIMEOUT) -> dict:
@@ -1523,14 +1548,20 @@ def link_homes(names: list[str], env: dict) -> list[dict]:
 
 
 def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
-    """Make the home links, then run the case's preflight command with the host's environment; {home_links, preflight}.
-    ``preflight`` is None where the case names no command."""
+    """Make the home links and the model_bin wrappers, then run the case's preflight command with the host's environment;
+    {home_links, preflight} (plus model_bin: {name: wrapper path} where the case has one). ``preflight`` is None where the case
+    names no command. ``host_env`` is changed in place: with model_bin its PATH starts with the wrappers' folder, which is what
+    the host launches with and what the preflight runs under (so it proves the wrapper works from the host's environment)."""
     platform_dir = out / "platform"
     platform_dir.mkdir(exist_ok=True)
     links = link_homes(spec.get("home_links") or [], host_env)
+    state: dict = {"home_links": links}
+    if spec.get("model_bin"):
+        state["model_bin"] = write_model_bin(spec["model_bin"], platform_dir, Path(os.environ.get("HOME") or Path.home()))
+        host_env["PATH"] = str(platform_dir / "bin") + os.pathsep + host_env.get("PATH", "")
     command = spec.get("preflight")
-    check = run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None
-    return {"home_links": links, "preflight": check}
+    state["preflight"] = run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None
+    return state
 
 
 def cleanup_banner(out: Path, spec: dict, record: dict) -> str:
@@ -2929,7 +2960,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     earlier_platform = earlier_result.get("platform") or {}
     platform_state: dict = {}
     if platform_spec and regrade:
-        platform_state = {key: earlier_platform.get(key) for key in ("home_links", "preflight")}  # nothing starts: restate the run's own
+        platform_state = {key: earlier_platform.get(key) for key in ("home_links", "model_bin", "preflight")
+                          if key != "model_bin" or key in earlier_platform}  # nothing starts: restate the run's own
     elif platform_spec:
         # Before the marketplace install and before any model call: the host's own environment, so a bad home link shows here.
         platform_state = platform_preflight(platform_spec, env, out)
@@ -3076,7 +3108,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             print(f"resume: {resume_command(out, args)}", flush=True)
             if platform_spec:
                 linked = [link["name"] for link in platform_state["home_links"] or [] if link["linked"]]
-                print(f"  platform  home links {', '.join(linked) or 'none'}; cleanup runs after grading, always. By hand: "
+                guarded = f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else ""
+                print(f"  platform  home links {', '.join(linked) or 'none'}{guarded}; cleanup runs after grading, always. By hand: "
                       f"E2E_PLATFORM_DIR={shlex.quote(str(out / 'platform'))} E2E_CHECKS={shlex.quote(str(HERE / 'checks'))} "
                       f"{platform_spec.get('cleanup')}", flush=True)
             if needs:
@@ -3304,7 +3337,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         result_start = start_environment
     run_environment = environment.result_block(out, result_start, end_environment)
     if platform_block and isinstance(run_environment, dict):
-        run_environment = {**run_environment, "platform_home_links": platform_state.get("home_links")}  # what the model could reach
+        run_environment = {**run_environment, "platform_home_links": platform_state.get("home_links"),  # what the model could reach
+                           **({"platform_model_bin": platform_state["model_bin"]} if platform_state.get("model_bin") else {})}
     # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
@@ -3451,7 +3485,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         cleaned = platform_block["cleanup"]
         print(f"  platform  {mark(cleaned.get('ok'))}  cleanup "
               + ("ran" if cleaned.get("ran") else "did not run") + f"; home links "
-              + (", ".join(link["name"] for link in platform_state.get("home_links") or [] if link["linked"]) or "none"))
+              + (", ".join(link["name"] for link in platform_state.get("home_links") or [] if link["linked"]) or "none")
+              + (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else ""))
     print(f"  {exported}")
     if before:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731

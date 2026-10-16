@@ -92,9 +92,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 85)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 86)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 51)
-        self.assertEqual(len(suite_catalog.SUITES), 138)
+        self.assertEqual(len(suite_catalog.SUITES), 139)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -443,7 +443,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
     FAMILY = {"shiploop-e2e", "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
               "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality",
               "shiploop-e2e-packet-anatomy", "shiploop-e2e-commit-counters", "shiploop-e2e-slice",
-              "shiploop-e2e-chess-salesforce", "shiploop-e2e-platform"}
+              "shiploop-e2e-chess-salesforce", "shiploop-e2e-platform", "shiploop-e2e-sf-guard"}
 
     def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:
         catalog = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES if suite.id.startswith("shiploop-e2e")}
