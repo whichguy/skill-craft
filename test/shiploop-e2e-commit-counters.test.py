@@ -376,10 +376,45 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
         self.assertEqual(counters.NARRATIVE_END, shiploop_narrative.END)
         self.assertEqual(counters.NARRATIVE_BEGIN, shiploop_narrative.BEGIN)
         self.assertEqual(counters.STATUS_END, shiploop_navigator.STATUS_END)
+        self.assertEqual(counters.HEAD_END, shiploop_navigator.HEAD_END)
+        import flow  # noqa: PLC0415 - the second reader of the head's closing line
+        self.assertEqual(flow.HEAD_END, shiploop_navigator.HEAD_END)
         source = (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_navigator.py").read_text()
         for line in ('f"ShipLoop navigator | {stage} | revision {state[\'revision\']}"', 'f"Full packet: {path}"',
                      'f"Keepalive marker: {KEEPALIVE_MARKER} run='):
             self.assertIn(line, source)
+
+    def test_a_head_printed_by_this_layout_is_measured_whole_and_a_cut_one_is_not(self):
+        """Review of 2026-10-16: the status block moved ahead of the duties, so the old reader (head = up to the status
+        block) found no `Full packet:` line and recorded head_bytes null for every packet printed as a head, blaming the
+        model's pipe.  The head now closes with HEAD_END, and a head cut before it is not a whole print."""
+        import json
+        import packets as packets_module
+        import shiploop_navigator
+        cases = json.loads((ROOT / "test" / "shiploop_e2e" / "step_cases.json").read_text())
+        printed = packets_module.offline_packets(cases["node-fix-bug"], printed=True)
+        heads = {key: text for key, text in printed.items() if "Full packet:" in text}
+        self.assertGreaterEqual(len(heads), 4, "the case no longer prints heads: pick a larger one")
+        for key, text in heads.items():
+            with self.subTest(packet=key):
+                head, why = counters.head_or_why(text)
+                self.assertIsNone(why)
+                self.assertTrue(head.rstrip().endswith(shiploop_navigator.HEAD_END))
+                self.assertIsNotNone(counters.FULL_PACKET.search(head))
+                self.assertGreater(len(head), 9_000)  # the duties are in what is measured, not only the status block
+                # a reply cut by the model's pipe after the pointer and before the closing line is not a whole print
+                cut_head, cut_why = counters.head_or_why(text[:text.rindex(shiploop_navigator.HEAD_END)])
+                self.assertIsNone(cut_head)
+                self.assertEqual(cut_why, counters.NOT_WHOLE_BEFORE_CLOSING)
+
+    def test_a_saved_head_of_the_older_layout_still_ends_at_its_status_block(self):
+        old = ("ShipLoop navigator | step-plan | revision 3\nCallback for this stage (run once): python3 x complete --result=/r/a.md\n"
+               "Full packet: /r/packets/nav-a.md\nKeepalive marker: SHIPLOOP-RUN run=r rev=3 dir=/r\n=== ShipLoop status ===\nx\n"
+               "=== end ShipLoop status ===\nmore text\n")
+        head, why = counters.head_or_why(old)
+        self.assertIsNone(why)
+        self.assertTrue(head.rstrip().endswith(counters.STATUS_END))
+        self.assertIsNotNone(counters.FULL_PACKET.search(head))
 
     def test_the_kept_reply_filter_covers_every_pattern_counters_reads(self):
         for sample in ("ShipLoop navigator | discovery | revision 1", "Committed this review's changes as 7e11860aaaaa: a.py.",

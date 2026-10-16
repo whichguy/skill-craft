@@ -1521,6 +1521,9 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
     return Path(root) / PACKET_DIR / f"{action_id}.md"
 
 
+# The last line of a printed head (packet_head).
+HEAD_END = "=== end ShipLoop head ==="
+
 # Printed characters at most: below the ~20,000-character cut some hosts (Grok)
 # apply to shell output.
 PRINT_LIMIT = 16_000
@@ -1626,7 +1629,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         "The duties and rules above are this stage's; the full packet adds the original request, the knowledge files and "
         "hand-offs it builds on, and the run rules. Read it with a file-reading tool, not by printing it to the "
         "shell. References it names are for lookup: open only the section a step needs, never a whole reference "
-        "file, and do not re-read the ShipLoop or Improve skill cards.",
+        "file, and do not re-read the ShipLoop skill card.",
         "Never end the turn while a ShipLoop command is still running.",
         "Recovery (reprints this head and rewrites the full packet): " + _callback(core, root, "next"),
         "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
@@ -1637,7 +1640,8 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
     if len(head) > PRINT_LIMIT:
         head = "\n".join(lines + ["Knowledge files this stage reads and the hand-offs from earlier stages: in the full "
                                   "packet, each quoted whole."])
-    return head
+    # A closing line a reader can tell a whole print by (the harness measures what was shown; a head cut by a pipe lacks it).
+    return head + "\n" + HEAD_END + "\n"
 
 
 _GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance.INNER_GROUPS)

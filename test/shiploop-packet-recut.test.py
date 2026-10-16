@@ -261,6 +261,22 @@ class PrintedHeadTests(unittest.TestCase):
                 self.assertLess(end + len("=== end ShipLoop status ==="), hook.WINDOW)
                 self.assertLess(end, text.index("Current stage guidance:"))
 
+    def test_the_ask_agent_route_keeps_the_duties_and_the_status_window_and_its_step_plan_head_is_the_one_over_the_cut(self) -> None:
+        """Known and recorded: on the opt-in ask-agent route step-plan's duties are 10.6k, so its head is about 21,200
+        characters, above the ~20,000 some hosts cut at (inline: 19,500).  Only the tail is cut: the Recovery and Pause
+        lines, which the packet file repeats.  Every other stage and route stays under the cut."""
+        import shiploop_status_hook as hook
+        printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True)
+        over = [key for key, text in printed.items() if len(text) > self.HOST_CUT]
+        self.assertEqual(over, ["01-step-plan"])
+        for key, text in printed.items():
+            if key.endswith("-improve"):
+                continue
+            with self.subTest(packet=key):
+                self.assertIn("Current stage guidance:", text)
+                self.assertLess(text.index("=== end ShipLoop status ==="), hook.WINDOW)
+                self.assertLess(len(text), 22_000)
+
     def test_a_head_that_would_pass_the_limit_drops_the_quoted_knowledge_not_the_duties(self) -> None:
         for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():
             if "Full packet:" not in text:

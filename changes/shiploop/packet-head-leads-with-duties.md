@@ -10,3 +10,8 @@ knowledge files and hand-offs are dropped from the head first when it would pass
   prompt.", which contradicted the rule that no packet pauses for a context clear.
 - The Improve packet says to invoke the improve skill at every Improve stage and not from memory of an earlier one. In
   the last live run the model invoked it for 1 of 4 stages.
+- The head closes with `=== end ShipLoop head ===`, so a reader can tell a whole print from one cut by a pipe. The
+  E2E harness reads a head to that line (`counters.head_or_why`, `flow.py`) and still reads saved heads of the older
+  layout to the status block.
+- The head's footer and SKILL.md no longer tell the model not to re-read "the Improve card"; the Improve stage's packet says
+  to invoke the skill every time.

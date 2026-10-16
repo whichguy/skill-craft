@@ -799,8 +799,9 @@ command. The quoted knowledge files and hand-offs stay in the file when the head
 would pass the limit. Read the packet file with a file-reading tool for what the
 head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps about 20 KB) and every
 byte stays in context. References a packet names are for lookup: open only the
-section a step needs, never a whole reference file, and do not re-read this card
-or the Improve card. `next` is the recovery command: it rewrites the file and
+section a step needs, never a whole reference file, and do not re-read this card.
+(The improve skill is different: an Improve stage's packet says to invoke it at every
+Improve stage.) `next` is the recovery command: it rewrites the file and
 reprints the head, and the script cannot know what survived a clear or
 compaction, so no packet ever refers back to an earlier one. Paused, blocked,
 awaiting, halted and done packets are short and print whole.
