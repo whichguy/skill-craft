@@ -9,7 +9,10 @@ executables, and no real platform, org or model is ever reached. They say nothin
   before     once, on a fresh run only
   home_links symlinks of existing names in the real HOME into a throwaway HOME (Grok, Codex), recorded
   cleanup    after grading, always: success, failure, crash, KeyboardInterrupt; a failure is printed loudly
-  model_bin  a guarded stand-in command written to <output>/platform/bin and put first on the host's PATH (real HOME inside)
+  model_bin  a guarded stand-in command written to <output>/platform/bin and put first on the host's PATH (real HOME inside),
+             pinned first again in the throwaway HOME's shell startup files (path_helper) and checked per shell
+  coverage   the guard's own log against the sf commands in the transcript: a run the guard never saw is an invalid trial
+  resume_note a sentence for the prompt of a resumed run whose platform was reset
   scrub      one function through which every stored or printed command output goes
 """
 
@@ -25,6 +28,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest import mock
@@ -62,6 +66,18 @@ print("ok " + verb)
 """
 
 # The model_bin command: a stand-in for a CLI the model would run. It records what it saw (the real HOME, the baked variables).
+# The sf wrapper of a coverage test: what checks/sf_guard.py logs for an allowed call (a decision line, then an end line).
+GUARD_TOOL = """
+import json, os, sys, time
+log = os.path.join(os.environ["E2E_PLATFORM_DIR"], "sf-calls.jsonl")
+call = "%08x" % (time.time_ns() & 0xffffffff)
+with open(log, "a") as handle:
+    handle.write(json.dumps({"ts": time.time(), "call": call, "org": "de", "prefix": "P", "argv": sys.argv[1:],
+                             "decision": "allowed", "reason": "test"}) + "\\n")
+    handle.write(json.dumps({"ts": time.time(), "call": call, "end": True, "exit": 0, "stderr_head": "", "interrupted": False}) + "\\n")
+print("guard ok")
+"""
+
 TOOL = """
 import json, os, sys
 with open(os.environ["PLAT_LOG"], "a") as log:
@@ -92,7 +108,7 @@ def product():
 # PLAT_MODEL_MARK, so a platform command can say whether the model had started when it ran. A model that "shows" a credential
 # puts it in its event stream, as a tool result would.
 FAKE_GROK = f"""#!{sys.executable}
-import json, os, sys
+import json, os, subprocess, sys
 from pathlib import Path
 {PRODUCT}
 argv = sys.argv[1:]
@@ -112,6 +128,8 @@ Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": str(home
 print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["shiploop", "improve"]}}))
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "python3 /x/skills/shiploop/scripts/shiploop next"}}}}))
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "sf org display --json"}}}}))
+for _ in range(int(os.environ.get("FAKE_SF_CALLS", "0"))):  # the model reaching the guard: the first PATH folder holds the wrapper
+    subprocess.run([os.environ["PATH"].split(os.pathsep)[0] + "/sf", "org", "list"], check=True, capture_output=True)
 print(json.dumps({{"type": "text", "data": '{{"accessToken": "{TOKEN}"}}'}}))
 mode = os.environ.get("FAKE_MODE")
 if mode == "fail":
@@ -156,6 +174,7 @@ class PlatformCase(unittest.TestCase):
             self.fakes[name] = path
         (self.tmp / "plat.py").write_text(PLAT)
         (self.tmp / "tool.py").write_text(TOOL)
+        (self.tmp / "guard_tool.py").write_text(GUARD_TOOL)
         self.plugin = self.tmp / "build" / "plugins" / "skill-craft"
         (self.plugin / ".claude-plugin").mkdir(parents=True)
         (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
@@ -176,7 +195,7 @@ class PlatformCase(unittest.TestCase):
                                                "PLAT_MODEL_MARK": str(self.tmp / "model-started")})
         patched.start()
         self.addCleanup(patched.stop)
-        for var in ("PLAT_FAIL", "FAKE_MODE"):
+        for var in ("PLAT_FAIL", "FAKE_MODE", "FAKE_SF_CALLS"):
             self.addCleanup(os.environ.pop, var, None)
         for patch in (mock.patch.object(listeners, "observe", return_value=[]),
                       mock.patch.object(environment, "autodetect_browser", return_value=None)):
@@ -635,6 +654,8 @@ class ModelBinTest(PlatformCase):
         self.assertTrue((out / "grok" / "platform" / "bin" / "mytool").is_file())
         self.assertEqual(Path(self.calls()[1]["path_head"]), out / "grok" / "platform" / "bin")
         self.assertIn("mytool", json.loads((out / "grok" / "preflight.json").read_text())["platform"]["model_bin"])
+        self.assertEqual(json.loads((out / "grok" / "preflight.json").read_text())["platform"]["model_bin_resolution"],
+                         {"ok": True, "problems": []})
 
     def test_a_resume_writes_the_wrapper_again_and_a_regrade_restates_it(self):
         self.use_case(self.with_bin())
@@ -758,6 +779,632 @@ class PreflightOnlyTest(PlatformCase):
         self.assertEqual(code, 0, printed)
         self.assertNotIn("platform", json.loads((out / "claude" / "preflight.json").read_text()))
         self.assertNotIn("platform preflight", printed)
+
+
+class ShellTest(PlatformCase):
+    """The shells the model may start (a login shell runs macOS path_helper, which puts /opt/homebrew/bin ahead of the PATH the host
+    was launched with) must find the wrapper first. Only `command -v` is ever run against a name: nothing here executes a wrapper."""
+
+    def folders(self) -> tuple[Path, Path, Path]:
+        """(home, bin, decoy): a throwaway home, a wrapper folder holding `e2etool` and a decoy folder holding another one."""
+        home, bin_dir, decoy = self.tmp / "throwaway", self.tmp / "wrappers", self.tmp / "decoy"
+        for folder in (home, bin_dir, decoy):
+            folder.mkdir()
+        for folder in (bin_dir, decoy):
+            tool = folder / "e2etool"
+            tool.write_text(f"#!/bin/sh\ntouch {shlex.quote(str(self.tmp / 'executed'))}\n")
+            tool.chmod(0o755)
+        return home, bin_dir, decoy
+
+    def env(self, home: Path, *folders: Path) -> dict:
+        return {"HOME": str(home), "PATH": os.pathsep.join([*map(str, folders), "/usr/bin", "/bin"])}
+
+    def installed(self) -> list[tuple[str, str]]:
+        return [shell for shell in run.RESOLUTION_SHELLS if os.access(shell[0], os.X_OK)]
+
+    def simulate_path_helper(self, home: Path, decoy: Path) -> None:
+        """What /etc/zprofile and /etc/profile do before the user's own startup files: a folder put ahead of the host's PATH."""
+        for name in (".zprofile", ".bash_profile"):
+            (home / name).write_text(f'export PATH={shlex.quote(str(decoy))}":$PATH"\n')
+
+
+class PinTest(ShellTest):
+    def test_the_five_startup_files_get_the_path_line_in_a_throwaway_home_and_none_in_the_real_one(self):
+        home, bin_dir, _ = self.folders()
+        written = run.pin_shell_path(home, bin_dir, self.real_home)
+        self.assertEqual(written, [".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"])
+        for name in written:
+            text = (home / name).read_text()
+            self.assertIn(run.PIN_MARK, text)
+            self.assertIn(f"PATH={shlex.quote(str(bin_dir))}\":$PATH\"\nexport PATH\n", text)
+        self.assertEqual(sorted(path.name for path in self.real_home.iterdir()), [".sfdx"], "the real home gained nothing")
+
+    def test_a_second_call_changes_nothing_and_a_file_that_exists_keeps_its_content(self):
+        home, bin_dir, _ = self.folders()
+        (home / ".zprofile").write_text("export KEEP=1")  # no trailing newline
+        first = run.pin_shell_path(home, bin_dir, self.real_home)
+        snapshot = {name: (home / name).read_bytes() for name in first}
+        self.assertTrue(snapshot[".zprofile"].startswith(b"export KEEP=1\n" + run.PIN_MARK.encode()))
+        self.assertEqual(run.pin_shell_path(home, bin_dir, self.real_home), first)
+        self.assertEqual({name: (home / name).read_bytes() for name in first}, snapshot)
+        self.assertEqual(snapshot[".zprofile"].count(run.PIN_MARK.encode()), 1)
+
+    def test_the_real_home_is_never_written_whatever_way_it_is_spelled(self):
+        home, bin_dir, _ = self.folders()
+        link = self.tmp / "real-home-link"
+        link.symlink_to(self.real_home)
+        before = sorted(path.name for path in self.real_home.iterdir())
+        for spelling in (self.real_home, link, self.real_home / ".sfdx" / "..", self.real_home / ".." / "real-home"):
+            with self.subTest(spelling=str(spelling)):
+                self.assertEqual(run.pin_shell_path(spelling, bin_dir, self.real_home), [])
+        self.assertEqual(sorted(path.name for path in self.real_home.iterdir()), before)
+
+    def test_a_startup_file_that_is_a_link_to_the_real_home_is_not_written_through(self):
+        home, bin_dir, _ = self.folders()
+        real_rc = self.real_home / ".zshrc"
+        real_rc.write_text("# the owner's own\n")
+        (home / ".zshrc").symlink_to(real_rc)
+        written = run.pin_shell_path(home, bin_dir, self.real_home)
+        self.assertNotIn(".zshrc", written)
+        self.assertEqual(real_rc.read_text(), "# the owner's own\n")
+        self.assertIn(".zprofile", written)
+
+
+class ResolutionTest(ShellTest):
+    def test_a_decoy_ahead_of_the_wrapper_is_a_problem_in_every_shell_and_the_right_order_is_none(self):
+        home, bin_dir, decoy = self.folders()
+        shells = self.installed()
+        self.assertTrue(shells, "/bin/sh exists on any machine this runs on")
+        wrong = run.shell_resolution_problems(["e2etool"], bin_dir, self.env(home, decoy, bin_dir))
+        self.assertEqual(len(wrong), len(shells), wrong)
+        for (shell, flag), problem in zip(shells, wrong):
+            self.assertIn(f"`{shell} {flag}`", problem)
+            self.assertIn(str(decoy / "e2etool"), problem)
+            self.assertIn(str(bin_dir / "e2etool"), problem)
+        self.assertEqual(run.shell_resolution_problems(["e2etool"], bin_dir, self.env(home, bin_dir, decoy)), [])
+        self.assertFalse((self.tmp / "executed").exists(), "command -v never runs the command")
+
+    def test_one_problem_per_name_and_a_name_that_is_nowhere_resolves_to_nothing(self):
+        home, bin_dir, _ = self.folders()
+        problems = run.shell_resolution_problems(["e2etool", "absent"], bin_dir, self.env(home, bin_dir))
+        self.assertEqual(len(problems), len(self.installed()))
+        self.assertTrue(all("`absent` resolves to nothing" in problem for problem in problems))
+
+    def test_a_shell_that_is_not_installed_is_skipped_and_one_that_hangs_is_a_problem(self):
+        home, bin_dir, _ = self.folders()
+        env = self.env(home, bin_dir)
+        with mock.patch.object(run, "RESOLUTION_SHELLS", (("/bin/no-such-shell", "-c"), ("/bin/sh", "-c"))):
+            self.assertEqual(run.shell_resolution_problems(["e2etool"], bin_dir, env), [])
+            with mock.patch.object(run.subprocess, "run", side_effect=subprocess.TimeoutExpired("sh", 1)):
+                problems = run.shell_resolution_problems(["e2etool"], bin_dir, env)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("did not answer", problems[0])
+
+    def test_a_login_shell_that_reorders_the_path_is_found_out_and_the_pin_puts_the_wrapper_back(self):
+        home, bin_dir, decoy = self.folders()
+        login = [shell for shell in self.installed() if "l" in shell[1]]
+        if not login:
+            self.skipTest("no login shell installed")
+        self.simulate_path_helper(home, decoy)
+        env = self.env(home, bin_dir)
+        unpinned = run.shell_resolution_problems(["e2etool"], bin_dir, env)
+        self.assertEqual(len(unpinned), len(login), unpinned)
+        for problem in unpinned:
+            self.assertIn(str(decoy / "e2etool"), problem)
+            self.assertTrue(any(f"`{shell} {flag}`" in problem for shell, flag in login), problem)
+        run.pin_shell_path(home, bin_dir, self.real_home)
+        self.assertEqual(run.shell_resolution_problems(["e2etool"], bin_dir, env), [])
+        self.assertFalse((self.tmp / "executed").exists())
+
+
+class ShellPreflightTest(ShellTest):
+    def host(self, name: str = "grok") -> tuple[dict, Path]:
+        out = self.tmp / f"pf-{name}"
+        out.mkdir()
+        return dict(os.environ, HOME=str(out / "home")), out
+
+    def test_a_resolution_problem_fails_the_preflight_and_the_cases_own_command_is_not_run(self):
+        env, out = self.host()
+        (out / "home").mkdir()
+        spec = self.platform(model_bin=self.model_bin(), home_links=None)
+        with mock.patch.object(run, "shell_resolution_problems", return_value=["`mytool` resolves to /x/mytool under `/bin/zsh -lc`"]):
+            state = run.platform_preflight(spec, env, out)
+        self.assertEqual(self.calls(), [], "the case's preflight command was not run")
+        self.assertEqual((state["preflight"]["ok"], state["preflight"]["returncode"], state["preflight"]["command"]),
+                         (False, 1, "model_bin shell resolution"))
+        self.assertIn("resolves to /x/mytool", state["preflight"]["output"])
+        self.assertEqual(state["model_bin_resolution"], {"ok": False, "problems": ["`mytool` resolves to /x/mytool under `/bin/zsh -lc`"]})
+        self.assertEqual(state["shell_path_pinned"], [".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"])
+        self.assertNotIn("guard_log_lines_at_launch", state)
+
+    def test_a_good_resolution_is_recorded_and_the_cases_command_runs_behind_it(self):
+        env, out = self.host()
+        (out / "home").mkdir()
+        state = run.platform_preflight(self.platform(model_bin=self.model_bin(), home_links=None), env, out)
+        self.assertEqual(state["model_bin_resolution"], {"ok": True, "problems": []})
+        self.assertTrue(state["preflight"]["ok"])
+        self.assertEqual(state["guard_log_lines_at_launch"], 0)
+        self.assertEqual(self.verbs(), ["preflight"])
+
+    def test_a_case_without_a_model_bin_pins_nothing_and_checks_nothing(self):
+        env, out = self.host()
+        (out / "home").mkdir()
+        with mock.patch.object(run, "shell_resolution_problems", side_effect=AssertionError("checked")):
+            state = run.platform_preflight(self.platform(), env, out)
+        for key in ("shell_path_pinned", "model_bin_resolution", "guard_log_lines_at_launch", "model_bin"):
+            self.assertNotIn(key, state)
+        self.assertEqual(os.listdir(out / "home"), [".sfdx"])
+
+    def with_bin(self) -> dict:
+        spec = self.platform(model_bin=self.model_bin(), home_links=None)
+        spec["preflight"] = f"mytool probe && {self.command('preflight')}"
+        return spec
+
+    def test_a_run_records_the_pin_and_the_resolution_and_pins_only_the_throwaway_home(self):
+        self.use_case(self.with_bin())
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        out = Path(result["output"])
+        pinned = [".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"]
+        self.assertEqual(result["platform"]["shell_path_pinned"], pinned)
+        self.assertEqual(result["platform"]["model_bin_resolution"], {"ok": True, "problems": []})
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["platform"]["shell_path_pinned"], pinned)
+        for name in pinned:
+            self.assertIn(str(out / "platform" / "bin"), (out / "home" / name).read_text())
+        self.assertEqual(sorted(path.name for path in self.real_home.iterdir()), [".sfdx"])
+
+    def test_a_resume_pins_again_and_the_resumed_host_launches_behind_the_wrapper(self):
+        self.use_case(self.with_bin())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        for name in first["platform"]["shell_path_pinned"]:
+            (out / "home" / name).unlink()
+        result, _ = self.resume("grok", out, "done")
+        self.assertEqual(result["platform"]["shell_path_pinned"], first["platform"]["shell_path_pinned"])
+        self.assertTrue((out / "home" / ".zprofile").is_file(), "the pin was written again for the resumed launch")
+        self.assertEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
+
+    def test_a_regrade_restates_the_pin_and_the_resolution_without_checking_again(self):
+        self.use_case(self.with_bin())
+        _, first, _ = self.invoke("grok", "done")
+        with mock.patch.object(run, "shell_resolution_problems", side_effect=AssertionError("checked")):
+            regraded, _ = self.resume("grok", Path(first["output"]), "done", "--grade-only")
+        for key in ("shell_path_pinned", "model_bin_resolution"):
+            self.assertEqual(regraded["platform"][key], first["platform"][key])
+
+    def test_a_resume_whose_shells_no_longer_find_the_wrapper_is_refused_and_leaves_the_result_alone(self):
+        self.use_case(self.with_bin())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        kept = (out / "result.json").read_text()
+        calls = self.calls()
+        self.plat_log.with_name("plat.log.model").unlink()
+        problem = "`mytool` resolves to /x/mytool under `/bin/zsh -lc`, not to the wrapper"
+        with mock.patch.object(run, "shell_resolution_problems", return_value=[problem]), \
+                self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.resume("grok", out, "done")
+        self.assertIn("preflight refused", str(refused.exception))
+        self.assertIn(problem, str(refused.exception))
+        self.assertEqual((out / "result.json").read_text(), kept)
+        self.assertEqual(self.calls(), calls, "neither the probe, the preflight nor a cleanup ran")
+        self.assertFalse(self.plat_log.with_name("plat.log.model").exists(), "no model started")
+
+    def refusing_real_home(self) -> None:
+        """A Claude host runs in the real home: nothing is pinned there, and a login shell whose startup files put a decoy ahead of
+        the wrapper must refuse the run rather than let the model reach the real command."""
+        decoy = self.tmp / "decoy"
+        decoy.mkdir()
+        tool = decoy / "mytool"
+        tool.write_text("#!/bin/sh\n")
+        tool.chmod(0o755)
+        self.simulate_path_helper(self.real_home, decoy)
+        if not [shell for shell in self.installed() if "l" in shell[1]]:
+            self.skipTest("no login shell installed")
+
+    def test_a_host_on_the_real_home_whose_login_shell_reorders_the_path_is_refused_before_any_model(self):
+        self.use_case(self.with_bin())
+        self.refusing_real_home()
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.invoke("claude", "done")
+        message = str(refused.exception)
+        self.assertIn("preflight refused", message)
+        self.assertIn("not to the wrapper", message)
+        self.assertFalse(self.model_started())
+        self.assertEqual(self.verbs(), [], "neither the probe nor the case's preflight ran")
+        stub = json.loads((self.tmp / "out-claude-a" / "result.json").read_text())
+        self.assertFalse(stub["pass"])
+        self.assertEqual(stub["platform"]["shell_path_pinned"], [], "nothing was written into the real home")
+        self.assertFalse(stub["platform"]["model_bin_resolution"]["ok"])
+        self.assertEqual(sorted(path.name for path in self.real_home.iterdir()), [".bash_profile", ".sfdx", ".zprofile"])
+
+    def test_preflight_only_refuses_the_same_run_and_names_the_shells(self):
+        self.use_case(self.with_bin())
+        self.refusing_real_home()
+        out = self.tmp / "pf"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(
+                run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})):
+            code = run.main(["--preflight-only", "--case", "plat", "--output", str(out), "--host", "claude",
+                             "--claude-bin", str(self.fakes["claude"])])
+        self.assertEqual(code, 1)
+        self.assertIn("platform preflight (claude): REFUSED", printed.getvalue())
+        self.assertIn("-lc", printed.getvalue())
+        record = json.loads((out / "claude" / "preflight.json").read_text())["platform"]
+        self.assertFalse(record["model_bin_resolution"]["ok"])
+        self.assertEqual(self.verbs(), [])
+
+
+class ModelCommandTest(PlatformCase):
+    """What the transcript shows the model ran, against what the guard logged."""
+
+    def events(self, *events) -> Path:
+        path = self.tmp / "events.jsonl"
+        path.write_text("".join((event if isinstance(event, str) else json.dumps(event)) + "\n" for event in events))
+        return path
+
+    def test_sf_is_found_in_a_command_whatever_the_host_calls_the_event(self):
+        for label, event in (
+                ("grok", {"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {"command": "sf org list --json"}}),
+                ("claude", {"type": "assistant", "message": {"content": [
+                    {"type": "tool_use", "name": "Bash", "input": {"command": "HOME=/Users/x sf apex run --file a.apex"}}]}}),
+                ("codex", {"type": "tool_call", "toolName": "run_terminal_command",
+                           "rawInput": {"command": "/bin/zsh -lc 'cd w && sfdx force:org:list'"}}),
+                ("codex-list", {"type": "tool_call", "rawInput": {"cmd": ["bash", "-lc", "sf data query -q x"]}})):
+            with self.subTest(label):
+                found = run.model_sf_commands(self.events(event))
+                self.assertEqual(len(found), 1, found)
+
+    def test_the_forms_the_model_runs_sf_in_are_all_accepted(self):
+        for command in ("sf org list", "cd w && sf project deploy start -o de", "HOME=/Users/x sf apex run", "sfdx force:org:list",
+                        'python3 -c \'import subprocess; subprocess.run(["sf", "data", "query"])\'',
+                        "subprocess.run(['sfdx', 'x'])", "/opt/homebrew/bin/sf org list", "/opt/homebrew/bin/sfdx", "echo x | sf --help"):
+            with self.subTest(command=command):
+                self.assertTrue(run.model_sf_commands(self.events({"rawInput": {"command": command}})), command)
+
+    def test_a_command_that_only_mentions_sf_and_text_outside_a_command_are_not_counted(self):
+        events = self.events(
+            {"rawInput": {"command": "ls -la"}}, {"rawInput": {"command": "cat sf-calls.jsonl"}},
+            {"rawInput": {"command": "python3 /x/transforms.py"}}, {"rawInput": {"command": "echo asf org"}},
+            {"rawInput": {"command": "/opt/homebrew/bin/sfx --help"}},
+            {"type": "text", "data": "I will run sf org list now"}, {"type": "user", "message": {"content": "use sf org list"}},
+            {"rawInput": {"command": ["ls", 3]}}, "not json at all", "[1, 2, 3]", '{"half": ')
+        self.assertEqual(run.model_sf_commands(events), [])
+        self.assertEqual(run.model_sf_commands(self.tmp / "missing.jsonl"), [])
+
+    def test_the_same_command_in_a_call_and_its_update_is_counted_once(self):
+        call = {"type": "tool_call", "rawInput": {"command": "sf org list"}}
+        found = run.model_sf_commands(self.events(call, dict(call, type="tool_call_update"), {"rawInput": {"command": "sfdx x"}}))
+        self.assertEqual(found, ["sf org list", "sfdx x"])
+
+    def test_coverage_counts_calls_not_end_lines_and_not_the_lines_before_the_launch(self):
+        out = self.tmp / "run"
+        (out / "platform").mkdir(parents=True)
+        log = [{"call": "p", "decision": "allowed"}, {"call": "p", "end": True, "exit": 0},  # the preflight's
+               {"call": "a", "decision": "allowed"}, {"call": "a", "end": True, "exit": 0},
+               {"call": "b", "decision": "denied"}, {"call": "c", "decision": "allowed"}]  # c was cut off: no end line
+        (out / "platform" / "sf-calls.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log) + "not json\n")
+        (out / "events.jsonl").write_text(json.dumps({"rawInput": {"command": "sf org list"}}) + "\n")
+        self.assertEqual(run.guard_coverage(out, 2), {"model_sf_commands": 1, "guard_calls": 3, "bypassed": False})
+        self.assertEqual(run.guard_log_lines(out), 7)
+
+    def test_coverage_flags_a_bypass_only_when_commands_exist_and_the_guard_saw_none(self):
+        out = self.tmp / "run"
+        (out / "platform").mkdir(parents=True)
+        (out / "platform" / "sf-calls.jsonl").write_text(json.dumps({"call": "p", "decision": "allowed"}) + "\n"
+                                                           + json.dumps({"call": "p", "end": True}) + "\n")
+        (out / "events.jsonl").write_text(json.dumps({"rawInput": {"command": "sf org list"}}) + "\n")
+        self.assertEqual(run.guard_coverage(out, 2), {"model_sf_commands": 1, "guard_calls": 0, "bypassed": True})
+        self.assertFalse(run.guard_coverage(out, 0)["bypassed"], "counted from the start the preflight's call is a guard call")
+        (out / "events.jsonl").write_text(json.dumps({"rawInput": {"command": "ls"}}) + "\n")
+        self.assertEqual(run.guard_coverage(out, 2), {"model_sf_commands": 0, "guard_calls": 0, "bypassed": False})
+        (out / "platform" / "sf-calls.jsonl").unlink()
+        self.assertEqual(run.guard_coverage(out, 0), {"model_sf_commands": 0, "guard_calls": 0, "bypassed": False})
+
+
+class CoverageRunTest(PlatformCase):
+    """An sf wrapper in a run: the guard log against the (fake) model's transcript, which always shows one `sf` command."""
+
+    def sf_case(self, **override) -> dict:
+        spec = self.platform(model_bin={"sf": f"{shlex.quote(sys.executable)} {shlex.quote(str(self.tmp / 'guard_tool.py'))}"},
+                             home_links=None, **override)
+        spec["preflight"] = f"sf probe && {self.command('preflight')}"
+        return spec
+
+    def test_a_model_that_reached_the_guard_passes_and_the_run_says_what_the_guard_saw(self):
+        self.use_case(self.sf_case())
+        os.environ["FAKE_SF_CALLS"] = "2"
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        block = result["platform"]
+        self.assertEqual(block["guard_log_lines_at_launch"], 2, "the preflight's own probe: a decision and an end line")
+        self.assertEqual(block["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 2, "bypassed": False})
+        self.assertEqual(json.loads((Path(result["output"]) / "invocation.json").read_text())["platform"]["guard_log_lines_at_launch"], 2)
+        self.assertIn("  platform  PASS  cleanup ran;", printed)
+        self.assertIn("guard saw 2 model calls (transcript shows 1 sf commands)", printed)
+        self.assertNotIn("invalid trial", printed)
+
+    def test_a_model_the_guard_never_saw_is_an_invalid_trial_and_fails_the_run(self):
+        self.use_case(self.sf_case())
+        code, result, printed = self.invoke("grok", "done")  # the fake model's transcript shows `sf org display` and never calls the wrapper
+        self.assertEqual(code, 1)
+        self.assertFalse(result["pass"], "everything else about the run is right")
+        self.assertEqual(result["platform"]["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 0, "bypassed": True})
+        self.assertTrue(result["platform"]["cleanup"]["ok"])
+        self.assertIn("  platform  FAIL  cleanup ran;", printed)
+        self.assertIn("guard saw 0 model calls (transcript shows 1 sf commands)", printed)
+        self.assertIn("the guard saw no model call although the transcript shows 1 sf commands", printed)
+        self.assertIn("an invalid trial, not a ShipLoop verdict", printed)
+        self.assertIn("guard", (Path(result["output"]) / "mismatch.md").read_text())
+
+    def test_a_platform_whose_wrappers_are_not_sf_has_no_coverage(self):
+        self.use_case(self.platform(model_bin=self.model_bin(), home_links=None, preflight=None))
+        code, result, printed = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertNotIn("guard_coverage", result["platform"])
+        self.assertIn("guard_log_lines_at_launch", result["platform"])
+        self.assertNotIn("guard saw", printed)
+
+    def test_a_resume_counts_from_the_first_launch_and_keeps_that_count(self):
+        self.use_case(self.sf_case())
+        os.environ["FAKE_SF_CALLS"] = "1"
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        self.assertEqual(first["platform"]["guard_coverage"]["guard_calls"], 1)
+        result, _ = self.resume("grok", out, "done")
+        self.assertEqual(result["platform"]["guard_log_lines_at_launch"], 2, "the first launch's, not the resume's")
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["platform"]["guard_log_lines_at_launch"], 2)
+        # first model call + the resume preflight's probe + the resumed model's call (a resume's own preflight call is counted)
+        self.assertEqual(result["platform"]["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 3, "bypassed": False})
+        self.assertTrue(result["pass"], result)
+
+    def test_a_regrade_grades_the_bypass_again_from_what_is_on_disk(self):
+        self.use_case(self.sf_case())
+        _, first, _ = self.invoke("grok", "done")
+        out = Path(first["output"])
+        self.assertFalse(first["pass"])
+        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertTrue(regraded["platform"]["guard_coverage"]["bypassed"])
+        self.assertFalse(regraded["pass"])
+        # a run recorded before the field existed has no first-launch count: it is not judged
+        record = json.loads((out / "invocation.json").read_text())
+        del record["platform"]["guard_log_lines_at_launch"]
+        (out / "invocation.json").write_text(json.dumps(record))
+        old, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertNotIn("guard_coverage", old["platform"])
+        self.assertTrue(old["pass"], old)
+
+
+class ManualCleanupTest(PlatformCase):
+    def spec(self) -> dict:
+        return {"cleanup": 'echo "[$E2E_CHECKS][$E2E_PLATFORM_DIR]"; echo "it'"'"'s $HOME"'}
+
+    def test_the_printed_command_works_pasted_into_a_clean_shell(self):
+        out = self.tmp / "my run"
+        text = run.manual_cleanup_command(out, self.spec())
+        done = subprocess.run(text, shell=True, capture_output=True, text=True, env={"PATH": "/usr/bin:/bin", "HOME": "/h"})
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(done.stdout.splitlines(), [f"[{run.HERE / 'checks'}][{out / 'platform'}]", "it's /h"])
+
+    def test_the_old_prefix_assignment_form_would_have_expanded_the_variables_empty(self):
+        out = self.tmp / "r"
+        old = (f"E2E_PLATFORM_DIR={shlex.quote(str(out / 'platform'))} E2E_CHECKS={shlex.quote(str(run.HERE / 'checks'))} "
+               f"{self.spec()['cleanup']}")
+        done = subprocess.run(old, shell=True, capture_output=True, text=True, env={"PATH": "/usr/bin:/bin"})
+        self.assertEqual(done.stdout.splitlines()[0], "[][]", "why the printed form is `env ... sh -c`")
+
+    def test_the_failure_banner_and_the_start_of_the_run_print_that_command(self):
+        self.use_case(self.platform())
+        os.environ["PLAT_FAIL"] = "cleanup"
+        code, result, printed = self.invoke("grok", "done")
+        out = Path(result["output"])
+        text = run.manual_cleanup_command(out, self.platform())
+        self.assertEqual(printed.count(text), 2, "once at the start of the run, once in the failure banner")
+        self.assertIn(f"  {text}\n", printed)
+
+
+class GuardHostTest(PlatformCase):
+    def sleeper(self) -> subprocess.Popen:
+        proc = subprocess.Popen(["sleep", "60"], start_new_session=True)
+        self.addCleanup(proc.wait)
+        self.addCleanup(listeners.end_group, proc.pid)
+        return proc
+
+    def state(self) -> str:
+        return ("import subprocess, sys; print(subprocess.run(['ps', '-o', 'stat=', '-p', sys.argv[1]], capture_output=True, "
+                "text=True).stdout.strip() or 'gone')")
+
+    def test_the_cleanup_waits_until_this_threads_host_is_gone_and_leaves_a_sibling_s_alone(self):
+        mine, sibling = self.sleeper(), self.sleeper()
+        script = self.tmp / "state.py"
+        script.write_text(self.state())
+        seen = self.tmp / "seen.txt"
+        cleanup = f"{shlex.quote(sys.executable)} {shlex.quote(str(script))} {mine.pid} > {shlex.quote(str(seen))}"
+        groups = {mine.pid, sibling.pid}
+        owners = {mine.pid: threading.get_ident(), sibling.pid: threading.get_ident() + 1}
+        out = self.tmp / "guard-out"
+        out.mkdir()
+        with mock.patch.object(run, "LIVE_HOST_GROUPS", groups), mock.patch.object(run, "HOST_THREAD", owners):
+            guard = run.PlatformGuard()
+            guard.arm({"cleanup": cleanup}, out)
+            record = guard.finish()
+        self.assertTrue(record["ok"], record)
+        state = seen.read_text().strip()
+        self.assertTrue(state.startswith(("Z", "gone")), f"the host was still {state!r} when the cleanup ran")
+        self.assertIsNone(sibling.poll(), "another case's host in a suite is not ended")
+        self.assertEqual(listeners.unreaped(sibling.pid), "running")
+
+    def slow_host(self, seconds: float):
+        """Patches that make one registered leader of this thread look `running` for ``seconds`` and then exited, and ending it a no-op."""
+        ready = time.time() + seconds
+        owners = {4242: threading.get_ident()}
+        return ready, (mock.patch.object(run, "LIVE_HOST_GROUPS", {4242}), mock.patch.object(run, "HOST_THREAD", owners),
+                       mock.patch.object(listeners, "end_group", return_value=True),
+                       mock.patch.object(listeners, "unreaped", side_effect=lambda pid: "running" if time.time() < ready else "exited"))
+
+    def test_the_cleanup_does_not_start_while_the_host_is_still_running(self):
+        ready, patches = self.slow_host(0.6)
+        script = self.tmp / "stamp.py"
+        script.write_text("import time; print(time.time())")
+        stamp = self.tmp / "stamp.txt"
+        out = self.tmp / "guard-out"
+        out.mkdir()
+        with contextlib.ExitStack() as stack:
+            for patch in patches:
+                stack.enter_context(patch)
+            guard = run.PlatformGuard()
+            guard.arm({"cleanup": f"{shlex.quote(sys.executable)} {shlex.quote(str(script))} > {shlex.quote(str(stamp))}"}, out)
+            self.assertTrue(guard.finish()["ok"])
+        self.assertGreaterEqual(float(stamp.read_text()), ready, "the cleanup began before the host was gone")
+
+    def test_a_host_that_does_not_die_does_not_stop_the_cleanup(self):
+        _, patches = self.slow_host(3600)
+        out = self.tmp / "guard-out"
+        out.mkdir()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(run, "HOST_END_WAIT", 0.3))
+            for patch in patches:
+                stack.enter_context(patch)
+            guard = run.PlatformGuard()
+            guard.arm({"cleanup": "true"}, out)
+            began = time.monotonic()
+            record = guard.finish()
+            waited = time.monotonic() - began
+        self.assertTrue(record["ran"] and record["ok"], "the platform is cleaned although the host would not go")
+        self.assertGreaterEqual(waited, 0.3)
+        self.assertLess(waited, 10)
+
+    def test_an_unarmed_guard_ends_no_host(self):
+        proc = self.sleeper()
+        with mock.patch.object(run, "LIVE_HOST_GROUPS", {proc.pid}), \
+                mock.patch.object(run, "HOST_THREAD", {proc.pid: threading.get_ident()}):
+            self.assertIsNone(run.PlatformGuard().finish())
+        self.assertIsNone(proc.poll())
+
+    def test_ending_every_host_is_still_the_default(self):
+        proc = self.sleeper()
+        with mock.patch.object(run, "LIVE_HOST_GROUPS", {proc.pid}):
+            run.end_live_hosts()
+        proc.wait(timeout=10)
+        self.assertEqual(proc.returncode, -9)
+
+
+class HostRegistryTest(PlatformCase):
+    def test_a_launched_host_is_registered_with_its_thread_and_forgotten_once_reaped(self):
+        out = self.tmp / "launched"
+        (out / "work").mkdir(parents=True)
+        result: dict = {}
+        with mock.patch.object(run, "LIVE_HOST_GROUPS", set()), mock.patch.object(run, "HOST_THREAD", {}):
+            thread = threading.Thread(target=lambda: result.update(run.launch(
+                [sys.executable, "-c", "import time; time.sleep(20)"], out / "work", out, dict(os.environ), 60, watch=False)))
+            thread.start()
+            try:
+                for _ in range(100):
+                    if run.LIVE_HOST_GROUPS:
+                        break
+                    time.sleep(0.05)
+                (leader,) = run.LIVE_HOST_GROUPS
+                self.assertEqual(run.HOST_THREAD, {leader: thread.ident})
+                run.end_live_hosts(thread=thread.ident + 1)
+                self.assertEqual(listeners.unreaped(leader), "running", "another thread's scope does not reach this host")
+                run.end_live_hosts(thread=thread.ident, wait=10)
+                thread.join(15)
+                self.assertFalse(thread.is_alive())
+                self.assertEqual((run.LIVE_HOST_GROUPS, run.HOST_THREAD), (set(), {}))
+            finally:
+                run.end_live_hosts()  # a failed assertion above leaves no host behind
+                thread.join(15)
+        self.assertEqual(result["status"], "failed")
+
+
+class RegradeLockTest(PlatformCase):
+    def test_a_regrade_does_not_clean_a_run_another_harness_holds_and_says_why(self):
+        self.use_case(self.platform())
+        os.environ["PLAT_FAIL"] = "cleanup"
+        self.invoke("grok", "done")
+        out = self.tmp / "out-grok-a"
+        del os.environ["PLAT_FAIL"]
+        held = listeners.hold_case(out)  # the trial's own harness
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        result, printed = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"], "no second cleanup")
+        self.assertIn("is held by another harness", printed)
+        self.assertIn("no cleanup is run now", printed)
+        self.assertIn(run.manual_cleanup_command(out, self.platform()), printed)
+        self.assertFalse(result["platform"]["cleanup"]["ok"])
+        self.assertFalse(result["pass"])
+        held.close()
+        result, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "cleanup"], "once the trial's harness is gone it is cleaned")
+        self.assertTrue(result["platform"]["cleanup"]["ok"])
+
+
+class ResumeNoteTest(PlatformCase):
+    NOTE = "The platform was reset when the last session ended: deploy again what you still need."
+
+    def test_the_note_is_a_non_empty_string_or_the_case_is_refused(self):
+        for bad in ("", "  ", 3, ["x"], None):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit) as raised:
+                run.validate_platform("c", {"cleanup": "c", "resume_note": bad})
+            self.assertIn("resume_note", str(raised.exception))
+        self.assertEqual(run.validate_platform("c", {"cleanup": "c", "resume_note": self.NOTE})["resume_note"], self.NOTE)
+
+    def test_the_prompt_without_a_note_is_what_it_always_was(self):
+        cli = Path("/p/cli")
+        self.assertEqual(run.resume_prompt("/r/run", cli), run.resume_prompt("/r/run", cli, None))
+        self.assertEqual(run.resume_prompt("/r/run", cli), run.resume_prompt("/r/run", cli, ""))
+        self.assertTrue(run.resume_prompt("/r/run", cli).endswith("Never end the turn while a ShipLoop command is still running."))
+        for run_dir in ("/r/run", None):
+            self.assertEqual(run.resume_prompt(run_dir, cli, self.NOTE), run.resume_prompt(run_dir, cli) + " " + self.NOTE)
+
+    def resumed_prompt(self, out: Path) -> str:
+        return next(out.glob("resume-grok-*.txt")).read_text().replace(str(out), "<out>")
+
+    def test_a_resumed_run_whose_platform_was_reset_is_told_so_and_a_case_without_a_note_is_not(self):
+        texts = {}
+        for tag, platform in (("note", self.platform(resume_note=self.NOTE)), ("plain", self.platform())):
+            self.use_case(platform)
+            _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", tag=tag)
+            out = Path(first["output"])
+            self.assertTrue(first["platform"]["cleanup"]["ran"])
+            self.resume("grok", out, "done")
+            texts[tag] = self.resumed_prompt(out)
+        self.assertEqual(texts["note"], texts["plain"] + " " + self.NOTE)
+        self.assertNotIn("reset", texts["plain"])
+
+    def test_no_note_when_the_earlier_segment_did_not_clean_or_when_nothing_starts(self):
+        self.use_case(self.platform(resume_note=self.NOTE))
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        record = json.loads((out / "result.json").read_text())
+        record["platform"]["cleanup"]["ran"] = False
+        (out / "result.json").write_text(json.dumps(record))
+        self.resume("grok", out, "done")
+        self.assertNotIn(self.NOTE, self.resumed_prompt(out))
+        spec = {"resume_note": self.NOTE}
+        self.assertIsNone(run.resume_platform_note(spec, {"cleanup": {"ran": True}}, regrade=True))
+        self.assertIsNone(run.resume_platform_note({}, {"cleanup": {"ran": True}}, regrade=False))
+        self.assertIsNone(run.resume_platform_note(None, {"cleanup": {"ran": True}}, regrade=False))
+        self.assertIsNone(run.resume_platform_note(spec, {}, regrade=False))
+        self.assertEqual(run.resume_platform_note(spec, {"cleanup": {"ran": True}}, regrade=False), self.NOTE)
+
+
+class UnchangedCaseTest(PlatformCase):
+    def test_a_case_without_a_platform_gains_nothing_from_any_of_this(self):
+        self.use_case(None)
+        _, result, printed = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(result["output"])
+        resumed, _ = self.resume("grok", out, "done")
+        prompt = next(out.glob("resume-grok-*.txt")).read_text()
+        self.assertTrue(prompt.endswith("Never end the turn while a ShipLoop command is still running."))
+        self.assertEqual(prompt.count("reset"), 0)
+        for done in (result, resumed):
+            self.assertNotIn("platform", done)
+            self.assertNotIn("guard", json.dumps(done["environment"]))
+        for name in ("platform", ".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"):
+            self.assertFalse((out / name).exists() or (out / "home" / name).exists(), name)
+        self.assertNotIn("guard saw", printed)
+        self.assertEqual(self.verbs(), [])
 
 
 if __name__ == "__main__":

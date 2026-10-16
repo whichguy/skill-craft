@@ -4,10 +4,15 @@
 The wrapper under test is the one run.write_model_bin writes, the "real" sf behind it is test/shiploop_e2e/fake_sf.py (or a tiny
 stub), and no real org, real `sf` or model is ever reached. What these prove, one test per rule:
 
-  deny    a command that shows credentials, changes the CLI or the org destructively, or is unknown never reaches sf (exit 2)
+  deny    a command that shows credentials, changes the CLI or the org destructively, or is unknown never reaches sf (exit 2);
+          --flags-dir is denied on every command (the CLI reads flag values from it after the policy ran)
   pin     an org-talking command must name the case's org on every --target-org / -o; none or another is refused
-  pass    the build's own commands (deploy --source-dir, apex run test --synchronous, data query, --version, org list) reach sf
-  log     one JSON line per call in $E2E_PLATFORM_DIR/sf-calls.jsonl, no stdout, no credential
+  scope   a deploy may carry only Apex classes named SLChess* and LWC bundles named slChess*: every --source-dir tree, --metadata
+          entry and --manifest (or the package directories of sfdx-project.json) is checked, with paths kept inside the working dir
+  pass    the build's own commands (deploy --source-dir, apex run test --synchronous, data query, --version, org list), --help
+          anywhere on an allowed command, and the local generate families reach sf
+  log     a decision line before the call and an end line after it (same call id) in $E2E_PLATFORM_DIR/sf-calls.jsonl, no stdout, no
+          credential; a call that cannot be logged is denied; SIGTERM/SIGHUP are forwarded, logged as interrupted and exit 143
   scrub   a token in sf's output never reaches the model; the exit code and everything else pass through
   wrapper no recursion, the real HOME, the baked E2E_* variables
 """
@@ -18,11 +23,15 @@ import json
 import os
 from pathlib import Path
 import shlex
+import signal
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
@@ -85,9 +94,17 @@ class GuardCase(unittest.TestCase):
     def reached(self) -> list[dict]:
         return [json.loads(line) for line in self.fake_log.read_text().splitlines()] if self.fake_log.exists() else []
 
-    def calls(self) -> list[dict]:
+    def log_lines(self) -> list[dict]:
         path = self.platform_dir / sf_guard.LOG_NAME
         return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+    def calls(self) -> list[dict]:
+        """The decision lines: one per call, whether or not it ran."""
+        return [entry for entry in self.log_lines() if "end" not in entry]
+
+    def ends(self) -> list[dict]:
+        """The end lines: one per call that reached the real sf."""
+        return [entry for entry in self.log_lines() if entry.get("end")]
 
     def assert_denied(self, *argv: str, reason: str = "", name: str = "sf") -> None:
         before_reached, before_calls = len(self.reached()), len(self.calls())
@@ -108,6 +125,7 @@ class GuardCase(unittest.TestCase):
         self.assertNotIn("sf_guard:", done.stderr, (argv, done.stderr))
         self.assertEqual(len(self.reached()), before_reached + 1, (argv, done.stdout, done.stderr))
         self.assertEqual(self.calls()[-1]["decision"], "allowed")
+        self.assertEqual(self.ends()[-1]["call"], self.calls()[-1]["call"])
         return done
 
 
@@ -236,7 +254,8 @@ class PassTest(GuardCase):
         anonymous = self.work / "x.apex"
         anonymous.write_text("System.debug('RESULT|a|1');")
         self.assert_reaches_sf("apex", "run", "--file", str(anonymous), "--target-org", ORG, "--json")
-        # The prompt's own spelling: no --source-dir, the colon form of the command.
+        # The prompt's own spelling: no --source-dir (the scope is the project's package directories), the colon form of the command.
+        (self.work / "sfdx-project.json").write_text(json.dumps({"packageDirectories": [{"path": "force-app", "default": True}]}))
         self.assert_reaches_sf("project:deploy:start", "--target-org", ORG, "--json")
 
     def test_a_manifest_without_a_wildcard_passes(self):
@@ -266,8 +285,8 @@ class PassTest(GuardCase):
                        env=self.env(FAKE_SF_FAIL="query"))
         self.assertEqual(done.returncode, 1)
         self.assertIn("query failed on request", done.stdout)
-        entry = self.calls()[-1]
-        self.assertEqual((entry["decision"], entry["exit"]), ("allowed", 1))
+        self.assertEqual(self.calls()[-1]["decision"], "allowed")
+        self.assertEqual(self.ends()[-1]["exit"], 1)
 
 
 class LogAndScrubTest(GuardCase):
@@ -278,13 +297,13 @@ class LogAndScrubTest(GuardCase):
         self.sf("data", "query", "-q", "SELECT Name FROM ApexClass", "--json")
         entries = self.calls()
         self.assertEqual([e["decision"] for e in entries], ["denied", "allowed", "allowed", "denied"])
-        self.assertEqual([e.get("exit") for e in entries], [None, 0, 0, None])
+        self.assertEqual([e["exit"] for e in self.ends()], [0, 0])
         for entry in entries:
             self.assertEqual(entry["org"], ORG)
-            self.assertTrue(entry["ts"] and entry["reason"])
-        self.assertNotIn("stdout", json.dumps(entries))
+            self.assertTrue(entry["ts"] and entry["reason"] and entry["call"])
+        self.assertNotIn("stdout", json.dumps(self.log_lines()))
         raw = (self.platform_dir / sf_guard.LOG_NAME).read_text()
-        self.assertEqual(len(raw.splitlines()), 4)
+        self.assertEqual(len(raw.splitlines()), 6)  # a decision line per call, an end line for each of the two that ran
         self.assertNotIn(TOKEN, raw)
         self.assertNotIn("FAKE-TOKEN", raw)
 
@@ -296,6 +315,14 @@ class LogAndScrubTest(GuardCase):
         self.assertNotIn(TOKEN, raw)
         self.assertIn("[redacted]", raw)
 
+    def test_a_token_that_the_reason_repeats_is_scrubbed_in_the_log_too(self):
+        done = self.sf("data", "query", "-q", "x", "--target-org", SESSION)
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("--target-org must be", done.stderr)
+        raw = (self.platform_dir / sf_guard.LOG_NAME).read_text()
+        self.assertNotIn(SESSION, raw)
+        self.assertIn("--target-org must be", self.calls()[-1]["reason"])
+
     def test_a_token_in_sf_s_output_never_reaches_the_model_and_the_exit_code_does(self):
         self.use_sf(STUB)
         done = self.sf("data", "query", "-q", "x", "--target-org", ORG, env=self.env(STUB_EXIT="7"))
@@ -305,7 +332,7 @@ class LogAndScrubTest(GuardCase):
             self.assertNotIn(SESSION, stream)
             self.assertIn("[redacted]", stream)
         self.assertEqual(json.loads(done.stdout)["argv"], ["data", "query", "-q", "x", "--target-org", ORG])
-        entry = self.calls()[-1]
+        entry = self.ends()[-1]
         self.assertEqual(entry["exit"], 7)
         self.assertLessEqual(len(entry["stderr_head"]), 200)
         self.assertNotIn(TOKEN, json.dumps(entry))
@@ -371,6 +398,478 @@ class WrapperTest(GuardCase):
         self.assertEqual(sf_guard.parse_fixed(["--prefix", "P", "--org", "de", "--deny-all", "--", "--"]),
                          ("de", "P", True, ["--"]))
         self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "org", "list"]), ("de", "P", False, ["org", "list"]))
+
+
+class FlagsDirTest(GuardCase):
+    def test_flags_dir_is_denied_on_every_command_in_both_spellings(self):
+        # The CLI reads flag values from these files after the policy ran, so a destructive or other-org flag could ride in them.
+        for argv in (("project", "deploy", "start", "--flags-dir", "fd", "--target-org", ORG),
+                     ("project", "deploy", "start", "--flags-dir=fd", "--target-org", ORG, "--json"),
+                     ("org", "list", "--flags-dir", "fd"), ("org", "list", "--flags-dir=fd", "--json"),
+                     ("project", "generate", "--name", "x", "--flags-dir", "fd"),
+                     ("project", "generate", "--flags-dir=fd", "--name", "x"),
+                     ("data", "query", "-q", "SELECT Name FROM ApexClass", "--target-org", ORG, "--flags-dir", "fd"),
+                     ("project", "deploy", "start", "--flags-dir", "fd", "--help")):
+            self.assert_denied(*argv, reason="--flags-dir")
+        self.assertEqual(self.reached(), [])
+
+    def test_a_flag_that_only_starts_like_it_is_not_confused_with_it(self):
+        allowed, reason = sf_guard.decide(["data", "query", "-q", "SELECT Name FROM ApexClass", "--target-org", ORG, "--flags-directory-x"], ORG)
+        self.assertTrue(allowed, reason)
+
+
+class ScopeTest(GuardCase):
+    """A deploy may carry only Apex classes named SLChess* and LWC bundles named slChess*."""
+    D = "force-app/main/default/"
+    GENERATED = ("applications", "aura", "classes", "contentassets", "flexipages", "layouts", "lwc", "objects", "permissionsets",
+                 "staticresources", "tabs", "triggers")
+    GOOD = {
+        "classes/SLChessEngine.cls": "public class SLChessEngine {}",
+        "classes/SLChessEngine.cls-meta.xml": "<ApexClass/>",
+        "classes/SLChessEngineTest.cls": "@IsTest private class SLChessEngineTest {}",
+        "lwc/slChessBoard/slChessBoard.html": "<template></template>",
+        "lwc/slChessBoard/slChessBoard.js": "export default class SlChessBoard {}",
+        "lwc/slChessBoard/slChessBoard.js-meta.xml": "<LightningComponentBundle/>",
+        "lwc/slChessBoard/__tests__/board.test.js": "",
+        "lwc/jsconfig.json": "{}",
+        "lwc/.eslintrc.json": "{}",
+    }
+
+    def layout(self, files: dict | None = None, base: Path | None = None) -> Path:
+        """The tree `sf project generate` makes (every folder empty) plus these files, given relative to force-app/main/default."""
+        base = base or self.work
+        for name in self.GENERATED:
+            (base / (self.D + name)).mkdir(parents=True, exist_ok=True)
+        (base / "sfdx-project.json").write_text(json.dumps({"packageDirectories": [{"path": "force-app", "default": True}]}))
+        for rel, text in (files or {}).items():
+            path = base / (self.D + rel)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+        return base
+
+    def verdict(self, *flags: str, base: Path | None = None, command=("project", "deploy", "start")) -> tuple[bool, str]:
+        return sf_guard.decide([*command, *flags, "--target-org", ORG, "--json"], ORG, prefix="SLChess", cwd=str((base or self.work)))
+
+    def assert_scope_ok(self, *flags: str, base: Path | None = None, command=("project", "deploy", "start")) -> None:
+        allowed, reason = self.verdict(*flags, base=base, command=command)
+        self.assertTrue(allowed, (flags, reason))
+
+    def assert_scope_denied(self, *flags: str, reason: str, base: Path | None = None, command=("project", "deploy", "start")) -> str:
+        allowed, why = self.verdict(*flags, base=base, command=command)
+        self.assertFalse(allowed, flags)
+        self.assertIn("approved scope", why)
+        self.assertIn(reason, why, flags)
+        self.assertNotIn("\n", why)
+        return why
+
+    def test_the_generated_layout_with_only_empty_directories_passes_in_every_spelling(self):
+        self.layout()
+        for flags in (["--source-dir", "force-app"], ["-d", "force-app"], ["--source-dir=force-app"], ["-dforce-app"], ["-d=force-app"],
+                      ["--source-dir", "./force-app/"], ["--source-dir", str(self.work / "force-app")], []):
+            self.assert_scope_ok(*flags)
+        self.assert_scope_ok("-d", "force-app", command=("project", "deploy", "validate"))
+
+    def test_the_approved_classes_and_bundles_pass_as_a_tree_a_folder_or_a_single_file(self):
+        self.layout(self.GOOD)
+        classes, lwc = self.D + "classes", self.D + "lwc"
+        for flags in (["--source-dir", "force-app"], [],
+                      ["--source-dir", classes], ["--source-dir", lwc], ["--source-dir", lwc + "/slChessBoard"],
+                      ["--source-dir", classes + "/SLChessEngine.cls"], ["-d", classes + "/SLChessEngine.cls-meta.xml"],
+                      ["-d", classes + "/SLChessEngine.cls", "-d", lwc + "/slChessBoard"],
+                      ["--source-dir", classes + "/SLChessEngine.cls", "--source-dir", lwc + "/slChessBoard"],
+                      ["--source-dir", f"{classes}/SLChessEngine.cls,{lwc}/slChessBoard"],
+                      ["--source-dir", classes + "/SLChessEngine.cls", lwc + "/slChessBoard"]):
+            self.assert_scope_ok(*flags)
+            self.assert_scope_ok(*flags, command=("project", "deploy", "validate"))
+        # Through the wrapper: the deploy reaches the (fake) org and the classes and bundle land there.
+        deployed = self.assert_reaches_sf("project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG, "--json")
+        self.assertEqual(json.loads(deployed.stdout)["result"]["status"], "Succeeded")
+        state = json.loads(self.state.read_text())
+        self.assertIn("SLChessEngine", state["apex_classes"])
+        self.assertIn("slChessBoard", state["lwc"])
+
+    def test_the_component_prefix_is_the_one_the_checks_use(self):
+        import chess_salesforce  # the cleanup and the deployed check name the same bundles
+        for prefix in ("SLChess", "Chess", "ABC", "SLChessEngine", "A", "abc", "X1", "AB1"):
+            self.assertEqual(sf_guard.lwc_prefix(prefix), chess_salesforce.lwc_prefix(prefix), prefix)
+        self.assertEqual(sf_guard.lwc_prefix("SLChess"), "slChess")
+
+    def test_a_flag_value_is_not_mistaken_for_a_source_path(self):
+        # `--manifest manifest/package.xml` follows `--source-dir`: it is the manifest's value, not another directory (a file the scope refuses).
+        self.layout(self.GOOD)
+        (self.work / "manifest").mkdir()
+        (self.work / "manifest" / "package.xml").write_text("<Package><types><members>SLChessEngine</members><name>ApexClass</name></types></Package>")
+        self.assert_scope_ok("--source-dir", "force-app", "--manifest", "manifest/package.xml")
+        self.assert_scope_ok("--source-dir", "force-app", "--wait", "10", "-l", "NoTestRun")
+
+    def test_metadata_entries_of_the_approved_names_pass(self):
+        self.layout()
+        for flags in (["--metadata", "ApexClass:SLChessEngine"], ["-m", "LightningComponentBundle:slChessBoard"],
+                      ["-m", "ApexClass:SLChessEngine", "-m", "LightningComponentBundle:slChessBoard"],
+                      ["--metadata=ApexClass:SLChessEngineTest"], ["-mApexClass:SLChess"],
+                      ["--metadata", "ApexClass:SLChessEngine", "LightningComponentBundle:slChessBoard"],
+                      ["--metadata", "ApexClass:SLChessEngine,LightningComponentBundle:slChessBoard"]):
+            self.assert_scope_ok(*flags)
+        self.assert_reaches_sf("project", "deploy", "start", "--metadata", "ApexClass:SLChessEngine", "--target-org", ORG, "--json")
+
+    def test_a_manifest_of_the_approved_names_passes_with_or_without_the_real_header(self):
+        self.layout()
+        header = '<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">'
+        (self.work / "real.xml").write_text(header + "<types><members>SLChessEngine</members><members>SLChessEngineTest</members>"
+                                            "<name>ApexClass</name></types><types><members>slChessBoard</members>"
+                                            "<name>LightningComponentBundle</name></types><version>64.0</version></Package>")
+        (self.work / "bare.xml").write_text("<Package><types><members>SLChessEngine</members><name>ApexClass</name></types></Package>")
+        self.assert_scope_ok("--manifest", "real.xml")
+        self.assert_scope_ok("-x", "bare.xml", command=("project", "deploy", "validate"))
+        self.assert_scope_ok("--manifest=real.xml")
+        self.assert_reaches_sf("project", "deploy", "start", "--manifest", "real.xml", "--target-org", ORG, "--json")
+
+    def test_a_tree_holding_anything_else_is_refused_and_the_files_are_named(self):
+        cases = {
+            "a baseline class": "classes/DeveloperEditionUtils.cls",
+            "a baseline class's meta file": "classes/DeveloperEditionUtils.cls-meta.xml",
+            "a class not matching the prefix by case": "classes/slchessOther.cls",
+            "an approved name with another suffix": "classes/SLChessEngine.cls.bak",
+            "a trigger": "triggers/SLChessTrigger.trigger",
+            "a trigger's meta file": "triggers/SLChessTrigger.trigger-meta.xml",
+            "a static resource": "staticresources/SLChess.resource-meta.xml",
+            "a tab": "tabs/SLChess.tab-meta.xml",
+            "a flexipage": "flexipages/SLChess.flexipage-meta.xml",
+            "an object": "objects/SLChess__c/SLChess__c.object-meta.xml",
+            "a permission set": "permissionsets/SLChess.permissionset-meta.xml",
+            "a baseline bundle": "lwc/chess/chess.js",
+            "a bundle with the class prefix's capital": "lwc/SLChessOther/SLChessOther.js",
+            "a loose file in lwc": "lwc/slChessLoose.js",
+            "a class in a folder that is not classes": "layouts/SLChessEngine.cls",
+            "an app": "applications/SLChess.app-meta.xml",
+        }
+        for number, (what, rel) in enumerate(cases.items()):
+            with self.subTest(what):
+                base = self.layout(self.GOOD | {rel: "x"}, base=self.work / f"case{number}")
+                why = self.assert_scope_denied("--source-dir", "force-app", reason=rel, base=base)
+                self.assert_scope_denied(reason=rel, base=base)  # the default scope (sfdx-project.json) is the same tree
+                self.assert_scope_denied("-d", self.D + rel, reason=rel, base=base, command=("project", "deploy", "validate"))
+                self.assertIn("SLChess*", why)
+                self.assertIn("slChess*", why)
+
+    def test_a_refusal_names_at_most_five_files_and_does_not_walk_forever(self):
+        base = self.layout({f"classes/Other{n}.cls": "x" for n in range(12)})
+        why = self.assert_scope_denied("--source-dir", "force-app", reason="Other0.cls", base=base)
+        self.assertEqual(why.count("Other"), 5)
+
+    def test_a_path_that_leaves_the_working_directory_is_refused(self):
+        self.layout(self.GOOD)
+        outside = self.tmp / "outside"
+        (outside / "classes").mkdir(parents=True)
+        (outside / "classes" / "SLChessOutside.cls").write_text("x")
+        (self.work / "link-out").symlink_to(outside)
+        (self.work / "force-app" / "main" / "default" / "classes" / "SLChessLinked.cls").symlink_to(outside / "classes" / "SLChessOutside.cls")
+        for flags in (["--source-dir", "../outside"], ["--source-dir", str(outside)], ["--source-dir", "force-app/../../outside"],
+                      ["--source-dir", "link-out"], ["--source-dir", "link-out/classes/SLChessOutside.cls"],
+                      ["--source-dir", f"force-app,{outside}"], ["--source-dir", "force-app", "../outside"]):
+            self.assert_scope_denied(*flags, reason="outside the working directory")
+        # A link inside the tree that leads out is named, and so is a directory link.
+        self.assert_scope_denied("--source-dir", "force-app", reason="SLChessLinked.cls (leads outside the working directory)")
+        (self.work / "force-app" / "main" / "default" / "classes" / "SLChessLinked.cls").unlink()
+        (self.work / "force-app" / "main" / "default" / "lwc" / "slChessLinkedBundle").symlink_to(outside, target_is_directory=True)
+        self.assert_scope_denied("--source-dir", "force-app", reason="slChessLinkedBundle (leads outside the working directory)")
+        self.assert_reaches_sf("project", "deploy", "start", "--source-dir", "force-app/main/default/classes/SLChessEngine.cls", "--target-org", ORG, "--json")
+
+    def test_a_path_that_is_not_there_is_judged_by_where_it_points_only(self):
+        self.layout(self.GOOD)
+        self.assert_scope_denied("--source-dir", "../no-such-dir", reason="outside the working directory")
+        self.assert_scope_denied("--source-dir", str(self.tmp / "no-such-dir"), reason="outside the working directory")
+        self.assert_scope_ok("--source-dir", "force-app/main/default/classes/SLChessNotWrittenYet.cls")  # the real sf reports it missing
+        self.assert_scope_ok("--source-dir", "no-such-dir,force-app/main/default/classes/SLChessEngine.cls")
+
+    def test_a_link_inside_the_project_cannot_hide_a_tree_under_an_approved_name(self):
+        # lwc/slChessBoard -> objects: reached through the bundle name the files pass, but `force-app` also holds `objects` itself.
+        base = self.layout({"objects/Foo__c/Foo__c.object-meta.xml": "<CustomObject/>"})
+        (base / (self.D + "lwc") / "slChessBoard").symlink_to(base / (self.D + "objects"), target_is_directory=True)
+        self.assert_scope_denied("--source-dir", "force-app", reason="objects/Foo__c/Foo__c.object-meta.xml", base=base)
+
+    def test_a_symlink_loop_ends(self):
+        base = self.layout(self.GOOD)
+        (base / "force-app" / "loop").symlink_to(base / "force-app", target_is_directory=True)
+        started = time.monotonic()
+        self.assert_scope_ok("--source-dir", "force-app")
+        self.assertLess(time.monotonic() - started, 5)
+
+    def test_extra_paths_after_a_source_dir_are_read_as_more_directories(self):
+        # The CLI reads `-d a b` as two directories, and a boolean flag between them does not end the list.
+        self.layout(self.GOOD | {"objects/Foo__c/Foo__c.object-meta.xml": "<CustomObject/>", "triggers/T.trigger": "x"})
+        good = self.D + "classes/SLChessEngine.cls"
+        for flags in (["--source-dir", good, self.D + "objects"], ["-d", good, self.D + "triggers"],
+                      ["--source-dir", good, "--json", self.D + "triggers"], ["--source-dir=" + good, self.D + "triggers"],
+                      ["--source-dir", good, "--source-dir", self.D + "triggers"], ["--source-dir", f"{good},{self.D}triggers"]):
+            self.assert_scope_denied(*flags, reason="T.trigger" if "triggers" in " ".join(flags) else "Foo__c.object-meta.xml")
+
+    def test_metadata_outside_the_approved_names_is_refused(self):
+        self.layout()
+        for entry in ("CustomObject:Foo__c", "ApexClass", "ApexClass:", "ApexClass:*", "ApexClass:SLChess*", "ApexClass:DeveloperEditionUtils",
+                      "LightningComponentBundle:chess", "LightningComponentBundle:SLChessBoard", "ApexTrigger:SLChessTrigger",
+                      "CustomTab:SLChess", "PermissionSet:SLChess", "ApexClass:SLChessEngine,CustomObject:Foo__c", ""):
+            with self.subTest(entry):
+                self.assert_scope_denied("--metadata", entry, reason="--metadata")
+        self.assert_scope_denied("-m", "ApexClass:SLChessEngine", "CustomObject:Foo__c", reason="CustomObject:Foo__c")
+        self.assert_scope_denied("--metadata", "ApexClass:SLChessEngine", "--json", "ApexTrigger:T", reason="ApexTrigger:T")
+        # Through the wrapper: refused before the real sf is reached.
+        done = self.sf("project", "deploy", "start", "--metadata", "CustomObject:Foo__c", "--target-org", ORG, "--json")
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("sf_guard: denied: deploy is outside the approved scope", done.stderr)
+        self.assertEqual(self.reached(), [])
+
+    def test_a_manifest_outside_the_approved_names_is_refused(self):
+        self.layout()
+        manifests = {
+            "another type": ("<Package><types><members>SLChessEngine</members><name>CustomObject</name></types></Package>", "CustomObject"),
+            "a baseline member": ("<Package><types><members>DeveloperEditionUtils</members><name>ApexClass</name></types></Package>",
+                                  "DeveloperEditionUtils"),
+            "a second type with a baseline member": ("<Package><types><members>SLChessEngine</members><name>ApexClass</name></types>"
+                                                     "<types><members>chess</members><name>LightningComponentBundle</name></types></Package>", "'chess'"),
+            "a star in a member name": ("<Package><types><members>SLChess*</members><name>ApexClass</name></types></Package>", "SLChess*"),
+            "a bare star": ("<Package><types><members>*</members><name>ApexClass</name></types></Package>", "wildcard"),
+            "a spaced star": ("<Package><types><members> * </members><name>LightningComponentBundle</name></types></Package>", "wildcard"),
+            "a type with no name": ("<Package><types><members>SLChessEngine</members></types></Package>", "lists type ''"),
+            "not xml": ("this is not xml", "not valid XML"),
+        }
+        for what, (text, reason) in manifests.items():
+            with self.subTest(what):
+                (self.work / "m.xml").write_text(text)
+                self.assert_scope_denied("--manifest", "m.xml", reason=reason)
+                self.assert_scope_denied("-x", "m.xml", reason=reason, command=("project", "deploy", "validate"))
+
+    def test_a_missing_or_unreadable_manifest_is_refused_not_passed_through(self):
+        self.layout()
+        self.assert_scope_denied("--manifest", "no-such.xml", reason="cannot be read")
+        (self.work / "adir.xml").mkdir()
+        self.assert_scope_denied("-x", "adir.xml", reason="cannot be read")
+        done = self.sf("project", "deploy", "start", "--manifest", "no-such.xml", "--target-org", ORG, "--json")
+        self.assertEqual(done.returncode, 2)
+        self.assertEqual(self.reached(), [])
+
+    def test_with_no_scope_flag_the_package_directories_decide(self):
+        base = self.layout(base=self.work / "plain")
+        self.assert_scope_ok(base=base)
+        (base / "force-app" / "main" / "default" / "triggers" / "T.trigger").write_text("x")
+        self.assert_scope_denied(reason="T.trigger", base=base)
+        # A second package directory counts, and so does one that leaves the project.
+        other = self.layout(base=self.work / "two")
+        (other / "extra" / "classes").mkdir(parents=True)
+        (other / "extra" / "classes" / "Baseline.cls").write_text("x")
+        (other / "sfdx-project.json").write_text(json.dumps({"packageDirectories": [{"path": "force-app"}, {"path": "extra"}]}))
+        self.assert_scope_denied(reason="extra/classes/Baseline.cls", base=other)
+        (other / "sfdx-project.json").write_text(json.dumps({"packageDirectories": [{"path": "../outside"}]}))
+        self.assert_scope_denied(reason="outside the working directory", base=other)
+
+    def test_with_no_scope_flag_and_no_readable_project_file_the_deploy_is_refused(self):
+        for number, text in enumerate((None, "not json", "{}", '{"packageDirectories": []}', '{"packageDirectories": [1]}',
+                                       '{"packageDirectories": [{"path": ""}]}')):
+            with self.subTest(text):
+                base = self.work / f"noproject{number}"
+                base.mkdir()
+                if text is not None:
+                    (base / "sfdx-project.json").write_text(text)
+                self.assert_scope_denied(reason="sfdx-project.json", base=base)
+        done = self.sf("project:deploy:start", "--target-org", ORG, "--json")  # self.work has no project file
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("name what to deploy", done.stderr)
+        self.assertEqual(self.reached(), [])
+
+    def test_only_a_deploy_that_sends_source_is_scoped(self):
+        # Nothing to judge for a report, cancel, resume or quick deploy (they name a job), or a retrieve (it only reads the org).
+        for command in (("project", "deploy", "report"), ("project", "deploy", "cancel"), ("project", "deploy", "resume"),
+                        ("project", "deploy", "quick"), ("project", "retrieve", "start")):
+            allowed, reason = sf_guard.decide([*command, "--job-id", "0Af000000000000AAA", "--target-org", ORG], ORG, prefix="SLChess",
+                                              cwd=str(self.work))
+            self.assertTrue(allowed, (command, reason))
+        allowed, reason = sf_guard.decide(["project", "retrieve", "start", "--metadata", "CustomObject:Foo__c", "--target-org", ORG], ORG,
+                                          prefix="SLChess", cwd=str(self.work))
+        self.assertTrue(allowed, reason)
+
+    def test_without_a_prefix_no_deploy_is_defined(self):
+        self.layout(self.GOOD)
+        self.assertEqual(sf_guard.deploy_scope_problems(["--source-dir", "force-app"], str(self.work), ""),
+                         ["the wrapper has no --prefix, so no deploy scope is defined"])
+        allowed, reason = sf_guard.decide(["project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG], ORG, cwd=str(self.work))
+        self.assertFalse(allowed)
+        self.assertIn("no --prefix", reason)
+
+    def test_the_destructive_and_wildcard_denials_come_first_and_keep_their_wording(self):
+        self.layout(self.GOOD)
+        self.assert_denied("project", "deploy", "start", "--source-dir", "force-app", "--post-destructive-changes", "d.xml",
+                           "--manifest", "m.xml", "--target-org", ORG, reason="--post-destructive-changes")
+        self.assert_denied("project", "deploy", "validate", "--metadata-dir", "mdapi", "--target-org", ORG, reason="--metadata-dir")
+
+
+class HelpAndGenerateTest(GuardCase):
+    def test_help_after_an_allowed_command_passes_without_an_org(self):
+        for argv in (("project", "deploy", "start", "--help"), ("project", "deploy", "validate", "-h"), ("data", "query", "-h"),
+                     ("apex", "run", "test", "--help", "--json"), ("project", "retrieve", "start", "--help"),
+                     ("project:deploy:start", "--help"), ("sobject", "describe", "-h"), ("org", "list", "metadata", "--help"),
+                     ("help", "project", "deploy"), ("apex", "get", "log", "--help"), ("project", "generate", "--help")):
+            self.assert_reaches_sf(*argv)
+
+    def test_help_for_a_group_of_allowed_commands_passes(self):
+        for argv in (("project", "--help"), ("project", "deploy", "--help"), ("apex", "-h"), ("data", "--help"), ("sobject", "--help"),
+                     ("org", "list", "--help"), ("apex", "run", "-h"), ("template", "--help")):
+            self.assert_reaches_sf(*argv)
+
+    def test_help_never_makes_a_denied_command_allowed(self):
+        for argv, reason in ((("org", "display", "--help"), "access token"), (("org", "display", "-h", "--target-org", ORG), "access token"),
+                             (("org:display", "--help"), "access token"), (("org", "open", "-h"), "session id"),
+                             (("config", "set", "--help"), "configuration"), (("config", "get", "-h"), "configuration"),
+                             (("alias", "list", "--help"), "aliases"), (("auth", "-h"), "authorization"),
+                             (("data", "delete", "record", "--help"), "deletes data"), (("project", "delete", "source", "-h"), "deletes metadata"),
+                             (("plugins", "install", "--help"), "changes the CLI"), (("update", "-h"), "changes the CLI"),
+                             (("force", "source", "deploy", "--help"), "allow list"), (("totally-unknown", "--help"), "allow list"),
+                             (("org", "list", "auth", "--help"), "allow list"), (("data", "resume", "--help"), "allow list"),
+                             (("--json", "project", "deploy", "start", "--help"), "before the command"),
+                             (("project", "deploy", "start", "--help", "--flags-dir", "fd"), "--flags-dir"),
+                             (("project", "deploy", "start", "--help", "--", "x"), "`--`")):
+            self.assert_denied(*argv, reason=reason)
+        self.assertEqual(self.reached(), [])
+
+    def test_the_local_scaffolding_families_pass_in_both_spellings(self):
+        for argv in (("apex", "generate", "class", "--name", "SLChessEngine"), ("apex:generate:class", "--name", "SLChessEngine"),
+                     ("apex", "generate", "trigger", "--name", "SLChessTrigger"), ("apex:generate:trigger", "--name", "T"),
+                     ("template", "generate", "flexipage", "--name", "x"), ("template:generate:project", "--name", "x"),
+                     ("template", "generate", "digital-experience", "site", "--name", "x"),
+                     ("lightning:generate:component", "--name", "slChessBoard", "--type", "lwc"),
+                     ("project:generate", "--name", "x")):
+            self.assert_reaches_sf(*argv)
+        # They are local: a generate family still cannot name another org, and the neighbours stay out.
+        self.assert_denied("apex", "generate", "class", "--from-org", "other", reason="--from-org")
+        self.assert_denied("apex", "tail", "log", "--target-org", ORG, reason="allow list")
+        self.assert_denied("template", "publish", reason="allow list")
+
+    def test_a_default_deny_lists_what_is_allowed(self):
+        self.assert_denied("force", "source", "deploy", reason="allowed: ")
+        done = self.sf("totally-unknown")
+        for command in ("project deploy start", "project retrieve start", "apex run test", "apex generate ...", "template generate ...",
+                        "data query", "org list", "lightning generate ...", "sobject describe", "help ..."):
+            self.assertIn(command, done.stderr)
+        self.assertEqual(len(done.stderr.strip().splitlines()), 1)
+
+    def test_denials_of_reading_say_so(self):
+        self.assert_denied("config", "get", "target-org", reason="reads or changes the CLI's configuration")
+        self.assert_denied("alias", "list", reason="reads or changes aliases")
+        self.assert_denied("org", "display", "--target-org", ORG, reason="shows the org's access token")
+
+
+class CallLineTest(GuardCase):
+    def test_an_allowed_call_writes_a_decision_line_then_an_end_line_with_the_same_call_id(self):
+        self.use_sf(STUB)
+        self.sf("data", "query", "-q", "x", "--target-org", ORG, env=self.env(STUB_EXIT="3"))
+        raw = (self.platform_dir / sf_guard.LOG_NAME).read_text()
+        decision, end = [json.loads(line) for line in raw.splitlines()]
+        self.assertRegex(decision["call"], r"^[0-9a-f]{8}$")
+        self.assertEqual(sorted(decision), ["argv", "call", "decision", "org", "prefix", "reason", "ts"])
+        self.assertEqual((decision["decision"], decision["org"], decision["prefix"]), ("allowed", ORG, "SLChess"))
+        self.assertEqual(sorted(end), ["call", "end", "exit", "interrupted", "stderr_head", "ts"])
+        self.assertEqual((end["call"], end["end"], end["exit"], end["interrupted"]), (decision["call"], True, 3, False))
+        for token in (TOKEN, SESSION):
+            self.assertNotIn(token, raw)
+        self.assertIn("[redacted]", end["stderr_head"])
+
+    def test_a_denied_call_writes_one_line_and_each_call_has_its_own_id(self):
+        self.sf("org", "display", "--target-org", ORG)
+        self.sf("org", "list", "--json")
+        self.sf("org", "list", "--json")
+        lines = self.log_lines()
+        self.assertEqual([("end" in line, line.get("decision")) for line in lines],
+                         [(False, "denied"), (False, "allowed"), (True, None), (False, "allowed"), (True, None)])
+        self.assertEqual(len({line["call"] for line in lines if "end" not in line}), 3)
+        self.assertEqual(lines[1]["call"], lines[2]["call"])
+        self.assertEqual(lines[3]["call"], lines[4]["call"])
+        self.assertNotEqual(lines[1]["call"], lines[3]["call"])
+
+    def test_the_decision_is_on_disk_before_the_real_sf_runs(self):
+        seen = self.tmp / "seen.jsonl"
+        self.use_sf(f"""#!{sys.executable}
+import os, pathlib
+pathlib.Path(os.environ["SEEN"]).write_text(pathlib.Path(os.environ["E2E_PLATFORM_DIR"], "sf-calls.jsonl").read_text())
+""")
+        self.sf("org", "list", "--json", env=self.env(SEEN=str(seen)))
+        lines = [json.loads(line) for line in seen.read_text().splitlines()]
+        self.assertEqual([("end" in line, line["decision"] if "end" not in line else None) for line in lines], [(False, "allowed")])
+
+    def test_a_call_that_cannot_be_logged_is_denied_and_never_runs(self):
+        (self.platform_dir / sf_guard.LOG_NAME).mkdir()  # the log cannot be opened for appending
+        for argv in (("org", "list", "--json"), ("data", "query", "-q", "x", "--target-org", ORG, "--json")):
+            done = self.sf(*argv)
+            self.assertEqual(done.returncode, 2, argv)
+            self.assertTrue(done.stderr.startswith("sf_guard: denied: the call could not be logged"), (argv, done.stderr))
+            self.assertEqual(len(done.stderr.strip().splitlines()), 1)
+            self.assertEqual(done.stdout, "")
+        self.assertEqual(self.reached(), [])
+        done = self.sf("org", "display", "--target-org", ORG)  # a denied call says it was not logged either
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("(and the call could not be logged)", done.stderr)
+
+    def test_no_real_sf_and_a_real_sf_that_will_not_start_are_logged_as_ended(self):
+        env = self.env(PATH=os.pathsep.join([str(self.platform_dir / "bin"), "/usr/bin", "/bin"]))
+        done = self.sf("org", "list", "--json", env=env)
+        self.assertEqual(done.returncode, 127)
+        self.assertEqual([(end["exit"], end["interrupted"]) for end in self.ends()], [(127, False)])
+        self.use_sf("#!/nonexistent/interpreter\n")
+        done = self.sf("org", "list", "--json")
+        self.assertEqual(done.returncode, 126)
+        self.assertIn("could not be started", done.stderr)
+        self.assertEqual([end["exit"] for end in self.ends()], [127, 126])
+        self.assertEqual(self.ends()[-1]["call"], self.calls()[-1]["call"])
+
+
+class InterruptTest(GuardCase):
+    SLEEPER = '#!/bin/sh\necho $$ > "$STUB_PID"\nexec sleep 30\n'
+
+    def start(self) -> tuple[subprocess.Popen, Path]:
+        pid_file = self.tmp / "child.pid"
+        self.use_sf(self.SLEEPER)
+        proc = subprocess.Popen([str(self.platform_dir / "bin" / "sf"), "org", "list", "--json"], cwd=self.work, env=self.env(STUB_PID=str(pid_file)),
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.addCleanup(lambda: proc.poll() is None and proc.kill())
+        deadline = time.monotonic() + 15
+        while not pid_file.exists() or not pid_file.read_text().strip():  # the child is running, so the handlers are installed
+            self.assertLess(time.monotonic(), deadline, "the stand-in sf never started")
+            time.sleep(0.05)
+        return proc, pid_file
+
+    def test_sigterm_and_sighup_are_forwarded_logged_as_interrupted_and_exit_143(self):
+        for number in (signal.SIGTERM, signal.SIGHUP):
+            with self.subTest(signal=number.name):
+                before = len(self.log_lines())
+                proc, pid_file = self.start()
+                child = int(pid_file.read_text())
+                pid_file.unlink()
+                proc.send_signal(number)
+                proc.communicate(timeout=20)
+                self.assertEqual(proc.returncode, 143)
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(child, 0)  # the real sf got the signal and is gone
+                decision, end = self.log_lines()[before:]
+                self.assertEqual(decision["decision"], "allowed")
+                self.assertEqual((end["call"], end["end"], end["exit"], end["interrupted"]), (decision["call"], True, 143, True))
+
+    def test_a_real_sf_that_ignores_the_signal_is_killed_after_the_grace_period(self):
+        stub = self.tmp / "stubborn"
+        stub.write_text("#!/bin/sh\ntrap '' TERM\nwhile :; do sleep 1; done\n")
+        stub.chmod(0o755)
+        state = {"proc": None, "interrupted": False, "at": 0.0}
+        timer = threading.Timer(0.5, lambda: state.update(interrupted=True, at=time.monotonic()))  # the handler's flag, without its SIGTERM
+        timer.start()
+        self.addCleanup(timer.cancel)
+        result: dict = {}
+        worker = threading.Thread(target=lambda: result.update(code=sf_guard.run_real(str(stub), [], state)[2]), daemon=True)
+        with mock.patch.object(sf_guard, "KILL_GRACE", 0.5):
+            worker.start()
+            worker.join(15)
+        try:
+            self.assertFalse(worker.is_alive(), "the stubborn sf was never killed")
+        finally:
+            if state["proc"] is not None and state["proc"].poll() is None:
+                state["proc"].kill()
+        self.assertEqual(result["code"], 143)
 
 
 if __name__ == "__main__":

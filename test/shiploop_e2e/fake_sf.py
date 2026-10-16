@@ -7,8 +7,14 @@ points the fake at its state with environment variables:
   FAKE_SF_STATE   JSON file holding the fake org (created on first use). Keys:
                     alias            org alias shown by `sf org list` (default: the first FAKE_SF_ORGS entry)
                     connectedStatus  default "Connected"
-                    apex_classes     ApexClass Names (default: 4 baseline names)
-                    lwc              LightningComponentBundle DeveloperNames (default: 13 baseline names)
+                    org_buckets      the `sf org list` buckets that hold the org (default ["other", "nonScratchOrgs"]: the real CLI
+                                     puts a Developer Edition org under `other` and also lists it under `nonScratchOrgs`)
+                    apex_classes     ApexClass Names (default: the 4 names of the real Developer Edition baseline)
+                    lwc              LightningComponentBundle DeveloperNames (default: its 13 baseline names)
+                    types            {metadata type: names} for the other queryable types (default: the baseline counts of the same
+                                     org: 12 CustomTab, 16 FlexiPage, 37 CustomApplication, 1 CustomObject, 1 PermissionSet)
+                    dates            {type: {name: LastModifiedDate}}; a name without an entry has BASE_DATE, a deploy sets DEPLOY_DATE
+                    query_errors     {type: message}: a query on that type fails, like an edition without the object
   FAKE_SF_LOG     file; one JSON line is appended per call: {"argv", "target_org", "refused", ...}. A destructive deploy
                   also logs {"destructive": {"ApexClass": [...], "LightningComponentBundle": [...]}, "manifest_types": N}.
   FAKE_SF_ORGS    comma list of --target-org values the fake accepts (default "fake-org"). Any other value, or a missing
@@ -19,10 +25,16 @@ points the fake at its state with environment variables:
   FAKE_SF_APEX    JSON file mapping a RESULT name to its canned value for `sf apex run --file`. The fake scans the script for
                   the literal markers `RESULT|<name>|` (the check embeds `System.debug('RESULT|<name>|' + ...)`) and answers
                   one USER_DEBUG line per marker, in order of first appearance. A value is a scalar, or an object
-                  {"error": "<exceptionMessage>"} (success=false, compiled=true) or {"compileProblem": "<text>"}.
+                  {"error": "<exceptionMessage>"} (success=false, compiled=true), {"compileProblem": "<text>"} (compiled=false) or
+                  {"failure": "<message>"} (the CLI itself fails, as the real one did for "Compilation failed at Line 2 ...").
+                  The log has the shape the real CLI returns in `result.logs`: a version line, one `Execute Anonymous:` line per
+                  source line, then EXECUTION_STARTED, CODE_UNIT_STARTED, the USER_DEBUG lines and the closing events.
                   A marker with no canned value answers `MISSING`.
   FAKE_SF_FAIL    comma list of operations that fail with exit 1: any of query, deploy, destructive, test, apex.
   FAKE_SF_NOOP_DESTRUCTIVE   "1": a destructive deploy reports success but removes nothing (to test the verify step).
+
+Queries mirror the real CLI: the Tooling API types need --use-tooling-api, StaticResource and PermissionSet (IsOwnedByProfile = false)
+must be queried without it, and every type answers its name field and LastModifiedDate. `sf --version` prints one plain line.
 
 The accessToken in `sf org display --json` is always FAKE-TOKEN-DO-NOT-LOG: tests assert it never reaches any recorded output.
 Wildcard destructive changes (<members>*</members>) are refused, so a test fails loudly if a harness ever issues one.
@@ -43,22 +55,51 @@ VALUE_FLAGS = {
     "--pre-destructive-changes", "--class-names", "-n", "--result-format", "-r", "--file", "-f", "--query", "-q",
     "--wait", "-w", "--test-level", "-l", "--tests", "-t", "--api-version", "--metadata", "-m", "--output-dir",
 }
-KINDS = {"ApexClass": ("apex_classes", "Name", "01p"), "LightningComponentBundle": ("lwc", "DeveloperName", "0Rb")}
+VERSION = "@salesforce/cli/2.150.6 darwin-arm64 node-v22.14.0"
+BASE_DATE = "2026-09-01T09:00:00.000+0000"
+DEPLOY_DATE = "2026-10-16T12:00:00.000+0000"
+# The measured baseline of the owner's Developer Edition org (docs/e2e-salesforce-chess-evidence/baseline-*.txt).
+BASELINE_APEX = ["DeveloperEditionUtils", "DeveloperEditionUtilsTest", "PostInstallScript", "PostInstallScriptTest"]
+BASELINE_LWC = ["backgammon", "battleship", "bgRace", "checkers", "chess", "getStartedAgentforce", "getStartedDataCloud",
+                "getStartedMuleSoft", "getStartedSfdx", "sharedStyles", "ticTacToe", "utils", "welcome"]
+BASELINE_TYPES = {
+    "ApexTrigger": [], "ApexPage": [], "ApexComponent": [], "AuraDefinitionBundle": [], "StaticResource": [],
+    "FlexiPage": ["baseFlexiPage%02d" % i for i in range(1, 17)],
+    "CustomTab": ["baseTab%02d" % i for i in range(1, 13)],
+    "CustomApplication": ["baseApp%02d" % i for i in range(1, 38)],
+    "CustomObject": ["BaseGame"],
+    "PermissionSet": ["baseChessAccess"],
+    "ExternalString": [],
+}
+# object -> (where its names live in the state, name field, id prefix). ApexClass and LightningComponentBundle keep their own keys.
+KINDS = {"ApexClass": ("apex_classes", "Name", "01p"), "LightningComponentBundle": ("lwc", "DeveloperName", "0Rb"),
+         **{kind: (None, "Name" if kind in ("ApexTrigger", "ApexPage", "ApexComponent", "StaticResource", "PermissionSet", "ExternalString")
+                   else "DeveloperName", "0Xx") for kind in BASELINE_TYPES}}
+STANDARD_API = {"StaticResource", "PermissionSet"}  # every other object here is queried with --use-tooling-api
 
 
 def default_state() -> dict:
     return {
         "alias": (os.environ.get("FAKE_SF_ORGS") or "fake-org").split(",")[0].strip(),
         "connectedStatus": "Connected",
-        "apex_classes": ["AccountTriage", "LeadScorer", "OrderService", "OrderServiceTest"],
-        "lwc": ["baseCard%02d" % i for i in range(1, 14)],
+        "org_buckets": ["other", "nonScratchOrgs"],
+        "apex_classes": list(BASELINE_APEX),
+        "lwc": list(BASELINE_LWC),
+        "types": {kind: list(names) for kind, names in BASELINE_TYPES.items()},
+        "dates": {},
+        "query_errors": {},
     }
+
+
+def names_of(state: dict, kind: str) -> list[str]:
+    key = KINDS[kind][0]
+    return state[key] if key else state.setdefault("types", {}).setdefault(kind, [])
 
 
 def load_state() -> tuple[dict, Path]:
     path = Path(os.environ.get("FAKE_SF_STATE") or "fake_sf_state.json")
     if path.exists():
-        return json.loads(path.read_text()), path
+        return {**default_state(), **json.loads(path.read_text())}, path
     state = default_state()
     path.write_text(json.dumps(state, indent=2))
     return state, path
@@ -120,16 +161,24 @@ def like(value: str, pattern: str) -> bool:
     return re.fullmatch(regex, value, re.IGNORECASE | re.DOTALL) is not None
 
 
-def run_query(state: dict, soql: str) -> int:
+def run_query(state: dict, soql: str, tooling: bool) -> int:
     match = re.fullmatch(
         r"\s*SELECT\s+(?P<fields>.+?)\s+FROM\s+(?P<obj>\w+)(?:\s+WHERE\s+(?P<where>.+?))?(?:\s+ORDER\s+BY\s+(?P<order>\w+))?\s*",
         soql, re.IGNORECASE | re.DOTALL)
     if not match or match.group("obj") not in KINDS:
         return fail("fake sf cannot parse this query: %s" % soql, "MALFORMED_QUERY")
-    key, field, prefix = KINDS[match.group("obj")]
-    names = list(state.get(key, []))
+    obj = match.group("obj")
+    _key, field, prefix = KINDS[obj]
+    if tooling == (obj in STANDARD_API):
+        return fail("sObject type '%s' is not supported%s." % (obj, " by the Tooling API" if tooling else " without --use-tooling-api"),
+                    "INVALID_TYPE")
+    if obj in state.get("query_errors", {}):
+        return fail(state["query_errors"][obj], "INVALID_TYPE")
+    names = list(names_of(state, obj))
     if match.group("where"):
         for cond in re.split(r"\s+AND\s+", match.group("where"), flags=re.IGNORECASE):
+            if obj == "PermissionSet" and re.fullmatch(r"\s*IsOwnedByProfile\s*=\s*false\s*", cond, re.IGNORECASE):
+                continue  # the state lists only the permission sets that no profile owns
             cm = re.fullmatch(r"\s*(\w+)\s+(LIKE|=)\s+'((?:[^'\\]|\\.)*)'\s*", cond, re.IGNORECASE)
             if not cm or cm.group(1).lower() != field.lower():
                 return fail("fake sf supports WHERE %s LIKE|= '...' only: %s" % (field, soql), "MALFORMED_QUERY")
@@ -143,6 +192,7 @@ def run_query(state: dict, soql: str) -> int:
     fields = [f.strip() for f in match.group("fields").split(",")]
     if [f.upper() for f in fields] == ["COUNT()"]:
         return emit({"status": 0, "result": {"records": [], "totalSize": len(names), "done": True}, "warnings": []})
+    dates = state.get("dates", {}).get(obj, {})
     records = []
     for index, name in enumerate(names, 1):
         record = {}
@@ -151,17 +201,19 @@ def run_query(state: dict, soql: str) -> int:
                 record["Id"] = "%s%012dAAA" % (prefix, index)
             elif f.lower() == field.lower():
                 record[field] = name
+            elif f == "LastModifiedDate":
+                record[f] = dates.get(name, BASE_DATE)
             else:
-                return fail("fake sf does not know field %s on %s" % (f, match.group("obj")), "INVALID_FIELD")
+                return fail("fake sf does not know field %s on %s" % (f, obj), "INVALID_FIELD")
         records.append(record)
     return emit({"status": 0, "result": {"records": records, "totalSize": len(records), "done": True}, "warnings": []})
 
 
-def add_unique(state: dict, key: str, name: str) -> bool:
-    if name not in state[key]:
-        state[key].append(name)
-        return True
-    return False
+def touch(state: dict, kind: str, name: str) -> None:
+    """A deploy of a component: it exists afterwards and was modified just now."""
+    if name not in names_of(state, kind):
+        names_of(state, kind).append(name)
+    state.setdefault("dates", {}).setdefault(kind, {})[name] = DEPLOY_DATE
 
 
 def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
@@ -195,8 +247,9 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
             return fail("fake sf: wildcard destructive change refused", "WildcardRefused")
         if os.environ.get("FAKE_SF_NOOP_DESTRUCTIVE") != "1":
             for kind, names in members.items():
-                key = KINDS[kind][0]
-                state[key] = [n for n in state[key] if n not in names]
+                state[KINDS[kind][0]] = [n for n in names_of(state, kind) if n not in names]
+                for n in names:
+                    state.get("dates", {}).get(kind, {}).pop(n, None)
             save_state(state, path)
         count = sum(len(v) for v in members.values())
         return emit({"status": 0, "result": {"success": True, "status": "Succeeded", "numberComponentsDeployed": count,
@@ -212,12 +265,14 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
         if not root.exists():
             return fail("fake sf: no such source dir %s" % directory, "InvalidSourceDir")
         for cls in sorted(root.rglob("*.cls")):
-            deployed += add_unique(state, "apex_classes", cls.stem)
+            touch(state, "ApexClass", cls.stem)
+            deployed += 1
         candidates = [p for p in root.rglob("*") if p.is_dir() and p.parent.name == "lwc"]
         if root.parent.name == "lwc":
             candidates.append(root)
         for bundle in sorted(candidates):
-            deployed += add_unique(state, "lwc", bundle.name)
+            touch(state, "LightningComponentBundle", bundle.name)
+            deployed += 1
     save_state(state, path)
     return emit({"status": 0, "result": {"success": True, "status": "Succeeded", "numberComponentsDeployed": deployed,
                                          "numberComponentErrors": 0}})
@@ -268,27 +323,36 @@ def run_apex(flags: dict, entry: dict) -> int:
     canned: dict = {}
     if os.environ.get("FAKE_SF_APEX"):
         canned = json.loads(Path(os.environ["FAKE_SF_APEX"]).read_text())
-    lines = ["64.0 APEX_CODE,DEBUG;APEX_PROFILING,INFO", "Execute Anonymous: (fake)", "12:00:00.0 (1000)|EXECUTION_STARTED"]
+    # The real log echoes the source after "Execute Anonymous:"; those lines mention RESULT| too and are not USER_DEBUG output.
+    lines = ["64.0 APEX_CODE,DEBUG;APEX_PROFILING,INFO"] + ["Execute Anonymous: %s" % row for row in source.splitlines()]
+    lines += ["12:00:00.0 (1000)|EXECUTION_STARTED", "12:00:00.0 (1100)|CODE_UNIT_STARTED|[EXTERNAL]|execute_anonymous_apex"]
     for index, name in enumerate(names, 1):
         value = canned.get(name, "MISSING")
         if isinstance(value, dict):
+            if "failure" in value:
+                return fail(value["failure"], "ApexCompileError")
             if "compileProblem" in value:
                 return emit({"status": 0, "result": {"success": False, "compiled": False, "compileProblem": value["compileProblem"],
-                                                     "exceptionMessage": "", "exceptionStackTrace": "", "logs": ""}})
+                                                     "exceptionMessage": "", "exceptionStackTrace": "", "line": 2, "column": 22,
+                                                     "logs": ""}})
             if "error" in value:
                 return emit({"status": 0, "result": {"success": False, "compiled": True, "compileProblem": "",
                                                      "exceptionMessage": value["error"], "exceptionStackTrace": "AnonymousBlock: line 1",
-                                                     "logs": "\n".join(lines)}})
+                                                     "line": 1, "column": 1, "logs": "\n".join(lines) + "\n"}})
         lines.append("12:00:00.0 (%d)|USER_DEBUG|[%d]|DEBUG|RESULT|%s|%s" % (2000 + index, index + 2, name, value))
-    lines.append("12:00:00.0 (9000)|EXECUTION_FINISHED")
+    lines += ["12:00:00.0 (8000)|CODE_UNIT_FINISHED|execute_anonymous_apex", "12:00:00.0 (9000)|EXECUTION_FINISHED"]
     return emit({"status": 0, "result": {"success": True, "compiled": True, "compileProblem": "", "exceptionMessage": "",
-                                         "exceptionStackTrace": "", "logs": "\n".join(lines) + "\n"}})
+                                         "exceptionStackTrace": "", "line": -1, "column": -1, "logs": "\n".join(lines) + "\n"}})
 
 
 def main(argv: list[str]) -> int:
     words, flags = parse(argv)
     target = first(flags, "--target-org", "-o")
     entry = {"argv": argv, "target_org": target, "cwd": os.getcwd(), "refused": False}
+    if argv in (["--version"], ["-v"]):  # one plain line, no --json and no org, like the real CLI
+        log(entry)
+        print(VERSION)
+        return 0
     state, path = load_state()
     command = " ".join(words[:3]) if words[:2] == ["apex", "run"] and words[2:3] == ["test"] else " ".join(words[:2])
     if command != "org list":
@@ -303,22 +367,22 @@ def main(argv: list[str]) -> int:
         return fail("fake sf: every call must pass --json")
     try:
         if command == "org list":
-            code = emit({"status": 0, "result": {"nonScratchOrgs": [{
-                "alias": state["alias"], "username": "fake@example.invalid", "instanceUrl": "https://fake.my.salesforce.com",
-                "connectedStatus": state["connectedStatus"], "isDefaultUsername": True}], "other": [], "scratchOrgs": [],
-                "sandboxes": [], "devHubs": []}, "warnings": []})
+            listed = {"alias": state["alias"], "username": "fake@example.invalid", "instanceUrl": "https://fake.my.salesforce.com",
+                      "connectedStatus": state["connectedStatus"], "isDefaultUsername": True}
+            buckets = {"nonScratchOrgs": [], "other": [], "scratchOrgs": [], "sandboxes": [], "devHubs": []}
+            for bucket in state["org_buckets"]:
+                buckets[bucket] = [listed]
+            code = emit({"status": 0, "result": buckets, "warnings": []})
         elif command == "org display":
             code = emit({"status": 0, "result": {"accessToken": TOKEN, "alias": target, "apiVersion": "68.0", "clientId": "x",
                                                  "connectedStatus": state["connectedStatus"], "id": "00D000000000000AAA",
                                                  "instanceUrl": "https://fake.my.salesforce.com", "username": "fake@example.invalid"}})
         elif command == "data query":
             soql = first(flags, "-q", "--query") or ""
-            if "--use-tooling-api" not in flags:
-                code = fail("fake sf: ApexClass and LightningComponentBundle need --use-tooling-api", "INVALID_TYPE")
-            elif "query" in fail_ops():
+            if "query" in fail_ops():
                 code = fail("fake sf: query failed on request", "QueryFailed")
             else:
-                code = run_query(state, soql)
+                code = run_query(state, soql, "--use-tooling-api" in flags)
         elif command == "project deploy":
             code = run_deploy(state, path, flags, entry) if words[2:3] == ["start"] else fail("fake sf: unsupported: %s" % " ".join(words))
         elif command == "apex run test":

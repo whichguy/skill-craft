@@ -1115,23 +1115,81 @@ nothing about any platform; it runs the shell commands the case names, in this o
 | key | when | environment | on failure |
 |---|---|---|---|
 | `home_links` | before the preflight | names under the real `HOME`; for a host on a throwaway `HOME` (Grok, Codex) each name that exists becomes a symlink `<throwaway home>/<name>` to `~/<name>`. Only existence is checked, never contents. A name that is absent is skipped and recorded; Claude runs in the real `HOME` and needs nothing | recorded, never a failure |
-| `model_bin` | before the preflight (and again on a resume) | an object `{command name: shell command}`. For each name the harness writes an executable `#!/bin/sh` script `<output>/platform/bin/<name>` that runs `env HOME=<real home> <command> "$@"` with `E2E_CHECKS`, `E2E_PLATFORM_DIR` and `E2E_MODEL_BIN_DIR` baked in as literals, and puts that folder first on the PATH of the host's launch (every host) and of the `preflight`. `before`, `cleanup` and the checks keep the harness's PATH, so they reach the real CLI. The command is the case's policy (the Salesforce case runs `checks/sf_guard.py`); the harness knows none. Recorded as `platform.model_bin` / `environment.platform_model_bin` ({name: wrapper path}) | recorded, never a failure; a wrapper that does not work fails the preflight |
+| `model_bin` | before the preflight (and again on a resume) | an object `{command name: shell command}`. For each name the harness writes an executable `#!/bin/sh` script `<output>/platform/bin/<name>` that runs `env HOME=<real home> <command> "$@"` with `E2E_CHECKS`, `E2E_PLATFORM_DIR` and `E2E_MODEL_BIN_DIR` baked in as literals, and puts that folder first on the PATH of the host's launch (every host) and of the `preflight`. `before`, `cleanup` and the checks keep the harness's PATH, so they reach the real CLI. The command is the case's policy (the Salesforce case runs `checks/sf_guard.py`); the harness knows none. Recorded as `platform.model_bin` / `environment.platform_model_bin` ({name: wrapper path}). The wrapper must also be what the model's shells find: see "The wrapper is first in the model's shells" below | recorded, never a failure; a wrapper that does not work, or that a shell does not find first, fails the preflight |
 | `preflight` | before any model call, also in `--preflight-only --case <name>` | the host's own (so a bad link shows here, and the `model_bin` wrappers are first on its PATH) | the run is refused with the command's scrubbed output; no model starts |
 | `before` | once, on a fresh run (not `--resume-run`) | the harness's | the run is refused; no model starts |
-| `cleanup` | after grading, always: in a `finally`, so a failed run, a crash, a Ctrl-C and a SystemExit still run it. A resume runs it again at its end; a regrade runs it only if the run's record shows no successful cleanup | the harness's | a loud banner with the exact command to rerun by hand; the run fails |
+| `cleanup` | after grading, always: in a `finally`, so a failed run, a crash, a Ctrl-C and a SystemExit still run it. It first ends this case's own host and waits (at most 10 s) until it is gone, so a cleanup never overlaps a model that can still deploy; another case's host in a suite is left alone. A resume runs it again at its end; a regrade runs it only if the run's record shows no successful cleanup **and** this invocation holds the case's `.harness-lock` (a regrade of a trial that is still running prints one line saying the cleanup was skipped, and does nothing to the platform) | the harness's | a loud banner with the exact command to rerun by hand; the run fails |
+| `resume_note` | on a resume (not a regrade) of a run whose earlier invocation's cleanup ran (`platform.cleanup.ran` in its `result.json`) | not a command: a string appended, after a space, to the resume prompt of the host launch, so the model is told the platform was reset and what it deployed is gone. A case without a note, and a resume after a cleanup that did not run, get the unchanged prompt | refused at load if it is not a non-empty string |
 
 `result.json` gets a `platform` block (`spec`, `home_links`, `preflight`, `before`, `cleanup` as `{ran, ok, returncode, output}`,
-`earlier_cleanups` after a resume), `environment.platform_home_links` names what the model could reach, and `invocation.json`
-repeats the spec and links. The start of the run prints the manual cleanup command. `<output>/platform/cleanup-record.json` is
-written by the cleanup itself. With `model_bin`, `<output>/platform/sf-calls.jsonl` (written by `checks/sf_guard.py`, the Salesforce case's wrapper policy) holds one scrubbed line per call the model made (argv, allowed or denied and why, the exit code and the first 200 characters of stderr of an allowed call; never stdout): the run's script-run evidence of what the model did in the org. A regrade of a run whose cleanup succeeded restates the checks made while the work was deployed
-(`platform.checks_restated`): asking a cleaned platform again would find nothing and replace a pass with a fail.
+`earlier_cleanups` after a resume, and with `model_bin` also `shell_path_pinned`, `model_bin_resolution`,
+`guard_log_lines_at_launch` and `guard_coverage`, below), `environment.platform_home_links` names what the model could reach, and
+`invocation.json` repeats the spec, the links and what the preflight recorded. The start of the run prints the manual cleanup command, and so does the failure banner. It reads
+`env E2E_PLATFORM_DIR=<dir> E2E_CHECKS=<dir> sh -c '<the case's cleanup>'`: paste it into any shell, from any directory. (A plain
+`VAR=x command "$VAR"` prefix would not do: the shell expands `$VAR` before the assignment is visible to that same command, so
+`$E2E_CHECKS` in the case's text would be empty.) `<output>/platform/cleanup-record.json` is written by the cleanup itself. A
+regrade of a run whose cleanup succeeded restates the checks made while the work was deployed (`platform.checks_restated`):
+asking a cleaned platform again would find nothing and replace a pass with a fail.
+
+#### The wrapper is first in the model's shells
+
+Putting the wrappers' folder first on the PATH the host is launched with is not enough. A login shell on macOS runs `path_helper`
+(from `/etc/zprofile` and `/etc/profile`), which rebuilds PATH with `/etc/paths.d` first, Homebrew's `/opt/homebrew/bin` among
+them, and keeps the launch PATH only behind it. Grok's shell tool starts login shells, so on the first live run (2026-10-16) `sf`
+resolved to `/opt/homebrew/bin/sf` and the wrapper never saw a call: `zsh -c`, `bash -c` and `sh -c` kept the wrapper first,
+`zsh -lc`, `bash -lc` and `zsh -ilc` did not. With `model_bin` the preflight therefore does two more things, in the host's
+environment and before the case's own preflight command:
+
+- **Pin.** `pin_shell_path` appends a marked block (`PATH=<wrapper folder>":$PATH"` and `export PATH`) to `.zprofile`, `.zshrc`,
+  `.bash_profile`, `.bashrc` and `.profile` of the throwaway `HOME`, which those shells read after `path_helper`. A file that
+  exists keeps its content and gets the block once (a resume changes nothing). Nothing is written into the real `HOME`, and a
+  startup file that is a symlink (a `home_links` name) is never written through. The files carrying the block are recorded as
+  `platform.shell_path_pinned` (an empty list on a host that runs in the real `HOME`).
+- **Check.** `shell_resolution_problems` starts `/bin/sh -c`, `/bin/bash -c`, `/bin/bash -lc`, `/bin/zsh -c`, `/bin/zsh -lc` and
+  `/bin/zsh -ilc` (those installed here) with the host's environment, asks each `command -v <name>` for every wrapper name and
+  requires the last line to be `<output>/platform/bin/<name>`. `command -v` prints the path and never runs the command, so the
+  check cannot reach the real CLI. The result is `platform.model_bin_resolution` (`{ok, problems}`); one problem is one name in
+  one shell, naming what it resolved to. Any problem makes the preflight fail (the command `model_bin shell resolution`, exit 1,
+  the problems as its output), the case's own preflight command is not run, and a fresh run, a resume and `--preflight-only`
+  all refuse before any model starts.
+
+A host that runs in the real `HOME` (Claude) is not pinned, by design: the harness never writes the owner's startup files. The
+check then tells whether the wrapper is first there, and where a login shell reorders the PATH (any macOS login shell does for a
+name that is also in `/etc/paths.d`) the run is refused rather than started unguarded. Run such a case on Grok or Codex, or put
+the wrappers' folder first in the real startup files yourself.
+
+#### Did the guard see the model? (`guard_coverage`)
+
+With `model_bin`, `<output>/platform/sf-calls.jsonl` (written by `checks/sf_guard.py`, the Salesforce case's wrapper policy) is
+what went **through** the wrapper, not what the model did in the org: a model that reaches the real CLI some other way (an
+absolute path, a login shell the pin missed, its own `HOME`) leaves no line in it. Its format: every call writes a decision line
+`{"ts", "call", "org", "prefix", "argv", "decision": "allowed|denied", "reason"}` (`call` is a short random id; argv and
+reasons are scrubbed and bounded), and an allowed call then writes an end line `{"ts", "call", "end": true, "exit", "stderr_head",
+"interrupted"}` (never stdout). The number of calls is the number of lines without an `end` key.
+
+So the harness checks the log against the transcript. `model_sf_commands` reads `events.jsonl` (the shapes differ per host: Grok and
+Codex `rawInput.command`, Claude `tool_use` `input.command`), takes the values of keys named `command` or `cmd`, and keeps the
+distinct ones that run `sf` or `sfdx` (`sf org list`, `HOME=/x sf apex run`, `subprocess.run(["sf", ...`,
+`/opt/homebrew/bin/sf ...`); prose and the prompt are not commands. `guard_coverage` returns `{model_sf_commands, guard_calls,
+bypassed}`: the commands in the transcript, the log's calls after the preflight, and `bypassed` when commands were run and the
+guard saw none. The log's length after the preflight is recorded as `platform.guard_log_lines_at_launch` (also in
+`invocation.json`), so the preflight's own calls are not the model's. The block is computed when the platform has an `sf` or
+`sfdx` wrapper and the run recorded that length; a run from before the field existed is not judged.
+
+A bypassed run fails (`pass` false, the mismatch names it) and prints one plain line: the guard saw no model call although the
+transcript shows N sf commands, so the policy may not have governed this run. That is an **invalid trial**, not a ShipLoop
+verdict. The end-of-run platform line states the observation (`guard saw M model calls (transcript shows N sf commands)`), not
+only the configuration. The scan is a heuristic over commands: a `git commit -m "... sf deploy"` counts as a command, and a model
+that runs `sf` with no argument is not seen. A resumed run counts from the first launch's length (its stream and log both
+accumulate), so a resume's own preflight calls through the wrapper count as guard calls; read the first invocation's result for
+the first segment.
 
 Credentials: every command output the harness stores or prints goes through `run.scrub`, which replaces the value of a key named
 `accessToken`, `refreshToken`, `clientSecret` or `sfdxAuthUrl` and any string shaped like a Salesforce session token
 (`00D...!...`) with `[redacted]`. In a case with a platform the same scrub also covers the harness's own records
 (`events.jsonl`, `transcript.md`, check outputs, the live view). A platform command must never print or write a credential
-itself, and a case never types, stores or passes one: the only mechanism is the owner's existing login, reached either by `home_links` (a CLI whose login is a file under HOME) or by a `model_bin` wrapper (a CLI whose login lives in the macOS keychain, which a throwaway HOME hides: the wrapper runs the real CLI with the real HOME and applies the case's policy). The isolated HOME is hygiene, not a security boundary: the same OS user can read any absolute path, so the policy is in the wrapper, and a model that calls the CLI by absolute path or changes its own PATH goes around it. A harness that is killed with SIGKILL
-cannot clean up: run the cleanup command printed at the start (with that run's `E2E_PLATFORM_DIR`), then resume.
+itself, and a case never types, stores or passes one: the only mechanism is the owner's existing login, reached either by `home_links` (a CLI whose login is a file under HOME) or by a `model_bin` wrapper (a CLI whose login lives in the macOS keychain, which a throwaway HOME hides: the wrapper runs the real CLI with the real HOME and applies the case's policy). The isolated HOME is hygiene, not a security boundary: the same OS user can read any absolute path, so the policy is in the wrapper, and a model that calls the CLI by absolute path or changes its own PATH goes around it; `guard_coverage` (above) is how the run tells when that happened. A harness that is killed with SIGKILL
+cannot clean up: run the cleanup command printed at the start, then resume.
 
 ### Launching long runs
 
