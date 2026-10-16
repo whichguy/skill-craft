@@ -11,9 +11,11 @@ write-ahead Markdown journal remains for ``recover`` to replay.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import tempfile
+import unicodedata
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -53,9 +55,17 @@ def _require_title(title: str) -> str:
     return title.strip()
 
 
+def _require_utf8_encodable(value: str, *, label: str) -> None:
+    try:
+        value.encode("utf-8")
+    except UnicodeError as exc:
+        raise StorageError(f"{label} is not UTF-8 encodable: {exc}") from exc
+
+
 def dumps(obj: Any, title: str = "ShipLoop record") -> str:
     """Render one human-readable Markdown record with one state JSON fence."""
     heading = _require_title(title)
+    _require_utf8_encodable(heading, label="record title")
     try:
         payload = json.dumps(
             obj,
@@ -64,7 +74,8 @@ def dumps(obj: Any, title: str = "ShipLoop record") -> str:
             sort_keys=True,
             allow_nan=False,
         )
-    except (TypeError, ValueError) as exc:
+        _require_utf8_encodable(payload, label="record JSON")
+    except (TypeError, ValueError, UnicodeError) as exc:
         raise StorageError(f"record is not JSON serializable: {exc}") from exc
     return f"# {heading}\n\n```shiploop-state\n{payload}\n```\n"
 
@@ -80,6 +91,13 @@ def _reject_duplicate_keys(pairs: List[Tuple[str, Any]]) -> Dict[str, Any]:
 
 def _reject_nonstandard_constant(value: str) -> None:
     raise StorageError(f"nonstandard JSON constant: {value}")
+
+
+def _parse_finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise StorageError(f"non-finite JSON number: {value}")
+    return number
 
 
 def loads(text: str) -> Any:
@@ -112,11 +130,15 @@ def loads(text: str) -> Any:
 
     payload = "\n".join(lines[opening + 1 : closing])
     try:
-        return json.loads(
+        value = json.loads(
             payload,
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=_reject_nonstandard_constant,
+            parse_float=_parse_finite_float,
         )
+        serialized = json.dumps(value, ensure_ascii=False, allow_nan=False)
+        _require_utf8_encodable(serialized, label="record JSON")
+        return value
     except StorageError:
         raise
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
@@ -146,14 +168,83 @@ def _fsync_directory(directory: Path) -> None:
         os.close(fd)
 
 
+def _ensure_directory_chain(directory: Path, *, root: Optional[Path] = None) -> None:
+    """Create parent directories one at a time and persist each new entry.
+
+    With ``root``, fsync the full root-to-parent lineage on every call so a
+    recovery retry repairs an earlier failed parent fsync even when the
+    directory now exists.
+    """
+    if root is not None:
+        try:
+            relative = directory.relative_to(root)
+        except ValueError as exc:
+            raise StorageError(
+                f"transaction parent escapes transaction root: {directory}"
+            ) from exc
+        current = root
+        for part in relative.parts:
+            child = current / part
+            try:
+                if child.is_symlink() or child.exists():
+                    if not child.is_dir():
+                        raise StorageError(
+                            f"transaction parent is not a directory: {child}"
+                        )
+                    _resolve_checked(child, root, label="transaction parent")
+                else:
+                    child.mkdir()
+                    _resolve_checked(child, root, label="transaction parent")
+                    if not child.is_dir():
+                        raise StorageError(
+                            f"transaction parent is not a directory: {child}"
+                        )
+            except FileExistsError as exc:
+                if not child.is_dir():
+                    raise StorageError(
+                        f"transaction parent is not a directory: {child}"
+                    ) from exc
+                _resolve_checked(child, root, label="transaction parent")
+            except OSError as exc:
+                raise StorageError(
+                    f"cannot create transaction parent {child}: {exc}"
+                ) from exc
+            _fsync_directory(current)
+            current = child
+        return
+
+    missing: List[Path] = []
+    current = directory
+    while not current.exists() and not current.is_symlink():
+        parent = current.parent
+        if parent == current:
+            raise StorageError(f"cannot find an existing parent for {directory}")
+        missing.append(current)
+        current = parent
+    if not current.is_dir():
+        raise StorageError(f"target parent is not a directory: {current}")
+    for child in reversed(missing):
+        try:
+            child.mkdir()
+        except FileExistsError as exc:
+            if not child.is_dir():
+                raise StorageError(f"target parent is not a directory: {child}") from exc
+        except OSError as exc:
+            raise StorageError(
+                f"cannot create target parent {child}: {exc}"
+            ) from exc
+        _fsync_directory(child.parent)
+
+
 def atomic_write_text(path: RecordPath, text: str) -> None:
     """Write UTF-8 text through a unique, fsynced sibling temp file and replace."""
     if not isinstance(text, str):
         raise StorageError("atomic text payload must be a string")
+    _require_utf8_encodable(text, label="atomic text payload")
     target = _as_path(path, label="target path")
     parent = target.parent
     try:
-        parent.mkdir(parents=True, exist_ok=True)
+        _ensure_directory_chain(parent)
         if not parent.is_dir():
             raise StorageError(f"target parent is not a directory: {parent}")
         if target.exists() and not target.is_symlink() and target.is_dir():
@@ -225,6 +316,35 @@ def _is_within(path: Path, root: Path) -> bool:
         return False
 
 
+PathKey = Tuple[str, ...]
+
+
+def _portable_component_key(component: str) -> str:
+    """Fold case and canonical Unicode forms consistently on every host.
+
+    Transaction paths deliberately reject names that could alias after a move
+    to a case-insensitive or normalization-insensitive filesystem.
+    """
+    normalized = unicodedata.normalize("NFC", component)
+    return unicodedata.normalize("NFC", normalized.casefold())
+
+
+def _portable_path_key(parts: Sequence[str]) -> PathKey:
+    return tuple(_portable_component_key(part) for part in parts)
+
+
+def _identity_key(path: Path, root: Path) -> PathKey:
+    try:
+        relative = path.relative_to(root)
+    except ValueError as exc:
+        raise StorageError(f"path identity escapes transaction root: {path}") from exc
+    return _portable_path_key(relative.parts)
+
+
+def _key_within(path: PathKey, root: PathKey) -> bool:
+    return path[: len(root)] == root
+
+
 def _relative_parts(
     relative_path: str, *, allow_journal: bool = False
 ) -> Tuple[str, ...]:
@@ -237,7 +357,11 @@ def _relative_parts(
     parts = tuple(relative_path.split("/"))
     if any(part in ("", ".", "..") for part in parts):
         raise StorageError(f"unsafe transaction path: {relative_path!r}")
-    if not allow_journal and parts and parts[0] == JOURNAL_NAME:
+    if (
+        not allow_journal
+        and parts
+        and _portable_component_key(parts[0]) == _portable_component_key(JOURNAL_NAME)
+    ):
         raise StorageError("transaction manifests may not edit transaction.md")
     return parts
 
@@ -261,7 +385,11 @@ def _checked_target(
     for offset, part in enumerate(parts):
         current = current / part
         if current.is_symlink():
-            _resolve_checked(current, root, label="transaction symlink")
+            resolved = _resolve_checked(current, root, label="transaction symlink")
+            if offset < len(parts) - 1 and not resolved.is_dir():
+                raise StorageError(
+                    f"transaction parent is not a directory: {current}"
+                )
         elif current.exists():
             if offset < len(parts) - 1 and not current.is_dir():
                 raise StorageError(f"transaction parent is not a directory: {current}")
@@ -271,13 +399,89 @@ def _checked_target(
     return current
 
 
-def _ensure_safe_parent(root: Path, target: Path) -> None:
+def _entry_identity(path: Path, root: Path) -> Path:
+    """Return the directory entry atomic replace/unlink will address."""
     try:
-        target.parent.mkdir(parents=True, exist_ok=True)
-    except OSError as exc:
+        parent = path.parent.resolve(strict=False)
+    except (OSError, RuntimeError) as exc:
         raise StorageError(
-            f"cannot create transaction parent {target.parent}: {exc}"
+            f"cannot resolve transaction parent: {path.parent}: {exc}"
         ) from exc
+    if not _is_within(parent, root):
+        raise StorageError(
+            f"transaction parent escapes transaction root: {path.parent}"
+        )
+    return parent / path.name
+
+
+def _collect_symlink_dependencies(
+    path: Path,
+    root: Path,
+    dependencies: set[PathKey],
+    seen: set[Path],
+) -> None:
+    """Collect symlink entries traversed while resolving a symlink target."""
+    if not path.is_symlink():
+        return
+    try:
+        identity = path.parent.resolve(strict=False) / path.name
+    except (OSError, RuntimeError) as exc:
+        raise StorageError(
+            f"cannot resolve transaction symlink: {path}: {exc}"
+        ) from exc
+    if identity in seen:
+        return
+    seen.add(identity)
+    if _is_within(identity.parent, root):
+        dependencies.add(_identity_key(identity, root))
+
+    try:
+        link = Path(os.readlink(path))
+        current = (
+            Path(link.anchor)
+            if link.is_absolute()
+            else path.parent.resolve(strict=False)
+        )
+        parts = link.parts[1:] if link.is_absolute() else link.parts
+        for part in parts:
+            if part in ("", "."):
+                continue
+            if part == "..":
+                current = current.parent
+                continue
+            component = current / part
+            if component.is_symlink():
+                _collect_symlink_dependencies(component, root, dependencies, seen)
+                current = component.resolve(strict=False)
+            else:
+                current = component
+    except (OSError, RuntimeError) as exc:
+        raise StorageError(
+            f"cannot inspect transaction symlink: {path}: {exc}"
+        ) from exc
+
+
+def _parent_symlink_dependencies(root: Path, relative_path: str) -> set[PathKey]:
+    """Find symlink entries whose replacement could redirect this destination."""
+    parts = _relative_parts(relative_path)
+    dependencies: set[PathKey] = set()
+    seen: set[Path] = set()
+    current = root
+    for part in parts[:-1]:
+        current = current / part
+        if current.is_symlink():
+            _collect_symlink_dependencies(current, root, dependencies, seen)
+        try:
+            current = current.resolve(strict=False)
+        except (OSError, RuntimeError) as exc:
+            raise StorageError(
+                f"cannot resolve transaction parent: {current}: {exc}"
+            ) from exc
+    return dependencies
+
+
+def _ensure_safe_parent(root: Path, target: Path) -> None:
+    _ensure_directory_chain(target.parent, root=root)
     if not target.parent.is_dir():
         raise StorageError(f"transaction parent is not a directory: {target.parent}")
     _resolve_checked(target.parent, root, label="transaction parent")
@@ -303,6 +507,12 @@ def _validated_manifest(
         raise StorageError("transaction write values must be strings")
     if any(not isinstance(path, str) for path in deletes):
         raise StorageError("transaction delete paths must be strings")
+    for path in write_paths:
+        _require_utf8_encodable(path, label="transaction path")
+    for text in writes.values():
+        _require_utf8_encodable(text, label="transaction write value")
+    for path in deletes:
+        _require_utf8_encodable(path, label="transaction path")
     if len(set(deletes)) != len(deletes):
         raise StorageError("transaction deletes contain duplicate paths")
 
@@ -312,11 +522,50 @@ def _validated_manifest(
     if write_set.intersection(ordered_deletes):
         raise StorageError("transaction cannot write and delete the same path")
 
+    manifest_paths = [path for path, _ in ordered_writes] + list(ordered_deletes)
+    parsed_paths = [
+        (path, _portable_path_key(_relative_parts(path))) for path in manifest_paths
+    ]
+    for index, (path, parts) in enumerate(parsed_paths):
+        for other_path, other_parts in parsed_paths[index + 1 :]:
+            if _key_within(parts, other_parts) or _key_within(other_parts, parts):
+                raise StorageError(
+                    f"transaction paths overlap: {path!r} and {other_path!r}"
+                )
+
     # Validate *all* destinations before a journal or a target is written.
-    for path, _ in ordered_writes:
-        _checked_target(root, path)
-    for path in ordered_deletes:
-        _checked_target(root, path)
+    journal_key = _identity_key(_journal_path(root), root)
+    destinations: List[Tuple[str, PathKey, set[PathKey]]] = []
+    for path in manifest_paths:
+        target = _checked_target(root, path)
+        identity_key = _identity_key(_entry_identity(target, root), root)
+        if _key_within(identity_key, journal_key) or _key_within(
+            journal_key, identity_key
+        ):
+            raise StorageError(
+                "transaction manifests may not edit or contain transaction.md"
+            )
+        destinations.append(
+            (path, identity_key, _parent_symlink_dependencies(root, path))
+        )
+
+    for index, (path, identity_key, dependencies) in enumerate(destinations):
+        for other_path, other_key, _ in destinations[index + 1 :]:
+            if _key_within(identity_key, other_key) or _key_within(
+                other_key, identity_key
+            ):
+                raise StorageError(
+                    f"transaction paths have conflicting physical entries: "
+                    f"{path!r} and {other_path!r}"
+                )
+        for other_path, other_key, other_dependencies in destinations:
+            if other_path != path and (
+                identity_key in other_dependencies or other_key in dependencies
+            ):
+                raise StorageError(
+                    f"transaction edits a symlink parent used by another path: "
+                    f"{path!r} and {other_path!r}"
+                )
     return ordered_writes, ordered_deletes
 
 
@@ -351,7 +600,12 @@ def _manifest_from_journal(root: Path, payload: Any) -> Manifest:
     expected_keys = {"schema", "transaction_id", "version", "writes", "deletes"}
     if set(payload) != expected_keys:
         raise StorageError("transaction journal has an unexpected schema")
-    if payload["schema"] != JOURNAL_SCHEMA or payload["version"] != JOURNAL_VERSION:
+    version = payload["version"]
+    if (
+        payload["schema"] != JOURNAL_SCHEMA
+        or type(version) is not int
+        or version != JOURNAL_VERSION
+    ):
         raise StorageError("transaction journal has an unsupported schema")
     if not isinstance(payload["transaction_id"], str) or not payload["transaction_id"]:
         raise StorageError("transaction journal has no transaction id")

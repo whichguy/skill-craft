@@ -8,13 +8,19 @@ script's own records.  A result may not cite a local file that does not exist.
 
 from __future__ import annotations
 
+import contextlib
+import importlib.machinery
+import importlib.util
+import io
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +31,8 @@ sys.path.insert(0, str(SCRIPTS))
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
+import shiploop_protocol as protocol  # noqa: E402
+import shiploop_store as store  # noqa: E402
 
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_KEEPALIVE": "off"}
 
@@ -157,6 +165,107 @@ class EvidenceGateTests(unittest.TestCase):
                                       capture_output=True, text=True, env=ENV)
             self.assertEqual(accepted.returncode, 0, accepted.stderr)
             self.assertIn("| discovery |", accepted.stdout)
+
+
+class CallbackErrorRecoveryTests(unittest.TestCase):
+    def _init(self, run: Path) -> str:
+        repo = run.parent / "repo"
+        repo.mkdir()
+        initialized = subprocess.run(
+            [sys.executable, str(CLI), "init", f"--repo={repo}", f"--run-dir={run}",
+             "--prompt=Callback recovery fixture."],
+            capture_output=True, text=True, env=ENV,
+        )
+        self.assertEqual(initialized.returncode, 0, initialized.stderr)
+        return nav.current_action(store.read_record(run / "state.md"))["id"]
+
+    def _assert_durable_recovery(self, stderr: str, run: Path) -> None:
+        command = shlex.join([
+            "python3", str(SCRIPTS / "shiploop"), "next", "--run-dir", str(run),
+        ])
+        self.assertIn(f"Authoritative state.md: {run / 'state.md'}", stderr)
+        self.assertIn(f"Run exactly this recovery command: {command}", stderr)
+        self.assertIn("may already be saved", stderr)
+        self.assertIn("repair and resubmit in this turn only if that packet asks for it", stderr)
+        self.assertNotIn("did not advance", stderr)
+        self.assertNotIn("run is still active", stderr)
+
+    def test_inactive_callback_error_makes_no_active_or_no_advance_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            run = Path(temporary).resolve() / "run"
+            action = self._init(run)
+            paused = subprocess.run(
+                [sys.executable, str(CLI), "pause", "--run-dir", str(run), "--reason", "User requested a pause."],
+                capture_output=True, text=True, env=ENV,
+            )
+            self.assertEqual(paused.returncode, 0, paused.stderr)
+            result = run / "inbox" / f"{action}.md"
+            result.parent.mkdir(parents=True, exist_ok=True)
+            result.write_text(
+                "```shiploop-state\n"
+                '{"outcome":"done","summary":"Fixture callback.","evidence_refs":[]}\n'
+                "```\n"
+            )
+
+            refused = subprocess.run(
+                [sys.executable, str(CLI), "complete", "--run-dir", str(run),
+                 "--action", action, "--result", str(result)],
+                capture_output=True, text=True, env=ENV,
+            )
+
+            self.assertEqual(refused.returncode, 2)
+            self.assertIn("navigator is not active", refused.stderr)
+            self.assertEqual(store.read_record(run / "state.md")["status"], "paused")
+            self._assert_durable_recovery(refused.stderr, run)
+
+    def test_active_invalid_callback_makes_no_inferred_transition_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            run = Path(temporary).resolve() / "run"
+            self._init(run)
+
+            refused = subprocess.run(
+                [sys.executable, str(CLI), "complete", "--run-dir", str(run),
+                 "--action", "stale-action", "--result", str(run / "unused.md")],
+                capture_output=True, text=True, env=ENV,
+            )
+
+            self.assertEqual(refused.returncode, 2)
+            self.assertIn("is not the current navigator action", refused.stderr)
+            self.assertEqual(store.read_record(run / "state.md")["status"], "active")
+            self._assert_durable_recovery(refused.stderr, run)
+
+    def test_error_after_save_before_emit_recovers_saved_transition(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            run = Path(temporary).resolve() / "run"
+            action = self._init(run)
+            result = run / "inbox" / f"{action}.md"
+            result.parent.mkdir(parents=True, exist_ok=True)
+            result.write_text(
+                "```shiploop-state\n"
+                '{"outcome":"done","summary":"Fixture callback.","evidence_refs":[]}\n'
+                "```\n"
+            )
+            before = store.read_record(run / "state.md")
+            loader = importlib.machinery.SourceFileLoader("shiploop_cli_for_rehydration", str(CLI))
+            spec = importlib.util.spec_from_loader(loader.name, loader)
+            core = importlib.util.module_from_spec(spec)
+            loader.exec_module(core)
+            stderr = io.StringIO()
+
+            with mock.patch.object(protocol.navigator, "emit",
+                                   side_effect=nav.NavigatorError("synthetic packet emission failure")), \
+                    mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE": "off"}), \
+                    contextlib.redirect_stderr(stderr):
+                code = protocol.main(core, [
+                    "complete", "--run-dir", str(run), "--action", action, "--result", str(result),
+                ])
+
+            recovered = store.read_record(run / "state.md")
+            self.assertEqual(code, 2)
+            self.assertGreater(recovered["revision"], before["revision"])
+            self.assertIn(action, recovered["accepted"])
+            self.assertIn("synthetic packet emission failure", stderr.getvalue())
+            self._assert_durable_recovery(stderr.getvalue(), run)
 
 
 if __name__ == "__main__":

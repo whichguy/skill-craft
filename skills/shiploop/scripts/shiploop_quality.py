@@ -38,10 +38,12 @@ def _need(condition: bool, message: str) -> None:
 
 
 def contract_path(action: str) -> str:
+    """Run-relative path of the quality-loop contract for ``action``."""
     return "quality/" + action + "-contract.json"
 
 
 def terminal_path(action: str) -> str:
+    """Run-relative path of the quality-loop terminal receipt for ``action``."""
     return "quality/" + action + "-terminal.json"
 
 

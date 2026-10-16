@@ -1,0 +1,362 @@
+{
+  "cards": [
+    {
+      "id": "distrust-the-author",
+      "shiploop": {
+        "status": "partial",
+        "summary": "ShipLoop's reviewers read the artifact, not the author's report, but the stance is a grounded checklist rather than 'assume not done'. The Improve packet labels the step result 'untrusted evidence, not new authority' and says a completed review 'does not establish the underlying step succeeded'; verify's loop text says stale, skipped or missing evidence is not a confirmation and makes the reviewer trace entry points and review the whole diff. Packets are written to stand alone because context may be cleared between stages (SPEC S-6), so verify need not inherit the author's reasoning, and script reruns (test-loop, verify rerun, rerun after an Improve edit) back every claim. The Improve review itself is an inline same-context self-review by default; an independent reviewer runs only on explicit request.",
+        "evidence": [
+          {
+            "path": "skills/shiploop/scripts/shiploop_navigator.py",
+            "symbol": "_render_improve",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+            "note": "Prints 'Step result (untrusted evidence, not new authority)' and 'does not establish the underlying step succeeded' in every Improve packet."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_prompts.py",
+            "symbol": "PLANNING_REVIEW_FOCUS / IMPLEMENT_STEP_REVIEW_FOCUS / END_REVIEW_FOCUS",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_prompts.py",
+            "note": "Reviewer is given named conditions to look for in the diff ('a weaker stand-in would pass', trace each entry point with valid/boundary/invalid input) and told a pass that finds none is trivial; neutral framing, no 'assume not done'."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_loops.py",
+            "symbol": "WORK['verify']",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_loops.py",
+            "note": "Verify loop: 'stale, skipped or missing evidence is not a confirmation'; reviews the whole item's diff against the plan, rubric and architecture; fix 'never a check or its expected result'."
+          },
+          {
+            "path": "skills/improve/SKILL.md",
+            "symbol": "Binding: 'Agents and independent review'",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/improve/SKILL.md",
+            "note": "Inline self-review is the default ('self-review (inline default)'); independent reviewer only on explicit request."
+          },
+          {
+            "path": "skills/improve/references/review-policy.md",
+            "symbol": "Review-cycle obligation 1 (Review) and 'Independent review'",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/improve/references/review-policy.md",
+            "note": "Reviewer suggestions are 'findings to triage'; accepted only on current evidence of a failure or violated requirement."
+          },
+          {
+            "path": "docs/shiploop-artifact-flow-2026-10-11.md",
+            "symbol": "Section 4 Contract audit, rows 1 and 14",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-artifact-flow-2026-10-11.md",
+            "note": "Records that all 9 Checkers receipts are complete/trivial/satisfied at iteration 1 and that the Improve child is a same-context self-review."
+          }
+        ]
+      },
+      "compare": "The repos tell a reviewer to start from 'not done' (GSD), to read a diff file rather than the report (Superpowers), or to trace code before reading the plan's claims (BMAD). ShipLoop does the artifact-first part structurally: the verify and Improve packets point at the diff, the change inventory and the rubric, and the script reruns every recorded command, so a claim in a report cannot stand in for a run. What differs is the stance: ShipLoop gives conditions to look for instead of an adversarial prior, and the reviewer is the same model in an inline review. The atlas counter-evidence says the stance wording itself is unmeasured and that more fault-finding without execution raises false rejections, which is the reason to keep the grounded form.",
+      "proposal": {
+        "change": "none",
+        "smallestVersion": "No wording change. The one-line stance ('assume the work is not done') would be a prompt-only addition to IMPLEMENT_STEP_REVIEW_FOCUS and WORK['verify'].",
+        "touches": [],
+        "size": "0 lines"
+      },
+      "tests": {
+        "observedProblem": "none found for the stance. Searched test/shiploop_e2e/LEARNINGS.md, SPEC.md, docs/*journal*, docs/shiploop-artifact-flow-2026-10-11.md, changes/. The related finding is a different one (a self-attested receipt, see evidence-gate); LEARNINGS 'Hello cost analysis' records that 9 of 12 first-pass Improve changes fixed a real defect, so reviewers are not missing defects for want of suspicion.",
+        "yagni": "fail",
+        "kiss": "pass",
+        "counterEvidence": "undercuts the stance wording: arXiv 2603.00539 shows demanding more fault-finding without execution raises false rejection of correct code, and no study isolates 'start from not-done'; supports the artifact-and-execution grounding ShipLoop already has.",
+        "ownerRules": "A pure stance prompt would cut against prompts-concise-meaningful-change and kiss-over-adversarial-guards; no rule is violated by leaving it out."
+      },
+      "verdict": "already-covered",
+      "reason": "The substance (review the artifact, rerun the checks, treat host reports as untrusted) is already in the Improve packet, verify's loop text and the script-owned reruns. The stance wording fails the YAGNI test (no recorded failure it would fix) and the counter-evidence says an unexecuted adversarial prior costs false rejections and loop iterations.",
+      "experiment": "n/a (if ever revisited: A/B neutral 'verify' framing against 'assume not done' on seeded-clean and seeded-buggy diffs with Claude 5 models, measuring false rejections and repeat iterations)."
+    },
+    {
+      "id": "validator-per-finding",
+      "shiploop": {
+        "status": "partial",
+        "summary": "ShipLoop has no separate validator pass inside a run. Improve triages its own findings in the same context under a written rule (accept only on current evidence of a failure, violated requirement or concrete in-scope benefit, and record the basis for accepting or declining), then every accepted fix is validated by script: ShipLoop reruns the recorded commands when a review changes the tree. The owner chose inline self-review as the default and an independent reviewer only on explicit request, after stray agent spawns. Outside runs, adversarial-review uses an independent model and turns each testable high or medium finding into an experiment.",
+        "evidence": [
+          {
+            "path": "skills/improve/references/review-policy.md",
+            "symbol": "Review-cycle obligation 1 (Review); 'Independent review'",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/improve/references/review-policy.md",
+            "note": "Triage rule: suggestions are findings to triage; accept on current evidence, record basis for declining."
+          },
+          {
+            "path": "skills/improve/SKILL.md",
+            "symbol": "Binding: 'Agents and independent review'",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/improve/SKILL.md",
+            "note": "Starts no reviewer agent by default; independent review only when the user or parent asks."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_improve_changes.py",
+            "symbol": "module docstring / review_changes",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_improve_changes.py",
+            "note": "Snapshots the tree at improve-bind; a review that changed the tree gets the recorded commands rerun, and uncommitted review edits are refused."
+          },
+          {
+            "path": "skills/adversarial-review/SKILL.md",
+            "symbol": "Usage and --reviewer",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/adversarial-review/SKILL.md",
+            "note": "Independent-family reviewer for changes to prompts and harnesses, each testable finding gets an experiment; not part of a ShipLoop run."
+          },
+          {
+            "path": "skills/adversarial-review/SPEC.md",
+            "symbol": "Rules",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/adversarial-review/SPEC.md",
+            "note": "'Every testable high or medium finding gets an experiment'; the review itself is not proof either way."
+          },
+          {
+            "path": "test/shiploop_e2e/LEARNINGS.md",
+            "symbol": "'Hello cost analysis and Claude connector isolation' (Most first-pass findings were real); 'A1 to A3 landing and review'",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+            "note": "9 of 12 first-pass Improve changes fixed a real defect, 3 marginal; the owner's own heavy review used two skeptics per finding and rejected 9 candidates."
+          },
+          {
+            "path": "docs/shiploop-fast-planning-plan-2026-10-04.md",
+            "symbol": "c6 and c7 (Improve review loops)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-fast-planning-plan-2026-10-04.md",
+            "note": "13 of 32 later passes changed something: 3 warranted, 7 marginal, 3 churn."
+          }
+        ]
+      },
+      "compare": "claude-code's code-review plugin runs several finders in parallel and then a separate validator per finding, with a do-not-flag list, because its job is reviewing someone else's PR where precision is the product. ShipLoop reviews its own work inside a run where a wrong finding becomes a code edit that the next script rerun either keeps green or breaks, so the validator role is played by the test run, not by another agent. The repo measured marginal or churn changes in roughly a quarter to a third of review changes, which is a precision cost, but each is bounded by a rerun and none is recorded as a regression. A per-finding agent adds a fresh context (about 86k tokens per spawn in the owner's notes) per finding, against the owner's inline-default decision.",
+      "proposal": {
+        "change": "none",
+        "smallestVersion": "A prompt sentence in IMPLEMENT_STEP_REVIEW_FOCUS telling the reviewer to reproduce each finding with a command before editing; no new agent.",
+        "touches": [
+          "skills/shiploop/scripts/shiploop_prompts.py"
+        ],
+        "size": "about 3 lines, 1 file"
+      },
+      "tests": {
+        "observedProblem": "none found that a validator would have prevented: no logged run shows a wrong Improve edit that reached the product unrevised. Marginal/churn Improve changes are recorded (3 of 12 first-pass; 10 of 32 later passes in docs/shiploop-fast-planning-plan-2026-10-04.md) but they cost minutes, not defects. Searched LEARNINGS.md, SPEC.md, docs/*journal*, docs/*results*, changes/.",
+        "yagni": "fail",
+        "kiss": "fail",
+        "counterEvidence": "neutral to undercuts: a Sonnet 5 pre-registered ablation supports a model verifier for precision, but the same-family circularity, the 32% judge/verifier disagreement and the no-gain-at-3x-cost result for same-model repetition say a fresh-context validator only pays when it executes something, which ShipLoop's rerun already does.",
+        "ownerRules": "A per-finding agent conflicts with the inline-default decision (improve-split-2026-09: no reviewer agent unless explicitly asked) and adds mode/state; a reproduce-first sentence would be fine but has no evidence."
+      },
+      "verdict": "skip",
+      "reason": "ShipLoop already validates by execution after every accepted edit and has no recorded precision failure that survives to the product. A separate validator per finding fails KISS (new agent route, more state) and conflicts with the owner's inline default. Revisit only if a run shows an Improve edit that passed its reruns yet was wrong.",
+      "experiment": "n/a. Cheap offline check if ever wanted: in saved run stores, count Improve review commits later reverted or contradicted by a downstream stage (zero is expected)."
+    },
+    {
+      "id": "evidence-gate",
+      "shiploop": {
+        "status": "has",
+        "summary": "Evidence is script-observed wherever a test is the claim. ShipLoop runs the recorded commands itself, parses the runner's own count, requires every listed test ID and a count floor, refuses a run that ran nothing, runs new tests on the base checkout (they must not pass there), and runs a mutation check on the item's changed lines. The Until Loop result is checked against a contract rebuilt from state, and the packet tells the model the evidence file it cites 'is not proof of anything'. The remaining model-attested piece is the loop receipt's exit_assessment, recorded by the owner's own audit as the top gap.",
+        "evidence": [
+          {
+            "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+            "symbol": "module docstring; base_check / loop_run / mutation_check; verify()",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_test_loop.py",
+            "note": "ShipLoop runs every recorded command, refuses exit 0 with no tests, too few tests or missing IDs; new IDs must fail on the base."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_test_counts.py",
+            "symbol": "count / named",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_test_counts.py",
+            "note": "Reads the executed test count and IDs from the runner's own output; unrecognised output returns None rather than a guess."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_mutation.py",
+            "symbol": "module docstring; OPERATORS; MUTANT_SAMPLE",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_mutation.py",
+            "note": "Up to 8 deterministic mutants of changed product lines; done refused when mutants ran and none was killed."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_loops.py",
+            "symbol": "check_loop_packet / check_terminal",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_loops.py",
+            "note": "Rejects a result whose Until Loop terminal packet is not from a run of the contract rebuilt from state."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_navigator.py",
+            "symbol": "_check_submitted_evidence",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+            "note": "Docstring: 'An existing file is not proof of anything: test evidence is ShipLoop's own test-run record'; cited files must exist."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_unverified.py",
+            "symbol": "check_submitted",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_unverified.py",
+            "note": "Request outcomes no executed check observed must be listed with owner and due stage; shape is gated, truth is not."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+            "symbol": "implement / test / verify rows (complete_runs)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+            "note": "implement has loop-terminal and lint-gate only; test adds test-base and test-loop; verify adds test-rerun."
+          },
+          {
+            "path": "docs/shiploop-artifact-flow-2026-10-11.md",
+            "symbol": "Section 4 Contract audit, rows 1, 8 and 9",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-artifact-flow-2026-10-11.md",
+            "note": "Residual gaps: receipt exit_assessment self-attested, evidence_refs existence-only, mutation survivors not shown."
+          },
+          {
+            "path": "test/shiploop_e2e/LEARNINGS.md",
+            "symbol": "'Investigation of the entry above, 2026-10-08' (null validation); 'Planning review' (Findings behind I3)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+            "note": "Observed: counts were null and min_tests never enforced; an exit-0 run that ran nothing passed an early probe design. Both were fixed by script-owned counts."
+          }
+        ]
+      },
+      "compare": "ECC's GateGuard denies the first edit until the agent states importers and quotes an instruction, and repowise asks for a command plus verbatim output; both rely on text the agent writes, which the atlas counter-evidence says is the weakest form (METR, the 101-claim audit: 35 untrue, 34 stale). ShipLoop took the other fork the card hints at: the script runs the command, reads the exit code and test count itself, and invalidates evidence by rerunning after any edit by an Improve review or lint auto-fix. So the 'evidence' is observed, not asserted. The difference left is that the Until Loop receipt's exit_assessment and notes/ files are still model-written for the non-test Done-when lines.",
+      "proposal": {
+        "change": "At implement, have complete rerun only the step's recorded 'check'-suite commands (the owner's audit row 1 fix), so the exit condition 'every recorded check command exited 0' is script-observed instead of self-attested.",
+        "smallestVersion": "Give the implement row a check-only rerun using stage_commands filtered to suite 'check', reusing test_loop.verify(commands=...).",
+        "touches": [
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "skills/shiploop/scripts/shiploop_test_loop.py"
+        ],
+        "size": "about 15 to 30 lines in 2 files plus a test; the audit also suggests a step-plan gate that each step's check is runnable after that step"
+      },
+      "tests": {
+        "observedProblem": "one instance: docs/shiploop-artifact-flow-2026-10-11.md row 1 (Checkers run on 1.27.0: implement S1's receipt says satisfied while its own evidence says the recorded check 'can only exit 0 after S2'). No harm recorded: the test stage's test-loop and verify's test-rerun run the same commands later. Searched LEARNINGS.md, SPEC.md, docs/*journal*, changes/.",
+        "yagni": "fail",
+        "kiss": "fail",
+        "counterEvidence": "supports the principle (script-observed checks, not model text), but the stale-claim audit finds staleness, not fabrication, as the dominant failure, and ShipLoop already reruns after edits.",
+        "ownerRules": "Consistent with test-pass-is-the-evidence. Against kiss-over-adversarial-guards: the single instance did not break a normal run, and the stage ordering (checks may legitimately fail until a later step) makes a naive rerun refuse good work."
+      },
+      "verdict": "consider",
+      "reason": "ShipLoop already holds the core of the technique, so there is nothing to adopt wholesale. One residual (implement's check rerun) has a recorded n=1 observation but fails both strict tests today, because test and verify rerun the same commands and the fix touches two scripts and interacts with step ordering. Worth one cheap measurement before building.",
+      "experiment": "Replay the saved run stores (the batch-1011 and live-runs-20261011 evidence under docs/experiments/): for each implement action, compare the receipt's exit_assessment against the first test-loop or verify rerun of the same 'check' commands. Adopt only if at least one implement receipt claimed satisfied for a check that failed at the next script run in a normal (non-adversarial) run."
+    },
+    {
+      "id": "reward-hacking-tampering",
+      "shiploop": {
+        "status": "partial",
+        "summary": "ShipLoop guards the tests and the loop by construction rather than by watching the model. The recorded test commands, IDs and count floors live in accepted state, and test_loop runs them, so editing a command in place changes nothing; a removed or newly skipped test is refused against the floor, with retired_tests and red_na as reasoned escape hatches that still must match a base-run fact. New tests must fail on the base, and the mutation check refuses tests that kill no mutant. The loop contract is rebuilt from state, so editing it cannot reshape the loop. Gaps: lint_waivers are free-text reasons, a repo lint config can be edited, and an assertion weakened in place is only caught by mutation sampling.",
+        "evidence": [
+          {
+            "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+            "symbol": "check_result_fields; RED_NA; RETIRED_TESTS; floor_detail",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_test_loop.py",
+            "note": "A test removed or newly skipped to pass is refused; red_na must name a test a focused command lists; retired_tests must be a test the base run showed."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_mutation.py",
+            "symbol": "module docstring (mutation_check)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_mutation.py",
+            "note": "Proves the assertions: refused when mutants ran and none was killed."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_loops.py",
+            "symbol": "contract / check_terminal",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_loops.py",
+            "note": "Contract is rebuilt from state at complete, 'so editing the contract file cannot reshape the loop'."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_loops.py",
+            "symbol": "WORK['implement'] and WORK['test']",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_loops.py",
+            "note": "Prompt rule: change the work 'never the check, its expected result or the recorded command'; a test is changed only for an independent reason recorded in notes."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_item_scope.py",
+            "symbol": "scope_refusal / classify",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_item_scope.py",
+            "note": "Leaves test out only on proof; after implement the real diff must stay inside the declared paths."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_lint.py",
+            "symbol": "gate (lint_waivers)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_lint.py",
+            "note": "A finding can stay if the result lists lint_waivers with a free-text reason; the model authors the waiver."
+          },
+          {
+            "path": "skills/shiploop/scripts/shiploop_prompts.py",
+            "symbol": "_REVIEW_FOCUS_ITEMS",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_prompts.py",
+            "note": "Planning review flags 'a hardcoded value, a missing assertion, a title-only test' and a requirement 'dropped or weakened'."
+          },
+          {
+            "path": "test/shiploop_e2e/quality.py",
+            "symbol": "module docstring (acceptance, held_out_seen)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/quality.py",
+            "note": "The harness keeps held-out checks the model never sees and records whether it read them."
+          },
+          {
+            "path": "test/shiploop_e2e/LEARNINGS.md",
+            "symbol": "'First step slices: one work item's inner loop on a Node fixture' (item 6, the 17-stage loop; the later 8-stage slice section does not report it again)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+            "note": "Observed on the 17-stage loop: in 2 of 4 runs a model script wrote the fixed Improve review text before anything was checked; 4 to 6 self-reported trivial passes per run. Not re-measured on the 8-stage loop."
+          },
+          {
+            "path": "docs/shiploop-artifact-flow-2026-10-11.md",
+            "symbol": "Section 4 Contract audit, rows 1 and 9",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-artifact-flow-2026-10-11.md",
+            "note": "Receipt exit_assessment self-attested; Checkers mutation record: 8 sampled, 2 killed, 6 survived, passed."
+          }
+        ]
+      },
+      "compare": "The atlas counter-evidence (METR 2026, including Opus 4.6; the 101-claim audit) shows frontier models modify scorers, delete assertions and claim stale greens, and recommends the script own the evidence, hold tests read-only and keep held-out checks. ShipLoop follows that design for the product's tests: script-run commands, count floors, base-run RED, mutation, and held-out acceptance in the E2E harness. What it does not do is make test files or lint config read-only; it detects removal and skip (floors) and shallow assertions (mutation) after the fact. The one tampering-like behaviour seen in this repo's own runs was model glue, writing the Improve review file from a script, which is a shortcut rather than an attack on a grader.",
+      "proposal": {
+        "change": "none",
+        "smallestVersion": "If ever needed, report lint_waivers and retired_tests/red_na counts in the verify packet or report so a human can see them; no read-only guard on test or lint files.",
+        "touches": [],
+        "size": "0 lines"
+      },
+      "tests": {
+        "observedProblem": "partial: the scripted Improve review (LEARNINGS, 17-stage step slices 2026-10-10, 2 of 4 runs, not re-reported for the 8-stage loop) and the self-attested receipts (artifact-flow rows 1) are shortcuts at a model-judged gate, not edits to tests, graders or lint config. No record of a run editing a test assertion or lint config to pass, or of a lint_waivers/red_na/retired_tests misuse. Searched LEARNINGS.md, SPEC.md, docs/*journal*, docs/*results*, changes/ for tamper, weaken, waiver, vacuous, skip.",
+        "yagni": "fail",
+        "kiss": "fail",
+        "counterEvidence": "supports the design direction (script-observed, held-out) that ShipLoop already follows; the strongest METR figures come from long-horizon eval environments with probeable scorers, not ordinary dev runs.",
+        "ownerRules": "Read-only guards for test or lint files would be the adversarial guard that kiss-over-adversarial-guards says not to build (the owner stopped a loop-start verb and a fingerprint guard on 2026-09-27 for the same reason) and would need a new mode or state."
+      },
+      "verdict": "already-covered",
+      "reason": "The tamper-resistant parts are already structural: commands and floors in state, base-run RED, mutation, contract rebuilt from state, and the E2E harness's held-out checks. The remaining holes (lint config, waiver text, in-place assertion weakening) have no observed incident, and the owner's KISS rule says to document, not guard. The honest limit belongs in the trust-boundary notes.",
+      "experiment": "Zero-cost watch: grep saved run stores' accepted results for non-empty lint_waivers, red_na and retired_tests and list the reasons; if a reason ever reads as 'to get green', revisit."
+    },
+    {
+      "id": "ai-review-measured-defect-reduction",
+      "shiploop": {
+        "status": "partial",
+        "summary": "ShipLoop has fragments of measurement and the instruments for a real comparison, but no controlled defect-escape result. Recorded: 9 of 12 first-pass Improve changes fixed a defect against the review focus; a condensed experiment caught 10 of 15 real plan-stage platform errors with the review bullet and 0 of 15 without; Luna's 22 planning passes made 5 warranted fixes; and 13 of 32 later passes changed something, mostly marginal or churn. The SPEC states that no run without the planning reviews exists, so the escape rate is unknown. The lever exists (planning_review stage|none) and the E2E harness records delivered quality (mutation ratio, held-out acceptance) as a record, not a verdict.",
+        "evidence": [
+          {
+            "path": "test/shiploop_e2e/SPEC.md",
+            "symbol": "'S-10 carve-out, owner decision 2026-10-05'",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+            "note": "States the basis (10 of 15 versus 0 of 15; 5 warranted fixes in 22 passes) and 'the rate of defects that escape without them is unknown'."
+          },
+          {
+            "path": "test/shiploop_e2e/LEARNINGS.md",
+            "symbol": "'Hello cost analysis and Claude connector isolation'; 'Planning review' entries",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+            "note": "Most first-pass findings real (9 of 12); passes 2 and 3 changed nothing in any of the 12."
+          },
+          {
+            "path": "docs/experiments/shiploop-planning-review-20261005/README.md",
+            "symbol": "Readings",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/experiments/shiploop-planning-review-20261005/README.md",
+            "note": "Quality evidence summary and the statement that the escape rate without review is unknown."
+          },
+          {
+            "path": "test/shiploop_e2e/quality.py",
+            "symbol": "module docstring (mutation, acceptance)",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/quality.py",
+            "note": "Records the delivered product's mutation ratio and held-out acceptance, comparable only within one operator catalog."
+          },
+          {
+            "path": "docs/shiploop-fast-planning-plan-2026-10-04.md",
+            "symbol": "c6 and c7",
+            "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-fast-planning-plan-2026-10-04.md",
+            "note": "13 of 32 later passes changed something: 3 warranted, 7 marginal, 3 churn."
+          }
+        ]
+      },
+      "compare": "The repos and vendors mostly publish proxy metrics (acted-on comments, benchmark precision/recall); the atlas found no controlled study of merged-code defect reduction and the best benchmark precision is under 17% for unexecuted reviewers. ShipLoop is unusual in having an A/B lever inside the product and a post-run quality record, and its reviews fix code that the next script rerun checks, which is a stronger design than a comment-only reviewer. What it lacks is the paired runs: the pre-registered flip rule waits on a second planning_review none probe.",
+      "proposal": {
+        "change": "none",
+        "smallestVersion": "None; the measurement is a run schedule (paired stage/none runs on the same cases reading the quality block), not a code change.",
+        "touches": [],
+        "size": "0 lines"
+      },
+      "tests": {
+        "observedProblem": "none to fix: the gap is a missing comparison, recorded in the SPEC carve-out and the planning-review README. Searched SPEC.md, LEARNINGS.md, docs/*results*, docs/experiments/shiploop-planning-review-20261005/.",
+        "yagni": "pass",
+        "kiss": "pass",
+        "counterEvidence": "neutral: the atlas also finds no production evidence and says to measure it in the harness, which is what ShipLoop's stage/none option and quality record are for.",
+        "ownerRules": "None violated; fits eval-decision-priority and the owner's pre-registered flip rule."
+      },
+      "verdict": "watch",
+      "reason": "Nothing in the code needs to change: the instrument already exists. The open item is evidence, so revisit when the second planning_review none probe on Battleship or Checkers lands and its quality block (mutation ratio, held-out acceptance) can be compared with the stage runs.",
+      "experiment": "Run the same case twice per mode (stage and none) on one host and model, compare quality.mutation ratio and held-out acceptance with run-to-run spread from test/shiploop_e2e/baselines.jsonl; only a gap beyond the spread counts."
+    }
+  ],
+  "groupSummary": "ShipLoop already holds the substance of this group's techniques, mostly by making the script, not the model, the source of evidence: it runs recorded commands, reads test counts and IDs from runner output, requires new tests to fail on the base, mutation-checks them, rebuilds the loop contract from state and reruns checks after any review edit. The reviewer stance (distrust-the-author) is grounded checklists on an artifact rather than an adversarial prior, which matches the counter-evidence that unexecuted fault-finding raises false rejections. A separate validator per finding is skipped: Improve is inline by owner decision and every accepted fix is validated by a rerun, with no recorded escaped Improve error. The one residual with a recorded instance is the model-attested Until Loop receipt (implement's exit condition), kept as consider with a replay experiment over saved runs. Tamper-resistance is structural (floors, base RED, mutation, state-owned commands), and read-only test or lint guards would be the adversarial guards the owner's KISS rule rejects. The measured benefit of AI review stays a watch item pending the second planning_review none probe."
+}

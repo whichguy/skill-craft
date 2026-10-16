@@ -78,12 +78,15 @@ def glue_reasons(command: str) -> list[str]:
 FAILURE_LINE = re.compile(r"error|refus|reject|required|must|invalid", re.I)
 MARKER = re.compile(r"SHIPLOOP-RUN")
 # What a refused ShipLoop command prints (shiploop_protocol.py): the refusal's own line, which begins with one of
-# these prefixes and often has none of FAILURE_LINE's words ("result requires outcome and summary"), then fixed
-# trailer lines the script adds to every refusal. A trailer says "rejected", so matching it first named no refusal
-# (8 of the 13 refusals of the Luna 1.16.1 run); the script's text is pinned by test/shiploop-e2e.test.py.
+# these prefixes and often has none of FAILURE_LINE's words ("result requires outcome and summary"), followed by
+# recovery text. Keep both old callback tails and current durable-recovery tails filtered so retained E2E logs still
+# name the refusal itself. The old generic blocked tails remain for ProtocolError; the script's text is pinned by
+# test/shiploop-e2e.test.py.
 REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked): ")
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
-                          r"Request failure: no in-memory result|Durable cursor recovery: )")
+                          r"Request failure: no in-memory result|Durable cursor recovery: |"
+                          r"Inspect durable state before deciding what happened: |Authoritative state\.md: |"
+                          r"Run exactly this recovery command: |Follow the recovered packet; )")
 
 
 def failure_line(shown: str) -> str:

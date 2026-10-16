@@ -1,0 +1,346 @@
+{
+ "cards": [
+  {
+   "id": "trigger-only-descriptions",
+   "shiploop": {
+    "status": "partial",
+    "summary": "Most SKILL.md descriptions are what-plus-when ('Use when ...'), 13 of 22 by a count of the leading phrase; four older ones (architect, compare-prompts, plan-test, improve-system-prompt) still carry 'AUTOMATICALLY INVOKE' / 'STRONGLY RECOMMENDED' trigger lists. The backchain and improve descriptions do state their loop exit rule ('two consecutive' reviews or passes), a count that matches their bodies. ShipLoop's own path does not depend on description routing: E2E and users invoke the skill by name (Host.invoke builds '/skill-craft:shiploop <prompt>'), and every later stage is chosen by the script and printed as a packet. The real analogue of the description trap is the printed packet head, which the model reads in place of the packet file.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/SKILL.md",
+      "symbol": "description: >-",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/SKILL.md",
+      "note": "Frontmatter: what-plus-when, 299 chars; the workflow itself is script-printed, not summarised."
+     },
+     {
+      "path": "skills/architect/SKILL.md",
+      "symbol": "AUTOMATICALLY INVOKE when:",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/architect/SKILL.md",
+      "note": "Older shouting-style trigger list; same pattern in skills/compare-prompts/SKILL.md and skills/plan-test/SKILL.md."
+     },
+     {
+      "path": "skills/backchain/SKILL.md",
+      "symbol": "Backchain passes: one",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/backchain/SKILL.md",
+      "note": "Description states the loop exit default and the one-pass override; the body states the same."
+     },
+     {
+      "path": "test/shiploop_e2e/hosts.py",
+      "symbol": "def invoke(self, skill: str, prompt: str)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/hosts.py",
+      "note": "Explicit slash invocation, so description matching is bypassed in every E2E run."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def packet_head",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "The printed head: goal, done-when, considerations, result contract, callback, 'Read the full packet before acting'."
+     },
+     {
+      "path": "docs/shiploop-packet-concision-2026-10-10.md",
+      "symbol": "Necessary but missing (fix these first)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-packet-concision-2026-10-10.md",
+      "note": "Recorded run: the model worked from the head and opened 1 of 22 packet files; rules only in the body were not read."
+     }
+    ]
+   },
+   "compare": "superpowers found that a description summarising the procedure let the model act on the summary and skip the body (one observed case, no run count). Anthropic's docs say the opposite on content (what the skill does and when), and the contra data show the real conflict is narrow: capability summary is fine, step lists are the hazard. ShipLoop is script-driven, so the model is never asked 'should I open this skill?'; the description only matters for the few user-invoked utility skills. The failure ShipLoop actually recorded runs the other way: the head is the only thing read, so the head must be sufficient (its own packet-concision review made that the first fix), which is the opposite of 'keep the label thin'.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "Delete the 'AUTOMATICALLY INVOKE' / 'STRONGLY RECOMMENDED' blocks from the descriptions of architect, compare-prompts and plan-test (improve-system-prompt is product-specific). Considered and rejected.",
+    "touches": [
+     "skills/architect/SKILL.md",
+     "skills/compare-prompts/SKILL.md",
+     "skills/plan-test/SKILL.md"
+    ],
+    "size": "about 15 lines in 3 files, plus 3 change notes and regenerated catalogs"
+   },
+   "tests": {
+    "observedProblem": "none found. Searched test/shiploop_e2e/LEARNINGS.md, SPEC.md, docs/*.md, changes/ for description, frontmatter, over-trigger, under-trigger, skill discovery, 'skill was not invoked': no case of a description causing a skipped body, a missed trigger or an over-trigger. The only skip-the-body evidence is about packet heads, not descriptions.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "neutral: the single supporting anecdote is unmeasured, Anthropic recommends what-plus-when, and the Coder Eval data say trigger phrasing raises recall, so deleting the trigger lists could lower recall for the three model-discoverable skills.",
+    "ownerRules": "none violated. Touching three skill descriptions is three prompt paragraphs and three change notes, over the one-paragraph KISS limit, with no observed problem."
+   },
+   "verdict": "skip",
+   "reason": "No recorded description failure in this repo, and ShipLoop does not route by description. The only plausible edit is a three-skill cosmetic cleanup that the one-paragraph limit and the missing evidence both reject. The related real lever, a sufficient packet head, is already in the packet-concision plan and the head already carries goal, done-when and considerations.",
+   "experiment": "n/a. If a description is ever suspected: 20 trials per wording on Sonnet 5.5, scored by whether the full body was loaded and which steps ran, per the atlas contra suggestion."
+  },
+  {
+   "id": "baseline-pressure-test",
+   "shiploop": {
+    "status": "has",
+    "summary": "The no-change baseline is built into rubric-eval: the baseline arm is rerun in the same round under one condition, headless calls carry no skills, hooks or user instructions, a blind judge grades one output at a time, and a tie keeps the baseline ('a change must earn its place'). Prior rounds used a no-guidance control: the composition experiments ran a 'no guidance' variant (15 of 15 plans already had server-held state without it), and the architecture review round showed the current focus near-identical to no review. There are no persuasion-style pressure scenarios; the discipline rules are enforced by script gates and measured as real-run violation counts (model glue, refusals, redone work after a context clear).",
+    "evidence": [
+     {
+      "path": "skills/rubric-eval/SPEC.md",
+      "symbol": "5. Condition invariants",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/rubric-eval/SPEC.md",
+      "note": "Baseline rerun in the same round; no skills, plugins or user instructions in headless calls; blind single-output judge."
+     },
+     {
+      "path": "skills/rubric-eval/SPEC.md",
+      "symbol": "A tie at every level keeps the baseline; a change must earn its place.",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/rubric-eval/SPEC.md",
+      "note": "Decision rule: near-identical quality falls to tokens, then time; ties keep the baseline."
+     },
+     {
+      "path": "skills/rubric-eval/SPEC.md",
+      "symbol": "9. Change lifecycle",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/rubric-eval/SPEC.md",
+      "note": "Hypothesis, experiment, adversarial review, experiments on findings, confirmation on the shipped text."
+     },
+     {
+      "path": "docs/shiploop-composition-state-experiments-2026-09-26.md",
+      "symbol": "No guidance, current wording",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-composition-state-experiments-2026-09-26.md",
+      "note": "A no-guidance arm found the guidance unneeded for explicit multiplayer (15/15) and for following the layer (21/21), and found what it added (lifecycle wording 7/9 vs 0-3/9)."
+     },
+     {
+      "path": "docs/shiploop-architecture-rubric-results-2026-09-26.md",
+      "symbol": "unreviewed plan",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-architecture-rubric-results-2026-09-26.md",
+      "note": "Review arms were graded against the unreviewed plan; the existing review focus graded near-identical to no review, so a tie kept the baseline."
+     },
+     {
+      "path": "test/shiploop_e2e/clear.py",
+      "symbol": "S-6 passes only with no redone work",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/clear.py",
+      "note": "Behavioural probe of packet sufficiency after a context clear."
+     },
+     {
+      "path": "test/shiploop_e2e/packets.py",
+      "symbol": "--compare",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/packets.py",
+      "note": "Before/after packet size and share comparison without a model."
+     }
+    ]
+   },
+   "compare": "superpowers' pressure scenarios test whether an agent obeys a discipline it is tempted to break, read by eye from one run; anthropics/skills runs a with-skill and baseline arm and grades assertions over 3 runs. ShipLoop already has the second structure in stronger form (blind judge, paired tests, significance rule, noise-aware tie rule) and uses the first only implicitly: the script gate refuses the violation, and the E2E harness counts violations in real runs. Pressure scenarios would test a rationalisation the script already refuses, which the atlas suggests matters less on Claude 5-class models (superpowers reports current Opus clean on its old failure, though the exact figure was not verified). The one gap is procedural: rubric-eval does not say that an added rule needs a failure shown on the unguided target model before it is added.",
+   "proposal": {
+    "change": "none. Optional one-sentence addition to rubric-eval SPEC section 9 step 1: for an added rule, name the failure and show it on the unguided arm; if the unguided arm shows none, do not add the rule.",
+    "smallestVersion": "One sentence in skills/rubric-eval/SPEC.md. Not adopted: the tie rule already makes the unguided arm the baseline whenever the change is an addition.",
+    "touches": [
+     "skills/rubric-eval/SPEC.md"
+    ],
+    "size": "1-2 lines in 1 file"
+   },
+   "tests": {
+    "observedProblem": "none found for missing baselines. Searched LEARNINGS.md, SPEC.md, docs/*results*, docs/*journal*, rubric-eval SPEC. What was found is the opposite: baselines existed and caught problems (a first control could read the cards and did so in 22 of 32 trials, then was fixed; no-guidance arms showed guidance unneeded). The cost of unneeded text is real (packet-concision found 25% removable) but was found by review, not by a missing control.",
+    "yagni": "fail",
+    "kiss": "pass",
+    "counterEvidence": "supports the method, undercuts building more of it: no source argues against baselines, and small-n pitfalls (n=2 per arm in the Opus 5.5 ablation) are exactly what rubric-eval's 8-scenario minimum and paired tests already address.",
+    "ownerRules": "none violated. Pressure scenarios would conflict with test-pass-is-the-evidence (judge by script-checkable predicates) and with KISS over adversarial guards, since they simulate adversarial pressure."
+   },
+   "verdict": "already-covered",
+   "reason": "rubric-eval is the baseline-arm harness this card describes, with stricter statistics, and ShipLoop's prior experiments used no-guidance controls and acted on them. Pressure scenarios would add machinery for failures the scripts already gate. The one sentence about showing the failure first is implied by the tie rule.",
+   "experiment": "n/a. To confirm the tie rule bites, rerun one shipped packet block against an empty arm on Sonnet 5.5 with rubric-eval (build with an empty arm, 8 scenarios, 2 trials) and see whether it still wins."
+  },
+  {
+   "id": "counts-over-adjectives",
+   "shiploop": {
+    "status": "has",
+    "summary": "Limits are stated as numbers and, where they gate acceptance, enforced by script. The refused-run cap (11) is the constant MAX_REFUSED_RUNS counted per action by the test loop; the revise allowance (2) is MAX_REVISES, counted in navigator state and printed as 'N of M left' in each packet; the keepalive release (22) is a constant. Per SPEC S-10 and the release note, a test pins every prose copy of the three caps to their constants (the test file is not in the export; not read). Packets carry almost no vague stop words ('if stuck', 'several', 'enough' hardly appear). One count is deliberately prompt-only: the 7 genuine fix attempts, which SPEC S-10 calls the model's stopping rule, backed by the script's 11-refused-run gate.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "MAX_REFUSED_RUNS = 11",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_test_loop.py",
+      "note": "Script-counted per action; 'done' is refused after it."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "MAX_REVISES = 2",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "Revise allowance counted in navigator state."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "GENUINE_FIX_ATTEMPTS = 7",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "Comment: 'No script counts the attempts; the model applies it', pinned to prose copies by a test."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _allowed_outcome_lines",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Renders the live remainder ('N of M left for this item') into the packet from state."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_keepalive.py",
+      "symbol": "STUCK_CONTINUATIONS = 22",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_keepalive.py",
+      "note": "Hook-side cap, documented as twice the refused-run cap."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_FIX_ATTEMPTS = str(stage_spec.GENUINE_FIX_ATTEMPTS)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_prompts.py",
+      "note": "The fix-attempt count is interpolated from the constant."
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "Three limits, each a constant that a test pins against every prose copy",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "S-10 carve-out records the three caps and which are script-counted."
+     },
+     {
+      "path": "changes/shiploop/higher-loop-caps.md",
+      "symbol": "a test pins every prose copy",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/changes/shiploop/higher-loop-caps.md",
+      "note": "Release note for moving the caps to 7 / 11 / 22 with the pin."
+     }
+    ]
+   },
+   "compare": "Cursor, repowise and Claude Code plan mode state a number in the prompt and rely on the model to honour it; the atlas contra data say that is advisory, and the stronger pattern is a stated count plus a script counter. ShipLoop already follows that pattern for the gates that matter, and goes further by deriving prose copies from the constant or pinning them with a test. The remaining difference is the 7-attempt rule, which the model counts itself. It is backed by a script gate at 11 refused runs, so an uncounted overshoot still ends at a script-owned limit.",
+   "proposal": {
+    "change": "none. Considered: a script counter for genuine fix attempts.",
+    "smallestVersion": "A per-action attempt counter in navigator state. Rejected: adds a state field and a definition of 'genuine' that a script cannot judge.",
+    "touches": [
+     "skills/shiploop/scripts/shiploop_loops.py",
+     "skills/shiploop/scripts/shiploop_navigator.py"
+    ],
+    "size": "about 30 lines in 2 scripts plus a state field and tests"
+   },
+   "tests": {
+    "observedProblem": "none found. Searched LEARNINGS.md, SPEC.md, docs/*journal*, docs/*results*, changes/ for 'genuine fix attempt', 'fix attempts', revise-count errors. The caps moved 3 to 7 and 7 to 11 on the owner's ruling, not because the model miscounted; no run shows the model revising before 7 or looping past it.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "supports the existing design: a stated cap is advisory unless a script counter backs it, which ShipLoop already does for refused runs and revises. It does not require the fix-attempt count to be scripted.",
+    "ownerRules": "A scripted fix-attempt counter would run against shiploop-loops-unbounded (the 7 is a gate bound, not a loop cap, by S-10) and against KISS over adversarial guards (no observed miscount)."
+   },
+   "verdict": "already-covered",
+   "reason": "ShipLoop states numbers, derives or pins every prose copy, and counts the gating ones in code. The single prompt-only count has no recorded failure and a script backstop. A new counter would add state for a hypothetical miscount.",
+   "experiment": "n/a. Cheap watch: grep the next batch of E2E transcripts at implement for a revise submitted before the 7th failure or a seventh retry without revise."
+  },
+  {
+   "id": "per-model-prompts",
+   "shiploop": {
+    "status": "absent",
+    "summary": "Packets are one text for every model: shiploop_prompts.py has no model-name branch, and the only host-specific code is mechanical (keepalive hooks, sandbox grants, display truncation), not prompt wording. Model and effort are harness parameters (E2E Host.argv takes model and effort), and the cost differences between models on identical packets have been addressed generically. The recorded divergence is Luna at max effort versus Sonnet on the same packets: Sonnet planned in about 4 minutes, Luna spent 592 minutes, and Luna kept reporting the exit unsatisfied under a two-review exit text. The fix was one shared exit text plus a planning-review option, not a model fork.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_BACKCHAIN_PLAN_GATE_ONE",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_prompts.py",
+      "note": "One-pass exit text shared by all hosts; the comment records that Luna reported unsatisfied through pass 6 under the older exit."
+     },
+     {
+      "path": "skills/shiploop/references/host-matrix.md",
+      "symbol": "All hosts execute the same Python 3 CLI",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/host-matrix.md",
+      "note": "Host matrix: invocation names and sandbox grants differ; the CLI and packets do not."
+     },
+     {
+      "path": "skills/shiploop/references/keepalive.md",
+      "symbol": "Grok",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/keepalive.md",
+      "note": "Host differences are hook mechanics, not prompt text."
+     },
+     {
+      "path": "test/shiploop_e2e/hosts.py",
+      "symbol": "class CodexHost",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/hosts.py",
+      "note": "Per-host launch arguments (model, effort) live in the harness."
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "Sonnet got the same packets and planned in about 4 minutes",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "Same packets, 592 vs 19 minutes: effort and loops, not packet size, were the driver."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "PRINT_LIMIT",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Per-host display limit handled by the head/body split, not by a per-host prompt."
+     }
+    ]
+   },
+   "compare": "Codex ships a terse prompt for its harness-trained model and a long one for gpt-5.2; SWE-agent keeps per-model prompt and parse-format variants in YAML. Those are vendor harnesses with their own trained models. ShipLoop is a portable multi-host harness whose scripts own navigation, and its divergence between models showed up as time and loop count that a script option or one shared exit text could fix. Anthropic's guidance is a shared core with measured deltas, retired when an eval shows no difference, and recommends instructions that work across models.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "A packet-block variant selected by model name. Rejected: the packet has no model name to select on, and each variant doubles the text that rubric-eval and the E2E suites must cover.",
+    "touches": [
+     "skills/shiploop/scripts/shiploop_prompts.py"
+    ],
+    "size": "n/a"
+   },
+   "tests": {
+    "observedProblem": "none found that a per-model prompt would fix. Searched LEARNINGS.md, SPEC.md, docs/*journal*, changes/. Model differences were real (Luna 592 minutes vs Sonnet 19) but the causes recorded were effort and Backchain loop count, fixed generically (the one-pass Backchain default and the --planning-review option).",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "undercuts: Anthropic's per-model pages exist, but its skill guide says to aim for instructions that work across models, and the maintenance cost recurs at each release; the transfer research is pre-2026 and abstract-level.",
+    "ownerRules": "Conflicts with one-supported-version (no parallel variants), shiploop-generic-focus (fix ShipLoop generically) and the rubric-eval rule that ship decisions rest on one subject and one judge pairing."
+   },
+   "verdict": "skip",
+   "reason": "Every recorded model-driven problem was fixed with one shared text or a run option. A per-model fork would multiply the text that rubric-eval and E2E must validate, against the one-supported-version rule. Revisit only if a measured gap persists on a Claude 5-class model after a generic fix.",
+   "experiment": "n/a. If revisited: run one stage's packet unchanged on Sonnet 5.5 and Opus 5.5 via slice.py --case node-fix-bug, compare violation counts, and only then try one delta."
+  },
+  {
+   "id": "cross-cutting-instruction-files-and-skills",
+   "shiploop": {
+    "status": "partial",
+    "summary": "ShipLoop validates prompt blocks against a no-change baseline (rubric-eval, step slices, clear-the-context probe) and keeps its own repository AGENTS.md short and non-inferable (layout, release-output rule, change-note rule). It has not measured the harness as a whole against a plain agent: the E2E plan defers that comparison unless it is the actual decision. The generated knowledge home (spec, environment, architecture) is grounded by retention checks, and the architecture file's effect is recorded as unmeasured. Cost is measured per run and the packet-concision review found 25% of packet text removable without dropping an obligation.",
+    "evidence": [
+     {
+      "path": "docs/shiploop-e2e-plan-2026-09-27.md",
+      "symbol": "ShipLoop adds value versus a plain agent",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-e2e-plan-2026-09-27.md",
+      "note": "Decision rule: needs a separate matched no-ShipLoop comparison; deferred unless that is the decision."
+     },
+     {
+      "path": "docs/shiploop-packet-concision-2026-10-10.md",
+      "symbol": "The within-packet cuts alone take the 22 packets from **733k to 548k characters (25%)**",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-packet-concision-2026-10-10.md",
+      "note": "Measured prompt bloat; 31% of packet text is identical across all packets, kept on purpose by the context-clear tenet."
+     },
+     {
+      "path": "docs/shiploop-architecture-file-journal-2026-10-10.md",
+      "symbol": "Firm for the spec, unmeasured for the architecture.",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-architecture-file-journal-2026-10-10.md",
+      "note": "The architecture file's benefit is not yet measured."
+     },
+     {
+      "path": "AGENTS.md",
+      "symbol": "Source vs release output",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/AGENTS.md",
+      "note": "The repo instruction file holds non-inferable rules, not an architecture overview."
+     },
+     {
+      "path": "skills/rubric-eval/SPEC.md",
+      "symbol": "1. Purpose",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/rubric-eval/SPEC.md",
+      "note": "Prompt changes are decided against a baseline on quality, then tokens, then time."
+     },
+     {
+      "path": "test/shiploop_e2e/slice.py",
+      "symbol": "No baseline",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/slice.py",
+      "note": "Step slice runs one item; compared against earlier outputs, not against no ShipLoop."
+     }
+    ]
+   },
+   "compare": "The atlas contra data say context files do not generally raise task success and add 20%+ cost, that LLM-written ones slightly hurt, that curated skills help and self-generated ones do not, and that Claude 5-generation evidence is absent. ShipLoop's packets are script-generated, stage-specific and tied to gates, which is closer to curated task skills than to a repo overview file, and its repo AGENTS.md is lean. What it lacks is the headline control the studies use: the same task with and without the harness. Its own plan defers that on cost and relevance grounds.",
+   "proposal": {
+    "change": "none now. Watch item: a matched plain-agent comparison.",
+    "smallestVersion": "One matched Sonnet 5.5 run per case with a bare one-shot prompt and the same case checks and judge, compared with the recorded ShipLoop PASS rows in baselines.jsonl (about $5-6 per Sonnet run). No code, only a harness invocation.",
+    "touches": [
+     "test/shiploop_e2e/cases.json"
+    ],
+    "size": "a case entry and one run; no skill change"
+   },
+   "tests": {
+    "observedProblem": "none found that the harness hurts. Searched LEARNINGS.md, SPEC.md, docs/*journal*, docs/*results*, e2e-plan. Costs are documented (Sonnet Battleship about $5.70 and 13.8 minutes; earlier runs up to $35) and bloat was found and is being cut, but no failure is attributed to the instruction text itself.",
+    "yagni": "fail",
+    "kiss": "pass",
+    "counterEvidence": "neutral: the ETH and two-agent ablation studies used pre-Claude-5 models, Python SWE tasks and underpowered samples, and none tests a script-driven stage harness. Anthropic's note that older skills can degrade Fable 5 supports re-baselining at the next model generation.",
+    "ownerRules": "none violated. The owner's enterprise-rigour rule means a plain agent is expected to skip tests, deployment and ownership work, so the outcome judge must score those or the comparison is unfair."
+   },
+   "verdict": "watch",
+   "reason": "ShipLoop already baselines its prompt blocks, keeps its repo instruction file lean and is cutting measured packet bloat. The missing with/without-harness control is deferred by the repo's own plan, and nothing recorded shows the harness hurting. Revisit when the owner needs to justify ShipLoop against a plain agent, or when the next Claude generation ships and packets written for 5.5 may be over-prescriptive.",
+   "experiment": "Run the checkers case on Sonnet 5.5 with a bare prompt (no skill) against its recorded ShipLoop PASS, three trials each, scored by the case checks plus the S-11 retention and test-presence checks, reporting pass rate, cost and minutes."
+  }
+ ],
+ "groupSummary": "Of five cards, none passes both strict tests and none is adopted. Counts-over-adjectives is already covered: ShipLoop states numbers, enforces the gating ones in script counters (refused runs, revises, keepalive release), and pins every prose copy to its constant by test; the one prompt-only count (7 genuine fix attempts) is backed by an 11-run script gate and has no recorded miscount. The baseline-pressure-test method is already covered by rubric-eval, which reruns the baseline in each round and keeps it on a tie, and prior experiments ran no-guidance arms. Trigger-only descriptions and per-model prompts are skipped: ShipLoop does not route by description or branch by model, no description failure is recorded, and the recorded model gaps were fixed with one shared text. The recorded skip-the-body failure is the packet head, where the lesson is that the head must be sufficient, and that is already in the packet-concision plan. The cross-cutting question is a watch item: the repo defers a matched no-ShipLoop comparison, so revisit it when the owner needs that decision or when the next Claude generation ships."
+}

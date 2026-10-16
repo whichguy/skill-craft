@@ -39,7 +39,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Iterator, Mapping
+from typing import Any, Callable, Iterator, Mapping
 
 SCRIPTS = Path(__file__).resolve().parent
 SHIPLOOP = SCRIPTS / "shiploop"
@@ -64,6 +64,7 @@ OWNER_STALE_SECONDS = 1800
 # ---------------------------------------------------------------- state
 
 def home() -> Path:
+    """Directory holding keepalive records: ``SHIPLOOP_KEEPALIVE_HOME``, else the XDG state directory."""
     override = os.environ.get("SHIPLOOP_KEEPALIVE_HOME")
     if override:
         return Path(override)
@@ -72,6 +73,7 @@ def home() -> Path:
 
 
 def disabled() -> bool:
+    """True when ``SHIPLOOP_KEEPALIVE`` turns the keepalive off (off, 0, false or no)."""
     return os.environ.get("SHIPLOOP_KEEPALIVE", "").strip().lower() in ("off", "0", "false", "no")
 
 
@@ -124,13 +126,13 @@ def _load_owner(run_dir: str) -> dict:
 def claim_owner(run_dir: str, host: str, session: str) -> bool:
     """Take a free or stale run, or refresh our own claim.  True when we own it."""
     path = _owner_path(run_dir)
-    me = _owner_id(host, session)
+    my_owner_id = _owner_id(host, session)
     with _locked(path):
         owner = _load_owner(run_dir)
         now = time.time()
-        if owner.get("owner") not in (None, me) and now - owner.get("seen", 0) < OWNER_STALE_SECONDS:
+        if owner.get("owner") not in (None, my_owner_id) and now - owner.get("seen", 0) < OWNER_STALE_SECONDS:
             return False
-        _write_json(path, {"run_dir": run_dir, "owner": me, "seen": now})
+        _write_json(path, {"run_dir": run_dir, "owner": my_owner_id, "seen": now})
         return True
 
 
@@ -144,6 +146,7 @@ def release_owner(run_dir: str, host: str | None = None, session: str | None = N
 
 
 def load_binding(host: str, session: str) -> dict | None:
+    """The stored binding for ``session`` on ``host``, or None when absent, unreadable or for another session."""
     path = _binding_path(host, session)
     try:
         data = _read_json(path)
@@ -171,7 +174,7 @@ def run_status(run_dir: str) -> dict:
         proc = subprocess.run(
             [sys.executable, str(SHIPLOOP), "hook-status", "--run-dir", run_dir],
             capture_output=True, text=True, timeout=STATUS_TIMEOUT_SECONDS,
-            stdin=subprocess.DEVNULL)
+            stdin=subprocess.DEVNULL, check=False)
         answer = json.loads(proc.stdout.strip().splitlines()[-1])
     except (OSError, ValueError, IndexError, subprocess.TimeoutExpired) as exc:
         return {"run_dir": run_dir, "error": f"hook-status failed: {exc}"}
@@ -181,6 +184,7 @@ def run_status(run_dir: str) -> dict:
 # ---------------------------------------------------------------- payloads
 
 def session_of(payload: Mapping[str, Any]) -> str | None:
+    """The host session id from a hook payload, or None."""
     for key in SESSION_KEYS:
         value = payload.get(key)
         if isinstance(value, str) and value:
@@ -268,6 +272,7 @@ def invoking_command(payload: Mapping[str, Any]) -> str | None:
 
 
 def last_marker(payload: Any) -> dict | None:
+    """The last ShipLoop marker (run id, revision, run directory) found in any string of ``payload``, or None."""
     found = None
     for text in _strings(payload):
         for match in MARKER.finditer(text):
@@ -409,6 +414,9 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
 
 
 def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) -> dict:
+    """Decide whether a stop hook lets the host stop or asks it to continue the run; stopping is allowed when the
+    run is unreadable, not active, or stuck.
+    """
     status = run_status(binding["run_dir"])
     if status.get("error") or status.get("run_id") != binding["run_id"]:
         return {"decision": "allow", "drop": True,
@@ -524,6 +532,7 @@ def _config_root() -> Path:
 
 
 def hook_command(event: str, host: str) -> str:
+    """Shell command line a host runs for hook ``event`` on ``host``."""
     return shlex.join(["python3", str(HOOK), event, "--host", host])
 
 
@@ -600,6 +609,7 @@ def _merge(data: dict, host: str, wanted: Mapping[str, dict] | None) -> dict:
 
 
 def config_path(host: str) -> Path:
+    """Path of the hook configuration file for ``host``."""
     if host == "claude":
         return Path.home() / ".claude" / "settings.json"
     if host == "codex":
@@ -814,6 +824,9 @@ def _driver_prompt(status: Mapping[str, Any]) -> str:
 
 
 def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> list[str]:
+    """Command line that starts a non-interactive ``host`` session with ``prompt`` (resuming ``session`` where the
+    host supports it).
+    """
     if host == "claude":
         return ["claude", "-p", prompt, *extra]
     if host == "grok":
@@ -828,8 +841,12 @@ def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> 
 
 
 def drive(host: str, run_dir: str, *, max_sessions: int, session_timeout: int,
-          extra: list[str], cwd: str | None, out=print, runner=subprocess.run) -> int:
+          extra: list[str], cwd: str | None, out: Callable[[str], Any] = print,
+          runner: Callable[..., Any] = subprocess.run) -> int:
     """Start or resume host sessions until the run stops being active."""
+    if max_sessions < 1 or session_timeout < 1:
+        raise ValueError(f"shiploop-drive needs max_sessions >= 1 and session_timeout >= 1, "
+                         f"got {max_sessions} and {session_timeout}")
     status = run_status(run_dir)
     if status.get("error"):
         out(f"shiploop-drive: cannot read the run: {status['error']}")
@@ -856,7 +873,11 @@ def drive(host: str, run_dir: str, *, max_sessions: int, session_timeout: int,
 
 
 def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, max_sessions: int,
-                    session_timeout: int, extra: list[str], cwd: str | None, out, runner) -> int:
+                    session_timeout: int, extra: list[str], cwd: str | None, out: Callable[[str], Any],
+                    runner: Callable[..., Any]) -> int:
+    """Run host sessions in turn, checking the run's status around each; stops when the run is no longer active,
+    needs the user, stalls, or ``max_sessions`` is reached.
+    """
     stalled = 0
     for number in range(1, max_sessions + 1):
         before = run_status(run_dir)
@@ -908,6 +929,7 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, max_s
 # ---------------------------------------------------------------- CLIs
 
 def hook_main(argv: list[str] | None = None) -> int:
+    """Entry point of ``shiploop-hook``: host events (observe, stop) and install, uninstall, status."""
     parser = argparse.ArgumentParser(
         prog="shiploop-hook",
         description="Keep a ShipLoop run moving across host turns (see references/keepalive.md).")
@@ -941,15 +963,27 @@ def hook_main(argv: list[str] | None = None) -> int:
     return worst
 
 
+def _positive_int(raw: str) -> int:
+    """argparse type: an integer of at least 1."""
+    try:
+        value = int(raw)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"must be a whole number, got {raw!r}") from None
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"must be at least 1, got {value}")
+    return value
+
+
 def drive_main(argv: list[str] | None = None) -> int:
+    """Entry point of ``shiploop-drive``: run host sessions until the run is done, paused, blocked or stuck."""
     parser = argparse.ArgumentParser(
         prog="shiploop-drive",
         description="Run host sessions until a ShipLoop run is done, paused, blocked or stuck. "
                     "Arguments after -- go to the host command unchanged (model, permissions).")
     parser.add_argument("--host", choices=HOSTS, required=True)
     parser.add_argument("--run-dir", required=True)
-    parser.add_argument("--max-sessions", type=int, default=20)
-    parser.add_argument("--session-timeout", type=int, default=3600, help="seconds per host session")
+    parser.add_argument("--max-sessions", type=_positive_int, default=20)
+    parser.add_argument("--session-timeout", type=_positive_int, default=3600, help="seconds per host session")
     parser.add_argument("--cwd", help="directory to run the host in (default: the run's repository)")
     raw = list(sys.argv[1:] if argv is None else argv)
     extra: list[str] = []

@@ -2433,6 +2433,9 @@ def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 
 def _improve_prompt(stage: str) -> str:
+    """Compose the Improve child's prompt for ``stage``, adding the Backchain and coding-review guidance where the
+    stage uses them.
+    """
     _require_stage(stage)
     backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
     coding_review = ""

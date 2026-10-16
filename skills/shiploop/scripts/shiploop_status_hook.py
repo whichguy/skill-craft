@@ -4,7 +4,8 @@
 Reads the hook payload on stdin. When the Bash call was a direct ShipLoop CLI
 invocation whose stdout carries the script-rendered status block, prints
 ``{"systemMessage": <two-line compact status>}``; otherwise prints nothing. It never reads run
-state, resolves paths, or fails the tool call: every problem exits 0 silently.
+state, resolves paths, or fails the tool call: every problem exits 0 silently (with ``SHIPLOOP_DEBUG`` set,
+the problem is named on stderr).
 """
 
 from __future__ import annotations
@@ -60,7 +61,7 @@ def _verb(command: str) -> tuple[str, str | None] | None:
     # Pipes, redirects, chains and backgrounding change or split the stdout.
     if any(token and set(token) <= set("|&;<>()") for token in tokens):
         return None
-    for index, token in enumerate(tokens):
+    for token_index, token in enumerate(tokens):  # noqa: B007 - token_index is read after the loop
         name = os.path.basename(token)
         parent = os.path.basename(os.path.dirname(token))
         if name in ENTRY_POINTS and parent == "scripts":
@@ -71,7 +72,7 @@ def _verb(command: str) -> tuple[str, str | None] | None:
     else:
         return None
     wrapper = ENTRY_POINTS[name]
-    rest = tokens[index + 1:]
+    rest = tokens[token_index + 1:]
     if wrapper is not None:
         return wrapper, wrapper
     if not rest:
@@ -92,7 +93,7 @@ def _output(response: Any, *keys: str) -> str | None:
             if isinstance(value, str):
                 return value
             # Grok sends a shell command's raw output as a list of byte values.
-            if isinstance(value, list) and value and all(isinstance(b, int) and 0 <= b < 256 for b in value):
+            if isinstance(value, list) and value and all(isinstance(byte, int) and 0 <= byte < 256 for byte in value):
                 return bytes(value).decode("utf-8", "replace")
     return None
 
@@ -227,12 +228,15 @@ def status_message(payload: Any) -> str | None:
 
 
 def main() -> int:
+    """Print the status message for the hook payload on stdin; always exits 0 so display never fails a tool call.
+    """
     try:
         message = status_message(json.load(sys.stdin))
         if message is not None:
             print(json.dumps({"systemMessage": message}))
-    except Exception:  # noqa: BLE001 - a display hook must never fail the tool call
-        pass
+    except Exception as exc:  # noqa: BLE001 - a display hook must never fail the tool call
+        if os.environ.get("SHIPLOOP_DEBUG"):
+            sys.stderr.write(f"shiploop status hook: {type(exc).__name__}: {exc}\n")
     return 0
 
 

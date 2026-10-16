@@ -1,0 +1,160 @@
+{
+ "id": "stop-is-script-owned",
+ "overview": "Every loop in the repos read has the same skeleton: do a unit of work, test whether to stop, otherwise go again. They differ in who owns the 'stop?' test. In the strongest designs it is code the model cannot argue with: mini-swe-agent raises LimitsExceeded or TimeExceeded from query() before the next model call; SWE-agent converts any exit (cost, context, repeated timeouts, repeated format errors) into an exit status plus an autosubmit of whatever patch exists; ralph.sh runs a for-loop to MAX_ITERATIONS and the claude-code ralph-wiggum stop hook compares iteration to max_iterations in a state file and answers the Stop event with a block decision. In the weakest, the model counts for itself: Superpowers' 'five fix rounds' and GSD's 'max 3 revision iterations' are numbers written into prompts that the orchestrating model must track, and systematic-debugging's 'three failed fixes, question the architecture' is pure instruction.\n\nHard caps (iterations, steps, dollars, seconds) are universal and almost never the whole story. Most repos pair them with a completion sentinel the model emits: Ralph's <promise>COMPLETE</promise> grepped by the shell, ralph-wiggum's <promise>TEXT</promise> extracted from the last assistant message with a non-greedy perl regex and compared as a literal string, mini-swe-agent's first output line 'COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT' with return code 0. A sentinel is a claim, not proof; ralph-wiggum compensates with a loud prompt rule ('do not lie to exit'), and Ralph compensates by making the claim checkable (every story has passes:true in prd.json and quality checks must pass before commit). Only Ralph's design lets a script re-derive 'are we done' from data rather than from the model's words.\n\nTrue no-progress detection is rare. GSD's plan-phase is the clearest: it counts BLOCKER+WARNING issues from the plan checker each round and declares a stall when the count does not decrease (issue_count >= prev_issue_count), then offers proceed-anyway or re-plan with a persistent stall_reentry_count capped at 2. SWE-agent counts consecutive command timeouts (max 3) and consecutive format/blocklist/syntax re-queries (max_requeries 3). mini-swe-agent counts consecutive format errors (max 3, reset on any clean step). GSD's executor has a 'five consecutive read/grep/glob calls with no write' analysis-paralysis rule (prompt-enforced). Claude Code stops auto-compacting after a few attempts when each summary refills immediately (thrashing guard). None of the repos hashes a failing test signature to detect 'same failure three times', which is exactly the owner's rule, so that part needs original design.\n\nHuman gates are the other major stop type, and they are mostly prompt-enforced: feature-dev's phases 3, 4, 5 and 6 say 'wait for answers', 'ask user which approach', 'DO NOT START WITHOUT USER APPROVAL'; Aider asks 'Attempt to fix lint/test errors?' before each reflection (code: io.confirm_ask) and caps reflections at 3 per user message; Superpowers goes the opposite way with 'rulings, not stalls' (the controller decides and ledgers a ruling; only four named situations stop it). For an unattended harness the Superpowers stance plus code-owned caps is the compatible one.\n\nModel era: Aider's max_reflections=3 and mini-swe-agent's default cost_limit 3.0 are sized for 2024-25 models that needed many retries; Ralph's iteration counts and the explicit 'do not lie' text target models that would exit early under pressure. With Claude 5-generation and other 2026 frontier models the dominant risks are different: very long productive runs (so count caps cut off good work, matching the owner's rule), expensive context refills, and confident-but-wrong completion claims. That favours script-owned no-progress and verification gates over fixed counts.",
+ "howItWorks": [
+  "Pick the owner of the stop test. Code-owned: ralph.sh (for loop + grep), ralph-wiggum stop-hook.sh (reads .claude/ralph-loop.local.md, compares iteration >= max_iterations, extracts promise from the transcript), mini-swe-agent DefaultAgent.query()/run(), SWE-agent DefaultAgent.forward_with_handling(), Aider Coder.run_one(), Codex compact.rs/budget.rs. Prompt-owned: Superpowers fix rounds and breaker, GSD revision loop counters, feature-dev gates, systematic-debugging.",
+  "Check bounds BEFORE the next model call, not after. mini-swe-agent query() raises LimitsExceeded when step_limit > 0 and n_calls >= step_limit or cost_limit > 0 and cost >= cost_limit ('Stop agent after exceeding (!) this cost': the check is on accumulated cost, so one call can overshoot), then TimeExceeded on wall_time_limit_seconds. Codex's record_rollout_budget_usage returns SessionBudgetExceeded when accumulated token usage passes the shared rollout budget, and reminders are queued to the model before that.",
+  "Turn every exit into a typed status and a salvage action. mini-swe-agent: exit message with exit_status in {Submitted, LimitsExceeded, TimeExceeded, RepeatedFormatError, <ExceptionName>}. SWE-agent: exit_cost, exit_context, exit_api, exit_environment_error, exit_error, exit_format, exit_command_timeout, exit_total_execution_time, exit_forfeit, exit_command; each goes through handle_error_with_autosubmission which extracts the patch (git diff from the environment) and ends the loop, so a bound never loses the work.",
+  "Count consecutive repeats of the same class of failure and reset on any clean step. mini-swe-agent n_consecutive_format_errors (max_consecutive_format_errors=3). SWE-agent _n_consecutive_timeouts (max_consecutive_execution_timeouts=3) and n_format_fails vs max_requeries=3 (format, blocked action, bash syntax). The reset-on-success rule is what turns a count into a crude no-progress signal.",
+  "Completion sentinel. Ralph: the model prints <promise>COMPLETE</promise> only if every story in prd.json has passes:true; ralph.sh greps OUTPUT. ralph-wiggum: the stop hook reads the last assistant message from the JSONL transcript, takes the FIRST <promise>...</promise>, normalises whitespace and compares with = (literal, not glob) to completion_promise; on match it deletes the state file and exits 0 (allow stop). mini-swe-agent: environments/local.py _check_finished requires returncode 0 and first line exactly COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT, and the instruction says do not combine it with other commands.",
+  "Continue by re-feeding the same prompt. ralph-wiggum: not complete -> increment iteration with sed to a temp file and mv (atomic), print {decision: block, reason: <prompt from state file>, systemMessage: 'Ralph iteration N | To stop: output <promise>X</promise> (ONLY when statement is TRUE - do not lie to exit!)'}. The SAME session continues (no context clear); the model sees its prior work in files and git. Ralph (snarktank) instead starts a fresh process each iteration.",
+  "Validate the control state itself. The stop hook rm's the state file and exits 0 (fail open: allow the session to stop) if iteration or max_iterations is not numeric, the transcript is missing, no assistant message or no text is found, JSON parse fails, or the prompt body is empty. A broken control file must end the loop, not trap it.",
+  "When a bound trips, give the model a defined exit, then adjudicate. Superpowers: after fix round 5 the controller stops dispatching and adjudicates each open finding (park with ruling, or rule on the smallest change that unblocks dependents, or stop only if every path is a guess); rounds 1-3 resume the same implementer, rounds 4-5 use a fresh one on a more capable model. GSD: at the stall, ask proceed-anyway vs adjust approach; after 2 re-plans, list unresolved issues and offer proceed or abandon. ralph-wiggum README: put 'after N iterations document what blocks you' in the prompt."
+ ],
+ "examples": [
+  {
+   "label": "snarktank/ralph: the whole outer loop (hard cap + sentinel, process-per-iteration)",
+   "kind": "command",
+   "source": "snarktank/ralph ralph.sh",
+   "text": "MAX_ITERATIONS=10        # arg: ./ralph.sh --tool claude 25\nfor i in $(seq 1 $MAX_ITERATIONS); do\n  OUTPUT=$(claude --dangerously-skip-permissions --print < \"$SCRIPT_DIR/CLAUDE.md\" 2>&1 | tee /dev/stderr) || true\n  if echo \"$OUTPUT\" | grep -q \"<promise>COMPLETE</promise>\"; then\n    echo \"Ralph completed all tasks!\"; exit 0\n  fi\n  sleep 2\ndone\necho \"Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks.\"; exit 1\n# prompt.md Stop Condition: after a story, if ALL stories have passes:true reply <promise>COMPLETE</promise>,\n# otherwise end normally. `|| true` swallows agent crashes: a crashed iteration just counts as an iteration."
+  },
+  {
+   "label": "ralph-wiggum state file and setup (iteration counter lives in a file the hook edits)",
+   "kind": "file",
+   "source": "anthropics/claude-code plugins/ralph-wiggum/scripts/setup-ralph-loop.sh",
+   "text": "# .claude/ralph-loop.local.md\n---\nactive: true\niteration: 1\nmax_iterations: 20          # 0 = unlimited (the default if flag omitted)\ncompletion_promise: \"DONE\"  # or null\nstarted_at: \"2026-10-11T09:00:00Z\"\n---\n<the prompt, re-fed verbatim every iteration>\n\n/ralph-loop \"Build a todo API\" --completion-promise 'DONE' --max-iterations 20"
+  },
+  {
+   "label": "ralph-wiggum stop hook: the decision core",
+   "kind": "command",
+   "source": "anthropics/claude-code plugins/ralph-wiggum/hooks/stop-hook.sh",
+   "text": "if [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then\n  echo \"Ralph loop: Max iterations ($MAX_ITERATIONS) reached.\"; rm \"$RALPH_STATE_FILE\"; exit 0   # allow stop\nfi\nLAST_OUTPUT=$(grep '\"role\":\"assistant\"' \"$TRANSCRIPT_PATH\" | tail -1 | jq -r '.message.content | map(select(.type==\"text\")) | map(.text) | join(\"\\n\")')\nPROMISE_TEXT=$(echo \"$LAST_OUTPUT\" | perl -0777 -pe 's/.*?<promise>(.*?)<\\/promise>.*/$1/s; s/^\\s+|\\s+$//g; s/\\s+/ /g')\nif [[ -n \"$PROMISE_TEXT\" ]] && [[ \"$PROMISE_TEXT\" = \"$COMPLETION_PROMISE\" ]]; then rm \"$RALPH_STATE_FILE\"; exit 0; fi\n# else: bump iteration, then\njq -n --arg prompt \"$PROMPT_TEXT\" --arg msg \"$SYSTEM_MSG\" '{\"decision\":\"block\",\"reason\":$prompt,\"systemMessage\":$msg}'"
+  },
+  {
+   "label": "ralph-wiggum: the prompt-side rule and the documented weakness",
+   "kind": "prompt",
+   "source": "anthropics/claude-code plugins/ralph-wiggum/commands/ralph-loop.md, README.md",
+   "text": "CRITICAL RULE: If a completion promise is set, you may ONLY output it when the statement is completely and unequivocally TRUE. Do not output false promises to escape the loop, even if you think you're stuck or should exit for other reasons. The loop is designed to continue until genuine completion.\n\nREADME: \"The --completion-promise uses exact string matching, so you cannot use it for multiple completion conditions (like \"SUCCESS\" vs \"BLOCKED\"). Always rely on --max-iterations as your primary safety mechanism.\"\nDefault is UNLIMITED if neither flag is given (\"No completion promise set - loop runs infinitely\")."
+  },
+  {
+   "label": "mini-swe-agent: bounds checked before every model call, exit statuses as messages",
+   "kind": "command",
+   "source": "SWE-agent/mini-swe-agent src/minisweagent/agents/default.py",
+   "text": "step_limit: int = 0                 # 0 = off\ncost_limit: float = 3.0             # \"Stop agent after exceeding (!) this cost\"\nwall_time_limit_seconds: int = 0\nmax_consecutive_format_errors: int = 3\ndef query(self):\n    if 0 < self.config.step_limit <= self.n_calls or 0 < self.config.cost_limit <= self.cost:\n        raise LimitsExceeded({\"role\":\"exit\",\"content\":\"LimitsExceeded\",\"extra\":{\"exit_status\":\"LimitsExceeded\",\"submission\":\"\"}})\n    if 0 < self.config.wall_time_limit_seconds <= int(time.time() - self._start_time):\n        raise TimeExceeded({... \"exit_status\":\"TimeExceeded\" ...})\n    self.n_calls += 1 ...\n# run(): loop `while True: try: self.step() ...`; ends when messages[-1].role == \"exit\"; self.save() in `finally` every step"
+  },
+  {
+   "label": "mini-swe-agent: format-error cap with reset, and the submit sentinel",
+   "kind": "command",
+   "source": "SWE-agent/mini-swe-agent default.py run(); environments/local.py _check_finished",
+   "text": "except FormatError as e:\n    self.cost += e.messages[0][\"extra\"].get(\"cost\", 0.0)        # billed even though parse failed\n    self.n_consecutive_format_errors += 1\n    if 0 < max_consecutive_format_errors <= self.n_consecutive_format_errors:\n        add_messages(*e.messages, {\"role\":\"exit\",\"content\":\"RepeatedFormatError\", \"extra\":{\"exit_status\":\"RepeatedFormatError\",\"submission\":\"\"}})\n    else: add_messages(*e.messages)                              # the error template is fed back to the model\n...  self.n_consecutive_format_errors = 0   # reset on any clean step\n\nlines = output[\"output\"].lstrip().splitlines(keepends=True)\nif lines and lines[0].strip() == \"COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\" and output[\"returncode\"] == 0:\n    raise Submitted({\"role\":\"exit\",\"content\": \"\".join(lines[1:]), \"extra\":{\"exit_status\":\"Submitted\",\"submission\": ...}})"
+  },
+  {
+   "label": "SWE-agent: typed exits, each with autosubmission; consecutive-timeout and requery caps",
+   "kind": "command",
+   "source": "SWE-agent/SWE-agent sweagent/agent/agents.py, tools/tools.py",
+   "text": "n_format_fails = 0\nwhile n_format_fails < self.max_requeries:            # max_requeries: int = 3\n    try: return self.forward(history)\n    except FormatError / _BlockedActionError / BashIncorrectSyntaxError: n_format_fails += 1; history = requery_with_error_template\n    except _ExitForfeit:               return autosubmit(\"exit_forfeit\")\n    except _TotalExecutionTimeExceeded:return autosubmit(\"exit_total_execution_time\")\n    except CommandTimeoutError:        return autosubmit(\"exit_command_timeout\")   # after max_consecutive_execution_timeouts=3\n    except ContextWindowExceededError: return autosubmit(\"exit_context\")\n    except CostLimitExceededError:     return autosubmit(\"exit_cost\")             # per_instance_cost_limit\n    except TotalCostLimitExceededError: raise                                       # whole-batch cap aborts the run\n    except RetryError: autosubmit(\"exit_api\"); except SwerexException: autosubmit(\"exit_environment_error\")\nreturn autosubmit(\"exit_format\")      # \"Exit due to repeated format/blocklist/bash syntax errors\"\n# models.py also has per_instance_call_limit and total_cost_limit; RetryAgent adds max_attempts + cost_limit across attempts"
+  },
+  {
+   "label": "Aider: reflection cap per user message, and the human confirm gate",
+   "kind": "command",
+   "source": "Aider-AI/aider aider/coders/base_coder.py",
+   "text": "max_reflections = 3\nwhile message:\n    self.reflected_message = None\n    list(self.send_message(message))\n    if not self.reflected_message: break\n    if self.num_reflections >= self.max_reflections:\n        self.io.tool_warning(f\"Only {self.max_reflections} reflections allowed, stopping.\"); return\n    self.num_reflections += 1\n    message = self.reflected_message          # = lint_errors or test_errors text\n# reflection is offered only after: ok = self.io.confirm_ask(\"Attempt to fix test errors?\")\n# num_reflections is reset per user message (init_before_message). Cap is a count; no check that errors changed."
+  },
+  {
+   "label": "Superpowers: five-round fix loop and breaker (prompt-owned count, ledger as the counter)",
+   "kind": "prompt",
+   "source": "obra/superpowers skills/subagent-driven-development/SKILL.md",
+   "text": "Five rounds maximum per task.\nRounds 1-3 — resume the original implementer. Rounds 4-5 — fresh implementer on a more capable model:\n \"A prior implementer attempted this task [N] times; you own it now. Read the report file for what was tried.\"\nAfter each round append to the ledger:\n `Task <N>: fix round <R>/5 (<X> addressed, <Y> open — <finding one-liners>; commits <a7>..<b7>)`\nThe breaker. When round 5's re-review still leaves findings open, stop dispatching. Adjudicate each open finding:\n - reviewer wrong/contestable -> `Task <N>: parked — <finding> — Ruling: <why the code stands>`\n - real, nothing downstream builds on it -> park with ruling \"real and deferred\"\n - real and load-bearing -> rule on the smallest change that unblocks, ledger `Ruling:`, carry into next dispatch.\n Stop only when the defect leaves every path forward a guess.\nFour things stop a run: irreversible/destructive op; security-sensitive action; side effect outside the worktree (merge, push, publish); a plan so broken every path is a guess.\nRed-flag row: \"One more round will converge\" -> \"Past the cap, rounds don't converge — the failure is structural.\" "
+  },
+  {
+   "label": "Superpowers systematic-debugging: three failed fixes means change level, not try again",
+   "kind": "prompt",
+   "source": "obra/superpowers skills/systematic-debugging/SKILL.md",
+   "text": "4. If Fix Doesn't Work: STOP. Count: How many fixes have you tried?\n   If < 3: Return to Phase 1, re-analyze with new information\n   If >= 3: STOP and question the architecture (step 5)\n   DON'T attempt Fix #4 without architectural discussion\n5. If 3+ Fixes Failed: Question Architecture ... Should we refactor architecture vs. continue fixing symptoms?\n   This is NOT a failed hypothesis - this is a wrong architecture."
+  },
+  {
+   "label": "GSD plan-phase revision loop with stall detection (closest thing to a no-progress detector)",
+   "kind": "prompt",
+   "source": "gsd-build/get-shit-done get-shit-done/workflows/plan-phase.md step 12",
+   "text": "Track iteration_count (starts 1), prev_issue_count (init Infinity), stall_reentry_count (starts 0).\nIf iteration_count < 3: issue_count = BLOCKER + WARNING entries in the checker's YAML issues block (0 if none -> pass).\nDisplay: Revision iteration {N}/3 -- {blocker_count} blockers, {warning_count} warnings\nStall detection: If issue_count >= prev_issue_count: \"Revision loop stalled — issue count not decreasing\"\n  stall_reentry_count < 2 -> ask \"Proceed anyway\" | \"Adjust approach\" (re-enter planning; resets iteration_count and prev_issue_count, keeps stall_reentry_count)\n  stall_reentry_count >= 2 -> list unresolved issues; \"Proceed anyway\" | \"Abandon\"\nSet prev_issue_count = issue_count; respawn checker; iteration_count++.\nIf iteration_count >= 3: \"Max iterations reached. {N} issues remain\" -> 1) Force proceed 2) Provide guidance and retry 3) Abandon"
+  },
+  {
+   "label": "GSD and Codex: budget/context-based stops (code and prompt mix)",
+   "kind": "command",
+   "source": "gsd-build/get-shit-done hooks/gsd-context-monitor.js, agents/gsd-executor.md; openai/codex codex-rs/core/src/agent/control/budget.rs, compact.rs",
+   "text": "GSD context monitor (PostToolUse hook, code): WARNING at remaining <= 35%, CRITICAL at <= 25% -> inject additionalContext 'stop immediately and save state'; debounce 5 tool uses; escalation bypasses debounce.\nGSD executor analysis_paralysis_guard (prompt): 5+ consecutive Read/Grep/Glob with no Edit/Write/Bash -> STOP, state in one sentence why, then write code or report 'blocked'.\nCodex (code): record_rollout_budget_usage(usage) -> Err(SessionBudgetExceeded) once shared rollout token budget is spent; pending_budget_reminder() queued and delivered into history first; compaction treats SessionBudgetExceeded as non-retryable.\nClaude Code (docs): if one file/tool output refills context after each summary, auto-compact stops after a few attempts with a 'thrashing' error rather than looping.\nNo max-turn or max-tool-call cap was found in the Codex core crate; turn ends when the model stops calling tools or the budget trips."
+  },
+  {
+   "label": "feature-dev: human gates (prompt-enforced) as stop points",
+   "kind": "prompt",
+   "source": "anthropics/claude-code plugins/feature-dev/commands/feature-dev.md",
+   "text": "Phase 3 Clarifying Questions: **CRITICAL**: This is one of the most important phases. DO NOT SKIP. ... Wait for answers before proceeding to architecture design\nPhase 4: ... Ask user which approach they prefer\nPhase 5 Implementation: **DO NOT START WITHOUT USER APPROVAL** — Wait for explicit user approval\nPhase 6 Quality Review: Present findings to user and ask what they want to do (fix now, fix later, or proceed as-is)"
+  },
+  {
+   "label": "Proposed: script-owned no-progress stop (fingerprint + trajectory), count-free",
+   "kind": "command",
+   "source": "illustrative (recommended design for the harness)",
+   "text": "# after every attempt of a quality/test loop, the SCRIPT computes (model cannot influence it):\nfp   = sha256(stage, check_id, sorted(failing_test_ids), normalise(first_error_line_per_failure))\n         # normalise: strip absolute paths, line/col numbers, timestamps, pids, tmp dirs, ANSI, durations\ntree = git write-tree after `git add -N .` (worktree content hash);  n_fail = len(failing_test_ids)\nappend {attempt, fp, tree, n_fail, passed} to run/loops/<loop_id>.jsonl      # append-only\nSTOP(no_progress) if any:\n  a) same fp 3 times in a row                                  # the owner's rule\n  b) oscillation: fp[-1]==fp[-3] and fp[-2]==fp[-4]           # A,B,A,B\n  c) tree unchanged after an attempt that claimed a fix        # no-op iteration (counts like an identical failure)\n  d) n_fail non-decreasing and fp set not shrinking over 3 attempts   # GSD-style stall: issue count not decreasing\nESCALATE before stopping: 1st repeat -> same model, add 'previous attempts + why they failed' from the jsonl;\n  2nd repeat -> stronger model / fresh context (Superpowers rounds 4-5); 3rd -> stop and write stall.md\nSTOP(pass) only when the script re-runs the check and exit==0 — never on a model sentinel.\nOn stop: write run/loops/<id>/stall.md (attempt table, fingerprints, diffs, last output tail) and route to a ruling/adjudication\n  stage (Superpowers 'rulings, not stalls') or the human gate, as configured; never silently continue.\nSafety ceilings that are NOT iteration counts may exist (wall-clock, spend) as outer limits; trip = typed exit + salvage."
+  },
+  {
+   "label": "Classification of every stop mechanism found",
+   "kind": "before-after",
+   "source": "synthesis",
+   "text": "HARD CAP, code-enforced:   ralph.sh MAX_ITERATIONS; ralph-wiggum max_iterations (default unlimited); mini-swe step_limit/cost_limit/wall_time;\n                           SWE-agent per_instance_cost_limit/total_cost_limit/per_instance_call_limit/total_execution_time; Codex rollout budget; Aider max_reflections=3\nSENTINEL, model-emitted:   Ralph <promise>COMPLETE</promise>; ralph-wiggum <promise>TEXT</promise> (exact match); mini-swe COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT (+rc 0); SWE-agent `submit`\nCONSECUTIVE-FAILURE CAP:   mini-swe max_consecutive_format_errors=3; SWE-agent max_requeries=3, max_consecutive_execution_timeouts=3   (code)\nNO-PROGRESS / STALL:       GSD issue_count >= prev_issue_count (prompt-tracked, code-parsed YAML); GSD analysis-paralysis (prompt); Claude Code compaction thrash guard (code)\nPROMPT-OWNED COUNTS:       Superpowers 5 fix rounds, systematic-debugging 3 fixes, GSD 3 revisions, GSD stall_reentry 2\nHUMAN GATES:               feature-dev phases 3/4/5/6 (prompt); Aider confirm_ask before each reflection (code); mini-swe interactive mode confirm; GSD proceed/abandon prompts\nRULINGS (no stall):        Superpowers controller decides, ledgers `Ruling:`, continues; only four named situations halt\nNOT FOUND ANYWHERE:        hash of failing-test signature for 'same failure N times'; tree-unchanged detection; oscillation detection"
+  }
+ ],
+ "pitfalls": [
+  "Counting is prompt work when the controller is a model. Superpowers' 'round R of 5' and GSD's iteration_count live in the orchestrating model's head (Superpowers mitigates by ledgering each round, which a script could count). Models miscount after compaction; make the script own the counter and print it into the packet.",
+  "A cap converts 'stuck' and 'productive but long' into the same outcome. mini-swe-agent's cost_limit 3.0 and Ralph's 10 iterations will cut off healthy runs; that is why the owner's rule prefers no-progress detection. Keep only outer safety ceilings that fail safe with a salvage action (SWE-agent autosubmit).",
+  "Sentinels are claims. ralph-wiggum needs 'do not lie to exit' text because nothing else checks; its README admits one exact string cannot express SUCCESS vs BLOCKED. Ralph's grep over the full output can match quoted instructions. Prefer: the model writes a status in a structured file, the script validates against re-run checks.",
+  "Fail-open vs fail-closed. ralph-wiggum deletes its state and allows exit on any corruption (fail open, loop ends); an unbounded default (max_iterations omitted = infinite) is the opposite risk. Decide explicitly per loop.",
+  "Aider's reflection counter resets on each user message and does not compare the new error to the old, so three different errors and three identical errors look the same; cap is also per-message, not per-session.",
+  "Raw string equality on failures never repeats exactly (paths, line numbers, timings, random ports). Without normalisation the 3-identical-failures rule never fires.",
+  "Identical failure with a changed tree is not the same as identical failure with an unchanged tree; the second means the 'fix' did nothing and should count at once.",
+  "Stopping without a route. A stall that just halts wastes the run; Superpowers' adjudication and GSD's proceed/adjust menus show the stop should hand over to a defined next state."
+ ],
+ "modelEra": "Legacy sizing to discount: mini-swe-agent's cost_limit 3.0 and step-count thinking, SWE-agent's max_requeries/format-error machinery (existing because 2024 models often produced malformed tool calls; Claude 5-generation and 2026 frontier models use native tool calling and rarely hit it), Aider's max_reflections=3 and its human 'Attempt to fix?' confirm, Ralph's 10-iteration default and 'stories small enough for one context window', and ralph-wiggum's 'do not lie to exit' wording are all calibrated to weaker models. Still current: the claude-code plugins (ralph-wiggum, feature-dev) target Claude 4.x/5 Claude Code and use the Stop-hook block decision, which is a stable host mechanism; Superpowers' rulings-not-stalls and capability-bump on fix rounds 4-5 assume current models (it names model tiers); Codex's budget/reminder code is 2026. Anthropic's compaction docs list claude-sonnet-5-5, claude-opus-5-5, claude-fable-5-1 and claude-haiku-5-5 as supported, so context-limit exits (SWE-agent exit_context) are less likely than no-progress loops on these models.",
+ "whatWouldChange": "1. Move every loop's stop decision into the harness script: the script keeps the append-only attempts log per loop (attempt number, failure fingerprint, tree hash, failing-test count, pass/fail) and decides continue, escalate, pass or stalled; the packet only reports the current attempt and the reason for the last verdict. 2. Replace count caps on quality/test loops with the four no-progress rules (same fingerprint x3, A/B oscillation, unchanged tree after a claimed fix, non-shrinking failure set) with a normaliser for paths, line numbers, timings, ports, ANSI; unit-test the normaliser with real failing outputs (test the route, not the wording). 3. Pass is only ever recorded when the script re-runs the check and sees exit 0 (Superpowers task-done pattern); a model-emitted sentinel can request a check but never end a loop (ralph-wiggum's weakness). 4. Add an escalation ladder before stopping: add prior-attempt evidence, then fresh context plus stronger model (Superpowers rounds 4-5), then stop. 5. On stall write stall.md with the attempt table and route to a ruling/adjudication stage or the human gate; follow 'rulings, not stalls' for non-destructive questions and keep a short named list of conditions that truly halt (destructive, security, side effects outside the worktree, plan so broken every path is a guess). 6. Keep outer ceilings only as non-count safety (wall-clock, spend, context-thrash guard like Claude Code's) and make each trip a typed exit status with salvage (commit WIP to a branch, write the handoff) in the SWE-agent autosubmit style. 7. Validate loop control files on read and decide fail direction per loop (stall files corrupt -> stop and report, not silently continue). 8. Log the stop reason as a typed status (passed, stalled_identical, stalled_oscillating, stalled_noop, ceiling_wallclock, ceiling_spend, gate_human) so reports and Improve passes can aggregate them.",
+ "sources": [
+  {
+   "repo": "snarktank/ralph",
+   "path": "ralph.sh, prompt.md, CLAUDE.md, prd.json.example"
+  },
+  {
+   "repo": "anthropics/claude-code",
+   "path": "plugins/ralph-wiggum/hooks/stop-hook.sh, hooks/hooks.json, scripts/setup-ralph-loop.sh, commands/ralph-loop.md, README.md"
+  },
+  {
+   "repo": "anthropics/claude-code",
+   "path": "plugins/feature-dev/commands/feature-dev.md"
+  },
+  {
+   "repo": "SWE-agent/mini-swe-agent",
+   "path": "src/minisweagent/agents/default.py, exceptions.py, environments/local.py, config/mini.yaml"
+  },
+  {
+   "repo": "SWE-agent/SWE-agent",
+   "path": "sweagent/agent/agents.py, models.py, reviewer.py, tools/tools.py"
+  },
+  {
+   "repo": "Aider-AI/aider",
+   "path": "aider/coders/base_coder.py"
+  },
+  {
+   "repo": "openai/codex",
+   "path": "codex-rs/core/src/compact.rs, agent/control/budget.rs"
+  },
+  {
+   "repo": "obra/superpowers",
+   "path": "skills/subagent-driven-development/SKILL.md, skills/systematic-debugging/SKILL.md"
+  },
+  {
+   "repo": "gsd-build/get-shit-done",
+   "path": "get-shit-done/workflows/plan-phase.md, agents/gsd-executor.md, hooks/gsd-context-monitor.js"
+  },
+  {
+   "repo": "docs",
+   "path": "https://code.claude.com/docs/en/how-claude-code-works"
+  }
+ ]
+}

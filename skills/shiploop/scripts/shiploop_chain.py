@@ -166,6 +166,7 @@ class _ArgumentParser(argparse.ArgumentParser):
     """Keep public CLI failures structured rather than argparse prose."""
 
     def error(self, message: str) -> None:  # pragma: no cover - argparse plumbing
+        """Raise ChainError instead of letting argparse print usage and exit."""
         raise ChainError(message)
 
 
@@ -226,6 +227,7 @@ def _read_regular(path: Path, label: str) -> bytes:
 
 def _json_object(data: bytes, label: str) -> dict[str, Any]:
     def no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        """``object_pairs_hook`` that rejects a JSON object repeating a key."""
         result: dict[str, Any] = {}
         for key, value in pairs:
             if key in result:
@@ -262,7 +264,7 @@ def _optional_keys(value: Any, required: set[str], optional: set[str], label: st
     return value
 
 
-def _sha(value: Any, label: str) -> str:
+def _sha256_digest(value: Any, label: str) -> str:
     if not isinstance(value, str) or _SHA256.fullmatch(value) is None:
         _fail(f"{label} must be a lowercase SHA-256 digest")
     return value
@@ -289,7 +291,7 @@ def _action(value: Any, label: str = "action") -> str:
 def _evidence(value: Any, label: str) -> dict[str, str]:
     row = _exact_keys(value, {"path", "sha256"}, label)
     path = _is_absolute_text(row["path"], label + ".path")
-    digest = _sha(row["sha256"], label + ".sha256")
+    digest = _sha256_digest(row["sha256"], label + ".sha256")
     return {"path": str(path.resolve()), "sha256": digest}
 
 
@@ -308,7 +310,7 @@ def _verification(value: Any) -> dict[str, Any]:
     if not isinstance(row["reason"], str) or not row["reason"].strip():
         _fail("verification.reason must be nonempty text")
     return {
-        "receipt_sha256": _sha(row["receipt_sha256"], "verification.receipt_sha256"),
+        "receipt_sha256": _sha256_digest(row["receipt_sha256"], "verification.receipt_sha256"),
         "passed": row["passed"],
         "reason": row["reason"],
         "evidence": _verify_evidence(row["evidence"], "verification.evidence"),
@@ -486,6 +488,9 @@ def _retired_binding_reason(schema: Any) -> str:
 
 
 def _validate_binding(value: Any) -> dict[str, Any]:
+    """Check a stored chain binding is an object of the current schema with exactly the expected fields and return
+    it; retired schemas are refused with the reason.
+    """
     if not isinstance(value, dict):
         _fail("chain binding must be an object")
     schema = value.get("schema")
@@ -536,7 +541,7 @@ def _file_binding(value: Any, label: str) -> None:
     if not isinstance(value, Mapping) or set(value) != {"path", "sha256"}:
         _fail(f"{label} is invalid")
     _is_absolute_text(value["path"], label + ".path")
-    _sha(value["sha256"], label + ".sha256")
+    _sha256_digest(value["sha256"], label + ".sha256")
 
 
 def _package_binding(value: Any, label: str, required: set[str]) -> None:
@@ -715,7 +720,7 @@ def _read_binding(root: Path, action_id: str, expected_digest: str) -> dict[str,
     path = _binding_path(root, action_id)
     raw = _read_regular(path, "immutable chain binding")
     actual = _sha256(raw)
-    if actual != _sha(expected_digest, "parent chain binding digest"):
+    if actual != _sha256_digest(expected_digest, "parent chain binding digest"):
         _fail("immutable chain binding is missing or its digest drifted; do not bypass the parent guard")
     try:
         value = store.loads(raw.decode("utf-8"))
@@ -848,7 +853,7 @@ def _managed_workspace_record(binding: Mapping[str, Any], value: Any, *,
         _fail("managed Ask-Agent receipt path is not canonical")
     if receipt.name != "receipt.json":
         _fail("managed Ask-Agent receipt must name receipt.json")
-    if _sha256(_read_regular(receipt, "managed Ask-Agent receipt")) != _sha(record["receipt_sha256"], "managed Ask-Agent receipt_sha256"):
+    if _sha256(_read_regular(receipt, "managed Ask-Agent receipt")) != _sha256_digest(record["receipt_sha256"], "managed Ask-Agent receipt_sha256"):
         _fail("managed Ask-Agent receipt digest drifted")
     worktree = _resolved_existing(_is_absolute_text(record["worktree"], "managed Ask-Agent worktree"),
                                   "managed Ask-Agent worktree", directory=True)
@@ -880,7 +885,7 @@ def _managed_workspace_record(binding: Mapping[str, Any], value: Any, *,
             prepared.get("branch"), prepared.get("baseline")) != (
                 "prepared", "prepared", str(receipt), str(worktree), record["branch"], str(baseline)):
         _fail("managed Ask-Agent prepared inspection conflicts with its receipt")
-    _sha(prepared.get("fingerprint"), "managed Ask-Agent prepared fingerprint")
+    _sha256_digest(prepared.get("fingerprint"), "managed Ask-Agent prepared fingerprint")
     if prepared.get("changed_paths") != [] or prepared.get("contribution_paths") != []:
         _fail("managed Ask-Agent prepared inspection is not an unchanged baseline")
     prepare = record["prepare"]
@@ -1076,7 +1081,7 @@ def _preflight_graph(package: Mapping[str, Any], node: str, graph: Mapping[str, 
         if (not isinstance(response, Mapping) or set(response) != {"ok", "graph_sha256"}
                 or response.get("ok") is not True):
             _fail("selected dispatcher validate-graph returned malformed response before binding")
-        _sha(response["graph_sha256"], "selected dispatcher validate-graph graph_sha256")
+        _sha256_digest(response["graph_sha256"], "selected dispatcher validate-graph graph_sha256")
     finally:
         if request_path is not None:
             try:
@@ -1128,6 +1133,9 @@ def _planning_worker_instructions(packet: dict[str, Any]) -> None:
 
 
 def _node(binding: Mapping[str, Any], operation: str, input_value: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Run the bound Node.js dispatcher helper for ``operation``, optionally with a JSON request, and return its
+    parsed output.
+    """
     _verify_frozen(binding)
     _refuse_legacy_dispatcher_state(binding)
     node = _resolved_existing(Path(binding["node"]), "bound Node.js executable", directory=False)
@@ -1576,7 +1584,7 @@ def _contribution_event(rows: list[dict[str, Any]], attempt: str) -> dict[str, A
     return _event_data(row)
 
 
-def _direct_contributions(binding: Mapping[str, Any], full: Mapping[str, Any], attempt: str,
+def _direct_contributions(full: Mapping[str, Any], attempt: str,
                           rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     step = _step_for_attempt(full, attempt)
     dependencies = step.get("deps")
@@ -1718,9 +1726,9 @@ def _per_step_handoff_path(workspace: str, attempt: str) -> str:
     return str(Path(workspace) / ".shiploop-handoff" / _attempt(attempt) / "handoff.json")
 
 
-def _per_step_direct_contributions(binding: Mapping[str, Any], full: Mapping[str, Any], attempt: str,
+def _per_step_direct_contributions(full: Mapping[str, Any], attempt: str,
                                    rows: list[dict[str, Any]], expected_target: Mapping[str, str]) -> list[dict[str, Any]]:
-    contributions = _direct_contributions(binding, full, attempt, rows)
+    contributions = _direct_contributions(full, attempt, rows)
     result: list[dict[str, Any]] = []
     for contribution in contributions:
         integration = _integration_proof(contribution.get("integration"), "accepted contribution integration")
@@ -1905,6 +1913,7 @@ def _per_step_internal_packet(rows: list[dict[str, Any]], attempt: str) -> dict[
 
 
 def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize each attempt's lifecycle (allocated, integrated, cleaned up) from the ledger rows."""
     allocations = _per_step_allocation_records(rows)
     integrated = {
         _event_data(row).get("attempt")
@@ -1988,7 +1997,7 @@ def _managed_workspace_prepare_record(
         if (prepared.get("phase"), prepared.get("changed_paths"), prepared.get("contribution_paths")) != (
                 "prepared", [], []):
             _fail("Ask-Agent recovered prepare is not an unchanged prepared inspection")
-        _sha(prepared.get("fingerprint"), "Ask-Agent recovered prepare fingerprint")
+        _sha256_digest(prepared.get("fingerprint"), "Ask-Agent recovered prepare fingerprint")
     elif prepared.get("source") != expected_target["repo"]:
         _fail("Ask-Agent prepare source conflicts with the current integrated target")
     receipt_value = _json_object(_read_regular(receipt, "Ask-Agent prepare receipt"), "Ask-Agent prepare receipt")
@@ -2076,7 +2085,6 @@ def _managed_preparation_receipts(store: str) -> list[str]:
 
 
 def _per_step_prepare_managed_workspace(
-    root: Path,
     binding: Mapping[str, Any],
     chain_dir: Path,
     rows: list[dict[str, Any]],
@@ -2218,7 +2226,7 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
     record = _record_for_attempt(full, start["attempt"])
     if record.get("status") == "claimed":
         _require_planning_context(binding, start["attempt"])
-    dependencies = _per_step_direct_contributions(binding, full, start["attempt"], rows, expected_target)
+    dependencies = _per_step_direct_contributions(full, start["attempt"], rows, expected_target)
     allocation = _allocation(rows, start["attempt"])
     mode = _binding_mode(binding)
     required_commits = [
@@ -2240,7 +2248,7 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
             if isinstance(other_context, Mapping) and requested_resources.intersection(other_context.get("resources", [])):
                 _fail("resource is already reserved by active attempt: " + other_attempt)
         allocation, rows = _per_step_prepare_managed_workspace(
-            root, binding, chain_dir, rows, start, expected_target, base, required_commits,
+            binding, chain_dir, rows, start, expected_target, base, required_commits,
         )
         plan = allocation["plan"]
         identity = plan.get("worker") if isinstance(plan, Mapping) else None
@@ -2842,6 +2850,9 @@ def _refuse_retired_binding(root: Path, action_id: str) -> None:
 
 
 def _pending_response(root: Path, binding: Mapping[str, Any]) -> dict[str, Any]:
+    """Report the chain's pending state without recovering the ledger: ready and active steps, what is done, and
+    the completion projection.
+    """
     rows = _events(_binding_dir(root, binding["action_id"]), recover=False)
     snapshot = _node(binding, "next")
     if _binding_mode(binding) == "serial":
@@ -2926,6 +2937,9 @@ def _claimed_attempts(full: Mapping[str, Any], steps: list[str]) -> list[dict[st
 
 
 def _claim(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+    """Claim the steps named in ``value`` for the bound chain, first reconciling any claim a crash left as an
+    immutable intent; returns the response with the claimed steps' packets.
+    """
     _verify_frozen(binding)
     steps = _parse_claim(value)
     chain_dir = _binding_dir(root, binding["action_id"])
@@ -2996,7 +3010,7 @@ def _claim(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dic
             if not isinstance(packet, Mapping):
                 _fail("selected dispatcher claim packet is invalid")
             attempt = _attempt(packet.get("attempt"), "claim packet attempt")
-            dependencies = _direct_contributions(binding, claimed_full, attempt, claimed_rows)
+            dependencies = _direct_contributions(claimed_full, attempt, claimed_rows)
             packets.append(_enrich_packet(root, binding, packet, dependencies=dependencies))
         result["packets"] = packets
     result["shiploop_chain"] = _binding_summary(root, binding, _events(chain_dir))
@@ -3059,7 +3073,7 @@ def _per_step_validate_import_receipt(receipt: Any, *, dispatcher_run_id: str, s
         _fail("handoff helper import receipt does not bind the supplied handoff digest")
     if not isinstance(receipt["archives"], list) or not isinstance(receipt["deletion_manifest"], list):
         _fail("handoff helper import receipt artifact lists are invalid")
-    _sha(receipt["receipt_sha256"], "handoff helper import receipt SHA-256")
+    _sha256_digest(receipt["receipt_sha256"], "handoff helper import receipt SHA-256")
     _is_absolute_text(receipt["receipt_path"], "handoff helper import receipt path")
     return deepcopy(dict(receipt))
 
@@ -3123,7 +3137,7 @@ def _managed_returned_delivery(binding: Mapping[str, Any], allocation: Mapping[s
         _fail("managed worker left ignored generated output (" + shown + "); remove it from the worker "
               "workspace and import the handoff again, because cleanup keeps any worktree that holds "
               "ignored files and the chain could not finish")
-    _sha(returned.get("fingerprint"), "Ask-Agent returned delivery fingerprint")
+    _sha256_digest(returned.get("fingerprint"), "Ask-Agent returned delivery fingerprint")
     if not isinstance(returned.get("changed_paths"), list) or not isinstance(returned.get("contribution_paths"), list):
         _fail("Ask-Agent returned delivery inspection has invalid changed-path evidence")
     delivery = returned.get("delivery")
@@ -3197,7 +3211,7 @@ def _validate_managed_returned_delivery(binding: Mapping[str, Any], allocation: 
                 "returned", "returned", receipt["receipt"], plan["path"], receipt["branch"], receipt["baseline"],
                 [], [_managed_handoff_discard(attempt)]):
         _fail("managed returned delivery inspection conflicts with its immutable receipt")
-    _sha(inspection.get("fingerprint"), "managed returned delivery fingerprint")
+    _sha256_digest(inspection.get("fingerprint"), "managed returned delivery fingerprint")
     delivery = inspection.get("delivery")
     if (not isinstance(delivery, Mapping) or delivery.get("mode") != "commits" or delivery.get("base") != base
             or delivery.get("commits") != commits or delivery.get("commit_paths") != inspection.get("contribution_paths")):
@@ -3246,6 +3260,9 @@ def _write_parent_immutable_json(path_text: Any, value: Mapping[str, Any], label
 
 def _per_step_parent_report(binding: Mapping[str, Any], rows: list[dict[str, Any]], attempt: str,
                             imported: Mapping[str, Any]) -> dict[str, Any]:
+    """Build the parent-retained report for an imported attempt: its artifact, envelope and report, found through
+    the dispatcher packet's declared outputs.
+    """
     packet = _per_step_internal_packet(rows, attempt)
     outputs = packet.get("outputs")
     template = packet.get("report_envelope")
@@ -3286,6 +3303,9 @@ def _per_step_parent_report(binding: Mapping[str, Any], rows: list[dict[str, Any
 
 
 def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+    """Import the worker handoff for ``attempt`` into the archive and ledger; each stage is recorded, so a retry
+    after a crash resumes at the stage that did not finish.
+    """
     attempt, handoff = _parse_import_handoff(value)
     _per_step_require_current_attempt(binding, attempt, "import-handoff")
     chain_dir = _binding_dir(root, binding["action_id"])
@@ -3360,7 +3380,7 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
         except ValueError as exc:
             wrapped = ChainError(str(exc))
             _append_error(chain_dir, "handoff-import", requested, wrapped)
-            raise wrapped
+            raise wrapped from exc
         imported = _per_step_validate_import_receipt(
             imported, dispatcher_run_id=dispatcher_run_id, step=step, attempt=attempt,
             base_commit=allocation["base_commit"],
@@ -3424,7 +3444,7 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
         except ValueError as exc:
             wrapped = ChainError(str(exc))
             _append_error(chain_dir, "handoff-delete", {"attempt": attempt}, wrapped)
-            raise wrapped
+            raise wrapped from exc
         deleted = {"attempt": attempt, "import_receipt_sha256": imported["receipt_sha256"]}
         _append(chain_dir, _event_id("handoff-files-removed", deleted), "handoff_files_removed", deleted)
         rows = _events(chain_dir)
@@ -3443,6 +3463,9 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
 
 
 def _per_step_prepare(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+    """Prepare the integration candidate for ``attempt`` from its imported handoff and inspect it; a replay returns
+    the recorded result.
+    """
     attempt = _parse_prepare(value)
     _per_step_require_current_attempt(binding, attempt, "prepare")
     _require_planning_context(binding, attempt)
@@ -3525,7 +3548,7 @@ def _per_step_prepare(root: Path, binding: Mapping[str, Any], value: dict[str, A
     except ValueError as exc:
         wrapped = ChainError(str(exc))
         _append_error(chain_dir, "prepare", intent, wrapped)
-        raise wrapped
+        raise wrapped from exc
     workspace = prepared.get("workspace")
     if not isinstance(workspace, str) or workspace != allocation["plan"].get("path"):
         _fail("prepared integration workspace conflicts with the allocation")
@@ -3635,7 +3658,7 @@ def _per_step_settle_child(root: Path, binding: Mapping[str, Any], attempt: str,
 
 def _managed_acceptance_path(chain_dir: Path, attempt: str, fingerprint: str) -> Path:
     """Reserve a parent-owned immutable acceptance outside the removable worker."""
-    fingerprint = _sha(fingerprint, "managed close inspection fingerprint")
+    fingerprint = _sha256_digest(fingerprint, "managed close inspection fingerprint")
     root = chain_dir / "ask-agent-acceptance"
     attempt_dir = root / _attempt(attempt)
     for directory, label in ((root, "managed acceptance root"), (attempt_dir, "managed acceptance attempt directory")):
@@ -3687,7 +3710,7 @@ def _managed_post_integration_inspection(binding: Mapping[str, Any], allocation:
                 "returned", "returned", receipt["receipt"], workspace, receipt["branch"], receipt["baseline"],
                 [], []):
         _fail("Ask-Agent post-integration inspection conflicts with the accepted worker receipt")
-    _sha(returned.get("fingerprint"), "Ask-Agent post-integration fingerprint")
+    _sha256_digest(returned.get("fingerprint"), "Ask-Agent post-integration fingerprint")
     if not isinstance(returned.get("changed_paths"), list) or not isinstance(returned.get("contribution_paths"), list):
         _fail("Ask-Agent post-integration inspection has invalid changed-path evidence")
     evidence = returned.get("evidence")
@@ -3703,7 +3726,7 @@ def _managed_post_integration_inspection(binding: Mapping[str, Any], allocation:
     }
 
 
-def _managed_close_intent(binding: Mapping[str, Any], allocation: Mapping[str, Any], *, attempt: str,
+def _managed_close_intent(allocation: Mapping[str, Any], *, attempt: str,
                           integration: Mapping[str, str], value: Any) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
     """Validate a write-ahead close intent without requiring its removed worker."""
     if not isinstance(value, Mapping):
@@ -3722,7 +3745,7 @@ def _managed_close_intent(binding: Mapping[str, Any], allocation: Mapping[str, A
             attempt, plan.get("path"), plan.get("branch")):
         _fail("managed cleanup post-integration evidence conflicts with its allocation")
     receipt = _is_absolute_text(post.get("receipt"), "managed cleanup receipt")
-    if _sha256(_read_regular(receipt, "managed cleanup receipt")) != _sha(
+    if _sha256(_read_regular(receipt, "managed cleanup receipt")) != _sha256_digest(
             post.get("receipt_sha256"), "managed cleanup receipt_sha256"):
         _fail("managed cleanup receipt digest drifted")
     inspection = post.get("inspection")
@@ -3736,7 +3759,7 @@ def _managed_close_intent(binding: Mapping[str, Any], allocation: Mapping[str, A
                 inspection.get("discard")) != (
                     "returned", "returned", str(receipt), plan.get("path"), plan.get("branch"), [], [])):
         _fail("managed cleanup post-integration inspection is invalid")
-    fingerprint = _sha(inspection.get("fingerprint"), "managed cleanup inspection fingerprint")
+    fingerprint = _sha256_digest(inspection.get("fingerprint"), "managed cleanup inspection fingerprint")
     evidence = post.get("evidence")
     if not isinstance(evidence, Mapping) or set(evidence) != {"inspection", "contribution_patch"}:
         _fail("managed cleanup post-integration evidence is incomplete")
@@ -3780,7 +3803,7 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
     prior_intent = _event(rows, "cleanup_intent", attempt=attempt)
     if prior_intent is not None:
         intent, post, acceptance = _managed_close_intent(
-            binding, allocation, attempt=attempt, integration=integration, value=_event_data(prior_intent),
+            allocation, attempt=attempt, integration=integration, value=_event_data(prior_intent),
         )
     else:
         _require_managed_cleanup_candidate(allocation, integration)
@@ -3811,7 +3834,7 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
             post = inspection_data.get("post_integration")
             if not isinstance(post, Mapping):
                 _fail("managed close inspection lacks a helper result")
-        fingerprint = _sha(post.get("inspection", {}).get("fingerprint")
+        fingerprint = _sha256_digest(post.get("inspection", {}).get("fingerprint")
                            if isinstance(post.get("inspection"), Mapping) else None,
                            "managed close inspection fingerprint")
         acceptance_value = {
@@ -3855,7 +3878,7 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
             _fail("Ask-Agent close returned an invalid retained outcome")
         return {"attempt": attempt, "cleanup": {"intent": intent, "close": dict(outcome)},
                 "pending": True, "retained": True, "reason": outcome["reason"]}
-    fingerprint = _sha(post["inspection"]["fingerprint"], "managed close inspection fingerprint")
+    fingerprint = _sha256_digest(post["inspection"]["fingerprint"], "managed close inspection fingerprint")
     if (outcome.get("status"), outcome.get("schema"), outcome.get("removed"), outcome.get("decision"),
             outcome.get("inspection_fingerprint"), outcome.get("worktree"), outcome.get("branch")) != (
                 "closed", "ask-agent.workspace.close.v1", True, "integrated", fingerprint,
@@ -3870,6 +3893,9 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
 
 def _per_step_cleanup_attempt(root: Path, binding: Mapping[str, Any], attempt: str,
                               *, confirmed_stopped: bool) -> dict[str, Any]:
+    """Clean up the attempt's workspace once the worker is confirmed stopped; a failed cleanup is reported as
+    pending with the workspace retained.
+    """
     if not confirmed_stopped:
         _fail("cleanup requires confirmed_stopped: true")
     _per_step_require_dispatcher_owner(binding, "cleanup")
@@ -3962,7 +3988,7 @@ def _per_step_integrate(root: Path, binding: Mapping[str, Any], attempt: str,
         except ValueError as exc:
             wrapped = ChainError(str(exc))
             _append_error(_binding_dir(root, binding["action_id"]), "integration", intent, wrapped)
-            raise wrapped
+            raise wrapped from exc
     else:
         _fail("integration intent has an uncertain target effect; preserve the target and investigate before retry")
     result = {"attempt": attempt, "integration": dict(integration), "verification": dict(verification),
@@ -3974,6 +4000,9 @@ def _per_step_integrate(root: Path, binding: Mapping[str, Any], attempt: str,
 
 
 def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+    """Accept the verified result for ``attempt``: check its verification and integration proof, then record
+    completion; a replayed done returns the recorded response.
+    """
     attempt, verification, supplied_integration = _parse_per_step_done(value)
     record = _per_step_require_current_attempt(binding, attempt, "done", allow_terminal_replay=True)
     step = record.get("step")
@@ -4041,6 +4070,9 @@ def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]
 
 
 def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+    """Record a write-ahead retry intent for an attempt, with its reason and stop evidence, then apply it; a replay
+    returns the recorded response.
+    """
     _verify_frozen(binding)
     attempt, reason, stop = _parse_retry(value)
     _per_step_require_dispatcher_owner(binding, "retry")
@@ -4094,7 +4126,7 @@ def _packet(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> di
         _fail("per-step packet recovery has an invalid durable target")
     _validate_identity(target, "per-step packet recovery target")
     raw_packet = _per_step_internal_packet(rows, attempt)
-    dependencies = _per_step_direct_contributions(binding, full, attempt, rows, dict(target))
+    dependencies = _per_step_direct_contributions(full, attempt, rows, dict(target))
     result = _node(binding, "packet", {"attempt": attempt})
     if not isinstance(result.get("packet"), Mapping):
         _fail("selected dispatcher packet response is invalid")
@@ -4208,6 +4240,9 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
 
 
 def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    """Bind the chain to the navigator action ``args.action``: validate the graph and dispatcher, freeze the
+    binding and initialise the child state; a replay recovers the existing child.
+    """
     action_id = _action(args.action)
     _require_bindable(state, action_id)
     _require_external_run(root)

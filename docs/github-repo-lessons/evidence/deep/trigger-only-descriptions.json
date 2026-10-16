@@ -1,0 +1,129 @@
+{
+ "id": "trigger-only-descriptions",
+ "overview": "What a description is. In SKILL.md frontmatter, `name` and `description` are the only parts of a skill that are always in the model's context (Claude Code docs: 'skill descriptions are loaded into context so Claude knows what's available, but full skill content only loads when invoked'; the combined description + when_to_use text is truncated at 1,536 characters in the listing; the API platform caps description at 1,024). The model reads that list at the start of a task and decides, from the description alone, whether to open the skill. So a description is a routing label: 'should I load this now?'\n\nWhat 'workflow' means. The body of SKILL.md is the procedure: ordered steps, gates, 'do X then Y', the two-stage review, the checklist. 'Descriptions give the trigger, never the workflow' means the always-loaded label should say WHEN the skill applies (situations, symptoms, preconditions) and should not restate WHAT the procedure does step by step. The phrase is unclear because 'trigger' and 'workflow' are jargon; plainly: the description answers 'when do I open this?', the body answers 'what do I do once open?', and the first must not secretly contain a compressed version of the second.\n\nWhy it matters (the documented failure). superpowers found that when the description contained a summary of the procedure, the model treated the summary as sufficient and acted on it without opening the body. The concrete case (writing-skills/SKILL.md, commit 2a19be0, 2025-12-11): subagent-driven-development said 'dispatches fresh subagent for each task with code review between tasks'; the agent did ONE review, although the flowchart in the body specified TWO (spec compliance, then code quality). When the description was cut to a pure trigger, the agent read the flowchart and did both. The mechanism is a shortcut: a description that reads like instructions is cheaper to follow than opening a file, and a lossy summary silently replaces the full process. Caveat: the evidence is one observed case plus a six-skill trigger test, with no model named and no run counts in the repo.\n\nA counter-position exists and the two are in real tension. Anthropic's own docs and skill-creator say the opposite on content: 'The description field enables Skill discovery and should include both what the Skill does and when to use it', and skill-creator tells authors to make descriptions 'a little bit pushy' because Claude tends to UNDER-trigger. These are reconcilable: say what the skill is FOR (capability/outcome, a few words) and when it applies, but do not list its internal steps or ordering. Even superpowers does not follow its own rule uniformly in v7: verification-before-completion still says 'requires running verification commands and confirming output before making any success claims' and using-git-worktrees ends with 'ensures an isolated workspace exists'.",
+ "howItWorks": [
+  "At session start the host lists every enabled skill's name + description in context (Claude Code: truncated to 1,536 chars per skill; `disable-model-invocation: true` removes the description from context entirely so only a human or script can invoke it).",
+  "When a task arrives, the model matches it against those descriptions and, if one fits, loads the full SKILL.md (Skill tool or a Read of the file). Only then do the body, flowchart and references enter context.",
+  "Failure mode: if the description already contains a plausible plan ('dispatches a subagent per task with code review between tasks'), the model can consider the skill 'understood', skip loading it, or load it but anchor on the summary. Result: steps that exist only in the body (the second review) are dropped.",
+  "Fix (superpowers 030a222, six skills in one commit): rewrite each description as 'Use when <situation or symptom>' with no verbs describing the procedure, and move every process fact into the body.",
+  "Test triggering (anthropics/skills scripts/run_loop.py, run_eval.py): write ~20 realistic queries, half should-trigger (8-10) and half should-not-trigger near-misses (8-10), save as [{query, should_trigger}]. Split 60/40 train/held-out, STRATIFIED by should_trigger with a fixed seed (random.seed(42)); the holdout takes max(1, int(n*0.4)) per class.",
+  "Each iteration evaluates train+test queries together, each query run 3 times (--runs-per-query 3) via `claude -p <query> --output-format stream-json --include-partial-messages` after writing a temporary command file into .claude/commands/ carrying the candidate description; triggered = the first tool call is Skill or Read naming that temp command (any other first tool call returns False). Timeout 30 s per run, 10 parallel workers. A query passes if trigger_rate >= 0.5 (should-trigger) or < 0.5 (should-not).",
+  "If any train query fails, improve_description.py asks the model (`claude -p`, the same --model as the session) to rewrite the description from the failed and falsely triggered train queries plus all previous attempts. The improver sees train results only: history is stripped of test_ keys ('blinded_history'). Prompt demands generalizing to categories of intent not listing queries, ~100-200 words, hard cap 1,024 chars, imperative phrasing, 'structurally different' each attempt.",
+  "Loop ends when all train queries pass or max_iterations (default 5) is reached. The winner is `max(history, key=test_passed)` - highest HELD-OUT test score, not train score; ties resolve to the earliest iteration because Python max keeps the first. Output JSON gives best_description, best_train_score, best_test_score and an HTML report.",
+  "Apply best_description to the frontmatter and show before/after with scores. skill-creator also notes the trigger test is only meaningful for substantive tasks: Claude does not consult skills for simple one-step requests it can do directly, so trivial queries are poor test cases."
+ ],
+ "examples": [
+  {
+   "label": "The exact documented failure (quote)",
+   "kind": "file",
+   "source": "superpowers/skills/writing-skills/SKILL.md (CSO / Skill Discovery Optimization section)",
+   "text": "CRITICAL: Description = When to Use, NOT What the Skill Does\n\nThe description should ONLY describe triggering conditions. Do NOT summarize the skill's process or workflow in the description.\n\nWhy this matters: Testing revealed that when a description summarizes the skill's workflow, an agent may follow the description instead of reading the full skill content. A description saying \"code review between tasks\" caused an agent to do ONE review, even though the skill's flowchart clearly showed TWO reviews (spec compliance then code quality).\n\nWhen the description was changed to just \"Use when executing implementation plans with independent tasks\" (no workflow summary), the agent correctly read the flowchart and followed the two-stage review process.\n\nThe trap: Descriptions that summarize workflow create a shortcut agents will take. The skill body becomes documentation agents skip."
+  },
+  {
+   "label": "Pair 1: subagent-driven-development (the case that exposed it)",
+   "kind": "before-after",
+   "source": "superpowers git history: ed06dcb then 2a19be0 (2025-12-11), skills/subagent-driven-development/SKILL.md",
+   "text": "BAD (summarises workflow; produced ONE review): Use when executing implementation plans with independent tasks in the current session - dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates\n\nGOOD (trigger only, current): Use when executing implementation plans with independent tasks in the current session\n\nNote: ed06dcb first tried to FIX the summary ('...with two-stage review (spec compliance then code quality) between tasks'); 2a19be0 then removed the summary altogether."
+  },
+  {
+   "label": "Pair 2: test-driven-development",
+   "kind": "before-after",
+   "source": "superpowers git commit 030a222 (2025-12-11), skills/test-driven-development/SKILL.md",
+   "text": "BAD: Use when implementing any feature or bugfix, before writing implementation code - write the test first, watch it fail, write minimal code to pass; ensures tests actually verify behavior by requiring failure first\n\nGOOD: Use when implementing any feature or bugfix, before writing implementation code"
+  },
+  {
+   "label": "Pair 3: systematic-debugging",
+   "kind": "before-after",
+   "source": "superpowers git commit 030a222, skills/systematic-debugging/SKILL.md",
+   "text": "BAD: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes - four-phase framework (root cause investigation, pattern analysis, hypothesis testing, implementation) that ensures understanding before attempting solutions\n\nGOOD: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes"
+  },
+  {
+   "label": "Pair 4 (same commit): executing-plans",
+   "kind": "before-after",
+   "source": "superpowers git commit 030a222, skills/executing-plans/SKILL.md",
+   "text": "BAD: Use when partner provides a complete implementation plan to execute in controlled batches with review checkpoints - loads plan, reviews critically, executes tasks in batches, reports for review between batches\n\nGOOD: Use when you have a written implementation plan to execute in a separate session with review checkpoints"
+  },
+  {
+   "label": "Counter-example from Anthropic's own docs (what + when)",
+   "kind": "file",
+   "source": "platform.claude.com best-practices, 'Writing effective descriptions'",
+   "text": "description: Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when the user mentions PDFs, forms, or document extraction.\n\n\"The `description` field enables Skill discovery and should include both what the Skill does and when to use it.\"\n\n(These list capabilities, not an ordered procedure; none contains 'first/then/after'.)"
+  },
+  {
+   "label": "skill-creator on 'pushy' descriptions",
+   "kind": "file",
+   "source": "anthropics/skills skills/skill-creator/SKILL.md ('Write the SKILL.md')",
+   "text": "description: When to trigger, what it does. This is the primary triggering mechanism - include both what the skill does AND specific contexts for when to use it. All \"when to use\" info goes here, not in the body. Note: currently Claude has a tendency to \"undertrigger\" skills ... please make the skill descriptions a little bit \"pushy\"."
+  },
+  {
+   "label": "run_loop.py: split and winner selection (verbatim code)",
+   "kind": "command",
+   "source": "anthropics/skills skills/skill-creator/scripts/run_loop.py",
+   "text": "n_trigger_test = max(1, int(len(trigger) * holdout))\nn_no_trigger_test = max(1, int(len(no_trigger) * holdout))\n...\n# Strip test scores from history so improvement model can't see them\nblinded_history = [{k: v for k, v in h.items() if not k.startswith(\"test_\")} for h in history]\n...\n# Find the best iteration by TEST score (or train if no test set)\nbest = max(history, key=lambda h: h[\"test_passed\"] or 0)\n\nCLI: python -m scripts.run_loop --eval-set <json> --skill-path <dir> --model <id-of-session-model> --max-iterations 5 --verbose   (defaults: --runs-per-query 3, --holdout 0.4, --trigger-threshold 0.5, --num-workers 10, --timeout 30)"
+  },
+  {
+   "label": "superpowers triggering tests (naive prompts, no skill name)",
+   "kind": "file",
+   "source": "superpowers commit ae0ef56; current tests/explicit-skill-requests/ (prompts/*.txt, run-test.sh)",
+   "text": "Commit message: \"Creates tests/skill-triggering/ to validate skills trigger correctly from naive prompts (without explicitly naming the skill). Tests 6 skills ... All 6 tests pass.\"\nCurrent explicit-request test runs: timeout 300 claude -p \"$PROMPT\" --plugin-dir \"$PLUGIN_DIR\" --max-turns 3 --output-format stream-json and inspects the stream for a Skill invocation. No train/held-out split, one run per prompt (UNVERIFIED how many prompts per skill)."
+  }
+ ],
+ "pitfalls": [
+  "Evidence base is thin and model-unspecified: one observed failure (2025-12-11, a Claude model of unstated version; the repo records no run count). It is plausible and cheap to obey, but not a measured effect size. Do not cite it as a law.",
+  "Direct conflict in guidance: Anthropic docs and skill-creator say a description should include what the skill does; superpowers says never. The workable reading: capability/outcome in a few words is fine; ordered steps, counts ('two reviews'), tool names or phase lists are not.",
+  "'Trigger only' can under-trigger. skill-creator reports Claude tends to under-trigger and recommends pushier wording. superpowers compensates with imperative text for its entry skills ('You MUST use this before any creative work') and symptom keywords, which is not a pure trigger either.",
+  "Even the author does not hold the line: verification-before-completion ('requires running verification commands and confirming output ...') and using-git-worktrees ('ensures an isolated workspace exists ...') in v7.0.0 still carry outcome/process text in the description.",
+  "run_loop.py caveats: it measures whether the skill is consulted, not whether the body is then followed - it cannot detect the superpowers failure (summary acted on after loading or in place of loading). With the recommended 20 queries (10 + 10) the split is 12 train / 8 held-out with 3 runs each; a 50% threshold on 3 runs is coarse; best-of-N selection on a tiny held-out set still overfits; only the first tool call is inspected, any other tool first counts as not triggered; the temp command file is injected as a .claude/commands entry, which approximates but is not identical to a real skill listing; skill-creator itself says simple one-step queries will not trigger a skill whatever the description.",
+  "Tie-break: when several iterations share the best test score, max() returns the earliest, which is usually the original description - the loop can return its input unchanged.",
+  "Character budgets: Claude Code truncates description + when_to_use at 1,536 chars in the listing and the API caps description at 1,024; put the key trigger first. Long keyword lists compete for the shared listing budget across all skills.",
+  "Not verified by me: the exact trigger-test numbers superpowers got before/after (not recorded), and which model version was used."
+ ],
+ "modelEra": "Relevant to Claude 5+: the mechanism (description is always-loaded routing text; body loads on demand) is current Claude Code architecture, confirmed in the live docs. Keeping descriptions short, front-loaded (1,536-char cap) and about WHEN is current best practice. The observation that models act on a summary instead of the body is plausible for any LLM but was observed on a Dec 2025 model; no data on Claude 5 exists in these repos. superpowers' June 2026 work shows current Opus follows guidance more reliably than older models, so the severity of the shortcut may be lower today, but the fix is free, so keep it as hygiene rather than as a proven necessity.\n\nLegacy / caution: superpowers' vocabulary ('CSO', 'SDO', rich keyword lists, 'grep descriptions') is from a period when skill discovery was done by grepping a folder. The 'pushy description' advice from skill-creator targets the under-triggering of Claude 4-generation models; on newer models it may over-trigger, so re-measure with run_loop-style queries on the exact target model rather than copying either style.",
+ "whatWouldChange": "In a script-driven harness where a script, not the model, picks the next stage and prints its packet, the description's routing role mostly disappears: the model is never asked 'should I load this skill?', so under-triggering and the 'skip the body' shortcut (as a result of choosing not to open it) cannot occur for scripted stages; set `disable-model-invocation: true` (or avoid registering a model-visible listing) so these skills cost no always-on context and cannot be self-invoked out of order. The rule survives in three places: (1) any skill still discoverable by the model (utility skills such as review, ask-agent, interop) keeps trigger-only descriptions; (2) the packet head the script prints plays the description's role at a different moment - it is read in full, so a packet that summarises the stage and then points to a file can reproduce the same shortcut (the model acts on the three-line summary and skips run/packets/<action>.md); keep the head to the identity and the obligation to read the file, not a compressed procedure; (3) the human-facing one-line description in a catalog should say when to run, not what the steps are, so a reader or a future script author does not mistake it for the contract. Testing changes too: replace run_loop's 'did the model pick the skill' with a deterministic check that the script selects the stage under the right state, and keep a run_loop-style test only for the few model-discoverable skills. The pressure/baseline tests (topic 1) then apply to what the model does AFTER the packet, which is where a script-driven harness still depends on model compliance.",
+ "sources": [
+  {
+   "repo": "obra/superpowers",
+   "path": "skills/writing-skills/SKILL.md (Skill Discovery Optimization, Rich Description Field)"
+  },
+  {
+   "repo": "obra/superpowers",
+   "path": "RELEASE-NOTES.md ('The Description Trap')"
+  },
+  {
+   "repo": "obra/superpowers",
+   "path": "git commits ed06dcb, 2a19be0, 030a222, ae0ef56 (2025-12-11)"
+  },
+  {
+   "repo": "obra/superpowers",
+   "path": "skills/*/SKILL.md descriptions (v7.0.0, 2026-10)"
+  },
+  {
+   "repo": "anthropics/skills",
+   "path": "skills/skill-creator/SKILL.md (Description Optimization)"
+  },
+  {
+   "repo": "anthropics/skills",
+   "path": "skills/skill-creator/scripts/run_loop.py"
+  },
+  {
+   "repo": "anthropics/skills",
+   "path": "skills/skill-creator/scripts/run_eval.py"
+  },
+  {
+   "repo": "anthropics/skills",
+   "path": "skills/skill-creator/scripts/improve_description.py"
+  },
+  {
+   "repo": "anthropics/claude-code",
+   "path": "plugins/plugin-dev/skills/skill-development/SKILL.md (says description should state what the skill does and when; third person)"
+  },
+  {
+   "repo": "code.claude.com",
+   "path": "docs/en/skills (description loaded always; 1,536-char listing cap; disable-model-invocation)"
+  },
+  {
+   "repo": "platform.claude.com",
+   "path": "docs/en/agents-and-tools/agent-skills/best-practices (Writing effective descriptions)"
+  }
+ ]
+}

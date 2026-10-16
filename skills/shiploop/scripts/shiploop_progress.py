@@ -19,6 +19,7 @@ import subprocess
 import sys
 import time
 import uuid
+from typing import Any, Sequence
 
 import shiploop_store as store
 
@@ -33,10 +34,14 @@ IDLE_TIMEOUT = 1800.0
 
 
 def now() -> str:
+    """Current UTC time as an ISO-8601 string with a ``Z`` suffix, to the second."""
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def checked_root(path: Path) -> Path:
+    """Resolve ``path`` as the run directory, refusing a symlink, a missing directory, or one inside the skill
+    package.
+    """
     if path.is_symlink() or not path.is_dir():
         raise ValueError("progress needs an existing, non-symlink run directory")
     root = path.resolve()
@@ -108,6 +113,7 @@ def _lock(root: Path, name: str, *, shared: bool = False, create: bool = False):
 
 
 def running(root: Path) -> bool:
+    """True when an observer holds the display lock."""
     if not (root / LOCK).exists():
         return False
     with _lock(root, LOCK) as acquired:
@@ -115,6 +121,7 @@ def running(root: Path) -> bool:
 
 
 def sample(root: Path) -> dict | None:
+    """A snapshot of the run under a shared lock, or None when the run is busy or has a pending transaction."""
     import shiploop_progress_data as data
 
     with _lock(root, ".lock", shared=True) as acquired:
@@ -125,6 +132,7 @@ def sample(root: Path) -> dict | None:
 
 def publish(root: Path, snapshot: dict, *, mode: str, interval: float,
             final: bool = False, error: str = "") -> None:
+    """Write the progress page for ``snapshot`` with the observer's mode, interval, finality and error."""
     import shiploop_progress_render as renderer
 
     value = dict(snapshot)
@@ -136,6 +144,9 @@ def publish(root: Path, snapshot: dict, *, mode: str, interval: float,
 
 def observe(root: Path, *, watch: bool, interval: float = 2.0,
             idle_timeout: float = IDLE_TIMEOUT, instance: str = "") -> int:
+    """Refresh the progress page until the run ends or goes idle (``watch``), or once; returns the exit code (0
+    done or already observed, 2 not observing).
+    """
     root = checked_root(root)
     # Validate identity before creating even the display lock.
     _regular(root / "state.md")
@@ -226,6 +237,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
 
 
 def start(root: Path, *, interval: float = 2.0, idle_timeout: float = IDLE_TIMEOUT) -> bool:
+    """Start one detached observer for the run; True when one is running afterwards."""
     root = checked_root(root)
     _regular(root / "state.md")
     if running(root):
@@ -269,6 +281,7 @@ def ensure(root: Path) -> None:
 
 
 def stop(root: Path) -> None:
+    """Disable automatic observation and ask a running observer to stop."""
     _write(root, DISABLED, "Automatic observation stopped by view --stop. Use view --start to resume.\n")
     record = _read_json(root / STATUS)
     if running(root) and record.get("instance"):
@@ -282,7 +295,8 @@ def _positive(raw: str) -> float:
     return value
 
 
-def main(argv=None, *, core=None) -> int:
+def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
+    """Entry point of ``shiploop view``."""
     parser = argparse.ArgumentParser(prog="shiploop view", description=__doc__)
     parser.add_argument("--run-dir", required=True)
     mode = parser.add_mutually_exclusive_group()

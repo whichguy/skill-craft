@@ -17,6 +17,7 @@ import shlex
 import sys
 import time
 from pathlib import Path
+from typing import Any, Mapping, Optional, Sequence
 
 import shiploop_git
 import shiploop_navigator as navigator
@@ -25,10 +26,12 @@ import shiploop_store as store
 
 
 class ProtocolError(RuntimeError):
+    """A command was refused; the message is shown to the caller."""
     pass
 
 
-def need(ok, message):
+def need(ok: object, message: str) -> None:
+    """Raise ProtocolError with ``message`` unless ``ok``."""
     if not ok:
         raise ProtocolError(message)
 
@@ -95,7 +98,7 @@ def _require_card_for_unreviewed_planning(requested: "str | None", card: str) ->
         raise ProtocolError(f"the selected Improve card cannot be resolved: {exc}") from exc
 
 
-def workspace_command(core, argv):
+def workspace_command(core: Any, argv: Sequence[str]) -> int:
     """One CLI family; workspace effects stay outside the opaque navigator."""
     import shiploop_workspace as workspace
 
@@ -246,7 +249,7 @@ def workspace_command(core, argv):
         return 2
 
 
-def workspace_completion_guard(root, previous, updated):
+def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated: Mapping[str, Any]) -> None:
     """A new isolated run cannot declare completion before verified return."""
     if (previous.get("execution_mode") == "navigator-worktree"
             and updated.get("status") == "done"):
@@ -288,7 +291,7 @@ def _count_callback_attempt(root: Path) -> None:
         pass
 
 
-def _improve_pass(state) -> int:
+def _improve_pass(state: Mapping[str, Any]) -> int:
     """The active Improve review's pass number from its runtime receipt; 0 when unknown."""
     child = state.get("active_improve")
     if not isinstance(child, dict) or not child.get("skill"):
@@ -301,10 +304,10 @@ def _improve_pass(state) -> int:
         return 0
 
 
-def hook_status(core, argv):
+def hook_status(core: Any, argv: Sequence[str]) -> int:
     """Answer whether a run can still move, for keepalive hooks and the driver.
 
-    Read-only and lock-free: it runs when a host is about to end a turn, so it
+    Read-only and nonblocking: it runs when a host is about to end a turn, so it
     must never wait on a command in progress or recover a transaction.  The one
     JSON line it prints is the whole contract; exit 2 means "no answer".
     """
@@ -313,12 +316,14 @@ def hook_status(core, argv):
     args = parser.parse_args(argv)
     root = core.run_dir_from_arg(args.run_dir, walk=False).resolve()
     try:
-        state = core.load_state(root)
-        retired = navigator.retired_run_reason(state)
-        need(retired is None, retired or "")
-        navigator.validate(state)
-        stage = navigator.current_stage(state)
-        action = navigator.current_action(state)
+        with core.read_run_lock(root):
+            state = core.load_state(root)
+            retired = navigator.retired_run_reason(state)
+            need(retired is None, retired or "")
+            navigator.validate(state)
+            stage = navigator.current_stage(state)
+            action = navigator.current_action(state)
+            progress = f"{state['revision']}.{_callback_attempts(root)}.{_improve_pass(state)}"
     except SystemExit:
         # core.load_state already printed its reason on stderr.
         print(json.dumps({"run_dir": str(root), "error": "run state cannot be read"}))
@@ -340,14 +345,14 @@ def hook_status(core, argv):
         "revision": state["revision"],
         # Keepalive progress: the revision, callback attempts (a refused callback is
         # still work) and the active Improve review's pass count.
-        "progress": f"{state['revision']}.{_callback_attempts(root)}.{_improve_pass(state)}",
+        "progress": progress,
         "next": shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                             "next", "--run-dir", str(root)]),
     }))
     return 0
 
 
-def _grant_refusal(core, raw_argv, run_dir):
+def _grant_refusal(core: Any, raw_argv: Sequence[str], run_dir: Optional[Path]) -> Optional[int]:
     """Exit 3 with the repair when an isolated run's grants are gone; else None."""
     if run_dir is None or not (Path(run_dir).parent / "workspace.md").is_file():
         return None
@@ -364,7 +369,7 @@ def _grant_refusal(core, raw_argv, run_dir):
     return None
 
 
-def _argv_run_dir(raw_argv):
+def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
     """The --run-dir value of a chain/lint command line, if given."""
     for index, value in enumerate(raw_argv):
         if value == "--run-dir" and index + 1 < len(raw_argv):
@@ -374,7 +379,27 @@ def _argv_run_dir(raw_argv):
     return None
 
 
-def main(core, argv=None):
+def _navigator_error_recovery(core: Any, root: Path) -> None:
+    """Point at durable state without inferring what an errored callback changed."""
+    recovery = shlex.join([
+        "python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
+        "next", "--run-dir", str(root),
+    ])
+    print(
+        "Inspect durable state before deciding what happened: the attempted change may already be saved, "
+        "or a transaction may still need recovery.",
+        file=sys.stderr,
+    )
+    print(f"Authoritative state.md: {root / 'state.md'}", file=sys.stderr)
+    print(f"Run exactly this recovery command: {recovery}", file=sys.stderr)
+    print(
+        "Follow the recovered packet; repair and resubmit in this turn only if that packet asks for it.",
+        file=sys.stderr,
+    )
+
+
+def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
+    """Dispatch one ShipLoop command line; returns the process exit code."""
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "view":
         import shiploop_progress
@@ -604,10 +629,7 @@ def main(core, argv=None):
             return 0
     except navigator.NavigatorError as exc:
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
-        print("Read the current packet with next; the rejected request did not advance the graph.",
-              file=sys.stderr)
-        print("The run is still active: fix the result and resubmit in this turn; do not end the "
-              "turn over a refused callback.", file=sys.stderr)
+        _navigator_error_recovery(core, root)
         return 2
     except (ProtocolError, store.StorageError, OSError, KeyError, ValueError, TypeError) as exc:
         print(f"ShipLoop blocked: {exc}", file=sys.stderr)

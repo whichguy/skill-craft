@@ -333,6 +333,9 @@ def validate_archives(
     pending = dict(writes or {})
 
     def archive_bytes(relative: str, label: str) -> bytes:
+        """Bytes of the archive source ``relative``: the pending write when one exists, else the regular file under
+        the root; refuses unsafe paths.
+        """
         path = Path(relative)
         _need(not path.is_absolute() and bool(path.parts)
               and all(part not in ("", ".", "..") for part in path.parts),

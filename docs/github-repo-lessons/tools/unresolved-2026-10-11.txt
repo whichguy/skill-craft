@@ -1,0 +1,6 @@
+code-owned-stage-graph: NOT FOUND bmad-code-org/BMAD-METHOD :: step-01-clarify-and-route.md
+delta-spec-merge: NOT FOUND Fission-AI/OpenSpec :: openspec.yaml
+handoff-for-a-successor: NOT FOUND gsd-build/get-shit-done :: state.md
+handoff-for-a-successor: NOT FOUND gsd-build/get-shit-done :: execute-phase.md
+size-by-context: NOT FOUND gsd-build/get-shit-done :: ralph/README.md
+stop-is-script-owned: NOT FOUND gsd-build/get-shit-done :: compact.rs

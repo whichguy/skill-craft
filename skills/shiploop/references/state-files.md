@@ -11,6 +11,9 @@ inside its Markdown file, and there is no writable JSON mirror.
 | File or directory | Authority / purpose |
 |---|---|
 | `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, chain bindings, the run's `delegation`, the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused) and the required run-level `backchain_passes` option (`one`, `converge` or `none`; a saved run without it is refused) and the required run-level `planning_review` option (`stage` or `none`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`, and state version 4 adds `revisions` (how many times each work item went back to `step-plan`, at most 2). |
+| `transaction.md` | Temporary write-ahead manifest used to finish an interrupted multi-file write under the exclusive run lock. Removed after application; it is not retained transaction history. |
+| `.lock` | Shared coordination file for exclusive workflow writes and nonblocking read-only status snapshots. Must be a regular single-link file. |
+| `timeline.json` | Derived display timestamps for accepted actions. It may be regenerated and cannot reconstruct navigator state or a complete transaction history. |
 | `notes/<action>.md` | The pass log for one action: after each pass the host appends what it checked and what is left. Every packet names it and the context index lists it under "In progress", so a context lost mid-stage resumes from the last pass. It is a recovery aid, not evidence: ShipLoop's own test-run records are the evidence. |
 | `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. |
 | `results/<action>.md` | The accepted producer result for one action, written by the script's transaction. |
@@ -108,6 +111,21 @@ fresh-run hint like any other missing key. See the
 
 ## Authority and safety rules
 
+- Workflow commands acquire the exclusive run lock, roll any valid pending
+  transaction forward, then hydrate and validate `state.md` before choosing an
+  action. Saving validates the candidate and transaction destinations before
+  journaling the writes. Overlapping destinations and aliases of the journal
+  are refused before applying them. Destinations in one transaction must remain
+  distinct after Unicode normalization and case folding, even on a
+  case-sensitive filesystem. This conservative naming rule keeps transactions
+  portable across supported hosts. Newly created directory entries are synced
+  before the journal is removed; recovery repeats the parent-directory syncs
+  within the transaction root.
+- `hook-status` takes a nonblocking shared lock and returns a JSON error with
+  exit 2 if a writer holds the lock or a transaction awaits recovery. It never
+  creates a lock, waits for a writer, or recovers state. Use `next` to recover
+  the durable packet; an error alone does not prove a prior transition was
+  uncommitted or that the run remains active.
 - Do not hand-edit `state.md`, `results/` or `improve/`. Only the script's
   locked Markdown transaction writes them; the host writes only its inbox
   result, notes and product files, then runs the printed callback.

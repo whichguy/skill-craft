@@ -1,0 +1,199 @@
+{
+  "id": "bash-only-baseline",
+  "overview": "mini-swe-agent (repo SWE-agent/mini-swe-agent, checked out at commit 04d809c, Sep 2026, \"v2\" line; leaderboard entries cite versions up to 2.4.2) is the Princeton/Stanford SWE-bench team's deliberately minimal coding agent. The whole control loop is one 190-line file (src/minisweagent/agents/default.py, about 100 lines of logic): render a system and an instance prompt from Jinja templates, then loop query-model -> run the returned bash command(s) -> append the observation, until a message with role \"exit\" appears. There are no tools except bash, no planner, no memory, no history editing: the message list IS the trajectory.\n\nThe design bets are (1) the model, not the scaffold, should carry the intelligence; (2) every action is an independent subprocess (no persistent shell, so no hang/termination heuristics, trivially swapped for docker exec); (3) linear append-only history, so the saved trajectory equals exactly what the model saw. Control flow uses exceptions (Submitted, LimitsExceeded, TimeExceeded, FormatError, UserInterruption) that carry the messages to append; the loop just catches them and stops when the last message has role \"exit\". Completion is signalled in-band: the model's last command prints COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT as the first output line (exit code 0), and the Environment raises Submitted with the rest of stdout (the git diff) as the submission.\n\nVersion split matters. v1 (the era of most older leaderboard rows and the mini_textbased / swebench_backticks configs) parsed exactly ONE ```bash block per reply with a regex and echoed MINI_SWE_AGENT_FINAL_OUTPUT. v2 (current default, which is what is relevant to 2026 frontier models) uses native tool calling with a single \"bash\" tool, allows several tool calls per reply (parallel_tool_calls: true in swebench.yaml), and keeps the text/regex mode only as an opt-in legacy path (litellm_textbased, mswea_bash_command fence). v2 also dropped timeout_template: a timed-out command now just yields an observation with exception_info and returncode -1.\n\nResults: the docs claim \">74% on SWE-bench Verified\". The bash-only leaderboard rows I could read from the SWE-bench/experiments repo metadata (all attempts=1, one fixed prompt/config, mini 2.0.0 for the Feb 2026 batch): Claude 4.5 Opus (high) 76.8% at $0.754/instance and 32.9 calls; Gemini 3 Flash (high) 75.8% at $0.356; MiniMax 2.5 (high) 75.8% at $0.073; Claude 4.6 Opus 75.6% at $0.552 and 28.9 calls; GPT-5.2 (high) 72.8% at $0.474; Claude 4.5 Sonnet (high) 71.4% at $0.658; Gemini 3.5 Flash (mini 2.4.2, Sep 2026) 71.8%, 39 calls, 59 of 500 instances produced no patch. No Claude 5-generation (Sonnet 5 / Opus 5) rows were present in the directory listing I read (latest entry dated 20260901), so there is NO verified bash-only number for the owner's target models; treat that as an open gap and do not extrapolate.\n\nFor a script-driven SDLC harness the value is as a baseline and a source of a few proven mechanics (independent action runs, in-band submit sentinel, per-step exception-to-message flow, 10k-char observation elision with head/tail, consecutive-format-error cutoff, trajectory-as-messages with an extra{} sidecar), not as an SDLC design: it has no stages, no verification gate, and no script-owned navigation. Its stance (let the LM own the loop) is the opposite of a harness where scripts own graph navigation and the LLM does one step.",
+  "howItWorks": [
+    "Setup: DefaultAgent(model, env, **config) validates AgentConfig (pydantic): system_template, instance_template, step_limit=0 (off), cost_limit=3.0 USD, wall_time_limit_seconds=0 (off), max_consecutive_format_errors=3, output_path. Shipped swebench.yaml sets step_limit 250, cost_limit 3.",
+    "run(task): stores task in extra_template_vars, resets messages, renders system_template and instance_template with Jinja StrictUndefined (so a missing variable is an error, not an empty string). Template vars are a merge of agent config, env config + platform.uname + os.environ (LocalEnvironment), model config, and live counters n_model_calls, model_cost, elapsed_seconds. Both rendered messages are appended: [system, user].",
+    "Loop: while True: try step(); on clean return reset n_consecutive_format_errors to 0. finally: save(output_path) EVERY iteration, so the trajectory on disk is never more than one step stale. After each iteration, break if messages[-1].role == 'exit'. run() returns messages[-1].extra, i.e. {exit_status, submission, ...}.",
+    "step() = execute_actions(query()). query() first checks limits: if 0 < step_limit <= n_calls or 0 < cost_limit <= cost raise LimitsExceeded; if wall_time_limit_seconds elapsed raise TimeExceeded. Both are checked BEFORE the model call, so the limit fires on the next query, and cost_limit is 'exceeded' only after a call that pushed cost over it (the config docstring says 'exceeding (!)'). Then n_calls += 1, model.query(messages), cost += message.extra.cost, append the assistant message.",
+    "Model.query (LitellmModel): strip the 'extra' key from every message, reorder Anthropic thinking blocks so they precede other blocks, optionally apply set_cache_control (one ephemeral marker on the LAST message only; default None in every shipped config), then litellm.completion(model, messages, tools=[BASH_TOOL], **model_kwargs) inside a tenacity retry (up to 10 attempts, exponential wait 4-60s; aborts immediately on UnsupportedParams, NotFound, PermissionDenied, ContextWindowExceeded, Authentication, KeyboardInterrupt). Cost is computed with litellm cost_calculator; cost <= 0 or an unregistered model raises RuntimeError unless cost_tracking=ignore_errors.",
+    "Parsing (v2 default): response.choices[0].message.tool_calls -> for each call json.loads(arguments), require name == 'bash' and a 'command' key. Any problem raises FormatError carrying a user message rendered from format_error_template (with finish_reason, so a max_tokens truncation gets its own wording). The billed cost and the raw response are attached to the FormatError message so run() can still add the cost. Text mode instead uses re.findall(action_regex) and demands exactly 1 match.",
+    "execute_actions: for each parsed action, env.execute({'command': ...}). LocalEnvironment runs Popen(shell=True, cwd, env=os.environ|config.env, stdout=PIPE, stderr=STDOUT, new session) with timeout (default 30s; 60s in swebench.yaml). On timeout it SIGKILLs the whole process group and returns returncode -1 with exception_info. DockerEnvironment runs 'docker exec -w cwd -e K=V container bash -lc <command>' through subprocess.run. stderr is merged into stdout; no separate stream.",
+    "Completion check: after every command, _check_finished looks at the first non-blank line of output; if it equals COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT AND returncode == 0 it raises Submitted with role 'exit' and submission = the remaining output lines. Because the check is on output, not on the command text, the model must really print the sentinel; because returncode must be 0, 'echo SENTINEL && cat patch.txt' fails to submit if cat fails.",
+    "Observation formatting: model.format_observation_messages renders observation_template per output (tool-role message carrying tool_call_id; any action without an output is padded with 'action was not executed'). The shipped swebench template emits <exception>, <returncode>, <output>; outputs of 10,000 chars or more are replaced by a warning plus the first 5000 and last 5000 chars and an elided_chars count. Metadata (raw_output, returncode, timestamp, exception_info) goes in message.extra and is stripped before the next API call.",
+    "FormatError handling in run(): add the cost to the agent total; increment n_consecutive_format_errors; if max_consecutive_format_errors (3) reached, append the error message plus an exit message with exit_status RepeatedFormatError, else append the error message and loop (the model sees the error as a user turn and retries; a successful step resets the counter). Other InterruptAgentFlow exceptions (Submitted, LimitsExceeded, TimeExceeded, UserInterruption) just append their messages; Submitted/Limits carry an 'exit' message that ends the loop. Any other exception appends an exit message with traceback and is RE-RAISED.",
+    "Batch run (run/benchmarks/swebench.py): per instance, start a docker container from swebench/sweb.eval.x86_64.<id> (sleep 2h container_timeout), run agent, always write <id>.traj.json and update preds.json {model_name_or_path, instance_id, model_patch}; an exception becomes exit_status = exception class name with an empty patch. Evaluation is done separately by sb-cli or swebench.harness.run_evaluation on preds.json."
+  ],
+  "examples": [
+    {
+      "label": "Core loop (DefaultAgent.run, verbatim)",
+      "kind": "file",
+      "source": "src/minisweagent/agents/default.py (mini-swe-agent @04d809c)",
+      "text": "        while True:\n            try:\n                self.step()\n                self.n_consecutive_format_errors = 0  # reset on any clean step\n            except FormatError as e:\n                self.cost += e.messages[0].get(\"extra\", {}).get(\"cost\", 0.0)\n                self.n_consecutive_format_errors += 1\n                if 0 < self.config.max_consecutive_format_errors <= self.n_consecutive_format_errors:\n                    self.add_messages(*e.messages,\n                        {\"role\": \"exit\", \"content\": \"RepeatedFormatError\",\n                         \"extra\": {\"exit_status\": \"RepeatedFormatError\", \"submission\": \"\"}})\n                else:\n                    self.add_messages(*e.messages)\n            except InterruptAgentFlow as e:\n                self.add_messages(*e.messages)\n            except Exception as e:\n                self.handle_uncaught_exception(e)\n                raise\n            finally:\n                self.save(self.config.output_path)\n            if self.messages[-1].get(\"role\") == \"exit\":\n                break"
+    },
+    {
+      "label": "Limit checks before each model call (verbatim)",
+      "kind": "file",
+      "source": "src/minisweagent/agents/default.py",
+      "text": "    def query(self) -> dict:\n        if 0 < self.config.step_limit <= self.n_calls or 0 < self.config.cost_limit <= self.cost:\n            raise LimitsExceeded({\"role\": \"exit\", \"content\": \"LimitsExceeded\",\n                \"extra\": {\"exit_status\": \"LimitsExceeded\", \"submission\": \"\"}})\n        if 0 < self.config.wall_time_limit_seconds <= int(time.time() - self._start_time):\n            raise TimeExceeded({\"role\": \"exit\", \"content\": \"TimeExceeded\",\n                \"extra\": {\"exit_status\": \"TimeExceeded\", \"submission\": \"\"}})\n        self.n_calls += 1\n        message = self.model.query(self.messages)\n        self.cost += message.get(\"extra\", {}).get(\"cost\", 0.0)\n        self.add_messages(message)\n        return message"
+    },
+    {
+      "label": "Submit detection + independent subprocess (verbatim)",
+      "kind": "file",
+      "source": "src/minisweagent/environments/local.py",
+      "text": "    def _check_finished(self, output: dict):\n        lines = output.get(\"output\", \"\").lstrip().splitlines(keepends=True)\n        if lines and lines[0].strip() == \"COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\" and output[\"returncode\"] == 0:\n            submission = \"\".join(lines[1:])\n            raise Submitted({\"role\": \"exit\", \"content\": submission,\n                \"extra\": {\"exit_status\": \"Submitted\", \"submission\": submission}})\n...\n    process = subprocess.Popen(command, shell=True, text=True, cwd=cwd, env=env,\n        encoding=\"utf-8\", errors=\"replace\", stdout=subprocess.PIPE, stderr=subprocess.STDOUT,\n        start_new_session=os.name == \"posix\")\n    ...  except subprocess.TimeoutExpired: os.killpg(process.pid, signal.SIGKILL) ..."
+    },
+    {
+      "label": "System prompt, interactive config (mini.yaml, verbatim) and SWE-bench system prompt",
+      "kind": "prompt",
+      "source": "src/minisweagent/config/mini.yaml; config/benchmarks/swebench.yaml",
+      "text": "mini.yaml system_template:\n  You are a helpful assistant that can interact with a computer.\nswebench.yaml system_template:\n  You are a helpful assistant that can interact with a computer shell to solve programming tasks.\n(v1 / text-mode system prompt, swebench_backticks.yaml, adds the format contract:)\n  Your response must contain exactly ONE bash code block with ONE command (or commands connected with && or ||).\n  Include a THOUGHT section before your command where you explain your reasoning process.\n  <format_example>\n  THOUGHT: Your reasoning and analysis here\n  ```mswea_bash_command\n  your_command_here\n  ```\n  </format_example>\n  Failure to follow these rules will cause your response to be rejected."
+    },
+    {
+      "label": "SWE-bench instance_template, key parts (v2 tool-call, verbatim excerpts)",
+      "kind": "prompt",
+      "source": "src/minisweagent/config/benchmarks/swebench.yaml",
+      "text": "<pr_description>\nConsider the following PR description:\n{{task}}\n</pr_description>\n<instructions>\n...Your task is specifically to make changes to non-test files in the current directory in order to fix the issue described in the PR description in a way that is general and consistent with the codebase.\n<IMPORTANT>This is an interactive process where you will think and issue AT LEAST ONE command, see the result, then think and issue your next command(s).</important>\n...\n- MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)\n- DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)\n## Recommended Workflow\n1. Analyze the codebase by finding and reading relevant files\n2. Create a script to reproduce the issue\n3. Edit the source code to resolve the issue\n4. Verify your fix works by running your script again\n5. Test edge cases to ensure your fix is robust\n- Your response MUST include AT LEAST ONE bash tool call. You can make MULTIPLE tool calls in a single response when the commands are independent\n- Directory or environment variable changes are not persistent. Every action is executed in a new subshell.\n- However, you can prefix any action with `MY_ENV_VAR=MY_VALUE cd /path/to/working/dir && ...` or write/load environment variables from files\n## Submission\nStep 1: Create the patch file. Run `git diff -- path/to/file1 path/to/file2 > patch.txt` listing only the source files you modified. Do NOT commit your changes.\nStep 2: Verify your patch. Inspect patch.txt to confirm it only contains your intended changes\nStep 3: Submit (EXACT command required)\n  echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt\nIf the command fails (nonzero exit status), it will not submit.\n<CRITICAL>\n- Creating/viewing the patch and submitting it MUST be separate commands (not combined with &&).\n- You CANNOT continue working (reading, editing, testing) in any way on this task after submitting.\n</CRITICAL>"
+    },
+    {
+      "label": "Why each prompt part exists (illustrative annotation)",
+      "kind": "before-after",
+      "source": "illustrative (my reading of the templates; the repo does not state rationale for each line)",
+      "text": "pr_description wrapper            -> task is untrusted free text; tags separate it from instructions.\n'non-test files', DO NOT MODIFY   -> SWE-bench grades hidden tests; touching tests corrupts the patch.\n'general and consistent'          -> discourages special-casing the failing example.\nRecommended Workflow 1-5          -> the only process guidance; repro-script-first is the whole 'method'.\n'not persistent... new subshell'  -> truthfully describes subprocess-per-action; prevents cd/export assumptions.\n'MY_ENV_VAR=... cd ... &&' hint   -> the workaround for statelessness (FAQ notes Claude does this unprompted).\nSubmission steps 1-3 separate     -> the sentinel must be the first output line; diff creation is separated so a failed diff cannot be submitted silently (returncode must be 0).\n'cannot continue after submitting'-> Submitted is terminal; no second chances.\n[mini.yaml variant] one-line system prompt + sed/heredoc/nl examples + MacOS sed -i '' note via {{system}} -> interactive local use, not benchmark."
+    },
+    {
+      "label": "observation_template, format_error_template, truncation (verbatim)",
+      "kind": "prompt",
+      "source": "src/minisweagent/config/benchmarks/swebench.yaml (model section)",
+      "text": "observation_template:\n  {% if output.exception_info -%}\n  <exception>{{output.exception_info}}</exception>\n  {% endif -%}\n  <returncode>{{output.returncode}}</returncode>\n  {% if output.output | length < 10000 -%}\n  <output>\n  {{ output.output -}}\n  </output>\n  {%- else -%}\n  <warning>\n  The output of your last command was too long.\n  Please try a different command that produces less output.\n  If you're looking at a file you can try use head, tail or sed to view a smaller number of lines selectively.\n  ...you can redirect output to a file and then search in that file.\n  </warning>\n  <output_head> {{ output.output[:5000] }} </output_head>\n  <elided_chars> {{ elided_chars }} characters elided </elided_chars>\n  <output_tail> {{ output.output[-5000:] }} </output_tail>\n  {%- endif -%}\nformat_error_template:\n  {% if finish_reason is defined and (finish_reason == \"length\" or (finish_reason == \"tool_calls\" and not has_tool_calls)) -%}\n  Your previous response reached the output token limit (finish_reason={{ finish_reason }}) before you produced a tool call, so it was cut off. Respond more concisely and finish with exactly one bash tool call. If you need to think more, do so briefly.\n  {%- else -%}\n  Tool call error:\n  <error>\n  {{error}}\n  </error>\n  Every response needs to use the 'bash' tool at least once to execute commands.\n  Call the bash tool with your command as the argument:\n  - Tool: bash\n  - Arguments: {\"command\": \"your_command_here\"}\n  If you have completed your assignment, please consult the first message about how to submit your solution (you will not be able to continue working on this task after that).\n  {%- endif %}\ntimeout template: REMOVED in v2 (docs/advanced/v2_migration.md). A timeout now surfaces as <exception>An error occurred while executing the command: Command ... timed out after 60 seconds</exception> with <returncode>-1</returncode>, plus any partial output."
+    },
+    {
+      "label": "Tool schema sent to the model (verbatim)",
+      "kind": "file",
+      "source": "src/minisweagent/models/utils/actions_toolcall.py",
+      "text": "BASH_TOOL = {\n    \"type\": \"function\",\n    \"function\": {\n        \"name\": \"bash\",\n        \"description\": \"Execute a bash command\",\n        \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\"command\": {\"type\": \"string\", \"description\": \"The bash command to execute\"}},\n            \"required\": [\"command\"],\n        },\n    },\n}\n# swebench.yaml model_kwargs: drop_params: true, parallel_tool_calls: true ; model_name default anthropic/claude-sonnet-4-5-20250929 (older-model default, replace it)"
+    },
+    {
+      "label": "Real v1-format trajectory excerpt (text mode, verbatim, test fixture)",
+      "kind": "output",
+      "source": "tests/test_data/github_issue.traj.json (a plain message list, NOT the v2 envelope)",
+      "text": "[assistant] I'll help you solve this issue. Let me first examine the content of the file that's causing the syntax error.\n```mswea_bash_command\ncat /Users/fuchur/Documents/24/git_sync/swe-agent-test-repo/tests/./missing_colon.py\n```\n[user] <returncode>1</returncode>\n<output>\ncat: /Users/fuchur/.../missing_colon.py: No such file or directory\n</output>\n[assistant] I need to find the correct path to the file. Let me check the current directory structure:\n```mswea_bash_command\nls -la\n```\n...\n[assistant] Now let's verify that the updated file works correctly ...\n```mswea_bash_command\necho COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git add -A && git diff --cached\n```\n[user] diff --git a/tests/missing_colon.py b/tests/missing_colon.py\n...\n(Note: the final observation has no <returncode> wrapper - it is the exit message content, i.e. the submission.)"
+    },
+    {
+      "label": "v2 trajectory envelope (documented schema)",
+      "kind": "file",
+      "source": "docs/usage/output_files.md",
+      "text": "{\n  \"info\": {\"model_stats\": {\"instance_cost\": 0.05, \"api_calls\": 12},\n           \"config\": {\"agent\": {...}, \"agent_type\": \"minisweagent.agents.default.DefaultAgent\",\n                      \"model\": {...}, \"model_type\": \"...LitellmModel\",\n                      \"environment\": {...}, \"environment_type\": \"...LocalEnvironment\"},\n           \"mini_version\": \"2.0.0\", \"exit_status\": \"Submitted\", \"submission\": \"...\"},\n  \"messages\": [{\"role\": \"system\", ...}, {\"role\": \"user\", ...},\n               {\"role\": \"assistant\", \"content\": \"...\", \"extra\": {\"actions\": [{\"command\": \"ls -la\"}],\n                \"cost\": 0.003, \"timestamp\": 1706000000.0, \"response\": {...raw API response...}}},\n               {\"role\": \"tool\"|\"user\", \"content\": \"<returncode>0</returncode>...\",\n                \"extra\": {\"returncode\": 0, \"raw_output\": \"...\", \"timestamp\": ..., \"exception_info\": \"\"}}],\n  \"trajectory_format\": \"mini-swe-agent-1.1\"\n}\n# tool-call models: assistant message carries tool_calls (OpenAI shape), observation role 'tool' with tool_call_id.\n# I did not find a real v2 batch trajectory in the repo; the leaderboard trajs live in S3/other repos (unverified contents)."
+    },
+    {
+      "label": "Leaderboard metadata for a Claude row (verbatim fields)",
+      "kind": "file",
+      "source": "SWE-bench/experiments: evaluation/verified/20260217_mini-v2.0.0_claude-4-6-opus/metadata.yaml",
+      "text": "info:\n  mini-swe-agent_version: 2.0.0\n  name: Claude 4.6 Opus\n  resolved: 75.6\n  cost: 275.76132225\n  instance_cost: 0.5515226445\n  instance_calls: 28.932\ntags:\n  model: [claude-opus-4-6]\n  system: {attempts: 1}\n  agent: mini-SWE-agent\nassets: trajs: s3://swe-bench-submissions/bash-only/20260217_mini-v2.0.0_claude-4-6-opus/trajs"
+    }
+  ],
+  "pitfalls": [
+    "Version drift: the web docs and many leaderboard rows mix v1 (single ```bash fence, MINI_SWE_AGENT_FINAL_OUTPUT, timeout_template) and v2 (tool calling, COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT, no timeout_template). Check the commit before copying any string. The test fixtures in tests/test_data are v1-shaped.",
+    "Shipped configs leave prompt caching OFF: no config sets model.set_cache_control, and its default is None. The v2 migration says Anthropic users must enable it themselves ('make sure that cache control is enabled'). When enabled it puts ONE ephemeral marker on the last message only, which works with a linear append-only history because each step's prefix is a byte-identical extension of the previous one. Any rewriting of earlier messages (truncation, summarising) would break the cache; that is the real reason linear history is cheap. Whether the leaderboard runs used caching is unverified; the stated instance costs ($0.55-0.75 for Claude) look uncached or partly cached - unverified.",
+    "Default model_name in every shipped config is anthropic/claude-sonnet-4-5-20250929 and the leaderboard Claude rows are 4.5/4.6 - older than the owner's target generation. No Claude 5 / Sonnet 5 / Opus 5 numbers were found; do not read the 75-77% as a ceiling for them.",
+    "Leaderboard comparability: scores are single attempt, one fixed prompt, 250-step cap and $3 cost cap (swebench.yaml), observations truncated at 10k chars, 60s per command. High-reasoning variants are labelled '-high' (reasoning_effort differs per row; Gemini 3.5 Flash row says reasoning_effort medium). Gemini 3.5 Flash: 59/500 instances produced no patch (counted as unresolved), so 71.8% mixes capability with run failures. Cost per instance is not comparable across providers (caching/pricing unverified).",
+    "The 'submit' contract is fragile by design: sentinel must be the FIRST output line and returncode 0; a command like 'echo SENTINEL && cat patch.txt' with a missing patch.txt fails the whole submit and the run continues. Models that put other output first never submit and burn steps until LimitsExceeded.",
+    "Limits are checked before the next model call, so a final expensive call can exceed cost_limit; step_limit=0 / cost_limit are 0=off in AgentConfig, but the shipped YAML overrides to 250 and $3. Docs say the default cost_limit is 3.0; running with cost_limit 0 and step_limit 0 is unbounded.",
+    "Statelessness: cwd/export do not persist; LocalEnvironment inherits the full os.environ (including secrets) into every command, and local mode is not a sandbox. Docker env uses 'bash -lc' (login shell) by default while swebench.yaml overrides interpreter to ['bash','-c'] with BASH_ENV pointing at /root/.bashrc for the conda testbed env - sandboxing and env activation are part of the score and not portable.",
+    "stderr is merged into stdout and there is no output cap except the template-level 10k-char elision; the whole output is still captured in memory and stored in extra.raw_output in the trajectory file.",
+    "Trajectory saving: the agent saves every iteration, but the SWE-bench batch runner's docs say trajectories are 'only saved upon completion' and an aborted KeyboardInterrupt may leave entries in preds.json; resume infers completion from preds.json.",
+    "Parallel tool calls in one reply are all executed sequentially, and if one Submitted fires mid-list the later actions are skipped (they are padded as 'action was not executed' only on the formatting side); I did not verify behaviour when Submitted is raised for a non-final call - treat as unverified."
+  ],
+  "modelEra": "Mixed, mostly pre-Claude-5. The repo is v2 (tool-calling, multimodal, Responses-API models, interleaved-thinking handling: _reorder_anthropic_thinking_blocks exists only because Anthropic thinking blocks must precede other blocks), written for 2025-2026 models, but: (a) default and documented model_name is claude-sonnet-4-5-20250929, (b) the bash-only leaderboard rows I could read are Claude 4.5 Haiku/Sonnet/Opus and 4.6 Opus (Feb 2026), GPT-5.2/5.2-codex, Gemini 3 Flash/3 Pro, Gemini 3.5 Flash (Sep 2026), DeepSeek 3.2, GLM-5, Kimi K2.5, MiniMax 2.5, (c) no Sonnet 5 / Opus 5 row found. v1-era items to ignore: ```bash single-fence parsing, MINI_SWE_AGENT_FINAL_OUTPUT, timeout_template, the 'one command per reply' rule (it existed because weaker models mis-ordered multiple commands; v2 allows parallel tool calls), 'anthropic' model class, roulette/GPT-5-vs-Sonnet-4 blog posts (Aug 2025). The prompt's heavy step-by-step formatting boilerplate was tuned on weaker models; 5-generation models likely need far less of it (unverified - no ablation found in the repo).",
+  "whatWouldChange": "Copy: (1) run each model action as an independent process with a hard timeout that kills the process group, merge stderr, return (output, returncode, exception_info); never rely on a persistent shell. (2) Make completion a machine-checkable sentinel detected by a script from the tool output with returncode 0, not a model claim; in the owner's harness the script should additionally verify (test suite, diff scope) before accepting it, which mini does not. (3) Exception-per-outcome flow: Submitted / LimitsExceeded / TimeExceeded / FormatError each carry the messages to append and an exit_status string, and the loop is 'catch, append, stop if exit'. Keep the exit_status vocabulary (Submitted, LimitsExceeded, TimeExceeded, RepeatedFormatError, and exception class name for crashes). (4) Check step/cost/wall-time limits in one place before each model call, and cap consecutive format errors at 3 with a finish_reason-aware repair message (truncation vs malformed). (5) Truncate observations by template (head 5000 + tail 5000 + elided count + a hint to redirect to a file), applied at render time so the raw output stays in the log. (6) Persist state every iteration (save in finally) and keep the stored trajectory identical to the model-visible messages plus a stripped 'extra' sidecar (cost, timestamp, raw output, parsed actions). (7) Jinja StrictUndefined for all prompt templates so a missing variable fails loudly. (8) Provider-native tool calling with one narrow tool, dropping text-regex parsing for Claude 5-generation models.\n\nDo not copy: the agent-owns-the-loop topology (the model decides when it is done and what the next step is) - the owner's harness has scripts own graph navigation and the LLM does exactly one bounded step, so replace mini's unbounded 250-step inner loop with per-stage step/cost/time limits and a script-owned 'stage done' check. Do not copy the prompt boilerplate verbatim (v1-era 'ONE command only' language, THOUGHT: format, 'recommended workflow'); test a shorter prompt on the target models. Do not copy the default cost cap of $3 or the claude-sonnet-4-5 default. Do not keep pure linear history where context may be cleared between stages: mini has no answer for context loss, so each stage packet must restate how it operates. Enable prompt caching explicitly (mini ships with it off) and keep earlier messages byte-stable inside a stage so the one end-of-conversation cache marker works; reset the cache at stage boundaries by design. Add what mini omits: per-stage verification evidence, a test-pass gate, a sandbox boundary (Docker/bubblewrap, scrubbed environment instead of inheriting os.environ), and a record of host/model/sha in the trajectory header (mini records config and version but not the git sha of the code under test).\n\nBaseline use: run the owner's Claude 5 models through mini's swebench.yaml (with caching enabled and reasoning effort recorded) on SWE-bench Verified or the harness's own example apps to get a bash-only reference number; no such published number exists for those models yet.",
+  "sources": [
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/agents/default.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/agents/interactive.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/environments/local.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/environments/docker.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/exceptions.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/models/litellm_model.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/models/utils/actions_toolcall.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/models/utils/actions_text.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/models/utils/cache_control.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/models/utils/retry.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/config/mini.yaml"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/config/benchmarks/swebench.yaml"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/config/benchmarks/swebench_backticks.yaml"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "src/minisweagent/run/benchmarks/swebench.py"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "docs/advanced/control_flow.md"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "docs/advanced/v2_migration.md"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "docs/faq.md"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "docs/usage/output_files.md"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "README.md"
+    },
+    {
+      "repo": "SWE-agent/mini-swe-agent",
+      "path": "tests/test_data/github_issue.traj.json"
+    },
+    {
+      "repo": "SWE-bench/experiments",
+      "path": "evaluation/verified/20260217_mini-v2.0.0_claude-4-6-opus/metadata.yaml (and sibling 202602*/20251124* and 20260901_mini-v2.4.2_gemini-3-5-flash/{metadata.yaml,README.md})"
+    },
+    {
+      "repo": "SWE-agent/SWE-agent",
+      "path": "sweagent/agent/history_processors.py; config/default.yaml; config/bash_only.yaml (comparison: history processors incl. cache_control last_n_messages, LastNObservations, tool bundles)"
+    },
+    {
+      "repo": "web",
+      "path": "https://mini-swe-agent.com/latest/ (home, via fetch); swebench.com/blog.html lists only the Aug 2025 GPT-5 and roulette posts. swebench.com bash-only leaderboard page itself could not be read (page truncated) - unverified; numbers come from experiments-repo metadata."
+    }
+  ],
+  "unverified": [
+    "Exact rationale for dropping SWE-agent history processors is not stated in the repo; README says only 'completely linear history ... great for debugging & fine-tuning' and that SWE-agent is for those who 'want to experiment with different history processors'. The statement that processors hurt caching is my inference.",
+    "swebench.com bash-only methodology text and full ranking were not retrievable; scores are from per-submission metadata.yaml. Dates: directory names (20260217 etc.).",
+    "Whether leaderboard runs enabled prompt caching.",
+    "No Claude 5-generation bash-only row found."
+  ]
+}

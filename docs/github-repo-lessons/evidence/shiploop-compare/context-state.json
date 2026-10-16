@@ -1,0 +1,273 @@
+{
+ "cards": [
+  {
+   "id": "fresh-context-per-unit",
+   "shiploop": {
+    "status": "partial",
+    "summary": "ShipLoop keeps every durable fact in files (state.md, results/, packets/, the knowledge home, git) and every packet stands alone, so any context can be dropped and rebuilt with the Recovery command. By default (delegation: inline) the INNER stages run in one conversation and the host compacts it; a fresh non-fork worker per INNER producer is the opt-in delegation: ask-agent route, and Improve can run in a fresh native agent via the improve-agent skill. The owner moved the default from per-stage fresh workers to inline on 2026-09-23 after a real run, and no packet, hook or script can clear a host conversation (0/2 Claude, 0/4 Grok in the repo's own study).",
+    "evidence": [
+     {
+      "path": "skills/shiploop/SKILL.md",
+      "symbol": "## Durable handoff",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/SKILL.md",
+      "note": "Inline route: INNER producers 'Continue in this context'; ask-agent route prefers one fresh worker at a time; 'ShipLoop never pauses for a context clear'."
+     },
+     {
+      "path": "skills/shiploop/references/navigator.md",
+      "symbol": "### Context boundaries",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/navigator.md",
+      "note": "Packet text reset the context in 0/2 cases, external host clear 3/3; Grok 0/4; inline run relies on host compaction plus Recovery command."
+     },
+     {
+      "path": "docs/shiploop-delivery-overhead-plan-2026-09-23.md",
+      "symbol": "## Problem and ## Decisions (2026-09-23)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-delivery-overhead-plan-2026-09-23.md",
+      "note": "Per-stage fresh Improve/worker handshakes cost 7-17 min and 40-100 tool calls each on a one-module item; inline made the default."
+     },
+     {
+      "path": "skills/improve-agent/SKILL.md",
+      "symbol": "description / 'Do not run the Improve loop in this conversation'",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/improve-agent/SKILL.md",
+      "note": "Fresh-context reviewer exists as an explicit opt-in skill, not the default."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_step_lines",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Each inline implement packet names its one step and prints 'Accepted step' summaries from history; a step is the unit, state is in the ledger."
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "## First live runs of the batch 1011 harness (S-6 pair)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "Live clears at a stage boundary and inside implement: fresh session asked next first and was accepted after 6-7 calls, revision unmoved."
+     }
+    ]
+   },
+   "compare": "Ralph restarts a process per story, GSD runs wave-ordered fresh executors, Superpowers builds each subagent's context, Aider's editor starts clean; all pay a fresh-context startup per unit to avoid drift and keep state in files. ShipLoop already has the state-in-files half in full (it is the main tenet, SPEC S-6) and the same startup cost is what the owner measured and rejected as a default for a multi-stage SDLC run: stage handshakes, not drift, dominated wall-clock. What differs is that ShipLoop's unit is a stage packet in a long conversation that the host compacts, with fresh workers kept as an opt-in route; the repos make fresh the only mode. The counter-evidence says fresh helps independent reviewers and parallel writers need shared context, which is exactly the split ShipLoop already has (improve-agent for a fresh reviewer, inline for the single writer).",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "none",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none found for the default: no entry in test/shiploop_e2e/LEARNINGS.md, SPEC.md, docs/*journal* or changes/ reports drift or degraded quality from a long inline conversation (searched 'drift', 'context rot', 'forgot', 'context age'); the only context-age mention is a path-typo hypothesis that the data contradicted. The recorded cost evidence points the other way (fresh-per-stage overhead in the 2026-09-23 plan).",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "neutral: contra says nothing refutes fresh context for a sequential script-driven harness but also finds no controlled Claude 5 comparison against a long session, and Cognition's own 2026 note narrows fresh context to reviewers.",
+    "ownerRules": "Making fresh-per-stage the default would reverse the 2026-09-23 inline-default decision and contradict 'no host clears from a packet' (shiploop-no-clear-pause-2026-09); S-6 already assumes any stage may start cold."
+   },
+   "verdict": "already-covered",
+   "reason": "The state-in-files half is the core of ShipLoop and the fresh-worker half exists as delegation: ask-agent and improve-agent; the default was moved to inline on recorded cost evidence. No recorded failure would a fresh default address, and the S-6 probes show cold re-entry already works.",
+   "experiment": "n/a. If the owner wants the question settled: a same-build cell of at least 3 hello/checkers runs per arm (inline vs --delegation ask-agent), compared on cost, wall time and verdicts; the hello cell already shows 1.75x cost spread on one build, so fewer than 3 per arm is noise."
+  },
+  {
+   "id": "size-by-context",
+   "shiploop": {
+    "status": "partial",
+    "summary": "ShipLoop sizes work by behaviour, not by context cost: step-plan must split an item into behaviour-level steps (one change a named check proves), each step lists the criteria it satisfies and the paths it changes, and the navigator refuses a step plan that names no paths or criteria, uses an unknown criterion, leaves a criterion unserved, or has a test-only step. One implement packet is issued per step ('the only work for this packet'). There is no context-cost estimate, file-count bucket or in-run context meter in the engine; only the E2E harness measures per-stage peak context and compactions after the fact.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "STEP_SIZING",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_prompts.py",
+      "note": "Split on two behaviours, a module/layer boundary, 'and' between outcomes, or 'too large to review and recheck in one pass'; merge steps no check can confirm."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_check_step_sizing",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Script gate on step paths, criteria coverage and test-only steps; no token or file-count threshold."
+     },
+     {
+      "path": "changes/shiploop/step-sizing-gate.md",
+      "symbol": "change note",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/changes/shiploop/step-sizing-gate.md",
+      "note": "Records the gate and the owner's reason (live step plans split by file type, the test step was a no-op)."
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "### Codex rollouts: calls, context window and compactions",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "Luna run: 34 main-thread compactions, heaviest stages at 95-97% of a 258,400 window (carry-forward, static-checks, system-test-author), i.e. run-level accumulation, not an oversized step."
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "### Planning time: Luna xhigh and Grok medium on 1.21.0",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "'compaction recovery at most 32' minutes of a 375.9-minute planning window (8%)."
+     },
+     {
+      "path": "docs/shiploop-batch-1009h-journal-2026-10-08.md",
+      "symbol": "## H1c: Claude stage rows carry the context",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-batch-1009h-journal-2026-10-08.md",
+      "note": "Claude Sonnet 5.5 Battleship: heaviest stage peak 236,029 of a 1,000,000 window (about 24%); Checkers 235,247."
+     }
+    ]
+   },
+   "compare": "GSD targets 10-30% of context per task with a file-count lookup table (guessed numbers, no calibration in the repo) and an LLM-run plan-checker that counts tasks and files; Ralph says 'one context window' in prose and lets an oversized story fail its checks and retry. ShipLoop's sizing is already stricter than both in form: a script gate over declared paths and criteria, and a behaviour-based split rule that does not depend on a token guess. What ShipLoop does not do is size to the window, and its recorded context pressure does not come from step size: it comes from one conversation accumulating a whole run on 258K-400K hosts, which a per-step estimate cannot reduce. The Opus 5-era test in the contra file says irrelevant padding to 500K is harmless and related context costs about 15% of solved tasks, with no support for a fixed fill threshold.",
+   "proposal": {
+    "change": "none. A context-cost estimator or file-count budget on steps would add a number the owner's 'no invented thresholds' rule forbids and would not touch the observed compaction cost.",
+    "smallestVersion": "none (smallest imaginable: a files-per-step warning in _check_step_sizing, about 6 lines; rejected, no evidence)",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none found for oversized steps: searched LEARNINGS.md, SPEC.md, docs/*journal*, docs/*results*, changes/ for 'too large', 'oversiz', 'split', 'context window', 'peak'; no step or item is recorded as failing because it exceeded a window. What is recorded is compaction on 258K-400K hosts (Luna 34, Grok 1-6 per run) from run-level accumulation, and a Claude 1M-window peak near 24%.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "undercuts: the contra file finds no support for a fixed 30-50% fill cutoff and shows Opus 5 flat under unrelated padding; the direction (accumulated related context hurts) is supported but already addressed by behaviour-sized steps.",
+    "ownerRules": "A token or file-count threshold conflicts with 'no invented thresholds' (eval-decision-priority) and with KISS-over-adversarial-guards; a new engine metric would also touch S-8 (agnostic scripts) only mildly."
+   },
+   "verdict": "skip",
+   "reason": "Behaviour-sized, script-gated steps already exist, no failure from an oversized step is recorded, and the measured context cost comes from run-level accumulation that step sizing cannot fix. Revisit only if a run records a compaction or window overflow inside a single implement step.",
+   "experiment": "n/a. The E2E metrics already report per-stage context {calls, peak, peakPct} and compactions; read them on the next Grok or Luna run and look for a compaction inside one implement window."
+  },
+  {
+   "id": "handoff-for-a-successor",
+   "shiploop": {
+    "status": "has",
+    "summary": "Between stages the handoff is almost entirely script-written: state.md holds each accepted result, context-index.md is re-derived on every save (request, accepted planning basis, per-item results, test/loop/lint/Improve receipts, an In-progress block), each stage has a script-owned 'reads' list that the packet resolves to result files, and each inline implement packet prints the earlier accepted steps' summaries. The model writes the narrative parts (result summary, one-line headline, evidence notes, carry-forward queue contexts and skill decision), and the script refuses placeholders. Across runs the successor inherits the committed docs/shiploop knowledge home, which ShipLoop commits at four closes, plus the last three commit messages printed at intake and discovery. The one weak spot is mid-stage: the model-written pass log is optional and went unused (0 files in four runs).",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_context_index.py",
+      "symbol": "render, _in_progress_lines, read_first, STAGE_READS",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_context_index.py",
+      "note": "Derived index of everything the run decided; framed as 'untrusted host reports to read and revalidate'; per-stage read lists resolved to result files."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "STAGE_SPEC rows' reads=",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "Script-owned list of accepted results each stage reads first."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_step_lines and _context_index_lines",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Implement packet carries 'Accepted step' summaries from history; every packet points at the index, a pass log and 'Results this stage builds on'."
+     },
+     {
+      "path": "skills/shiploop/references/carry-forward.md",
+      "symbol": "## Record the item's learning; ## Map observations to the future queue",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/carry-forward.md",
+      "note": "Model-written narrative, script-validated envelope; learnings go to project knowledge; queue replacement carries context, rationale and revalidation condition."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "stage_lines, learnings, recent_commits, CLOSES",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "Durable successor handoff: knowledge home committed at four closes; outcome.md Learned/Key considerations/Open become the learnings commit message; last 3 commits printed at intake/discovery."
+     },
+     {
+      "path": "docs/record-register-2026-10-07.md",
+      "symbol": "## Recovery evidence",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/record-register-2026-10-07.md",
+      "note": "After 5 compactions the model reopened the current packet within its first five calls; no pass log existed for the action in progress at any compaction."
+     },
+     {
+      "path": "docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md",
+      "symbol": "## 0b. Context windows and references (table, 'Corrections this review forces')",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md",
+      "note": "Measured use: pass log 0 files in four runs; packet head read every step; spec.md 19 reads; owner plan proposes deleting the pass-log sentence and adding commit look-back."
+     },
+     {
+      "path": "skills/ask-agent/references/result-handoff.md",
+      "symbol": "# Result handoff and acceptance",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/ask-agent/references/result-handoff.md",
+      "note": "Worker route: parent verifies patch/commit SHAs and archives reports before close."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_chain_handoff.py",
+      "symbol": "archive_handoff, validate_archive",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_chain_handoff.py",
+      "note": "Parallel-chain worker handoff is hash-verified and archived by script before the worktree is cleaned."
+     }
+    ]
+   },
+   "compare": "The repos use four mechanisms: a model-written summary at compaction (Codex, Aider), a model-written file appended per unit (Ralph progress.txt, GSD SUMMARY.md), a script-written ledger of observable facts (Superpowers task-done, GSD HANDOFF.json), and re-injection into every fresh context. ShipLoop is a script-ledger design with re-injection by construction: the packet and index are re-rendered by next from state.md, so no model has to remember to write a handoff, and its model narrative is a required, gated result field rather than an appended log. It also has the Ralph-style promotion path (carry-forward and release-verify into the committed knowledge home, which the next run reads), and the Codex 'fixed framing' idea in the index header and the 'report a conflict instead of silently choosing' packet line. What the repos have that ShipLoop lacks is a mid-stage handoff the model reliably writes; ShipLoop's equivalent is optional and unused, and the one live mid-stage probe saw a fresh session rewrite a one-file stage because it looked in the wrong directory.",
+   "proposal": {
+    "change": "none for the card. The open items are already owned elsewhere: the owner's 2026-10-10 lifecycle plan covers commit look-back in the printed head and deleting the pass-log sentence (correction 1 in section 0b), and the commit-contract work covers lessons on commits.",
+    "smallestVersion": "If the mid-stage redo recurs: one packet line saying to check git status in the Execution checkout for partial work before writing (the Execution checkout line is already printed in worktree runs).",
+    "touches": [
+     "skills/shiploop/scripts/shiploop_navigator.py"
+    ],
+    "size": "about 2 lines, not proposed now"
+   },
+   "tests": {
+    "observedProblem": "Weak: one S-6 probe inside implement (hello, 2026-10-09) where the fresh session read the harness's work directory instead of the worktree and rewrote hello.py with identical content, 16.5 s to acceptance, revision unmoved (LEARNINGS.md, 'First live runs of the batch 1011 harness'). Cross-stage handoff: 5 of 5 compactions re-grounded on the packet within 4 calls (record-register, LEARNINGS 'The clear-the-context record'), no redone accepted work. Files searched: test/shiploop_e2e/LEARNINGS.md, SPEC.md, docs/record-register-2026-10-07.md, docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md, changes/shiploop/.",
+    "yagni": "fail",
+    "kiss": "pass",
+    "counterEvidence": "supports: contra says lossy auto-summaries fail but a script-enforced handoff whose content lives in files is a different mechanism, and that a script check that the successor read named files is the missing piece; ShipLoop's script-derived index and gated results are that mechanism.",
+    "ownerRules": "None violated by leaving it. Adding model-written handoff files would conflict with shiploop-purpose (script, not model, persists what the next step needs) and the 0-use evidence."
+   },
+   "verdict": "already-covered",
+   "reason": "The cross-stage handoff is script-derived and reprinted on every next, with a committed cross-run knowledge home; this is stronger than the repos' model-written logs. The mid-stage gap has one weak observation and the cheapest fix is a two-line packet addition that has not earned its place.",
+   "experiment": "n/a. If the S-6 inside-stage probe (README recipe, trigger on the first worktree change) is repeated and shows a redo of non-trivial work, test the one-line packet addition against it."
+  },
+  {
+   "id": "repo-map",
+   "shiploop": {
+    "status": "absent",
+    "summary": "No script builds a repository map: a search of scripts, references and SKILL.md for repo map, tree-sitter, ctags, PageRank, symbol index and codebase map found nothing. Orientation is model-authored and persisted: discovery recovers a shallow system overview (README first), the model keeps architecture.md (Stack, Structure with modules and owners, Interfaces, Decisions) and environment.md in the committed docs/shiploop knowledge home, ShipLoop prints locators to those files in each inner packet (grounding) and refuses the closes if they are missing, and later runs inherit them. verify prints a change inventory, which is a diff list, not a map.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/references/current-system-baseline.md",
+      "symbol": "## Establish or refresh",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/current-system-baseline.md",
+      "note": "Shallow overview of purpose, entrypoints, capabilities and boundaries, written by the model from README and code."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "SECTIONS, ARCHITECTURE_HOLDS, grounding",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "architecture.md has a 'Structure' section (modules and who owns each); grounding returns the living spec, environment, architecture and test-strategy paths for each inner packet."
+     },
+     {
+      "path": "skills/shiploop/references/project-knowledge.md",
+      "symbol": "## Discover persistent context before planning",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/project-knowledge.md",
+      "note": "README and AGENTS first, SHIPLOOP.md index, bounded targeted discovery; no inventory script."
+     },
+     {
+      "path": "test/shiploop_e2e/cases.json",
+      "symbol": "cases",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/cases.json",
+      "note": "All cases are small stdlib or Node apps; the only brownfield case is the Battleship scoring follow-on (about 11 files)."
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "## Run 6b: battleship-scoring follow-on",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "Discovery read spec.md and environment.md first; change touched 11 files; 370 turns against 480 for the greenfield run, so orientation cost was not the problem."
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "S-8 The engine is product- and technology-agnostic",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "A tree-sitter or language-specific parser in the engine would conflict with this clause."
+     }
+    ]
+   },
+   "compare": "Aider parses with tree-sitter, ranks files with personalised PageRank toward what is in the chat, and fits the map to a token budget so the model sees structure without exploring. ShipLoop instead asks the model to read the README and write a durable architecture and environment record once, then commits and reuses it, which is cheaper to maintain across runs but is not ranked, not refreshed by script, and not bounded in size. The two address different costs: Aider's map saves exploration in a big repository on every turn, while ShipLoop's knowledge home saves re-discovery on every run. The contra file calls the evidence contested: Anthropic favours agentic search, Cursor and SWE-QA favour a pre-built index plus grep, an ETH study found repo overviews did not help coding agents, and there is no head-to-head against an Aider-style map on Claude 5.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "none (smallest imaginable: a generic script that prints git ls-files grouped by directory into the discovery packet, one script plus one paragraph; rejected for lack of evidence)",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none found: no recorded orientation or exploration cost in a brownfield run (searched LEARNINGS.md, SPEC.md, docs/*journal*, docs/*results*, changes/ for 'repo map', 'orient', 'exploration', 'navigation', 'knowledge read', 'brownfield'). The E2E catalogue has no large existing repository, so the cost is unmeasured rather than shown to be zero.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "neutral: contra calls it contested; a budgeted map helps most when the repo is large and the token budget tight (8K), which is not the situation on 1M-window Claude hosts, and ETH found overviews unhelpful.",
+    "ownerRules": "A language-aware map breaks S-8 (technology-agnostic engine) and the stdlib-only script style; a new generated file is a new state artifact (KISS)."
+   },
+   "verdict": "watch",
+   "reason": "Not adopted: there is no evidence of orientation cost, no large-repo case, and a parser-based map conflicts with the agnostic engine. Revisit when an E2E case or real run on a large existing repository records orientation (reads and searches before the first edit) as a leading cost in LEARNINGS.",
+   "experiment": "n/a now. At the watch trigger: add one large existing-repo follow-on case, count Read/Grep/Glob calls and minutes from step-plan to the first product edit, then repeat with a generic file listing in the packet. n of at least 3 per arm, since same-build runs vary 1.75x in cost."
+  }
+ ],
+ "groupSummary": "Of the four context-state techniques, none passes the strict YAGNI test and none is proposed for adoption. ShipLoop already holds all durable state in files and re-renders each packet and the context index from state.md, so fresh context and cross-stage handoff are covered by design (S-6) and by an opt-in fresh-worker route; the default was moved to inline in 2026-09 on recorded handshake cost. Step sizing is behaviour-based and script-gated, there is no context estimate, and the recorded context pressure (Luna 34 compactions on a 258K window, Grok 1-6 per run, Claude peaking near 24% of 1M) comes from run-level accumulation that a per-step budget would not touch. The one live gap is mid-stage re-entry: the optional model-written pass log is unused and one S-6 probe saw a small redo; the owner's 2026-10-10 lifecycle plan already owns that. A repo map is absent but the E2E catalogue has no large existing repository, so its cost is unmeasured; it is a watch item whose trigger is a recorded brownfield orientation cost, and a parser-based map would also conflict with the technology-agnostic engine clause S-8."
+}

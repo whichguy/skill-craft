@@ -23,7 +23,6 @@ command and per stage.  Rendering reads files and never runs a command.
 
 from __future__ import annotations
 
-import json
 import os
 import time
 from datetime import datetime, timezone
@@ -89,14 +88,17 @@ def _need(condition: bool, message: str) -> None:
 
 
 def contract_path(action: str) -> str:
+    """Run-relative path of the test-loop contract for ``action``."""
     return "tests/" + action + "-contract.json"
 
 
 def terminal_path(action: str) -> str:
+    """Run-relative path of the test-loop terminal receipt for ``action``."""
     return "tests/" + action + "-terminal.json"
 
 
 def verify_path(action: str, number: int) -> str:
+    """Run-relative path of verification record ``number`` for ``action``."""
     return "tests/" + action + "-verify" + str(number) + ".md"
 
 
@@ -123,7 +125,7 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
         if "ids" in entry:
             ids = entry["ids"]
             _need(isinstance(ids, list) and ids and all(
-                isinstance(item, str) and item.strip() and not any(ch.isspace() for ch in item.strip())
+                isinstance(item, str) and item.strip() and not any(character.isspace() for character in item.strip())
                 for item in ids), "a test command's ids must be a nonempty list of test IDs without spaces")
             cleaned = [item.strip() for item in ids]
             _need(len(set(cleaned)) == len(cleaned), "a test command's ids must not repeat")
@@ -136,7 +138,7 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
         if "criteria" in entry:
             criteria = entry["criteria"]
             _need(isinstance(criteria, list) and criteria and all(
-                isinstance(item, str) and item.strip() and not any(ch.isspace() for ch in item.strip())
+                isinstance(item, str) and item.strip() and not any(character.isspace() for character in item.strip())
                 for item in criteria) and len(set(criteria)) == len(criteria),
                 "a test command's criteria must be a nonempty list of distinct criterion IDs")
             row["criteria"] = [item.strip() for item in criteria]
@@ -204,7 +206,7 @@ def _listing(row: Mapping[str, Any]) -> str:
     return text
 
 
-def _work(commands: List[Dict[str, Any]]) -> str:
+def _iteration_prompt(commands: List[Dict[str, Any]]) -> str:
     listing = "\n".join(str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1))
     return guidance.TEST_ITERATION + "Test command list:\n" + listing + "\n"
 
@@ -240,7 +242,7 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
     repo = str(state["repo"])
     step_action, _result = _step_plan(state, work_item)
     return _contract(
-        repo, quality._work_title(state, work_item), work_item, stage, _work(commands),
+        repo, quality._work_title(state, work_item), work_item, stage, _iteration_prompt(commands),
         [{"purpose": "accepted step plan: test_commands and completion criteria",
           "locator": str(root / "results" / (str(step_action) + ".md"))},
          {"purpose": "this action's pass log: append what each iteration checked and what is left",
@@ -255,14 +257,14 @@ def listing_problem(rows: Sequence[Mapping[str, Any]]) -> Optional[str]:
     stage lists them all, a superset of the focused list).
     """
     try:
-        listing = _work([dict(row) for row in rows])
+        listing = _iteration_prompt([dict(row) for row in rows])
     except (KeyError, TypeError):
         return None  # a malformed row is refused by the shape check
     path = "/" + "x" * 300
     resources = [{"purpose": "accepted step plan: test_commands and completion criteria", "locator": path},
                  {"purpose": "this action's pass log: append what each iteration checked and what is left",
                   "locator": path}]
-    empty = loop_contract.compact_bytes(_contract(path, "t" * 200, "W" * 8, "regression", _work([]), resources))
+    empty = loop_contract.compact_bytes(_contract(path, "t" * 200, "W" * 8, "regression", _iteration_prompt([]), resources))
     full = loop_contract.compact_bytes(_contract(path, "t" * 200, "W" * 8, "regression", listing, resources))
     if full <= loop_contract.CONTRACT_BUDGET:
         return None
@@ -397,7 +399,7 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
         raise TestLoopError(str(exc)) from exc
 
 
-def _tail(data: bytes) -> str:
+def _output_tail(data: bytes) -> str:
     text = data.decode("utf-8", "replace")
     return text if len(text) <= TAIL_CHARS else "[... " + str(len(text) - TAIL_CHARS) + " chars]\n" + text[-TAIL_CHARS:]
 
@@ -674,7 +676,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         except OSError as exc:
             status, code, out, err = "error", None, b"", (type(exc).__name__ + ": " + str(exc)).encode()
         run: Dict[str, Any] = {**row, "exit": code, "seconds": round(clock() - started, 3),
-                               "stdout": _tail(out), "stderr": _tail(err)}
+                               "stdout": _output_tail(out), "stderr": _output_tail(err)}
         if status in UNAVAILABLE:
             # Keep the runner's own unavailable status, including the "error" an
             # OSError set above: it exits with no code, so the next branch would

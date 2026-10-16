@@ -1,0 +1,471 @@
+{
+ "cards": [
+  {
+   "id": "hooks-are-hard-enforcement",
+   "shiploop": {
+    "status": "differs",
+    "summary": "ShipLoop uses hooks only for keepalive and status display (host-hooks.json lists status-display, keepalive-observe, keepalive-stop), and the hooks fail open by design. Correctness enforcement is not in hooks at all: it is the script gate chain that runs inside `shiploop complete` (action id, result shape, credential screen, evidence refs, lint, test rerun with counts and floors, base RED run, mutation check, item scope). So the atlas's 'prose is a request, a non-zero exit is a rule' is applied to the CLI callback rather than to a host hook, which also works on all five hosts. A canary for a hook that never loaded exists (`health_notice`).",
+    "evidence": [
+     {
+      "path": "skills/shiploop/host-hooks.json",
+      "symbol": "hooks[] (status-display, keepalive-observe, keepalive-stop)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/host-hooks.json",
+      "note": "The only hooks ShipLoop ships; none is a PreToolUse gate."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_keepalive.py",
+      "symbol": "_decide",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_keepalive.py",
+      "note": "Every error path returns allow ('Every failure allows the stop' in the module docstring): fail open by design."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_keepalive.py",
+      "symbol": "health_notice",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_keepalive.py",
+      "note": "Canary: warns once when a host session printed packets but its keepalive never bound."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "The `complete` branch runs the whole gate chain (_check_submitted_evidence, _lint_gate, _test_loop_gate, scope_refusal) before apply(); this is the enforcement layer."
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "Run 2 and Run 3 entries (2026-09-26)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "Grok never ran the keepalive hooks (Run 2) and dispatched only a shutdown Stop (Run 3): a hook-only design would have had no enforcement on that host."
+     }
+    ]
+   },
+   "compare": "ECC, hookify and ralph-wiggum put the gate in a host hook (block --no-verify, block config edits, Stop hook) so that the model cannot talk its way past it. ShipLoop moved the same idea one layer down: the model's only way to advance is a CLI call the script validates against state it re-derives (it re-runs the tests itself, checks the tree and the real diff). The atlas counter-evidence (hooks fail open on a missing script or timeout, are skipped in bypass mode, can be deleted by the model) is exactly why that layer is the better one for a five-host harness. ShipLoop's own hooks are the soft part and it documents them as optional.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "none: do not add PreToolUse deny hooks (for example a --no-verify or linter-config blocker). They would be per-host, fail open and are not needed by any recorded failure.",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none found for hook-level enforcement: searched test/shiploop_e2e/LEARNINGS.md, SPEC.md, docs/shiploop-refusals-journal-2026-10-04.md, docs/shiploop-graph-engineering-comparison-2026-10-04.md, changes/shiploop/. The recorded hook problems (Grok hooks never loaded, empty-reply session ends) are about keepalive, and were handled by Grok self-install, the driver and harness resume, not by new gates.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "supports: the contra card concludes the correct claim is 'hooks plus script-side post-condition checks', which is what ShipLoop already is.",
+    "ownerRules": "kiss-over-adversarial-guards (a model deleting a hook is an adversarial case); one-supported-version (per-host hook variants add parallel code); hook-cost-gotchas (hooks have non-obvious coupling cost)."
+   },
+   "verdict": "already-covered",
+   "reason": "Enforcement lives in the script gates of `shiploop complete`, which is host-independent and re-derives its evidence; the hooks are keepalive only and fail open on purpose. No recorded failure is a case a PreToolUse hook would catch, and adding one means per-host variants.",
+   "experiment": "n/a"
+  },
+  {
+   "id": "readonly-by-tool-list",
+   "shiploop": {
+    "status": "absent",
+    "summary": "ShipLoop does not restrict any role's tool list, and the sibling ask-agent skill says so as a rule: 'Do not independently add tool restrictions, read-only modes'. A read-only role is checked afterwards by a script instead: ask-agent's `report-only` mode records a baseline and rejects a result whose current state is `drift`; ShipLoop's `scope_refusal` compares an item's real diff to its declared paths; the base-run and mutation-check run in temporary detached copies. Improve selects a 'fresh read-only independent reviewer' only when the user or parent asks for one.",
+    "evidence": [
+     {
+      "path": "skills/ask-agent/SKILL.md",
+      "symbol": "worker tool inheritance paragraph ('Do not independently add tool restrictions')",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/ask-agent/SKILL.md",
+      "note": "Owner-level rule against adding tool restrictions."
+     },
+     {
+      "path": "skills/ask-agent/references/current-workspace.md",
+      "symbol": "drift verdict table (unchanged / drift)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/ask-agent/references/current-workspace.md",
+      "note": "Report-only is verified by a baseline and a drift verdict, not by removing tools."
+     },
+     {
+      "path": "skills/ask-agent/scripts/ask_agent_task.py",
+      "symbol": "_reject('scope_drift', ...)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/ask-agent/scripts/ask_agent_task.py",
+      "note": "The wrapper rejects a result whose changes fall outside the write set or move HEAD."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_item_scope.py",
+      "symbol": "scope_refusal",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_item_scope.py",
+      "note": "Real diff of an item must stay inside its declared paths or done is refused."
+     },
+     {
+      "path": "skills/improve/references/review-policy.md",
+      "symbol": "Independent review section",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/improve/references/review-policy.md",
+      "note": "Read-only reviewer is a conditional, requested role."
+     }
+    ]
+   },
+   "compare": "Claude Code's Explore agent drops Edit and Write and lists shell bypasses in prose; spec-kit's analyze is read-only by instruction. The atlas contra card rates this refuted as enforcement: with Bash available the role can still write (sed -i, tee), and disallowedTools is reported as not applied on some builds (anthropics/claude-code #94202, a Claude 5-era report). The contra card's own recommendation is a post-step diff check by the script, which is what ShipLoop and ask-agent already do. ShipLoop deliberately gives workers the host's normal tools and verifies outcomes.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "none",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none found: searched LEARNINGS.md, SPEC.md, docs/shiploop-*journal*, docs/*results*, changes/ for a reviewer or report-only role that wrote files it should not have. The one related cost is ask-agent's, in current-workspace.md (a 2026-09-27 probe: a report-only digest returned verdict `unchanged`, and a parent edit outside the write set was reported as `drift`), which the existing drift check handled.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "undercuts: the contra card verdict is refuted for tool lists as enforcement while Bash remains.",
+    "ownerRules": "Conflicts with the ask-agent rule against independent tool restrictions; shiploop-purpose (scripts own checks); one-supported-version (host-specific tool-list syntax differs across Claude, Codex, Grok, Cursor, OpenCode)."
+   },
+   "verdict": "skip",
+   "reason": "The technique is refuted as enforcement and conflicts with ask-agent's written rule. The part that works, a script check after the step, already exists for report-only workers and for item scope.",
+   "experiment": "n/a"
+  },
+  {
+   "id": "stop-is-script-owned",
+   "shiploop": {
+    "status": "has",
+    "summary": "The script owns the stop on every loop. A stage can end only when `shiploop complete` passes the gates, which re-run the recorded test commands (`loop_run`, `base_check`, `mutation_check`) and compare the Until Loop terminal packet with a contract rebuilt from state (`check_terminal`); the model's word never ends a loop. Stop at the host level is the keepalive: it refuses a turn end while the run can move, allows it when the progress counter (revision.callback attempts.Improve pass) has not moved since the last refusal, and releases after 22 continuations. The driver stops after two sessions without progress. Two of three caps are numbers, not content-keyed: MAX_REFUSED_RUNS (11) counts refused test runs and STUCK_CONTINUATIONS (22) counts continuations; the owner ruled in SPEC S-10 that none of them caps an iterating loop.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch (complete branch)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "check_terminal, evidence checks, lint and test gates run before apply(); the callback is counted with _count_callback_attempt in shiploop_protocol.main."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_loops.py",
+      "symbol": "check_terminal",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_loops.py",
+      "note": "Compares the runtime's terminal packet with the contract rebuilt from state, so editing the contract cannot reshape the loop."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "refused_runs / remedy_open / MAX_REFUSED_RUNS",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_test_loop.py",
+      "note": "11 refused product runs per action, then the stage's remedy outcome; could-not-run attempts never count."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_keepalive.py",
+      "symbol": "_decide",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_keepalive.py",
+      "note": "Allows 'no progress' when the progress string is unchanged since the last block; allows 'stuck' after STUCK_CONTINUATIONS."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_keepalive.py",
+      "symbol": "drive",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_keepalive.py",
+      "note": "Driver stops after two sessions in a row without progress (exit 4)."
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "S-10 carve-out, owner decision 2026-10-10",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "States the three limits, their constants, and that none caps a loop."
+     }
+    ]
+   },
+   "compare": "ralph.sh and ralph-wiggum use a hard iteration cap plus a model-emitted sentinel; mini-swe-agent and SWE-agent check step, cost and time limits before each model call. ShipLoop has no sentinel: completion is the script re-running the checks, which the atlas pitfall list names as the stronger design. The genuine difference is no-progress detection: the atlas proposes fingerprinting failures (same failure x3, oscillation, unchanged tree) while ShipLoop's refused-run cap counts attempts regardless of content and its keepalive progress counter only counts events.",
+   "proposal": {
+    "change": "Replace MAX_REFUSED_RUNS with content-keyed stall rules (same normalised failure, unchanged tree, non-shrinking failure set).",
+    "smallestVersion": "Stop the count at 11 and instead tell the model after 3 identical failure outputs in a row to report revise. Needs a failure normaliser (paths, line numbers, timings, ports) and a per-action attempts log, which is a new state record.",
+    "touches": [
+     "skills/shiploop/scripts/shiploop_test_loop.py"
+    ],
+    "size": "about 80-120 lines in shiploop_test_loop.py plus a normaliser and tests; adds a state record"
+   },
+   "tests": {
+    "observedProblem": "none found: searched baselines.jsonl, LEARNINGS.md, SPEC.md S-10, docs/shiploop-refusals-journal-2026-10-04.md and docs/experiments/batch-1009-round1-analysis-20261008/analysis.json. No recorded run reached the 11 (earlier 7) refused-run cap; the 25 Claude Sonnet 5.5 baseline rows pass with at most 4 ShipLoop failures per run (mean 1.9 over the 21 rows that measure it). The batch-1009 analysis says of the cap in its run that it 'was never reached'.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "neutral: the contra card holds stop ownership with conditions, favours content-keyed no-progress detection, and notes premature or runaway stops are rarer on Claude 5-era models; it also found no study showing caps or fingerprints beat each other.",
+    "ownerRules": "shiploop-loops-unbounded and SPEC S-10 (caps are acceptance-gate limits, deliberately generous: 'more like 7 and 11'); kiss-over-adversarial-guards (churn that defeats a count is a could-happen case); proceed-optimistically."
+   },
+   "verdict": "already-covered",
+   "reason": "The stop is already script-owned and verified by re-running the checks, and the owner set the caps deliberately in S-10. No run has ever reached a cap, so fingerprint-based stall detection would be built with no observed need. Revisit only if a run reaches 11 refused runs or 22 continuations with the same failing output.",
+   "experiment": "n/a (watch condition: a baseline row or LEARNINGS entry where refused_runs reaches MAX_REFUSED_RUNS; then compare the failure outputs of the last 3 refused runs)"
+  },
+  {
+   "id": "exit-by-tool-call",
+   "shiploop": {
+    "status": "has",
+    "summary": "A stage ends only through `shiploop complete --action <id> --result <path>`, a CLI call the host runs through its shell tool. The script rejects a wrong action id (naming the current action and its result path), a result path other than the generated one, a non-regular or symlinked file, a block that does not parse, a result lacking outcome and summary, and the stage gates; a rejection never advances the graph. A plain-text turn end does not exit: the keepalive stop hook (or `shiploop-drive` on hosts with no stop hook in headless mode) refuses it while the run is active. It is a shell command, not a native host tool, so it works on every supported host.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch (command == 'complete')",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Wrong action: 'action ... is not the current navigator action; current action is ...'; then gates; then apply()."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_submitted_result",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Path must equal the generated path; regular single-link non-symlink file; unparseable block is a fault of the file."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_protocol.py",
+      "symbol": "main (except navigator.NavigatorError)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_protocol.py",
+      "note": "Rejection prints 'the rejected request did not advance the graph' and 'fix the result and resubmit in this turn'."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_keepalive.py",
+      "symbol": "_decide",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_keepalive.py",
+      "note": "Refuses a plain turn end while the run is active and progress moved."
+     },
+     {
+      "path": "skills/shiploop/references/keepalive.md",
+      "symbol": "Stop decisions",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/keepalive.md",
+      "note": "Table of stop replies by run state."
+     }
+    ]
+   },
+   "compare": "Claude Code plan mode (ExitPlanMode), Devin (suggest_plan) and Kiro (approval question) end a phase with a native tool or an approval question, so the harness can detect done or wants-approval. ShipLoop does the same with a structured CLI call. The atlas counter-evidence concerns the host's interactive approval implementation and approval fatigue, neither of which applies to a script-validated call; the contra card's condition ('exit call carries structured arguments the script validates and the script records the transition') matches ShipLoop. The one hole the evidence shows, a model ending its turn with an empty reply, is covered by keepalive, the driver and harness resume.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "none",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none found for a validated exit being bypassed or wrongly accepted. The recorded exit-path failures are model session ends before or between callbacks (LEARNINGS Run 2, Run 3, Run 4: Grok ending a turn with no text or tool call), already handled by the keepalive, driver and resume.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "neutral: the contra card is contested for the host's ExitPlanMode but holds when the script validates the call, which is ShipLoop's case.",
+    "ownerRules": "none violated; a native exit tool per host would breach one-supported-version."
+   },
+   "verdict": "already-covered",
+   "reason": "ShipLoop's exit is one validated call with a script-owned transition, and a plain-text stop is refused by the keepalive. A native exit tool would be host-specific and add nothing a recorded run needs.",
+   "experiment": "n/a"
+  },
+  {
+   "id": "format-over-prompt",
+   "shiploop": {
+    "status": "has",
+    "summary": "The model-to-script channel is a fenced `shiploop-state` block in a Markdown file at a script-generated path, not JSON inside a tool argument. The packet head prints the exact shape of every outcome the stage allows (`_outcome_shape_lines`, a result template), so the format is shown rather than described. The Luna 1.16.1 refusals prompted a change of channel text, not of prose rules: refusals now name the wrapper, the missing field or the renamed heading. No lenient re-parse was added: 'No gate was loosened'.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_outcome_shape_lines",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Packet head prints the exact result shape for each allowed outcome."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_result_shape_problem",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Names the stored-record wrapper keys to delete and the fields to move up."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_submitted_result",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Result is read from the generated Markdown path via store.read_record."
+     },
+     {
+      "path": "docs/shiploop-refusals-journal-2026-10-04.md",
+      "symbol": "Findings 3-5 and 'What changed' table",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-refusals-journal-2026-10-04.md",
+      "note": "Three of nine Luna refusals were one shape error; the fix was shape text in the packet and in the refusal (d412a45d, f14f90c7)."
+     }
+    ]
+   },
+   "compare": "Aider's udiff and Codex's apply_patch grammar target the model's code-edit channel, where JSON escaping and line numbers cause errors; the atlas marks the 20% to 61% figure as GPT-4 Turbo era and the lenient-parser idea as the part that survives. ShipLoop does not control the code-edit channel (the host does); it controls only the result channel, and it already prints the shape. The remaining difference is leniency: the Codex parser tolerates wrapper noise, ShipLoop rejects it with an exact correction.",
+   "proposal": {
+    "change": "Auto-unwrap a submitted block that is the stored-record wrapper ({action, navigator_protocol_version, result}) instead of refusing it.",
+    "smallestVersion": "In `_result_shape_problem`'s caller, accept the wrapper when `result` holds outcome and summary. About 5 lines in shiploop_navigator.py; but it loosens the gate and needs the refusal tests changed.",
+    "touches": [
+     "skills/shiploop/scripts/shiploop_navigator.py"
+    ],
+    "size": "about 5-10 lines plus test changes"
+   },
+   "tests": {
+    "observedProblem": "Luna max 1.16.1 battleship: 3 of 9 engine refusals were the wrapper or missing-field error, once repeated 90 minutes later after compaction (docs/shiploop-refusals-journal-2026-10-04.md). On Claude Sonnet 5.5 no shape refusal is recorded in baselines.jsonl, LEARNINGS.md or the batch-1009 analysis; the Claude refusals there (missing knowledge file, credential screen, nonexistent evidence file) each cost one extra call (about 7 s).",
+    "yagni": "fail",
+    "kiss": "pass",
+    "counterEvidence": "neutral: the contra card says format effects are real for weak, older or mismatched-format models and shrink for frontier models using their native convention; leniency on semantic fields is not supported either way.",
+    "ownerRules": "kiss-over-adversarial-guards (shape error not seen on Claude); prompts-concise-meaningful-change; the journal records the owner's 'no gate was loosened' constraint."
+   },
+   "verdict": "already-covered",
+   "reason": "The change of channel already shipped (shape printed in the packet, correction named in the refusal), driven by the Luna run. The lenient unwrap is not needed on the Claude 5-era models that matter and would loosen a gate.",
+   "experiment": "n/a (watch: a Claude 5 run whose shiploop_failures include 'result requires outcome and summary')"
+  },
+  {
+   "id": "reject-and-explain",
+   "shiploop": {
+    "status": "has",
+    "summary": "Refusals are the primary correction channel and are written for a model that may have lost its context. The 2026-10-04 refusals journal turned nine real refusals into replies that name the exact correction (wrapper keys, missing field, renamed heading, `awaiting.no_default`, the loop start command), and the knowledge-home refusal puts the action and files on line 1 because models clip multi-line output. Retries are counted: `_count_callback_attempt` counts every callback, MAX_REFUSED_RUNS (11) bounds refused test runs per action, and the keepalive treats a refused callback as progress until 22 continuations. A refusal always ends with 'fix the result and resubmit in this turn' and the recovery `next` command.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_protocol.py",
+      "symbol": "main (except navigator.NavigatorError / ProtocolError)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_protocol.py",
+      "note": "Two fixed trailers: the request did not advance the graph; resubmit in this turn; durable cursor recovery command."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_result_shape_problem",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Exact correction instead of a bare 'invalid'."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "check message ('Line 1 is what a model that reads only the first line of a refusal needs')",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "Reason and remedy on line 1, as the batch-1009 analysis recommended."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "_explain / _cap_refusal / _unavailable_sentence",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_test_loop.py",
+      "note": "Per-status reasons, then the remedy outcome after the cap; timeouts are reported as reaching no verdict."
+     },
+     {
+      "path": "docs/shiploop-refusals-journal-2026-10-04.md",
+      "symbol": "Findings 1-8",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-refusals-journal-2026-10-04.md",
+      "note": "Evidence of what each refusal said and whether the model recovered on the next call."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_keepalive.py",
+      "symbol": "STUCK_CONTINUATIONS",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_keepalive.py",
+      "note": "Retry budget in the host loop, tied to twice MAX_REFUSED_RUNS."
+     }
+    ]
+   },
+   "compare": "SWE-agent shows would-be and original code and says the edit was not applied; Aider quotes the nearest lines and caps reflections at 3; mini-swe-agent separates truncation from a missing tool call and caps at 3. ShipLoop's rejects are richer in remedy and its caps are far higher (11 and 22), as the owner chose. The atlas contra card says the value tracks the model's base error rate and that caps should key on no-progress; ShipLoop's cap counts refused product runs, not repeats, which is a difference but not a recorded problem.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "none. (Optional audit, not a change: confirm every multi-line refusal carries reason and remedy on line 1.)",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none outstanding: the refusal replies that cost the Luna run time were fixed by d412a45d, f14f90c7 and c2d8d78a (journal), and the Claude batch-1009 finding about a multi-line refusal clipped by grep was fixed in shiploop_knowledge_home.py. Files searched: docs/shiploop-refusals-journal-2026-10-04.md, docs/experiments/batch-1009-round1-analysis-20261008/analysis.json, LEARNINGS.md, baselines.jsonl.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "supports: the contra card holds the principle (specific, actionable rejection is cheap and well supported); its caveat that caps should key on no-progress matches the stop card.",
+    "ownerRules": "none violated; shiploop-loops-unbounded keeps the cap generous."
+   },
+   "verdict": "already-covered",
+   "reason": "ShipLoop already refuses with the reason, the exact correction and the recovery command, and the refusals the evidence flagged were fixed and pinned by route tests (`test/shiploop-callback-contract.test.py`, named in the journal). Nothing remaining is supported by a recorded cost.",
+   "experiment": "n/a"
+  },
+  {
+   "id": "bash-only-baseline",
+   "shiploop": {
+    "status": "partial",
+    "summary": "The model-facing surface is already close to bash-only: the model works through the host's shell and file tools, and ShipLoop adds no tool of its own, only a CLI (`next`, `complete`, `pause`) that prints a packet. The script runs each recorded test command as an independent `/bin/sh -c` process with a per-command and per-run time budget, records the result, and caps printed output (`PRINT_LIMIT` 16,000 characters for host cut-offs, 6,000-character tails of command output). What differs from mini-swe-agent is the amount of scripted structure around that loop: 41 Python modules (about 36,900 lines), a 1,178-line SKILL.md, and per-stage packets averaging about 33 KB.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "_run_command",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_test_loop.py",
+      "note": "Each recorded command is its own /bin/sh -c process with a timeout; stdout and stderr tails recorded."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_protocol.py",
+      "symbol": "_fit",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_protocol.py",
+      "note": "Output held to a character limit because hosts cut near 20,000 characters."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "PRINT_LIMIT",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "16,000 characters per command output."
+     },
+     {
+      "path": "skills/shiploop/SKILL.md",
+      "symbol": "whole file",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/SKILL.md",
+      "note": "1,178 lines, about 77 KB."
+     },
+     {
+      "path": "test/shiploop_e2e/baselines.jsonl",
+      "symbol": "rows with model claude-sonnet-5-5",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/baselines.jsonl",
+      "note": "25 of 25 pass, hello mean about $3.77 and 179 turns, checkers about $4.50 and 202 turns, battleship about $6.32 and 231 turns; no bare-model control row exists."
+     }
+    ]
+   },
+   "compare": "mini-swe-agent is one 190-line loop with bash only, and the atlas pitfalls say its scores are on retired SWE-bench Verified with Claude 4.5/4.6, not Claude 5. ShipLoop's tool surface is as thin, but it is a delivery harness (spec, plan, tests, commit, return) rather than a bug-fix loop, so the comparison is about scaffolding volume, not the loop. The atlas contra card (controlled 2026 studies) finds small pass-rate differences and large cost differences between harnesses; that is the open question for ShipLoop, and the repo has no bare-model control to answer it.",
+   "proposal": {
+    "change": "none to the skill. Treat the bare-bash comparison as the experiment of the bitter-lesson card.",
+    "smallestVersion": "none",
+    "touches": [],
+    "size": "0 lines"
+   },
+   "tests": {
+    "observedProblem": "none found for the bash-only interface itself: searched baselines.jsonl, LEARNINGS.md, SPEC.md, docs/shiploop-graph-engineering-comparison-2026-10-04.md. That doc names the cost question (about 34 stages at about $30 per run) and says deciding needs a stage-removal comparison through the rubric.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "neutral: the contra card is contested (Verified retired; harness effects of 5-20 points on Terminal-Bench; no Claude 5 bash-only row), and says to keep the model loop simple while scripts own verification and navigation, which ShipLoop does.",
+    "ownerRules": "shiploop-purpose (scripts own navigation); eval-decision-priority (quality first, then tokens, then time) for any comparison."
+   },
+   "verdict": "already-covered",
+   "reason": "ShipLoop adds no model tools and already runs commands as isolated processes with timeouts and capped output. Whether the surrounding scaffolding pays for itself is a different question, handled in the bitter-lesson card.",
+   "experiment": "n/a"
+  },
+  {
+   "id": "bitter-lesson-harness-scaffolding",
+   "shiploop": {
+    "status": "partial",
+    "summary": "ShipLoop is large and getting smaller on evidence. Inventory at 4b1759ac: 41 Python modules, about 36,900 lines (navigator 5,615, chain 4,545, prompts 2,721, lint 2,564, workspace 2,319, test_loop 1,559); SKILL.md 1,178 lines; 615 KB of references plus 92 KB of platform cards; the 22 packets of one step slice total 733k characters (31% of lines identical in every packet). Observed cost, all Claude Sonnet 5.5: 25 of 25 baseline rows pass; the trivial 'hello' case averages $3.77 and 179 turns over 15 runs with about 85 to 540 s of planning; checkers $4.50, battleship $6.32. Reductions already made on evidence: 17 to 8 inner stages, one-pass Backchain default, 25% within-packet packet cuts, and `--planning-review none` as a standing off-switch. No bare-model control run exists.",
+    "evidence": [
+     {
+      "path": "test/shiploop_e2e/baselines.jsonl",
+      "symbol": "rows with model claude-sonnet-5-5 (25 rows)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/baselines.jsonl",
+      "note": "Cost, turns, pass, shiploop_failures (mean 1.9) per run; hello row of 2026-10-11 shows planning_seconds 457 of 1,151 stage seconds."
+     },
+     {
+      "path": "docs/shiploop-packet-concision-2026-10-10.md",
+      "symbol": "Evidence and Result sections",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-packet-concision-2026-10-10.md",
+      "note": "31% of packet text identical in every packet; within-packet cuts take 733k to 548k characters."
+     },
+     {
+      "path": "docs/shiploop-graph-engineering-comparison-2026-10-04.md",
+      "symbol": "On the ablation question",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-graph-engineering-comparison-2026-10-04.md",
+      "note": "Names the missing experiment: remove a stage, compare product quality through the rubric against an 11-run baseline."
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "S-10 carve-out and --planning-review paragraph",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "Planning reviews measured: 54-58% of planning time in Improve children; the platform-claim bullet caught 10 of 15 plan errors against 0 of 15 without it; no run without the reviews exists."
+     },
+     {
+      "path": "skills/shiploop/references/keepalive.md",
+      "symbol": "Hosts",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/keepalive.md",
+      "note": "Keepalive and Grok self-install compensate for host behaviour (turn ends, Grok not running plugin hooks), not for model weakness."
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "Correctness gates (script-run tests, scope, credential screen) that Anthropic's own harness post says survive model upgrades."
+     }
+    ]
+   },
+   "compare": "Anthropic's harness post and the Claude Code team say each harness component encodes an assumption about what the model cannot do, and should be re-tested per release; the contra card adds that verification and enforcement layers are what survived. Third-party results are mixed: LangChain's gain of 52.8 to 66.5 on Terminal Bench came from adding verification middleware, while a 2026 preprint (not Claude) found minimal harnesses competitive. ShipLoop splits cleanly: (a) enforcement and verification, which the evidence says to keep: script-run tests with counts, floors, RED base run and mutation check, scope and credential screens, run lock and Markdown authority, workspace grants; (b) host compensation that does not decay with model strength: keepalive, output-limit fitting, Grok hook self-install, context-cleared packet repetition (SPEC S-6); (c) model-weakness compensation that might decay: the Improve review loops at planning stages (two clean passes), per-stage reorientation text, shape printing and corrective refusals, the number of planning stages. Only group (c) is a candidate for deletion, and the only measured value there is positive (10 of 15 against 0 of 15 for one planning-review bullet).",
+   "proposal": {
+    "change": "No skill change now. Run one matched control: Claude Sonnet 5.5 with no ShipLoop plugin against the same prompt and checks for checkers and hello, then judge with the existing rubric.",
+    "smallestVersion": "A harness invocation only (no skill edit): `claude -p` with the case prompt in an empty repo, run the case's checks, score with rubric-eval, and compare pass, quality, cost and minutes to the matching baselines.jsonl rows. If it shows an equal-quality result at much lower cost, the next step is a per-stage ablation, one stage at a time, starting with `--planning-review none` (already an option).",
+    "touches": [
+     "test/shiploop_e2e/ (harness invocation only, if the runner needs a no-plugin mode)"
+    ],
+    "size": "about 3 runs, roughly $10-20; no skill lines changed"
+   },
+   "tests": {
+    "observedProblem": "cost evidence exists but no counterfactual: hello at $2.0-6.5, 117-315 turns and 6-15 minutes for a two-file task (baselines.jsonl); docs/shiploop-graph-engineering-comparison-2026-10-04.md says '34 stages at about $30 per run ... looks like gates that seldom bind' and then that branch rate is the wrong criterion. No recorded failure is attributed to excess scaffolding.",
+    "yagni": "fail",
+    "kiss": "pass",
+    "counterEvidence": "neutral: the contra card is contested; it supports deleting prompts and nudges per model release but retaining enforcement and verification, and says third-party benchmark results are mixed.",
+    "ownerRules": "eval-decision-priority (quality first, then tokens, time; no invented thresholds); shiploop-enterprise-rigour (rigour is standard even for small requests, so hello-sized cost is not itself a defect); proceed-optimistically; question-value-of-changes; one-supported-version (no new flag for ablation)."
+   },
+   "verdict": "consider",
+   "reason": "The repo has the cost numbers and a stage-ablation question recorded but never ran the bare-model control that decides it, and every Claude 5.5 row passes, so it is unknown which scaffolding pays. The control costs about three runs and changes no skill, which is the cheap thing to do before any deletion. Do not delete any gate on this card alone.",
+   "experiment": "Bare control as in smallestVersion: same prompt, same checks, same model (claude-sonnet-5-5), 3 seeds each for hello and checkers; report pass, rubric score, cost, turns, minutes next to the matching baselines.jsonl rows (hello 0.59.0, checkers 0.59.0). Decision by the eval-priority rule: a material quality gap decides; otherwise tokens, then time."
+  }
+ ],
+ "groupSummary": "None of the seven enforcement cards passes both tests: six are already covered and one is skipped, while the cross-cutting bitter-lesson card is a 'consider' for a cheap experiment only. ShipLoop's enforcement is script-side: `shiploop complete` re-derives its evidence (re-runs tests, compares the real diff, screens credentials) and rejects with the reason, the exact correction and a recovery command, while the hooks are keepalive only and fail open on purpose. That matches what the atlas counter-evidence says survives (hooks plus script-side post-condition checks; tool lists are not enforcement). Caps exist but are generous (11 refused runs, 22 continuations) and no recorded run has reached them, so fingerprint-based stall detection has no observed need. The refusal-wording issues the evidence did find (a wrapper error repeated by Luna, a clipped multi-line refusal on Claude) were already fixed. The open question is the bitter-lesson one: 25 of 25 Claude Sonnet 5.5 baseline rows pass at $2-6.5 per small case, but there is no bare-model control, so run that before deleting any planning scaffolding."
+}

@@ -1,0 +1,186 @@
+{
+ "id": "handoff-for-a-successor",
+ "overview": "A handoff is whatever survives when a context window is thrown away. Across the repos read, there are only four techniques, and they differ in who writes the text and when. (1) A model-written summary produced at the moment of compaction (Codex, Aider, Claude Code, the Anthropic compaction API): the same model that did the work is asked, as its last act, to write for 'another LLM'. (2) A model-written file appended after every unit of work (Ralph's progress.txt, GSD's SUMMARY.md and .continue-here.md, Superpowers' implementer report files, Anthropic's claude-progress.txt). (3) A script-written ledger of facts the script can observe (Superpowers' task-done appends 'Task N: complete (commits a..b, tests: cmd -> last line)' only if the test command exited 0; GSD's HANDOFF.json takes timestamps and commit hashes from tools). (4) Re-injection: a SessionStart hook or a fixed prompt file that is loaded into every fresh context (GSD's gsd-session-state.sh prints the head of STATE.md; Superpowers' session-start hook fires on startup|clear|compact; Ralph re-feeds prompt.md/CLAUDE.md and tells the agent to read progress.txt first).\n\nThe prompt text of the model-written summaries is strikingly thin. Codex's whole compaction prompt is six lines: progress and key decisions, constraints and user preferences, what remains, critical data. Aider's is a 'briefly summarize, write as the user, start with I asked you' prompt from the GPT-4 era. Neither prescribes a schema and neither verifies the output. The real engineering is around the text: Codex keeps the most recent user messages verbatim up to a 20,000-token budget, appends the summary LAST, wraps it in a fixed prefix that tells the successor how to treat it, and detects its own prior summaries by that prefix so they are not retained twice. GSD and Superpowers go the other way: a strict template (XML-tagged sections or a one-line ledger grammar) with a required 'next action' and, in Superpowers, a rule that the successor trusts the ledger and git log over its own recollection.\n\nVerification is where the repos diverge most, and it is the part that matters for a script-driven harness. Prompt-only repos (Ralph, Codex, Aider) verify nothing: the next context believes whatever was written, and Ralph's own README admits the memory is 'git history, progress.txt, prd.json'. GSD spot-checks claims after the fact (first two key-files exist on disk, git log --grep returns at least one commit for the plan id, no 'Self-Check: FAILED' marker, no 'TBD/placeholder' text in summaries). Superpowers makes the ledger line a by-product of a script that ran the tests, so a completion line cannot exist without a passing exit code, and its recovery rule says to prefer the ledger plus git log over the model's memory. That 'script owns the facts, model owns the judgement' split is the most transferable idea.\n\nFor a harness that clears context between stages, the practical consequence is that the handoff should be a small structured file whose factual half is derived by the script (commits since base, files changed, last test command and exit code, open failures) and whose narrative half is a short model-written block with a fixed set of fields (decisions with reasons, rejected approaches, open questions, exact next action). The next stage's packet then wraps the file in a fixed framing line, and a script checks that the narrative half is non-empty and that every path and commit it cites resolves before the next stage starts.\n\nModel era: everything in Aider's summariser and much of Ralph's 'keep stories small enough for one context window' rationale come from 2023-2025 models with 8k-200k windows and weak long-range recall. For Claude 5-generation and other 2026 models the Anthropic docs now make server-side compaction a first-class API (compact-2026-09-04 beta, custom 'instructions' up to 16,384 characters that fully replace the default prompt), and recommend pairing it with a memory directory for what must survive. That changes the weighting: in-session summaries are cheap and good, so the handoff file is for what must survive a deliberate context clear and be checkable, not for rescuing a nearly-full window.",
+ "howItWorks": [
+  "Decide the boundary. Codex and Claude Code compact in place when tokens approach a limit (the transcript stays one session). Ralph, GSD pause-work and Superpowers fresh-implementer dispatch deliberately start a NEW context; only files carry over. Your harness is the second kind, so the handoff is a file, not a summary message.",
+  "Writer and timing. Model writes narrative at the end of a unit (Ralph step 10 'append your progress'; GSD executor writes SUMMARY.md and must commit it before returning; Codex runs a compaction turn with its fixed prompt). Script writes observable facts at the same moment (Superpowers task-done appends the ledger line only after the test command exits 0; GSD takes timestamps from gsd-sdk query current-timestamp and short hashes from git).",
+  "Fix the shape. Ralph: append-only '## [Date] - [Story ID]' blocks plus a consolidated 'Codebase Patterns' list at the top. GSD: XML-tagged sections (current_state, completed_work, remaining_work, decisions_made, blockers, context, next_action) with YAML front matter (phase, task, total_tasks, status, last_updated), plus a parallel HANDOFF.json for machines. Superpowers: one line per event, 'Task N: complete (commits a..b, tests: cmd -> tail)', 'Task N: fix round R/5 (...)', 'Ruling: what - why - cost if wrong'. Aider: one paragraph in the user's first person.",
+  "Bound the size. Codex retains at most 20,000 tokens of earlier user messages (COMPACT_USER_MESSAGE_MAX_TOKENS in core/src/compact.rs) and truncates the oldest that do not fit. Aider's ChatSummary targets max_tokens (1024 default) and recurses up to depth 3. GSD STATE.md is meant to stay one small page; the SessionStart hook prints only head -20. Superpowers keeps the implementer's chat reply under 15 lines and puts detail in a report file the next agent reads by path. Ralph has no bound, which is why it promotes durable items into a short Codebase Patterns section and into nearby AGENTS.md files.",
+  "Frame it for the reader. Codex prepends a fixed prefix: 'Another language model started to solve this problem and produced a summary of its thinking process ... use this to build on the work that has already been done and avoid duplicating work.' Aider prepends 'I spoke to you previously about a number of things.' Superpowers' fresh implementer is told 'A prior implementer attempted this task [N] times; you own it now. Read the report file for what was tried.' GSD says the file is 'specific enough that a fresh Claude instance understands immediately' and is DELETED after resume.",
+  "Load it. Ralph's prompt step 2 makes reading progress.txt (Codebase Patterns first) the second thing the agent does. GSD resume-project reads HANDOFF.json first, then .continue-here*.md, then deletes them as one-shot artifacts. Superpowers' hook re-injects the using-superpowers skill on startup, clear and compact; its controller reads <workspace>/progress.md and resumes at the first task lacking a 'Task N: complete' line.",
+  "Verify. GSD spot-checks: key-files.created exist, a commit mentions the plan id, no 'Self-Check: FAILED', and pause-work greps summaries for 'To be filled|placeholder|TBD'. Superpowers: ledger line exists only if tests passed; plan-scoped directory and a first line naming the plan file stop cross-plan contamination; implementer fix rounds require the covering test, command and output to be present in the report before re-review is dispatched. Codex: a PostTurn compaction with an empty assistant summary is an error, and a pre-turn one falls back to the literal '(no summary available)'.",
+  "Expire it. GSD deletes HANDOFF.json and .continue-here.md after successful resume; Superpowers deletes the plan workspace once the final review is clean ('git history is the durable record'); Ralph archives progress.txt and prd.json under archive/DATE-branch when the branch changes. A handoff with no end-of-life is how stale or foreign state gets adopted."
+ ],
+ "examples": [
+  {
+   "label": "Codex compaction prompt (the whole thing)",
+   "kind": "prompt",
+   "source": "openai/codex codex-rs/prompts/templates/compact/prompt.md",
+   "text": "You are performing a CONTEXT CHECKPOINT COMPACTION. Create a handoff summary for another LLM that will resume the task.\n\nInclude:\n- Current progress and key decisions made\n- Important context, constraints, or user preferences\n- What remains to be done (clear next steps)\n- Any critical data, examples, or references needed to continue\n\nBe concise, structured, and focused on helping the next LLM seamlessly continue the work."
+  },
+  {
+   "label": "Codex framing prefix put in front of the summary",
+   "kind": "prompt",
+   "source": "openai/codex codex-rs/prompts/templates/compact/summary_prefix.md",
+   "text": "Another language model started to solve this problem and produced a summary of its thinking process. You also have access to the state of the tools that were used by that language model. Use this to build on the work that has already been done and avoid duplicating work. Here is the summary produced by the other language model, use the information in this summary to assist with your own analysis:"
+  },
+  {
+   "label": "What Codex's compacted history looks like (before/after)",
+   "kind": "before-after",
+   "source": "openai/codex codex-rs/core/src/compact.rs (build_compacted_history_with_limit, run_compact_task_inner_impl)",
+   "text": "BEFORE: [system+env context][user1][assistant+tool calls...][user2][assistant...][...200k tokens]\nAFTER:  [user messages, newest-first until 20,000 tokens, oldest truncated, restored to order]\n        [user message: SUMMARY_PREFIX + \"\\n\" + <last assistant message of the compaction turn>]\nRules visible in code:\n - summary is appended LAST; empty summary becomes \"(no summary available)\"\n - is_summary_message(): a message starting with SUMMARY_PREFIX+\"\\n\" is skipped when collecting\n   user messages, so a prior summary is never retained twice\n - ContextWindowExceeded while compacting: history.remove_first_item() (drop OLDEST, keep prefix cache) and retry;\n   with one item left -> error\n - other errors: retry with backoff up to max_retries; SessionBudgetExceeded / Interrupted: return Err"
+  },
+  {
+   "label": "Ralph: what the agent must append every iteration",
+   "kind": "prompt",
+   "source": "snarktank/ralph prompt.md",
+   "text": "APPEND to progress.txt (never replace, always append):\n## [Date/Time] - [Story ID]\nThread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID\n- What was implemented\n- Files changed\n- **Learnings for future iterations:**\n  - Patterns discovered (e.g., \"this codebase uses X for Y\")\n  - Gotchas encountered (e.g., \"don't forget to update Z when changing W\")\n  - Useful context (e.g., \"the evaluation panel is in component X\")\n---\n(The CLAUDE.md variant is identical minus the Thread line.)"
+  },
+  {
+   "label": "Ralph: Codebase Patterns promotion + AGENTS.md promotion rules",
+   "kind": "prompt",
+   "source": "snarktank/ralph prompt.md",
+   "text": "## Codebase Patterns   (at the TOP of progress.txt)\n- Example: Use `sql<number>` template for aggregations\n- Example: Always use `IF NOT EXISTS` for migrations\n- Example: Export types from actions.ts for UI components\nOnly add patterns that are **general and reusable**, not story-specific details.\n\nUpdate nearby AGENTS.md (or CLAUDE.md) only for: API patterns/conventions of that module,\ngotchas, dependencies between files, testing approaches, config/env requirements.\nDo NOT add: story-specific implementation details, temporary debugging notes,\ninformation already in progress.txt."
+  },
+  {
+   "label": "Ralph: a faithful progress.txt (repo ships no sample; built from the prompt's grammar and prd.json.example)",
+   "kind": "file",
+   "source": "illustrative, grammar from snarktank/ralph prompt.md + prd.json.example",
+   "text": "# Ralph Progress Log\nStarted: Sat Oct 10 09:12:03 2026\n---\n## Codebase Patterns\n- Task priority is a TEXT column with CHECK ('high','medium','low'); default 'medium'\n- Run `npm run typecheck` before commit; there is no separate lint step\n---\n## 2026-10-10 09:31 - US-001\n- Added priority column + migration 0007_task_priority.sql\n- Files: db/schema.ts, db/migrations/0007_task_priority.sql\n- **Learnings for future iterations:**\n  - Migrations are applied by `npm run db:migrate`, not at server start\n  - Do not edit generated db/types.ts by hand\n---"
+  },
+  {
+   "label": "GSD: .continue-here.md template (model-written pause handoff)",
+   "kind": "file",
+   "source": "gsd-build/get-shit-done get-shit-done/templates/continue-here.md",
+   "text": "---\nphase: XX-name\ntask: 3\ntotal_tasks: 7\nstatus: in_progress          # in_progress | blocked | almost_done\nlast_updated: 2025-01-15T14:30:00Z\n---\n<current_state>Where exactly are we? What's the immediate context?</current_state>\n<completed_work>- Task 1: [name] - Done ... - Task 3: [name] - In progress, [what's done on it]</completed_work>\n<remaining_work>- Task 3: [what's left] - Task 4: Not started</remaining_work>\n<decisions_made>Decided to use [X] because [reason]; chose [approach] over [alternative] because [reason]</decisions_made>\n<blockers>- [Blocker 1]: [status/workaround]</blockers>\n<context>Mental state, \"vibe\", anything that helps resume smoothly</context>\n<next_action>The very first thing to do when resuming. Start with: [specific action]</next_action>\nGuidelines: specific enough that a fresh Claude instance understands immediately; include WHY;\nnext_action actionable without reading anything else; file is DELETED after resume."
+  },
+  {
+   "label": "GSD: the machine-readable twin, HANDOFF.json",
+   "kind": "file",
+   "source": "gsd-build/get-shit-done get-shit-done/workflows/pause-work.md",
+   "text": "{ \"version\": \"1.0\", \"timestamp\": \"{from gsd-sdk query current-timestamp}\",\n  \"phase\": \"{n}\", \"phase_dir\": \"{dir}\", \"plan\": 1, \"task\": 3, \"total_tasks\": 7, \"status\": \"paused\",\n  \"completed_tasks\": [{\"id\":1,\"name\":\"...\",\"status\":\"done\",\"commit\":\"{short_hash}\"},\n                      {\"id\":3,\"name\":\"...\",\"status\":\"in_progress\",\"progress\":\"{what_done}\"}],\n  \"remaining_tasks\": [{\"id\":4,\"name\":\"...\",\"status\":\"not_started\"}],\n  \"blockers\": [{\"description\":\"...\",\"type\":\"technical|human_action|external\",\"workaround\":\"\"}],\n  \"human_actions_pending\": [{\"action\":\"...\",\"context\":\"...\",\"blocking\":true}],\n  \"decisions\": [{\"decision\":\"...\",\"rationale\":\"...\",\"phase\":\"1\"}],\n  \"uncommitted_files\": [],\n  \"next_action\": \"{specific first action when resuming}\",\n  \"context_notes\": \"{mental state, approach, what you were thinking}\" }\nAlso gathered: background processes, and 'blocking constraints' = anti-patterns hit by ACTUAL failure,\nseverity blocking (resume workflows enforce an understanding check) or advisory."
+  },
+  {
+   "label": "GSD: SUMMARY.md front matter and spot-check (what the successor and the orchestrator rely on)",
+   "kind": "file",
+   "source": "gsd-build/get-shit-done get-shit-done/templates/summary.md; workflows/execute-phase.md",
+   "text": "---\nphase: XX-name   plan: YY   subsystem: auth   tags: [jwt, prisma]\nrequires: [{phase: ..., provides: ...}]   provides: [...]   affects: [...]\nkey-files: {created: [...], modified: [...]}\nkey-decisions: [\"...\"]   patterns-established: [\"...\"]\nrequirements-completed: []   # REQUIRED\nduration: Xmin   completed: YYYY-MM-DD\n---\n# Phase X: Name Summary\n**[Substantive one-liner describing outcome - NOT \"phase complete\"]**\n## Task Commits\n1. **Task 1: name** - `abc123f` (feat)      ## Deviations from Plan ...   ## Issues Encountered ...\n\nOrchestrator spot-check (execute-phase.md step 6), per SUMMARY.md:\n - first 2 files from key-files.created exist on disk\n - git log --oneline --all --grep=\"{phase}-{plan}\" returns >= 1 commit\n - no '## Self-Check: FAILED' marker"
+  },
+  {
+   "label": "GSD: STATE.md session block and SessionStart re-injection",
+   "kind": "file",
+   "source": "gsd-build/get-shit-done get-shit-done/templates/state.md; hooks/gsd-session-state.sh",
+   "text": "## Session Continuity\nLast session: [YYYY-MM-DD HH:MM]\nStopped at: [Description of last completed action]\nResume file: [Path to .continue-here*.md if exists, otherwise \"None\"]\n\nSessionStart hook (opt-in via .planning/config.json hooks.community):\n  STATE_HEAD=$(head -20 .planning/STATE.md)\n  emits additionalContext: \"## Project State Reminder\\n\\nSTATE.md exists - check for blockers and current phase.\\n<head -20>\\n\\nConfig: \\\"mode\\\": ...\"\nContext monitor (PostToolUse): WARNING at <=35% remaining, CRITICAL at <=25% -> 'stop immediately and save state'."
+  },
+  {
+   "label": "Superpowers: ledger written by script, only on a passing test command",
+   "kind": "output",
+   "source": "obra/superpowers skills/executing-plans/scripts/task-done",
+   "text": "# SDD ledger — plan: docs/plans/2026-07-30-x.md        <- first line names the plan (identity)\nTask 1: complete (commits 3fa9c21..8b1d4e0, tests: npm test → 14 passing)\nTask 2: fix round 1/5 (2 addressed, 0 open; commits d4e5f6a..b7c8d9e)\nTask 3: parked — <finding> — Ruling: <why the code stands>\nRuling: <what you decided> — <why> — <what it costs if wrong>\n(line format string in task-done:\n \"Task $n: complete (commits <base7>..<head7>, tests: $cmd → $last)\" ; written only if rc==0;\n full test log kept in <workspace>/task-N-tests.log; empty output records '(no output)')"
+  },
+  {
+   "label": "Superpowers: recovery rule, implementer report contract, fresh-implementer framing",
+   "kind": "prompt",
+   "source": "obra/superpowers skills/subagent-driven-development/SKILL.md and implementer-prompt.md",
+   "text": "Conversation memory does not survive compaction. ... controllers that lost their place have re-dispatched\nentire completed task sequences — the single most expensive failure observed. Track progress in a ledger file.\n- If its first line names your plan file, tasks with a `Task <N>: complete` line are DONE — do not re-dispatch;\n  resume at the first task without one. A task whose last line is a fix round is mid-loop: resume at the next round.\n- The ledger is your recovery map: the commits it names exist in git even when your context no longer\n  remembers creating them. After compaction, trust the ledger and `git log` over your own recollection.\nImplementer returns ONLY (<15 lines): Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT;\n  commits (short SHA + subject); one-line test summary; concerns; the report file path.\nFresh implementer (rounds 4-5): \"A prior implementer attempted this task [N] times; you own it now.\n  Read the report file for what was tried.\" + brief path + report-file path + open findings."
+  },
+  {
+   "label": "Aider: ChatSummary prompt and prefix (legacy-model design)",
+   "kind": "prompt",
+   "source": "Aider-AI/aider aider/prompts.py, aider/history.py",
+   "text": "summarize = *Briefly* summarize this partial conversation about programming.\nInclude less detail about older parts and more detail about the most recent messages.\nStart a new paragraph every time the topic changes!\nThis is only part of a longer conversation so *DO NOT* conclude the summary with language like \"Finally, ...\".\nThe summary *MUST* include the function names, libraries, packages that are being discussed.\nThe summary *MUST* include the filenames that are being referenced by the assistant inside the ```...``` fenced code blocks!\nThe summaries *MUST NOT* include ```...``` fenced code blocks!\nPhrase the summary with the USER in first person, telling the ASSISTANT about the conversation.\nWrite *as* the user. The user should refer to the assistant as *you*. Start the summary with \"I asked you...\".\nsummary_prefix = \"I spoke to you previously about a number of things.\\n\"\nMechanics: runs in a background thread on a (weak) model; keeps tail <= max_tokens/2 verbatim, summarises the head,\nrecurses to depth 3; result is appended as a role=user message followed by assistant 'Ok.'"
+  },
+  {
+   "label": "Anthropic: memory-tool protocol injected into the system prompt, and the compaction API's custom instructions",
+   "kind": "prompt",
+   "source": "platform.claude.com docs: memory-tool, compaction-on-demand",
+   "text": "IMPORTANT: ALWAYS VIEW YOUR MEMORY DIRECTORY BEFORE DOING ANYTHING ELSE.\nMEMORY PROTOCOL:\n1. Use the `view` command of your `memory` tool to check for earlier progress.\n2. ... (work on the task) ...\n   - As you make progress, record status / progress / thoughts etc in your memory.\nASSUME INTERRUPTION: Your context window might be reset at any moment, so you risk losing any progress that is not recorded in your memory directory.\n\nCompaction (beta compact-2026-09-04): {\"compaction\": {\"type\": \"summarize\", \"instructions\": \"<up to 16,384 chars; REPLACES the default prompt; say what to retain and 'Do not call tools; respond with the summary text only.'>\"}}\nReturns one signed `compaction` block (stop_reason \"compaction\") that must go FIRST in messages, unmodified."
+  },
+  {
+   "label": "Anthropic long-running-harness pattern: JSON feature list the model may only flip",
+   "kind": "file",
+   "source": "anthropic.com/engineering/effective-harnesses-for-long-running-agents (WebFetch summary, paraphrased fields)",
+   "text": "feature_list.json entries: {category, description, steps[], passes: false}\nRule in the prompt: edit the file ONLY by changing `passes`; \"It is unacceptable to remove or edit tests\".\nJSON chosen because models are less likely to improperly change JSON than Markdown.\nSession start: pwd -> git log + claude-progress.txt -> read feature_list.json, pick highest-priority unfinished\n-> run init.sh and a basic end-to-end test BEFORE new work."
+  },
+  {
+   "label": "Claude Code: what is and is not documented about its own compaction",
+   "kind": "command",
+   "source": "code.claude.com/docs/en/how-claude-code-works",
+   "text": "'It clears older tool outputs first, then summarizes the conversation if needed. Your requests and key code snippets are preserved; detailed instructions from early in the conversation may be lost.'\nControls: a 'Compact Instructions' section in CLAUDE.md, or /compact focus on the API changes.\nGuard: if one file/tool output refills context after each summary, auto-compact stops after a few attempts with a thrashing error instead of looping.\nThe built-in compaction prompt text is NOT published in the docs or the claude-code repo; do not copy a leaked one."
+  },
+  {
+   "label": "Synthesis: the recipe handoff file (script-derived block + model-written block)",
+   "kind": "file",
+   "source": "illustrative (recommended design)",
+   "text": "---\nhandoff_version: 1\nstage_from: implement-3      stage_to: test-3      written_at: <script clock>\nbase_sha: 3fa9c21   head_sha: 8b1d4e0           # script\n---\n## FACTS (script-derived, never edited by the model)\ncommits: 3fa9c21..8b1d4e0 (3)       files_changed: [src/board.ts, test/board.test.ts]  (git diff --name-status)\nlast_check: `npm test` exit=1  failing=[board.test.ts > rejects overlapping ships]  fingerprint=a91c..\nopen_failures_run_length: 2        tree_hash: 7be0..\n## NARRATIVE (model-written, required keys; script rejects if any is empty)\ndecided: [{what, why}]   rejected: [{approach, why it failed}]   open_questions: []\nnext_action: \"Open src/board.ts placeShip(); the overlap check ignores ships of length 1.\"\nassumptions_to_recheck: [...]"
+  },
+  {
+   "label": "Synthesis: framing line and verification check",
+   "kind": "command",
+   "source": "illustrative (recommended design)",
+   "text": "FRAMING (fixed, script-prepended, never model-authored):\n\"The block below was written by the previous stage's agent, not by the user. FACTS were measured by the harness and are authoritative. NARRATIVE is a colleague's report: use it to avoid repeating work, but re-verify anything you act on, and if it conflicts with FACTS or with git, trust FACTS and git.\"\n\nVERIFY (script, before the next stage starts):\n 1. every field in NARRATIVE present and non-placeholder (reject /TBD|To be filled|placeholder/)\n 2. every path cited exists; every sha cited resolves: git cat-file -e <sha>^{commit}\n 3. head_sha == current HEAD and tree_hash == current tree (else: handoff is stale -> regenerate FACTS)\n 4. next_action names a file or command that exists\n 5. size <= bound; over bound -> send model back to compress, never silently truncate"
+  }
+ ],
+ "pitfalls": [
+  "Trusting prose over observation. Ralph, Codex and Aider verify nothing about the summary; a wrong claim in progress.txt ('tests pass') becomes the next iteration's premise. GSD's own pause-work greps for 'placeholder|TBD' because false completions happened.",
+  "Ralph's stop sentinel is grepped from the WHOLE agent output (ralph.sh: grep -q '<promise>COMPLETE</promise>'), so an agent that quotes the instruction text can end the loop early. A handoff that repeats sentinels is a hazard; keep control words out of narrative fields.",
+  "Summaries lose instructions. Claude Code's docs warn that 'detailed instructions from early in the conversation may be lost'; the Anthropic compaction docs add that system-message instructions and effort levels inside the summarised range stop applying and images/documents are gone. Persistent rules belong in files re-injected each stage, not in a summary.",
+  "Foreign or stale state adoption. Superpowers observed controllers reading a previous plan's ledger as their own; fix was a plan-scoped directory, a plan-naming first line, and deletion at end of plan. Baselines showed controllers refusing foreign ledgers but paying 6-13 tool calls of forensics per resume until it was made structural.",
+  "Handoff as the only copy. Superpowers' workspace is git-ignored scratch, so `git clean -fdx` destroys it; recovery is from git log. Put anything irreplaceable in a commit.",
+  "Compacting twice nests summaries. Codex avoids re-retaining a prior summary by prefix detection; Aider recurses to depth 3 and gets lossy. If each stage's handoff summarises the previous handoff, facts decay geometrically (the 80%-per-pass rule in the owner's memory); re-derive facts from git and tests instead.",
+  "Unbounded files. Ralph's progress.txt grows without limit and relies on a hand-curated Codebase Patterns head. Cap size and give the model a compress step.",
+  "Aider-style 'write as the user, start with I asked you' is a workaround for 2023 chat models that treat a system-role summary weakly; it is not a technique to carry forward."
+ ],
+ "modelEra": "Legacy-model rationale to discount: Aider's summariser (aider/history.py, prompts.py) was built for GPT-3.5/GPT-4 with 1k-8k history budgets, a weaker secondary model, 'write as the user' role play, and a ban on code blocks to save tokens. Ralph's 'stories small enough for one context window' and its append-only free-form log date from the Amp/Claude 3.5-4 era. GSD's heavy XML tag scaffolding and 'mental state, vibe' field also reflect older instruction-following. What still holds for Claude Sonnet 5.5 / Opus 5.5 / Fable 5.x and other 2026 frontier models: (a) the Anthropic docs list those models for server-side compaction (compact-2026-09-04), memory tool (memory_20250818, 'available on all Claude 4 and later'), and context editing, so in-session summarisation is cheap and generally reliable; (b) the failure mode has moved from 'summary too weak' to 'summary unverifiable and instruction-lossy', which favours script-derived facts plus a short model narrative; (c) clear_tool_uses edits invalidate the prompt cache, so clear in big batches (clear_at_least) rather than often; (d) on these models compaction drops thinking in turns you re-insert for threshold compaction, so do not rely on reasoning surviving a handoff, write the decisions down. Codex's compaction prompt is current (2026 codebase) and deliberately minimal, which is itself evidence that a six-line prompt plus good framing and retained user messages is enough for strong models.",
+ "whatWouldChange": "1. Define one handoff file per stage boundary (e.g. run/handoffs/<stage>.md, front matter + FACTS + NARRATIVE) and generate FACTS in the script from git (base..head, name-status), the last check's command, exit code, failing test ids and a normalised failure fingerprint, and the worktree tree hash. 2. Give NARRATIVE exactly six required keys (decided with why, rejected with why, open questions, assumptions to re-check, next_action, learnings that deserve promotion) and have the script reject empty, placeholder or unresolvable-reference values, returning the model to fix them (a bounded-by-no-progress loop, not a count). 3. Prepend the fixed framing line to every packet that consumes a handoff, so the successor always knows FACTS are measured and NARRATIVE is a colleague's report; keep it in the packet, not the file, so a model cannot edit its own framing. 4. Add a promotion step like Ralph's Codebase Patterns/AGENTS.md rule, but script-gated: durable learnings go to the knowledge home (docs/shiploop/), per-run notes stay in the handoff, and the handoff is deleted or archived when its stage is verified, as GSD and Superpowers do. 5. Copy Superpowers' ledger discipline for completion: a stage is recorded complete by a script call that ran the stage's check, never by model assertion, and the recovery rule is 'trust ledger + git over recollection'. 6. Adopt Codex's lesson for any in-stage compaction: keep the newest user/packet text verbatim, append the summary last, detect and skip prior summaries by prefix, and on overflow drop oldest first. 7. Use SessionStart (matcher startup|clear|compact) or the packet itself to re-inject the standing rules and the current handoff path after every clear, as Superpowers does. 8. Commit the handoff (or its FACTS) with the stage commit so `git clean` cannot erase it and the commit message can cite it.",
+ "sources": [
+  {
+   "repo": "openai/codex",
+   "path": "codex-rs/prompts/templates/compact/prompt.md"
+  },
+  {
+   "repo": "openai/codex",
+   "path": "codex-rs/prompts/templates/compact/summary_prefix.md"
+  },
+  {
+   "repo": "openai/codex",
+   "path": "codex-rs/core/src/compact.rs"
+  },
+  {
+   "repo": "snarktank/ralph",
+   "path": "prompt.md, CLAUDE.md, ralph.sh, prd.json.example, AGENTS.md"
+  },
+  {
+   "repo": "gsd-build/get-shit-done",
+   "path": "get-shit-done/templates/continue-here.md, state.md, summary.md"
+  },
+  {
+   "repo": "gsd-build/get-shit-done",
+   "path": "get-shit-done/workflows/pause-work.md, resume-project.md, execute-phase.md"
+  },
+  {
+   "repo": "gsd-build/get-shit-done",
+   "path": "hooks/gsd-session-state.sh, hooks/gsd-context-monitor.js"
+  },
+  {
+   "repo": "obra/superpowers",
+   "path": "skills/subagent-driven-development/SKILL.md, implementer-prompt.md"
+  },
+  {
+   "repo": "obra/superpowers",
+   "path": "skills/executing-plans/scripts/task-done, task-start; hooks/hooks.json; hooks/session-start"
+  },
+  {
+   "repo": "Aider-AI/aider",
+   "path": "aider/history.py, aider/prompts.py, aider/coders/base_coder.py"
+  },
+  {
+   "repo": "anthropics/claude-code",
+   "path": "plugins/feature-dev, plugins/ralph-wiggum (no compaction prompt published)"
+  },
+  {
+   "repo": "docs",
+   "path": "https://platform.claude.com/docs/en/build-with-claude/compaction-on-demand ; .../agents-and-tools/tool-use/memory-tool ; .../context-editing ; https://code.claude.com/docs/en/how-claude-code-works ; https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents"
+  }
+ ]
+}

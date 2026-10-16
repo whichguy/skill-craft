@@ -84,7 +84,7 @@ def size_problem(value: Mapping[str, Any], *, writable: Optional[Mapping[str, st
         shown = {writable[part]: parts.get(part, 0) for part in writable}
     else:
         shown = parts
-    largest = ", ".join(f"{name} {size:,}" for name, size in sorted(shown.items(), key=lambda kv: -kv[1])[:4])
+    largest = ", ".join(f"{name} {size:,}" for name, size in sorted(shown.items(), key=lambda name_size: -name_size[1])[:4])
     room = (f" The text you wrote may use about {allowance:,} bytes in all, counted as above: escaped like JSON, so a "
             f"newline or a quote costs 2 bytes and a non-ASCII character 6, and a file's byte size undercounts it."
             if allowance else "")

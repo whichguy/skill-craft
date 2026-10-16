@@ -80,11 +80,11 @@ def _directory_fd(path: Path) -> int:
 def _relative_parts(relative: str | Path) -> tuple[str, ...]:
     value = os.fspath(relative)
     if not isinstance(value, str) or not value or "\x00" in value or "\\" in value:
-        raise _UnsafeSource("unsafe relative path")
+        raise _UnsafeSource(f"unsafe relative path {value[:80]!r}")
     path = Path(value)
     parts = path.parts
     if path.is_absolute() or not parts or any(part in ("", ".", "..") for part in parts):
-        raise _UnsafeSource("unsafe relative path")
+        raise _UnsafeSource(f"unsafe relative path {value[:80]!r}")
     return parts
 
 
@@ -205,7 +205,7 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
-def _sha(raw: bytes) -> str:
+def _sha256_hex(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
@@ -225,7 +225,7 @@ def _summary(text: str, limit: int = 280) -> str:
     return line if len(line) <= limit else line[: limit - 1] + "…"
 
 
-def _uri(path: Path) -> str:
+def _file_uri(path: Path) -> str:
     return Path(os.path.abspath(os.fspath(path))).as_uri()
 
 
@@ -234,7 +234,7 @@ def _doc_placeholder(
     status: str, error: str, acceptance: str | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
-        "id": doc_id, "title": title, "path": str(path), "uri": _uri(path),
+        "id": doc_id, "title": title, "path": str(path), "uri": _file_uri(path),
         "content": "", "summary": error, "sha256": None, "observed_at": observed_at,
         "status": status, "error": error,
     }
@@ -249,6 +249,9 @@ def _read_document(
     public_record: Mapping[str, Any] | None = None, acceptance: str | None = None,
     max_bytes: int = _MAX_DOCUMENT_BYTES,
 ) -> tuple[dict[str, Any], dict[str, str] | None]:
+    """Read one run document safely beneath ``base``; returns its display record and a fingerprint entry, or a
+    placeholder (missing or withheld) with a warning.
+    """
     path = base / relative
     try:
         raw, mtime_ns = _read_beneath(base, relative, max_bytes)
@@ -267,7 +270,7 @@ def _read_document(
         return _doc_placeholder(doc_id=doc_id, title=title, path=path, observed_at=observed_at,
                                 status="withheld", error=error, acceptance=acceptance), None
     mtimes.append(mtime_ns)
-    digest = _sha(raw)
+    digest = _sha256_hex(raw)
     try:
         content = raw.decode("utf-8")
     except UnicodeError:
@@ -302,7 +305,7 @@ def _read_document(
         status = "draft"
         summary = _summary(content)
     document = {
-        "id": doc_id, "title": title, "path": str(path), "uri": _uri(path),
+        "id": doc_id, "title": title, "path": str(path), "uri": _file_uri(path),
         "content": content, "summary": summary, "sha256": digest,
         "observed_at": observed_at, "status": status,
     }
@@ -365,7 +368,8 @@ def _decode_timeline(root: Path, warnings: list[str], mtimes: list[int]) -> dict
         value = json.loads(raw.decode("utf-8"))
         if (not isinstance(value, dict) or not isinstance(value.get("accepted", {}), dict)
                 or not isinstance(value.get("started"), str)):
-            raise ValueError("invalid timeline shape")
+            raise ValueError("invalid timeline shape: timeline.json needs an object whose `accepted` is an object "
+                             "and whose `started` is a string")
         mtimes.append(mtime_ns)
         return value
     except FileNotFoundError:
@@ -384,6 +388,9 @@ def _safe_summary(value: Any) -> str:
 
 def _activity(state: Mapping[str, Any], root: Path, timeline: Mapping[str, Any],
               warnings: list[str], mtimes: list[int]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Build the timeline rows of accepted activity for the parent run and its chains, plus the fingerprints that
+    detect change; warnings note withheld data.
+    """
     rows: list[dict[str, Any]] = []
     parent_fingerprint: list[dict[str, Any]] = []
     accepted = state.get("accepted", {})
@@ -430,8 +437,8 @@ def _activity(state: Mapping[str, Any], root: Path, timeline: Mapping[str, Any],
             for name in names:
                 try:
                     metadata = os.lstat(directory / name)
-                except OSError:
-                    raise _UnsafeSource("ledger entry is unstable")
+                except OSError as exc:
+                    raise _UnsafeSource(f"ledger entry {name!r} for {action_id} is unstable") from exc
                 if stat.S_ISREG(metadata.st_mode):
                     total_size += metadata.st_size
                     if metadata.st_nlink != 1:
@@ -488,26 +495,29 @@ def _activity(state: Mapping[str, Any], root: Path, timeline: Mapping[str, Any],
 
 def _valid_bound_graph(graph: Any) -> list[dict[str, Any]]:
     if not isinstance(graph, Mapping) or graph.get("version") != 1:
-        raise ValueError("invalid bound graph")
+        raise ValueError(f"invalid bound graph: need a mapping with version 1, got {type(graph).__name__} version "
+                         f"{graph.get('version') if isinstance(graph, Mapping) else 'n/a'}")
     raw_steps = graph.get("steps")
     if not isinstance(raw_steps, list) or not raw_steps or len(raw_steps) > _MAX_GRAPH_NODES:
-        raise ValueError("invalid bound graph size")
+        raise ValueError(f"invalid bound graph size: steps must be a list of 1 to {_MAX_GRAPH_NODES} rows, got "
+                         f"{len(raw_steps) if isinstance(raw_steps, list) else type(raw_steps).__name__}")
     ids: set[str] = set()
     steps: list[dict[str, Any]] = []
-    for row in raw_steps:
+    for position, row in enumerate(raw_steps):
         if not isinstance(row, Mapping) or not isinstance(row.get("id"), str):
-            raise ValueError("invalid bound graph step")
+            raise ValueError(f"invalid bound graph step at position {position}: it needs a string id")
         step_id = row["id"]
         deps = row.get("deps")
         contract = row.get("contract")
-        if (not step_id or len(step_id) > 200 or any(ord(ch) < 32 for ch in step_id)
+        if (not step_id or len(step_id) > 200 or any(ord(character) < 32 for character in step_id)
                 or step_id in ids or not isinstance(deps, list)
                 or not all(isinstance(dep, str) and dep for dep in deps)
                 or len(set(deps)) != len(deps)):
-            raise ValueError("invalid bound graph step")
+            raise ValueError(f"invalid bound graph step {step_id[:80]!r} at position {position}: bad id, repeated id "
+                             "or bad deps")
         if contract is not None and (not isinstance(contract, Mapping)
                                      or not isinstance(contract.get("task"), str)):
-            raise ValueError("invalid bound graph contract")
+            raise ValueError(f"invalid bound graph contract for step {step_id!r}: contract.task must be a string")
         ids.add(step_id)
         steps.append({"id": step_id, "deps": list(deps), "contract": contract})
     if any(dep not in ids for row in steps for dep in row["deps"]):
@@ -557,7 +567,7 @@ def _implementation_graphs(
         try:
             raw, binding_mtime = _read_beneath(root, f"chains/{action_id}/binding.md", _MAX_BINDING_BYTES)
             mtimes.append(binding_mtime)
-            binding_digest = _sha(raw)
+            binding_digest = _sha256_hex(raw)
             identity["binding_sha256"] = binding_digest
             saved_digest = bindings.get(action_id)
             if (not isinstance(saved_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", saved_digest)
@@ -587,7 +597,7 @@ def _implementation_graphs(
                     root, f"chains/{action_id}/dispatcher/plan-dispatcher-state.json",
                     _MAX_DISPATCHER_BYTES)
                 mtimes.append(dispatcher_mtime)
-                dispatcher_digest = _sha(dispatcher_raw)
+                dispatcher_digest = _sha256_hex(dispatcher_raw)
                 identity["dispatcher_sha256"] = dispatcher_digest
                 child = json.loads(dispatcher_raw.decode("utf-8"))
                 child_graph = child.get("graph") if isinstance(child, Mapping) else None
@@ -604,7 +614,7 @@ def _implementation_graphs(
                         # A nonmatching canonical digest (including unsupported
                         # JS/Python number formatting) withholds status only.
                         # It is never compared with the raw graph-source file hash.
-                        and graph_sha == _sha(_canonical(raw_graph))
+                        and graph_sha == _sha256_hex(_canonical(raw_graph))
                         and isinstance(child_steps, Mapping)
                         and set(child_steps) == step_ids
                         and all(isinstance(child_steps[step_id], Mapping)
@@ -697,7 +707,7 @@ def _receipt_identity(root: Path, state: Mapping[str, Any], warnings: list[str])
         if receipt is None:
             warnings.append("Terminal workspace return receipt is missing or stale; source delivery is unverified.")
             return {"status": "unverified"}
-        return {"status": "verified", "sha256": _sha(_canonical(receipt))}
+        return {"status": "verified", "sha256": _sha256_hex(_canonical(receipt))}
     except (OSError, ValueError, workspace.WorkspaceError, _UnsafeSource):
         warnings.append("Terminal workspace return receipt is unreadable or stale; source delivery is unverified.")
         return {"status": "unverified"}
@@ -815,7 +825,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
             key_path = str(base / relative)
             if any(str(row[2] / row[3]) == key_path for row in candidates + evidence_candidates):
                 continue
-            doc_id = "evidence-" + _sha(key_path.encode("utf-8"))[:12]
+            doc_id = "evidence-" + _sha256_hex(key_path.encode("utf-8"))[:12]
             evidence_candidates.append((doc_id, "Registered planning evidence", base, relative,
                                         None, None, None))
     candidates.extend(evidence_candidates)
@@ -851,8 +861,8 @@ def build_snapshot(root: Path) -> dict[str, Any]:
         try:
             report_raw, report_mtime = _read_beneath(run_root, "report.html", _MAX_REPORT_BYTES)
             mtimes.append(report_mtime)
-            terminal_report = _uri(run_root / "report.html")
-            report_identity = {"path": str(run_root / "report.html"), "sha256": _sha(report_raw)}
+            terminal_report = _file_uri(run_root / "report.html")
+            report_identity = {"path": str(run_root / "report.html"), "sha256": _sha256_hex(report_raw)}
         except FileNotFoundError:
             warnings.append("Terminal report is missing.")
         except _UnsafeSource as exc:
@@ -881,7 +891,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     graphs, graph_identity = _implementation_graphs(state, run_root, current, warnings, mtimes)
 
     source_changed_at = _mtime_text(max(mtimes) if mtimes else None)
-    state_digest = _sha(state_raw)
+    state_digest = _sha256_hex(state_raw)
     fingerprint_value = {
         "schema": SCHEMA,
         "run": {"id": state["run_id"], "revision": state["revision"],
@@ -910,7 +920,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
         "activity": activity,
         "warnings": list(dict.fromkeys(warnings)),
         "terminal_ready": terminal,
-        "source_fingerprint": _sha(_canonical(fingerprint_value)),
+        "source_fingerprint": _sha256_hex(_canonical(fingerprint_value)),
     }
     if terminal_report:
         snapshot["terminal_report"] = terminal_report

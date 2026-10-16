@@ -1,9 +1,12 @@
 """Drive the actual navigator with synthetic declarations, never project work."""
 from __future__ import annotations
 
+import argparse
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import shiploop_navigator as navigator
 
@@ -27,7 +30,7 @@ CORE = SimpleNamespace(PACKAGE_ROOT=Path(__file__).resolve().parents[1],
 RUN = Path('/simulation-only/.shiploop')
 
 
-def _improve_receipt(stage):
+def _improve_receipt(stage: str) -> dict[str, Any]:
     """Synthetic child result for graph traversal only.
 
     It never starts Improve, Until Loop, checks, or a project process.  The
@@ -41,7 +44,7 @@ def _improve_receipt(stage):
     }
 
 
-def activity(planning_review='stage', *, two=False):
+def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[str, Any]]:
     """Explicit producer/Improve declarations for the navigator graph.
 
     Improve follows only the planning stages the option reviews and the last item's carry-forward.
@@ -49,7 +52,7 @@ def activity(planning_review='stage', *, two=False):
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
     last_carry = len(path) - 1 - path[::-1].index('carry-forward')
     rows = []
-    for index, (stage, target) in enumerate(zip(path, path[1:] + ['done'])):
+    for index, (stage, target) in enumerate(zip(path, path[1:] + ['done'], strict=True)):
         status = 'done' if target == 'done' else 'active'
         producer = {'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}
         if stage == 'step-plan':
@@ -72,14 +75,15 @@ def activity(planning_review='stage', *, two=False):
     return rows
 
 
-def _insert_before(rows, stage, command, extra):
+def _insert_before(rows: list[dict[str, Any]], stage: str, command: str,
+                   extra: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Insert declarations before the first matching row."""
-    index = next(i for i, row in enumerate(rows) if row['at'] == stage and row['command'] == command)
+    index = next(position for position, row in enumerate(rows) if row['at'] == stage and row['command'] == command)
     rows[index:index] = extra
     return rows
 
 
-def scenarios(planning_review='stage'):
+def scenarios(planning_review: str = 'stage') -> dict[str, list[dict[str, Any]]]:
     """Declarations for protocol 4: most producers advance without an Improve child."""
     # a child that asks for another attempt: at plan when the run reviews it, else at the first stage that has one
     repeat_at = 'plan' if 'plan' in REVIEWED3[planning_review] else 'system-test-author'
@@ -98,7 +102,7 @@ def scenarios(planning_review='stage'):
     # step-plan and walks its planning and test stages again.
     base = activity(planning_review)
     replan_rows = []
-    for row in base[base.index(next(r for r in base if r['at'] == 'step-plan')):]:
+    for row in base[base.index(next(candidate for candidate in base if candidate['at'] == 'step-plan')):]:
         if row['at'] == 'implement':
             break
         replan_rows.append(dict(row))
@@ -126,14 +130,14 @@ def scenarios(planning_review='stage'):
     }
 
 
-def _owner(state):
+def _owner(state: Mapping[str, Any]) -> str:
     """Name the serialized cursor owner without creating another cursor schema."""
     if state.get('stage') == 'inner-loop':
         return state['work_items'][state['work_index']]['id']
     return 'root'
 
 
-def _completed_instances(state):
+def _completed_instances(state: Mapping[str, Any]) -> list[Any]:
     """Expose only durable completed-instance evidence in synthetic reports."""
     loops = state.get('inner_loops', {})
     return [
@@ -143,9 +147,10 @@ def _completed_instances(state):
     ]
 
 
-def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
-                 backchain_passes=navigator.DEFAULT_BACKCHAIN_PASSES,
-                 planning_review=navigator.DEFAULT_PLANNING_REVIEW):
+def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAULT_DELEGATION,
+                 backchain_passes: str = navigator.DEFAULT_BACKCHAIN_PASSES,
+                 planning_review: str = navigator.DEFAULT_PLANNING_REVIEW) -> dict[str, Any]:
+    """Simulate one scenario (no work is executed) and return its report: events, stages reached and ``ok``."""
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
         if not isinstance(scenario, dict):
@@ -213,7 +218,8 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
     return report
 
 
-def add_arguments(parser):
+def add_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add the dry-run options to ``parser``."""
     selected = parser.add_mutually_exclusive_group()
     selected.add_argument('--scenario', choices=('all', *scenarios()), default='all')
     selected.add_argument('--script', help='JSON activity with explicit expected stages and synthetic result declarations')
@@ -227,7 +233,8 @@ def add_arguments(parser):
     parser.add_argument('--list', action='store_true')
 
 
-def run(args):
+def run(args: argparse.Namespace) -> int:
+    """Run the selected scenarios or the ``--script`` activity and print the report; returns the exit code."""
     if args.list:
         print('\n'.join(scenarios()))
         return 0

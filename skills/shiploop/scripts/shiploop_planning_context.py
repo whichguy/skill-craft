@@ -96,7 +96,7 @@ def _json_text(value: Any, label: str) -> str:
         return json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n"
     except (TypeError, ValueError) as exc:
         _fail(label + " is not JSON serializable: " + str(exc))
-    raise AssertionError("unreachable")
+    raise AssertionError("_fail returned while serializing " + label)
 
 
 def _absolute_root(value: Path) -> Path:
@@ -130,7 +130,7 @@ def _absolute_regular_file(value: Any, label: str) -> tuple[Path, bytes]:
         raise
     except (OSError, RuntimeError) as exc:
         _fail("cannot read " + label + ": " + str(exc))
-    raise AssertionError("unreachable")
+    raise AssertionError("_fail returned while reading " + label)
 
 
 def _run_regular_file(root: Path, relative: str, label: str) -> tuple[Path, bytes]:
@@ -146,7 +146,7 @@ def _run_regular_file(root: Path, relative: str, label: str) -> tuple[Path, byte
         raise
     except (OSError, RuntimeError, ValueError) as exc:
         _fail("cannot read " + label + ": " + str(exc))
-    raise AssertionError("unreachable")
+    raise AssertionError("_fail returned while reading " + label)
 
 
 def _live_run_dependency_reason(root: Path, path: Path) -> str | None:
@@ -264,6 +264,9 @@ def _resolution_map(
     classifications: Mapping[str, str],
     graph_ids: tuple[str, ...],
 ) -> dict[tuple[str, int], dict[str, Any]]:
+    """Validate the ``resolutions`` document against accepted planning output and return its references keyed by
+    (action, index).
+    """
     if value is None:
         return {}
     if not isinstance(value, Mapping) or set(value) != {"references"}:
@@ -425,6 +428,9 @@ def _briefing(
     current_workitem: str,
     classifications: Mapping[str, str],
 ) -> str:
+    """Render the planning reference statements for ``current_workitem`` as Markdown, drawn only from accepted
+    planning output.
+    """
     current_item = next(item for item in state["work_items"] if item["id"] == current_workitem)
     lines = [
         "# Planning reference statements",
@@ -528,6 +534,8 @@ class _Artifacts:
         origin: dict[str, str] | None = None,
         source_reference: str | None = None,
     ) -> None:
+        """Record ``data`` read from ``path`` with its role, producer, classification and the stages that need it.
+        """
         key = str(path)
         digest = _sha256(data)
         if classification not in _CLASSIFICATION_RANK:
@@ -569,6 +577,7 @@ class _Artifacts:
             current["references"].append(reference)
 
     def rows(self) -> list[dict[str, Any]]:
+        """The recorded artifacts as sorted rows with hashes, roles and producers."""
         output: list[dict[str, Any]] = []
         for path in sorted(self._rows):
             source = self._rows[path]
@@ -659,7 +668,6 @@ def _collect_improve_artifacts(
         record = state["improve_results"].get(action)
         required_for = _default_required_for(classifications[action])
         if _real_improve_record(record, state["run_id"] + "/" + action):
-            assert isinstance(record, Mapping)
             receipt_relative = "improve/" + action + "/receipt.md"
             try:
                 receipt_path, receipt_data = _run_regular_file(

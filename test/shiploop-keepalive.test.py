@@ -8,6 +8,7 @@ Runs are real ShipLoop runs in temporary directories; no host CLI is launched.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -111,6 +112,54 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
         result = shiploop("hook-status", "--run-dir", str(self.temp / "missing"))
         self.assertEqual(result.returncode, 2)
         self.assertIn("error", json.loads(result.stdout))
+        self.assertFalse((self.temp / "missing").exists())
+
+    def test_hook_status_refuses_pending_transaction_without_recovering(self) -> None:
+        def crash(phase: str, index: int) -> None:
+            raise RuntimeError("simulated interruption")
+
+        with self.assertRaises(RuntimeError):
+            store.transaction(self.run_dir, {"evidence.md": "pending\n"}, fault=crash)
+        state_before = (self.run_dir / "state.md").read_bytes()
+        journal_before = (self.run_dir / store.JOURNAL_NAME).read_bytes()
+        result = shiploop("hook-status", "--run-dir", str(self.run_dir))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        answer = json.loads(result.stdout)
+        self.assertIn("pending transaction", answer["error"])
+        self.assertNotIn("status", answer)
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), state_before)
+        self.assertEqual((self.run_dir / store.JOURNAL_NAME).read_bytes(), journal_before)
+        recovered = shiploop("next", "--run-dir", str(self.run_dir))
+        self.assertEqual(recovered.returncode, 0, recovered.stderr)
+        self.assertEqual(self.status()["status"], "active")
+
+    def test_hook_status_does_not_wait_for_active_writer(self) -> None:
+        with (self.run_dir / ".lock").open("r+b") as lock:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            result = subprocess.run(
+                [sys.executable, str(SCRIPTS / "shiploop"), "hook-status", "--run-dir", str(self.run_dir)],
+                capture_output=True, text=True, timeout=5,
+            )
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("busy", json.loads(result.stdout)["error"])
+        self.assertEqual(self.status()["status"], "active")
+
+    def test_hook_status_missing_lock_is_not_recreated(self) -> None:
+        (self.run_dir / ".lock").unlink()
+        result = shiploop("hook-status", "--run-dir", str(self.run_dir))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("error", json.loads(result.stdout))
+        self.assertFalse((self.run_dir / ".lock").exists())
+
+    def test_readers_and_writers_refuse_aliased_lock_inode(self) -> None:
+        os.link(self.run_dir / ".lock", self.run_dir / "lock-alias")
+        before = (self.run_dir / "state.md").read_bytes()
+        for command in ("hook-status", "next"):
+            with self.subTest(command=command):
+                result = shiploop(command, "--run-dir", str(self.run_dir))
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("regular single-link", result.stdout + result.stderr)
+                self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_every_packet_carries_the_marker_for_its_revision(self) -> None:
         marker = keepalive.last_marker(self.packet)
@@ -399,7 +448,8 @@ class ProgressAndTurnTests(KeepaliveTestCase):
         refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", "nav-unknown",
                            "--result", str(self.run_dir / "inbox" / "nav-unknown.md"))
         self.assertNotEqual(refused.returncode, 0)
-        self.assertIn("do not end the turn over a refused callback", refused.stderr)
+        self.assertIn("repair and resubmit in this turn only if that packet asks for it", refused.stderr)
+        self.assertIn("Run exactly this recovery command:", refused.stderr)
         self.assertEqual(self.grok_stop(True)["decision"], "continue")
         self.assertEqual(self.grok_stop(True)["decision"], "allow")
 

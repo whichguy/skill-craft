@@ -96,8 +96,8 @@ def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
         "## Planning basis",
         "",
     ]
-    for stage in _ROOT_STAGES:
-        lines.extend(_entry_lines(state, root, stage, current.get((None, stage))))
+    for root_stage in _ROOT_STAGES:
+        lines.extend(_entry_lines(state, root, root_stage, current.get((None, root_stage))))
     plan_action = current.get((None, "plan"))
     assumptions = (state["accepted"].get(plan_action, {}) or {}).get("assumptions") if plan_action else None
     if assumptions:
@@ -115,15 +115,15 @@ def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
                      f"({_item_status(state, index, item_id)})")
         if item.get("context"):
             lines.append(f"- Context: {_excerpt(item.get('context'))}")
-        for stage in prompts.INNER:
-            action = current.get((item_id, stage))
+        for inner_stage in prompts.INNER:
+            action = current.get((item_id, inner_stage))
             if action is not None:
-                lines.extend([f"#### {item_id} {stage}", *_entry_lines(state, root, stage, action)[1:]])
+                lines.extend([f"#### {item_id} {inner_stage}", *_entry_lines(state, root, inner_stage, action)[1:]])
     lines.extend(["", "## Outer loop", ""])
-    for stage in prompts.OUTER:
-        action = current.get((None, stage))
+    for outer_stage in prompts.OUTER:
+        action = current.get((None, outer_stage))
         if action is not None:
-            lines.extend(_entry_lines(state, root, stage, action))
+            lines.extend(_entry_lines(state, root, outer_stage, action))
     records = sorted({str(path) for pattern in RECORD_GLOBS for path in root.glob(pattern) if path.is_file()})
     if records:
         lines.extend(["", "## Script records (ShipLoop's own test runs, loop packets, lint and Improve receipts)", ""])
@@ -208,4 +208,5 @@ def read_first(state: Mapping[str, Any], root: Path, stage: str,
 
 
 def stages_named(names: Iterable[str]) -> set[str]:
+    """Stage names with any ``item:`` prefix removed."""
     return {name[5:] if name.startswith("item:") else name for name in names}

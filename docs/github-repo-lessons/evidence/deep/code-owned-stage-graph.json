@@ -1,0 +1,248 @@
+{
+ "id": "code-owned-stage-graph",
+ "overview": "In OpenSpec the stage graph is data plus a small amount of TypeScript. A schema.yaml lists artifacts (id, generates, template, instruction, requires) and an optional apply block. Code validates it with zod and three extra passes (duplicate ids, unknown requires or apply.requires, cycles), orders it with Kahn's algorithm, and breaks ties by declaration order so the first ready artifact is always the one the author listed first. A stage is done when its generates path or glob matches at least one file in the change directory. Nothing reads the file's content, and no state file exists, so status can never drift from the disk. Status is computed fresh on every call as done, ready, blocked (with missingDeps) or skipped. [verified in src/core/artifact-graph]\n\nThe model never decides the order. The skill prompt tells it to run openspec status --json, take the first ready artifact, run openspec instructions <id> --json, read the dependency files it lists, write exactly one file at resolvedOutputPath using the template, and stop. The instructions JSON is the packet: description, the schema's instruction text, the template, config.yaml context and per-artifact rules (labelled do-not-copy), dependency paths with done flags, the absolute output path and the artifacts it unlocks. Apply is a second packet from the same command (artifact id 'apply'): its state is blocked, ready or all_done, derived by a decision ladder over the apply.requires outputs and the checkbox counts in the tracked file (done means the box holds only x or X). [verified: src/commands/workflow/instructions.ts]\n\nWhat code does not own is just as instructive. Content correctness of an artifact is not part of the graph: an empty proposal.md is done, a file written out of order is done, a glob artifact is done after its first matching file (their own continue skill has a PARTIAL_ARTIFACT_CHECK for this, issue #2034), and the apply gate only warns when delta specs are missing. The success_criteria block in the text packet is a literal placeholder. Validation lives in a separate command (openspec validate) that is not wired into the graph, and the 'one artifact then STOP' rule is prose the agent obeys. [verified in code; behaviour of the skill prompt is prose]\n\nBMAD splits the problem differently. Its build workflow is a chain of markdown step files; the 'router' is the plan file's frontmatter status (draft, ready-for-dev, in-progress, in-review, built, done, blocked, dropped), written by the LLM as it passes each step, and step-01 maps each status to the next step file in prose. Code's role is rendering and halting: render_skill.py renders the step files through Jinja2 with validated customization into an immutable content-hashed snapshot and prints either 'read and follow <path>' or 'HALT: <reason>'. The only code-owned graph is the ticket tree: tickets.py derives ready_to_start, blocked and in_progress from after prerequisites and plan statuses, and 'mark' is the one code writer of status. Checkpoints (approve plan) are prose HALTs for a human; the unattended variant HALTs by writing status blocked plus a blocking condition. [verified in skills/bmad-build, bmad/scripts/render_skill.py, bmad-ticket/scripts/tickets.py]\n\nFor a script-driven harness the lesson is to take OpenSpec's derive-from-disk graph and BMAD's explicit blocked/halt vocabulary, then close the two gaps both leave open: accept a stage only through a content check run by the script, and store the accepted content hash so a changed upstream artifact makes downstream stages stale. See whatWouldChange for the minimal layout, rules and failed-validation reply.",
+ "howItWorks": [
+  "OpenSpec resolves the schema: project openspec/schemas/<name>, then user XDG data dir, then the package; the change's .openspec.yaml names it (CLI flag > change metadata > config.yaml > spec-driven).",
+  "parseSchema validates shape (zod), duplicate ids, requires references, apply.requires references and cycles (DFS with the cycle path in the message); schema.yaml artifacts are capped at 1000.",
+  "ArtifactGraph.getBuildOrder runs Kahn's algorithm; ties are broken by position in the artifacts list, which is why the file order is meaningful.",
+  "detectCompleted asks, per artifact, whether generates resolves to at least one existing file in the change dir (glob via fast-glob with traversal and symlink guards). skip_specs adds every artifact whose generates starts with specs/ to completed and to a skipped set.",
+  "status partitions artifacts: skipped, done, ready (all requires complete), else blocked with missingDeps; artifacts are sorted in build order; nextSteps[0] names the exact instructions command for the first ready artifact; isPlanningComplete means every non-skipped artifact exists.",
+  "instructions <id> builds the packet: loads the template from the schema's templates dir (path-confined), dependency info with done flags, unlocks, config context and rules; a skipped artifact returns only a warning not to create it. Unmet dependencies produce a warning in text mode but not a refusal.",
+  "The model reads dependency files from disk, writes one file at resolvedOutputPath, stops; the harness-less 'gate' is simply that the next status call sees the file.",
+  "instructions apply derives state: missing apply.requires outputs -> blocked; tracks file missing or with zero tasks -> blocked; remaining==0 and total>0 -> all_done; else ready with the task list. Warnings (not blocks) flag a ready change with no delta specs and no skip_specs.",
+  "Later checks are separate commands: validate (deltas, specs, task checkbox lint) and archive (re-validates, merges, moves). These are the only content gates.",
+  "BMAD in contrast: render_skill.py renders workflow.md and step files into a snapshot (halting on bad config), the LLM follows step files in order, writes plan status itself at each transition, stops at CHECKPOINT HALTs for the human; build-auto replaces human checkpoints with HALT status blocked + blocking condition recorded via tickets.py mark; the ticket board (tickets.py next/status/find) is deterministic code over after-edges and plan frontmatter."
+ ],
+ "examples": [
+  {
+   "label": "schema.yaml: artifact entries field by field (instruction bodies elided)",
+   "kind": "file",
+   "source": "openspec schemas/spec-driven/schema.yaml",
+   "text": "name: spec-driven\nversion: 1\nartifacts:\n  - id: proposal\n    generates: proposal.md\n    description: Initial proposal document outlining the change\n    template: proposal.md\n    instruction: |\n      Create the proposal document that establishes WHY ... (elided, ~40 lines)\n    requires: []\n  - id: specs\n    generates: \"specs/**/*.md\"      # glob: done when >=1 file matches\n    template: spec.md\n    requires:\n      - proposal\n  - id: tasks\n    generates: tasks.md\n    template: tasks.md\n    requires:\n      - specs\n      - design\napply:\n  requires: [tasks]\n  tracks: tasks.md\n  instruction: |\n    Read context files, work through pending tasks, mark complete as you go.\n    Pause if you hit blockers or need clarification."
+  },
+  {
+   "label": "The zod contract for a schema (what code accepts)",
+   "kind": "file",
+   "source": "openspec src/core/artifact-graph/types.ts (comments removed)",
+   "text": "export const ArtifactSchema = z.object({\n  id: z.string().min(1, { error: 'Artifact ID is required' }),\n  generates: relativePathSchema('generates field'),   // relative, no '..', no absolute\n  description: z.string(),\n  template: relativePathSchema('template field'),     // file under <schema>/templates/\n  instruction: z.string().optional(),\n  requires: z.array(z.string()).default([]),\n});\nexport const ApplyPhaseSchema = z.object({\n  requires: z.array(z.string()).min(1, { error: 'At least one required artifact' }),\n  tracks: relativePathSchema('apply.tracks').nullable().optional(),\n  instruction: z.string().optional(),\n});\nexport const SchemaYamlSchema = z.object({\n  name: z.string().min(1),\n  version: z.number().int().positive(),\n  description: z.string().optional(),\n  artifacts: z.array(ArtifactSchema).min(1).max(1000),\n  apply: ApplyPhaseSchema.optional(),\n});\n// then parseSchema() adds: duplicate ids, unknown requires, unknown apply.requires, cycles\n// messages: 'Duplicate artifact ID: x' | \"Invalid dependency reference in artifact 'a': 'b' does not exist\"\n//           | 'Cyclic dependency detected: a → b → a'"
+  },
+  {
+   "label": "Graph queries: ready, blocked, build order tie-break",
+   "kind": "file",
+   "source": "openspec src/core/artifact-graph/graph.ts (excerpt)",
+   "text": "getNextArtifacts(completed: CompletedSet): string[] {\n  const ready: string[] = [];\n  for (const artifact of this.artifacts.values()) {\n    if (completed.has(artifact.id)) continue;\n    const allDepsCompleted = artifact.requires.every(req => completed.has(req));\n    if (allDepsCompleted) ready.push(artifact.id);\n  }\n  // Declaration order: deterministic, and the first entry is the artifact the\n  // schema wants written next.\n  return ready.sort((a, b) => this.compareByDeclarationOrder(a, b));\n}\ngetBlocked(completed): BlockedArtifacts {\n  ...\n  const unmetDeps = artifact.requires.filter(req => !completed.has(req));\n  if (unmetDeps.length > 0) blocked[artifact.id] = unmetDeps.sort(byDeclarationOrder);\n}\n// getBuildOrder(): Kahn's algorithm; the queue is re-sorted by declaration order\n// after every pop, so 'specs' (declared 2nd) precedes 'design' (3rd) though both\n// only require 'proposal'."
+  },
+  {
+   "label": "Completion = file existence, including globs",
+   "kind": "file",
+   "source": "openspec src/core/artifact-graph/state.ts + outputs.ts (excerpt)",
+   "text": "export function detectCompleted(graph, changeDir): CompletedSet {\n  const completed = new Set<string>();\n  if (!fs.existsSync(changeDir)) return completed;\n  for (const artifact of graph.getAllArtifacts()) {\n    if (isArtifactComplete(artifact.generates, changeDir)) completed.add(artifact.id);\n  }\n  return completed;\n}\nexport function artifactOutputExists(changeDir, generates): boolean {\n  return resolveArtifactOutputs(changeDir, generates).length > 0;\n}\n// resolveArtifactOutputs: non-glob -> statSync(path).isFile();\n// glob (*, ?, [, extglob, brace expansion) -> fast-glob in changeDir, onlyFiles,\n// every match canonicalised and asserted to stay inside changeDir (symlink/'..' guards).\n// NOTHING reads file content: an empty proposal.md counts as done."
+  },
+  {
+   "label": "openspec status --change add-dark-mode --json (shape from docs/cli.md)",
+   "kind": "output",
+   "source": "openspec docs/cli.md (verbatim, trimmed fields noted below)",
+   "text": "{\n  \"changeName\": \"add-dark-mode\",\n  \"schemaName\": \"spec-driven\",\n  \"isPlanningComplete\": false,\n  \"isComplete\": false,\n  \"applyRequires\": [\"tasks\"],\n  \"artifacts\": [\n    {\"id\": \"proposal\", \"outputPath\": \"proposal.md\", \"status\": \"done\", \"requires\": []},\n    {\"id\": \"specs\", \"outputPath\": \"specs/**/*.md\", \"status\": \"done\", \"requires\": [\"proposal\"]},\n    {\"id\": \"design\", \"outputPath\": \"design.md\", \"status\": \"ready\", \"requires\": [\"proposal\"]},\n    {\"id\": \"tasks\", \"outputPath\": \"tasks.md\", \"status\": \"blocked\", \"requires\": [\"specs\", \"design\"], \"missingDeps\": [\"design\"]}\n  ]\n}\n// Real output also carries (agent-contract.md 4.4): planningHome, changeRoot,\n// artifactPaths{<id>:{outputPath,resolvedOutputPath,existingOutputPaths}},\n// nextSteps[], actionContext{mode,sourceOfTruth,allowedEditRoots,constraints}, root.\n// nextSteps[0] (change-status-policy.ts): 'Run openspec instructions design --change \"add-dark-mode\" --json before writing that artifact.'"
+  },
+  {
+   "label": "openspec instructions design --change add-dark-mode --json (RECONSTRUCTED from generateInstructions + agent-contract 4.5; not executed)",
+   "kind": "output",
+   "source": "illustrative, field names verbatim from ArtifactInstructions",
+   "text": "{\n  \"changeName\": \"add-dark-mode\",\n  \"artifactId\": \"design\",\n  \"schemaName\": \"spec-driven\",\n  \"changeDir\": \"/repo/openspec/changes/add-dark-mode\",\n  \"outputPath\": \"design.md\",\n  \"resolvedOutputPath\": \"/repo/openspec/changes/add-dark-mode/design.md\",\n  \"existingOutputPaths\": [],\n  \"description\": \"Technical design document with implementation details\",\n  \"instruction\": \"Create the design document that explains HOW to implement the change. ...\",\n  \"context\": \"Tech stack: TypeScript ...        <- from openspec/config.yaml, all artifacts\",\n  \"rules\": [\"Include rollback plan\"],           <- config.yaml rules.design[], only this artifact\n  \"template\": \"# Design\\n\\n## Context\\n\\n<!-- ... -->\\n...\",\n  \"dependencies\": [\n    {\"id\": \"proposal\", \"done\": true, \"path\": \"proposal.md\",\n     \"description\": \"Initial proposal document outlining the change\"}\n  ],\n  \"unlocks\": [\"tasks\"],\n  \"root\": {\"path\": \"/repo\", \"source\": \"nearest\"}\n}"
+  },
+  {
+   "label": "The same packet as TEXT (what a non-JSON consumer sees; printInstructionsText order)",
+   "kind": "output",
+   "source": "illustrative layout from src/commands/workflow/instructions.ts",
+   "text": "<artifact id=\"design\" change=\"add-dark-mode\" schema=\"spec-driven\">\n<warning>            (only if a dependency is not done: 'This artifact has unmet dependencies...')\n<task>\nCreate the design artifact for change \"add-dark-mode\".\nTechnical design document with implementation details\n</task>\n<project_context> <!-- background for you. Do NOT include this in your output. --> ... </project_context>\n<rules> <!-- constraints for you to follow. Do NOT include this in your output. --> - ... </rules>\n<dependencies>\nRead the current contents of these files before creating this artifact (re-read them from disk ...):\n<dependency id=\"proposal\" status=\"done\"><path>/repo/openspec/changes/add-dark-mode/proposal.md</path>...\n</dependencies>\n<output>Write to: /repo/openspec/changes/add-dark-mode/design.md</output>\n<instruction> ...schema instruction text... </instruction>\n<template> <!-- Use this as the structure for your output file. Fill in the sections. --> # Design ... </template>\n<success_criteria> <!-- To be defined in schema validation rules --> </success_criteria>\n<unlocks>Completing this artifact enables: tasks</unlocks>\n</artifact>"
+  },
+  {
+   "label": "Apply state: derived from tasks.md checkboxes, a decision ladder",
+   "kind": "file",
+   "source": "openspec src/commands/workflow/instructions.ts generateApplyInstructions (excerpt)",
+   "text": "if (missingArtifacts.length > 0) {                    // any apply.requires output missing\n  state = 'blocked'; instruction = `Cannot apply this change yet. Missing artifacts: ...`;\n} else if (tracksFile && !tracksFileExists) {\n  state = 'blocked'; instruction = `The tasks.md file is missing and must be created.` ...\n} else if (tracksFile && tracksFileExists && tasks.length === 0) {\n  state = 'blocked'; instruction = `The tasks.md file exists but contains no tasks to work on.` ...\n} else if (tracksFile && unavailableTrackingFiles.length === 0 && remaining === 0 && total > 0) {\n  state = 'all_done'; instruction = 'All tracked tasks are complete.\\nReview or verify the change as appropriate before archiving.';\n} else if (!tracksFile) {\n  state = 'ready'; ...\n} else {\n  state = 'ready'; instruction = schemaInstruction?.trim() ?? 'Read context files, work through pending tasks, ...';\n}\n// JSON: {contextFiles:{<artifactId>:[abs paths]}, progress:{total,complete,remaining},\n//        tasks:[{id,description,done}], state, missingArtifacts?, missingPrerequisites?, warnings?, instruction}"
+  },
+  {
+   "label": "Task checkbox parsing (the only 'progress' signal)",
+   "kind": "file",
+   "source": "openspec src/utils/task-progress.ts",
+   "text": "const TASK_LINE_PATTERN = /^\\s*(?:[-*+]|\\d{1,9}[.)])\\s*\\[(?:\\s*([^\\]\\s]?)\\s*\\](?![([])|\\s+\\])\\s*(.*)/;\n// done  = marker is x or X (after trimming); every other marker ([ ], [~], [-], []) = NOT done\n// lines without a checkbox are not tracked at all\nparseTaskLines(content) -> [{done, description}]\n//  - [ ] 1.1 Create module        -> {done:false}\n//  - [x] 1.2 Add dependency       -> {done:true}\n//  - [~] 2.1 Half done            -> {done:false}   (still counted in the denominator)\n// the same counter feeds: instructions apply, `openspec list`, and archive's incomplete-task check."
+  },
+  {
+   "label": "skip_specs: the graph treats a path-prefix as complete",
+   "kind": "file",
+   "source": "openspec src/core/artifact-graph/instruction-loader.ts loadChangeContext (excerpt)",
+   "text": "// A change that declares skip_specs has no spec deltas by design, so\n// artifacts generating into specs/ count as complete; otherwise the graph\n// would block their dependents (e.g. tasks) on files that must not exist.\nconst skippedArtifacts = new Set<string>();\nif (metadata?.skip_specs) {\n  for (const artifact of graph.getAllArtifacts()) {\n    if (isSpecsArtifactPath(artifact.generates) && !completed.has(artifact.id)) {\n      completed.add(artifact.id);\n      skippedArtifacts.add(artifact.id);       // status prints 'skipped', instructions print a do-not-create warning\n    }\n  }\n}"
+  },
+  {
+   "label": "A custom schema is just another directory (rapid workflow)",
+   "kind": "file",
+   "source": "openspec docs/customization.md (verbatim)",
+   "text": "# openspec/schemas/rapid/schema.yaml\nname: rapid\nversion: 1\ndescription: Fast iteration with minimal overhead\n\nartifacts:\n  - id: proposal\n    generates: proposal.md\n    description: Quick proposal\n    template: proposal.md\n    instruction: |\n      Create a brief proposal for this change.\n      Focus on what and why, skip detailed specs.\n    requires: []\n\n  - id: tasks\n    generates: tasks.md\n    description: Implementation checklist\n    template: tasks.md\n    requires: [proposal]\n\napply:\n  requires: [tasks]\n  tracks: tasks.md\n# resolution order (resolver.ts): <repo>/openspec/schemas/<name>/ > $XDG_DATA_HOME/openspec/schemas/<name>/ > package built-in\n# change pins its schema in <change>/.openspec.yaml (schema: rapid); `openspec schema validate rapid` also checks templates exist."
+  },
+  {
+   "label": "BMAD: plan frontmatter is the state, and step-01 routes by it in prose",
+   "kind": "file",
+   "source": "BMAD skills/bmad-build/plan-template.md + step-01-clarify-and-route.md (verbatim excerpts)",
+   "text": "---\nstatus: 'draft' # draft | ready-for-dev | in-progress | in-review | built | done | blocked | dropped\nbaseline_revision: '' # the commit the work starts from, set before any code change\nroute: '' # oneshot | full — set by step-02\nrisk: '' # low | medium | high — set by step-02\nreview_loop_iteration: 0 # incremented by step-04 before each review loopback\n---\n(step-01) If it points to a file that matches the plan template (has `status` frontmatter with a recognized value ...)\n→ set `plan_file`, then **EARLY EXIT** to the appropriate step: `draft` → step-02-plan.md,\n`ready-for-dev`/`in-progress` → step-03-implement.md, `in-review`/`built` → step-04-review.md.\nFor `done`, ingest as context ... For `blocked`, show its `blocked_reason` ... and HALT. For `dropped` ... HALT.\n(step-04) If it exceeds 5, HALT and escalate to the human.   <- loop bound is a prose rule on a counter the LLM increments"
+  },
+  {
+   "label": "BMAD: the code-owned part is the ticket board (tickets.py classify)",
+   "kind": "file",
+   "source": "BMAD skills/bmad-ticket/scripts/tickets.py classify() (verbatim excerpt)",
+   "text": "def classify(tree: dict) -> dict:\n    done = done_keys(tree)\n    met = done | {t[\"key\"] for t in tree[\"tickets\"] if t[\"state\"] == \"review\"}\n    groups = {\"ready_to_refine\": [], \"ready_to_start\": [], \"in_progress\": [], \"blocked\": []}\n    for t in in_scope(tree):\n        s = t[\"state\"]\n        if s in (\"done\", \"dropped\"):\n            continue\n        unmet = [b for b in t[\"after\"] if b not in met] + [b for b in t[\"gated_by\"] if b not in done]\n        if t[\"status\"] == \"blocked\" or t[\"blocked_at\"]:\n            t[\"waiting_on\"] = unmet; groups[\"blocked\"].append(t)\n        elif s in (\"in-progress\", \"review\"):\n            groups[\"in_progress\"].append(t)\n        elif unmet:\n            t[\"waiting_on\"] = unmet; groups[\"blocked\"].append(t)\n        elif t[\"refine\"] and not t[\"refined\"]:\n            groups[\"ready_to_refine\"].append(t)\n        elif t.get(\"unknown\"):\n            groups[\"blocked\"].append(t)\n        else:\n            groups[\"ready_to_start\"].append(t)\n    return groups"
+  },
+  {
+   "label": "BMAD: renderer halts before the model sees a bad workflow; routing stays in markdown",
+   "kind": "file",
+   "source": "BMAD skills/bmad/scripts/render_skill.py + skills/bmad-build/workflow.md (verbatim excerpts)",
+   "text": "{% if workflow.route not in (\"oneshot\", \"full\", \"auto\") %}{{ halt(\"workflow.route must be oneshot, full, or auto, not \" ~ workflow.route) }}{% endif %}\n...\nRead fully and follow: `{{ rendered(\"step-01-clarify-and-route.md\") }}` to begin the workflow.\n\n# render_skill.py main(): any ConfigError/RenderError/OSError prints one line and exits 1\nsys.stdout.write(f\"HALT: {' '.join(str(error).splitlines())}\\n\")      # failure\nsys.stdout.write(f\"read and follow {entry}\\n\")                          # success: path of rendered workflow.md\n# Snapshot dir = _bmad/render/<skill>/<slug>-<roothash>/<generation_hash>/ ; generation_hash covers renderer sha256,\n# jinja2 version, resolved customization values and every source sha256; manifest.json re-verified on reuse;\n# StrictUndefined + rendered() targeting an undeclared/omitted source is an error."
+  },
+  {
+   "label": "Minimal harness design: file layout",
+   "kind": "file",
+   "source": "illustrative (synthesis, not from either repo)",
+   "text": "harness/\n  graph.yaml                     # stages: id, produces (file or glob), requires[], packet (template file), check (script id)\n  packets/<stage>.md             # <=40 lines: goal, inputs (paths), output path, exit criteria, \"write ONE file then run: harness done <stage>\"\n  checks/<stage>.py              # pure functions: path -> list[Finding{code,path,line,message}]\n  harness                        # CLI: status | next | packet <stage> | done <stage> | accept <stage>\nruns/<run-id>/\n  state.json                     # ONLY what files cannot say: {stage: {attempt, accepted_sha256, blocked_reason}}\n  artifacts/<stage>/...          # model outputs\n  findings/<stage>.json          # last failed check output (what the model is told to fix)\n# graph.yaml entry\n- id: spec\n  produces: \"artifacts/spec/*.md\"\n  requires: [brief]\n  packet: packets/spec.md\n  check: checks/spec.py\n  max_attempts: 3"
+  },
+  {
+   "label": "Minimal harness design: state derivation rules",
+   "kind": "file",
+   "source": "illustrative (synthesis)",
+   "text": "state(stage) =\n  accepted   if state.json[stage].accepted_sha256 == sha256(files matching produces)   # content-hash, not mere existence\n  blocked    if attempt >= max_attempts or state.json[stage].blocked_reason\n  ready      if not accepted and all(state(r)==accepted for r in requires)\n  waiting    otherwise (lists unmet requires)\n  stale      if accepted but any required stage's accepted_sha256 changed since   # OpenSpec does NOT have this\nnext = first ready stage in graph.yaml declaration order\nRules: (1) only `harness accept` writes accepted_sha256, and only after check() returns zero errors;\n       (2) state is recomputed from disk on every call, never trusted from the model's report;\n       (3) a stage with produces glob is accepted only when check() sees ALL files the packet named (fixes OpenSpec #2034 partial glob)."
+  },
+  {
+   "label": "Minimal harness design: validation gate and failed-validation reply",
+   "kind": "output",
+   "source": "illustrative (synthesis)",
+   "text": "$ harness done spec\n{\"stage\":\"spec\",\"accepted\":false,\"attempt\":2,\"max_attempts\":3,\n \"findings\":[\n  {\"code\":\"scenario_missing\",\"path\":\"artifacts/spec/auth.md\",\"line\":14,\"message\":\"Requirement 'Session Expiration' has no '#### Scenario:' block\"},\n  {\"code\":\"scenario_loss\",\"path\":\"artifacts/spec/auth.md\",\"line\":9,\"message\":\"MODIFIED omits scenario(s) the baseline still has: \\\"Idle timeout\\\"\"}],\n \"next\":\"harness packet spec\"}          # same stage re-issued; packet = original + findings appended; downstream stages stay waiting\n$ harness done spec   # attempt 3 fails again\n{\"stage\":\"spec\",\"accepted\":false,\"blocked\":true,\"reason\":\"max_attempts\",\"action\":\"stop and report findings/spec.json to the human\"}\n# before issuing ANY packet the script also checks: graph.yaml valid (no cycle/unknown requires/missing packet file),\n# every required stage accepted and not stale, produce path inside run dir, and that no file outside `produces` changed (git diff --name-only)."
+  }
+ ],
+ "pitfalls": [
+  "Existence is not validity: an empty or malformed file completes a stage in OpenSpec, so downstream stages open on garbage. The success_criteria block in the instructions text is a literal placeholder ('To be defined in schema validation rules').",
+  "Out-of-order files count: a design.md written before proposal.md is 'done' (their own test 'should handle out-of-order file creation'); the graph only gates ready-ness, not provenance.",
+  "Glob artifacts complete on the first matching file, so interrupted multi-file stages look done (issue #2034, mitigated by a prompt-level PARTIAL_ARTIFACT_CHECK in the continue skill, not by code).",
+  "No staleness: editing proposal.md after specs exist changes nothing in status. OpenSpec relies on the agent re-reading dependencies ('re-read them from disk even if you saw them earlier').",
+  "The loop discipline ('create ONE artifact then STOP', 'first ready artifact') is prompt text, not enforced; apply's missing-spec condition is a warning, not a block.",
+  "apply.tracks must string-equal an artifact's generates or list/status silently fall back to counting tasks.md (they emit a warning only from `openspec schema validate`).",
+  "Checkbox parsing is deliberately permissive: any single-character marker counts as unfinished, checkboxes inside code fences or comments still count, and a '- [WIP]' line is dropped.",
+  "BMAD's status is LLM-written frontmatter: it can drift or be skipped, and bounds like review_loop_iteration<=5 depend on the model incrementing a counter. Only tickets.py mark writes status in code.",
+  "BMAD step files are heavy with NEVER/ALWAYS rules ('NEVER load multiple step files simultaneously') written for weaker instruction-following; the renderer's snapshot immutability is the durable idea, not the shouting.",
+  "Reconstructed JSON in this report (instructions, text packet) was assembled from the code paths and docs, not captured from a run [unverified output, verified field names]."
+ ],
+ "modelEra": "Claude 5 models follow a short 'run status, take first ready, write one file, stop' loop reliably, so a packet needs little more than the goal, inputs, output path and exit check; OpenSpec's 100-line instruction texts and BMAD's NEVER/ALWAYS step rules are partly compensation for older models and can be shortened [my judgment, unmeasured]. What a stronger model does not fix is memory loss across contexts and silent partial completion, so keep derive-from-disk state and script-owned acceptance; spend the saved prompt tokens on the finding text returned when a check fails.",
+ "whatWouldChange": "1) Keep the graph as data: graph.yaml with id, produces (path or glob), requires, packet file, check id, max_attempts; validate it at load with the same four checks OpenSpec runs (shape, duplicate ids, unknown requires, cycles) and refuse to issue any packet if it fails. 2) Derive state from disk plus one small state.json that stores only what files cannot say (attempt count, accepted content hash, blocked reason). 3) Replace OpenSpec's 'file exists' with 'script accepted this exact content hash'; a stage is accepted only when its check returns zero errors, and a changed upstream hash marks downstream stages stale. 4) `next` returns the first ready stage in declaration order; `packet <stage>` returns a short packet (goal, input paths, one output path, exit criteria, the exact completion command) assembled from the packet file plus any prior findings. 5) Before issuing a packet verify: graph valid, all requires accepted and not stale, output path inside the run dir, working tree unchanged outside prior produces. 6) On failed validation return structured findings (code, path, line, message), keep the stage current, re-issue the same packet with the findings appended, count attempts, and at max_attempts set blocked with a reason and tell the model to stop and report; never advance. 7) Make glob stages explicit: the packet lists the files to produce, the check requires all of them. 8) Derive an apply-like execution phase the way OpenSpec does (checkbox counts from the tracked file) but make 'all_done' require the script to run the declared verification command, not only the boxes. 9) Offer a skip marker like skip_specs but keyed on a declared reason in state.json, and have status print 'skipped' separately from 'accepted'. 10) Borrow BMAD's blocked vocabulary (status blocked + blocked_reason, written only by the script) and its renderer idea: render packets from templates with strict undefined variables so a missing input halts before the model sees it. Total code is about 300-400 lines; it is a port of OpenSpec's graph.ts, state.ts, instruction-loader.ts and a status/instructions CLI plus BMAD's mark.",
+ "sources": [
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "schemas/spec-driven/schema.yaml"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/artifact-graph/graph.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/artifact-graph/schema.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/artifact-graph/types.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/artifact-graph/state.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/artifact-graph/outputs.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/artifact-graph/resolver.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/artifact-graph/instruction-loader.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/change-status-policy.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/commands/workflow/status.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/commands/workflow/instructions.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/utils/task-progress.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/templates/workflows/continue-change.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "docs/cli.md"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "docs/agent-contract.md"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "docs/customization.md"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "test/core/artifact-graph/workflow.integration.test.ts"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build/SKILL.md"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build/workflow.md"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build/step-01-clarify-and-route.md"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build/step-02-plan.md"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build/step-04-review.md"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build/plan-template.md"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build/customize.toml"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-build-auto/workflow.md"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad/scripts/render_skill.py"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-ticket/scripts/tickets.py"
+  },
+  {
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "path": "skills/bmad-ticket/SKILL.md"
+  }
+ ]
+}

@@ -17,7 +17,7 @@ from typing import Dict, List, Optional, Sequence
 _INT = r"(\d+)"
 
 
-def _sum(text: str, pattern: str) -> int:
+def _sum_matches(text: str, pattern: str) -> int:
     return sum(int(match) for match in re.findall(pattern, text))
 
 
@@ -30,8 +30,8 @@ def _jest(text: str) -> Optional[Dict[str, int]]:
         return None
     ran = failed = 0
     for line in lines:
-        failed += _sum(line, _INT + r" failed")
-        ran += _sum(line, _INT + r" failed") + _sum(line, _INT + r" passed")
+        failed += _sum_matches(line, _INT + r" failed")
+        ran += _sum_matches(line, _INT + r" failed") + _sum_matches(line, _INT + r" passed")
     return {"ran": ran, "failed": failed}
 
 
@@ -44,8 +44,8 @@ def _vitest(text: str) -> Optional[Dict[str, int]]:
         return None
     ran = failed = 0
     for line in lines:
-        failed += _sum(line, _INT + r" failed")
-        ran += _sum(line, _INT + r" failed") + _sum(line, _INT + r" passed")
+        failed += _sum_matches(line, _INT + r" failed")
+        ran += _sum_matches(line, _INT + r" failed") + _sum_matches(line, _INT + r" passed")
     return {"ran": ran, "failed": failed}
 
 
@@ -59,8 +59,8 @@ def _pytest(text: str, exit_code: Optional[int]) -> Optional[Dict[str, int]]:
     summaries = _PYTEST_SUMMARY.findall(text)
     if summaries:
         line = summaries[-1]
-        failed = _sum(line, _INT + r" failed")
-        ran = failed + _sum(line, _INT + r" passed") + _sum(line, _INT + r" xfailed") + _sum(line, _INT + r" xpassed")
+        failed = _sum_matches(line, _INT + r" failed")
+        ran = failed + _sum_matches(line, _INT + r" passed") + _sum_matches(line, _INT + r" xfailed") + _sum_matches(line, _INT + r" xpassed")
         return {"ran": ran, "failed": failed}
     if exit_code == 5 or re.search(r"^=*\s*no tests ran in [\d.]+s", text, re.MULTILINE):
         return {"ran": 0, "failed": 0}
@@ -80,8 +80,8 @@ def _unittest(text: str) -> Optional[Dict[str, int]]:
         return None
     unloadable = len(re.findall(r"^ERROR: .*\(unittest\.loader\._FailedTest[.)]", text, re.MULTILINE))
     total = sum(int(value) for value in ran_lines) - unloadable
-    skipped = _sum(text, r"\bskipped=" + _INT)
-    failed = _sum(text, r"\bfailures=" + _INT) + _sum(text, r"\berrors=" + _INT) - unloadable
+    skipped = _sum_matches(text, r"\bskipped=" + _INT)
+    failed = _sum_matches(text, r"\bfailures=" + _INT) + _sum_matches(text, r"\berrors=" + _INT) - unloadable
     return {"ran": max(total - skipped, 0), "failed": max(failed, 0)}
 
 
@@ -90,7 +90,7 @@ def _mocha(text: str) -> Optional[Dict[str, int]]:
     passing = re.findall(r"^\s*(\d+) passing \(", text, re.MULTILINE)
     if not passing:
         return None
-    failed = _sum(text, r"(?m)^\s*" + _INT + r" failing\b")
+    failed = _sum_matches(text, r"(?m)^\s*" + _INT + r" failing\b")
     return {"ran": sum(int(value) for value in passing) + failed, "failed": failed}
 
 

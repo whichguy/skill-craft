@@ -171,7 +171,7 @@ def check(state: Mapping[str, Any], stage: str) -> str:
         encoding="utf-8", errors="replace").strip()]
     if missing:
         return ("ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
-                "Before " + stage + " is done, write:\n" + "".join("- " + str(repo / p) + "\n" for p in missing)
+                "Before " + stage + " is done, write:\n" + "".join("- " + str(repo / name) + "\n" for name in missing)
                 + "See the packet's knowledge-home lines for what each file holds.")
     leaks = []
     screened = sorted((repo / HOME).rglob("*.md")) + ([repo / INDEX] if (repo / INDEX).is_file() else [])

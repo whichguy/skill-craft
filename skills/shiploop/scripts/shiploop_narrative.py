@@ -25,6 +25,7 @@ def bar(done: float, total: int) -> str:
 
 
 def duration(seconds: float) -> str:
+    """Human duration: under a minute, minutes, or hours and minutes."""
     minutes = round(seconds / 60)
     if minutes < 1:
         return "under a minute"
@@ -61,20 +62,20 @@ def pace_line(pace: Mapping[str, Any] | None) -> str | None:
 
 def _phase_line(phases: Sequence[Mapping[str, Any]]) -> tuple[str, str]:
     """Return (markdown, plain) for the phase strip with a bar on the current phase."""
-    md, plain = [], []
+    markdown_parts, plain = [], []
     for phase in phases:
         total, done, status = phase["total"], phase["done"], phase["state"]
         count = f"{phase['done_label']}/{total}" if total else "—"
         if status == "current":
             meter = bar(done, total or 0)
-            md.append(f"`{meter}` **{phase['name']} {count}**")
+            markdown_parts.append(f"`{meter}` **{phase['name']} {count}**")
             plain.append(f"{meter} {phase['name']} {count}")
         else:
             mark = ("✓" if status == "done" else f"({total} steps)" if phase["name"] == "Release"
                     else f"({total} planned)" if total else "(set by plan)")
-            md.append(f"{phase['name']} {mark}")
+            markdown_parts.append(f"{phase['name']} {mark}")
             plain.append(f"{phase['name']} {mark}")
-    return " · ".join(md), " · ".join(plain)
+    return " · ".join(markdown_parts), " · ".join(plain)
 
 
 def _rows(facts: Mapping[str, Any]) -> list[tuple[str, list[tuple[str, str]] | str]]:
@@ -94,6 +95,7 @@ def _rows(facts: Mapping[str, Any]) -> list[tuple[str, list[tuple[str, str]] | s
 
 
 def markdown(facts: Mapping[str, Any]) -> str:
+    """Render the run narrative for ``facts`` as Markdown."""
     phases_md, _ = _phase_line(facts["phases"])
     lines = [f"#### \U0001f6a2 ShipLoop — {facts['goal']}", phases_md, ""]
     for heading, rows in _rows(facts):

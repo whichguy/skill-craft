@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Small, script-owned navigator protocol for ShipLoop.
+"""Script-owned workflow transitions, validation and packets for ShipLoop.
 
-The navigator owns only its durable cursor and a compact result ledger.  It
-does not inspect a repository, execute checks, or decide whether host-reported
-evidence is sufficient.  Hosts perform the work named in the packet and submit
-one structured result for the current action.
+The navigator owns the durable cursor, accepted results and lifecycle routing.
+It enforces stage gates through the test, quality, workspace and Git helpers;
+the host performs the issued action and submits its structured result. Host
+reports remain distinct from independently recorded verification. Storage and
+locking are provided by shiploop_store and the CLI entrypoint.
 """
 
 from __future__ import annotations
@@ -430,6 +431,7 @@ def awaiting(state: Mapping[str, Any]) -> tuple[str, dict[str, Any]] | None:
 
 
 def decision_path(action: str) -> str:
+    """Run-relative path of the decision record for ``action``."""
     return "decisions/" + action + ".md"
 
 
@@ -446,15 +448,15 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
     replans = [index for index, row in enumerate(history) if row["outcome"] == "replan"]
     if not replans:
         return []
-    at = replans[-1]
-    corrective = [row["id"] for row in state["accepted"][history[at]["action"]].get("work_items", ())]
+    last_replan = replans[-1]
+    corrective = [row["id"] for row in state["accepted"][history[last_replan]["action"]].get("work_items", ())]
     if not corrective or any(item not in state["completed_work_items"] for item in corrective):
         return []
     if any(item_scope.no_test_item(state, item) is None for item in corrective):
         return []
     paths = sorted({path for item in corrective for path in item_scope.declared(state, item)})
-    before = [row for row in history[:at] if row["stage"] == stage and row["outcome"] == "done"]
-    lines = ["", "Delta after the replan at " + history[at]["stage"] + ": the corrective item"
+    before = [row for row in history[:last_replan] if row["stage"] == stage and row["outcome"] == "done"]
+    lines = ["", "Delta after the replan at " + history[last_replan]["stage"] + ": the corrective item"
              + ("s " if len(corrective) > 1 else " ") + ", ".join(corrective)
              + " changed only non-code paths: " + ", ".join(paths) + "."]
     if before:
@@ -525,6 +527,9 @@ def _result_shape_problem(value: Mapping[str, Any]) -> str | None:
 def _canonical_result(
     value: Any, *, stage: str, delivery_contract: bool = False
 ) -> dict[str, Any]:
+    """Validate a submitted result against the shared result schema for ``stage`` and return its canonical form;
+    rejects unsupported fields and says how to resubmit.
+    """
     _need(isinstance(value, Mapping), "result must be an object")
     keys = set(value)
     problem = _result_shape_problem(value)
@@ -1315,11 +1320,13 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     order = ("preparation", "inner", "outer")
 
     def phase_state(name: str) -> str:
+        """done, current or pending for phase ``name`` relative to the run's phase."""
         if phase == "complete" or order.index(name) < order.index(phase):
             return "done"
         return "current" if name == phase else "pending"
 
     def title(item: Mapping[str, str], limit: int = 50) -> str:
+        """Work item id and title, truncated for a status line."""
         return _status_text(item["id"], 32) + " " + _status_text(item["title"], limit)
 
     prep_done = sum((None, node) in done for node in prelude)
@@ -1475,7 +1482,7 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
         _need(isinstance(entry, Mapping) and set(entry) == {"id", "text"},
               "each criterion is {\"id\": \"C1\", \"text\": \"...\"}")
         criterion_id = _text(entry["id"], "criterion id")
-        _need(not any(ch.isspace() for ch in criterion_id), "a criterion id has no spaces")
+        _need(not any(character.isspace() for character in criterion_id), "a criterion id has no spaces")
         rows.append({"id": criterion_id, "text": _text(entry["text"], "criterion text")})
     ids = [row["id"] for row in rows]
     _need(len(set(ids)) == len(ids), "criterion ids must be unique")
@@ -1513,7 +1520,7 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
         _need(isinstance(entry, Mapping) and {"id", "task"} <= set(entry) <= {"id", "task", "deps"},
               "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": []}; deps may be omitted in older plans")
         step_id = _text(entry["id"], "step id")
-        _need(not any(ch.isspace() for ch in step_id), "a step id has no spaces")
+        _need(not any(character.isspace() for character in step_id), "a step id has no spaces")
         row = {"id": step_id, "task": _text(entry["task"], "step task")}
         if "deps" in entry:
             deps = entry["deps"]
@@ -1545,7 +1552,7 @@ def implement_progress(state: Mapping[str, Any], work_item: str | None) -> tuple
     action, plan = test_loop._step_plan(state, work_item)
     steps = list(plan.get("steps") or ()) if action else []
     history = list(state.get("history", ()))
-    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
+    start = max((position for position, row in enumerate(history) if row.get("action") == action), default=-1)
     done = sum(1 for row in history[start + 1:]
                if row.get("stage") == "implement" and row.get("workitem") == work_item
                and row.get("outcome") == "done")
@@ -2169,6 +2176,18 @@ def set_lint_mode(state: Mapping[str, Any], value: Any) -> dict[str, Any]:
     return updated
 
 
+# Failures a transition hook may hit in a normal run (a missing contract, an unreadable record, a tool that
+# fails); anything else in a hook is a defect in ShipLoop itself and is reported on stderr.
+_EXPECTED_HOOK_ERRORS = (OSError, ValueError, RuntimeError)
+
+
+def _hook_failed(hook: str, error: Exception) -> None:
+    """Keep a transition going after a hook failure, naming the hook when the failure is a defect."""
+    if not isinstance(error, _EXPECTED_HOOK_ERRORS):
+        sys.stderr.write(f"shiploop: {hook} hook hit an unexpected {type(error).__name__}: {error}; "
+                         "the transition continues without its output.\n")
+
+
 def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
                      after: Mapping[str, Any]) -> tuple[dict[str, str], Any]:
     """Transition hooks: advisory lint, the change inventory and the quality-loop contract.
@@ -2179,26 +2198,21 @@ def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
     try:
         writes, payload = lint.on_transition(root, lint_view(before), lint_view(after),
                                              command=_command(core), reference_dir=_reference_dir(core))
-    except KeyboardInterrupt:
-        raise
-    except BaseException:  # noqa: BLE001 - the hook records its own failures
+    except Exception as exc:
+        _hook_failed("lint", exc)
         writes, payload = {}, None
     view, prior = lint_view(after), lint_view(before)
     if view["stage"] == quality.STAGE and view["action"] and view["action"] != prior["action"]:
         try:
             writes = {**writes, **quality.transition_writes(root, after, view["workitem"], view["action"])}
-        except KeyboardInterrupt:
-            raise
-        except BaseException:  # noqa: BLE001 - a missing contract renders as unavailable
-            pass
+        except Exception as exc:  # a missing contract renders as unavailable
+            _hook_failed("quality contract", exc)
     if view["stage"] in test_loop.STAGES and view["action"] and view["action"] != prior["action"]:
         try:
             writes = {**writes, **test_loop.transition_writes(root, after, view["workitem"], view["action"],
                                                               view["stage"])}
-        except KeyboardInterrupt:
-            raise
-        except BaseException:  # noqa: BLE001 - a missing contract renders as missing
-            pass
+        except Exception as exc:  # a missing contract renders as missing
+            _hook_failed("test-loop contract", exc)
     return writes, payload
 
 
@@ -2379,10 +2393,8 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
 def _lint_finish(root: Path, payload: Any) -> None:
     try:
         lint.finalize(root, payload)
-    except KeyboardInterrupt:
-        raise
-    except BaseException:  # noqa: BLE001
-        pass
+    except Exception as exc:  # advisory output: a failed finalize leaves the lint record as it was
+        _hook_failed("lint finalize", exc)
 
 
 def _lint_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str, action_id: str) -> list[str]:
@@ -2769,15 +2781,18 @@ def status_block(state: Mapping[str, Any]) -> str:
              else "inner" if stage in inner else "outer")
 
     def mark(node: str, key: str | None) -> str:
+        """Status mark for graph ``node``: done, current (the active stage) or pending."""
         if (key, node) in done:
             return _STATUS_MARK["done"]
         return _STATUS_MARK["current" if node == stage and status != "done" else "pending"]
 
     def phase_mark(name: str) -> str:
+        """Status mark for phase ``name`` relative to the current phase."""
         position, current = phases.index(name), phases.index(phase)
         return _STATUS_MARK["done" if position < current else "current" if position == current else "pending"]
 
     def item_name(item: Mapping[str, str], title_limit: int = 60) -> str:
+        """Work item id and quoted title, truncated for a status line."""
         return _status_text(item["id"], 32) + ' "' + _status_text(item["title"], title_limit) + '"'
 
     if phase == "complete":
@@ -2802,7 +2817,7 @@ def status_block(state: Mapping[str, Any]) -> str:
         groups = []
         for name, stages in guidance.INNER_GROUPS:
             state_marks = [mark(node, owner) for node in stages]
-            symbol = (_STATUS_MARK["done"] if all(m == _STATUS_MARK["done"] for m in state_marks)
+            symbol = (_STATUS_MARK["done"] if all(state_mark == _STATUS_MARK["done"] for state_mark in state_marks)
                       else _STATUS_MARK["current"] if stage in stages else _STATUS_MARK["pending"])
             groups.append(f"{name} {symbol}")
         lines.append("Item:      " + " | ".join(groups))
@@ -2883,13 +2898,16 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     done, last_replan = _accepted_done(state)
 
     def compact(value: str, limit: int = 80) -> str:
+        """``value`` on one line, cut to ``limit`` characters with an ellipsis."""
         value = " ".join(value.split())
         return value if len(value) <= limit else value[:limit - 1] + "…"
 
     def item_label(item: Mapping[str, str]) -> str:
+        """``id: title`` for a work item, compacted."""
         return compact(item["id"], 32) + ": " + compact(item["title"])
 
     def item_labels(items: list[dict[str, str]]) -> str:
+        """Up to three item labels, then a count of the rest."""
         labels = "; ".join(item_label(item) for item in items[:3])
         return labels + (f"; +{len(items) - 3} more" if len(items) > 3 else "")
 
@@ -3439,7 +3457,7 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
                if row.get("stage") == "implement" and row.get("workitem") == work_item
                and row.get("outcome") == "done"][-done:] if done else []
     lines = [f"Step {step['id']} ({done + 1} of {len(steps)}), the only work for this packet: {step['task']}"]
-    for earlier, row in zip(steps[:done], history):
+    for earlier, row in zip(steps[:done], history, strict=False):
         lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
     if done + 1 < len(steps):
         lines.append("Later steps (ShipLoop issues each one after this callback; do not start them): "
@@ -4090,6 +4108,7 @@ def improve_opening_path(child: Mapping[str, Any]) -> Path:
 
 
 def improve_opening_template() -> str:
+    """Template of the Improve opening: every required section heading followed by a placeholder."""
     return "\n\n".join("## " + name + "\n..." for name in OPENING_SECTIONS) + "\n"
 
 
@@ -4153,7 +4172,6 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
     _reject_credentials(sections, "Improve opening")
     receipt = standalone.receipt_path(child)
     reviews = receipt.parent / "reviews"
-    action_id = child["action_id"]
     parent_return = receipt.with_name("parent-return.md")
     planning = child["stage"] == "plan"
     request = (child["contract_marker"] + "\n\n## Current context and desired improvements\n"
@@ -4302,7 +4320,8 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     done = subprocess.run(
         [sys.executable, "-B", child["skill"]["runtime_cli"], "start", "--directory", str(state_dir),
          "--receipt", str(receipt)],
-        input=json.dumps(contract, ensure_ascii=False).encode("utf-8"), capture_output=True, timeout=60)
+        input=json.dumps(contract, ensure_ascii=False).encode("utf-8"), capture_output=True, timeout=60,
+        check=False)
     # stdout is exactly the runtime's packet (as from the runtime's own start), so it parses as JSON.
     sys.stderr.write("Improve child started from the frozen contract " + str(start)
                      + "; its receipt is " + str(receipt) + ". Follow the runtime packet on stdout.\n")

@@ -1,0 +1,188 @@
+{
+ "id": "delta-spec-merge",
+ "overview": "OpenSpec keeps two kinds of spec files. openspec/specs/<capability-path>/spec.md is the persistent truth: a title, a ## Purpose, and a ## Requirements section of '### Requirement: <name>' blocks, each with '#### Scenario:' children. A change carries only deltas at openspec/changes/<name>/specs/<capability-path>/spec.md, where the only meaningful sections are '## ADDED Requirements', '## MODIFIED Requirements', '## REMOVED Requirements' and '## RENAMED Requirements', matched case-insensitively. Requirements are identified purely by their header text (after trimming a closing run of #); there are no ids or hashes. [verified in specs-apply.ts and requirement-blocks.ts]\n\nCode merges them in buildUpdatedSpec in a fixed order: RENAMED, then REMOVED, then MODIFIED, then ADDED, against a map of name to block built from the main spec. MODIFIED replaces the whole block and ADDED appends new blocks at the end; renamed blocks keep their original position. Conflicts are caught twice, before any write: pre-checks reject duplicates within a section and the same requirement in two sections, and the operation loops throw on a missing MODIFIED target, an ADDED that already exists with different content, a missing RENAMED source, or case/whitespace near-misses. One protection against lost content exists for MODIFIED: every scenario name in the current block must appear in the incoming block, otherwise archive refuses. Operations whose result is already present are no-ops, so a delta that was synced early still archives (the 'early-sync pattern'). [verified]\n\nThe enforcement chain is validate then archive. 'openspec validate' parses every discovered delta file and reports errors (no delta sections, empty sections, missing text or scenario, duplicates, cross-section conflicts, rename pairs, stray spec.md at the specs root, files the merge will never read), warnings (missing SHALL/MUST, requirement text over 500 characters, orphaned requirements outside the four sections) and INFO notes (skipped non-canonical headers, 'Archive would refuse this delta' from a dry run). 'openspec archive' re-runs delta validation, checks incomplete tasks, claims the destination folder, builds all rebuilt specs, validates each rebuilt spec, then writes with snapshot rollback and fingerprint checks, and finally moves the change to changes/archive/YYYY-MM-DD-<name>. A zero-delta change must declare skip_specs: true in .openspec.yaml, which also makes the graph treat specs/ artifacts as skipped; the separate --skip-specs flag only skips the merge for one run. retire_capabilities: true authorises deleting a main spec whose last requirement a delta removes. [verified]\n\nThe important caveat for a harness author: the merge by code only happens when someone runs the CLI. The default agent skills (/opsx:archive and /opsx:sync) tell the model to merge intelligently itself and then verify, and move the folder with mv. OpenSpec's own issue #2033 asks whether to drop deterministic merging because the name matching is brittle and failures can be late or silent, and it lists three directions (agent merges with CLI checks, per-task sync, stable ids). [verified in templates; issue content from a WebFetch summary, unverified]\n\nKnown gaps in the code: merging is replace-only with no base version, so two open changes that modify the same requirement can overwrite each other except for scenario-name loss (issues #1246 closed, #1387 and #1669 open; a user reports the guard compares names only); a scenario rename reads as a dropped scenario and blocks archive (#1697 open); validate may accept a delta that archive refuses (#1112 open, partly mitigated by the INFO dry-run); the schema instruction says REMOVED must carry Reason and Migration but no code checks it and the Reason text is not preserved in the main spec. [code facts verified; issue statuses from WebFetch, unverified]",
+ "howItWorks": [
+  "Author writes deltas under changes/<name>/specs/<capability-path>/spec.md; the artifact graph counts any specs/**/*.md as the specs stage, so file placement is checked later by validate (findUnreadDeltaFiles).",
+  "discoverSpecFiles finds every spec.md at any depth under the change's specs/ (dot dirs skipped, symlinked dirs not followed); the capability id is the relative folder path, and the target is openspec/specs/<id>/spec.md.",
+  "parseDeltaSpec masks code fences, splits '## ' sections, reads the four operation sections case-insensitively (repeated headers merge), extracts requirement blocks, REMOVED names (header or bullet form), RENAMED FROM/TO pairs, and records unpaired renames, orphaned requirements and skipped non-canonical headers.",
+  "validate <change> runs validateChangeDeltaSpecs: per-block checks (text, SHALL/MUST guidance, 500-char limit, at least one scenario), duplicate and cross-section conflict checks, scenario-loss check against the main spec, skip_specs conflict check, task-file lint, and a dry run of buildUpdatedSpec reported as INFO.",
+  "archive re-validates (unless --no-validate, which also disables retirement), shows task status and asks to continue on incomplete tasks, computes archive name (YYYY-MM-DD- prefix unless the name already has one), claims the destination exclusively, then calls buildUpdatedSpec for each delta without writing.",
+  "buildUpdatedSpec: pre-validates duplicates and conflicts; loads or skeletons the target (new spec: only ADDED allowed, Purpose copied from the delta if usable); refuses a structurally invalid main spec; applies RENAMED, REMOVED, MODIFIED, ADDED; recomposes in original order with additions last.",
+  "Every rebuilt spec is validated with the spec validator before any file is written; a failure aborts with 'Aborted. No files were changed.' (JSON: archive_spec_validation_failed).",
+  "Writes happen with snapshot capture, fingerprint rechecks of delta and target, rollback of specs and of the folder move on any error; retirements run after all writes and are deferred-deleted until the move succeeds.",
+  "The change folder is moved to openspec/changes/archive/YYYY-MM-DD-<name>; the archived folder keeps the deltas, proposal, design, tasks and .openspec.yaml as history; main specs hold only current truth."
+ ],
+ "examples": [
+  {
+   "label": "Directory layout: persistent specs vs per-change deltas vs archive",
+   "kind": "file",
+   "source": "illustrative, paths verified in specs-apply.ts findSpecUpdates + archive.ts",
+   "text": "openspec/\n  config.yaml\n  specs/                                  # persistent truth, one folder per capability\n    auth/spec.md                          # '# auth Specification', '## Purpose', '## Requirements'\n    identity/user-auth/spec.md            # nested capability-path is allowed (id = 'identity/user-auth')\n  changes/\n    add-2fa/\n      .openspec.yaml                      # schema: spec-driven; optional skip_specs / retire_capabilities\n      proposal.md  design.md  tasks.md\n      specs/\n        auth/spec.md                      # DELTA: only ## ADDED/MODIFIED/REMOVED/RENAMED Requirements\n    archive/\n      2026-10-11-add-2fa/                 # whole change dir moved here after merge (date prefix not stacked)\n# rules: delta file must be exactly specs/<capability-path>/spec.md at any depth; a spec.md directly in\n# changes/<n>/specs/ or a delta in specs/auth.md is rejected by validate and never merged."
+  },
+  {
+   "label": "Delta syntax (docs example; note REMOVED here has no Reason/Migration)",
+   "kind": "file",
+   "source": "openspec docs/concepts.md (verbatim)",
+   "text": "# Delta for Auth\n\n## ADDED Requirements\n\n### Requirement: Two-Factor Authentication\nThe system MUST support TOTP-based two-factor authentication.\n\n#### Scenario: 2FA enrollment\n- GIVEN a user without 2FA enabled\n- WHEN the user enables 2FA in settings\n- THEN a QR code is displayed for authenticator app setup\n- AND the user must verify with a code before activation\n\n## MODIFIED Requirements\n\n### Requirement: Session Expiration\nThe system MUST expire sessions after 15 minutes of inactivity.\n(Previously: 30 minutes)\n\n#### Scenario: Idle timeout\n- GIVEN an authenticated session\n- WHEN 15 minutes pass without activity\n- THEN the session is invalidated\n\n## REMOVED Requirements\n\n### Requirement: Remember Me\n(Deprecated in favor of 2FA. Users should re-authenticate each session.)"
+  },
+  {
+   "label": "RENAMED and REMOVED spellings the parser accepts",
+   "kind": "file",
+   "source": "openspec test/core/archive.test.ts (verbatim strings) + requirement-blocks.ts regexes",
+   "text": "## RENAMED Requirements\n- FROM: `### Requirement: Old name`\n- TO: `### Requirement: New name`\n\n## REMOVED Requirements\n### Requirement: Old name              <- header form (raw block kept as removedBlocks)\n- `### Requirement: Other old name`    <- bullet form; any of - * + accepted\n\n// requirement-blocks.ts\nconst REQUIREMENT_HEADER_REGEX = /^###\\s*Requirement:\\s*(.+)\\s*$/i;\nfromMatch = line.match(/^\\s*[-*+]?\\s*FROM:\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$/);\ntoMatch   = line.match(/^\\s*[-*+]?\\s*TO:\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$/);\nbullet    = line.match(/^\\s*[-*+]\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$/);   // REMOVED bullets\n// a FROM must be followed by its TO (no second FROM between); anything else lands in plan.unpairedRenames"
+  },
+  {
+   "label": "Parsing rules (what counts as a section, a block, a name)",
+   "kind": "file",
+   "source": "openspec src/core/parsers/requirement-blocks.ts (behaviour, condensed)",
+   "text": "parseDeltaSpec(content):\n  normalise: strip BOM, CRLF -> LF; buildCodeFenceMask(lines)  # lines in ``` fences are ignored everywhere\n  sections = every non-fenced line matching /^(##)\\s+(.+)$/ starts a section; body runs to the next '## '\n  ADDED/MODIFIED/REMOVED/RENAMED lookup is CASE-INSENSITIVE on '<OP> Requirements' and MERGES repeated headers\n  requirement block = '### Requirement: <name>' + all lines until the next requirement header or '## ' header\n  name = header text minus a closing '#' run (normalizeRequirementName); matching is exact and case-sensitive\n  '### Something else' inside ADDED/MODIFIED -> recorded in skippedHeaders (INFO in validate), not applied\n  '### Requirement:' outside the 4 sections (e.g. under '## Notes') -> orphanedRequirements (WARNING; archive warns)\n  '## Purpose' in a delta is read ONLY when the main spec does not exist yet\nMain spec side: extractRequirementsSection(content) splits {before, '## Requirements', preamble, bodyBlocks[], after}"
+  },
+  {
+   "label": "Merge algorithm: order RENAMED -> REMOVED -> MODIFIED -> ADDED",
+   "kind": "file",
+   "source": "openspec src/core/specs-apply.ts buildUpdatedSpec (comments and key lines)",
+   "text": "// pre-validate: duplicates inside a section; cross-section conflicts; RENAMED vs MODIFIED/ADDED/REMOVED;\n//               'Delta parsing found no operations for <id>. Provide ADDED/MODIFIED/REMOVED/RENAMED sections in change spec.'\n// base: target spec missing -> only ADDED allowed (MODIFIED/RENAMED throw), REMOVED warns+ignored, skeleton built:\n//       `# ${id} Specification\\n\\n## Purpose\\n${purpose or 'TBD - created by archiving change X. Update Purpose after archive.'}\\n\\n## Requirements\\n`\nnameToBlock = Map(normalizedName -> block of main spec); orderedKeys = original order\n// Apply operations in order: RENAMED -> REMOVED -> MODIFIED -> ADDED\nRENAMED : source missing & target present -> no-op (already synced); both missing -> throw; target exists -> throw\n          header line rewritten in place; block keeps its original position (orderedKeys[i] = to)\nREMOVED : missing -> warn 'treating it as already removed' (near-miss by case/space -> throw)\nMODIFIED: missing -> throw ' - not found'; header mismatch -> throw; scenario names missing vs current -> throw;\n          whole block replaced by delta raw; identical content -> counted as no-op\nADDED   : identical existing -> skip; different existing -> throw 'already exists'; near-miss name -> throw\n// recompose: keep original order (replacements in place), append new ADDED at end, join blocks with blank line\n// returns {rebuilt, counts{added,modified,removed,renamed}, warnings[], noRequirementBlocks, unaccountedContent[]}"
+  },
+  {
+   "label": "Worked example 1/3: persistent spec before the change",
+   "kind": "before-after",
+   "source": "illustrative (faithful to buildSpecSkeleton layout and block grammar)",
+   "text": "# auth Specification\n\n## Purpose\nDefines how users sign in and how long a session stays valid.\n\n## Requirements\n\n### Requirement: Session Expiration\nThe system SHALL expire sessions after 30 minutes of inactivity.\n\n#### Scenario: Idle timeout\n- **WHEN** a session is idle for 30 minutes\n- **THEN** the session is invalidated\n\n### Requirement: Remember Me\nThe system SHALL keep users signed in on trusted devices.\n\n#### Scenario: Trusted device\n- **WHEN** a user ticks \"remember me\"\n- **THEN** the session persists for 30 days\n\n### Requirement: Login Throttle\nThe system SHALL limit failed logins per account.\n\n#### Scenario: Lockout\n- **WHEN** 5 logins fail within 10 minutes\n- **THEN** further attempts are rejected for 15 minutes"
+  },
+  {
+   "label": "Worked example 2/3: the delta (openspec/changes/add-2fa/specs/auth/spec.md)",
+   "kind": "before-after",
+   "source": "illustrative",
+   "text": "# Delta for Auth\n\n## RENAMED Requirements\n- FROM: `### Requirement: Login Throttle`\n- TO: `### Requirement: Login Rate Limit`\n\n## REMOVED Requirements\n### Requirement: Remember Me\n**Reason**: Replaced by two-factor sign-in\n**Migration**: Users re-authenticate each session\n\n## MODIFIED Requirements\n### Requirement: Session Expiration\nThe system SHALL expire sessions after 15 minutes of inactivity.\n\n#### Scenario: Idle timeout\n- **WHEN** a session is idle for 15 minutes\n- **THEN** the session is invalidated\n\n## ADDED Requirements\n### Requirement: Two-Factor Authentication\nThe system SHALL require a TOTP code for accounts that enable 2FA.\n\n#### Scenario: Valid code\n- **WHEN** a user with 2FA submits valid credentials and a valid code\n- **THEN** login completes"
+  },
+  {
+   "label": "Worked example 3/3: merged main spec after `openspec archive add-2fa --yes`",
+   "kind": "before-after",
+   "source": "illustrative: derived by hand from the algorithm; CLI prints 'Totals: + 1, ~ 1, - 1, → 1'",
+   "text": "# auth Specification\n\n## Purpose\nDefines how users sign in and how long a session stays valid.\n\n## Requirements\n\n### Requirement: Session Expiration\nThe system SHALL expire sessions after 15 minutes of inactivity.\n\n#### Scenario: Idle timeout\n- **WHEN** a session is idle for 15 minutes\n- **THEN** the session is invalidated\n\n### Requirement: Login Rate Limit\nThe system SHALL limit failed logins per account.\n\n#### Scenario: Lockout\n- **WHEN** 5 logins fail within 10 minutes\n- **THEN** further attempts are rejected for 15 minutes\n\n### Requirement: Two-Factor Authentication\nThe system SHALL require a TOTP code for accounts that enable 2FA.\n\n#### Scenario: Valid code\n- **WHEN** a user with 2FA submits valid credentials and a valid code\n- **THEN** login completes\n(Remember Me gone; its Reason/Migration text is NOT stored in the main spec, only in the archived change.)"
+  },
+  {
+   "label": "Merge-time errors (real messages, specs-apply.ts)",
+   "kind": "output",
+   "source": "openspec src/core/specs-apply.ts",
+   "text": "<id> validation failed - duplicate requirement in ADDED|MODIFIED|REMOVED for header \"### Requirement: X\"\n<id> validation failed - duplicate FROM|TO in RENAMED for header \"### Requirement: X\"\n<id> validation failed - requirement present in multiple sections (MODIFIED and REMOVED|ADDED) for header \"### Requirement: X\"\n<id> validation failed - requirement present in multiple sections (RENAMED and REMOVED) for header \"### Requirement: X\"\n<id> validation failed - when a rename exists, MODIFIED must reference the NEW header \"### Requirement: <to>\"\n<id> validation failed - RENAMED TO header collides with ADDED for \"### Requirement: <to>\"\n<id> validation failed - RENAMED entry on line N has no matching TO|FROM: for header \"### Requirement: X\". Write each rename as a FROM: line followed immediately by its TO: line.\nDelta parsing found no operations for <id>. Provide ADDED/MODIFIED/REMOVED/RENAMED sections in change spec.\n<id>: target spec does not exist; only ADDED requirements are allowed for new specs. MODIFIED and RENAMED operations require an existing spec.\n<id> RENAMED failed for header \"### Requirement: X\" - source not found | target already exists\n<id> REMOVED failed for header \"### Requirement: X\" - not found, but \"### Requirement: x\" exists; fix the header to match it exactly\n<id> MODIFIED failed for header \"### Requirement: X\" - not found | header mismatch in content\n<id> MODIFIED failed for header \"### Requirement: X\" - current spec contains scenario(s) not present in the modified block: \"Idle timeout\". The modified block has 1 scenario; the current spec has 2. It adds none. Refresh the change spec before archiving to avoid dropping scenarios.\n<id> ADDED failed for header \"### Requirement: X\" - already exists   (also: '... differs only in case or spacing; use MODIFIED ...')\n<id>: target spec is structurally invalid and cannot be updated until fixed:\\nline N: <issue>"
+  },
+  {
+   "label": "openspec validate <change> messages (real strings, validator.ts + constants.ts)",
+   "kind": "output",
+   "source": "openspec src/core/validation/validator.ts, constants.ts",
+   "text": "ERROR  No delta sections found. Add headers such as \"## ADDED Requirements\" or move non-delta notes outside specs/.\nERROR  Delta sections ## ADDED Requirements were found, but no requirement entries parsed. Ensure each section includes at least one \"### Requirement:\" block (REMOVED may use bullet list syntax).\nERROR  ADDED \"X\" must include at least one scenario        (also MODIFIED; hint if a '#### Scenario' header has no body)\nERROR  ADDED \"X\" is missing requirement text\nERROR  Duplicate requirement in ADDED|MODIFIED|REMOVED: \"X\"      Duplicate FROM|TO in RENAMED: \"X\"\nERROR  Requirement present in both MODIFIED and REMOVED|ADDED: \"X\"     ... both ADDED and REMOVED ...\nERROR  MODIFIED references old name from RENAMED. Use new header for \"<to>\"      RENAMED TO collides with ADDED for \"<to>\"\nERROR  MODIFIED \"X\" omits scenario(s) the current spec still has: \"S\". <balance sentence> Copy the omitted scenarios into the MODIFIED block (a MODIFIED requirement replaces the whole block, so archive refuses to drop them).\nERROR  Delta spec found at specs/spec.md. Delta specs must live under a capability path (e.g. specs/<capability-path>/spec.md) ...\nERROR  Change must have at least one delta. + guide: set \"skip_specs: true\" in the change's .openspec.yaml if no spec behaviour changes\nERROR  skip_specs is set in .openspec.yaml but spec files exist under specs/. Remove skip_specs or delete the delta spec files\nWARN   ADDED \"X\" should contain SHALL or MUST (RFC 2119 best practice for English specs)      (strict mode turns every WARN into failure)\nWARN   Requirement text is very long (>500 characters). ...        WARN  Requirement \"X\" is under \"## Notes\", which is not a delta section, so it is ignored.\nINFO   Header \"### Foo\" in ADDED Requirements is not a \"### Requirement:\" header and is ignored by validation. ...\nINFO   Archive would refuse this delta: <merge error>        (dry-run of buildUpdatedSpec when mainSpecsDir is given)"
+  },
+  {
+   "label": "Archive, step by step, as the CLI documents and implements it",
+   "kind": "command",
+   "source": "openspec docs/cli.md (verbatim list) + archive.ts order",
+   "text": "openspec archive add-2fa --yes            # --yes required when no TTY; JSON mode: add --json\n1. Validates the change (unless `--no-validate`)\n2. Prompts for confirmation (unless `--yes`)\n3. Claims the archive destination before changing any main spec\n4. Validates and merges the active delta specs into `openspec/specs/` ...\n5. Moves the change folder to `openspec/changes/archive/YYYY-MM-DD-<name>/`\n6. If a spec mutation or final move fails before a complete archive is secured, restores the specs and leaves or returns the change at its active path\n7. If a verified fallback copy completes but staged-source cleanup fails, retains the complete archive and committed spec state for recovery\n# inside step 4 (archive.ts): build ALL rebuilt specs first -> validate EVERY rebuilt spec (Validator.validateSpecContent)\n# -> only then write; snapshots of targets are captured and restored on any failure; fingerprints (sha256) of delta and target\n# are re-checked before each write to detect concurrent edits. JSON failure codes: archive_validation_failed, archive_spec_validation_failed,\n# archive_spec_update_failed, archive_tasks_incomplete, archive_confirmation_required, archive_target_exists, ..."
+  },
+  {
+   "label": "skip_specs (metadata marker) vs --skip-specs (one-run flag) vs retire_capabilities",
+   "kind": "file",
+   "source": "openspec .openspec.yaml schema (change-metadata/schema.ts), docs/cli.md",
+   "text": "# openspec/changes/update-ci-config/.openspec.yaml\nschema: spec-driven\nskip_specs: true          # intentional zero deltas; honoured only if the file is valid metadata AND the schema resolves\n# effects: validate accepts zero deltas (INFO 'zero deltas accepted'); ANY file under specs/ => ERROR (conflict);\n#          artifact graph marks artifacts whose generates starts with 'specs/' as 'skipped' so tasks is not blocked;\n#          `instructions specs` returns only a do-not-create warning.\nopenspec archive update-ci-config --skip-specs     # different thing: skip the merge for ONE run, validation still runs\n\n# openspec/changes/retire-legacy/.openspec.yaml\nschema: spec-driven\nretire_capabilities: true  # REMOVED taking a capability's LAST requirement deletes openspec/specs/<cap>/spec.md\n# without the marker: abort 'This change removes the last requirement <cap> has. To retire the capability and delete its spec, add retire_capabilities: true ...'\n# refused while spec holds content outside title/Purpose/requirement blocks (unaccountedContent); --no-validate disables retirement."
+  },
+  {
+   "label": "Two merge paths: the default agent skill merges with the LLM, the CLI merges with code",
+   "kind": "prompt",
+   "source": "openspec src/core/templates/workflows/archive-change.ts + sync-specs.ts (short quotes)",
+   "text": "sync-specs skill: \"This is an **agent-driven** operation - you will read delta specs and directly edit main specs\n  to apply the changes. This allows intelligent merging (e.g., adding a scenario without copying the entire requirement).\"\narchive skill step 4: run the sync inline, then verify each main spec: no delta headers remain, '### Requirement:' / '#### Scenario:' shapes,\n  and re-run the comparison so each capability reads as already synced (ADDED present, MODIFIED scenarios intact, REMOVED gone, RENAMED under new name).\narchive skill step 5: `mv \"<changeRoot>\" \"<planningHome.changesDir>/archive/<target-name>\"`\nCLI: `openspec archive` = the deterministic code merge above. Issue #2033 (open, design-review): 'Should OpenSpec stop deterministic spec merging\n  in openspec archive?' -- two paths exist, name matching is brittle, 46 fix commits since June (as stated in the issue; unverified by me)."
+  }
+ ],
+ "pitfalls": [
+  "MODIFIED must contain the full updated block; partial content silently drops everything else in that requirement (the schema instruction warns about it, only scenario names are enforced by code).",
+  "Matching is exact on the header text after trimming a closing # run; only typo detection folds case and whitespace. A mis-typed header fails loudly for MODIFIED/RENAMED but REMOVED of a missing requirement is a warned no-op.",
+  "No base fingerprint: if another change landed between authoring and archive, a MODIFIED block replaces whatever is now there; only a dropped scenario NAME is detected. The plan file openspec-parallel-merge-plan.md describes fingerprints and 3-way merge but I found no implementation of them (issues #1387/#1669 open) [unverified beyond code search].",
+  "Scenario rename or reorder in a MODIFIED block is read as loss and blocks archive (#1697 open); the workaround is to keep names stable or adjust by hand.",
+  "REMOVED Reason and Migration are demanded by the instruction text but parsed only as raw block text; they are not validated and not written to the main spec.",
+  "Errors can surface late: validate can pass while archive refuses (the dry-run INFO narrows but does not close this, #1112 open); mainSpecsDir-less validate calls skip the scenario-loss check.",
+  "Requirement text over 500 characters is only a warning, but 'validate --strict' turns every warning (missing SHALL/MUST, long text, brief Purpose) into a failure.",
+  "Delta Purpose is silently ignored when the spec exists (a warn is emitted only if the two Purposes differ); the TBD placeholder 'TBD - created by archiving change X. Update Purpose after archive.' is flagged as a warning by validate.",
+  "Two merge paths exist (CLI code vs agent-driven skill merge); a harness that wants a CI oracle must call the CLI path or reimplement it, not rely on the skill [issue #2033 discussion, unverified].",
+  "The archive code is dominated by filesystem race and symlink hardening (fingerprints, claims, rollback); the semantic merge itself is under 200 lines, so copy the algorithm, not the hardening, unless concurrent writers are real.",
+  "Illustrative worked example was derived by hand from the algorithm and not executed [unverified output]."
+ ],
+ "modelEra": "A Claude 5 model can author correct delta syntax from a short instruction and the template, and can even perform the merge, but the deterministic merge is valuable precisely because it is a repeatable oracle: its failures are explicit strings the model can fix in one retry. Keep the merge in code; use the model only to write deltas and to repair findings. The 40-line 'CRITICAL: exactly 4 hashtags' warnings in OpenSpec's instruction exist because failures used to be silent, which validate now reports, so a harness with a validator can keep the instruction short.",
+ "whatWouldChange": "1) Persist specs as one file per capability with exactly the grammar above, and keep deltas per change in the same folder shape. 2) Port the algorithm, not the hardening: parseDeltaSpec (fence mask, sections, blocks, rename pairs), a name->block map, operations in the order RENAMED, REMOVED, MODIFIED, ADDED, recompose in original order. 3) Improve on OpenSpec: give each requirement a stable id in its header (for example '### Requirement: R-014 Session Expiration') and key the merge on the id so renames stop being a special operation; store in the delta the sha256 of the baseline block each MODIFIED/REMOVED was written against and refuse to merge when the live block hash differs (OpenSpec issue #1387 proposes exactly this; not implemented there). 4) Make REMOVED machine-checked: require Reason and Migration lines and append them to a changelog file, since OpenSpec drops them. 5) Run the dry-run merge inside the validate gate as an ERROR, not INFO, so a delta that will be refused can never be accepted by the stage check. 6) Validate the rebuilt spec before writing, write all targets or none (snapshot plus rename into place), then move the change to archive/<date>-<name> only after specs are written; return a JSON result with totals and warnings. 7) Treat zero-delta changes explicitly: a skip marker in change metadata with a recorded reason, and a validator rule that specs/ must then be empty. 8) Add an overlap report: list requirement ids touched by more than one open change before either archives. 9) Send validation findings, not prose, back to the model on failure (code, path, line, message) and re-issue the same stage packet; cap attempts. 10) Do not offer an agent-driven merge path alongside the code path; one oracle only.",
+ "sources": [
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/specs-apply.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/archive.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/parsers/requirement-blocks.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/parsers/spec-structure.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/validation/validator.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/validation/constants.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/schemas/spec.schema.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/utils/spec-discovery.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/utils/change-metadata.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/change-metadata/schema.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/templates/workflows/archive-change.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "src/core/templates/workflows/sync-specs.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "schemas/spec-driven/schema.yaml"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "docs/concepts.md"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "docs/cli.md"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "docs/writing-specs.md"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "openspec-parallel-merge-plan.md"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "test/core/archive.test.ts"
+  },
+  {
+   "repo": "Fission-AI/OpenSpec",
+   "path": "github issues #2033, #1387, #1697, #1246, #1112 (via WebFetch summaries)"
+  }
+ ]
+}

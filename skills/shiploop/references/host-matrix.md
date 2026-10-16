@@ -32,6 +32,14 @@ interpret its returned action. No host-specific `/goal` invocation is needed.
 Stored DAG prompts retain the planning grammar but are instructions for the
 host, not permission to bypass ShipLoop's action cursor.
 
+The supported operating systems are macOS and Linux, as declared in the skill
+card. The storage runtime requires POSIX file locking, atomic replacement on
+the same filesystem and working file/directory synchronization; it uses
+Python's standard library, with Git for repository operations and Node.js for
+the bound implementation-chain helper. Native Windows and network-filesystem
+crash durability are not certified by this host matrix. Host portability does
+not imply identical filesystem guarantees.
+
 New runs use navigator protocol 4, the only protocol. `next` rehydrates the current owner and action
 from authoritative Markdown. Submit the exact callback printed in that packet.
 A saved run from a retired protocol or mode is refused with an error that names

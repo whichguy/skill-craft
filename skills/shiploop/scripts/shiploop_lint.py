@@ -246,7 +246,7 @@ def _redact(line: str) -> str:
 
 def _one_line(text: str) -> str:
     """Escape control characters so a path can never start a new packet line."""
-    return re.sub(r"[\x00-\x08\x0a-\x1f\x7f]", lambda m: "\\x%02x" % ord(m.group()), _safe_text(text))
+    return re.sub(r"[\x00-\x08\x0a-\x1f\x7f]", lambda match: "\\x%02x" % ord(match.group()), _safe_text(text))
 
 
 def _split_lines(text: str) -> List[str]:
@@ -272,7 +272,7 @@ def _data(text: str, indent: str = "") -> List[str]:
     lines = text.splitlines() or [""]
     out = []
     for line in lines:
-        safe = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", lambda m: "\\x%02x" % ord(m.group()), _safe_text(line))
+        safe = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", lambda match: "\\x%02x" % ord(match.group()), _safe_text(line))
         out.append(indent + "| " + _redact(safe))
     return out
 
@@ -316,6 +316,7 @@ def load_catalog(reference_dir: Path) -> Dict[str, Any]:
 
 
 def default_reference_dir() -> Path:
+    """The skill's ``references`` directory."""
     return Path(__file__).resolve().parents[1] / "references"
 
 
@@ -471,6 +472,7 @@ def capture_base(run_dir: Path, repo: Path, work_item: str) -> Dict[str, str]:
 
 
 def read_base(run_dir: Path, work_item: Optional[str]) -> Optional[Dict[str, Any]]:
+    """The recorded base for ``work_item`` when its record is readable and ok, else None."""
     if not work_item:
         return None
     path = Path(run_dir) / _item_base_path(work_item)
@@ -565,6 +567,7 @@ class _Invoker:
         self.skipped: List[str] = []
 
     def remaining(self) -> float:
+        """Seconds left before the pass deadline."""
         return self.deadline - self.clock()
 
     def run(self, argv: Sequence[str], *, what: str, stdin: Optional[bytes] = None,
@@ -715,8 +718,8 @@ def _opcodes(before: List[str], after: List[str]) -> Optional[List[Tuple[str, in
     if len(middle_before) * len(middle_after) > DIFF_CELL_CAP:
         return None
     matcher = difflib.SequenceMatcher(None, middle_before, middle_after, autojunk=False)
-    return [(tag, i1 + start, i2 + start, j1 + start, j2 + start)
-            for tag, i1, i2, j1, j2 in matcher.get_opcodes() if tag != "equal"]
+    return [(tag, old_start + start, old_end + start, new_start + start, new_end + start)
+            for tag, old_start, old_end, new_start, new_end in matcher.get_opcodes() if tag != "equal"]
 
 
 def _changed_lines(base: Optional[str], current: str) -> Optional[Set[int]]:
@@ -728,9 +731,9 @@ def _changed_lines(base: Optional[str], current: str) -> Optional[Set[int]]:
     if opcodes is None:
         return None
     changed: Set[int] = set()
-    for tag, _i1, _i2, j1, j2 in opcodes:
+    for tag, _old_start, _old_end, new_start, new_end in opcodes:
         if tag in ("replace", "insert"):
-            changed.update(range(j1 + 1, j2 + 1))
+            changed.update(range(new_start + 1, new_end + 1))
     return changed
 
 
@@ -786,11 +789,11 @@ def _hunks_on_changed(before: str, after: str, changed: Set[int]) -> bool:
     opcodes = _opcodes(_split_lines(before), _split_lines(after))
     if opcodes is None:
         return False
-    for _tag, i1, i2, _j1, _j2 in opcodes:
-        if i1 < i2:
-            if not all(line in changed for line in range(i1 + 1, i2 + 1)):
+    for _tag, old_start, old_end, _new_start, _new_end in opcodes:
+        if old_start < old_end:
+            if not all(line in changed for line in range(old_start + 1, old_end + 1)):
                 return False
-        elif i1 not in changed and (i1 + 1) not in changed:
+        elif old_start not in changed and (old_start + 1) not in changed:
             return False
     return True
 
@@ -844,11 +847,13 @@ class _File:
         self.tool_notes: List[str] = []  # discovered linters that could not lint it
 
     def label(self) -> str:
+        """Status and quoted path(s) naming this changed file; renames and copies show old -> new."""
         if self.status in ("R", "C"):
             return self.status + " " + cquote(self.old) + " -> " + cquote(self.path)
         return self.status + " " + cquote(self.path)
 
     def line_text(self, number: int) -> str:
+        """Text of 1-based line ``number`` of the file, or an empty string when absent."""
         if self.text is None:
             return ""
         lines = _plain_lines(self.text)
@@ -878,7 +883,7 @@ def lint_pass(repo: Path, run_dir: Path, *, action: str, work_item: str, stage: 
     started = clock()
     top = git_toplevel(Path(repo), timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, budget)))
     if top is None:
-        raise LintError("not a Git checkout")
+        raise LintError("not a Git checkout: " + os.fspath(repo))
     prefix = scope_prefix(top, Path(repo))
     roots = repo_roots(top, timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, budget - (clock() - started))))
     base_env = dict(os.environ if env is None else env)
@@ -921,6 +926,9 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
               base_tree: str, base_label: str, current_tree: str, fixing: bool, allow_fix: bool,
               notes: List[str], command: str, base_env: Mapping[str, str], prefix: str = ".",
               roots: Sequence[str] = (), journal_notes: Sequence[str] = ()) -> Dict[str, Any]:
+    """Run one lint pass over the files changed between ``base_tree`` and ``current_tree``: read them, run the
+    available linters inside the time budget, optionally apply ruff fixes, and return the pass payload.
+    """
     shim_dirs = tuple(catalog.get("shim_dirs", ()))
     project = top if prefix == "." else top / prefix
     untracked_before = _untracked(invoker, run_dir)
@@ -950,7 +958,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
             item.uncovered = True
             invoker.skipped.append("reading " + cquote(item.path))
             continue
-        _load_file(invoker, top, item, base_entries, current_entries, catalog)
+        _load_file(invoker, top, item, base_entries, catalog)
         if item.scope:
             continue
         values = attrs.get(item.path, {})
@@ -1135,8 +1143,8 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
             finding_lines += _data(finding["raw"] + "   [" + finding["label"] + "; " + finding["id"] + "]")
     lines.append("Findings (" + str(sum(len(item.findings) for item in active)) + "):")
     lines += finding_lines or ["(none)"]
-    lines += _not_run(project, catalog, tools, files)
-    lines += _recommendations(top, catalog, tools, active, files, project, missing)
+    lines += _not_run(project)
+    lines += _recommendations(top, catalog, tools, files, project, missing)
     if created:
         lines.append("Files created by tools during this pass: " + ", ".join(cquote(path) for path in created)
                      + (". Removed catalogued caches: " + ", ".join(cquote(path) for path in removed)
@@ -1184,7 +1192,9 @@ def _redacted_patch(data: bytes) -> str:
 
 
 def _load_file(invoker: _Invoker, top: Path, item: _File, base_entries: Mapping[str, Tuple[str, str]],
-               current_entries: Mapping[str, Tuple[str, str]], catalog: Mapping[str, Any]) -> None:
+               catalog: Mapping[str, Any]) -> None:
+    """Read one changed file into ``item``, or record why it is not in scope (missing, symbolic link and similar).
+    """
     path = top / item.path
     try:
         info = path.lstat()
@@ -1303,6 +1313,9 @@ def _ruff_flags(top: Path, item: _File) -> Tuple[Tuple[str, ...], str]:
 
 def _ruff_fix(invoker: _Invoker, top: Path, files: List[_File], ruff: str, *, fixing: bool, withheld: str,
               pending_path: Path) -> Tuple[List[Tuple[_File, str]], List[Tuple[_File, str, str]], List[str], bytes]:
+    """Plan ruff autofixes per file and, when ``fixing``, apply them; returns the applied and unapplied fixes,
+    notes and the pending bytes written.
+    """
     applied: List[Tuple[_File, str]] = []
     not_applied: List[Tuple[_File, str, str]] = []
     notes: List[str] = []
@@ -1460,6 +1473,7 @@ def _syntax_regression(invoker: _Invoker, ruff: str, item: _File, fixed: bytes) 
 
 
 def _ruff_check(invoker: _Invoker, top: Path, files: List[_File], ruff: str) -> None:
+    """Run ruff check on the files, grouped by the ruff settings that apply to each, and attach its findings."""
     groups: Dict[Tuple[str, ...], List[_File]] = {}
     labels: Dict[str, str] = {}
     for item in files:
@@ -1554,6 +1568,9 @@ def _shellcheck(invoker: _Invoker, top: Path, files: List[_File], shellcheck: st
 def _tier0(invoker: _Invoker, top: Path, run_dir: Path, files: List[_File],
            tools: Mapping[str, Tuple[Optional[str], str]], base_tree: str, current_tree: str,
            catalog: Mapping[str, Any]) -> None:
+    """Run the first-tier checks that need no installed linter, starting with ``git diff --check``, and attach the
+    findings to the files.
+    """
     if files:
         base_ref = base_tree or "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
         paths = sorted({path for item in files for path in (item.path, item.old)})
@@ -1786,9 +1803,9 @@ def _format_findings(item: _File, name: str, formatted: str, hint: str) -> None:
         _add_finding(item, name, 1, "formatting differs from " + name + " output (file too large to "
                      "attribute by line); run " + hint, sorted(item.changed) or [1])
         return
-    for _tag, i1, i2, _j1, _j2 in opcodes:
-        start = min(i1 + 1, max(1, len(current)))
-        span = list(range(start, max(i2, start) + 1))
+    for _tag, old_start, old_end, _new_start, _new_end in opcodes:
+        start = min(old_start + 1, max(1, len(current)))
+        span = list(range(start, max(old_end, start) + 1))
         _add_finding(item, name, start, "formatting differs from " + name + " output on lines "
                      + str(span[0]) + "-" + str(span[-1]) + "; run " + hint, span)
 
@@ -1805,6 +1822,24 @@ def _parse_diff(item: _File, name: str, text: str, hint: str) -> None:
         span = list(range(first, first + max(count, 1)))
         _add_finding(item, name, first, "formatting differs from " + name + " output on lines "
                      + str(span[0]) + "-" + str(span[-1]) + "; run " + hint, span)
+
+
+def _record_tool_failure(call: Optional[Mapping[str, Any]], members: Sequence[_File], tool_name: str,
+                         ok_codes: Sequence[int]) -> bool:
+    """Note on every member why a linter call produced no usable output; True means it failed.
+
+    ``call`` is None when the pass budget ran out before the tool could start.
+    """
+    if call is None:
+        for member in members:
+            member.tool_notes.append(tool_name + " skipped: pass budget ran out")
+        return True
+    if call["status"] == "timeout" or call["exit"] not in ok_codes:
+        reason = "timed out" if call["status"] == "timeout" else "exited " + str(call["exit"])
+        for member in members:
+            member.tool_notes.append(tool_name + " " + reason + " (see its output above)")
+        return True
+    return False
 
 
 def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,
@@ -1843,18 +1878,6 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
         hint = str(row.get("fix_hint", name))
         label = name + (declared or " (on PATH)")
 
-        def failed(call: Optional[Mapping[str, Any]], members: Sequence[_File]) -> bool:
-            if call is None:
-                for member in members:
-                    member.tool_notes.append(name + " skipped: pass budget ran out")
-                return True
-            if call["status"] == "timeout" or call["exit"] not in ok:
-                why = "timed out" if call["status"] == "timeout" else "exited " + str(call["exit"])
-                for member in members:
-                    member.tool_notes.append(name + " " + why + " (see its output above)")
-                return True
-            return False
-
         if fmt in ("stdin-diff", "diff"):
             for item in files:
                 if fmt == "stdin-diff":
@@ -1864,7 +1887,7 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
                 else:
                     call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
                                        what=name + " " + item.path, cwd=project, ok_codes=ok)
-                if failed(call, [item]):
+                if _record_tool_failure(call, [item], name, ok):
                     continue
                 if fmt == "stdin-diff":
                     formatted = _decode(call["stdout"])
@@ -1879,7 +1902,7 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
         else:
             argv = _argv(row["argv"], tool=tool, files=[relative[item.path] for item in files])
         call = invoker.run(argv, what=name, cwd=project, ok_codes=ok)
-        if failed(call, files):
+        if _record_tool_failure(call, files, name, ok):
             continue
         text = _decode(call["stdout"]) + "\n" + _decode(call["stderr"])
         if fmt == "eslint-json":
@@ -1945,14 +1968,16 @@ def _assign_ids(files: Sequence[_File]) -> None:
     for item in files:
         for finding in item.findings:
             rest = re.sub(r"^(\d+:)", "", finding["rest"].replace(" [*]", ""))
+            # A short stable label, not a security boundary, so the weak digest is fine.
             digest = hashlib.sha1("\0".join((item.path, rest, item.line_text(finding["line"]).strip()))
-                                  .encode("utf-8", "surrogateescape")).hexdigest()[:10]
+                                  .encode("utf-8", "surrogateescape"), usedforsecurity=False).hexdigest()[:10]
             base_id = "L" + digest
             seen[base_id] += 1
             finding["id"] = base_id if seen[base_id] == 1 else base_id + "-" + str(seen[base_id])
 
 
 def gating_findings(payload: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    """The findings in ``payload`` that gate the step."""
     return list(payload.get("gating", ()))
 
 
@@ -1980,8 +2005,7 @@ def _call_lines(calls: Sequence[Mapping[str, Any]]) -> List[str]:
     return lines
 
 
-def _not_run(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Optional[str], str]],
-             files: Sequence[_File]) -> List[str]:
+def _not_run(top: Path) -> List[str]:
     """Declared commands ShipLoop does not run: formatters that rewrite files and pre-commit."""
     entries = []
     package = top / "package.json"
@@ -2017,7 +2041,7 @@ def _not_run(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Op
 
 
 def _recommendations(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Optional[str], str]],
-                     active: Sequence[_File], files: Sequence[_File], project: Optional[Path] = None,
+                     files: Sequence[_File], project: Optional[Path] = None,
                      missing: Sequence[str] = ()) -> List[str]:
     lines = list(missing)
     wanted = (("ruff", "python"), ("shellcheck", "shell"), ("actionlint", "workflow"))
@@ -2048,9 +2072,9 @@ def _declared(top: Path, catalog: Mapping[str, Any], tool: str, files: Sequence[
                 return config
     if tool == "shellcheck":
         for item in files:
-            rc = _shellcheckrc(top, item.path)
-            if rc:
-                return rc
+            shellcheck_rc = _shellcheckrc(top, item.path)
+            if shellcheck_rc:
+                return shellcheck_rc
     for marker in catalog.get("declared_markers", {}).get(tool, ()):
         path = (project or top) / marker
         try:
@@ -2085,6 +2109,7 @@ def record_writes(payload: Mapping[str, Any]) -> Dict[str, str]:
 
 def failure_payload(action: str, stage: str, work_item: str, run_option: str, exc: BaseException,
                     command: str, run_dir: Path) -> Dict[str, Any]:
+    """Payload for a lint pass that could not run, naming the redacted error and the command to run it by hand."""
     message = _redact(_one_line((type(exc).__name__ + ": " + str(exc)).replace("\n", " ")))
     block = "\n".join([
         "ShipLoop lint (" + SUPPORTING + ") could not run: " + message + ".",
@@ -2099,6 +2124,8 @@ def failure_payload(action: str, stage: str, work_item: str, run_option: str, ex
 
 def unchanged_payload(action: str, stage: str, work_item: str, run_option: str, prior: Mapping[str, Any],
                       prior_path: Path, command: str, run_dir: Path) -> Dict[str, Any]:
+    """Payload for a tree identical to the prior pass: repeats the prior record's result without running a linter.
+    """
     applied = list(prior.get("applied", []))
     coverage = [_redact(_one_line(str(line))) for line in prior.get("coverage_lines", [])]
     lines = [
@@ -2145,7 +2172,7 @@ def _show_command(command: str, run_dir: Path, action: str, part: int, rerun: in
     return shlex.join(argv + ["--part=" + str(part)])
 
 
-def _stale(run_dir: Path, payload: Mapping[str, Any], repo_top: Optional[Path]) -> List[str]:
+def _stale(payload: Mapping[str, Any], repo_top: Optional[Path]) -> List[str]:
     if repo_top is None:
         return []
     changed = []
@@ -2236,7 +2263,7 @@ def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional
         payload = store.read_record(record)
         block = str(payload.get("block", ""))
         top = payload.get("toplevel")
-        stale = _stale(run_dir, payload, Path(top) if isinstance(top, str) and top else None)
+        stale = _stale(payload, Path(top) if isinstance(top, str) and top else None)
         parts = _parts(block)
         lines.append("")
         lines.append(parts[0].rstrip("\n"))
@@ -2281,6 +2308,7 @@ class _PlainGit:
 
     def git(self, *args: str, env: Optional[Mapping[str, str]] = None,
             floor: float = 1.0) -> subprocess.CompletedProcess:
+        """Run Git in the repository top with the pass timeout (never below ``floor`` seconds)."""
         return _git(self.top, *args, env=env, timeout=max(floor, self.timeout))
 
 
@@ -2511,6 +2539,20 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
 
 # ---------------------------------------------------------------- CLI verb
 
+def _natural_number(minimum: int):
+    """argparse type factory: an integer of at least ``minimum``."""
+    def parse(raw: str) -> int:
+        """Parse ``raw`` as a whole number no smaller than ``minimum``."""
+        try:
+            value = int(raw)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"must be a whole number, got {raw!r}") from None
+        if value < minimum:
+            raise argparse.ArgumentTypeError(f"must be at least {minimum}, got {value}")
+        return value
+    return parse
+
+
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     """``shiploop lint``: report-only rerun for the current action, or show a stored part."""
     parser = argparse.ArgumentParser(
@@ -2520,9 +2562,9 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--action", required=True)
     parser.add_argument("--show", action="store_true", help="print a stored record part instead of rerunning")
-    parser.add_argument("--part", type=int, default=1)
-    parser.add_argument("--rerun", type=int, default=0, help="with --show: read rerun record N")
-    parser.add_argument("--gate", type=int, default=0, help="with --show: read implement gate record N")
+    parser.add_argument("--part", type=_natural_number(1), default=1)
+    parser.add_argument("--rerun", type=_natural_number(0), default=0, help="with --show: read rerun record N")
+    parser.add_argument("--gate", type=_natural_number(0), default=0, help="with --show: read implement gate record N")
     args = parser.parse_args(list(argv or ()))
     root = Path(args.run_dir).absolute()
     if re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,159}", args.action) is None:

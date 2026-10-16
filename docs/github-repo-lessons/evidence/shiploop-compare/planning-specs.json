@@ -1,0 +1,437 @@
+{
+ "cards": [
+  {
+   "id": "code-owned-stage-graph",
+   "shiploop": {
+    "status": "has",
+    "summary": "ShipLoop's graph is code, not a schema file: shiploop_stage_spec._ROWS is the fixed stage table (prelude, inner, outer) and navigator.graph() returns its three tuples. The cursor, accepted results and history live in state.md, which only scripts write. A stage is never done by file existence: _apply_result accepts only a submitted result that passes _canonical_result plus per-stage CLI gates (assumptions list, step-plan expectations, lint, base/candidate test runs, knowledge-home check). Staleness is handled by a chronological projection (planning_revision.current_actions) that drops downstream results on a reconcile or revise, not by content hashes.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "_ROWS = (",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "the fixed stage table, in graph order; STAGES/PRELUDE/INNER/OUTER derive from it"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def graph(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "returns guidance.PRELUDE, INNER, OUTER; _next_stage walks it"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _apply_result(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "accepts one result and computes the next cursor; never reads file existence"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _test_loop_gate(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "completion needs ShipLoop's own base run, candidate run and mutation check"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _check_step_sizing(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "a done step plan is refused with the fix named when criteria/paths do not line up"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_planning_revision.py",
+      "symbol": "def current_actions(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_planning_revision.py",
+      "note": "a reconcile row removes the planning suffix from its target; a revise row removes the item's results from step-plan on"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "MAX_REVISES = 2",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "attempt bounds are script constants (also shiploop_test_loop.MAX_REFUSED_RUNS = 11), after which the route is blocked/user"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "def _filled(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "the one weak spot: knowledge-home files count as present when non-blank, so a one-line stub passes the close"
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "**S-1 Scripts own the graph and the state.**",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "the owner clause this card restates"
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "**S-9 A passing script-run check is the evidence.**",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "completion is a script-run check, never the model's word"
+     }
+    ]
+   },
+   "compare": "OpenSpec derives readiness from files on disk (done = a generates path exists) and keeps no state file; BMAD routes by LLM-written frontmatter status. ShipLoop is the third design: a fixed linear table in code, one script-written state.md, and acceptance by submitted result through gates, which is exactly the content-check variant the atlas (and OpenSpec issue 1519) says file-existence graphs lack. ShipLoop has no per-stage 'requires' edges because the order is linear; dependency edges exist only at the work-item/step level, where duplicate IDs and forward deps are refused (_normalise_steps). The atlas 'what would change' list (graph as data, content-hash acceptance, structured findings, attempt caps, blocked vocabulary, verification-gated all_done) is already present except content-hash staleness.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "A content hash per accepted planning result so an edited upstream file marks downstream stages stale would be the only new element; not proposed.",
+    "touches": [],
+    "size": "0"
+   },
+   "tests": {
+    "observedProblem": "none found. Searched test/shiploop_e2e/LEARNINGS.md (stale, drift, stub, premise, reconcile), docs/*journal*, docs/experiments names, SPEC.md. No recorded run where an upstream file changed after acceptance and a downstream stage used the old text; the reconcile route exists for the premise-invalidated case. Stub-file acceptance is recorded only for harness checks (LEARNINGS, battleship protocol stubs), not engine stages.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "supports: contra says keep a script-owned graph but judge completion by content or tests, and ablate stages per model; ShipLoop already does the first and has run stage ablations (inner loop 17 to 8 stages, --planning-review none).",
+    "ownerRules": "none violated; a hash-staleness feature would add a state field and conflict with KISS-over-adversarial-guards and one-supported-version (saved runs would need a version bump)."
+   },
+   "verdict": "already-covered",
+   "reason": "The atlas's recommended end state (script-owned graph, completion by script-run content/test checks, attempt caps, blocked vocabulary) is what shiploop_navigator and shiploop_stage_spec do. The one missing piece, upstream content-hash staleness, has no recorded failure in a normal run and would add a state field. The atlas's stage-ablation condition is already being exercised by the planning_review and inner-loop redesign experiments.",
+   "experiment": "n/a"
+  },
+  {
+   "id": "delta-spec-merge",
+   "shiploop": {
+    "status": "differs",
+    "summary": "ShipLoop deliberately has no code-side delta merge. The run edits the living spec docs/shiploop/spec.md in place (stage_lines tells the model to keep every R-<n> and move dropped ones under Retired); the feature spec records the IDs added, modified and retired. The script gates retention only: knowledge_home.check refuses an uncommitted version of spec.md or architecture.md that drops an ID HEAD held. At the terminal handoff knowledge_home.retire checks that every R-ID the feature spec names is in the living spec, then removes the feature spec in its own commit (only when the run's commits reach the user's branch); otherwise it keeps the file with a notice. The lifecycle plan explicitly deferred a script merge, base fingerprints and three-way merge.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "def check(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "refuses a dropped R-<n> or AD-<n> (via _RETAINED) in an uncommitted edit; baseline is HEAD"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "def retire(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "terminal close: ID presence check, then removes the feature spec in a commit; never refuses the handoff"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "def _missing_ids(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "docstring: presence only, it does not show the living spec says what the feature spec says"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "if stage == \"spec\":",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "stage_lines text: edit the living spec in place, keep IDs, Retired section with reason"
+     },
+     {
+      "path": "docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md",
+      "symbol": "Spec working copy, freeze, base/planned blobs, replace, three-way merge",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md",
+      "note": "deferred, trigger: a run loses or garbles a requirement, or two runs edit one repository's spec"
+     },
+     {
+      "path": "docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md",
+      "symbol": "24 of 26 saved feature specs ignored the designed delta format",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md",
+      "note": "models edit the living spec in place; a delta format was not followed"
+     },
+     {
+      "path": "docs/shiploop-architecture-file-journal-2026-10-10.md",
+      "symbol": "none drops an `R-<n>`",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-architecture-file-journal-2026-10-10.md",
+      "note": "0 drops in 16 consecutive committed spec.md pairs"
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "33 of 33 feature specs retired",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "retire run on saved runs: 0 of 33 kept for missing IDs; no live run has used it yet"
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "A run's feature spec is its historical record once it is",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "S-11 states the retire lifecycle and the unseen-drop limit"
+     },
+     {
+      "path": "docs/experiments/live-runs-20261011/checkers-8stage-88d412e9.json",
+      "symbol": "retire_commit",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/experiments/live-runs-20261011/checkers-8stage-88d412e9.json",
+      "note": "live Checkers run: one retire commit, knowledge_kept_notices 0"
+     }
+    ]
+   },
+   "compare": "OpenSpec writes ADDED/MODIFIED/REMOVED/RENAMED deltas and merges them by code, keyed on requirement header text; its own tracker (issues 1246, 1387, 1697, 1112, and the maintainers' 2033) shows this is its largest defect source: silent scenario loss, rename read as deletion, late archive failures. ShipLoop made the opposite call: stable R-IDs plus retention gating by script, the model edits the living spec directly, and git carries the history. That matches the contra conclusion that name-keyed code merge is defensible only with stable IDs, base fingerprints and an overlap check, none of which ShipLoop needs while runs are serial. ShipLoop's residual weaknesses are the ones the lifecycle plan already named: HEAD baseline (a review's committed edit is invisible), ID presence not content, and no concurrent-run protection beyond git.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "If a trigger fires: git merge-file three-way with the planned blob as base, per the lifecycle plan's own deferred slice. Not proposed now.",
+    "touches": [],
+    "size": "0"
+   },
+   "tests": {
+    "observedProblem": "none found. Searched LEARNINGS.md (R- dropped, garbled, lost requirement), the architecture-file and spec-retire journals, the lifecycle plan: 0 drops in 16 consecutive spec.md pairs and 0 of 360 pairs over home files in the design replay; 0 of 33 feature specs kept for missing IDs. The retire step's live record is thin: the 2026-10-11 hello and Checkers runs each made a retire commit with 0 kept notices (live-runs-20261011), but that is two runs and no concurrent-run or modified-requirement case.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "undercuts a code merge: OpenSpec maintainers are weighing dropping deterministic merge (issue 2033) after 46 fix commits; ShipLoop's in-place edit plus ID gate is the lighter shape.",
+    "ownerRules": "A merge engine would contradict the 2026-10-10 lifecycle decision to defer all merge machinery and kiss-over-adversarial-guards; the owner requirement (feature spec merged into the persistent spec, then removed) is already met by edit-in-place plus retire. The spec/architecture split (R- vs AD-) is preserved."
+   },
+   "verdict": "skip",
+   "reason": "ShipLoop already satisfies the owner's lifecycle requirement without the machinery OpenSpec is struggling with, and the repo's own evidence shows no lost or garbled requirement. Adding a delta format, name-keyed merge or base fingerprints would add state and code to guard a failure that has not occurred. The deferral trigger in the lifecycle plan is the right gate.",
+   "experiment": "n/a. Watch the counts the retire journal already names for the next live pair (retire commits made, kept notices by reason, R-ID drops at knowledge closes); revisit only if two concurrent runs touch one spec or a run drops a requirement."
+  },
+  {
+   "id": "cap-ambiguity",
+   "shiploop": {
+    "status": "partial",
+    "summary": "ShipLoop has no marker, cap or ranking for ambiguity; it has a recorded-default policy (SPEC S-14) enforced in pieces. Intake's done-when requires each open question to name its answerer or a recorded default. The plan result must carry a script-validated assumptions list (evidenced, probed or open; an open entry must name an existing consumer work item and the step plan's expectations must cite it). Any wait on a person must carry awaiting.no_default, enforced by _check_submitted_awaiting. Stages other than plan carry defaults only as prose in the summary, with no provenance or ranking.",
+    "evidence": [
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "**S-14 Unattended by default.**",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "owner clause: take a stated, recorded default; prompt only when nothing can proceed"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "each open question names who answers it (discovery, or a recorded default) and what it blocks",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "intake done-when"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_assumptions.py",
+      "symbol": "DISPOSITIONS = (\"evidenced\", \"probed\", \"open\")",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_assumptions.py",
+      "note": "plan assumptions ledger; STAGES = (\"plan\",) only"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_assumptions.py",
+      "symbol": "def check_consumers(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_assumptions.py",
+      "note": "an open assumption must name a work item in the queue"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _check_submitted_awaiting(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "refuses a wait on a person without no_default; message says take a stated default and continue"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_NOT_AN_ANSWER = frozenset(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "a bare 'continue' is not an answer to a blocked run's question"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "assumptions are allowed only on a done plan result; at this stage state an assumption",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "outside plan, defaults are prose in the summary"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "Answer from the request where it says so; otherwise ask, naming",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_prompts.py",
+      "note": "intake: name the default you would take and what it rules out"
+     },
+     {
+      "path": "skills/shiploop/references/requirements-definition.md",
+      "symbol": "obtain the missing decision before",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/references/requirements-definition.md",
+      "note": "reference text that reads as ask-first, in tension with S-14"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_expectations.py",
+      "symbol": "def check_step_plan(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_expectations.py",
+      "note": "an open plan assumption whose consumer is this item must be cited by an expectation"
+     },
+     {
+      "path": "docs/experiments/live-runs-20261011/checkers-8stage-88d412e9.json",
+      "symbol": "assumptions are allowed only on a done plan result",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/experiments/live-runs-20261011/checkers-8stage-88d412e9.json",
+      "note": "live run: two refusals of an assumptions field at a non-plan stage"
+     }
+    ]
+   },
+   "compare": "spec-kit caps NEEDS-CLARIFICATION markers at 3 (rank scope > security > UX > technical), asks at most 5 questions with a recommended answer, and enforces all of it by prompt only; it has no unattended mode. BMAD's headless contract is the closest relative (never ask; assumptions[], open_questions[], blocked on thin input) and ShipLoop matches it structurally, with stronger script enforcement (no_default gate, assumptions consumers checked, expectations tied to open assumptions). What ShipLoop lacks is a ranking rule for which unknowns deserve a stop versus a default and provenance for non-plan defaults; the contra evidence (UnderSpecBench, Ambig-SWE) says silent defaults on target and scope are the dangerous ones, but none of it tests Claude 5-era models.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "Smallest candidate: reword one paragraph of references/requirements-definition.md ('obtain the missing decision before dependent work; do not guess') to the S-14 route (record the default as an assumption or open item; awaiting only if nothing else can proceed). Not proposed as adopt because no failure from it is recorded.",
+    "touches": [
+     "skills/shiploop/references/requirements-definition.md"
+    ],
+    "size": "about 3 lines, 1 file"
+   },
+   "tests": {
+    "observedProblem": "none found for wrong silent defaults. Searched LEARNINGS.md (ambig, asked a person, awaiting, no_default, assumption), docs/*journal*, the batch-1009 G3 journal. Recorded runs show 'asked a person 0'; the recorded failure runs the other way: the Luna 1.16.1 run blocked 19.3 h at system-test on person-only cases (a13), fixed by a packet paragraph, and the W1 journal fixed intake/research wording for S-14 after round-1 results improvised. The ask-first sentence in requirements-definition.md is not recorded as the cause of any block. One live cost: the 2026-10-11 Checkers run was refused twice for submitting an assumptions field outside the plan stage (the stage is not recorded in the summary), i.e. a model wanted to record defaults elsewhere and the gate redirected it to the summary; n=1, about two turns.",
+    "yagni": "fail",
+    "kiss": "pass",
+    "counterEvidence": "neutral: the literature (Ambig-SWE, UnderSpecBench) favours asking over guessing and warns about silent target/scope defaults, but unattended harnesses cannot ask, and the contra card's own condition (defaults recorded and revocable) is what S-14 plus the plan assumptions list already provide.",
+    "ownerRules": "A marker cap or ranking script would add a mode/gate the owner did not ask for (KISS) and would reinvent the assumptions ledger. Extending assumptions beyond plan is already scoped in the Execute: ask consumer-contract plan, so it should not be duplicated here."
+   },
+   "verdict": "already-covered",
+   "reason": "The substantive atlas mechanism (take a recorded default, stop only when no default exists, with the reason script-enforced) is S-14 and is enforced at the plan and wait gates. The cap-of-3 and ranking are prompt-only in spec-kit itself and have no recorded ShipLoop failure to address. One wording conflict in requirements-definition.md is worth a measured look, not an edit yet.",
+   "experiment": "Count, in the next live pair, how often (a) the _check_submitted_awaiting refusal ('ShipLoop runs unattended: take a stated default') fires at intake/discovery/research/spec and (b) 'assumptions are allowed only on a done plan result' fires (grep events.jsonl, and name the stage). If (a) fires, apply the 3-line reword; if (b) recurs at the same non-plan stage, consider letting that stage carry the plan's assumptions shape (the consumer-contract plan already scopes extending it); if neither, leave both."
+  },
+  {
+   "id": "lint-the-handoff",
+   "shiploop": {
+    "status": "has",
+    "summary": "Checking handoff structure by script before the next stage is the core of ShipLoop's completion path. _canonical_result refuses unknown fields, wrong-stage fields, template placeholders and a wrapped stored-record block, each with the fix and the 'run the same complete command again' line; per-stage CLI gates check the semantics (step-plan steps, deps, criteria and paths; expectations against the checkout; test-spec IDs that a focused command lists; assumptions; unverified list). complete --check-only runs the gates without accepting. Markdown planning files get only non-blank, credential, R-/AD- retention and counted section notices, not a parser.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _result_shape_problem(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "names the exact correction when a block is the stored-record wrapper or lacks outcome/summary"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _canonical_result(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "unsupported fields, done-only fields on other outcomes, template placeholders all refused with the fix"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _normalise_steps(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "duplicate step IDs, unknown, self and forward dependencies refused"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "def _check_step_sizing(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_navigator.py",
+      "note": "every criterion covered by a step, steps inside declared paths, no test-only step"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_expectations.py",
+      "symbol": "def check_step_plan(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_expectations.py",
+      "note": "expectations checked against the lint base; missing check commands, skills locators and open-assumption citations refused"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_expectations.py",
+      "symbol": "def check_test_spec_ids(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_expectations.py",
+      "note": "a test-spec case ID no focused command lists is refused"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_unverified.py",
+      "symbol": "def check_submitted(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_unverified.py",
+      "note": "unverified list: template placeholders and non-later due stages refused"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "def section_notices(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "note": "section structure of the four living files is a counted notice, deliberately not a refusal"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_backchain_graph.py",
+      "symbol": "SCHEMA = \"shiploop-backchain-check/v1\"",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_backchain_graph.py",
+      "note": "structural plan-graph check is record-only and never gates"
+     },
+     {
+      "path": "skills/shiploop/SKILL.md",
+      "symbol": "`complete --check-only` runs the stage's script gates on a result without",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/SKILL.md",
+      "note": "pre-check of a handoff before submitting"
+     }
+    ]
+   },
+   "compare": "spec-kit lints task-line format, OpenSpec warns that a wrong heading count fails silently and validates deltas, BMAD's lint_spine.py checks placeholders, duplicate AD IDs and missing fields before reviewers run. ShipLoop lints at the result level rather than the markdown level: its handoff is a structured result object the script parses, so format errors are caught by the consumer's own parser (the contra condition for holding), and the refusal text names the fix on line 1 (the 'name the silent failure' half). The deliberate gaps are recorded decisions: markdown section headings are a notice until the first live pair measures refusals, backchain-check is record-only, and whether a spec's criteria are complete is explicitly outside any script check (S-9 text on planning).",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "Gate a spec/plan R-ID to criterion link (the consumer-contract plan's follows field) is the natural next lint, and it is already planned there with Execute: ask.",
+    "touches": [],
+    "size": "0"
+   },
+   "tests": {
+    "observedProblem": "none found beyond what is already addressed. Searched LEARNINGS.md and docs/*journal*: the prepare close was refused for missing files 0 times organically (architecture journal), the graph defect 'duplicate id S20' was caught by the model because backchain-check is record-only (LEARNINGS, planning-size audit), and K1 fixed a packet/gate file-list drift. No normal-run failure traced to an unlinted markdown handoff.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "supports the existing approach: contra says lint helps when it is the consumer's own parser and must not stand in for content checks, which matches ShipLoop's result-level gates plus script-run test gates; it undercuts adding a markdown-heading refusal without measurement.",
+    "ownerRules": "none violated by the status quo. A new markdown linter would add a gate on files whose section notice the owner deliberately left non-refusing until live data exists, and the recorded S-9 limit says criteria completeness is judged by the producer plus later gates."
+   },
+   "verdict": "already-covered",
+   "reason": "ShipLoop's gates are parsed by the same code that consumes the result, refuse with the fix named, and are paired with script-run test completion, which is the combination the contra card says is safe. The remaining markdown-structure and plan-graph checks are consciously notice-only or record-only pending live evidence. No new lint has recorded demand.",
+   "experiment": "n/a. The existing live-pair measure already covers the one open lint decision: count 'ShipLoop knowledge notice:' lines (grep -o) and decide whether the section notice becomes a refusal."
+  },
+  {
+   "id": "broader-spec-driven-development",
+   "shiploop": {
+    "status": "has",
+    "summary": "ShipLoop is spec-driven by construction: intake, discovery, research, spec and test-strategy precede plan, and the living spec docs/shiploop/spec.md with stable R-IDs persists across runs. It avoids the frozen-waterfall shape the critics describe: the spec is model-authored, machine-checked only for ID retention, edited in place, and has feedback loops (revise back to step-plan, replan, reconcile of planning premises, carry-forward queue revision, retire of the feature spec). The cost critique does apply: planning dominates the wall clock and ShipLoop measures it.",
+    "evidence": [
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "\"spec\", \"prelude\",",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "spec is a mandatory prelude stage with an Improve review"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "MAX_REVISES = 2",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_stage_spec.py",
+      "note": "an item whose goal proves wrong goes back to step-plan with the evidence, at most twice, then the user decides"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_planning_revision.py",
+      "symbol": "def current_actions(",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_planning_revision.py",
+      "note": "reconcile reopens the planning suffix when a finding invalidates an upstream premise"
+     },
+     {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "\"carry-forward\": _LOOP_DUTY",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/skills/shiploop/scripts/shiploop_prompts.py",
+      "note": "carry-forward updates the living spec and revises the remaining queue after each item"
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "**S-9 A passing script-run check is the evidence.**",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "S-9's planning-review paragraph records planning cost and says no script check covers spec completeness"
+     },
+     {
+      "path": "test/shiploop_e2e/SPEC.md",
+      "symbol": "375.9 minutes",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/SPEC.md",
+      "note": "Luna xhigh planning window and the share spent in Improve reviews"
+     },
+     {
+      "path": "test/shiploop_e2e/LEARNINGS.md",
+      "symbol": "9 fixed a defect against the stage's review focus",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/test/shiploop_e2e/LEARNINGS.md",
+      "note": "hello runs: 9 of 12 first-pass planning-review changes fixed real defects (spec/test count mismatch, vacuous test)"
+     },
+     {
+      "path": "docs/experiments/live-runs-20261011/hello-spread-1270-vs-8stage.json",
+      "symbol": "released_1270_n5",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/experiments/live-runs-20261011/hello-spread-1270-vs-8stage.json",
+      "note": "five hello runs per build: median cost 3.64 vs 3.62 USD, turns 190 vs 195, wide spread (a 'hello' costs 2 to 6.5 USD)"
+     },
+     {
+      "path": "docs/shiploop-consumer-contract-plan-2026-10-11.md",
+      "symbol": "Owner directive (2026-10-11, general)",
+      "url": "https://github.com/whichguy/skill-craft/blob/4b1759ac16a13953570f8f12f06f32b4da6ec866/docs/shiploop-consumer-contract-plan-2026-10-11.md",
+      "note": "open plan to cut artifacts that have no consumer, the artifact-bloat critique applied to ShipLoop itself"
+     }
+    ]
+   },
+   "compare": "The critiques (Boeckeler, Marmelab, Thoughtworks Radar) target heavyweight, human-reviewed, up-front spec ceremony on 2025 models; Beck's objection is the missing learning loop. ShipLoop's specs are produced and consumed by the harness, kept in one living file instead of per-change piles, and the loop back exists (revise, replan, reconcile, carry-forward). The surviving risk is cost and overhead on small requests: a hello run still passes every prelude stage and costs 2 to 6.5 USD, planning has been 375.9 minutes on Luna xhigh (Battleship), and the owner already tests dropping the planning review (planning_review none). The one controlled positive result (spec-scaffolded test generation, +9.8 points) is on a different task; no controlled study of SDD vs plain prompting exists for Claude 5.",
+   "proposal": {
+    "change": "none",
+    "smallestVersion": "No change; keep measuring the cost of the spec path (planning_review none vs stage, packet concision) rather than removing it.",
+    "touches": [],
+    "size": "0"
+   },
+   "tests": {
+    "observedProblem": "Cost, not unsoundness: planning window 375.9 min (Luna xhigh) and 72.7 min (Grok medium), 54 to 58% in Improve reviews (SPEC S-9), packet text of 23 to 24 thousand characters at system-test (LEARNINGS a13), hello cost with a wide spread (five runs of the 8-stage build cost 2.04 to 4.24 USD and 121 to 231 turns; five 1.27.0 runs 2.01 to 6.47 USD). Counter-signal: reviews found real defects (9 of 12 first-pass changes in hello runs). Searched SPEC.md, LEARNINGS.md planning sections, docs/experiments/planning-*, packet-concision-*.",
+    "yagni": "fail",
+    "kiss": "fail",
+    "counterEvidence": "neutral: contra rates the debate contested; critiques are single-practitioner, mostly 2025, aimed at human-reviewed ceremony; no SDD-vs-prompting study on Claude 5 exists.",
+    "ownerRules": "Dropping the spec stage would violate S-11 (knowledge retained) and shiploop-planning-knowledge-retained; adding a small-task fast path would add a mode (KISS) without recorded demand."
+   },
+   "verdict": "watch",
+   "reason": "The design is already the revisable, machine-consumed, verification-tied kind of spec the contra card says helps, so there is nothing to change on soundness. The unresolved question is cost on small requests and whether planning reviews pay for themselves, which the repo is already measuring. Revisit when paired planning_review none vs stage runs on Claude 5 exist, or a controlled SDD-vs-plain study appears.",
+   "experiment": "Run the same small request (hello case) with --planning-review none and stage on Sonnet 5.5, 3 pairs each, compare total cost, wall time and first-pass defects escaping to later gates (S-9 notes the escape rate is unknown)."
+  }
+ ],
+ "groupSummary": "Four of five cards need no ShipLoop change, and none is adopted. code-owned-stage-graph, lint-the-handoff and cap-ambiguity are already covered: the stage table is code, completion is by submitted result through script gates and script-run tests rather than file existence, and unattended ambiguity is handled by S-14 recorded defaults with awaiting.no_default and the plan assumptions list enforced by script. delta-spec-merge is a skip: ShipLoop deliberately edits the living spec in place with R-ID retention gating and a retire-at-handoff check, the lifecycle plan deferred merge machinery with a named trigger, and the repo shows 0 lost requirements while OpenSpec's maintainers are questioning their own code merge. broader-spec-driven-development is a watch: ShipLoop's specs are the short, revisable, verification-tied kind with feedback loops, so soundness is not the issue; the open question is overhead on small requests, which planning_review none experiments already probe. Two small residuals are noted rather than proposed: a possible wording conflict between requirements-definition.md and S-14 (measure refusals first), and the thin live record of the retire step (two runs, no concurrency). Caveat: counter-evidence is mostly abstracts and 2025-era single-practitioner reports, and ShipLoop's own evidence is n=1 per cell."
+}
