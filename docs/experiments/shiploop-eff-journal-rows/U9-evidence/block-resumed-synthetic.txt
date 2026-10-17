@@ -1,0 +1,14 @@
+Until Loop (no iteration limit; the loop script counts the iterations):
+The loop already started: do not start it again (a second start resets it). While the receipt's status is active, run its next_argv once and follow the packet it prints; when complete or stopped, submit this stage's result.
+Its argument is already in the Contract file; do not edit that file or the receipt:
+----- BEGIN until-loop ARGUMENT -----
+Work: Do duty items 1-5 of <RUN>/packets/A-document.md; record each no-change reason in <RUN>/notes/A-document.md.
+Exit when ALL of these hold:
+1. each changed public behaviour is documented where users and maintainers look
+2. each changed document was reread after the last edit
+Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong statement; there is no iteration limit. Stop blocked only when a behaviour cannot be observed here (name it). Never stop cancelled: a user's stop is the ShipLoop packet's pause command.
+Contract: <RUN>/loops/A-document-contract.json
+Receipt: <RUN>/loops/A-document-terminal.json
+----- END until-loop ARGUMENT -----
+Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run the Callback command above. If that refuses for the loop, run the receipt's next_argv once and follow the packet it prints, then run the Callback again. Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled, plus evidence and handoff (nonblank text).
+Call an exit condition satisfied only when a command or file shows it after your last edit.

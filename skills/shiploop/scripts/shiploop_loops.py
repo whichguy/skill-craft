@@ -2,11 +2,11 @@
 
 Every INNER stage does its work inside one bound Until Loop run.  ShipLoop
 writes the loop contract on entry to the stage's action (``contract_writes``),
-prints the loop block in the packet (``invoke_lines``: RUN the until-loop skill
-with the argument between two marker lines, the literal start command for a host
-with no Skill tool, and the result to report) and, before it accepts the result,
-compares the runtime's terminal packet with the contract rebuilt from state
-(``check_terminal``), so editing the contract file cannot reshape the loop.
+prints the loop block in the packet (``invoke_lines``: the one literal start
+command, the argument between two marker lines, and the result to report) and,
+before it accepts the result, compares the runtime's terminal packet with the
+contract rebuilt from state (``check_terminal``), so editing the contract file
+cannot reshape the loop.
 
 The contract is rebuilt deterministically from state: the same state gives
 the same bytes at entry and at complete.  It therefore names no install path
@@ -442,22 +442,24 @@ def start_command(bound: Mapping[str, str], receipt: Path, contract_file: Path) 
             + " < " + shlex.quote(str(contract_file)))
 
 
-# The Until Loop block, as a model with no other context reads it (owner, 2026-10-16: say "RUN this skill" with the
-# explicit argument and command, not in generalities).  The argument sits between two marker lines; the commands are
-# literal, absolute and copy-ready, because the hooks and the runtime read command text.
-INVOKE_LINE = ("RUN the until-loop skill now, once, with exactly the lines between the two markers (nothing outside "
-               "them is part of the argument). Do this stage's work only inside the loop.")
+# The Until Loop block, as a model with no other context reads it (owner, 2026-10-16: say "RUN" with the explicit
+# argument and command, not in generalities; plan 6.3, 2026-10-17: one start route on every host).  The literal start
+# command comes first; the argument sits between two marker lines after it and holds what the runtime reads from the
+# Contract file, so it is shown, not passed.  The commands are literal, absolute and copy-ready, because the hooks and
+# the runtime read command text.  No line names a tool: the same command starts the loop on every host.
+BLOCK_HEADING = "Until Loop (no iteration limit; the loop script counts the iterations):"
+INVOKE_LINE = ("RUN the Until Loop now, once, before any work, and do this stage's work only inside it. Start it with "
+               "this command, in the foreground, exactly as printed (if the Receipt below already exists and is active, "
+               "run its next_argv instead: a second start resets the loop):")
+ARGUMENT_LEAD = "Its argument is already in the Contract file; do not edit that file or the receipt:"
+FOLLOW_LINE = ("Then follow each packet it prints (run its done_argv as printed) until the receipt says complete or "
+               "stopped. " + ARGUMENT_LEAD)
 ARGUMENT_BEGIN = "----- BEGIN until-loop ARGUMENT -----"
 ARGUMENT_END = "----- END until-loop ARGUMENT -----"
-# Claude Code has the Skill tool; any other host runs the start command itself and follows each packet the runtime
-# prints (its done_argv takes the JSON report, whose fields the packet's report_schema lists).
-HOST_LINE = ('Claude Code: the Skill tool, skill "until-loop", with that argument. Any other host: run this in the '
-             "foreground, then follow each packet it prints (run its done_argv as printed) until the receipt says "
-             "complete or stopped:")
-# How an inner stage works inside its loop: printed once, in the invoke block (packet re-cut, 2026-10-11).
+# How an inner stage works inside its loop: the exit-evidence rule, printed once, last in the block (packet re-cut,
+# 2026-10-11).  Where the loop's files may not be edited is said where the argument is introduced.
 LOOP_RULE = """\
-ShipLoop wrote the loop contract; do not edit it or the receipt. Call an exit condition satisfied only when a command
-or file shows it after your last edit.
+Call an exit condition satisfied only when a command or file shows it after your last edit.
 """
 
 RECEIPT_RULE = ("Never write or edit the receipt. If it exists and is active, run its next_argv instead of starting "
@@ -466,11 +468,21 @@ RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one
                 "do not write or edit it): ")
 RECEIPT_REF_LINE = ("The result template's evidence_refs already lists the receipt: keep it when you report done. "
                     "ShipLoop refuses done without it.")
-RESUME_LINE = ("The loop already started: do not invoke it again. While the receipt's status is active, run its "
-               "next_argv once and follow the packet it prints; when complete or stopped, submit this stage's result.")
-RESULT_LINE = ("Result: when the Receipt above says status complete (stopped: report it), keep it in evidence_refs "
-               "and run the Callback command above. If that refuses for the loop, run the start command above again "
-               "(an active receipt: its next_argv instead), then complete again.")
+RESUME_LINE = ("The loop already started: do not start it again (a second start resets it). While the receipt's status "
+               "is active, run its next_argv once and follow the packet it prints; when complete or stopped, submit this "
+               "stage's result.")
+# The runtime's report schema requires all five fields; its enums are printed here so the done report is written once.
+REPORT_FIELDS = ("Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment "
+                 "satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled, plus evidence and "
+                 "handoff (nonblank text).")
+_RESULT_HEAD = ("Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run "
+                "the Callback command above. If that refuses for the loop, ")
+RESULT_LINE = (_RESULT_HEAD + "run the start command above again (an active receipt: its next_argv instead), then run "
+               "the Callback again. " + REPORT_FIELDS)
+# A packet read after the start prints no start command (a second start resets the loop), so its result line names the
+# receipt's next_argv alone.
+RESUME_RESULT_LINE = (_RESULT_HEAD + "run the receipt's next_argv once and follow the packet it prints, then run the "
+                      "Callback again. " + REPORT_FIELDS)
 
 
 def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
@@ -480,7 +492,7 @@ def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
 
 
 def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
-    """Whether ``invoke_lines`` prints the /until-loop argument (and so the numbered exit conditions) for this state."""
+    """Whether ``invoke_lines`` prints the Until Loop argument (and so the numbered exit conditions) for this state."""
     found = cursor(state)
     if found is None:
         return False
@@ -493,13 +505,18 @@ def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
 
 
 def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
-    """Read-only packet lines: the strong /until-loop invoke block for the current inner action ([] outside one)."""
+    """Read-only packet lines: the Until Loop block for the current inner action ([] outside one).
+
+    Fresh: the RUN line, the literal start command, the follow line, the argument and the result.  Once the receipt
+    exists (the loop started) the RUN line and the start command give way to ``RESUME_LINE``: the runtime does not
+    refuse a second start for one receipt, it writes a new run over it.
+    """
     found = cursor(state)
     if found is None:
         return []
     root = Path(root)
     stage, action_id, _ = found
-    lines = ["", "Until Loop (no iteration limit):"]
+    lines = ["", BLOCK_HEADING]
     try:
         bound = runtime(state)
         value = contract(root, state, action_id)
@@ -507,9 +524,10 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         lines.append("Unavailable: " + str(exc) + ". Report outcome blocked with this reason.")
         return lines
     contract_file, receipt = root / contract_path(action_id), receipt_path(root, action_id)
+    started = os.path.lexists(receipt)
+    lines += [RESUME_LINE, ARGUMENT_LEAD] if started else [
+        INVOKE_LINE, start_command(bound, receipt, contract_file), FOLLOW_LINE]
     lines += [
-        # A started loop is continued, never restarted: the runtime does not refuse a second start for one receipt.
-        RESUME_LINE if os.path.lexists(receipt) else INVOKE_LINE,
         ARGUMENT_BEGIN,
         *("Work: " + value["work"]).splitlines(),  # the test stage lists its commands
         "Exit when ALL of these hold:",
@@ -518,9 +536,7 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         "Contract: " + str(contract_file),
         "Receipt: " + str(receipt),
         ARGUMENT_END,
-        HOST_LINE,
-        start_command(bound, receipt, contract_file),
-        RESULT_LINE,
+        RESUME_RESULT_LINE if started else RESULT_LINE,
         " ".join(LOOP_RULE.split()),
     ]
     if not contract_file.is_file():
@@ -620,8 +636,8 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
         return
     _need(report.get("continuation_assessment") != "cancelled",
           "the " + label + " was cancelled after " + str(iterations) + " iterations; it has no iteration "
-          "limit. A user's stop is the packet's pause command, not a cancelled loop: start the loop again "
-          "and run it until its exit condition holds")
+          "limit. A user's stop is the packet's pause command, not a cancelled loop: start the loop again"
+          + (" with " + start if start else "") + " and run it until its exit condition holds")
     _need(outcome in ("blocked", "revise"),
           "a " + label + " stopped as blocked reports outcome blocked, with blocked_by, or revise when the "
           "work proved wrong as planned")
@@ -679,9 +695,11 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
 __all__ = (
     "ARGUMENT_BEGIN",
     "ARGUMENT_END",
+    "ARGUMENT_LEAD",
+    "BLOCK_HEADING",
     "BUNDLED_IMPROVE_CARD",
     "COMMANDS_HEAD",
-    "HOST_LINE",
+    "FOLLOW_LINE",
     "INVOKE_LINE",
     "LOOP_DIR",
     "LoopError",
@@ -689,8 +707,10 @@ __all__ = (
     "RECEIPT_REF_LINE",
     "RECEIPT_RULE",
     "REPEAT",
+    "REPORT_FIELDS",
     "RESULT_LINE",
     "RESUME_LINE",
+    "RESUME_RESULT_LINE",
     "RUBRIC_PATH",
     "STAGES",
     "TRIVIAL_REVIEWS",

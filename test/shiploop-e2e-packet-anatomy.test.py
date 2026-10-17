@@ -875,12 +875,14 @@ class LoopBlockTests(unittest.TestCase):
             seen += 1
             rows = labels(text)
             start = next(i for i, (_, line) in enumerate(rows) if line.startswith("Until Loop (no iteration limit"))
-            end = next(i for i in range(start, len(rows)) if rows[i][1].startswith("ShipLoop wrote the loop contract"))
+            end = next(i for i in range(start, len(rows))
+                       if rows[i][1].startswith("Call an exit condition satisfied only when"))
             with self.subTest(packet=key):
                 self.assertEqual({section for section, _ in rows[start:end + 1]}, {"until-loop"})
-                # The RUN line, both markers, the start command and the result line are all inside it.
+                # The RUN line, the follow line, both markers and the result line are all inside it, and so is the
+                # start command (it comes before the argument).
                 lines = [line for _, line in rows[start:end + 1]]
-                for needed in (loops.INVOKE_LINE, loops.ARGUMENT_BEGIN, loops.ARGUMENT_END, loops.HOST_LINE,
+                for needed in (loops.INVOKE_LINE, loops.FOLLOW_LINE, loops.ARGUMENT_BEGIN, loops.ARGUMENT_END,
                                loops.RESULT_LINE):
                     self.assertIn(needed, lines)
                 self.assertTrue(any(line.startswith("python3 ") and " start --receipt " in line for line in lines))

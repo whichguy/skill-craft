@@ -1,0 +1,56 @@
+== inline run dir 83
+packet                      b.whole  a.whole      d |  b.print  a.print      d  form
+01-step-plan                  24536    24782   +246 |    20638    20884   +246  head->head
+02-step-plan-improve           2687     2687     +0 |     2687     2687     +0  whole->whole
+03-test-spec                  14507    14753   +246 |    14507    14753   +246  whole->whole
+04-test-spec-improve           1919     1919     +0 |     1919     1919     +0  whole->whole
+05-validate-existing          14948    15194   +246 |    14948    15194   +246  whole->whole
+06-implement                  18145    18184    +39 |    15436    15475    +39  head->head
+07-implement-improve           2628     2628     +0 |     2628     2628     +0  whole->whole
+08-test                       20065    20310   +245 |    15770    15616   -154  head->head
+09-document                   13798    14044   +246 |    13798    14044   +246  whole->whole
+10-verify                     20291    20537   +246 |    15973    16219   +246  head->head
+11-carry-forward              21887    22133   +246 |    16877    17123   +246  head->head
+12-carry-forward-improve       2616     2616     +0 |     2616     2616     +0  whole->whole
+== ask-agent run dir 83
+packet                      b.whole  a.whole      d |  b.print  a.print      d  form
+01-step-plan                  27864    28110   +246 |    22320    22566   +246  head->head
+02-step-plan-improve           2687     2687     +0 |     2687     2687     +0  whole->whole
+03-test-spec                  16075    16321   +246 |    12268    12514   +246  head->head
+04-test-spec-improve           1919     1919     +0 |     1919     1919     +0  whole->whole
+05-validate-existing          16516    16762   +246 |    11891    12137   +246  head->head
+06-implement                  21301    21340    +39 |    16550    16589    +39  head->head
+07-implement-improve           2628     2628     +0 |     2628     2628     +0  whole->whole
+08-test                       21633    21878   +245 |    15770    15616   -154  head->head
+09-document                   15366    15612   +246 |    15366    15612   +246  whole->whole
+10-verify                     22058    22304   +246 |    16172    16418   +246  head->head
+11-carry-forward              24658    24904   +246 |    18080    18326   +246  head->head
+12-carry-forward-improve       2616     2616     +0 |     2616     2616     +0  whole->whole
+== inline run dir 163
+packet                      b.whole  a.whole      d |  b.print  a.print      d  form
+01-step-plan                  26056    26302   +246 |    22078    22324   +246  head->head
+02-step-plan-improve           3007     3007     +0 |     3007     3007     +0  whole->whole
+03-test-spec                  15867    16113   +246 |    15867    13874  -1993  whole->head
+04-test-spec-improve           2239     2239     +0 |     2239     2239     +0  whole->whole
+05-validate-existing          16308    16554   +246 |    13251    13497   +246  head->head
+06-implement                  19105    19144    +39 |    16000    16039    +39  head->head
+07-implement-improve           2948     2948     +0 |     2948     2948     +0  whole->whole
+08-test                       21585    21830   +245 |    16891    17136   +245  head->head
+09-document                   15238    15484   +246 |    15238    15484   +246  whole->whole
+10-verify                     21651    21897   +246 |    17333    17579   +246  head->head
+11-carry-forward              23407    23653   +246 |    18317    18563   +246  head->head
+12-carry-forward-improve       2936     2936     +0 |     2936     2936     +0  whole->whole
+== ask-agent run dir 163
+packet                      b.whole  a.whole      d |  b.print  a.print      d  form
+01-step-plan                  29384    29630   +246 |    23760    24006   +246  head->head
+02-step-plan-improve           3007     3007     +0 |     3007     3007     +0  whole->whole
+03-test-spec                  17435    17681   +246 |    13628    13874   +246  head->head
+04-test-spec-improve           2239     2239     +0 |     2239     2239     +0  whole->whole
+05-validate-existing          17876    18122   +246 |    13251    13497   +246  head->head
+06-implement                  22261    22300    +39 |    17510    17549    +39  head->head
+07-implement-improve           2948     2948     +0 |     2948     2948     +0  whole->whole
+08-test                       23153    23398   +245 |    16891    17136   +245  head->head
+09-document                   16806    17052   +246 |    12840    13086   +246  head->head
+10-verify                     23418    23664   +246 |    17532    17778   +246  head->head
+11-carry-forward              26178    26424   +246 |    19520    19766   +246  head->head
+12-carry-forward-improve       2936     2936     +0 |     2936     2936     +0  whole->whole

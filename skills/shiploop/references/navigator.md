@@ -53,8 +53,8 @@ including a justified N/A output. The planning producers (`spec`,
 `carry-forward` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
-Every inner stage does its work inside one bound Until Loop invoked by name,
-with a ShipLoop-authored contract and receipt under `loops/`
+Every inner stage does its work inside one bound Until Loop started by the
+packet's literal command, with a ShipLoop-authored contract and receipt under `loops/`
 ([stage Until Loops](../SKILL.md#stage-until-loops)). ShipLoop accepts an inner
 `done` only with a terminal packet that matches the contract rebuilt from state,
 and only after the stage's script gates pass: the expectation checks at

@@ -5331,8 +5331,8 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
             "repeat it until it accepts.")
 
 
-# An inner stage's done-when: its conditions are the numbered exit conditions of the /until-loop argument.
-DONE_WHEN_LOOP = ("Done when: every exit condition in the /until-loop argument below holds; ShipLoop's gate checks "
+# An inner stage's done-when: its conditions are the numbered exit conditions of the Until Loop argument.
+DONE_WHEN_LOOP = ("Done when: every exit condition in the Until Loop argument below holds; ShipLoop's gate checks "
                   "the same list.")
 
 
@@ -5360,7 +5360,7 @@ def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
     sent_back = _sent_back_results(state, stage, _current_work_item(state))
     revised = "the summary says which rows are new or changed and which are carried over from the previous step plan"
     if stage in loops.STAGES and loops.argument_ready(root, state):
-        # One home per thing (owner, 2026-10-11): the /until-loop argument after the status block numbers the exit
+        # One home per thing (owner, 2026-10-11): the Until Loop argument after the status block numbers the exit
         # conditions, so the head points at it instead of listing them a second time.  When the argument cannot be
         # built (the invoke block says why), the list stays here, so the conditions are still printed once.
         done = [DONE_WHEN_LOOP, *(["Also: " + revised + "."] if sent_back else [])]

@@ -1,0 +1,37 @@
+# Fail-first records (unit U9): the new tests run with ONLY the source diff (skills/) reverted, tests and head table kept
+
+## failfirst-loops-invokelines (command: SHIPLOOP_PROGRESS=off python3 -B test/shiploop-loops.test.py -k <pattern>)
+   1 Ran 10 tests in 0.393s
+   1 FAILED (failures=1, errors=16)
+   1 FAIL: test_the_block_names_one_start_route_and_no_tool (__main__.InvokeLinesTests.test_the_block_names_one_start_route_and_no_tool)
+   1 ERROR: test_the_result_line_names_the_receipt_the_next_command_and_the_runtimes_five_report_fields (__main__.InvokeLinesTests.test_the_result_line_names_the_receipt_the_next_command_and_the_runtimes_five_report
+   1 ERROR: test_the_printed_report_fields_are_the_runtimes_required_fields_and_enums (__main__.InvokeLinesTests.test_the_printed_report_fields_are_the_runtimes_required_fields_and_enums)
+   1 ERROR: test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop (__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop) (stage='verify')
+   1 ERROR: test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop (__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop) (stage='test')
+   1 ERROR: test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop (__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop) (stage='step-plan')
+   1 ERROR: test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop (__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop) (stage='document')
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='verify')
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='validate-ex
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='test-spec')
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='test')
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='step-plan')
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='implement')
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='document')
+   1 ERROR: test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers (__main__.InvokeLinesTests.test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers) (stage='carry-forwa
+   1 ERROR: test_the_ask_agent_implement_block_has_the_same_shape_and_one_command (__main__.InvokeLinesTests.test_the_ask_agent_implement_block_has_the_same_shape_and_one_command)
+   1 ERROR: test_a_started_loop_leads_with_resume_not_run_and_prints_no_start_command (__main__.InvokeLinesTests.test_a_started_loop_leads_with_resume_not_run_and_prints_no_start_command)
+
+## failfirst-loops-rendered (command: SHIPLOOP_PROGRESS=off python3 -B test/shiploop-loops.test.py -k <pattern>)
+  14 FAIL: test_every_looped_stage_prints_the_run_line_then_the_command_and_names_no_tool (__main__.RenderedPacketsTests.test_every_looped_stage_prints_the_run_line_then_the_command_and_names_no_tool) (packet='inlin
+  14 FAIL: test_every_looped_stage_prints_the_run_line_then_the_command_and_names_no_tool (__main__.RenderedPacketsTests.test_every_looped_stage_prints_the_run_line_then_the_command_and_names_no_tool) (packet='ask-a
+   1 Ran 2 tests in 0.339s
+   1 FAILED (failures=30)
+   1 FAIL: test_the_head_and_the_test_stage_name_the_argument_by_its_name_not_the_slash_form (__main__.RenderedPacketsTests.test_the_head_and_the_test_stage_name_the_argument_by_its_name_not_the_slash_form)
+   1 FAIL: test_every_looped_stage_prints_the_run_line_then_the_command_and_names_no_tool (__main__.RenderedPacketsTests.test_every_looped_stage_prints_the_run_line_then_the_command_and_names_no_tool)
+
+## failfirst-cancelled-refusal (command: SHIPLOOP_PROGRESS=off python3 -B test/shiploop-loops.test.py -k <pattern>)
+   1 Ran 1 test in 0.255s
+   1 FAILED (failures=1)
+   1 FAIL: test_a_blocked_stop_supports_blocked_or_revise_and_a_cancelled_one_nothing (__main__.CheckTerminalTests.test_a_blocked_stop_supports_blocked_or_revise_and_a_cancelled_one_nothing)
+
+## packet-recut with the old source and the raised table: OK (the table is a ceiling; the old text is shorter):  OK 
