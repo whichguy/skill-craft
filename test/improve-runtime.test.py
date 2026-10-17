@@ -407,6 +407,12 @@ class TwoPassGateTests(LoopCase):
     Once any pass has changed the content, two consecutive trivial, satisfied passes that each leave it unchanged complete.
     A trivial pass that changed the content never completes, and a pass that is unchanged but unsatisfied (or not trivial)
     breaks the pair.  Gate 2 stops on the first of them.
+
+    The unsatisfied case is stricter than the streak of 2be7906b, which counted a trivial pass whatever its exit (an
+    unsatisfied pass then a satisfied one ended at pass 2): an unsatisfied exit says something still remains, so that pass
+    is not one of the two.  That is safe only because the frozen exit names no pass count (U2-R1): a contract that said
+    "two such passes in a row are needed" made a literal reader report the first clean pass after an edit unsatisfied,
+    which delayed the end by a pass (ENN ends at 3, EUNN at 4).  test/shiploop-quality.test.py pins the contract.
     """
 
     # Each letter is one pass: E = edits the file, reported non-trivial; T = edits the file, reported trivial (the label is
@@ -425,6 +431,8 @@ class TwoPassGateTests(LoopCase):
         ("UN", 2, 0),
         ("UNN", 2, 3),
         ("ENUNN", 2, 5),
+        ("EUN", 3, 0),      # the literal reader's report of the first clean pass after an edit: not a pair at gate 3
+        ("EUNN", 3, 4),
     )
 
     def drive(self, gate: int, passes: str, **extra) -> tuple[int, dict]:

@@ -6485,11 +6485,13 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
                  "planning scratch directory named in context.scope.")
     gate = stage_spec.improve_gate(child["stage"])
     two_pass = gate == stage_spec.TWO_PASS_GATE
+    # The exit names the single pass the model assesses.  The two-pass rule of a code review is the runtime's gate, so it
+    # is not a clause here: a model that reads "two such passes in a row are needed" literally reports the first clean pass
+    # after an edit unsatisfied, and the runtime then does not count that pass toward the pair (U2-R1).
     exit_condition = ("A full review pass finds nothing material to change and leaves the content (the "
                       "worktree and the stage result file) exactly as the previous pass left it, the first "
-                      "pass as it was at the start, which the runtime measures"
-                      + ("; once any pass has changed the content, two such passes in a row are needed" if two_pass else "")
-                      + "; no material defect remains in the candidate; the applicable checks are recorded.")
+                      "pass as it was at the start, which the runtime measures; no material defect remains in "
+                      "the candidate; the applicable checks are recorded.")
     repeat = ("Repeat while a warranted change remains or the latest pass changed the content"
               + (", and after any pass has changed it until two passes in a row leave it unchanged" if two_pass else "")
               + ". Stop incomplete on an actual blocker or a user stop. Never push.")

@@ -46,6 +46,7 @@ class QualityLoopTests(fx.RunDriver):
         self.assertTrue(standalone.receipt_path(child).is_file())
         self.assertNotIn("write the opening file", nav.improve_handoff_text(CORE, self.run_dir, state))
         self.assertIn("complete --run-dir=" + str(self.run_dir) + " --action=" + nav.improve_id(state), self.packet())
+
     def assert_review_gate(self, state, gate):
         """The contract ShipLoop froze for the child and the handoff the review reads both name the gate of the stage's
         Improve rule (D-6 / R1): 2 stops on one unchanged pass, 3 (the code reviews) needs two in a row after an edit."""
@@ -54,8 +55,12 @@ class QualityLoopTests(fx.RunDriver):
         handoff = " ".join(nav.improve_handoff_text(CORE, self.run_dir, state).split())
         two = gate == 3
         self.assertEqual(contract["required_trivial_reviews"], gate)
-        self.assertEqual("once any pass has changed the content, two such passes in a row are needed"
-                         in contract["exit_condition"], two)
+        # The pass count is the runtime's gate, not a clause of the exit the model assesses (U2-R1): a model that reads
+        # "two such passes in a row are needed" literally reports the first clean pass after an edit unsatisfied, and the
+        # runtime then no longer counts that pass toward the pair (EUN never ends, EUNN ends one pass late).  So only the
+        # repeat condition, the handoff and the runtime's own packets carry it; the exit names no count at either gate.
+        self.assertNotIn("in a row", contract["exit_condition"])
+        self.assertNotIn("once any pass has changed", contract["exit_condition"])
         self.assertEqual("until two passes in a row leave it unchanged" in contract["repeat_condition"], two)
         self.assertEqual("the runtime needs two such passes in a row to end the review" in handoff, two)
         self.assertIn("a pass that changed content never ends it, however you label it", handoff)
