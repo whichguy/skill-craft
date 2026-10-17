@@ -1626,9 +1626,8 @@ class SuiteTest(HarnessCase):
 PORT_PROBE = ROOT / "docs" / "experiments" / "shiploop-e2e-audit-20261016" / "port-probe"
 VALID_PAGE = ("require('http').createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html'});"
               "res.end('<title>Battleship</title> candidate')}).listen(Number(process.env.PORT));\n")
-# Ignores PORT: it listens on a port of its own choosing and records its pid, as a product with a hard-coded port does.
-ELSEWHERE = ("require('fs').writeFileSync('pid.txt', String(process.pid));"
-             "require('http').createServer((req,res)=>res.end('<title>Battleship</title>')).listen(0, '127.0.0.1');\n")
+# Ignores PORT: it listens on a port of its own choosing, as a product with a hard-coded port does.
+ELSEWHERE = "require('http').createServer((req,res)=>res.end('<title>Battleship</title>')).listen(0, '127.0.0.1');\n"
 
 
 @unittest.skipUnless(shutil.which("node") and shutil.which("lsof"), "needs node and lsof")
@@ -1708,7 +1707,12 @@ class HttpCheckBindingTest(unittest.TestCase):
         self.assertFalse(result["pass"], result)
         self.assertIn("not by the candidate", result["output"])
         self.assertIsNone(sibling.poll())
-        pid = int((work / "pid.txt").read_text())
+        # The ownership check can stop Node before its source runs. Use the PID
+        # recorded at launch, not a file whose creation depends on startup order.
+        candidate_pid = re.search(r"not by the candidate \(pid (\d+)\)", result["output"])
+        self.assertIsNotNone(candidate_pid, result["output"])
+        pid = int(candidate_pid.group(1))
+        self.assertNotEqual(pid, sibling.pid)
         for _ in range(50):
             try:
                 os.kill(pid, 0)
