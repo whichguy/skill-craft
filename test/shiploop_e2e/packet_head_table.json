@@ -4,13 +4,13 @@
     "inline/83/96": {
       "step-plan": 19988,
       "step-plan-improve": 2713,
-      "test-spec": 14759,
+      "test-spec": 14711,
       "test-spec-improve": 1945,
-      "validate-existing": 15283,
+      "validate-existing": 15235,
       "implement": 15763,
       "implement-improve": 2654,
-      "test": 18239,
-      "document": 14116,
+      "test": 17842,
+      "document": 14068,
       "verify": 18188,
       "carry-forward": 18028,
       "carry-forward-improve": 2642
@@ -37,8 +37,8 @@
       "validate-existing": 12562,
       "implement": 17217,
       "implement-improve": 2654,
-      "test": 18239,
-      "document": 15684,
+      "test": 17842,
+      "document": 15636,
       "verify": 18608,
       "carry-forward": 19294,
       "carry-forward-improve": 2642

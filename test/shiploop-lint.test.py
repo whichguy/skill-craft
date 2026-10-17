@@ -1197,6 +1197,71 @@ class HookTests(Fixture):
         self.assertEqual("".join(shown), payload["block"])
 
 
+    def stored_lines(self, edit: dict, *, tools_failed: bool = False, stage: str = "verify") -> tuple:
+        """A report-mode pass over ``edit``, stored, and the packet lines ``render_lines`` prints for it: (payload, lines)."""
+        self.commit({"a.py": "x = 1\n"})
+        self.base()
+        self.edit(edit)
+        payload = self.run_pass(mode="report")
+        if tools_failed:
+            payload["counts"]["tool_errors"] = 1
+        for relative, text in lint.record_writes(payload).items():
+            store.atomic_write_text(self.run_dir / relative, text)
+        return payload, lint.render_lines(self.run_dir, "A1", stage=stage, run_option="report", repo=str(self.repo),
+                                          command=str(CLI), commands=False)
+
+    def test_a_packet_prints_the_findings_the_verdict_and_the_gate_rule_but_not_the_record_sections(self):
+        """Efficiency plan U13 (rev 4 Step 2.2): the scope, coverage, tools, commands and Git plumbing are in the stored
+        record, which a command prints whole; the packet keeps what the model acts on."""
+        payload, lines = self.stored_lines({"a.py": "x = 1\ny = 2  # lint\n"})
+        full = payload["block"]
+        packet = "\n".join(lines)
+        self.assertEqual(len(lint._parts(full)), 1)
+        for section in ("Scope: ", "Coverage:", "Tools on this host: ", "Commands ShipLoop ran (", "Git plumbing for scope ("):
+            self.assertIn(section, full)
+            self.assertNotIn(section, packet)
+        self.assertLess(len(packet), len(full) - 300)
+        for kept in ("ShipLoop lint (" + lint.SUPPORTING, "Action A1 | work item", "BEGIN lint data", "Findings (", "END lint data",
+                     payload["result_line"], "Rerun after your own edits (report-only): "):
+            self.assertIn(kept, packet)
+        self.assertIn("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed", packet)
+        # The command the packet prints shows the whole record, through the real CLI path.
+        shown = next(line for line in lines if line.startswith("Whole lint record ("))
+        command = shown.split("): ", 1)[1]
+        self.assertIn("--show --part=1", command)
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = lint.main(CORE, ["--run-dir", str(self.run_dir), "--action", "A1", "--show", "--part", "1"])
+        self.assertEqual(code, 0)
+        self.assertEqual(buffer.getvalue().split("\n", 1)[1], full)
+
+    def test_a_gate_record_prints_the_waiver_shape_and_names_its_pass_in_the_command_that_shows_it(self):
+        self.commit({"a.py": "x = 1\n"})
+        self.base()
+        self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+        payload = lint.lint_pass(self.repo, self.run_dir, action="A1", work_item="W1", stage="implement", mode="report",
+                                 run_option="report", base=lint.read_base(self.run_dir, "W1"), allow_fix=False,
+                                 env=self.env(), record_name="A1.gate1")
+        for relative, text in lint.record_writes(payload).items():
+            store.atomic_write_text(self.run_dir / relative, text)
+        lines = lint.render_lines(self.run_dir, "A1", stage="implement", run_option="report", repo=str(self.repo),
+                                  command=str(CLI), commands=False)
+        packet = "\n".join(lines)
+        self.assertIn("Latest implement lint gate (pass 1)", packet)
+        self.assertIn("lint_waivers as {\"id\": \"<ID>\", \"reason\": \"<why it stays>\"}", packet)
+        self.assertNotIn("Git plumbing for scope (", packet)
+        self.assertIn("--show --gate=1 --part=1", next(line for line in lines if line.startswith("Whole lint record (")))
+
+    def test_a_pass_whose_tool_failed_and_a_block_of_several_pages_print_whole(self):
+        payload, lines = self.stored_lines({"a.py": "x = 1\ny = 2  # lint\n"}, tools_failed=True)
+        self.assertIn("Commands ShipLoop ran (", "\n".join(lines))      # a failed tool's output is the diagnosis
+        self.assertFalse(any(line.startswith("Whole lint record (") for line in lines))
+        self.assertEqual(lint._packet_digest(payload["block"], {"timeouts": 1}), None)
+        self.assertEqual(lint._packet_digest("a block of another shape\n", {}), None)
+        broken = payload["block"].replace("Findings (", "Findings: (")          # a section whose end is missing is not cut
+        self.assertEqual(lint._packet_digest(broken, {}), None)
+
+
 class DiscoveredLinterTests(Fixture):
     """Linters the repository configures run on the changed files of their type."""
 

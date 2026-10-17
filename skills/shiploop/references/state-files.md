@@ -65,14 +65,17 @@ executes (`test_loop.stage_commands`). A command in one and not the other is not
 detected, and neither is a strategy file that keeps its commands outside a
 fenced block, as its duty asks.
 
-The planning basis travels the same way. Prelude planning packets (discovery
-through plan) name the current accepted intake-through-test-strategy results as
-**Current planning sources**. The stages that turn the accepted plan into work
-(`step-plan`, `test-spec`, `system-test-author`, `release-plan`) name the
-accepted `spec` and `plan` results there, beside the test strategy source, so
-the steps, tests and release steps are planned from the accepted plan rather
-than from memory. `test/shiploop-planning-handoff.test.py` pins which results
-each stage's packet names.
+The planning basis travels the same way. Each stage's References block lists
+the accepted results it builds on ("Results this stage builds on"): the prelude
+planning packets (discovery through plan) the intake-through-test-strategy
+results, and the stages that turn the accepted plan into work (`step-plan`,
+`test-spec`, `system-test-author`, `release-plan`) the accepted `spec` and
+`plan` results beside the test strategy source, so the steps, tests and release
+steps are planned from the accepted plan rather than from memory. A planning
+packet prints **Current planning sources** (which results are current, which
+finding retired the rest) only for a run with a planning reconciliation.
+`test/shiploop-planning-handoff.test.py` pins which results each stage's packet
+names.
 
 ## Run reference
 

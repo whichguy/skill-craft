@@ -1,0 +1,41 @@
+# U13: characters of each stage's hand-off block (navigator._consumer_lines) on the long-knowledge fixture
+# fixture: docs/experiments/shiploop-eff-packets-20261016/measure_handoff_block.py (30 requirements, 8 decisions, an environment file; baseline holds no living file)
+
+## INT tip 5e0ef0d0 (the base of this unit; equals the packets branch's record 0eeb68e2)
+plan                   28734
+test-strategy          26044
+test-spec              28532
+implement              15297
+test                   15316
+document               37898
+verify                 38002
+carry-forward          26364
+product-acceptance     28862
+system-test-author     28395
+TOTAL                 273444
+
+## this unit
+plan                   28734
+test-strategy          26044
+test-spec              28532
+implement              15297
+test                   15316
+document               29325
+verify                 29429
+carry-forward          26364
+product-acceptance     28862
+system-test-author     28395
+TOTAL                 256298
+
+## the record the exit names: plan 28,734; test-strategy 26,044; product-acceptance 28,862; test-spec 28,532; document 37,898; verify 38,002; implement 15,297
+
+# small and long homes of test/shiploop_e2e/home_fixtures.py, dry-run delivery walk (single-step plan; no git repository, so no diff): hand-off blocks of 24 producer packets, hashed, base vs this unit
+small/inline 24 hand-off blocks; 0 differ
+small/ask-agent 24 hand-off blocks; 0 differ
+long/inline 24 hand-off blocks; 0 differ
+long/ask-agent 24 hand-off blocks; 0 differ
+
+# the two-item multi-step walk of test/shiploop_head_plans.py over a small home with no baseline (WalkedBlockTests.SMALL_HOME_FINGERPRINTS): 33 blocks, base vs this unit
+1 differ: ['20-test'] (the item has two implement steps: their not_covered values print under one label)
+
+# whole packets of the same home_fixtures walks: every packet differs (home_fixtures.fingerprints): the 'Summary: as the status block's Done line shows.' line, the planning sources and the other Step 2.2 text changed in packets of every home

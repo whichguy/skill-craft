@@ -314,12 +314,26 @@ class StepTests(DelegationStateTests):
             state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         return state
 
+    def test_a_later_step_is_named_by_its_id_and_the_paths_it_owns_not_its_task(self):
+        """Efficiency plan U13: the line says where this step must not reach; the task is in the step plan's result."""
+        steps = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"]},
+                 {"id": "S2", "task": "Document divide in the guide.", "paths": ["README.md", "docs/guide.md"]},
+                 {"id": "S3", "task": "Announce it in the changelog."}]
+        packet = self.render(self.at_implement(steps=steps))
+        line = next(row for row in packet.splitlines() if row.startswith("Later steps ("))
+        self.assertEqual(line, "Later steps (ShipLoop issues each one after this callback; do not start them): "
+                               "S2 README.md, docs/guide.md; S3 (no paths declared)")
+        for task in ("Document divide", "Announce it"):
+            self.assertNotIn(task, line)
+
     def test_inline_implement_issues_one_packet_per_step_in_order(self):
         state = self.at_implement()
         first = self.render(state)
         self.assertIn("Step S1 (1 of 2), the only work for this packet: Add divide() to calc.py.", first)
-        self.assertIn("Later steps (ShipLoop issues each one after this callback; do not start them): "
-                      "S2 Document divide in README.", first)
+        # A later step is named by its id and the paths it owns (where this step must not reach); its task is the step
+        # plan's, not repeated here (efficiency plan U13).
+        self.assertIn("Later steps (ShipLoop issues each one after this callback; do not start them): S2 README.md\n",
+                      first)
         self.assertNotIn("one step at a time in dependency order", first)
         first_action = nav.current_action(state)["id"]
         state = self.done(state, "divide() added.")

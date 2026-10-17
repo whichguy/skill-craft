@@ -1638,6 +1638,26 @@ class TestLoopTests(unittest.TestCase):
         self.assertIsNotNone(red_check, "the test packet prints no red-check command")
         self.assertIn("--action=" + self.action(), red_check)
 
+    def test_the_red_na_and_retired_tests_shapes_print_once_in_the_test_packet_and_the_rules_point_at_them(self):
+        """The shapes of `red_na` and `retired_tests` live in the test duty's item 6 (efficiency plan U13, TD-7): the base
+        and floor rules say "(shape: duty 6)" and the template has no "Optional at test" line that prints them again."""
+        for route in ("inline", "ask-agent"):
+            with self.subTest(route=route):
+                header = next(line for line in prompts.prompt("test", delegation=route).splitlines() if line.startswith("6. "))
+                self.assertTrue(header.startswith("6. **Result fields.** `red_na`:"), header)
+                self.assertIn("`retired_tests`:", " ".join(prompts.duty("test", delegation=route).split()))
+        for rule in (test_loop.BASE_RULE, test_loop.FLOOR_RULE):
+            self.assertIn("(shape: duty 6)", rule)
+            self.assertNotIn('{"id"', rule)
+        self.start()
+        self.drive_to("test", step_plan=self.id_item())
+        packet = self.packet()
+        self.assertNotIn("Optional at test:", packet)
+        self.assertEqual(packet.count('`[{"id", "reason"}]`'), 1)             # red_na's shape, in duty 6
+        self.assertEqual(packet.count('[{"id", "reason": "<the R-<n> or AD-<n> that retires'), 1)    # retired_tests', in duty 6
+        self.assertEqual(sum(1 for line in packet.splitlines() if '"reason"' in line and "red_na" in line), 1)
+        self.assertEqual(packet.count("(shape: duty 6)"), 2)
+
     def test_the_red_check_command_runs_the_base_check_without_counting(self):
         """`shiploop red-check` (the loop's own view of the base rule) through the real CLI."""
         self.start()
@@ -1665,7 +1685,8 @@ class TestLoopTests(unittest.TestCase):
                 self.assertIn("replan", stage_spec.stage(name).outcomes)
                 self.assertIn("replan", stage_spec.stage(name).test)
 
-    def test_the_test_template_offers_red_na_and_retired_tests_and_says_each_key_once(self):
+    def test_the_test_template_holds_neither_key_duty_6_offers_both_and_the_fill_rule_says_each_key_once(self):
+        """The shapes are offered once, by the duty (efficiency plan U13, TD-7); the template's notes no longer repeat them."""
         self.start()
         self.drive_to("test")
         head = self.head()
@@ -1673,9 +1694,12 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("red_na", template)  # a placeholder there would flip the stage's judgement
         self.assertNotIn("retired_tests", template)
         tail = head.split("\nAllowed outcomes:", 1)[1]
-        self.assertIn('"red_na": [{"id": "<a focused test ID>"', tail)
-        self.assertIn('"retired_tests": [{"id": "<test name>"', tail)
-        self.assertIn("already passes without this change", tail)
+        self.assertNotIn("red_na", tail)
+        self.assertNotIn("retired_tests", tail)
+        flat = " ".join(head.split())
+        self.assertIn('6. **Result fields.** `red_na`: each new test passing on the item base without this change, '
+                      '`[{"id", "reason"}]`. `retired_tests`: each test this item deliberately retires, '
+                      '`[{"id", "reason": "<the R-<n> or AD-<n> that retires it>"}]`', flat)
         self.assertIn("each key once", tail)
         self.assertIn("every placeholder", tail)
 

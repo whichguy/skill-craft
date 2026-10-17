@@ -2170,6 +2170,40 @@ def _parts(block: str) -> List[str]:
     return parts
 
 
+# The sections of a lint block that a packet leaves to the stored record (``lint --show`` prints it whole): what was in
+# scope, how each file was covered, the tools found, every command run with its complete output and the Git plumbing.  Each
+# is (its first line's start, the start of the line that ends it; None for a one-line section).  What the packet keeps is
+# the rest: the findings, the verdict, the gate rule with its waiver shape, the rerun command and every notice
+# (auto-fix applied, not applied, tool trouble) the block carries.
+_RECORD_SECTIONS = (("Scope: ", "Coverage:"), ("Coverage:", "Tools on this host: "), ("Tools on this host: ", None),
+                    ("Commands ShipLoop ran (", "Git plumbing for scope ("), ("Git plumbing for scope (", "Findings ("))
+
+
+def _packet_digest(block: str, counts: Mapping[str, Any]) -> Optional[str]:
+    """``block`` without ``_RECORD_SECTIONS``, or None when the whole block must print: a tool that failed or timed out
+    (its output is the diagnosis), a block of another shape (a failure record) or one whose sections are not all found."""
+    if counts.get("tool_errors") or counts.get("timeouts"):
+        return None
+    kept: List[str] = []
+    until: Optional[str] = None
+    dropped = 0
+    for line in block.splitlines():
+        if until is not None:
+            if not line.startswith(until):
+                dropped += 1
+                continue
+            until = None
+        section = next((row for row in _RECORD_SECTIONS if line.startswith(row[0])), None)
+        if section is not None:
+            dropped += 1
+            until = section[1]
+            continue
+        kept.append(line)
+    if until is not None or not dropped:
+        return None
+    return "\n".join(kept)
+
+
 def _show_command(command: str, run_dir: Path, action: str, part: int, rerun: int = 0) -> str:
     argv = ["python3", command, "lint", "--run-dir=" + os.fspath(run_dir), "--action=" + action, "--show"]
     if rerun:
@@ -2260,7 +2294,9 @@ def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional
                  command: str, commands: bool = True) -> List[str]:
     """Read-only packet lines for the current action: never lints.
 
-    ``commands`` False leaves out ``command_lines`` (a producer packet prints them as the stage's input)."""
+    ``commands`` False leaves out ``command_lines`` (a producer packet prints them as the stage's input).  A block of one
+    page prints without its ``_RECORD_SECTIONS`` and with the command that shows the whole record; a larger block, and one
+    whose tools failed, print whole and paged."""
     run_dir = Path(run_dir)
     lines = pending_lines(run_dir)
     if commands:
@@ -2283,8 +2319,14 @@ def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional
         top = payload.get("toplevel")
         stale = _stale(payload, Path(top) if isinstance(top, str) and top else None)
         parts = _parts(block)
+        digest = _packet_digest(block, payload.get("counts") or {}) if len(parts) == 1 else None
         lines.append("")
-        lines.append(parts[0].rstrip("\n"))
+        lines.append((digest if digest is not None else parts[0]).rstrip("\n"))
+        if digest is not None:
+            lines.append("Whole lint record (scope, coverage, tools, every command run and its output): "
+                         + (shlex.join(["python3", command, "lint", "--run-dir=" + os.fspath(run_dir),
+                                        "--action=" + action, "--show", "--gate=" + str(gate_number), "--part=1"])
+                            if gate_number else _show_command(command, run_dir, action, 1)))
         if len(parts) > 1:
             shows = ([shlex.join(["python3", command, "lint", "--run-dir=" + os.fspath(run_dir),
                                   "--action=" + action, "--show", "--gate=" + str(gate_number),

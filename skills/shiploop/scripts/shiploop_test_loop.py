@@ -306,13 +306,12 @@ FLOOR_RULE = ("Each focused and regression command must also run at least its fl
               "the item's base (ShipLoop's base run, with this item's test files copied in) and the most any earlier "
               "ShipLoop run of this action ran, less each test the result's retired_tests names that the base run "
               "showed for that command. A test removed or newly skipped to pass is refused; a test this item "
-              "deliberately retires goes in retired_tests: [{\"id\": \"<its name as printed>\", \"reason\": "
-              "\"<the requirement or decision that retires it>\"}], and it must print its name on the base.")
+              "deliberately retires goes in retired_tests (shape: duty 6), and it must print its name on the base.")
 BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the item's "
              "base (a temporary detached worktree, with only this item's test files copied in). No listed test ID "
              "may pass there: each must fail, or be missing because a file this item adds cannot be loaded. A "
-             "characterisation test that passes without this item's change goes in red_na: [{\"id\": \"<listed "
-             "ID>\", \"reason\": \"...\"}]. A refused base run counts toward the same refused runs.")
+             "characterisation test that passes without this item's change goes in red_na (shape: duty 6). A refused "
+             "base run counts toward the same refused runs.")
 # What the reruns after the test stage say about the floor ``accepted_counts`` sets.
 RATCHET_RULE = ("A run must also run at least as many tests as the most any earlier run of the same command that "
                 "ShipLoop accepted for this item has run since its latest step plan, so a test removed or newly skipped "

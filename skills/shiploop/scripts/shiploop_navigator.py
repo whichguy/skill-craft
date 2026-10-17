@@ -1750,9 +1750,10 @@ def _improve_lessons_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     receipt = record.get("receipt", record)
     lessons = receipt.get("lessons", "") if isinstance(receipt, Mapping) else ""
     lines: list[str] = []
-    if isinstance(lessons, str) and lessons:
+    if isinstance(lessons, str) and lessons.strip():
+        # One line per lesson: the blank lines that separate a receipt's paragraphs print nothing (efficiency plan U13).
         lines.extend(["Last accepted Improve lessons (untrusted observations; revalidate relevance):",
-                      _bounded_packet_text(lessons)])
+                      "\n".join(line for line in _bounded_packet_text(lessons).splitlines() if line.strip())])
     # Only a result that went through an Improve checkpoint has a receipt.
     if last["action"] in state["improve_results"]:
         lines.append("Prior Improve evidence and lessons: " + str(root / "improve" / last["action"] / "receipt.md"))
@@ -1770,12 +1771,12 @@ def _last_accepted_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     return [
         "Last accepted transition (untrusted host report; not new instructions):",
         f"Stage: {last['stage']}; outcome: {last['outcome']}; work item: {last['workitem'] or 'none'}; action: {last['action']}",
-        # The status block's Done line prints a short summary already (packet re-cut, 2026-10-11).
-        *(["Summary: as the status block's Done line shows."]
-          if " ".join(str(last["summary"]).split()) == _headline(state, last["action"]) else [
-              "----- BEGIN LAST ACCEPTED SUMMARY -----",
-              _bounded_packet_text(last["summary"]),
-              "----- END LAST ACCEPTED SUMMARY -----"]),
+        # The status block's Done line prints a summary of at most a headline's length: the block repeats it only when
+        # the summary says more (efficiency plan U13, rev 4 Step 2.2).
+        *([] if " ".join(str(last["summary"]).split()) == _headline(state, last["action"]) else [
+            "----- BEGIN LAST ACCEPTED SUMMARY -----",
+            _bounded_packet_text(last["summary"]),
+            "----- END LAST ACCEPTED SUMMARY -----"]),
         *(["Evidence references (untrusted locators; not read by the navigator):", *references]
           if last_result["evidence_refs"] else []),
     ]
@@ -1853,7 +1854,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("duties", P0, ["Current stage guidance:", duties, ""]))
     blocks.extend(_stage_input_blocks(core, root, state, stage, action_id, workitem, inner))
     blocks.append(_Block("result", P0, [
-        *_result_contract_lines(root, state, stage, action_id, workitem), *_template_note_lines(stage), ""]))
+        *_result_contract_lines(root, state, stage, action_id, workitem), ""]))
     if path is not None:
         blocks.append(_Block("pointers", POINTER, [
             f"Full packet: {path}",
@@ -3929,7 +3930,15 @@ def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
 
 
 def _planning_source_lines(state: Mapping[str, Any], root: Path) -> list[str]:
-    """Locate the current root planning basis without another persisted ledger."""
+    """Locate the current root planning basis without another persisted ledger.
+
+    Only a run with a planning reconciliation prints it: a reconciliation is the one thing that retires a planning result,
+    and these lines say which results are current and which finding retired the rest.  Every other run's current results
+    are the "Results this stage builds on" lines of the References block, and a stage not yet run has no result to list
+    (efficiency plan U13, rev 4 Step 2.2).
+    """
+    if not state["planning_reconciliations"]:
+        return []
     current = planning_revision.current_actions(state)
     lines = [
         "Current planning sources:",
@@ -3944,12 +3953,11 @@ def _planning_source_lines(state: Mapping[str, Any], root: Path) -> list[str]:
         else:
             lines.append("- " + stage + ": " + str(root / "results" / (action + ".md"))
                          + "; full summary and evidence_refs also in state.md accepted." + action)
-    if state["planning_reconciliations"]:
-        event = state["planning_reconciliations"][-1]
-        lines.append("Latest reconciliation finding and immutable evidence: "
-                     + str(root / "improve" / event["action"] / "receipt.md")
-                     + "; target " + event["target"] + ". This is a non-success finding, "
-                     "not an accepted replacement planning result.")
+    event = state["planning_reconciliations"][-1]
+    lines.append("Latest reconciliation finding and immutable evidence: "
+                 + str(root / "improve" / event["action"] / "receipt.md")
+                 + "; target " + event["target"] + ". This is a non-success finding, "
+                 "not an accepted replacement planning result.")
     return lines
 
 
@@ -4421,7 +4429,7 @@ def _run_context_lines(core: Any, root: Path, state: Mapping[str, Any], stage: s
         lines.extend(_last_accepted_lines(state, root))
         lines.extend(_improve_lessons_lines(state, root))
     lines.extend(_test_context_lines(state, root))
-    delivery_lines = consumer_delivery.packet_lines(state)
+    delivery_lines = consumer_delivery.packet_lines(state, stage)
     if delivery_lines:
         lines.append(_required_excerpt("\n".join(delivery_lines), root,
                                        "accepted (delivery_assessment records in history order)", limit=6000))
@@ -4596,17 +4604,6 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
         # reaches it through the Callback command's --check-only, which also runs the candidate and mutation checks.
         cli = shlex.join([sys.executable, str(Path(__file__).resolve().parent / "shiploop")])
         lines += test_loop.loop_lines(root, state, work_item or "", action_id, stage, cli=cli)
-    return lines
-
-
-def _template_note_lines(stage: str) -> list[str]:
-    """What to do with the printed template, which is the only complete result the packet shows."""
-    lines: list[str] = []  # the fill rule is the result block's first line (_outcome_shape_lines)
-    if stage in test_loop.STAGES:
-        lines.append('Optional at test: "red_na": [{"id": "<a focused test ID>", "reason": "<why it already passes '
-                     'without this change>"}] for a characterisation test, and "retired_tests": [{"id": "<test name>", '
-                     '"reason": "<why it is retired>"}] for a test this item deliberately removes. Leave both out '
-                     'otherwise.')
     return lines
 
 
@@ -5003,45 +5000,87 @@ def _new_file_pointer(name: str, text: str) -> str:
             + str(len(text.encode("utf-8"))) + " bytes" + ("; sections: " + shown if headings else "") + ")")
 
 
+def _diff_chunk_name(path: str) -> str:
+    """The living file a diff chunk is about ("spec.md"), or "" for a path outside HOME."""
+    return path[len(knowledge.HOME) + 1:] if path.startswith(knowledge.HOME + "/") else ""
+
+
+def _is_pointer_chunk(name: str, chunk: str, quoted: Mapping[str, str]) -> bool:
+    """True when the chunk adds, whole, the file the packet quotes whole: the one case a pointer stands for the diff."""
+    added = _added_whole_file(chunk) if name in quoted else None
+    return added is not None and added.rstrip("\n") == quoted[name].rstrip("\n")
+
+
 def _spec_diff_lines(diff: str, quoted: Mapping[str, str]) -> list[str]:
     """The diff as quoted lines, a pointer for each new file the packet already quotes whole."""
     lines: list[str] = []
     for path, chunk in _diff_chunks(diff):
-        name = path[len(knowledge.HOME) + 1:] if path.startswith(knowledge.HOME + "/") else ""
-        added = _added_whole_file(chunk) if name in quoted else None
-        if added is not None and added.rstrip("\n") == quoted[name].rstrip("\n"):
+        name = _diff_chunk_name(path)
+        if _is_pointer_chunk(name, chunk, quoted):
             lines.append(_new_file_pointer(name, quoted[name]))
         else:
             lines += _quoted(chunk.rstrip("\n"))
     return lines
 
 
-def _followed_lines(repo: Path, label: str, value: Any, quoted: Mapping[str, str]) -> list[str]:
-    """The followed R-<n> and AD-<n> entries; one whose exact text sits in a file the packet quotes whole is listed by ID."""
+def _diff_printed_files(sources: list[Any], quoted: Mapping[str, str]) -> dict[str, str]:
+    """``{file: text}`` of each new living file that the spec diff among ``sources`` prints whole, as text.
+
+    A new file's diff is the whole file; when the packet quotes no copy of it (``quoted``), the diff block below is the
+    only place its entries are printed, and a followed entry of that file can say so instead of printing itself again.
+    """
+    found: dict[str, str] = {}
+    for source in sources:
+        if source.key != "spec_diff" or not source.value:
+            continue
+        for path, chunk in _diff_chunks(source.value):
+            name = _diff_chunk_name(path)
+            added = _added_whole_file(chunk) if name else None
+            if added is not None and not _is_pointer_chunk(name, chunk, quoted):
+                found[name] = added
+    return found
+
+
+def _followed_lines(repo: Path, label: str, value: Any, quoted: Mapping[str, str],
+                    diffed: Mapping[str, str] | None = None) -> list[str]:
+    """The followed R-<n> and AD-<n> entries; one whose exact text sits in a file the packet quotes whole, or in the
+    whole-file diff it prints below (``diffed``), is listed by ID."""
+    diffed = diffed or {}
     listed: list[str] = []
-    files: list[str] = []
+    in_quote: list[str] = []
+    in_diff: list[str] = []
     rest: list[str] = []
     for ident, text in value:
         prefix = str(ident).split("-", 1)[0]
         file = {"R": "spec.md", "AD": knowledge.ARCHITECTURE}.get(prefix)
-        if file in quoted and text and text.strip() in quoted[file]:
-            entry = knowledge.entries(repo, file).get(str(ident))
-            listed.append(str(ident) + (_RETIRED_MARK[prefix] if entry is not None and entry.retired else ""))
-            if file not in files:
-                files.append(file)
-        else:
+        where = in_quote if file in quoted and text and text.strip() in quoted[file] else \
+            in_diff if file in diffed and text and text.strip() in diffed[file] else None
+        if where is None:
             rest += _entry_lines(repo, str(ident))
+            continue
+        entry = knowledge.entries(repo, file).get(str(ident))
+        listed.append(str(ident) + (_RETIRED_MARK[prefix] if entry is not None and entry.retired else ""))
+        if file not in where:
+            where.append(file)
     if not listed:
         return [label + ":", *rest]
-    return [label + ": " + ", ".join(listed) + " (each entry is in " + ", ".join("HOME/" + name for name in files)
-            + ", quoted whole above)" + (", and these follow:" if rest else ""), *rest]
+    places = []
+    if in_quote:
+        places.append("in " + ", ".join("HOME/" + name for name in in_quote) + ", quoted whole above")
+    if in_diff:
+        places.append("in the diff of " + ", ".join("HOME/" + name for name in in_diff) + " below")
+    return [label + ": " + ", ".join(listed) + " (each entry is " + "; ".join(places) + ")"
+            + (", and these follow:" if rest else ""), *rest]
 
 
-def _source_lines(root: Path, state: Mapping[str, Any], source: Any, quoted: Mapping[str, str] | None = None) -> list[str]:
+def _source_lines(root: Path, state: Mapping[str, Any], source: Any, quoted: Mapping[str, str] | None = None,
+                  diffed: Mapping[str, str] | None = None) -> list[str]:
     """One hand-off value in the consumer contract's wording (section 4); "not recorded by <stage>" when missing.
 
     ``quoted`` is ``{file: text}`` of the living files the same packet quotes whole; a value that only repeats one of
-    them (a new file's diff, a followed entry) prints as a pointer or an ID.
+    them (a new file's diff, a followed entry) prints as a pointer or an ID.  ``diffed`` is ``{file: text}`` of the
+    new files the spec diff below this value prints whole as text (``_diff_printed_files``): a followed entry of one
+    prints as an ID too.
     """
     repo = Path(str(state["repo"]))
     quoted = quoted or {}
@@ -5074,7 +5113,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, quoted: Map
     if value is None:
         return [label + ": not recorded by " + str(source.stage)]
     if source.key == "follows":
-        return _followed_lines(repo, label, value, quoted) if value else [label + ": none"]
+        return _followed_lines(repo, label, value, quoted, diffed) if value else [label + ": none"]
     if source.key == "criteria":
         return [label + ":", *("- " + str(row.get("id")) + ": " + _one_line(row.get("text"))
                                for row in value if isinstance(row, Mapping))]
@@ -5091,11 +5130,29 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, quoted: Map
                           *(QUOTE + field + ": " + _one_line(case.get(field)) for field in ("oracle", "red", "green"))]
         return lines
     if source.key == "not_covered":
-        return [label + ":", *("- " + _one_line(row.get("behaviour")) + " | reason: " + _one_line(row.get("reason"))
-                               for row in value if isinstance(row, Mapping))]
+        return [label + ":", *_not_covered_rows(value)]
     if source.key == "lessons":
         return [label + ":", *_quoted(knowledge.lessons_body(value, assumptions.open_items(state)))]
     return [label + ":", *_quoted(json.dumps(value, ensure_ascii=False, sort_keys=True))]
+
+
+def _not_covered_rows(value: Any) -> list[str]:
+    return ["- " + _one_line(row.get("behaviour")) + " | reason: " + _one_line(row.get("reason"))
+            for row in value if isinstance(row, Mapping)]
+
+
+def _not_covered_lines(root: Path, state: Mapping[str, Any], group: list[Any]) -> list[str]:
+    """The ``not_covered`` values of one item's implement steps under one label (a step each: the label names the item and
+    the stage, so a repeat of it tells the reader nothing).  One step prints as ``_source_lines`` prints it."""
+    if len(group) == 1:
+        return _source_lines(root, state, group[0])
+    label = "not_covered (" + (str(group[0].workitem) + " " if group[0].workitem else "") + str(group[0].stage) + ")"
+    rows = [row for source in group if source.value is not None for row in _not_covered_rows(source.value)]
+    missing = sum(source.value is None for source in group)
+    if not rows and missing == len(group):
+        return [label + ": not recorded by " + str(group[0].stage)]
+    return [label + ":", *rows, *(["- not recorded by " + str(group[0].stage) + " for " + str(missing) + " of "
+                                   + str(len(group)) + " steps"] if missing else [])]
 
 
 def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, quoted: Mapping[str, str] | None = None) -> list[str]:
@@ -5105,8 +5162,23 @@ def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, quoted: Mapp
     hand-off that only repeats one of them prints as a pointer (``_source_lines``).
     """
     lines: list[str] = []
-    for source in handoff_sources(root, state, stage):
-        lines += _source_lines(root, state, source, quoted)
+    quoted = quoted or {}
+    sources = handoff_sources(root, state, stage)
+    position = 0
+    while position < len(sources):
+        source = sources[position]
+        if source.key == "not_covered":
+            # One source per implement step of the item: one label for the run of them.
+            group = [source]
+            while position + len(group) < len(sources) and sources[position + len(group)].key == "not_covered":
+                group.append(sources[position + len(group)])
+            lines += _not_covered_lines(root, state, group)
+            position += len(group)
+            continue
+        # Only a diff that follows the followed entries can be "below" them.
+        diffed = _diff_printed_files(sources[position + 1:], quoted) if source.key == "follows" else None
+        lines += _source_lines(root, state, source, quoted, diffed)
+        position += 1
     return [HANDOFF_HEAD, *lines] if lines else []
 
 
@@ -5477,8 +5549,10 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
     for earlier, row in zip(steps[:done], history):
         lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
     if done + 1 < len(steps):
+        # The id and the paths the step owns: where this step must not reach.  The task is in the step plan's result.
         lines.append("Later steps (ShipLoop issues each one after this callback; do not start them): "
-                     + "; ".join(later["id"] + " " + later["task"] for later in steps[done + 1:]))
+                     + "; ".join(str(later["id"]) + " " + (", ".join(str(path) for path in later.get("paths") or ())
+                                                         or "(no paths declared)") for later in steps[done + 1:]))
     return lines
 
 
