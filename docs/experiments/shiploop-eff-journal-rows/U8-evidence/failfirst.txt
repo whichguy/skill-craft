@@ -1,0 +1,49 @@
+Unit U8 fail-first record (2026-10-17).  Method: the final tree is copied to a scratch directory (rsync without .git), one mutation of the source is
+applied at a time, the test that must notice it is run alone with -k, and the file is restored from its text read before the mutation (the script
+checks the hash afterwards: "all mutated files restored").  The script is the scratchpad's U8-render/mutate.py; each line is its output.  "red" is the
+required result.
+
+M0 | the new position assertion against the layout of the integration branch tip (the "before" render of the offline test stage, 83/96)
+   | assert_callback_after_pointers FAILS: the packet has no pointer line after its header (looked for a line from prompts.RECOVERY_POINTER_PREFIX to
+   | RECOVERY_POINTER_SUFFIX); on the layout of this branch it passes.   red
+
+M1 | the owner rule is printed before the callback (the order of the style slot before U8)
+   | test/shiploop-head-order.test.py -k test_the_callback_is_the_third_line   exit 1, Ran 1 test, FAILED (failures=260)
+   | test/shiploop-head-order.test.py -k test_the_blocks_of_every_head          exit 1, Ran 1 test, FAILED (failures=65)   red
+
+M2 | a line is added between the Full packet pointer and the callback
+   | test/shiploop-head-order.test.py -k test_the_callback_is_the_third_line   exit 1, Ran 1 test, FAILED (failures=260)
+   | test/shiploop-packet-recut.test.py -k OwnerLinesTests                      exit 1, Ran 5 tests, FAILED (failures=35)   red
+
+M3 | the bound Improve packet keeps the next pointer (D-26)
+   | test/shiploop-packet-recut.test.py -k test_a_started_improve_packet        exit 1, Ran 1 test, FAILED (failures=1)
+   | test/shiploop-delegation.test.py -k test_every_active_packet_leads_with_its_legal_callback   exit 1, Ran 1 test, FAILED (failures=18)   red
+
+M4 | the callback label loses its reason (the label before U8)
+   | test/shiploop-packet-obligations.test.py -k LedgerHoldsTests   exit 1, Ran 5 tests, FAILED (failures=1)   (row callback, anchor "adding only --check-only to test before it accepts")
+   | test/shiploop-packet-obligations.test.py -k LedgerShapeTests   exit 1, Ran 5 tests, FAILED (failures=2)   red
+
+M5 | the References block drops the Run records line that line B relies on
+   | test/shiploop-packet-recut.test.py -k test_emit_names_the_file            exit 1, Ran 1 test, FAILED (failures=1)   red
+
+M6 | the status hook cannot read the next command: line A prints it behind `cd . &&`
+   | test/shiploop-head-order.test.py -k test_the_commands_the_top             exit 1, Ran 1 test, FAILED (failures=65)   red
+
+M7 | the E2E harness finds the closing line as text (counters.head_or_why: reply.find(HEAD_END)), so a cut print that quotes it near the top counts as whole
+   | test/shiploop-e2e-commit-counters.test.py -k test_a_print_cut_before_its_closing_line   exit 1, Ran 1 test, FAILED (failures=1)   red
+   | (flow.py and metrics.py take the same line-regex fix; the same test asserts each reader's HEAD_END_LINE on the cut and the whole print)
+
+M8 | the packet pointer line drops the lookup rule it took over from the head's footer ("open only the section a step needs, never a whole reference file, and do not re-read the ShipLoop skill card")
+   | test/shiploop-packet-obligations.test.py -k LedgerHoldsTests   exit 1, Ran 5 tests, FAILED (failures=1)
+   | test/shiploop-packet-recut.test.py -k test_the_constants_are_defined_once   exit 1, Ran 1 test, FAILED (failures=1)   red
+
+M9 | the head keeps the knowledge-files stub line (the _select_head of the integration branch tip, put back)
+   | test/shiploop-head-order.test.py -k BlockBudgetTests                       exit 1, Ran 7 tests, FAILED (failures=3)
+   | test/shiploop-packet-recut.test.py -k test_a_head_that_would_pass_the_host_cut   exit 1, Ran 1 test, FAILED (failures=1)   red
+
+M10 | head_packet_path treats a whole print as a head (the ten suites that append the file would read a print twice)
+   | test/shiploop-packet-recut.test.py -k test_the_packet_file_a_print_names   exit 1, Ran 1 test, FAILED (failures=1)   red
+
+The check that a test fails for the right reason is the failure text, read for M0, M1, M2, M3 and M10; the others fail on the assertion that names the mutated
+text.  Mutations not run: a reorder of the callback below the goal and a pointer swap are already the negative self-tests of the helper
+(TopBlockHelperTests, 9 tests), which the UP unit recorded with their own mutations.

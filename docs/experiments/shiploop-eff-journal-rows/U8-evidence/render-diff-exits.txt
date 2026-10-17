@@ -1,0 +1,4 @@
+render_diff.py <before> <after> --unit U8 (render options: inline-83, CLI path 96, with the head table): exit 0
+render_diff.py <before> <after> --unit U8 (render options: inline-163, CLI path 96, with the head table): exit 0
+render_diff.py <before> <after> --unit U8 (render options: ask-agent-83, CLI path 96, with the head table): exit 0
+render_diff.py <before> <after> --unit U8 (render options: ask-agent-163, CLI path 96, with the head table): exit 0
