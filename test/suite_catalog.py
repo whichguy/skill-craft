@@ -153,6 +153,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-baseline.test.py",
     "test/shiploop-e2e-quality.test.py",
     "test/shiploop-e2e-packet-anatomy.test.py",
+    "test/shiploop-e2e-render-diff.test.py",
     "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-e2e-chess-salesforce.test.py",
     "test/shiploop-e2e-platform.test.py",
@@ -301,6 +302,9 @@ _DURATION_SECONDS = {
     # The packet-anatomy measurement tool (packet-compaction Phase 0): 13 tests, 0.2 s locally on 2026-10-10, most of it the
     # class that renders every stage of the current engine.
     "test/shiploop-e2e-packet-anatomy.test.py": 1.0,
+    # The fixed-text offline render (packets.py --text-dir, G-RENDER) and render_diff.py: 43 tests, most of them on small synthetic render
+    # directories; the offline walks (six renders at 83 and 163 characters, both routes) are the rest.  1.3 s locally on 2026-10-17.
+    "test/shiploop-e2e-render-diff.test.py": 3.0,
     # The packets and commits counters (batch 1012 task h): 99 tests on fixtures cut from saved runs, real git in temporary
     # repositories (the lessons and citation tests commit one message at a time), the regrade's, tallies' and reader-change evidence
     # and the fake hosts of the harness's through-main tests. Local wall seconds, 2026-10-10: 24.1 s (the faster of two serial runs at
