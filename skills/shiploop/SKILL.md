@@ -531,17 +531,24 @@ step plan ([Revise](#revise-back-to-the-step-plan)).
 
 Every inner stage does its work inside one Until Loop, invoked by name. On
 entry to the stage's action ShipLoop writes the loop contract
-`loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the
-stage's work, its exit condition (the stage's Done-when lines, numbered, the
-same words the packet prints) and its repeat condition. The packet prints
-`INVOKE /until-loop NOW` with that argument verbatim, how to invoke it (on Claude
-Code the Skill tool `until-loop`; on another host the runtime card's "Start from
-a parent-written contract" section) and the exact start command. Its
-`--receipt` makes the runtime write every packet, the terminal one last, to
-`loops/<action>-terminal.json`. Never write or edit the receipt; while it is
-active, run its `next_argv` instead of starting again. The runtime is the
-selected Improve card's `runtime/until-loop`, or else that of the Improve skill bundled
-beside ShipLoop.
+`loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the stage's
+work, its exit condition (the stage's Done-when lines, numbered, the same
+words the packet prints) and its repeat condition. The packet's loop block
+says `RUN the until-loop skill now, once`, with exactly the lines between its
+two marker lines (`----- BEGIN until-loop ARGUMENT -----` and `----- END
+until-loop ARGUMENT -----`: the Work, Exit when, Repeat, Contract and Receipt
+lines, nothing else). It then says how: on Claude Code the Skill tool, skill
+`until-loop`; on any other host the literal start command, `python3 <runtime
+script> start --receipt <receipt> < <contract>`, and each packet it prints
+until the receipt's status is complete or stopped. It ends with the result:
+list the receipt in `evidence_refs`, run the callback, and if that refuses for
+the loop, run the start command again. The `--receipt` makes the runtime write
+every packet, the terminal one last, to `loops/<action>-terminal.json`. Never
+write or edit the receipt. Once it exists the block leads with the resume line
+instead of the RUN line: while the receipt is active, run its `next_argv`
+instead of starting again (the runtime does not refuse a second start). The
+runtime is the selected Improve card's `runtime/until-loop`, or else that of
+the Improve skill bundled beside ShipLoop.
 
 At `complete` ShipLoop reads the receipt that the result names in `evidence_refs`
 and compares it with the contract rebuilt from run state, never the file on disk

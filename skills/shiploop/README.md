@@ -172,8 +172,10 @@ existing (`validate-existing`), Build (`implement` once per step, `test`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
 Every inner stage runs its work inside one Until Loop, invoked by name: the
-packet prints `INVOKE /until-loop NOW` with the contract ShipLoop wrote to
-`loops/<action>-contract.json`, and ShipLoop accepts the result only with a
+packet says to `RUN` the until-loop skill with an argument between two marker
+lines (the contract ShipLoop wrote to `loops/<action>-contract.json` is one of
+its lines), prints the literal start command for a host with no Skill tool and
+what to do with the loop's result, and ShipLoop accepts the result only with a
 terminal receipt that matches the contract rebuilt from state (see "Stage Until
 Loops" in the [skill guide](SKILL.md)). `complete --check-only` runs a stage's
 script gates on a draft result without completing it.

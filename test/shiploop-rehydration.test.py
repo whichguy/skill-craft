@@ -180,7 +180,7 @@ class GoalFirstTests(unittest.TestCase):
                         self.assertEqual(lines[header + 3], nav.DONE_WHEN_LOOP)
                         for number, condition in enumerate(row.done_when, 1):
                             self.assertEqual(packet.count(condition), 1, condition)
-                            self.assertIn("    " + str(number) + ". " + condition, packet)
+                            self.assertIn("\n" + str(number) + ". " + condition + "\n", packet)
                     else:
                         for condition in row.done_when:
                             self.assertIn("- " + condition, packet)

@@ -1,0 +1,12 @@
+Until Loop (no iteration limit; the loop script counts the iterations):
+INVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.
+Argument:
+    Work: Do duty items 1-6 of <RUN>/packets/<action>.md, one `test_cases` row per case; then run the `complete --check-only` command printed there and fix each refusal.
+    Exit when ALL of these hold:
+    1. every completion criterion has at least one test case, or a justified not-applicable
+    2. each case has an independent oracle, a RED and a GREEN definition, and an ID a focused command lists
+    Repeat while a criterion has no entry, an entry lacks a field, or the complete command with --check-only refuses an id; there is no iteration limit. Stop blocked when a criterion cannot be tested as written (the stage then reports revise). Never stop cancelled: a user's stop is the ShipLoop packet's pause command.
+    Contract: <RUN>/loops/<action>-contract.json
+    Receipt: <RUN>/loops/<action>-terminal.json
+How to invoke: on Claude Code, the Skill tool with skill until-loop and the argument above; elsewhere, the card <SKILLS-ROOT>/skills/improve/runtime/until-loop/ADAPTER.md, section "Start from a parent-written contract".
+ShipLoop wrote the loop contract; do not edit it. Call an exit condition satisfied only when a command or file shows it after your last edit. If ShipLoop refuses done after the loop ends, fix the cause, start the loop again with the same command, and submit again.

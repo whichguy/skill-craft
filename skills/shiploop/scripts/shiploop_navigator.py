@@ -1626,10 +1626,9 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         "",
         f"Full packet: {path}",
         f"Progress view: [HTML file](<{progress_target}>) — use this file to track changes during this ShipLoop run.",
-        "The duties and rules above are this stage's; the full packet adds the original request, the knowledge files and "
-        "hand-offs it builds on, and the run rules. Read it with a file-reading tool, not by printing it to the "
-        "shell. References it names are for lookup: open only the section a step needs, never a whole reference "
-        "file, and do not re-read the ShipLoop skill card.",
+        "The duties and rules above are this stage's; the full packet adds the original request, the knowledge files, "
+        "hand-offs and run rules. Read it with a file-reading tool, not by printing it. References are for lookup: "
+        "open only the section a step needs, never a whole file, and do not re-read the ShipLoop skill card.",
         "Never end the turn while a ShipLoop command is still running.",
         "Recovery (reprints this head and rewrites the full packet): " + _callback(core, root, "next"),
         "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")

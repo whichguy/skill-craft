@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
 import packets  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -91,12 +92,12 @@ class StepPacketTests(unittest.TestCase):
                 stage = key.split("-", 1)[1]
                 # The synthetic step plan has no steps, so implement's argument cannot be built: its invoke block says
                 # why and the head keeps the itemised list, still once.
-                argument = "\nArgument:\n" in text
+                argument = "\n" + loops.ARGUMENT_BEGIN + "\n" in text
                 with self.subTest(case=name, packet=key):
                     self.assertEqual(navigator.DONE_WHEN_LOOP in text, argument)
                     for number, condition in enumerate(stage_spec.stage(stage).done_when, 1):
                         self.assertEqual(text.count(condition), 1, condition)
-                        self.assertIn(("    " + str(number) + ". " if argument else "- ") + condition + "\n", text)
+                        self.assertIn(("\n" + str(number) + ". " if argument else "- ") + condition + "\n", text)
                     # test and verify list it in their loop; test-spec gets it once, as the step plan's hand-off
                     # (navigator.CONSUMES, consumer contract section 4).
                     self.assertEqual(text.count(listing), 1 if stage in ("test", "verify", "test-spec") else 0)

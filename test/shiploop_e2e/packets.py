@@ -37,6 +37,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import metrics  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -301,6 +302,14 @@ def offline_packets(case: dict, delegation: str = "inline", printed: bool = Fals
         def cold(current: dict) -> str:
             store.write_record(run_dir / "state.md", current)
             cold_state = store.read_record(run_dir / "state.md")
+            # What `emit` does before it prints: the inner action's loop contract is written, so the packet's loop block
+            # is the one a run prints (without the file it would end with "The loop contract is missing").
+            if cold_state["status"] == "active" and not cold_state.get("active_improve"):
+                try:
+                    for relative, text in loops.contract_writes(run_dir, cold_state).items():
+                        store.atomic_write_text(run_dir / relative, text)
+                except loops.LoopError:
+                    pass  # as emit: the invoke block says the contract is unavailable
             text = navigator.render(None, run_dir, cold_state)
             if printed and len(text) > navigator.PRINT_LIMIT and cold_state["status"] == "active":
                 # What emit prints for a packet over the limit: the head, with the rest in the file.

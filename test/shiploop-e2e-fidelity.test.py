@@ -1111,6 +1111,34 @@ class EditsTest(unittest.TestCase):
         self.assertNotIn("lower bound", limits, "a hit can be quoted text, so the list is not a lower bound")
 
 
+class LoopCommandsTest(unittest.TestCase):
+    """The commands the packet's loop block tells a host with no Skill tool to run (2026-10-16) are the instructed
+    step, not model-written glue, and the readers still tell the runtime's own calls apart."""
+
+    RUN = "/work/.shiploop-runs/w1/run"
+    SCRIPT = "/plugin/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+
+    def setUp(self):
+        self.fidelity = fidelity_module()
+        sys.path.insert(0, str(ENGINE))
+        import shiploop_loops as loops
+        self.start = loops.start_command({"runtime_cli": self.SCRIPT}, Path(self.RUN) / "loops/nav-1-terminal.json",
+                                         Path(self.RUN) / "loops/nav-1-contract.json")
+
+    def test_the_printed_start_command_is_not_glue_a_script_edit_or_a_commit(self):
+        self.assertEqual(self.start, f"python3 {self.SCRIPT} start --receipt {self.RUN}/loops/nav-1-terminal.json "
+                                     f"< {self.RUN}/loops/nav-1-contract.json")
+        self.assertEqual(metrics.glue_reasons(self.start), [])
+        self.assertEqual(self.fidelity.shell_edits(self.start), [])
+        self.assertEqual(self.fidelity.commit_forms(self.start), [])
+
+    def test_the_runtimes_own_next_call_is_still_the_improve_next_kind_and_start_is_plain(self):
+        nxt = f"python3 {self.SCRIPT} next --state /tmp/innerloop-x.json"
+        self.assertEqual(metrics.call_kind({"expanded": nxt, "command": nxt, "invoked": nxt}), "improve-next")
+        self.assertEqual(metrics.call_kind({"expanded": self.start, "command": self.start, "invoked": self.start}),
+                         "plain")
+
+
 class RefusalsTest(unittest.TestCase):
     def setUp(self):
         self.fidelity = fidelity_module()
