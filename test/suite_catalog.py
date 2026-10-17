@@ -160,6 +160,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-sf-guard.test.py",
     "test/shiploop-e2e-efficiency.test.py",
+    "test/shiploop-e2e-owner-page.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
     "test/shiploop-run-review.test.py",
@@ -335,6 +336,8 @@ _DURATION_SECONDS = {
     # arms.py, the planted-defect cases (real node, six short probes) and the audit probes (one child process each). Local wall
     # seconds, 2026-10-17: 8.1 s at load average about 6, one serial run. Far under QUICK_MAX_SECONDS.
     "test/shiploop-e2e-efficiency.test.py": 9.0,
+    # The owner page (owner_page.py, flow.read_first) on the saved Claude step slice: 12 tests, 7.2 s locally on 2026-10-17.
+    "test/shiploop-e2e-owner-page.test.py": 8.0,
     # The packet obligation ledger (test/shiploop_e2e/packet_obligations.json): it renders the 33-packet dry-run walk and the offline
     # step slice on both routes and mutates every anchor; 12 tests, 2.1 s locally on 2026-10-17.
     "test/shiploop-packet-obligations.test.py": 3.0,
