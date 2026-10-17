@@ -58,7 +58,7 @@ SECOND_PLAN = {
 }
 TEST_CASES = [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "the request's example",
                "red": "returns no items", "green": "returns the partial page"},
-              {"id": "TC-2", "criterion": "C2", "requirement": "R-1", "oracle": "the request's example",
+              {"id": "TC-2", "criterion": "C2", "requirement": "R-1", "oracle": "the regression test's own assertion",
                "red": "the case is absent", "green": "the case passes"}]
 LESSONS = "Keep the page count in one place."
 

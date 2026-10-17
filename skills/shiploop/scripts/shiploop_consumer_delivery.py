@@ -15,6 +15,7 @@ import re
 from typing import Any
 
 import shiploop_planning_revision as planning_revision
+import shiploop_stage_spec as stage_spec
 
 DELIVERY_CONTRACT_VERSION = 1
 _ANCHOR = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
@@ -71,6 +72,12 @@ _EARLIER_DUE_KINDS = {
     "operations": _OBLIGATION_KINDS,
     "handoff": _OBLIGATION_KINDS,
 }
+# The stages whose packet prints the whole delivery block (the contract, its authority and every obligation with its
+# declared observation): where an observation can be declared or a failure retained (the keys of the two tables above),
+# plan, which declares the contract, and system-test-author, which writes the system tests of its obligations.  Every
+# other stage's packet prints the anchor lines (``anchor_lines``).  Computed from the tables, so a stage added to one
+# of them prints whole with no edit here (efficiency plan U13, rev 4 Step 2.2).
+WHOLE_BLOCK_STAGES = frozenset(_OBSERVABLE_AT) | frozenset(_NEGATIVE_OBSERVABLE_AT) | {"plan", "system-test-author"}
 _POST_RELEASE_PLAN_MUTATION_STAGES = frozenset(
     (
         "system-test-author", "system-test", "product-acceptance", "release-check",
@@ -739,8 +746,35 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
     }
 
 
-def packet_lines(state: Mapping[str, Any]) -> list[str]:
-    """Return a fresh-context projection for a marked navigator packet."""
+def _exclusions_line(contract: Mapping[str, Any]) -> str:
+    return "Delivery exclusions: " + ("; ".join(_packet_text(value) for value in contract["exclusions"]) or "none declared")
+
+
+def anchor_lines(projection: Mapping[str, Any]) -> list[str]:
+    """What every stage outside ``WHOLE_BLOCK_STAGES`` prints of an accepted contract: where it is, the obligations it
+    still holds the run to (ids with their phase) and the standing exclusions.  The rest is in the record the anchor names."""
+    contract = projection["contract"]
+    whole_at = ", ".join(stage for stage in stage_spec.STAGES if stage in WHOLE_BLOCK_STAGES)
+    obligations = ", ".join(
+        f"{_packet_text(row['id'])} [{'required' if row['required'] else 'optional'}; "
+        f"{_packet_text(row['phase'])}/{_packet_text(row['kind'])}]"
+        for row in contract["obligations"]) or "none declared"
+    return [
+        f"Delivery contract anchor: {projection['anchor']}",
+        f"Delivery contract record: results/{projection['anchor']}.md",
+        "Delivery obligations (the contract, its authority and each obligation's expected result and observation are in "
+        f"that record and print whole at {whole_at}): " + obligations,
+        _exclusions_line(contract),
+    ]
+
+
+def packet_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """Return a fresh-context projection for a marked navigator packet.
+
+    ``stage`` decides how much of an accepted contract prints: the whole block at ``WHOLE_BLOCK_STAGES``, the anchor
+    lines elsewhere (``anchor_lines``).  A contract not yet accepted, a replanning requirement and a recovery notice print
+    at every stage.
+    """
     projection = project(state)
     if not projection["enabled"]:
         return []
@@ -756,6 +790,9 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
             ]
         )
         return lines
+    if stage not in WHOLE_BLOCK_STAGES:
+        lines.extend(anchor_lines(projection))
+        return lines + _recovery_lines(state, projection)
     lines.extend(
         [
             f"Delivery contract anchor: {projection['anchor']}",
@@ -777,10 +814,7 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
                 " (approval: " + _packet_text(contract["authority"]["approval_ref"]) + ")"
                 if "approval_ref" in contract["authority"] else ""
             ),
-            "Delivery exclusions: " + (
-                "; ".join(_packet_text(value) for value in contract["exclusions"])
-                or "none declared"
-            ),
+            _exclusions_line(contract),
             "For an observation, copy the script-provided contract anchor above; do not invent an anchor or a next stage.",
         ]
     )
@@ -802,6 +836,12 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
             f"{_packet_text(row['consumer'])} -> {_packet_text(row['target'])}]: "
             f"expected {_packet_text(row['expected'])}; {observed_text}"
         )
+    return lines + _recovery_lines(state, projection)
+
+
+def _recovery_lines(state: Mapping[str, Any], projection: Mapping[str, Any]) -> list[str]:
+    """The replanning and recovery notices of a contract that needs them (none for one that does not)."""
+    lines: list[str] = []
     if projection["replan_required"] is not None:
         lines.append("Delivery replanning required: " + projection["replan_required"])
         if _superseded_planning_anchor(state, projection["anchor"]):
