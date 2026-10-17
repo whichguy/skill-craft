@@ -185,7 +185,9 @@ _DURATION_SECONDS = {
     # moved in from the retired shiploop-retire suite (consumer contract 4c): 38 tests, 17.1 s at load average 4.8; with
     # the report tests and the working-tree return (4d) and main's settlement tests: 45 tests, 23.9 s.
     "test/shiploop-handoff.test.py": 24.0,
-    "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
+    # 33.0 was measured 2026-10-10 (three fake-host sessions).  2026-10-17 (several clears per slice): 45 tests, 81 s, one serial
+    # run on a busy machine; the two slice.main tests run four and two fake-host sessions.  Under QUICK_MAX_SECONDS (120).
+    "test/shiploop-e2e-slice.test.py": 81.0,
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
     # 19.448 was written at 59 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average 4.7 to

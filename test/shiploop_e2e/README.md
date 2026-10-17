@@ -1410,6 +1410,30 @@ else is committed only at the final return (`workspace plan-return`, at release)
 (Amended 2026-10-11 for the 8-stage inner loop: the first live slice, on the 17-stage loop, had its correct fix
 uncommitted because the inner `integrate` stage did not commit.)
 
+**The clear probe (S-6).** `--clear-at` ends the host at a position, continues in a fresh session (no `--resume`) and
+grades the work that session redid (`clear.py`, verdict `no_redo`). The flag repeats; the positions fire in the order
+given, one per session, and each is measured from its own stop, so a redo after the second clear fails that clear only:
+
+```sh
+python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --clear-at implement \
+  --clear-at implement:inside --clear-at test --clear-at verify --clear-at carry-forward --clear-at improve \
+  --resume-prompt withheld
+```
+
+- `<stage>`: the stage's packet has just printed. `<stage>:inside`: after the packet, a call that is not ShipLoop's has
+  its result (Claude's stream only: on Grok or Codex an `:inside` position is accepted and recorded as requested, never
+  fires, and is listed as unfired; run those hosts at boundaries). `improve` and `improve:inside`: an Improve stage,
+  the first one after the previous clear, a position of its own (the stage it reviews is not at its boundary then).
+- `--resume-prompt names-next` (default) continues with the resume prompt, which names `next` and the run directory.
+  `withheld` says only "Continue the ShipLoop work for the repository in this directory." (condition R0): no command,
+  path or stage. A Grok or Codex resume of a session that ended by itself keeps naming `next`.
+- Records: `clear.json` is a list, one record per clear (`n`, `stage`, `inside`, `stopped`). `slice-result.json`
+  holds `clear` (each with `redone` and `pass`), `clear_unfired` (positions asked for that never fired; a probe that
+  stopped less often than asked is not a pass, so read it) and the verdict `no_redo` (every clear passes; absent when no
+  clear fired). `invocation.json` holds `clear_at` and `resume_prompt`, and the `told` of each session in `sessions.jsonl`
+  is null when nothing was named. A position that cannot fire (out of the run's order, a stage the slice never reaches)
+  blocks the ones after it. An older run's single-record `clear.json` is refused, not read as empty.
+
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
 host is ended before it writes its `result` event; `--max-budget-usd` still caps the spend.
