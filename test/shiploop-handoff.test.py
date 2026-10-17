@@ -841,6 +841,174 @@ _improve_cli = _load("shiploop_actual_improve_cli_for_handoff", "shiploop-actual
 import shiploop_inner_fixture as inner  # noqa: E402
 
 
+# ------------------------------------------------------------------ a new file's diff and a followed entry are pointers (PK2)
+
+def long_spec() -> str:
+    """A spec of realistic size (about 20 KB, 30 requirements), as the live run's was."""
+    out = ["# Living spec", "", "## Requirements", ""]
+    for n in range(1, 31):
+        out += [f"### R-{n} Requirement number {n}", "", "Basis: the request says so.", "",
+                "Behavior: " + f"the system performs behaviour {n} on the documented input. " * 8, "", "Acceptance:", "",
+                f"- Positive: behaviour {n} happens for a valid input.", f"- Failure: an invalid input for {n} is refused.", ""]
+    return "\n".join(out + ["## Non-functional requirements", "", "- Offline.", "", "## Retired", "",
+                           "### R-31 Dropped requirement", "", "No longer wanted.", ""]) + "\n"
+
+
+def long_architecture() -> str:
+    out = ["## Stack", "", "Python 3.12.", "", "```sh", "# a shell comment, not a heading", "```", "", "## Decisions", ""]
+    for n in range(1, 9):
+        out += [f"### AD-{n} Decision {n}", "", "Choice: " + f"a plain module for concern {n}. " * 6, ""]
+    return "\n".join(out + ["## Superseded", "", "### AD-9 Old way", "", "Replaced.", ""]) + "\n"
+
+
+class NewFileDiffPointerTests(RepoCase):
+    """A living file that did not exist at the run baseline has the whole file for its diff; when the same packet quotes
+    the file whole, the diff block prints a pointer (owner study 2026-10-16: 20.7 KB of the live plan packet's 22.1 KB diff
+    was the spec it had just quoted).  Followed R-<n>/AD-<n> entries that the packet quotes whole print as IDs."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        (self.root / knowledge.RUN_BASELINE).write_text(self.head() + "\n")  # the baseline holds no living file
+        self.spec, self.arch = long_spec(), long_architecture()
+        self.home("spec.md", self.spec)
+        self.home("architecture.md", self.arch)
+        self.home("environment.md", "## Commands\n\nnpm test\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "home")
+
+    def state_at(self, stage: str, follows: list | None = None) -> dict:
+        rows = [row("sp1", "step-plan", "W1", {"follows": follows or ["R-1", "R-31", "AD-1", "AD-9", "R-99"],
+                                               "criteria": [{"id": "C1", "text": "one"}],
+                                               "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]})]
+        return item_state(self.repo, "W1", rows, stage)
+
+    def block(self, stage: str, **kwargs) -> list:
+        return navigator._consumer_lines(self.root, self.state_at(stage, **kwargs), stage)
+
+    def diff_part(self, lines: list) -> list:
+        start = next(i for i, line in enumerate(lines) if line.startswith("Spec and architecture changes since"))
+        end = next((i for i in range(start + 1, len(lines)) if not lines[i].startswith(("  |", "HOME/"))), len(lines))
+        return lines[start:end]
+
+    def test_the_diff_of_a_file_the_packet_quotes_whole_is_a_pointer_with_its_size_and_sections(self) -> None:
+        lines = self.block("plan")  # plan reads spec.md, environment.md and architecture.md whole
+        part = self.diff_part(lines)
+        self.assertEqual(part[0], "Spec and architecture changes since the run began (baseline "
+                                  + self.head_of_base() + "), nothing cut that is not printed in this packet:")
+        self.assertEqual(part[1:], [
+            "HOME/architecture.md: new since the baseline, so its diff is the whole file, which is quoted whole above ("
+            + str(len(self.arch.encode())) + " bytes; sections: Stack; Decisions; Superseded)",
+            "HOME/spec.md: new since the baseline, so its diff is the whole file, which is quoted whole above ("
+            + str(len(self.spec.encode())) + " bytes; sections: Living spec; Requirements; Non-functional requirements; "
+            "Retired)"])
+        text = "\n".join(lines)
+        self.assertNotIn("uncut diff", text)
+        self.assertEqual(text.count("Behavior: the system performs behaviour 7 "), 1)  # the file's text is printed once
+        self.assertLess(lines.index(navigator.READS_HEAD), lines.index(navigator.HANDOFF_HEAD))  # "above" is true
+
+    def head_of_base(self) -> str:
+        return (self.root / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()[:12]
+
+    def test_it_saves_what_the_study_measured(self) -> None:
+        """The plan packet's block holds each file once, as its quote, plus a few lines of pointer."""
+        files = [self.spec, self.arch, "## Commands\n\nnpm test\n"]
+        once = sum(len(text) + len(navigator.QUOTE) * text.count("\n") for text in files)
+        block = "\n".join(self.block("plan"))
+        self.assertLess(len(block), once + 1_500)
+        self.assertGreater(once, 20_000)    # the files are realistic: repeating the two big ones would add 25 KB or more
+        self.assertEqual(sum(line.startswith("  | +") for line in self.block("plan")), 0)
+
+    def test_a_diff_of_a_file_the_packet_does_not_quote_stays_whole(self) -> None:
+        document = self.block("document")  # reads environment.md and architecture.md, not spec.md
+        part = self.diff_part(document)
+        self.assertTrue(any(line.startswith("HOME/architecture.md: new since the baseline") for line in part))
+        self.assertIn("  | +### R-7 Requirement number 7", part)          # spec.md's diff is still the text
+        self.assertFalse(any(line.startswith("HOME/spec.md: new since") for line in part))
+        carry = self.diff_part(self.block("carry-forward"))                # reads nothing whole
+        self.assertFalse(any(line.startswith("HOME/") for line in carry))
+        self.assertIn("  | +### R-7 Requirement number 7", carry)
+        self.assertIn("  | +### AD-3 Decision 3", carry)
+
+    def test_a_file_that_existed_at_the_baseline_keeps_its_diff(self) -> None:
+        self.home("spec.md", self.spec.replace("Requirement number 7", "Requirement seven"))
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "edit")
+        (self.root / knowledge.RUN_BASELINE).write_text(git(self.repo, "rev-parse", "HEAD~1").strip() + "\n")
+        part = self.diff_part(self.block("plan"))
+        self.assertIn("  | -### R-7 Requirement number 7", part)
+        self.assertIn("  | +### R-7 Requirement seven", part)
+        self.assertFalse(any(line.startswith("HOME/") for line in part))
+
+    def test_a_file_whose_diff_differs_from_its_quote_keeps_its_diff(self) -> None:
+        (self.repo / knowledge.HOME / "spec.md").write_bytes(b"\xef\xbb\xbf" + self.spec.encode())  # the quote drops a BOM; the diff keeps it
+        part = self.diff_part(self.block("plan"))
+        self.assertFalse(any(line.startswith("HOME/spec.md: new since") for line in part))
+        self.assertTrue(any(line.startswith("HOME/architecture.md: new since") for line in part))
+        self.assertTrue(any("R-7 Requirement number 7" in line for line in part))
+
+    def test_headings_come_from_outside_fences_and_a_long_list_is_cut_with_a_count(self) -> None:
+        self.assertEqual(navigator._headings("# T\n\n```\n# not\n```\n## Real\n### Deep\n~~~\n## Fenced\n~~~\n## Last"),
+                         ["T", "Real", "Last"])
+        text = "".join(f"## Section {n}\n" for n in range(1, 16))
+        pointer = navigator._new_file_pointer("spec.md", text)
+        self.assertIn("sections: Section 1; Section 2;", pointer)
+        self.assertTrue(pointer.endswith("Section 12; ... 3 more)"), pointer)
+        self.assertNotIn("Section 13", pointer)
+        self.assertEqual(navigator._new_file_pointer("environment.md", "no headings here\n"),
+                         "HOME/environment.md: new since the baseline, so its diff is the whole file, which is quoted whole "
+                         "above (17 bytes)")
+
+    def test_only_a_pure_new_file_chunk_counts_and_the_chunks_join_back_to_the_diff(self) -> None:
+        diff = git(self.repo, "diff", "--no-color", "--no-ext-diff", self.head_of_base(), "--", knowledge.HOME)
+        chunks = navigator._diff_chunks(diff)
+        self.assertEqual("".join(chunk for _, chunk in chunks), diff)
+        self.assertEqual([path for path, _ in chunks], [knowledge.HOME + "/architecture.md", knowledge.HOME + "/environment.md",
+                                                        knowledge.HOME + "/spec.md"])
+        added = {path: navigator._added_whole_file(chunk) for path, chunk in chunks}
+        self.assertEqual(added[knowledge.HOME + "/spec.md"].rstrip("\n"), self.spec.rstrip("\n"))
+        modified = ("diff --git a/x b/x\nindex 1..2 100644\n--- a/x\n+++ b/x\n@@ -1 +1 @@\n-a\n+b\n")
+        self.assertIsNone(navigator._added_whole_file(modified))
+        self.assertIsNone(navigator._added_whole_file(
+            "diff --git a/x b/x\nnew file mode 100644\nindex 0..1\n--- /dev/null\n+++ b/x\n@@ -0,0 +1,2 @@\n+a\n b\n"))
+        self.assertIsNone(navigator._added_whole_file(  # the hunk says 3 lines, the chunk holds 2
+            "diff --git a/x b/x\nnew file mode 100644\n--- /dev/null\n+++ b/x\n@@ -0,0 +1,3 @@\n+a\n+b\n"))
+        self.assertEqual(navigator._added_whole_file(
+            "diff --git a/x b/x\nnew file mode 100644\n--- /dev/null\n+++ b/x\n@@ -0,0 +1 @@\n+a\n\\ No newline at end of file\n"),
+            "a")
+        self.assertEqual(navigator._diff_chunks("not a diff\n"), [("", "not a diff\n")])
+
+    def test_followed_entries_the_packet_quotes_whole_print_as_ids_with_their_retired_mark(self) -> None:
+        lines = self.block("test-spec")      # reads spec.md and architecture.md whole
+        follows = next(i for i, line in enumerate(lines) if line.startswith("follows (W1 step-plan)"))
+        self.assertEqual(lines[follows],
+                         "follows (W1 step-plan): R-1, R-31 (now under Retired in HOME/spec.md), AD-1, AD-9 (now under "
+                         "Superseded in HOME/architecture.md) (each entry is in HOME/spec.md, HOME/architecture.md, quoted "
+                         "whole above), and these follow:")
+        self.assertEqual(lines[follows + 1], "- R-99: no entry in HOME/spec.md")      # an unknown ID is still said
+        self.assertEqual(lines[follows + 2], "criteria (W1 step-plan):")
+        self.assertEqual(sum("### R-1 Requirement number 1" in line for line in lines), 1)  # once, in the quoted file
+
+    def test_a_followed_entry_of_a_file_the_packet_does_not_quote_keeps_its_text(self) -> None:
+        lines = self.block("implement")      # reads environment.md and architecture.md, not spec.md
+        follows = next(i for i, line in enumerate(lines) if line.startswith("follows (W1 step-plan)"))
+        self.assertEqual(lines[follows], "follows (W1 step-plan): AD-1, AD-9 (now under Superseded in HOME/architecture.md) "
+                                         "(each entry is in HOME/architecture.md, quoted whole above), and these follow:")
+        self.assertEqual(lines[follows + 1], "- R-1:")
+        self.assertIn("  | ### R-1 Requirement number 1", lines)
+        self.assertIn("  | ### R-31 Dropped requirement", lines)
+        self.assertNotIn("  | ### AD-1 Decision 1", [line for line in lines[follows:] if line.startswith("  | ### AD")])
+
+    def test_when_nothing_is_quoted_the_block_is_the_old_one_but_for_the_heading(self) -> None:
+        sources = navigator.handoff_sources(self.root, self.state_at("document"), "document")
+        plain = []
+        for source in sources:
+            plain += navigator._source_lines(self.root, self.state_at("document"), source)
+        self.assertIn("  | +### R-7 Requirement number 7", plain)
+        self.assertIn("  | +### AD-3 Decision 3", plain)
+        self.assertEqual(navigator.handoff_lines(self.root, self.state_at("document"), "document"),
+                         [navigator.HANDOFF_HEAD, *plain])
+
+
 class CompleteRouteTests(inner.RunDriver):
     def test_a_complete_refusals_named_exit_is_accepted_through_the_real_cli(self) -> None:
         self.start()

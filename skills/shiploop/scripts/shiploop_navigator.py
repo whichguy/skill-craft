@@ -4663,9 +4663,105 @@ def _one_line(value: Any) -> str:
     return " ".join(str(value if value is not None else "").split())
 
 
-def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str]:
-    """One hand-off value in the consumer contract's wording (section 4); "not recorded by <stage>" when missing."""
+# The diff of a living file that is new since the run baseline is the whole file.  When the same packet quotes that file
+# whole (reads_lines), the diff block prints a pointer in its place instead of the text a second time (owner study
+# 2026-10-16: in the live run the plan packet's 22.1 KB diff was 20.7 KB of the 22 KB spec it had just quoted).  The
+# pointer is used only when the diff's added lines equal the quoted text exactly; any other diff stays whole.
+SPEC_DIFF_NOTE = "nothing cut that is not printed in this packet"
+_DIFF_FILE_HEAD = re.compile(r"(?m)^diff --git a/(\S+) b/\S+$")
+_NEW_FILE_HUNK = re.compile(r"^@@ -0,0 \+1(?:,(\d+))? @@")
+_HEADING = re.compile(r"^#{1,2}[ \t]+(.+?)[ \t]*$")  # the named sections; a spec's R-<n> entries are deeper headings
+_POINTER_HEADINGS = 12
+
+
+def _diff_chunks(diff: str) -> list[tuple[str, str]]:
+    """``[(path, chunk)]``: the diff split at its ``diff --git`` lines; the chunks joined give the diff back."""
+    starts = [match.start() for match in _DIFF_FILE_HEAD.finditer(diff)]
+    if not starts or starts[0] != 0:
+        return [("", diff)]
+    ends = starts[1:] + [len(diff)]
+    return [(_DIFF_FILE_HEAD.match(diff, start).group(1), diff[start:end]) for start, end in zip(starts, ends)]
+
+
+def _added_whole_file(chunk: str) -> str | None:
+    """The text of a file this diff chunk adds whole (new file, one hunk of added lines); None for any other chunk."""
+    lines = chunk.split("\n")
+    hunk = next((number for number, line in enumerate(lines) if line.startswith("@@")), None)
+    if hunk is None or not any(line.startswith("new file mode") for line in lines[:hunk]):
+        return None
+    header = _NEW_FILE_HUNK.match(lines[hunk])
+    body = [line for line in lines[hunk + 1:] if line != "\\ No newline at end of file"]
+    if body and body[-1] == "":
+        body.pop()  # the chunk's closing newline
+    if header is None or any(not line.startswith("+") for line in body):
+        return None
+    if len(body) != int(header.group(1) if header.group(1) is not None else 1):
+        return None
+    return "\n".join(line[1:] for line in body)
+
+
+def _headings(text: str) -> list[str]:
+    """The section headings (levels 1 and 2) of ``text`` outside code fences, in order."""
+    found, fence = [], False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fence = not fence
+        elif not fence and (match := _HEADING.match(line)):
+            found.append(match.group(1))
+    return found
+
+
+def _new_file_pointer(name: str, text: str) -> str:
+    """The one line that stands for a new file's diff: its name, size and section headings."""
+    headings = _headings(text)
+    shown = "; ".join(headings[:_POINTER_HEADINGS]) + (
+        "; ... " + str(len(headings) - _POINTER_HEADINGS) + " more" if len(headings) > _POINTER_HEADINGS else "")
+    return ("HOME/" + name + ": new since the baseline, so its diff is the whole file, which is quoted whole above ("
+            + str(len(text.encode("utf-8"))) + " bytes" + ("; sections: " + shown if headings else "") + ")")
+
+
+def _spec_diff_lines(diff: str, quoted: Mapping[str, str]) -> list[str]:
+    """The diff as quoted lines, a pointer for each new file the packet already quotes whole."""
+    lines: list[str] = []
+    for path, chunk in _diff_chunks(diff):
+        name = path[len(knowledge.HOME) + 1:] if path.startswith(knowledge.HOME + "/") else ""
+        added = _added_whole_file(chunk) if name in quoted else None
+        if added is not None and added.rstrip("\n") == quoted[name].rstrip("\n"):
+            lines.append(_new_file_pointer(name, quoted[name]))
+        else:
+            lines += _quoted(chunk.rstrip("\n"))
+    return lines
+
+
+def _followed_lines(repo: Path, label: str, value: Any, quoted: Mapping[str, str]) -> list[str]:
+    """The followed R-<n> and AD-<n> entries; one whose exact text sits in a file the packet quotes whole is listed by ID."""
+    listed: list[str] = []
+    files: list[str] = []
+    rest: list[str] = []
+    for ident, text in value:
+        prefix = str(ident).split("-", 1)[0]
+        file = {"R": "spec.md", "AD": knowledge.ARCHITECTURE}.get(prefix)
+        if file in quoted and text and text.strip() in quoted[file]:
+            entry = knowledge.entries(repo, file).get(str(ident))
+            listed.append(str(ident) + (_RETIRED_MARK[prefix] if entry is not None and entry.retired else ""))
+            if file not in files:
+                files.append(file)
+        else:
+            rest += _entry_lines(repo, str(ident))
+    if not listed:
+        return [label + ":", *rest]
+    return [label + ": " + ", ".join(listed) + " (each entry is in " + ", ".join("HOME/" + name for name in files)
+            + ", quoted whole above)" + (", and these follow:" if rest else ""), *rest]
+
+
+def _source_lines(root: Path, state: Mapping[str, Any], source: Any, quoted: Mapping[str, str] | None = None) -> list[str]:
+    """One hand-off value in the consumer contract's wording (section 4); "not recorded by <stage>" when missing.
+
+    ``quoted`` is ``{file: text}`` of the living files the same packet quotes whole; a value that only repeats one of
+    them (a new file's diff, a followed entry) prints as a pointer or an ID.
+    """
     repo = Path(str(state["repo"]))
+    quoted = quoted or {}
     if source.key == "spec_diff":
         head = "Spec and architecture changes since the run began"
         if source.value is None:
@@ -4676,7 +4772,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str
             baseline = (Path(root) / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()[:12] or "none"
         except OSError:
             baseline = "none"
-        return [head + " (baseline " + baseline + "), the uncut diff:", *_quoted(source.value.rstrip("\n"))]
+        return [head + " (baseline " + baseline + "), " + SPEC_DIFF_NOTE + ":", *_spec_diff_lines(source.value, quoted)]
     if source.key == "assumptions":
         label = "open items" + (" for " + str(source.workitem) if source.workitem else "")
         if not source.value:
@@ -4695,10 +4791,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str
     if value is None:
         return [label + ": not recorded by " + str(source.stage)]
     if source.key == "follows":
-        lines = [label + ":"]
-        for ident, _text in value:
-            lines += _entry_lines(repo, str(ident))
-        return lines if value else [label + ": none"]
+        return _followed_lines(repo, label, value, quoted) if value else [label + ": none"]
     if source.key == "criteria":
         return [label + ":", *("- " + str(row.get("id")) + ": " + _one_line(row.get("text"))
                                for row in value if isinstance(row, Mapping))]
@@ -4722,11 +4815,15 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str
     return [label + ":", *_quoted(json.dumps(value, ensure_ascii=False, sort_keys=True))]
 
 
-def handoff_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
-    """What earlier stages handed this stage (``CONSUMES``), by value and uncut."""
+def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, quoted: Mapping[str, str] | None = None) -> list[str]:
+    """What earlier stages handed this stage (``CONSUMES``), by value and uncut.
+
+    ``quoted`` is ``{file: text}`` of the living files the packet quotes whole before this block (``reads_lines``): a
+    hand-off that only repeats one of them prints as a pointer (``_source_lines``).
+    """
     lines: list[str] = []
     for source in handoff_sources(root, state, stage):
-        lines += _source_lines(root, state, source)
+        lines += _source_lines(root, state, source, quoted)
     return [HANDOFF_HEAD, *lines] if lines else []
 
 
@@ -4735,7 +4832,10 @@ def _consumer_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[st
     alike (consumer contract X15)."""
     if state["status"] != "active":
         return []
-    lines = reads_lines(state, stage) + handoff_lines(root, state, stage)
+    # The files this block quotes whole come first, so the hand-offs after them may point at them instead of repeating them.
+    quoted = {quote.file: quote.text for quote in knowledge.reads_quotes(state, stage) if quote.text is not None} \
+        if stage in knowledge.READS else {}
+    lines = reads_lines(state, stage) + handoff_lines(root, state, stage, quoted)
     return lines + [""] if lines else []
 
 
