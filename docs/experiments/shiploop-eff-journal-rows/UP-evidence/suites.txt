@@ -1,0 +1,31 @@
+Suites run by unit UP on the final tree, 2026-10-17, once each after the last edit of the files they read
+(SHIPLOOP_PROGRESS=off python3 -B test/<name>.test.py; load average 2.5 to 4 on the shared 18-core Mac). Test-economy rule 1: no run-all,
+no quick tier, no composition group, no E2E family (no harness .py was touched; packet_obligations.json is read only by
+test/shiploop_e2e/obligations.py and the shiploop-packet-obligations suite).
+
+touched suites (their own test file changed)
+  shiploop-packet-recut            28 tests   2 s    OK   (21 before; +7 TopBlockHelperTests)
+  shiploop-step-packets             9 tests   0 s    OK
+  shiploop-packet-completeness     43 tests   4 s    OK
+  shiploop-rehydration             17 tests   1 s    OK
+  shiploop-packet-obligations      15 tests   3 s    OK   (14 before; +1 every_outcome_a_packet)
+  shiploop-delegation              57 tests   9 s    OK
+  shiploop-improve-schedule        33 tests  16 s    OK
+  shiploop-navigator-contract     110 tests  48 s    OK
+  shiploop-planning-handoff         7 tests   1 s    OK
+  shiploop-test-loop              135 tests 227 s    OK   (134 before; +1 every_exit_a_could_not_run_refusal)
+  shiploop-efficiency-journal            see the journal row    (its unit-id pattern now accepts a test-economy unit, U<letter>)
+
+callers of a changed symbol (git grep shiploop_loop_support / LoopBlock)
+  shiploop-loops                   46 tests  25 s    OK
+  shiploop-callback-contract       63 tests 104 s    OK
+  test-groups                      29 tests   5 s    OK   (a new support module, no new suite: nothing to register)
+
+ledger
+  python3 -B test/shiploop_e2e/obligations.py   16 obligations, 0 violations   (until-loop row: 2 anchors before, 4 now)
+
+not run, with the reason
+  bash test/run-all.sh (any group), --group shiploop-composition, the E2E family: test-economy rule 1 and 3 (the integrator runs one
+    quick --changed-from for the wave); no source under skills/ changed, so no packet text or order moved (render diff: none).
+  shiploop-guidance, -handoff, -quality, -reference, -reference-routing, -packet-bounds, -status-display, -narrative: tier A and B
+    suites that pin packet text; no packet text changed and none of their files was touched.

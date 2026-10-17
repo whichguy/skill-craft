@@ -16,9 +16,10 @@ CLI = PACKAGE / "scripts/shiploop"
 CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
-import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from shiploop_packet_view import assert_top_block  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
 
@@ -67,21 +68,6 @@ def full_packet(head):
     return Path(row.removeprefix("Full packet: ")).read_text(encoding="utf-8") if row else head
 
 
-# The labels a packet's one legal callback line starts with (shiploop_navigator._first_callback_lines; a started Improve
-# child's packet is two numbered instructions and the second is its callback).
-CALLBACK_LABELS = ("Callback for this stage", "2. When the improve skill has completed, run:", "Next command (",
-                   "No Improve card is recorded for this run.")
-
-
-def after_header(packet):
-    """Return the packet's one legal callback line, found by its label: the owner rule and the pointer lines sit between the
-    header and the callback, and how many they are is not the callback's address."""
-    lines = packet.splitlines()
-    index = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
-    assert lines[index + 1] == prompts.OWNER_RULE and lines[index + 2].startswith(prompts.INDEX_POINTER_PREFIX), lines[index:index + 3]
-    return next(line for line in lines[index + 1:] if line.startswith(CALLBACK_LABELS))
-
-
 class ImproveScheduleTests(unittest.TestCase):
     def new(self):
         return nav.new_state("/simulation-only/repo", "Schedule fixture.",
@@ -117,10 +103,10 @@ class ImproveScheduleTests(unittest.TestCase):
     def test_producer_packet_leads_with_its_callback_and_says_no_child_runs(self):
         state = self.new()
         lines = nav.render(None, Path("/simulation-only/run"), state).splitlines()
-        self.assertTrue(lines[0].startswith("ShipLoop navigator | intake"))
-        self.assertEqual(lines[1], prompts.OWNER_RULE)
-        self.assertTrue(lines[2].startswith(prompts.INDEX_POINTER_PREFIX), lines[2])
-        callback = after_header("\n".join(lines))
+        view = assert_top_block(self, lines)
+        self.assertEqual(view.index("header"), 0)  # nothing precedes the first line of an outer stage's packet
+        self.assertTrue(view["header"].startswith("ShipLoop navigator | intake"), view["header"])
+        callback = view["callback"]
         self.assertTrue(callback.startswith("Callback for this stage"), callback)
         self.assertIn(" complete ", callback)
         self.assertIn(nav.current_action(state)["id"], callback)
@@ -180,9 +166,7 @@ class ImproveScheduleTests(unittest.TestCase):
         lines = packet.splitlines()
         self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision "), lines[0])
         self.assertIn("       /improve " + nav.IMPROVE_ARGUMENT_PREFIX + str(handoff_path), lines)
-        self.assertEqual(lines[1], prompts.OWNER_RULE)
-        self.assertTrue(lines[2].startswith(prompts.INDEX_POINTER_PREFIX), lines[2])
-        callback = after_header(packet)
+        callback = assert_top_block(self, lines)["callback"]
         self.assertTrue(callback.startswith("2. When the improve skill has completed, run:"), callback)
         self.assertIn(" complete ", callback)
         self.assertIn("--action=" + improve, callback)
@@ -294,7 +278,7 @@ class ImproveScheduleTests(unittest.TestCase):
         waiting = nav.apply(state, action, DONE)
         self.assertIsNone(waiting["active_improve"]["skill"])
         packet = nav.render(None, run, waiting)
-        lead = after_header(packet)
+        lead = assert_top_block(self, packet)["callback"]
         # The packet is two instructions (2026-10-11 re-cut): an unbound child prints the bind command, then `next`.
         self.assertTrue(lead.startswith("No Improve card is recorded for this run. Next command (bind the Improve "
                         "skill's SKILL.md"), lead)
@@ -340,7 +324,7 @@ class ImproveScheduleTests(unittest.TestCase):
         recorded = advance_to(nav.new_state("/simulation-only/repo", "Schedule fixture.", improve_skill=str(CARD)), "spec")
         waiting = nav.apply(recorded, nav.current_action(recorded)["id"], DONE)
         packet = nav.render(None, run, waiting)
-        lead = after_header(packet)
+        lead = assert_top_block(self, packet)["callback"]
         self.assertTrue(lead.startswith("Next command (bind the Improve skill's SKILL.md"), lead)
         self.assertIn("--skill-card=" + str(CARD), lead)
         handoff = nav.improve_handoff_text(None, run, waiting)
