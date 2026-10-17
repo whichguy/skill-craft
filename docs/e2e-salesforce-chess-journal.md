@@ -188,3 +188,46 @@ A one-prompt Grok session in the real harness environment (throwaway HOME, wrapp
 `command -v sf` printed the wrapper path and `type -a sf` listed the wrapper before `/opt/homebrew/bin/sf`; `sf --version` and `sf org list --json` were allowed and
 logged with end lines; `sf config get target-org` exited 2 with `sf_guard: denied: ...`; a Python `subprocess.run(['sf', ...])` call resolved to the wrapper. This is the
 check run 1 lacked: the guard now governs the shell the model actually uses.
+
+### F9. Live run 2: the guard held, the app was built and correct, and the 4-hour cap came first (firm for the counts, 2026-10-17; interim for the causes; n=1)
+
+Grok 4.7 medium, ShipLoop 1.4.0 from the checkout (resumed on its original build), `chess-salesforce`, org `de`, prefix `SLChess`. Two segments of the one run:
+the first ended when Grok's auto-mode classifier refused `sf project deploy start` (engine blocked, `access`); the second was resumed with `host_allow` and
+`--permission-mode bypassPermissions` and ended at its 7,201.6 s cap. Wall clock 14,520 s (4 h 02 min) from the first launch; cost at least $12.21 for the
+second segment (one session never reported); 906 turns (a lower bound), 14 compactions, 4 sessions in the second segment, 27 truncated tool outputs.
+
+**Outcome: STOPPED, not a pass.** ShipLoop was still active (stage `inner-loop`, revision 43) at the `test` stage of work item 2 of 2. `committed FAIL`:
+HEAD held 0 files and the knowledge home (`docs/shiploop/spec.md`) was never committed, so nothing was returned to the user's repository.
+
+What the run did produce, graded by the case's own checks at the stop (before the cleanup):
+
+| Check | Result |
+|---|---|
+| `deployed` (engine, controller, bundle `slChessBoard`, tab `SLChess_Board`, app `SLChess`, two test classes) | PASS |
+| `tests` (SLChessGameTest 3, SLChessRulesTest 11) | PASS, 14 ran, 0 failing |
+| `rules` (perft, check, promotion, controller, two full games) | PASS, 28 of 28 markers |
+| `project` (the committed project holds the sources) | FAIL: no `sfdx-project.json` in HEAD, because nothing was committed |
+
+The tests and the oracle were run in the org against the model's code, so the built game was a complete, correct chess engine in a Lightning app; the product
+checks inside the worktree passed 4 of 4. The failure is delivery: the SDLC did not reach the end in 4 hours.
+
+**Platform.** The guard logged 140 model calls in `sf-calls.jsonl` over both segments (53 `data query`, 39 `apex run`, 37 `project deploy`, 6 `org list`, 5 other), 2 denied (an `api request` and
+one default-scope deploy, a false block on a `.gitkeep`; see Open). The harness cleanup ran and its own verification says the org matched the before snapshot by
+name on 13 metadata types with `LastModifiedDate` unchanged on the 17 baseline classes and bundles. An independent read-only tooling-API query afterwards found no
+`SLChess*` class, `slChess*` bundle, page, app or tab. No identifiers are quoted here.
+
+**Where the 4 hours went** (stage seconds from `metrics.json`; model host clock, so they include the Improve children): spec 1,141 s (70 turns), test-strategy 795,
+plan 612, step-plan 769 / 1,079 / 919, test-spec 728 / 188 / 1,319, implement 549 + 1,194 for the first step, then test 361 (blocked) + 1,163 (revise) + 428. The
+planning window closed at test-spec after 77.7 min of engine time, of which Improve was 41.2 min in 5 children. The two model-judged review loops (the Improve stop
+rule and the step-plan/test-spec loops) are the largest controllable share; the efficiency plan (`docs/shiploop-efficiency-plan-2026-10-16.md`) takes them on.
+
+**What this changes in the earlier notes.**
+- Unproven in F7, now answered in part: the model's engine ran the perft and both full games in the org within the anonymous Apex limits (28 of 28 markers).
+  Still unproven: whether the deployed tab is visible to the owner's profile without profile changes.
+- Run 1's lesson (F4) held: the wrapper is what `sf` resolved to for the model's calls. The harness line for the second segment reads `guard saw 84 model calls
+  (transcript shows 22 sf-looking commands)`; the 140 above is the log of both segments.
+- The auto-mode classifier is a second gate besides the guard: on Grok, an unattended Salesforce case needs `host_allow` rules and a permission mode the owner chose.
+
+Open: the guard's default-scope deploy block on `.gitkeep` (a deploy of an empty directory is not a risk; fix after the run, not in it); ShipLoop's red-check
+and mutation steps cannot read Apex test output from the human reporter (a platform-declared test adapter, in `references/platforms/salesforce.md`); a longer cap
+or a faster loop is needed before this case can pass.
