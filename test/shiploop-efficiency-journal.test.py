@@ -165,10 +165,11 @@ class JournalHereTests(unittest.TestCase):
             with self.subTest(source=row["source"], heading=row["title"]):
                 self.assertEqual(problems(row, fragment), [])
 
-    def test_a_fragment_directory_holds_at_least_the_row_of_the_unit_that_made_the_suite(self) -> None:
+    def test_the_row_of_the_unit_that_made_the_suite_is_in_a_fragment_or_folded_into_the_journal(self) -> None:
+        # An integrator folds the fragments into the journal and removes them, so U5b's row is in one place or the other.
         self.assertTrue(FRAGMENTS.is_dir(), "the journal rows are written under docs/experiments/shiploop-eff-journal-rows/")
-        names = {p.name for p in FRAGMENTS.glob("*.md")}
-        self.assertIn("U5b.md", names)
+        units = {str(row["fields"].get("unit")) for row, _ in rows_here()}
+        self.assertIn("U5b", units)
         self.assertTrue(all(parse_rows(p.read_text(), p.name) for p in FRAGMENTS.glob("*.md")), "a fragment file holds a row")
 
     def test_the_journal_when_present_has_its_title_and_no_duplicate_rows(self) -> None:
