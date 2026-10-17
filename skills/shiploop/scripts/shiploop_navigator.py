@@ -367,6 +367,41 @@ def _duplicate_review_gate(core: Any, root: Path, state: Mapping[str, Any], chil
                   "then run: " + _callback(core, root, "complete", action=child["improve_action"]))
 
 
+def _skill_call_gate(core: Any, root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> str | None:
+    """Refuse an Improve import when the improve skill was never invoked for this Improve stage (owner, 2026-10-16).
+
+    The packet says to invoke the skill at every Improve stage; live runs skipped it (3 of 4 reviews faked by a script in
+    one run, the skill invoked for 1 of 4 stages in another) and wording did not move that.  On Claude Code a hook
+    records every Skill call in ``skill-calls.jsonl``; this requires a call to ``improve`` made after the stage's child was
+    started (``start.json``, written before the packet that names the call) whose argument carries this stage's handoff.
+    Where no record can exist (another host, no hooks, the review run by a fresh worker) nothing is enforced: the reason
+    is returned, and ``complete`` says it once when it accepts the import (a notice before a refusal would displace the
+    refusal's first line, which is the fix).
+    """
+    import shiploop_keepalive as keepalive
+    import shiploop_skill_calls as skill_calls
+    import shiploop_standalone_improve as standalone
+    enforce, why = keepalive.skill_gate(str(root))
+    if delegation(state) != guidance.INLINE:
+        enforce, why = False, "this review runs in a fresh worker, not in this session (delegation ask-agent)"
+    if not enforce:
+        return why
+    try:
+        since = standalone.receipt_path(child).with_name("start.json").stat().st_mtime
+    except OSError:
+        since = 0.0
+    handoff = improve_handoff_path(child)
+    tokens = (str(handoff), os.path.realpath(handoff), child["improve_action"], child["action_id"])
+    if skill_calls.improve_call_since(root, since, tokens) is not None:
+        return None
+    argument = IMPROVE_ARGUMENT_PREFIX + str(handoff)
+    raise NavigatorError(
+        "Run the improve skill on this " + child["stage"] + " result first: no call to it has been recorded since this "
+        "Improve stage started (" + str(root / skill_calls.RECORD_FILE) + "). Invoke the Skill tool with skill \"improve\" "
+        "and args \"" + argument + "\", let the skill finish, then run: "
+        + _callback(core, root, "complete", action=child["improve_action"]))
+
+
 def _improve_child_for(state: Mapping[str, Any], action_id: Any) -> Mapping[str, Any] | None:
     """The active Improve child when ``action_id`` names its Improve stage, else None."""
     child = state.get("active_improve")
@@ -6440,6 +6475,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
               f"action {stage_action!r} is not this run's Improve stage; to read the current packet run: "
               + _callback(core, root, "next"))
         extra_writes = {}
+        not_enforced = None
         try:
             if command == "improve-bind":
                 child = state["active_improve"]
@@ -6470,6 +6506,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _need(state["status"] == "active" and child is not None
                           and action_id == child["action_id"] and child["skill"] is not None,
                           "no bound current Improve child")
+                    not_enforced = _skill_call_gate(core, root, state, child)
                     receipt = _derived_improve_receipt(child, args)
                     final_result = receipt.get("final_result")
                     if final_result is not None:
@@ -6536,6 +6573,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 # The last item's carry-forward is accepted only when its end review completes: commit its skill here.
                 _skill_commit(root, state, updated, action_id)
                 _knowledge_close(state, updated, root)
+            if not_enforced is not None:
+                import shiploop_skill_calls as skill_calls
+                skill_calls.note_not_enforced(root, improve_id(state), not_enforced)
             emit(core, root, updated)
             return 0
         except standalone.StandaloneImproveError as exc:

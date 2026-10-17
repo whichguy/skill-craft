@@ -1,0 +1,25 @@
+{
+  "session_id": "__SESSION__",
+  "transcript_path": "/tmp/shiploop-keepalive-fixture",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "prompt_id": "5ac3b7c0-3a6e-4f0e-9d2b-6f1a1d2c4e11",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Skill",
+  "tool_input": {
+    "skill": "__SKILL__",
+    "args": "__ARGS__"
+  },
+  "tool_response": {
+    "success": true,
+    "commandName": "improve",
+    "allowedTools": [
+      "Read"
+    ]
+  },
+  "tool_use_id": "toolu_01SkillFixtureCall",
+  "duration_ms": 6
+}
