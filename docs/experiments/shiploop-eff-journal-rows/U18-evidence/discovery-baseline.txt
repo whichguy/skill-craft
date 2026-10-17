@@ -1,0 +1,14 @@
+# shiploop-discovery.test.py: the failures on the integration base 5e0ef0d0 and on this branch (unit U18)
+
+Both lists are the 9 failing subtests below (python3 -B test/shiploop-discovery.test.py, sorted, run on a git archive of 5e0ef0d0 and on the final tree); they are producer-packet pins on the Interaction design guide that earlier wave-2 units left red on INT. This unit caused one more (the Improve view's review inputs); it is fixed and not in the list.
+
+FAIL: test_cold_v3_step_plan_and_improve_preserve_ui_and_headless_context (work_item='EV1')
+FAIL: test_cold_v3_step_plan_and_improve_preserve_ui_and_headless_context (work_item='UI1')
+FAIL: test_prompt_catalogs_direct_relevant_work_to_interaction_design
+FAIL: test_v3_planning_stages_keep_design_basis_records_stage_local (stage='step-plan')
+FAIL: test_v3_step_plan_and_improve_cue_shared_and_ui_interactions (prompt='producer', cue="interaction design guide's matching subsections")
+FAIL: test_v3_step_plan_and_improve_cue_shared_and_ui_interactions (prompt='producer', cue='actors, events, connections and state owner')
+FAIL: test_v3_step_plan_and_improve_cue_shared_and_ui_interactions (prompt='producer', cue='design guidance identity and version or digest (or named f
+FAIL: test_v3_step_plan_and_improve_cue_shared_and_ui_interactions (prompt='producer', cue='give baseline and delta')
+FAIL: test_v3_step_plan_and_improve_cue_shared_and_ui_interactions (prompt='producer', cue='planned recovery checks')
+FAILED (failures=9)

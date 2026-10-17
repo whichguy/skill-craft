@@ -1,0 +1,12 @@
+## Standalone owner binding: 7298 chars in the base card, 7276 in standalone-route.md, 4 differing lines
+    -[decision rationale and learning guidance](references/callback-evidence.md#decision-rationale-and-learning)
+    +[decision rationale and learning guidance](callback-evidence.md#decision-rationale-and-learning)
+    -  described in [callback evidence](references/callback-evidence.md). The
+    +  described in [callback evidence](callback-evidence.md). The
+## Continue after context loss: 5953 chars in the base card, 5953 in standalone-route.md, 0 differing lines
+## Completion summary: 2399 chars in the base card, 2410 in standalone-route.md, 2 differing lines
+    -[agent-run invocation](#agent-run-invocation), return it inline in the native
+    +[agent-run invocation](../SKILL.md#agent-run-invocation), return it inline in the native
+## Preview before execution when requested: 1639 chars in the base card, 1639 in standalone-route.md, 0 differing lines
+## Execution handoff: 1577 chars in the base card, 1577 in standalone-route.md, 0 differing lines
+moved characters: 18866

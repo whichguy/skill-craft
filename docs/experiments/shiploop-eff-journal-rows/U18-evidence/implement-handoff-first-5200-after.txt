@@ -1,0 +1,62 @@
+# ShipLoop Improve handoff: the implement result (nav-818f97c4053b40ed8e4d01806a7281bd)
+
+ShipLoop standalone Improve binding: nav-dfd0bc6ccbe1413489be518a00243a9a/nav-818f97c4053b40ed8e4d01806a7281bd
+
+Read this whole file with a file-reading tool, not the shell: a shell cuts a long file. The conditions below are what this review looks for; a pass that finds none of them is trivial.
+CHILD = /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/u18-walk-h8e1dl4e/repo/.shiploop-improve/implement-6a7281bd · ROUTE = /Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U18-896488/skills/improve/references/shiploop-route.md · Route: inline
+Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime returns complete (ShipLoop started it: start nothing). You write CHILD/commit-message.md, CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json.
+When the runtime returns complete (its terminal packet saved at CHILD/packet.json), run: python3 shiploop complete --run-dir=/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/u18-walk-h8e1dl4e/run-inline --action=nav-bf64cec9576e4ae5916b43ac66133471
+Open ROUTE once per context and after a reset, and for recovery, the stopped-child route, the commit message rules, final_result and the review inputs: this file leaves them out.
+
+## What this review looks for
+Implementation step review focus. This result is one step of the item's step
+plan, and its tests are written later from the test spec, so this review is the
+only check of the code before them. Review the step's diff (the step's paths since
+the step began) and fix, within those paths, any of these:
+- the change does not do the step's task, misses a criterion as the spec's R-<n>
+  states it, or does work no criterion asks for (a later step's work, a feature
+  the item does not request);
+- a file changed outside the step's paths, or unrelated work reverted or
+  reformatted;
+- a new or changed public entry point that does not check its arguments before
+  any effect, swallows an error or returns a success default (Code craft 2);
+- a public function without its contract docstring, a comment that restates
+  code, or dead code (rules 3-4);
+- code placed outside HOME/architecture.md's ## Structure or ## Conventions, or a
+  departure with no new AD-<n> under ## Decisions; a name that collides or is
+  exported wider than needed (rule 8);
+- a near-copy of existing logic, a new unit where an existing one could be
+  reused, composed or augmented, or a dependency, option or fallback with no
+  present need (rules 1, 9);
+- a failure that is not diagnosable, or user-facing text assembled from
+  fragments or bypassing the catalog (rules 6-7); for a UI step, a plain or
+  static interaction where the plan calls for a rich one (rule 5);
+- a step skill listed in the packet and not used, or used against its stated
+  purpose, with no reason in the result;
+- a behaviour the code now has that no test-spec case covers and the result does
+  not list for the test stage;
+- a recorded check command that fails, or a new lint finding on a changed line
+  with no waiver, after your last edit.
+Do not write tests, start a later step, or edit a recorded command. After your
+last edit, rerun the step's recorded check commands and ShipLoop's lint for the
+step's action (`shiploop lint --action`), and record their exit codes. Commit your
+edits. A pass that finds none of these is trivial.
+
+## Commit
+To commit a review iteration's changes, write the commit message to CHILD/commit-message.md with a file-writing tool. It needs a line `Key learnings: <what this iteration taught that a later iteration or run should reuse>` starting in column 1 (`Key learnings: none` if it taught nothing new; a review that changed no file makes no commit); its other lines are under "The commit message" below. Then run: python3 shiploop improve-commit --run-dir=/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/u18-walk-h8e1dl4e/run-inline --action=nav-bf64cec9576e4ae5916b43ac66133471 --message=/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/u18-walk-h8e1dl4e/repo/.shiploop-improve/implement-6a7281bd/commit-message.md
+
+## Code craft
+Code craft. Write for the next maintainer, a person or a model, who opens one
+file cold with no run history. Every rule serves that reader.
+1. Match the house. The repository's error types, validation helpers, docstring
+   style and logging come first; record any justified departure. Add no
+   dependency, option or fallback without a present need. An argument that
+   lets an existing unit serve this change instead of a copy is a present need.
+2. Fail at the door. A function reachable from outside its module (exported
+   API, CLI handler, request or event handler, callback) checks its arguments
+   before any effect: required values present, type and shape, range or allowed
+   set, and consistency between arguments. Reject with the house error type,
+   naming the argument, the constraint and the received value (redacted when
+   sensitive). Code called only by validated code may trust its caller; say so
+   once where that is not obvious. Never swallow an error or substitute a
+   succe

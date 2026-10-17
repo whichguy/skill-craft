@@ -1,0 +1,55 @@
+M1 a new paragraph in a source with no ledger row
+    test: improve-route.test.py -k every_block
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)
+M2 the router grows past its journaled bound
+    test: improve-route.test.py -k within_their_journaled_bounds
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)
+M3 a route phrase a ledger row names is reworded away
+    test: improve-route.test.py -k carried_by_the_route
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)
+M4 the route drifts from the prompt text it carries
+    test: improve-route.test.py -k review_inputs
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)
+M5a the top block loses its route pointer
+    test: improve-route.test.py -k first_2000
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=18))
+    => FAILS without the change (good)
+M5b the commit line is pushed past char 4,500
+    test: improve-route.test.py -k focus_ends
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=2))
+    => FAILS without the change (good)
+M6 the review inputs print in the handoff again (old behavior)
+    test: improve-route.test.py -k what_is_the_same
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=18))
+    => FAILS without the change (good)
+M7 a heading a printed anchor names is renamed
+    test: improve-route.test.py -k anchors_the_navigator_prints
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)
+M8 a link into a moved section is not retargeted
+    test: improve-route.test.py -k every_markdown_anchor
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)
+M9 the child directory is the full action ID again
+    test: shiploop-standalone-improve.test.py -k child_directory_is_short
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)
+M10 the handoff keeps the invariant text (base navigator): the delegation test notices
+    test: shiploop-delegation.test.py -k carry_only_their_route
+    unmutated: exit 0 (OK)
+    mutated:   exit 1 (FAILED (failures=1))
+    => FAILS without the change (good)

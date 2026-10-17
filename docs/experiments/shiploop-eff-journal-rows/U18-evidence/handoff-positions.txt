@@ -1,0 +1,20 @@
+positions at install lengths (run 83, worktree 95, route 105, CLI 96)
+route      stage                  chars read-sentence  top end complete end focus end commit end
+inline     spec                   13659           196     1456         1275      2648       3478
+inline     test-strategy          14946           205     1474         1293      2666       3505
+inline     plan                   21122           196     1456         1275      2648       2872
+inline     step-plan              16958           201     1466         1285      2658       3493
+inline     test-spec              14331           201     1466         1285      2658       3493
+inline     implement              19441           201     1466         1285      3578       4413
+inline     carry-forward          19787           205     1474         1293      1800       2639
+inline     system-test-author     14881           210     1484         1303      2676       3520
+inline     release-plan           17173           204     1472         1291      2664       3502
+ask-agent  spec                   14007           196     1481         1300      2673       3503
+ask-agent  test-strategy          15303           205     1499         1318      2691       3530
+ask-agent  plan                   21467           196     1481         1300      2673       2897
+ask-agent  step-plan              17401           201     1491         1310      2683       3518
+ask-agent  test-spec              14684           201     1491         1310      2683       3518
+ask-agent  implement              19872           201     1491         1310      3603       4438
+ask-agent  carry-forward          20144           205     1499         1318      1825       2664
+ask-agent  system-test-author     15243           210     1509         1328      2701       3545
+ask-agent  release-plan           17529           204     1497         1316      2689       3527
