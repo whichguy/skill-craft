@@ -852,15 +852,17 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         evidence.parent.mkdir(parents=True)
         evidence.write_text("run evidence\n", encoding="utf-8")
         committed = self._call(workspace.commit_leftovers, root)
-        self.assertEqual(committed.paths, ["system/check.js"])
-        self.assertEqual(committed.skipped, ["settings.env"])
+        # Owner decision 2026-10-16: no credential-pattern skip; the file is committed like any other late file.
+        self.assertEqual(sorted(committed.paths), ["settings.env", "system/check.js"])
+        self.assertEqual(committed._fields, ("commit", "paths"))
         self.assertTrue(evidence.is_file())
-        (worktree / "settings.env").unlink()
         self._plan(root)
         self._resolve_plan(root)
         receipt = self._execute(root)
         self.assertEqual(receipt["kind"], "fast-forward-merge")
         self.assertEqual((self.repo / "system" / "check.js").read_text(encoding="utf-8"), "late system test\n")
+        self.assertEqual((self.repo / "settings.env").read_text(encoding="utf-8"),
+                         "Authorization: Bearer 0123456789abcdefghij\n")
         self.assertEqual(self._call(workspace.commit_leftovers, root).commit, "")  # nothing left
 
     def _returned_once(self, name: str) -> tuple[Path, Path]:

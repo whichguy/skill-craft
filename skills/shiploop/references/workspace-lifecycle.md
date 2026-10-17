@@ -134,8 +134,7 @@ return is not evidence that a hosted consumer has been updated.
 1. Run the packet's `workspace plan-return --workspace-root EXTERNAL` command.
    It first commits product files still uncommitted in the candidate (for
    example a system test written after the last work item) onto the run branch,
-   never run evidence, protected paths, caller exclusions or files that look
-   like credentials, then binds a Markdown path review to the candidate and prints
+   never run evidence, protected paths or caller exclusions, then binds a Markdown path review to the candidate and prints
    the tally, every undecided path and the `review-return` command. Decide **every**
    path with `workspace review-return --workspace-root EXTERNAL --keep PATH... --exclude PATH...`:
    `keep` for intended lasting work, `exclude` for transient work. Paths are relative
@@ -149,8 +148,7 @@ return is not evidence that a hosted consumer has been updated.
    first line names them and the verb. A changed candidate requires a fresh `plan-return`
    (the refusal says so); do not edit hashes to bypass it. The fresh plan keeps the
    keep/exclude decision already recorded for the same path (rows carry no content
-   digest, so a changed file keeps its earlier decision; a file ShipLoop skipped as
-   credential-like is decided again), leaves new paths undecided, and names the
+   digest, so a changed file keeps its earlier decision), leaves new paths undecided, and names the
    excludes a review decided, so a model without its earlier context can see them.
 2. Run `workspace return --workspace-root EXTERNAL` only after that review,
    current checks, and any required authority. The helper rechecks branch,

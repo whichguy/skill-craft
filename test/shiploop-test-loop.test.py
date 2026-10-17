@@ -507,6 +507,26 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("?? server.log", git(self.repo, "status", "--porcelain"))
         self.assertNotIn(" M a.py", git(self.repo, "status", "--porcelain"))
 
+    def test_verify_commits_a_declared_file_and_a_document_whose_text_looks_like_a_credential(self):
+        """Owner decision 2026-10-16: no credential-pattern skip. The item commit takes a file by its path and class,
+        never by what its text resembles, so nothing is left uncommitted for the return to carry."""
+        self.start()
+        self.drive_to("verify")
+        (self.repo / "a.py").write_text("AUTH = 'Auth: sf login (alias de)'\nPASSWORD = os.environ['PASSWORD']\n"
+                                        "TOKEN = 'ghp_" + "A" * 36 + "'\n")
+        (self.repo / "README.md").write_text("# Notes\n\nAuthorization: Bearer 0123456789abcdefghij\n")
+        output = self.complete(DONE)
+        self.assertEqual(sorted(git(self.repo, "show", "--name-only", "--format=", "HEAD").split()),
+                         ["README.md", "a.py"])
+        self.assertNotIn("look like they hold a credential", output)
+        for line in output.splitlines():
+            if line.startswith("Not committed"):  # the fixture's own undeclared files only
+                self.assertNotIn("a.py", line)
+                self.assertNotIn("README.md", line)
+        status = git(self.repo, "status", "--porcelain")
+        self.assertNotIn("a.py", status)
+        self.assertNotIn("README.md", status)
+
     def test_verify_also_commits_changed_documentation_the_step_plan_did_not_declare(self):
         """P-document-1: a README the document stage adds is committed by ShipLoop, so the model never commits it.
 

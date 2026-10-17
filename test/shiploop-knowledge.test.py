@@ -1527,22 +1527,25 @@ class CommitHelperTests(unittest.TestCase):
         git(self.repo, "-c", "user.email=u@example.invalid", "-c", "user.name=U", "commit", "-q",
             "--allow-empty", "-m", "base")
 
-    def test_stages_exactly_the_given_paths_and_names_a_file_that_looks_like_a_secret(self) -> None:
+    def test_stages_exactly_the_given_paths_and_commits_a_file_that_looks_like_a_secret(self) -> None:
+        """Owner decision 2026-10-16: no credential-pattern skip. Every given path is committed, whatever its text says."""
         git(self.repo, "config", "user.email", "u@example.invalid")
         git(self.repo, "config", "user.name", "U")
         (self.repo / "lib.py").write_text("VALUE = 1\n")
         (self.repo / "settings.env").write_text("Authorization: Bearer 0123456789abcdefghij\n")
+        (self.repo / "notes.md").write_text("Auth: sf login (alias de)\naccess token: not printed\n")
         (self.repo / "other.txt").write_text("not part of this commit\n")
-        committed = shiploop_git.commit_paths(self.repo, ["lib.py", "settings.env"], "feat: lib")
-        self.assertEqual(committed.paths, ["lib.py"])
-        self.assertEqual(committed.skipped, ["settings.env"])
-        self.assertEqual(git(self.repo, "show", "--name-only", "--format=", "HEAD").split(), ["lib.py"])
+        committed = shiploop_git.commit_paths(self.repo, ["lib.py", "settings.env", "notes.md"], "feat: lib")
+        self.assertEqual(sorted(committed.paths), ["lib.py", "notes.md", "settings.env"])
+        self.assertEqual(sorted(git(self.repo, "show", "--name-only", "--format=", "HEAD").split()),
+                         ["lib.py", "notes.md", "settings.env"])
+        self.assertEqual(git(self.repo, "show", "HEAD:settings.env"), "Authorization: Bearer 0123456789abcdefghij\n")
         status = git(self.repo, "status", "--porcelain")
-        self.assertIn("?? settings.env", status)
+        self.assertNotIn("settings.env", status)
         self.assertIn("?? other.txt", status)
-        notice = shiploop_git.skipped_notice(committed.skipped)
-        self.assertIn("settings.env", notice)
-        self.assertNotIn("0123456789abcdefghij", notice)
+        self.assertFalse(hasattr(shiploop_git, "looks_secret"))
+        self.assertFalse(hasattr(shiploop_git, "skipped_notice"))
+        self.assertEqual(committed._fields, ("commit", "paths"))
 
     def test_workspace_identity_only_without_a_configured_identity(self) -> None:
         (self.repo / "a.txt").write_text("a\n")

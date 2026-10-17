@@ -685,7 +685,7 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         before = {"history": []}
         after = {"history": [{"stage": "verify", "outcome": "done", "workitem": "W1", "summary": "What it did."}],
                  "work_items": [{"id": "W1", "title": "Add the grid"}]}
-        with mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [], [])) as made:
+        with mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [])) as made:
             shiploop_navigator._item_commit(Path("."), before, after)
         self.assertEqual(made.call_count, 1, "the verify row of the history makes one item commit")
         message = made.call_args.args[3]

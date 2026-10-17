@@ -19,7 +19,6 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence, TextIO
 
-import shiploop_git
 import shiploop_navigator as navigator
 import shiploop_navigator_dry_run as navigator_dry_run
 import shiploop_store as store
@@ -320,9 +319,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                     if leftover.commit:
                         parts.append(_Paths("ShipLoop committed these files that were left uncommitted (no action "
                                             "needed): ", leftover.paths, f" ({leftover.commit[:12]})."))
-                    if leftover.skipped:
-                        parts.append(shiploop_git.skipped_notice(leftover.skipped))
-                    workspace.plan_return(root, fresh=leftover.skipped)
+                    workspace.plan_return(root)
                     summary = workspace.plan_summary(root)
                 else:
                     reviewed = workspace.review_return(root, [name for group in args.keep for name in group],

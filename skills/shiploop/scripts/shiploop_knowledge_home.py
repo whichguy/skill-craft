@@ -731,20 +731,19 @@ def commit(state: Mapping[str, Any], stage: str, open_items: Sequence[Any] = ())
     """
     repo = Path(str(state["repo"]))
     if _git(repo, "rev-parse", "--is-inside-work-tree").returncode:
-        return shiploop_git.Committed("", [], [])   # not a checkout: nothing to commit, as before
+        return shiploop_git.Committed("", [])   # not a checkout: nothing to commit, as before
     lessons = _release_verify_lessons(state) if stage == "release-verify" else None
     changed = _home_changed(repo)
     if not changed and lessons is None:
-        return shiploop_git.Committed("", [], [])
+        return shiploop_git.Committed("", [])
     message = knowledge_subject(state, stage)
     if lessons is not None:
         message += "\n\n" + lessons_body(lessons, open_items)
     try:
-        done = shiploop_git.commit_paths(repo, list(KNOWLEDGE), message) if changed else shiploop_git.Committed("", [], [])
+        done = shiploop_git.commit_paths(repo, list(KNOWLEDGE), message) if changed else shiploop_git.Committed("", [])
         if lessons is not None and not done.commit:
-            # Nothing recorded (an unchanged home, or every change skipped by the secret screen): the lessons still travel.
-            empty = shiploop_git.commit_paths(repo, [], message, allow_empty=True)
-            done = shiploop_git.Committed(empty.commit, [], done.skipped)
+            # Nothing recorded (an unchanged home): the lessons still travel.
+            done = shiploop_git.commit_paths(repo, [], message, allow_empty=True)
         return done
     except shiploop_git.CommitError as exc:
         raise RuntimeError(str(exc)) from exc

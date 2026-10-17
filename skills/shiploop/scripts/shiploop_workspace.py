@@ -1298,8 +1298,7 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
     otherwise untracked at return, which forces the working-tree route and keeps
     every run commit off the user's branch.  Committing it here lets the reviewed
     plan fast-forward; a path the review then excludes still falls back to the
-    working-tree route.  Run evidence, protected paths, caller exclusions and
-    files the credential screen flags are never committed.
+    working-tree route.  Run evidence, protected paths and caller exclusions are never committed.
     """
     root = _resolved_directory(Path(workspace_root), label="workspace root")
     manifest = _manifest(root)
@@ -1311,7 +1310,7 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
     paths = sorted({*tracked, *(row["path"] for row in _untracked(worktree))})
     chosen = [path for path in paths if not never_committed(path, manifest["excluded"])]
     if not chosen:
-        return shiploop_git.Committed("", [], [])
+        return shiploop_git.Committed("", [])
     try:
         return shiploop_git.commit_paths(worktree, chosen, "chore(shiploop): commit files written after the last "
                                          "work item, before the return")
@@ -1320,12 +1319,11 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
 
 
 @_locked_existing_root
-def plan_return(workspace_root: Path, fresh: Iterable[str] = ()) -> Dict[str, Any]:
+def plan_return(workspace_root: Path) -> Dict[str, Any]:
     """Generate the exact reviewed return surface; no source mutation occurs.
 
     A new plan reviews every path again, but a path the last plan decided keep or exclude keeps that decision (the
-    same path; rows carry no content digest) so a model that lost its context does not decide twice.  ``fresh``
-    names paths whose earlier decision must not carry, such as a file ``commit_leftovers`` skipped as credential-like.
+    same path; rows carry no content digest) so a model that lost its context does not decide twice.
     """
     root = _resolved_directory(Path(workspace_root), label="workspace root")
     manifest = _manifest(root)
@@ -1342,8 +1340,7 @@ def plan_return(workspace_root: Path, fresh: Iterable[str] = ()) -> Dict[str, An
     ):
         _fail("source checkout drifted since preparation; return is blocked")
     candidate, changes, history = _candidate(manifest, root)
-    skipped = set(fresh)
-    decided = {path: value for path, value in _recorded_decisions(root).items() if path not in skipped}
+    decided = _recorded_decisions(root)
     plan: Dict[str, Any] = {
         "schema": PLAN_SCHEMA,
         "version": VERSION,
@@ -1534,8 +1531,7 @@ def expected_return(workspace_root: Path) -> Optional[str]:
 
 
 # Said right after the route's first sentence, because a model reads this line cut short and a file written after the
-# last work item was committed by hand ahead of the return.  It describes plan-return (commit_leftovers) in both routes:
-# the files it skips are the credential-like ones, which its own notice tells the model to fix and then commit.  A
+# last work item was committed by hand ahead of the return.  It describes plan-return (commit_leftovers) in both routes.  A
 # worktree run's integrate and document packets print the same constant (SPEC S-12).
 _LEFTOVERS_CLAUSE = stage_spec.RETURN_LEFTOVERS
 

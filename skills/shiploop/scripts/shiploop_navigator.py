@@ -2052,7 +2052,7 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         message = ("feat: " + str(row.get("workitem")) + " " + _item_title(after, row["workitem"])
                    + "\n\n" + str(row.get("summary") or "").strip())
         try:
-            commit, undeclared, skipped = item_scope.commit_item(root, after, row["workitem"], message.strip())
+            commit, undeclared = item_scope.commit_item(root, after, row["workitem"], message.strip())
         except item_scope.ItemScopeError as exc:
             print("ShipLoop verify: " + str(exc) + "; commit the item's files before release.", file=sys.stderr)
             continue
@@ -2064,8 +2064,6 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
             print("Not committed (changed, but not in the step plan's paths and not documentation"
                   + (", or excluded from the return" if mode == "navigator-worktree" else "") + "): "
                   + ", ".join(undeclared) + ". " + stage_spec.item_left(mode))
-        if skipped:
-            print(shiploop_git.skipped_notice(skipped))
 
 
 # Run-relative file holding a work item's preparatory-fix commit, the test stage's base when it exists.
@@ -2177,9 +2175,6 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
-    notice = shiploop_git.skipped_notice(committed.skipped)
-    if notice:
-        print("ShipLoop knowledge: " + notice)
     # At a close only: one counted line per living file that lacks named sections (never a refusal, never raised).  The close is
     # the stage among this call's accepted rows that closes, not the last row: a stage the script records after the close in
     # the same call would otherwise leave that close silent.
@@ -6233,14 +6228,11 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     except shiploop_git.CommitError as exc:
         raise NavigatorError("Git could not make the commit: fix the repository problem named below, then run: "
                              + command + "\n" + str(exc)) from exc
-    notice = shiploop_git.skipped_notice(committed.skipped)
     if not committed.commit:
-        print("Nothing committed. " + notice)
+        print("Nothing committed.")
         return 0
     message_path.unlink()
     head, pending = committed.commit, committed.paths
-    if notice:
-        print(notice)
     print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + "." if pending else
           "Committed this review's remote change as " + head[:12] + ": it changed no file.")
     return 0

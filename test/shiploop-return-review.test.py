@@ -12,6 +12,7 @@ the workspace refuses).
 
 from __future__ import annotations
 
+import inspect
 import os
 import shlex
 import shutil
@@ -311,14 +312,15 @@ class ReviewReturnTests(ReturnReviewCase):
         self.assertIn("Verified workspace return", self.do_return(root).stdout)
         self.assertFalse((self.repo / "scratch.log").exists())
 
-    def test_a_decision_is_not_carried_for_a_path_commit_leftovers_skipped_and_an_unreadable_plan_carries_none(self) -> None:
+    def test_an_unreadable_plan_carries_no_decision(self) -> None:
         root, worktree, _ = self.candidate("carry limits")
         self.plan_return(root)
         self.review(root, "--keep", "app.js", "docs/guide.md", "scratch.log")
         with mock.patch.dict(os.environ, self.env):
-            plan = workspace.plan_return(root, fresh=["app.js"])  # as if it had been skipped as credential-like
+            plan = workspace.plan_return(root)
         self.assertEqual({row["path"]: row["disposition"] for row in plan["paths"]},
-                         {"app.js": "pending", "docs/guide.md": "keep", "scratch.log": "keep"})
+                         {"app.js": "keep", "docs/guide.md": "keep", "scratch.log": "keep"})
+        self.assertEqual(list(inspect.signature(workspace.plan_return).parameters), ["workspace_root"])  # no `fresh`
         (root / "return-plan.md").write_text("not a record\n", encoding="utf-8")
         with mock.patch.dict(os.environ, self.env):
             plan = workspace.plan_return(root)
@@ -761,8 +763,7 @@ class ReturnRouteTests(ReturnReviewCase):
             return next(line for line in self.render(of, "release-plan").splitlines()
                         if line.startswith("Return route (from workspace.md)"))
 
-        clause = ("plan-return commits files left uncommitted, so commit nothing for the return except a file it "
-                  "reports as not committed.")
+        clause = "plan-return commits files left uncommitted, so commit nothing for the return."
         with self.subTest("the clean-start sentence"):
             line = route(root)
             self.assertIn(clause, line)
@@ -788,19 +789,17 @@ class ReturnRouteTests(ReturnReviewCase):
                           self.plan_return(dirty_root).stdout)
             self.assertIn("late.js", self.git("ls-files", cwd=dirty_worktree).stdout.split())
             self.git("checkout", "-q", "--", "existing.txt")
-        with self.subTest("plan-return commits the late file, screens the credential-like one and skips run evidence"):
+        with self.subTest("plan-return commits every late file, a credential-looking one too, and skips run evidence"):
             out = self.plan_return(root).stdout
-            self.assertIn("ShipLoop committed these files that were left uncommitted (no action needed): late.js", out)
-            self.assertIn("Not committed, they look like they hold a credential: settings.env", out)
-            self.assertEqual(self.git("ls-files", cwd=worktree).stdout.split(), ["app.js", "existing.txt", "late.js"])
-        with self.subTest("the exception is real: the file it reports as not committed keeps the return off the branch"):
+            self.assertIn("ShipLoop committed these files that were left uncommitted (no action needed): ", out)
+            self.assertIn("late.js", out)
+            self.assertIn("settings.env", out)
+            self.assertNotIn("Not committed", out)
+            self.assertNotIn("credential", out)
+            self.assertEqual(self.git("ls-files", cwd=worktree).stdout.split(),
+                             ["app.js", "existing.txt", "late.js", "settings.env"])
+        with self.subTest("nothing is left outside the run branch, so the return fast-forwards"):
             self.review(root, "--keep", "app.js", "late.js", "settings.env")
-            self.assertEqual(workspace.expected_return(root), "working-tree-return")
-        with self.subTest("committing that file as the report says (value replaced) restores the fast-forward"):
-            self.write(worktree, "settings.env", "Authorization: set from the environment\n")
-            self.git("add", "settings.env", cwd=worktree)  # only that file: `add -A` would take the run evidence too
-            self.git("commit", "-qm", "reference the credential, not its value", cwd=worktree)
-            self.plan_return(root)  # the earlier keep decisions carry, so nothing is left to decide
             self.assertEqual(workspace.expected_return(root), "fast-forward-merge")
 
 
