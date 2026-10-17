@@ -373,11 +373,11 @@ results, quoted to the stages that consume them. The three files have named sect
 never a refusal). An older home's `README.md`, `test-strategy.md` and `features/`
 folders are left in place and no longer required, written or named.
 At `prepare`, `release-plan` and `release-verify`, ShipLoop
-refuses `done` until that close's files exist, screens them for credentials,
+refuses `done` until that close's files exist,
 refuses a living spec or architecture whose uncommitted version drops an earlier committed
 ID (an edit a review already committed through `improve-commit` is not seen), and commits exactly
 `docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
-ShipLoop runs the same credential and ID checks and commits it too, so never
+ShipLoop runs the same ID check and commits it too, so never
 commit it yourself. The `release-verify` commit is always made: its body is the
 result's `lessons` (`Learned`, `Key considerations`, `Open for the next run`) and the
 open items still left. Intake and discovery packets quote the last three commit

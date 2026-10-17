@@ -2616,48 +2616,36 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(again.returncode, 0, again.stderr)
         self.assertIn(f"----- END ORIGINAL REQUEST {tag} -----", again.stdout)
 
-    def _assert_token_absent(self, result: subprocess.CompletedProcess) -> None:
-        self.assertNotIn(self.TOKEN, result.stdout + result.stderr)
-        for path in self.base.rglob("*"):
-            if path.is_file() and ".git" not in path.parts:
-                self.assertNotIn(self.TOKEN, path.read_text(errors="replace"), str(path))
-
-    def test_credentials_are_refused_at_input_boundaries_without_persisting(self) -> None:
-        prompt = "deploy using " + self.TOKEN
-        refused = self.cli("init", "--repo", str(self.repo), "--run-dir",
-                           str(self.base / "r1"), "--prompt=" + prompt)
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertIn("prompt appears to contain a credential secret", refused.stdout + refused.stderr)
-        self.assertFalse((self.base / "r1" / "state.md").exists())
-        self._assert_token_absent(refused)
+    def test_credential_looking_text_is_accepted_at_every_input_boundary(self) -> None:
+        """Owner decision 2026-10-16: no credential-pattern refusal. A prompt that tells the model not to print a token,
+        a documentation line such as ``Auth: sf login (alias de)`` and a token-shaped string are all ordinary text: the
+        direct init, the worktree start and a result's summary take them, and the run advances."""
+        prompt = "Never print an access token. Auth: sf login (alias de). Deploy using " + self.TOKEN
+        run = self.base / "r1"
+        accepted = self.cli("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        self.assertEqual(store.read_record(run / "state.md")["prompt"], prompt)
 
         workspace = self.base / "ws"
-        refused = self.cli("workspace", "start", "--repo", str(self.repo),
-                           "--workspace-root", str(workspace), "--prompt=" + prompt)
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertFalse(workspace.exists(), "prompt screening must precede worktree creation")
-        branches = subprocess.run(["git", "branch", "--list"], cwd=self.repo, env=self.env,
-                                  capture_output=True, text=True, check=True).stdout
-        self.assertEqual(len(branches.splitlines()), 1, "no ShipLoop branch may be created")
-        self._assert_token_absent(refused)
+        started = self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(workspace),
+                           "--prompt=" + prompt)
+        self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+        self.assertTrue((workspace / "run" / "state.md").is_file(), "the worktree run is saved")
+        self.assertEqual(store.read_record(workspace / "run" / "state.md")["prompt"], prompt)
 
         run = self.base / "run"
         self.init(run)
         current = navigator.current_action(store.read_record(run / "state.md"))["id"]
         result_path = run / "inbox" / (current + ".md")
+        summary = "Auth: sf login (alias de); access token: not printed; signature: static; used " + self.TOKEN
         result_path.write_text(
             "# ShipLoop navigator result\n\n```shiploop-state\n"
-            '{"evidence_refs": [], "outcome": "done", "summary": "used ' + self.TOKEN + '"}\n'
+            + json.dumps({"evidence_refs": [], "outcome": "done", "summary": summary}) + "\n"
             "```\n")
-        before = (run / "state.md").read_bytes()
-        refused = self.cli("complete", "--run-dir", str(run), "--action", current,
-                           "--result", str(result_path))
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertIn("navigator result.summary appears to contain a credential secret",
-                      refused.stdout + refused.stderr)
-        self.assertEqual((run / "state.md").read_bytes(), before)
-        self.assertNotIn(self.TOKEN, refused.stdout + refused.stderr)
-        self.assertNotIn(self.TOKEN, (run / "state.md").read_text())
+        accepted = self.cli("complete", "--run-dir", str(run), "--action", current, "--result", str(result_path))
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        self.assertNotIn("appears to contain a credential", accepted.stdout + accepted.stderr)
+        self.assertIn(current, store.read_record(run / "state.md")["accepted"])
 
 
     def _listing(self, root: Path) -> list[tuple[str, bytes | None]]:

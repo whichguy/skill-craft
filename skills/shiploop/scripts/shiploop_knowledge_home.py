@@ -1,9 +1,9 @@
 """The repository's ShipLoop knowledge home: three living files, kept and committed by ShipLoop.
 
 Owner decision 2026-09-26: planning produces knowledge that outlives the run.  The model keeps three living files under
-``docs/shiploop/``; ShipLoop checks them at three closes (prepare, release-plan, release-verify), screens every Markdown
-file under the home for credentials, refuses a living spec or architecture that drops an earlier requirement or decision
-ID, and commits exactly ``docs/shiploop/`` with its own message after every accepted stage that changed it.
+``docs/shiploop/``; ShipLoop checks them at three closes (prepare, release-plan, release-verify), refuses a living spec
+or architecture that drops an earlier requirement or decision ID, and commits exactly ``docs/shiploop/`` with its own
+message after every accepted stage that changed it.
 
     docs/shiploop/spec.md            living product spec; stable requirement IDs, a Retired section
     docs/shiploop/environment.md     targets, commands, harnesses and suites, the ID convention, platform facts
@@ -14,7 +14,7 @@ state, quoted to their consumers (consumer contract 2026-10-11); release-verify'
 stage's knowledge commit, which the next run's intake and discovery quote (``last_lessons``).
 
 An older repository's ``README.md``, ``test-strategy.md`` and ``features/`` folders are left in place: nothing
-requires, writes or names them, and the credential screen still reads them.  A repository index at the root is the
+requires, writes or names them.  A repository index at the root is the
 host's file: ShipLoop reads it if present and never commits it.  At each close ShipLoop also prints one counted notice line
 per living file that lacks a named section (``section_notices``); it is a notice, never a refusal.
 """
@@ -27,7 +27,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
 import shiploop_git as shiploop_git
-import shiploop_privacy as privacy
 import shiploop_stage_spec as stage_spec
 
 HOME = "docs/shiploop"
@@ -251,8 +250,7 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
                      "with its reason. ShipLoop refuses a spec that loses an earlier ID. ShipLoop derives this run's "
                      "requirement changes from the diff since the run began; no list of them is written.")
     if stage in CLOSES:
-        lines.append("On done ShipLoop checks these files, screens them for credentials and commits "
-                     + HOME + "/ in the execution checkout.")
+        lines.append("On done ShipLoop checks these files and commits " + HOME + "/ in the execution checkout.")
     else:
         lines.append("If this stage changes " + HOME + "/, ShipLoop checks and commits it when the stage is accepted; "
                      "do not commit it yourself.")
@@ -276,7 +274,7 @@ def _home_changed(repo: Path) -> bool:
 
 
 def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> str:
-    """Refusal text when a stage's done would commit knowledge that is missing, leaks a credential or drops an ID.
+    """Refusal text when a stage's done would commit knowledge that is missing or drops an ID.
 
     A close requires its files; any other stage is checked only when it changed the home,
     because ShipLoop commits the home after every accepted stage that changed it.  ``command`` is the callback the
@@ -301,25 +299,6 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
                 # architecture.md is the one file with no other description at prepare: a cleared model reads this.
                 + (ARCHITECTURE + " holds " + ARCHITECTURE_HOLDS + ".\n" if str(repo / HOME / ARCHITECTURE) in paths else "")
                 + "See the packet's knowledge-home lines for what each file holds.")
-    leaks = []
-    # Every Markdown file under the home, an older version's README.md, test-strategy.md and feature folders included.
-    screened = sorted((repo / HOME).rglob("*.md"))
-    for path in screened:
-        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if privacy.sensitive_text(line):
-                leaks.append(str(path) + ":" + str(number))
-    if leaks:
-        # Line 1 is for a model that reads only it: where (absolute: the shell's directory is the original checkout), what to
-        # write instead, and the command.  Every place follows, one per line, never the text.  Line 2 keeps the words the
-        # refusal has always had, so refusals can still be counted by them.
-        return ("Reword " + leaks[0] + " to name an alias, not a value or an assignment; then run the same complete"
-                + " command again.\n"
-                "These knowledge lines look like credentials; name where each secret is kept (an alias, or the mechanism "
-                "that supplies it, such as the name of an environment variable), never its value or code that assigns it. "
-                "The lines:\n" + "\n".join("- " + place for place in leaks)
-                + ("\nA file this review changed and left uncommitted needs improve-commit before complete; "
-                   "complete prints the exact improve-commit command when one is owed."
-                   if command == "improve" else ""))
     # A plain mention anywhere in the file keeps an ID (a heading, a table row, a line under Retired or Superseded); nothing
     # is dropped from a file HEAD does not hold yet.  Line 1 is the fix, the absolute path and the command, with no ID
     # list, so a long list can never cut the fix off a model that reads the first 250 characters; the IDs follow, in full.

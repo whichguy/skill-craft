@@ -402,14 +402,10 @@ class RefusalRouteTests(RealCliCase):
         # Guard, green before and after the Checked-by wording: every fault the line of a stage without a script-run
         # check names is a real refusal at that stage, and the corrected result is accepted by the same command. If a
         # gate is removed or renamed, the line would over-promise and this fails.
-        token = "ghp_" + "Ab1" * 8  # not a credential: a made-up string of the shape the screen refuses
         cases = [
             ("an absolute evidence_refs path that does not exist", "intake",
              lambda block: {**block, "evidence_refs": [str(self.base / "no-such-note.md")]},
              "evidence_refs cite files that do not exist"),
-            ("an explicit credential pattern", "intake",
-             lambda block: {**block, "summary": "The key is " + token},
-             "appears to contain a credential secret"),
             ("an open assumption whose consumer is not in the plan", "plan",
              lambda block: {**block, "assumptions": [{"id": "A2", "assumption": "y holds", "disposition": "open",
                                                       "check": "run y", "reason": "later", "consumer": "W9"}]},
@@ -714,9 +710,9 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         self.assertIn("## " + heading, self.git(repo, "show", "HEAD:docs/shiploop/architecture.md"))
 
-    def test_an_architecture_line_that_looks_like_a_credential_is_refused_with_its_place_and_the_fix_and_the_reworded_line_is_accepted(self) -> None:
-        # architecture.md records auth shapes, and the screen reads every home file: the refusal must be one a cleared-context
-        # model can act on from its first line (absolute place, the fix, the command), and echo no value.
+    def test_an_architecture_line_that_looks_like_a_credential_is_accepted_and_committed(self) -> None:
+        # Owner decision 2026-10-16: no credential-pattern refusal. architecture.md records auth shapes
+        # ("Password: bcrypt, cost 12", "SECRET_KEY = os.environ[...]"); the close takes them as written and commits them.
         run, head = self.new_run("prepare")
         command, path, action = printed_callback(head)
         repo = self.repo_of(run)
@@ -725,23 +721,29 @@ class RefusalRouteTests(RealCliCase):
             Path(named).parent.mkdir(parents=True, exist_ok=True)
             Path(named).write_text("What this file records.\n", encoding="utf-8")
         architecture = repo / "docs/shiploop/architecture.md"
-        architecture.write_text("# Architecture\n\nPassword: bcrypt, cost 12\nSECRET_KEY = os.environ['SECRET_KEY']\n", encoding="utf-8")
-        reply = self.refused(command, run)
-        lines = reply.splitlines()
-        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
-                         "ShipLoop navigator: Reword <file>:3 to name an alias, not a value or an assignment; "
-                         "then run the same complete command again.")
-        self.assertIn("look like credentials", reply)
-        self.assertEqual(re.findall(r"^- (/\S+:\d+)$", reply, re.M), [str(architecture) + ":3", str(architecture) + ":4"])
-        self.assertNotIn("bcrypt", reply)  # places, never the text
-        # the fix the line names, applied at the place it names: the first location, then the rest of the list
-        for place in re.findall(r"^- (/\S+):(\d+)$", reply, re.M):
-            where, number = place[0], int(place[1])
-            rows = Path(where).read_text(encoding="utf-8").splitlines()
-            rows[number - 1] = "Credentials are read from the environment by name (an alias), never written here."
-            Path(where).write_text("\n".join(rows) + "\n", encoding="utf-8")
-        self.accepted(command)  # the same printed command
+        written = "# Architecture\n\nPassword: bcrypt, cost 12\nSECRET_KEY = os.environ['SECRET_KEY']\nAuth: sf login (alias de)\n"
+        architecture.write_text(written, encoding="utf-8")
+        reply = self.accepted(command)  # the same printed command, no rewording asked for
+        self.assertNotIn("Reword", reply)
+        self.assertNotIn("look like credentials", reply)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertEqual(self.git(repo, "show", "HEAD:docs/shiploop/architecture.md"), written)
+
+    def test_a_result_with_credential_looking_text_is_accepted_by_the_same_command(self) -> None:
+        # Owner decision 2026-10-16: documentation lines such as these were refused by the retired screen (`auth`,
+        # `token` and `signature` followed by `:` and a word); the result is accepted as written.
+        token = "ghp_" + "Ab1" * 8  # a made-up string of the shape the retired screen refused
+        run, head = self.new_run("intake")
+        command, path, action = printed_callback(head)
+        summary = ("Auth: sf login (alias de); access token: not printed; signature: static; Bearer " + token
+                   + "; password=hunter2")
+        write_block(path, {**self.fill_done(head), "summary": summary})
+        reply = self.accepted(command)
+        self.assertNotIn("appears to contain a credential", reply)
+        self.assertEqual(self.recorded(run, action)["summary"], summary)
+        packet = self.full_packet(head)
+        self.assertNotIn("credential pattern", packet)
+        self.assertNotIn("looks like a credential", packet)
 
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")

@@ -251,11 +251,6 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
             workspace.require_grants(root)
         if args.operation == "start":
             need(bool(args.prompt.strip()), "prompt must not be empty")
-            # Screen before workspace.prepare creates a worktree and branch.
-            import shiploop_privacy
-            need(not shiploop_privacy.sensitive_text(args.prompt),
-                 "prompt appears to contain a credential secret; remove it and name the "
-                 "credential's location instead (the value is not echoed)")
             saved = root / "run" / "state.md"
             if saved.exists():
                 existing = store.read_record(saved)

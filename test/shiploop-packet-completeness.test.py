@@ -174,6 +174,16 @@ class PacketCompletenessTests(unittest.TestCase):
                     for condition in stage_spec.stage(stage).done_when:
                         self.assertIn(" ".join(condition.split()), flat_packet)
 
+    def test_no_packet_tells_the_model_about_a_credential_refusal(self) -> None:
+        """Owner decision 2026-10-16: ShipLoop refuses no credential pattern, so no stage packet or handoff says it does
+        (the screen is gone from the gates, the duties and the Improve packets)."""
+        retired = ("explicit credential pattern", "looks like a credential", "look like credentials",
+                   "credential screen", "credential-looking", "appears to contain a credential")
+        for (stage, kind), packet in sorted(self.found.items()):
+            with self.subTest(stage=stage, kind=kind):
+                for words in retired:
+                    self.assertNotIn(words, packet)
+
     def test_a_producer_names_the_script_checks_its_stage_row_declares(self) -> None:
         for (stage, kind), packet in sorted(self.found.items()):
             if kind != "producer":
@@ -224,10 +234,10 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertIn("the usual faults (", line)
                 self.assertIn("`complete --check-only` prints every refusal", line)
                 self.assertIn("does not judge the work", line)
-                # Claims no wider than the gates: relative evidence paths are not checked, and the credential screen is
-                # conservative, not a guarantee.
+                # Claims no wider than the gates: relative evidence paths are not checked.  No credential pattern is
+                # refused (owner decision 2026-10-16), so the line names none.
                 self.assertIn("absolute", line)
-                self.assertIn("explicit credential pattern", line)
+                self.assertNotIn("credential", line)
                 for word, stages in self.GATE_WORDS.items():
                     self.assertEqual(word in line, stage in stages, f"{word!r} in the {stage} line")
 

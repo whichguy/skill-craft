@@ -1447,28 +1447,38 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
         self.assertEqual(self.home_git("status", "--porcelain", "--", "docs"), "")
 
-    def test_a_reviewed_step_plan_whose_architecture_looks_like_a_credential_is_refused_with_the_fix_and_the_route_commands(self):
-        """The credential screen reads architecture.md too; the refusal is absolute, names the route's commands, echoes no value."""
+    def test_a_reviewed_step_plan_whose_architecture_looks_like_a_credential_is_committed_and_imported(self):
+        """Owner decision 2026-10-16: no credential-pattern refusal. The review's architecture edit names auth shapes
+        (`Password: bcrypt`, `token = get_token()`, `Auth: sf login (alias de)`), improve-commit commits it with a message
+        that quotes one, and the Improve stage's complete imports it: no rewording is asked for on either route."""
         if not self.inline():
             self.skipTest("improve-commit is the inline route")
         architecture = self.commit_architecture()
         self._start_parent_at_stage("step-plan", [str(self.product_contract)])
         self.finish_ephemeral()
-        architecture.write_text(self.ARCHITECTURE + "\nPassword: bcrypt, cost 12\ntoken = get_token()\n", encoding="utf-8")
-        lines = self.refused_import()
-        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
-                         "ShipLoop navigator: Reword <file>:8 to name an alias, not a value or an assignment; "
-                         "then run the same complete command again.")
-        self.assertIn("- " + str(architecture) + ":9", lines)  # every flagged line, absolute, one per line
-        self.assertTrue(any("improve-commit" in line and " complete " in line for line in lines[1:]), lines)
-        for value in ("bcrypt", "get_token"):
-            self.assertNotIn(value, "\n".join(lines))  # locations only, never the text
-        architecture.write_text(self.ARCHITECTURE + "\nPasswords are hashed with bcrypt (cost 12).\nThe session token is read from the "
-                                "environment variable SESSION_TOKEN.\n", encoding="utf-8")
-        self.commit_the_review("docs: describe the credential handling by name\n\nKey learnings: the architecture names a "
-                               "mechanism, not a value.\n")
+        written = self.ARCHITECTURE + "\nPassword: bcrypt, cost 12\ntoken = get_token()\nAuth: sf login (alias de)\n"
+        architecture.write_text(written, encoding="utf-8")
+        self.commit_the_review("docs: record the auth shapes\n\nKey learnings: the header was Authorization: Bearer "
+                               "abcdefghijklmnop12345678 in the old client.\n")
+        self.assertEqual(self.home_git("show", "HEAD:docs/shiploop/architecture.md"), written)
+        self.assertEqual(self.home_git("status", "--porcelain", "--", "docs"), "")
         self.import_the_review()
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
+
+    def test_the_notes_and_the_final_result_of_an_improve_import_may_quote_credential_looking_text(self):
+        """Owner decision 2026-10-16: no credential-pattern refusal at the Improve stage's complete. The review's notes
+        and a revised final result are taken as written; the accepted record holds the text and the run moves on."""
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        summary = "Auth: sf login (alias de); access token: not printed; Authorization: Bearer abcdefghijklmnop12345678"
+        lessons = "The old client sent Authorization: Bearer abcdefghijklmnop12345678; use the session token: it expires."
+        completion, _receipt = self.completion_receipt(final_result=dict(seed, summary=summary), lessons=lessons)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.current_stage(state), "test-spec")
+        self.assertEqual(state["accepted"][self.action]["summary"], summary)
+        self.assertEqual(state["improve_results"][self.action]["receipt"]["lessons"], lessons)
 
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
@@ -1997,31 +2007,21 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertIn("Parent, run: ", line)
         self.assertEqual(self.named_exit(stderr)[2], "complete")
 
-    def test_a_credential_is_refused_by_line_without_echoing_it_even_in_a_learned_from_token(self):
+    def test_a_commit_message_with_credential_looking_text_is_committed_as_written(self):
+        """Owner decision 2026-10-16: no credential-pattern refusal. The message is checked for its lessons and its
+        citations only; a header line, a token-shaped citation and a prose mention of a token are all message text."""
         self.begin()
         self.edit()
-        secret, token = "Bearer abcdefghijklmnop12345678", "sk-abcdefghijklmnop123456"
-        self.write("docs: fix\n\nKey learnings: the header was\nAuthorization: " + secret + "\nLearned-from: " + token
-                   + " the pattern\n")
-        stderr = self.refused()
-        line = self.line_one(stderr)
-        self.assertTrue(line.startswith("Reword lines 4, 5 of " + str(self.message)), line)
-        for fragment in (secret, "abcdefghijklmnop", token, "sk-abc"):
-            self.assertNotIn(fragment, stderr)
-        # a line number is the editor's: a form feed or U+2028 inside a line does not start a new one
-        self.write("docs: fix\n\nKey learnings: a page\x0cbreak and a line\u2028separator\nAuthorization: " + secret + "\n")
-        self.assertTrue(self.line_one(self.refused()).startswith("Reword line 4 of " + str(self.message)))
-        self.write("docs: fix\n\nKey learnings: the header was named in the config, not copied here.\n")
-        self.run_named(stderr)
+        secret = "Bearer abcdefghijklmnop12345678"
+        message = ("docs: fix\n\nKey learnings: the header was\nAuthorization: " + secret
+                   + "\nUse the session token: it expires hourly\nAuth: sf login (alias de)\n")
+        self.write(message)
+        done = self.invoke(*self.commit_args)
+        self.assertNotIn("Reword", done.stderr)
+        self.assertNotIn("credential", done.stdout + done.stderr)
         self.assertEqual(self.git("log", "-1", "--format=%s").strip(), "docs: fix")
-
-    def test_a_lesson_that_mentions_a_token_in_prose_is_reworded_not_dropped(self):
-        self.begin()
-        self.edit()
-        self.write("docs: fix\n\nKey learnings: use the session token: it expires hourly\n")
-        stderr = self.refused()
-        self.assertTrue(self.line_one(stderr).startswith("Reword line 3 of "), stderr)
-        self.assertIn("the lesson stays", stderr)
+        self.assertIn("Authorization: " + secret, self.git("log", "-1", "--format=%B"))
+        self.assertIn("Use the session token: it expires hourly", self.git("log", "-1", "--format=%B"))
 
     def test_citations_are_resolved_by_git_and_a_prefix_is_written_as_the_full_id(self):
         self.begin()
@@ -2105,20 +2105,19 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.run_named(stderr)
         self.assertNotEqual(self.base_commit, self.git("rev-parse", "HEAD").strip())
 
-    def test_the_checks_run_credentials_first_and_the_lessons_and_citations_come_in_one_refusal(self):
+    def test_the_lessons_and_citations_come_in_one_refusal_whatever_the_message_quotes(self):
         self.begin()
         self.edit()
         self.write("docs: fix\n\nAuthorization: Bearer abcdefghijklmnop12345678\nLearned-from: 0000000 no such commit\n")
         first = self.refused()
-        self.assertTrue(self.line_one(first).startswith("Reword line 3 of "), first)
-        self.write("docs: fix\n\nLearned-from: 0000000 no such commit\n")
-        second = self.refused()
-        # one refusal, not one turn per problem: line 1 asks for both fixes and the problem lines follow
-        self.assertTrue(self.line_one(second).startswith('Add a "Key learnings:'), second)
-        self.assertIn("Learned-from", self.line_one(second))
-        self.assertIn("- line 3: the ID names no commit in this repository", second)
+        # one refusal, not one turn per problem: line 1 asks for both fixes and the problem lines follow; the quoted
+        # header is not a problem (no credential screen)
+        self.assertTrue(self.line_one(first).startswith('Add a "Key learnings:'), first)
+        self.assertIn("Learned-from", self.line_one(first))
+        self.assertIn("- line 4: the ID names no commit in this repository", first)
+        self.assertNotIn("Reword", first)
         self.write("docs: fix\n\nKey learnings: none\n")
-        self.run_named(second)
+        self.run_named(first)
 
     def test_a_message_without_any_citation_is_accepted_and_a_citation_alone_is_not_enough(self):
         self.begin()

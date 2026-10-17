@@ -178,10 +178,14 @@ class KnowledgeTests(HomeFixture):
         self.assertNotIn("lesson 1.", lines)
         self.assertNotIn("Inherited learnings", "\n".join(knowledge.stage_lines(self.state, "plan")))
 
-    def test_credentials_in_the_home_are_refused(self) -> None:
+    def test_credential_looking_lines_in_the_home_are_accepted_and_committed(self) -> None:
+        """Owner decision 2026-10-16: no credential-pattern refusal. The home is checked for its files and its IDs only."""
         support.write(self.state)
-        (self.repo / "docs/shiploop/environment.md").write_text("Authorization: Bearer 0123456789abcdefghij\n")
-        self.assertIn("docs/shiploop/environment.md:1", knowledge.check(self.state, "prepare"))
+        text = "Authorization: Bearer 0123456789abcdefghij\nAuth: sf login (alias de)\nPassword: bcrypt, cost 12\n"
+        (self.repo / "docs/shiploop/environment.md").write_text(text)
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
+        self.assertTrue(knowledge.commit(self.state, "prepare").commit)
+        self.assertEqual(git(self.repo, "show", "HEAD:docs/shiploop/environment.md"), text)
 
     def test_the_workspace_return_keeps_the_home(self) -> None:
         rows = workspace._plan_rows({"docs/shiploop/spec.md": "added", "src/a.py": "added"}, [], [])
@@ -360,47 +364,16 @@ class ArchitectureTests(HomeFixture):
                     self.assertNotIn("AD-12", kept)  # the IDs are on line 2, in full
         self.assertIn("AD-12.", knowledge.check(self.state, "step-plan").splitlines()[1])  # every ID, no cap
 
-    def test_a_credential_looking_line_is_refused_with_the_place_the_fix_and_the_command_on_line_1(self) -> None:
-        """architecture.md records auth shapes the screen flags ('Password: bcrypt', 'SECRET_KEY = os.environ[...]'), and the
-        screen reads every home file: a model that sees only line 1 must know where, what to write instead, and what to run."""
+    def test_a_credential_looking_architecture_line_is_accepted_on_both_routes(self) -> None:
+        """architecture.md records auth shapes ('Password: bcrypt', 'SECRET_KEY = os.environ[...]'): they are text, so
+        the close and the Improve stage's complete both take them, and no refusal asks for a rewording."""
         support.write(self.state)
-        path = self.repo / self.ARCH
-        path.write_text("# Architecture\n\nPassword: bcrypt, cost 12\nSECRET_KEY = os.environ['SECRET_KEY']\n"
-                        "token = get_token()\nAPI keys come from the vault\n")
-        environment = self.repo / "docs/shiploop/environment.md"
-        environment.write_text("# environment\nAuthorization: Bearer 0123456789abcdefghij\n")
-        places = [str(path) + ":3", str(path) + ":4", str(path) + ":5", str(environment) + ":2"]  # absolute, in walk order
+        (self.repo / self.ARCH).write_text("# Architecture\n\nPassword: bcrypt, cost 12\nSECRET_KEY = os.environ['SECRET_KEY']\n"
+                                            "token = get_token()\nAuth: sf login (alias de)\nAPI keys come from the vault\n")
+        (self.repo / "docs/shiploop/environment.md").write_text("# environment\nAuthorization: Bearer 0123456789abcdefghij\n")
         for command in ("complete", "improve"):
             with self.subTest(command):
-                refusal = knowledge.check(self.state, "prepare", command=command)
-                lines = refusal.splitlines()
-                self.assertEqual(lines[0], "Reword " + places[0] + " to name an alias, not a value or an assignment; "
-                                 "then run the same complete command again.")
-                self.assertIn("look like credentials", lines[1])  # the words the refusal has always had, for counting them
-                self.assertEqual(re.findall(r"^- (/\S+:\d+)$", refusal, re.M), places)  # every place, none capped
-                for text in ("bcrypt", "get_token", "0123456789", "os.environ"):
-                    self.assertNotIn(text, refusal)  # places, never the text
-        # The improve route's commit step is named too, once: its first line keeps the room for the path.
-        self.assertEqual(sum("improve-commit" in line for line in knowledge.check(self.state, "prepare").splitlines()), 0)
-        improve = knowledge.check(self.state, "prepare", command="improve").splitlines()
-        self.assertEqual(sum("improve-commit" in line for line in improve), 1)
-        self.assertIn("improve-commit", improve[-1])
-        path.write_text("# Architecture\n\nPasswords are hashed with bcrypt (cost 12).\nThe signing key is read from the "
-                        "environment variable SECRET_KEY.\nAPI keys come from the vault\n")
-        environment.write_text("# environment\nThe CI token is the alias ci-token.\n")
-        self.assertEqual(knowledge.check(self.state, "prepare"), "")  # the reworded lines are accepted
-
-    def test_a_cut_of_the_credential_refusal_at_250_characters_keeps_the_place_the_fix_and_the_command_verb(self) -> None:
-        support.write(self.state)
-        path = self.repo / self.ARCH
-        path.write_text("# Architecture\n\nPassword: bcrypt, cost 12\n")
-        for command in ("complete", "improve"):
-            line_1 = knowledge.check(self.state, "prepare", command=command).splitlines()[0]
-            for width in self.REAL_WIDTHS:
-                with self.subTest(command=command, width=width):
-                    line, shown = self.at_width(line_1, path, width)
-                    self.assertIn("Reword " + shown + ":3 to name an alias, not a value or an assignment; then run the same "
-                                  "complete", line[:250])
+                self.assertEqual(knowledge.check(self.state, "prepare", command=command), "")
 
     def test_the_spec_refusal_has_the_same_shape_and_still_names_what_it_lost(self) -> None:
         support.write(self.state)
@@ -652,8 +625,10 @@ class RemovalTests(HomeFixture):
                 text = "\n".join(knowledge.stage_lines(self.state, stage))
                 for removed in ("SHIPLOOP.md", "/features/", "{feature}", "outcome.md", "README.md", "feature's spec"):
                     self.assertNotIn(removed, text)
-        self.assertIn("On done ShipLoop checks these files, screens them for credentials and commits docs/shiploop/ in "
-                      "the execution checkout.", knowledge.stage_lines(self.state, "prepare"))
+        self.assertIn("On done ShipLoop checks these files and commits docs/shiploop/ in the execution checkout.",
+                      knowledge.stage_lines(self.state, "prepare"))
+        for stage in stage_spec.STAGES:
+            self.assertNotIn("credential", "\n".join(knowledge.stage_lines(self.state, stage)))
         self.assertIn("If this stage changes docs/shiploop/, ShipLoop checks and commits it when the stage is accepted; "
                       "do not commit it yourself.", knowledge.stage_lines(self.state, "implement"))
 
@@ -671,7 +646,7 @@ class RemovalTests(HomeFixture):
         support.write(self.state)
         self.assertTrue(knowledge.commit(self.state, "prepare").commit)
         (self.repo / "SHIPLOOP.md").write_text("# My index\n\nAuthorization: Bearer 0123456789abcdefghij\n")
-        self.assertEqual(knowledge.check(self.state, "implement"), "")      # not ShipLoop's: neither screened nor refused
+        self.assertEqual(knowledge.check(self.state, "implement"), "")      # not ShipLoop's: neither checked nor committed
         self.assertEqual(knowledge.commit(self.state, "implement").commit, "")
         self.assertIn("?? SHIPLOOP.md", git(self.repo, "status", "--porcelain"))
         self.assertFalse(knowledge.in_home("SHIPLOOP.md"))
@@ -710,11 +685,11 @@ class RemovalTests(HomeFixture):
         self.assertEqual(sorted(p.name for p in (self.repo / "docs/shiploop/features").iterdir()), ["README.md", "old-run-aaaaaa"])
         self.assertEqual(git(self.repo, "status", "--porcelain"), "")
 
-    def test_the_credential_screen_still_reads_an_old_file_under_the_home(self) -> None:
+    def test_an_old_file_under_the_home_with_credential_looking_text_passes_the_close(self) -> None:
         self.write_old_home()
         support.write(self.state)
         self.write_file("docs/shiploop/test-strategy.md", "Authorization: Bearer 0123456789abcdefghij\n")
-        self.assertIn("docs/shiploop/test-strategy.md:1", knowledge.check(self.state, "prepare"))
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
 
     def test_no_stage_line_names_an_old_file_present_in_the_home(self) -> None:
         self.write_old_home()
