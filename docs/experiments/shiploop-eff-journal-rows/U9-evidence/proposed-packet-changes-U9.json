@@ -41,5 +41,68 @@
       "Where and floors: ShipLoop runs each recorded command in the /until-loop argument above"
     ],
     "note": "the slash form leaves the printed text (-1)"
+  },
+  {
+    "prefix": "Knowledge files this stage reads and the hand-offs from earlier stages",
+    "stages": [
+      "test"
+    ],
+    "approval": "print-form change at a size limit, not new text: the test head with its quoted knowledge files and hand-offs is 15,770 characters at run dir 83, so unit U9's +246 would make it 16,016, over the 16,000-character limit (PRINT_LIMIT); it then prints this stub that points at the packet file; journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "the stub replaces the quoted knowledge files and hand-offs (-400, net -154 with the block's +246)"
+  },
+  {
+    "prefix": "=== end ShipLoop head ===",
+    "stages": [
+      "test-spec"
+    ],
+    "routes": [
+      "inline"
+    ],
+    "approval": "print-form change at a size limit, not new text: unit U9's growth moved this packet across the 16,000-character whole-print limit at run dir 163 (15,867 to 16,113): it prints a head instead of the whole text; journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "a head's closing lines; the whole text has them in the file"
+  },
+  {
+    "prefix": "Full packet: ",
+    "stages": [
+      "test-spec"
+    ],
+    "routes": [
+      "inline"
+    ],
+    "approval": "print-form change at a size limit, not new text: unit U9's growth moved this packet across the 16,000-character whole-print limit at run dir 163 (15,867 to 16,113): it prints a head instead of the whole text; journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "a head's closing lines; the whole text has them in the file"
+  },
+  {
+    "prefix": "Never end the turn while a ShipLoop command is still running.",
+    "stages": [
+      "test-spec"
+    ],
+    "routes": [
+      "inline"
+    ],
+    "approval": "print-form change at a size limit, not new text: unit U9's growth moved this packet across the 16,000-character whole-print limit at run dir 163 (15,867 to 16,113): it prints a head instead of the whole text; journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "a head's closing lines; the whole text has them in the file"
+  },
+  {
+    "prefix": "Recovery (reprints this head and rewrites the full packet)",
+    "stages": [
+      "test-spec"
+    ],
+    "routes": [
+      "inline"
+    ],
+    "approval": "print-form change at a size limit, not new text: unit U9's growth moved this packet across the 16,000-character whole-print limit at run dir 163 (15,867 to 16,113): it prints a head instead of the whole text; journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "a head's closing lines; the whole text has them in the file"
+  },
+  {
+    "prefix": "The duties and rules above are this stage's",
+    "stages": [
+      "test-spec"
+    ],
+    "routes": [
+      "inline"
+    ],
+    "approval": "print-form change at a size limit, not new text: unit U9's growth moved this packet across the 16,000-character whole-print limit at run dir 163 (15,867 to 16,113): it prints a head instead of the whole text; journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "a head's closing lines; the whole text has them in the file"
   }
 ]
