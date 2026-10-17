@@ -477,7 +477,7 @@ RULES (each one fixes a failure live runs showed; the long form is reference#rul
 """
 
 # Every INNER stage runs its work as one Until Loop that ShipLoop starts from a contract it wrote (shiploop_loops).  The
-# renderer prints the /until-loop block and this one rule beside it, once per packet (packet re-cut, 2026-10-11), so no
+# renderer prints the Until Loop block and this one rule beside it, once per packet (packet re-cut, 2026-10-11), so no
 # duty repeats it and a duty never names the loop's paths.
 
 # Non-producer packets (Improve parent, paused, blocked) print this instead of PROGRESS_REPORTING.

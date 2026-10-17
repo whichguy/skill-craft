@@ -2,7 +2,7 @@
 
 `carry-forward` is the last INNER stage of each work item, after `verify` (whose
 acceptance commits the item). Like every inner stage, its work runs inside one
-Until Loop invoked by name, with a ShipLoop-written contract. It records what the
+Until Loop started by the packet's command, with a ShipLoop-written contract. It records what the
 item learned, decides on a reusable skill and revises the future work queue
 before the script selects the next item's `step-plan`, or returns ownership to
 `system-test-author` after the final item. It uses the normal producer result

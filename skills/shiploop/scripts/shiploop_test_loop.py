@@ -336,7 +336,7 @@ def rule_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str
 
 def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str = "",
                cli: Optional[str] = None) -> List[str]:
-    """What the test packet adds to the /until-loop argument's command list: where the commands run, each floor by
+    """What the test packet adds to the Until Loop argument's command list: where the commands run, each floor by
     the argument's numbering, the red-check command and the refused-run tally.
 
     The command text, IDs and minimums are printed once, in the argument (``shiploop_loops.command_listing``).  The
@@ -359,7 +359,7 @@ def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str
         return lines
     known = floors(root, state, work_item, action, None)
     based = _latest_base(root, action, passed=True) is not None
-    head = ("Where and floors: ShipLoop runs each recorded command in the /until-loop argument above from "
+    head = ("Where and floors: ShipLoop runs each recorded command in the Until Loop argument above from "
             + str(state["repo"]) + " before accepting done; ")
     shown = [(number, row["suite"] in COUNTED_SUITES, known.get(row["command"]))
              for number, row in enumerate(commands, 1)]

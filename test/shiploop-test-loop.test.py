@@ -276,8 +276,8 @@ class TestLoopTests(unittest.TestCase):
 
     # -- the bound Until Loop ------------------------------------------------------
 
-    # The packet's Until Loop block (2026-10-16): the line before the literal start command anchors it in the packet.
-    START = loops.HOST_LINE
+    # The packet's Until Loop block (2026-10-16): the RUN line, which the literal start command follows, anchors it in the packet.
+    START = loops.INVOKE_LINE
 
     def terminal(self) -> Path:
         return loops.receipt_path(self.run_dir, self.action())
@@ -288,11 +288,13 @@ class TestLoopTests(unittest.TestCase):
         A callable entry runs between reports (the host's fix).  The runtime writes every packet to the receipt.
         """
         # The command is the one the packet prints.
+        # A packet read after the start prints none (a second start resets the loop); a test that starts again on
+        # purpose builds the same command the gate names.
         block = support.LoopBlock(self.packet())
-        self.assertTrue(block.command)
-        words = shlex.split(block.command)
-        self.assertEqual(block.command, loops.start_command(loops.runtime(self.state()), Path(block.field("Receipt: ")),
-                                                            Path(block.field("Contract: "))))
+        command = loops.start_command(loops.runtime(self.state()), Path(block.field("Receipt: ")),
+                                      Path(block.field("Contract: ")))
+        self.assertIn(block.command, (command, None))
+        words = shlex.split(command)
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:
@@ -345,8 +347,8 @@ class TestLoopTests(unittest.TestCase):
         self.drive_to("test")
         self.assertNotIn("already started", self.packet())
         self.run_loop([])  # started; the receipt holds the active packet
-        self.assertIn("The loop already started: do not invoke it again. While the receipt's status is "
-                      "active, run its next_argv once", self.packet())
+        self.assertIn("The loop already started: do not start it again (a second start resets it). While the receipt's "
+                      "status is active, run its next_argv once", self.packet())
 
     def test_step_plan_must_record_its_test_commands(self):
         self.start()

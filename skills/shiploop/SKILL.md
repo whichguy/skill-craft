@@ -535,26 +535,28 @@ step plan ([Revise](#revise-back-to-the-step-plan)).
 
 ### Stage Until Loops
 
-Every inner stage does its work inside one Until Loop, invoked by name. On
-entry to the stage's action ShipLoop writes the loop contract
-`loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the stage's
-work, its exit condition (the stage's Done-when lines, numbered, the same
-words the packet prints) and its repeat condition. The packet's loop block
-says `RUN the until-loop skill now, once`, with exactly the lines between its
-two marker lines (`----- BEGIN until-loop ARGUMENT -----` and `----- END
-until-loop ARGUMENT -----`: the Work, Exit when, Repeat, Contract and Receipt
-lines, nothing else). It then says how: on Claude Code the Skill tool, skill
-`until-loop`; on any other host the literal start command, `python3 <runtime
-script> start --receipt <receipt> < <contract>`, and each packet it prints
-until the receipt's status is complete or stopped. It ends with the result:
+Every inner stage does its work inside one Until Loop, started with one literal
+command on every host. On entry to the stage's action ShipLoop writes the loop
+contract `loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the
+stage's work, its exit condition (the stage's Done-when lines, numbered, the
+same words the packet prints) and its repeat condition. The packet's loop block
+says `RUN the Until Loop now, once, before any work`, then prints the start
+command, `python3 <runtime script> start --receipt <receipt> < <contract>`, and
+says to follow each packet it prints until the receipt's status is complete or
+stopped. The argument sits after it between two marker lines (`----- BEGIN
+until-loop ARGUMENT -----` and `----- END until-loop ARGUMENT -----`: the Work,
+Exit when, Repeat, Contract and Receipt lines, nothing else); it is already in
+the Contract file, so it is shown, not passed. The block ends with the result:
 list the receipt in `evidence_refs`, run the callback, and if that refuses for
-the loop, run the start command again. The `--receipt` makes the runtime write
-every packet, the terminal one last, to `loops/<action>-terminal.json`. Never
-write or edit the receipt. Once it exists the block leads with the resume line
-instead of the RUN line: while the receipt is active, run its `next_argv`
-instead of starting again (the runtime does not refuse a second start). The
-runtime is the selected Improve card's `runtime/until-loop`, or else that of
-the Improve skill bundled beside ShipLoop.
+the loop, run the start command again; it also lists the five fields of the
+runtime's done report. The `--receipt` makes the runtime write every packet,
+the terminal one last, to `loops/<action>-terminal.json`. Never write or edit
+the receipt. A second start on one receipt resets the loop (the runtime does not
+refuse it), so the RUN line says to run an active receipt's `next_argv`
+instead, and once the receipt exists the block leads with the resume line in
+place of the RUN line and the start command. The runtime is the selected
+Improve card's `runtime/until-loop`, or else that of the Improve skill bundled
+beside ShipLoop.
 
 At `complete` ShipLoop reads the receipt that the result names in `evidence_refs`
 and compares it with the contract rebuilt from run state, never the file on disk
@@ -792,7 +794,7 @@ references directory). Its heading reads "symbols expand to these absolute paths
 commands stay literal": the prose of the packet names files by these symbols
 (`RUN/notes/x.md`, `GUIDES/navigator.md#anchor`), while the callback and every
 command line, the Keepalive marker, the "Full packet:" line, the Progress view
-link, the `evidence_refs` example and the `/until-loop` argument keep absolute
+link, the `evidence_refs` example and the Until Loop argument keep absolute
 paths, because hooks and the loop runtime read them. An inner stage's
 block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's

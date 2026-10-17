@@ -951,7 +951,7 @@ class RefusalRouteTests(RealCliCase):
         # Every expectation matches, so ShipLoop records validate-existing and issues implement.
         self.assertIn("ShipLoop navigator | implement | ", implement)
         # An inner stage's head points at the /until-loop argument, whose exit conditions are its one Done-when list.
-        self.assertIn("Done when: every exit condition in the /until-loop argument below holds", implement)
+        self.assertIn("Done when: every exit condition in the Until Loop argument below holds", implement)
         done_when = implement.split("Exit when ALL of these hold:", 1)[1].split("Repeat while", 1)[0]
         done_when = " ".join(done_when.split())
         # The 8-stage implement row confirms the step by its paths, the check commands and the lint gate, not by the

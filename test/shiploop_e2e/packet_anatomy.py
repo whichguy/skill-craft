@@ -83,11 +83,13 @@ RULES: tuple[Rule, ...] = (
     # the stage's consult note and what it builds on; it ends at the first line of another shape
     _r("references", r"^References \(", "before",
        r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Knowledge files: |Consult at this stage|Results this stage builds on))"),
-    # --- an inner stage's Until Loop block (shiploop_loops.invoke_lines): heading, the RUN line (or, once the receipt exists,
-    # the resume line), the argument between its two marker lines, the Claude Code line, the literal start command, the
-    # result line and the loop rule, which ends it (2026-10-16: the explicit RUN-this-skill layout).
+    # --- an inner stage's Until Loop block (shiploop_loops.invoke_lines): heading, the RUN line and the literal start command
+    # (or, once the receipt exists, the resume line), the follow line, the argument between its two marker lines, the
+    # result line and the loop rule, which ends it (2026-10-17: one start route; saved runs of the 2026-10-16 layout end
+    # at their "ShipLoop wrote the loop contract" line).
     _r("until-loop", r"^Until Loop \(this stage's work runs inside it", "para"),
-    _r("until-loop", r"^Until Loop \(no iteration limit", "until", r"^(ShipLoop wrote the loop contract|Unavailable: )"),
+    _r("until-loop", r"^Until Loop \(no iteration limit", "until",
+       r"^(ShipLoop wrote the loop contract|Unavailable: |Call an exit condition satisfied only when)"),
     _r("until-loop", r"^The loop contract is missing"),
     # --- result contract and template (_result_contract_lines)
     _r("result-contract", r"^Write the structured result to:", "before",
