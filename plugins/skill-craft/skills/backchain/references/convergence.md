@@ -92,6 +92,61 @@ unapproved candidate/baseline substitution, scope/bounds/request change, or newe
 contradictory governing source changes the criteria. Do not carry a trivial-review state
 across that changed binding.
 
+### Mechanical preservation checks
+
+Resolve `scripts/check_preservation.py` from the selected Backchain package. It compares
+saved plan files using Python's standard library; it does not validate graph structure,
+authorize edits, or judge chunk suitability. Freeze the baseline path and SHA-256, one
+candidate output path, and comparison mode with the existing binding:
+
+| Operation | Mode | Baseline |
+| --- | --- | --- |
+| Draft → enriched, either native route | `legacy` | Saved generator draft |
+| Compatibility-native loop | `legacy` | Frozen enriched candidate |
+| Source-aware loop with explicit `edit_bounds` | `source-aware` | Frozen input candidate |
+| Source-aware loop without `edit_bounds` | `legacy` | Frozen input candidate; revise remains unauthorized |
+
+Run the helper after serialization/packaging, using observed absolute paths and the
+baseline hash from the frozen input identity (quote each shell argument):
+
+```sh
+/absolute/python3 -I -B /selected/backchain/scripts/check_preservation.py \
+  --baseline /frozen/input.json --baseline-sha256 OBSERVED_INPUT_SHA256 \
+  --candidate /work/plan.json --mode legacy > /work/comparison.json
+```
+
+Exit 0 means only that mechanical invariants hold. Exit 1 means invariant or stale-receipt
+failure, 2 means the baseline binding changed, and 3 means comparison could not run.
+`goal_needs` presence/value must match exactly. In legacy mode, an unchanged produce
+remaining on its original step must retain its entire confirmation object. Legitimate
+in-place produce rewrites are reported for review, as are moves; neither grants permission
+to narrow a seed or move its work. Source-aware confirmation differences are report-only:
+`unchanged_produce_confirmation_changed` needs an audit finding naming that exact entry;
+`produce_text_absent` needs an authorized old-to-new map carrying its verification obligation.
+Review `moved_unchanged`, `added`, and multi-owner produces under the existing bounds and
+coverage rules too. In the existing review evidence, account for every difference with the
+specific finding/map or restore it and rerun. A hash or exit 0 cannot establish that judgment.
+
+For the loop, include an `exit_checks` entry with id `backchain-preservation` and clause
+`Final candidate-specific domain evidence is saved.` Its command is the same helper
+invocation, without stdout redirection and with `--verify-receipt /work/comparison.json`.
+That read-only check recomputes the comparison against the current candidate and compares
+the saved receipt. Freeze its full command; do not use `check_repairs` to change this check,
+its mode, baseline, hash, or candidate. Repair the candidate within bounds; an unavailable
+check or changed binding stays incomplete with recovery, never a weakened command.
+
+Each callback saves a new comparison after its final candidate edit, resolves differences,
+and retains an immutable copy of the receipt and candidate with their hashes in that cycle's
+existing review evidence. `comparison.json` is only the current copy, not the review history.
+Save review/domain evidence before running the packet's exact `verify_script` on **every**
+callback, including an unsatisfied or blocked one. Do not edit the watched workspace between
+verification and `done`; use stdin for the report or save it outside that workspace.
+Runtime check output is not the durable comparison receipt. Before claiming convergence,
+rerun the read-only receipt check and verify the preservation command still matches the
+start contract. This final identity check also applies outside Git, where Until Loop cannot
+detect a post-verification workspace edit. Missing receipts, unexplained differences, or
+failed checks leave the existing candidate-specific domain evidence incomplete.
+
 Each Until Loop callback is one complete dependency-review/fix/check cycle. Read the
 packaged `prompts/convergence-review.prompt.md` and perform its assessment for that
 cycle, including actual reads of applicable or uncertain technical cards/interactions.
@@ -167,7 +222,10 @@ Independent missing outcomes or suppliers still follow the existing gap rules.
 This review scope does not grant edit authority.
 Legacy elaboration preserves inherited identities, seed/null edges, and existing confirmation
 entries: it cannot narrow a seed's work or move its confirmations off that seed, even with
-no inherited edges. Source-aware revise still requires explicit exact provisional step/edge
+no inherited edges. Keeping its ID, produces, and confirmations while transferring its
+implementation to discovered steps and turning it into a verification join is also narrowing.
+Discovered prerequisites may supply genuinely missing inputs; they may not take over inherited
+seed work. Source-aware revise still requires explicit exact provisional step/edge
 and affected-consumer bounds plus new-step/new-edge permissions; absent `edit_bounds` does
 not authorize that revise. If a necessary split cannot be completed within the selected
 route's limits, retain the candidate and report a planning gap with the concrete recovery:
