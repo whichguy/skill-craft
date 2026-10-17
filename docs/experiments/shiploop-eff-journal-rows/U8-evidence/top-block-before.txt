@@ -1,0 +1,6 @@
+ShipLoop navigator | test | revision 17
+Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value.
+Lost context, or unsure of anything about this run? Read /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/context-index.md first: it maps every file of this run and what it holds; open the file you need from there.
+Callback for this stage (run once after its work, with the result written to the file it names): python3 /home/install/iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii/iiiiiiii/skills/shiploop/scripts/shiploop complete --run-dir=/home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run --action=nav-d26b2bea91de4a7db7e57ec78a5b2846 --result=/home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/inbox/nav-d26b2bea91de4a7db7e57ec78a5b2846.md
+Goal: Write a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.
+Done when: every exit condition in the Until Loop argument below holds; ShipLoop's gate checks the same list.
