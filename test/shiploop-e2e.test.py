@@ -197,6 +197,9 @@ if mode == "chain-hang":
     ledger_events(("handoff_import_result", {{"attempt": "A-1"}}), ("handoff_import_result", {{"attempt": "B-1"}}),
                   ("contribution_recorded", {{"attempt": "A-1", "step": "A"}}),
                   ("contribution_recorded", {{"attempt": "B-1", "step": "B"}}))
+    # The fresh session finishes the seeded run itself: the harness grades the run it seeded, not work/.shiploop.
+    store.write_record(chain.parent.parent / "state.md", {{"status": "done", "stage": "done", "revision": 9}})
+    (chain.parent.parent / "report.html").write_text("<html></html>")
     product()
 if mode == "api-error":
     # What the real CLI wrote when the API refused: subtype stays "success", is_error says otherwise.
@@ -1270,6 +1273,80 @@ class HostOutputTest(unittest.TestCase):
             self.assertIn("out   completed hi", transcript.read_text())
 
 
+class GradeIdentityTest(unittest.TestCase):
+    """The 2026-10-16 E2E audit's state control (docs/experiments/shiploop-e2e-audit-20261016/grading/state-binding-fixture):
+    an output folder holding this invocation's active run in work/.shiploop and an unrelated finished run beside it was
+    graded from the finished one, a pass nobody earned."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.out = Path(tmp.name).resolve()
+
+    def state(self, relative: str, status: str, report: bool = False) -> str:
+        folder = self.out / relative
+        run.store.write_record(folder / "state.md", {"status": status, "stage": status == "done" and "done" or "implement",
+                                                      "revision": 3})
+        if report:
+            (folder / "report.html").write_text("<html></html>")
+        return str(folder)
+
+    def audit_fixture(self) -> tuple[str, str]:
+        return self.state("work/.shiploop", "active"), self.state(".shiploop-runs/stale/run", "done", report=True)
+
+    def test_an_active_run_beside_a_stale_finished_one_is_never_graded_from_the_finished_one(self):
+        active, stale = self.audit_fixture()
+        graded = run.grade_shiploop(self.out)
+        self.assertFalse(graded["pass"])
+        self.assertNotEqual(graded.get("run_dir"), stale)
+        self.assertIn("ambiguous", graded["reason"])
+        self.assertEqual(sorted(graded["ambiguous"]), sorted([active, stale]))
+
+    def test_a_run_that_existed_before_the_invocation_started_is_not_a_candidate(self):
+        stale = self.state(".shiploop-runs/stale/run", "done", report=True)
+        run.record_preexisting_runs(self.out)
+        active = self.state("work/.shiploop", "active")
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["status"], graded["pass"]), (active, "active", False))
+        self.assertNotEqual(graded["run_dir"], stale)
+
+    def test_the_recorded_run_is_graded_and_a_resume_keeps_it_when_another_run_appears(self):
+        active = self.state("work/.shiploop", "active")
+        self.assertEqual(run.grade_shiploop(self.out)["run_dir"], active)  # the only run: bound now
+        self.assertEqual(json.loads((self.out / run.RUN_IDENTITY).read_text())["run_dir"], active)
+        self.state(".shiploop-runs/other/run", "done", report=True)
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["pass"], graded["identity"]), (active, False, "recorded"))
+
+    def test_several_new_runs_are_resolved_only_by_the_run_the_host_named(self):
+        first = self.state(".shiploop-runs/a/run", "done", report=True)
+        second = self.state(".shiploop-runs/b/run", "active")
+        self.assertIn("ambiguous", run.grade_shiploop(self.out)["reason"])
+        command = f'python3 "/x/shiploop" next --run-dir "{second}"'
+        (self.out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) + "\n")
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["pass"]), (second, False))
+        self.assertNotEqual(graded["run_dir"], first)
+
+    def test_a_new_run_that_reuses_the_path_of_a_copied_one_is_this_invocations(self):
+        self.state("work/.shiploop", "done", report=True)
+        run.record_preexisting_runs(self.out)
+        self.assertIn("every state.md was there before", run.grade_shiploop(self.out)["reason"])
+        reused = self.state("work/.shiploop", "active")
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["status"], graded["pass"]), (reused, "active", False))
+
+    def test_a_run_in_an_external_workspace_root_beside_work_is_graded(self):
+        external = self.state(".shiploop-runs/work-20261016-abc/run", "done", report=True)
+        (self.out / "work").mkdir(exist_ok=True)
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["pass"]), (external, True))
+
+    def test_a_run_inside_the_repository_is_graded(self):
+        inside = self.state("work/.shiploop", "done", report=True)
+        self.assertEqual((run.grade_shiploop(self.out)["run_dir"], run.grade_shiploop(self.out)["pass"]), (inside, True))
+
+
 class FollowOnTest(HarnessCase):
     def prior_run(self) -> Path:
         prior = self.tmp / "prior"
@@ -1294,6 +1371,17 @@ class FollowOnTest(HarnessCase):
         self.assertEqual(result["follow_on"]["prior_case"], "hello")
         self.assertEqual(result["follow_on"]["prior_turns"], 40)
         self.assertEqual(result["follow_on"]["prior_cost_usd"], 2.5)
+
+    def test_a_follow_on_never_counts_the_run_its_copy_brought_along(self):
+        prior = self.prior_run()
+        run.store.write_record(prior / "work" / ".shiploop-old" / "state.md", {"status": "done", "stage": "done"})
+        (prior / "work" / ".shiploop-old" / "report.html").write_text("<html></html>")
+        code, result = self.invoke("grok", "done", "--continue-from", str(prior), "--prompt", "Add a feature.")
+        self.assertEqual(code, 0, result)
+        identity = json.loads((Path(result["output"]) / run.RUN_IDENTITY).read_text())
+        self.assertEqual(list(identity["preexisting"]), [str(Path(result["output"]) / "work" / ".shiploop-old")])
+        self.assertEqual(identity["run_dir"], str(Path(result["output"]) / "work" / ".shiploop"))
+        self.assertEqual(result["shiploop"]["run_dir"], identity["run_dir"])
 
     def test_follow_on_case_needs_the_run_it_follows(self):
         with self.assertRaises(SystemExit) as raised:

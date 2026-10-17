@@ -969,13 +969,28 @@ def grade_claude_plugin(plugins: list[dict], plugin_dir: Path | None) -> dict:
     return {"pass": paths == [wanted], "loaded": paths, "wanted": wanted}
 
 
-def grade_shiploop(out: Path) -> dict:
-    """ShipLoop's run state, wherever the agent put it under the output directory.
+# Which ShipLoop run this output folder's invocations created, written by the harness: the runs that were already there when
+# the first invocation started (`preexisting`: a follow-on's copy can bring one along) and, once known, the run itself
+# (`run_dir`, with its `basis`). A resume and a regrade read it back, so every invocation grades the same run.
+RUN_IDENTITY = "shiploop-run.json"
 
-    The skill may keep its run inside the repository (work/.shiploop) or in an
-    external workspace root beside it (for example <out>/.shiploop-runs/<name>/run);
-    the throwaway home/ and the plugin build/ are not searched.
-    """
+
+def run_identity(out: Path) -> dict:
+    try:
+        found = json.loads((out / RUN_IDENTITY).read_text())
+    except (OSError, ValueError):
+        return {}
+    return found if isinstance(found, dict) else {}
+
+
+def record_run_identity(out: Path, **fields) -> None:
+    (out / RUN_IDENTITY).write_text(json.dumps({**run_identity(out), **fields}, indent=2) + "\n")
+
+
+def shiploop_runs(out: Path) -> list[dict]:
+    """Every ShipLoop run state under the output directory, wherever the agent put it: inside the repository
+    (work/.shiploop) or in an external workspace root beside it (<out>/.shiploop-runs/<name>/run). The throwaway home/ and
+    the plugin build/ are not searched."""
     runs = []
     for state_path in sorted(out.rglob("state.md")):
         relative = state_path.relative_to(out).parts
@@ -989,14 +1004,74 @@ def grade_shiploop(out: Path) -> dict:
             runs.append({"run_dir": str(state_path.parent), "status": state.get("status"),
                          "stage": state.get("stage"), "revision": state.get("revision"),
                          "report_html": (state_path.parent / "report.html").is_file()})
+    return runs
+
+
+def state_digest(run_dir: str) -> str | None:
+    """A run's state.md as it stands: its content digest and modification time (a rewrite with the same bytes is a change)."""
+    try:
+        path = Path(run_dir) / "state.md"
+        return f"{hashlib.sha256(path.read_bytes()).hexdigest()}@{path.stat().st_mtime_ns}"
+    except OSError:
+        return None
+
+
+def record_preexisting_runs(out: Path) -> None:
+    """Before the first host or seed of a new output folder: the runs already in it, each with its state.md digest, are not
+    this invocation's. A run at one of those paths whose state has since changed is (a new run can reuse the path)."""
+    record_run_identity(out, preexisting={found["run_dir"]: state_digest(found["run_dir"]) for found in shiploop_runs(out)})
+
+
+def named_run_dirs(out: Path) -> set[str]:
+    """The run directories the host's ShipLoop commands named (`--run-dir`), as resolved paths."""
+    try:
+        text = (out / "events.jsonl").read_text(errors="replace").replace('\\"', '"')
+    except OSError:
+        return set()
+    return {str(Path(found.group("dir")).expanduser().resolve()) for found in metrics.RUN_DIR_ARG.finditer(text)}
+
+
+def grade_shiploop(out: Path) -> dict:
+    """The state of the ShipLoop run this output folder's invocation created (SPEC: a verdict is earned by the run graded).
+
+    The run is the one RUN_IDENTITY records. Until one is recorded it is the only run that was not already there when the
+    invocation started, or, among several, the only one the host's ShipLoop commands named; that run is then recorded.
+    Several candidates that nothing tells apart are reported as ambiguous and never pass: an unrelated finished run is
+    never preferred (2026-10-16 E2E audit, docs/experiments/shiploop-e2e-audit-20261016/grading/).
+    """
+    runs = shiploop_runs(out)
     if not runs:
         return {"pass": False, "reason": "no ShipLoop state.md under the output directory"}
-    done = [run for run in runs if run["status"] == "done" and run["report_html"]]
-    chosen = done[0] if done else runs[0]
+    identity = run_identity(out)
+    before = identity.get("preexisting") if isinstance(identity.get("preexisting"), dict) else {}
+    mine = [found for found in runs
+            if found["run_dir"] not in before or state_digest(found["run_dir"]) != before[found["run_dir"]]]
+    bound = identity.get("run_dir")
+    # A recorded run whose state is gone is not a choice any more: the rules below pick again (still never a run that was
+    # there before the invocation started) and record what they pick.
+    chosen = next((found for found in mine if found["run_dir"] == bound), None) if bound else None
+    basis = "recorded"
+    if chosen is None and len(mine) == 1:
+        chosen, basis = mine[0], "the only run that was not there before the invocation"
+    elif chosen is None and len(mine) > 1:
+        named = named_run_dirs(out) & {found["run_dir"] for found in mine}
+        if len(named) == 1:
+            chosen, basis = next(found for found in mine if found["run_dir"] in named), "the run the host's commands named"
+    if chosen is None:
+        if not mine:
+            return {"pass": False, "runs": len(runs), "reason": "no ShipLoop run of this invocation: every state.md was "
+                    "there before it started (" + ", ".join(sorted(before)) + ")"}
+        return {"pass": False, "runs": len(runs), "ambiguous": [found["run_dir"] for found in mine],
+                "reason": f"ambiguous: {len(mine)} ShipLoop runs under the output directory and nothing records or names "
+                          "the one this invocation created"}
+    if basis != "recorded":
+        record_run_identity(out, run_dir=chosen["run_dir"], basis=basis)
     # ShipLoop builds in its own worktree beside the run and returns it to the
     # source only at release; name it so an unreturned product can be inspected.
     worktree = Path(chosen["run_dir"]).parent / "worktree"
-    return {"pass": bool(done), **chosen, "runs": len(runs),
+    others = [found["run_dir"] for found in runs if found is not chosen]
+    return {"pass": chosen["status"] == "done" and chosen["report_html"], **chosen, "runs": len(runs),
+            "identity": basis, **({"other_runs": others} if others else {}),
             "worktree": str(worktree) if worktree.is_dir() else None}
 
 
@@ -2606,7 +2681,7 @@ def _main(argv: list[str] | None, held: list) -> int:
         regrade = state.get("status") in ("done", "blocked") or (args.grade_only and state.get("status") is not None)
         if state.get("status") != "active" and not regrade:
             raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
-                             f"{state.get('status')!r} in {out}")
+                             f"{state.get('status')!r} in {out}" + (f": {state['reason']}" if state.get("reason") else ""))
         launched = runrecord.launches(out)
         last_launch = launched[-1][1] if launched else earlier  # the launch that ran it last, which a resume continues
         if not regrade:
@@ -2666,6 +2741,7 @@ def _main(argv: list[str] | None, held: list) -> int:
         work = out / "work"
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
+        record_preexisting_runs(out)  # a follow-on's copy can bring an earlier run's state along: never this run's
     stop_file = out / "stop"  # a person (or a watcher) creates it to end the run; main consumes it
     # This harness is alive while main runs: a launch elsewhere reads the lock to tell a sibling's server from a leftover.
     # The kernel also drops it on any death, SIGKILL included, which is why a lock and not a pid file.
@@ -2788,6 +2864,7 @@ def _main(argv: list[str] | None, held: list) -> int:
             start_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
     if args.seed_at and not resumed:
         seeded = seed_run(the_cli, work, out, prompt, args.seed_at)
+        record_run_identity(out, run_dir=str(Path(seeded["run_dir"]).resolve()), basis="seeded by the harness")
         if not args.quiet:
             print(f"seeded: {', '.join(seeded['skipped'])} recorded without doing them; host starts at "
                   f"{seeded['stage']} in {seeded['run_dir']}", flush=True)

@@ -2291,7 +2291,24 @@ Each fix has a fail-first regression built from the audit's control. It ran red 
    - Regression: `ReviewValidityTest` and `IterateConvergenceTest` in `test/shiploop-e2e.test.py`. They drive
      `iterate.main` with the build, the run and the reviewer host faked. Red on 2686b427: 2 failures and 6 errors,
      including streak 2 from two unusable reviews. Green after the fix. A valid review with no findings still converges.
-2. **Grade the run this invocation created** (`run.grade_shiploop`). Pending.
+2. **Grade the run this invocation created** (`run.grade_shiploop`).
+   - Control: an output folder holding the invocation's active `work/.shiploop` beside an unrelated finished
+     `.shiploop-runs/stale/run`. It was graded from the finished one: `selected_pass: true` with 2 runs seen
+     (`grading/receipt.json` `state_binding`). A follow-on can reach this for real, because `continue_from` copies the
+     earlier `work/` with its untracked `.shiploop`.
+   - Fix: `shiploop-run.json` in the output folder records the runs that existed when the folder was created, each
+     with its state digest and mtime. Those are never candidates unless their state changes. The run itself is the one
+     the harness seeded, else the only new run, else the only new run the host's `--run-dir` commands named. Once
+     chosen it is recorded, so resumes and regrades grade the same run. Candidates that nothing tells apart are
+     `ambiguous`, listed, and fail. The resume refusal now names the reason.
+   - Regression: `GradeIdentityTest` (7 cases: the audit control, a preexisting stale run, a recorded run kept across
+     a resume, several runs resolved only by `--run-dir`, a reused path, the external workspace root, and the
+     in-repository run), plus `FollowOnTest.test_a_follow_on_never_counts_the_run_its_copy_brought_along` through
+     `run.main`. Red on 2686b427: 1 failure and 4 errors; the control graded the stale run as a pass. Green after the
+     fix.
+   - Fixture change: the `chain-hang` fake now finishes its seeded run. It used to leave that run active and pass only
+     because the shared fake product wrote a second, finished `work/.shiploop`. That was the audit's misgrade, inside
+     the test fakes.
 3. **Bind HTTP checks to their candidate process.** Pending.
 4. **Make the breadth selection match its claim.** Pending.
 5. **Review the source that actually ran** (`review.py`). Pending.

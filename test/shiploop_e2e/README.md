@@ -112,9 +112,15 @@ pre-created. It grades five verdicts into `result.json`:
   shows it on every launch, and an `invocation.json` written before the verdict was
   kept grades as it always did, with no evidence and so a fail);
 - **process**: the host exited 0 in time (defaults: 10,000 turns, 3 hours);
-- **shiploop**: a ShipLoop `state.md` under the output directory (in `work/.shiploop` or
+- **shiploop**: the ShipLoop run this invocation created (in `work/.shiploop` or
   an external workspace root the agent chose beside `work/`) has status `done`, with
-  its `report.html`;
+  its `report.html`. Which run that is, is recorded in `shiploop-run.json` (added
+  2026-10-16): the runs already in the folder when it was created (a follow-on's copy can
+  bring one) are never candidates, and the run itself is the one seeded by the harness,
+  else the only new run, else the only new run the host's `--run-dir` commands named.
+  A resume and a regrade grade that same run. Several runs that nothing tells apart are
+  `ambiguous` (the result lists them) and fail; an unrelated finished run is never
+  preferred;
 - **committed**: the source checkout ends committed: HEAD moved past where the
   run started, holds at least one file (ShipLoop's own empty baseline commit is not
   product; any file counts, so this is a floor, not a check of what the product is),
