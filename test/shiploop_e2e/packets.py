@@ -152,8 +152,18 @@ def sections(text: str, top: int = 5) -> list[dict]:
     return sorted(found, key=lambda row: -row["chars"])[:top]
 
 
+# A guide named by the GUIDES symbol (the skill's references directory, defined once in the packet's References block) is a
+# skill reference too: it counts and must exist as the absolute path it stands for.
+GUIDES_DEFINITION = re.compile(r"GUIDES = (.+?) \(the skill's guides\)")
+GUIDE_SYMBOL = re.compile(r"\bGUIDES/([\w.@+~-]+\.(?:md|json))")
+
+
 def references(text: str) -> dict:
-    named = sorted(set(PATH.findall(text)))
+    named = set(PATH.findall(text))
+    guides = GUIDES_DEFINITION.search(text)
+    if guides:
+        named |= {guides.group(1) + "/" + name for name in GUIDE_SYMBOL.findall(text)}
+    named = sorted(named)
     skill = [path for path in named if SKILL_PATH.search(path)]
     return {"paths_named": len(named), "skill_references": len(skill),
             "missing": [path for path in skill if not Path(path).exists()]}

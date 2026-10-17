@@ -257,7 +257,9 @@ recorded owner stopped. A pause keeps the child active and is never reported as 
 See [the current runtime binding](../README.md#current-improve-and-until-loop-binding)
 for the transition example and validation limits.
 
-The line after the packet header (`ShipLoop navigator | stage | revision N`) is
+Two lines follow the packet header (`ShipLoop navigator | stage | revision N`) in every
+packet: the owner rule, then the pointer to the run's `context-index.md`, the master index that
+maps every file of the run. The line after them is
 the one legal callback for the current owner: `complete` for a producer,
 `improve-bind` for an unbound child, or `complete --action=<improve id>` for the Improve stage
 (its header reads `ShipLoop navigator | improve | revision N | the <stage> result`).

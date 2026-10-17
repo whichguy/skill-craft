@@ -1,0 +1,25 @@
+# PK2: characters of the quoted-files-and-hand-offs block per stage, long-knowledge fixture (measure_handoff_block.py)
+## base 398466a3
+plan                   54450
+test-strategy          48287
+test-spec              37840
+implement              16011
+test                   16030
+document               42053
+verify                 42157
+carry-forward          26332
+product-acceptance     51105
+system-test-author     28395
+TOTAL                 362660
+## this commit
+plan                   28734
+test-strategy          26044
+test-spec              28532
+implement              15297
+test                   15316
+document               37898
+verify                 38002
+carry-forward          26364
+product-acceptance     28862
+system-test-author     28395
+TOTAL                 273444

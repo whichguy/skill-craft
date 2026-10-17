@@ -25,6 +25,7 @@ if str(SOURCE_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SOURCE_SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -168,6 +169,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         # Since the 2026-10-11 dedupe a packet prints a policy locator only when its stage text names that policy;
         # every one stays reachable through the run reference file's #policies section, which the packet's
         # "Every other policy and guide" line points to.  Either way the path comes from the selected package.
+        packet = symbols.expanded(packet, ("GUIDES", "RUN"))   # a packet prints guides and run files as symbols (2026-10-16)
         reference = self._reference(run_dir)
         policies = reference.split("{#policies}", 1)[1].split("{#workspace}", 1)[0]
         authority_policy = (self.package / "references" / "delivery-authority.md").resolve()

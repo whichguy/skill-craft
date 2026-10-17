@@ -779,18 +779,24 @@ test that ShipLoop ran is the evidence.
 
 Every packet opens, after its goal, with a **References** block that defines each
 path once: `HOME` (the knowledge home `docs/shiploop/`, each file with its
-sections, a missing one marked with the stage that writes it), `FEATURE` (this
-run's feature folder: spec, plan, test spec), `RUN` (the run directory) and
-`WORKTREE` (the execution checkout). The rest of the packet names files by these
-symbols; a command you run verbatim keeps its absolute paths. An inner stage's
+sections, a missing one marked with the stage that writes it), `RUN` (the run
+directory), `WORKTREE` (the execution checkout) and `GUIDES` (this skill's
+references directory). Its heading reads "symbols expand to these absolute paths;
+commands stay literal": the prose of the packet names files by these symbols
+(`RUN/notes/x.md`, `GUIDES/navigator.md#anchor`), while the callback and every
+command line, the Keepalive marker, the "Full packet:" line, the Progress view
+link, the `evidence_refs` example and the `/until-loop` argument keep absolute
+paths, because hooks and the loop runtime read them. An inner stage's
 block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
 results and durable products this stage depends on, labelled `<item> <stage>
 <product>` (for example `W1 test base run`, `W1 implement S1 Improve review`)
-with the same label and path in every packet. Every packet also names the run's
-**context index** (`context-index.md`): the request, the accepted planning basis,
-each work item's results and their notes. Open a product when its content is not
-already in your context, use the index when you need the global picture, and
+with the same label and path in every packet. Under its first line every packet carries
+the **owner rule** and a pointer to the run's **context index** (`context-index.md`): read it
+first when you lost context or are unsure of anything. It maps every file of the run, the
+knowledge files and the guides (what each holds and when to read it), then lists the request, the
+accepted planning basis, each work item's results and their notes. Open a product when its content
+is not already in your context, use the index when you need the global picture, and
 report a conflict with an accepted decision instead of silently choosing. Packets
 point at material rather than asking you to reread it at every stage.
 

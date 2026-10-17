@@ -13,6 +13,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -27,6 +28,7 @@ sys.path.insert(0, str(SCRIPTS))
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_KEEPALIVE": "off"}
 
@@ -88,16 +90,131 @@ class IndexTests(unittest.TestCase):
         self.assertTrue({"product-acceptance", "operations"} <= set(context_index.STAGE_READS["handoff"]))
 
 
+class MasterIndexTests(unittest.TestCase):
+    """context-index.md is the run's master index (owner, 2026-10-16): every packet's second line points at it, so a model
+    that lost its context finds every other file of the run from here.  It stays a derived view (the existing tests)."""
+
+    MAP_LIMIT = 3_500  # "about 3 KB" of map; the paths in its lines (run, repository, package) take the rest
+
+    @staticmethod
+    def map_text(text: str) -> str:
+        """The map: from the current-stage line to the first record section (In progress, else Request)."""
+        end = text.index("## In progress") if "## In progress" in text else text.index("## Request")
+        return text[text.index("- Current stage"):end]
+
+    def test_the_index_opens_with_a_map_of_about_three_kilobytes(self) -> None:
+        state = drive_to("implement")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "run"
+            text = context_index.render(state, root, "implement")
+        head = self.map_text(text)
+        self.assertLess(len(head.encode("utf-8")), self.MAP_LIMIT)
+        self.assertGreater(len(head.encode("utf-8")), 1_500)  # a real table, not a pointer
+        self.assertLess(text.index("## What is where"), text.index("## Request"))  # the map comes first
+        self.assertIn("| Path | Holds | Read it when |", text)
+        # One row per file or folder, saying what it holds and when to read it.
+        rows = [line for line in head.splitlines() if line.startswith("| ") and not line.startswith(("| Path", "|---"))]
+        self.assertEqual(len(rows), len(context_index.MAP_ROWS))
+        for row in rows:
+            self.assertEqual(row.count(" | "), 2, row)
+
+    def test_the_map_gives_the_current_stage_and_the_next_and_recovery_commands(self) -> None:
+        state = drive_to("implement")
+        action = nav.current_action(state)["id"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "run"
+            head = self.map_text(context_index.render(state, root, "implement"))
+            lines = head.splitlines()
+            self.assertEqual(lines[0], f"- Current stage: implement (active, revision {state['revision']}); "
+                                       f"its packet in full: {root / 'packets' / (action + '.md')}")
+            self.assertTrue(lines[1].startswith("- Next command: the callback at the top of that packet"), lines[1])
+            self.assertIn(nav._callback(dry_run.CORE, root, "next"), lines[2])  # the packet's own recovery command
+            self.assertIn("moves nothing", lines[2])
+            self.assertIn(f"RUN = {root} · HOME = {Path(state['repo']) / 'docs/shiploop'} · GUIDES = "
+                          f"{context_index.GUIDES}", head)
+            self.assertTrue((context_index.GUIDES / "state-files.md").is_file())  # GUIDES is the real references directory
+
+    def test_a_packet_for_an_improve_stage_is_the_one_the_map_names(self) -> None:
+        state = nav.new_state("/simulation-only/repo", "Improve packet fixture.", delegation="inline")
+        while state.get("active_improve") is None:
+            state = nav.apply(state, nav.current_action(state)["id"], {"outcome": "done", "summary": "Synthetic."})
+        root = Path("/simulation-only/run")
+        head = self.map_text(context_index.render(state, root, nav.current_stage(state)))
+        self.assertIn(f"its packet in full: {nav.packet_path(root, state)}", head)
+
+    def test_the_map_lists_every_top_level_entry_a_run_directory_gets(self) -> None:
+        """A real run (init, a refused and an accepted callback) plus the entries the catalog and the code add later."""
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary).resolve()
+            repo, run = base / "repo", base / "run"
+            repo.mkdir()
+            env = {**ENV, "SHIPLOOP_PROGRESS": "off"}
+            started = subprocess.run([sys.executable, "-B", str(CLI), "init", "--repo", str(repo), "--prompt", "Add a thing.",
+                                      "--run-dir", str(run)], env=env, text=True, capture_output=True, timeout=60)
+            self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+            action = nav.current_action(store_read(run))["id"]
+            bad = base / "elsewhere.md"
+            bad.write_text("no result here\n")
+            subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run), "--action", action,
+                            "--result", str(bad)], env=env, text=True, capture_output=True, timeout=60)  # refused: callback-attempts
+            result = run / "inbox" / (action + ".md")
+            result.write_text('```shiploop-state\n{"outcome": "done", "summary": "Intake done.", "evidence_refs": []}\n```\n')
+            accepted = subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run), "--action", action,
+                                       "--result", str(result)], env=env, text=True, capture_output=True, timeout=60)
+            self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+            entries = {entry.name + ("/" if entry.is_dir() else "") for entry in run.iterdir()}
+            index = (run / "context-index.md").read_text(encoding="utf-8")
+            self.assertTrue({"state.md", "results/", "inbox/", "notes/", "packets/", "scratch/", "callback-attempts"} <= entries, entries)
+        # Names the catalog lists (references/state-files.md: first path component of each backticked file or directory,
+        # minus the workspace files, which live beside the run) and the ones the code writes without listing them there.
+        catalog = (ROOT / "skills/shiploop/references/state-files.md").read_text(encoding="utf-8")
+        table = catalog[catalog.index("| File or directory |"):catalog.index("The live Improve child keeps")]
+        named = set()
+        for cell in re.findall(r"(?m)^\| ([^|]+) \|", table)[1:]:
+            for name in re.findall(r"`([^`]+)`", cell):
+                if name not in ("workspace.md", "return-plan.md", "return-receipt.md"):
+                    first = name.split("/")[0]
+                    named.add(first + "/" if "/" in name else first)
+        named |= {"packets/", "scratch/", "reference.md", "context-index.md", "timeline.json", "backchain/", "chains/",
+                  "transaction.md", ".lock", "callback-attempts", "run-baseline.txt"}
+        self.assertTrue({"state.md", "decisions/", "loops/", "tests/", "lint/", "expectations/", "quality/", "improve/",
+                         "report.html", "progress.html"} <= named, named)
+        for entry in sorted(entries | named):
+            with self.subTest(entry=entry):
+                self.assertIn(entry.rstrip("/"), index, f"the master index does not list {entry}")
+                if entry.endswith("/"):
+                    self.assertIn("RUN/" + entry, index)
+
+    def test_the_map_names_the_three_knowledge_files_and_the_guides(self) -> None:
+        import shiploop_knowledge_home as knowledge
+        state = drive_to("implement")
+        text = context_index.render(state, Path("/simulation-only/run"), "implement")
+        for name in knowledge.LIVING:
+            self.assertIn("| HOME/" + name + " |", text)
+        self.assertIn("| GUIDES/ |", text)
+        self.assertIn("| RUN/reference.md |", text)
+        for anchor in ("rules", "blocked", "outcomes", "recovery", "policies"):  # the sections reference.md really has
+            self.assertIn("#" + anchor, text)
+            self.assertIn(anchor, __import__("shiploop_reference").ANCHORS)
+
+
+def store_read(run: Path) -> dict:
+    import shiploop_store
+    return shiploop_store.read_record(run / "state.md")
+
+
 class PacketTests(unittest.TestCase):
     def test_active_and_paused_packets_name_the_pass_log(self) -> None:
         state = drive_to("implement")
         action = nav.current_action(state)["id"]
-        expected = "this action's pass log"  # one line with the run context index (round 2)
+        expected = "This action's pass log"  # its own line; the index pointer is the packet's second line (2026-10-16)
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
         self.assertIn(expected, packet)
-        self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), packet)
+        # A prose path prints as the References block's symbol (2026-10-16); RUN is defined in the same packet.
+        self.assertIn("RUN/notes/" + action + ".md", packet)
+        self.assertIn(" · RUN = " + str(dry_run.RUN) + " (run records)", packet)
         paused = nav.control(state, "pause", "The user asked to stop for now.")
-        self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), nav.render(dry_run.CORE, dry_run.RUN, paused))
+        self.assertIn("RUN/notes/" + action + ".md", nav.render(dry_run.CORE, dry_run.RUN, paused))
 
     def test_the_pass_log_line_tells_the_pass_to_create_it_and_a_reset_to_open_it_only_if_it_exists(self) -> None:
         # Wording-level check, not a refusal route: the packet file is written once, when the action starts,
@@ -105,7 +222,7 @@ class PacketTests(unittest.TestCase):
         # has created the log by then.
         state = drive_to("implement")
         line = next(line for line in nav.render(dry_run.CORE, dry_run.RUN, state).splitlines()
-                    if line.startswith("Run context index") and "pass log" in line)
+                    if line.startswith("This action's pass log"))
         # PASS_LOG_RULE was shortened (2026-10-11 dedupe): "ShipLoop does not create it" and "nothing was logged"
         # went; the host creates it ("create it and append ...") and opens it first only if it exists.
         for part in ("optional", "never a completion gate", "create it and append",
@@ -170,14 +287,19 @@ class GoalFirstTests(unittest.TestCase):
                 lines = packet.splitlines()
                 header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator |"))
                 with self.subTest(stage=stage):
-                    self.assertTrue(lines[header + 1].startswith("Callback for this stage"))
+                    # The owner rule and the index pointer sit directly under the header (2026-10-16); the callback,
+                    # goal and done-when follow them.
+                    self.assertEqual(lines[header + 1], prompts.OWNER_RULE)
+                    self.assertTrue(lines[header + 2].startswith(prompts.INDEX_POINTER_PREFIX))
+                    owner = 2
+                    self.assertTrue(lines[header + owner + 1].startswith("Callback for this stage"))
                     # A goal is one action sentence naming its output (packet re-cut, 2026-10-11) and may end in its own period.
-                    self.assertEqual(lines[header + 2], "Goal: " + row.goal[0].upper() + row.goal[1:]
+                    self.assertEqual(lines[header + owner + 2], "Goal: " + row.goal[0].upper() + row.goal[1:]
                                      + ("" if row.goal.endswith(".") else "."))
                     if stage in spec.INNER:
                         # Each thing once (owner, 2026-10-11): the head points at the /until-loop argument, which
                         # numbers the conditions; they are not listed a second time.
-                        self.assertEqual(lines[header + 3], nav.DONE_WHEN_LOOP)
+                        self.assertEqual(lines[header + owner + 3], nav.DONE_WHEN_LOOP)
                         for number, condition in enumerate(row.done_when, 1):
                             self.assertEqual(packet.count(condition), 1, condition)
                             self.assertIn("    " + str(number) + ". " + condition, packet)

@@ -16,6 +16,7 @@ CLI = PACKAGE / "scripts/shiploop"
 CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -66,11 +67,16 @@ def full_packet(head):
     return Path(row.removeprefix("Full packet: ")).read_text(encoding="utf-8") if row else head
 
 
+OWNER = 2  # the owner rule and the index pointer sit directly under every header (2026-10-16)
+
+
 def after_header(packet):
-    """Return the line after the navigator header (the one legal callback slot)."""
+    """Return the line after the owner rule and the index pointer that follow the navigator header (the one legal
+    callback slot)."""
     lines = packet.splitlines()
     index = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
-    return lines[index + 1]
+    assert lines[index + 1] == prompts.OWNER_RULE and lines[index + 2].startswith(prompts.INDEX_POINTER_PREFIX), lines[index:index + 3]
+    return lines[index + 1 + OWNER]
 
 
 class ImproveScheduleTests(unittest.TestCase):
@@ -109,8 +115,10 @@ class ImproveScheduleTests(unittest.TestCase):
         state = self.new()
         lines = nav.render(None, Path("/simulation-only/run"), state).splitlines()
         self.assertTrue(lines[0].startswith("ShipLoop navigator | intake"))
-        self.assertIn(" complete ", lines[1])
-        self.assertIn(nav.current_action(state)["id"], lines[1])
+        self.assertEqual(lines[1], prompts.OWNER_RULE)
+        self.assertTrue(lines[2].startswith(prompts.INDEX_POINTER_PREFIX), lines[2])
+        self.assertIn(" complete ", lines[1 + OWNER])
+        self.assertIn(nav.current_action(state)["id"], lines[1 + OWNER])
         # A stage with no Improve child says nothing about Improve (owner rule 2026-10-10) and prints an empty line
         # in the Improve line's place.  How to report a stop has one home, the outcome shapes (2026-10-11 dedupe):
         # the trailing "If work cannot continue, submit outcome 'blocked'..." sentence is gone from the Improve line.
@@ -167,8 +175,10 @@ class ImproveScheduleTests(unittest.TestCase):
         lines = packet.splitlines()
         self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision "), lines[0])
         self.assertIn("       /improve " + nav.IMPROVE_ARGUMENT_PREFIX + str(handoff_path), lines)
-        self.assertIn(" complete ", lines[4])
-        self.assertIn("--action=" + improve, lines[4])
+        self.assertEqual(lines[1], prompts.OWNER_RULE)
+        self.assertTrue(lines[2].startswith(prompts.INDEX_POINTER_PREFIX), lines[2])
+        self.assertIn(" complete ", lines[4 + OWNER])
+        self.assertIn("--action=" + improve, lines[4 + OWNER])
         self.assertNotEqual(improve, action)
         self.assertNotIn("improve-start", packet)
         self.assertNotIn("improve-complete", packet)

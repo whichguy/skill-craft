@@ -255,6 +255,33 @@ DEDUPED_EXPECTED = {
     "Halt (terminal": "tail-callbacks",
 }
 
+# The same stage after 2026-10-16: the owner rule and the pointer to the master index sit under the head line, and the
+# pass log has its own line (the old "Run context index ... pass log" line is gone).
+OWNED = DEDUPED.replace(
+    "ShipLoop navigator | step-plan | revision 14\n",
+    "ShipLoop navigator | step-plan | revision 14\n"
+    "Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value.\n"
+    f"Lost context, or unsure of anything about this run? Read {RUN}/context-index.md first: it maps every file of this run "
+    "and what it holds; open the file you need from there.\n").replace(
+    f"Run context index (the run's request): {RUN}/context.md\n",
+    f"This action's pass log (optional): {RUN}/notes/nav-a.md\n").replace(
+    f"Every other policy and guide, and the long form of the rules: {RUN}/reference.md (#policies, #rules, #recovery).\n",
+    "Every other policy and guide, and the long form of the rules: RUN/reference.md (#policies, #rules, #recovery).\n"
+    "Access-readiness policy: GUIDES/research-loop.md#early-access-readiness\n")
+
+OWNED_EXPECTED = {
+    "ShipLoop navigator | step-plan": "head",
+    "Owner rule:": "head",
+    "Lost context, or unsure": "context-index",
+    "Callback for this stage": "callback",
+    "Allowed outcomes: done | repeat": "result-contract",
+    "This action's pass log": "context-index",
+    "Access-readiness policy: GUIDES/": "reading-list",
+    "Every other policy and guide": "reading-list",
+    "Results this stage builds on": "context-index",
+    "- plan: ": "context-index",
+}
+
 IMPROVE = f"""ShipLoop navigator | plan | revision 11
 Next command (start the bound Improve child after writing its opening file {RUN}/o.md; details below): python3 /plugin/shiploop improve-start
 Reviewing the returned plan result. Goal: Build the plan.
@@ -336,6 +363,14 @@ class ClassifierTests(unittest.TestCase):
                          ["stage-rules"] * 3)
         self.assertEqual([s for s, line in rows if line.startswith("Last accepted")], ["last-accepted"])
         self.assertNotIn("last-accepted", [s for s, line in rows if line.startswith(("Current stage guidance", "Improve:"))])
+
+    def test_the_owner_lines_and_the_split_pass_log_line_land_in_their_sections(self):
+        self.check(OWNED, OWNED_EXPECTED)
+        self.assertEqual(anatomy.unclassified_lines(OWNED), [])
+        # The result template section ends at the pass log line: it does not swallow the context-index lines after it.
+        rows = labels(OWNED)
+        self.assertEqual([s for s, line in rows if line.startswith(("This action's pass log", "- plan: "))],
+                         ["context-index"] * 2)
 
     def test_an_improve_packet_lines_land_in_the_improve_sections(self):
         self.check(IMPROVE, IMPROVE_EXPECTED)

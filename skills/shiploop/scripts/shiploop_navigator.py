@@ -1582,6 +1582,10 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     if run_reference.stale(root, version):
         # A run saved before this file existed, or by another version, gets it here; the cursor does not move.
         store.atomic_write_text(Path(root) / run_reference.REFERENCE_FILE, run_reference.render(state, root, version))
+    # Every packet's second line points at the run's master index; a run saved without it gets it here (as reference.md does).
+    if not (Path(root) / context_index.INDEX_FILE).is_file():
+        store.atomic_write_text(Path(root) / context_index.INDEX_FILE,
+                                context_index.render(state, root, current_stage(state)))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
     # The current inner action's Until Loop contract, when no transition wrote it: a run that reached the stage another
@@ -1639,6 +1643,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
     progress_target = quote(str(root / "progress.html"), safe="/ ")
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
+        *_owner_lines(root),
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
         # Keepalive hooks bind a host session to this run from this exact line.
@@ -1652,7 +1657,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         "Current stage guidance:",
         _named_text(state, stage, route),
         "",
-        *_reference_lines(root, state, stage, workitem),
+        *_reference_lines(root, state, stage, workitem, core),
         *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if not state.get("active_improve") else []),
         "",
@@ -1673,7 +1678,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         head = "\n".join(lines + ["Knowledge files this stage reads and the hand-offs from earlier stages: in the full "
                                   "packet, each quoted whole."])
     # A closing line a reader can tell a whole print by (the harness measures what was shown; a head cut by a pipe lacks it).
-    return head + "\n" + HEAD_END + "\n"
+    return prose_symbols(head, core, Path(root), state) + "\n" + HEAD_END + "\n"
 
 
 _GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance.INNER_GROUPS)
@@ -4043,8 +4048,13 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            timeline: Mapping[str, Any] | None = None) -> str:
     """Render a packet; worktree packets derive a read-only return projection.
 
-    Rendering does not mutate run or product state; ``emit`` supplies the display-only timeline.
+    Rendering does not mutate run or product state; ``emit`` supplies the display-only timeline.  Prose paths print as the
+    References block's symbols (``prose_symbols``); commands and the other lines hooks read keep their absolute paths.
     """
+    return prose_symbols(_render_lines(core, root, state, timeline), core, Path(root), state)
+
+
+def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Mapping[str, Any] | None) -> str:
     validate(state)
     root = Path(root)
     try:
@@ -4067,11 +4077,12 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         lines.extend([context_guidance, ""])
     lines += [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
+        *_owner_lines(root),
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
-        *_reference_lines(root, state, stage, workitem),
+        *_reference_lines(root, state, stage, workitem, core),
         *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if state["status"] == "active" and not state.get("active_improve") else []),
         *_step_lines(state, stage, workitem),
@@ -4349,15 +4360,26 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     return "\n".join(lines) + "\n"
 
 
+def _owner_lines(root: Path) -> list[str]:
+    """The two lines under every packet's first line: the owner rule, then the pointer to the run's master index.
+
+    One definition each (shiploop_prompts); the index file is written by every save, and ``emit`` writes it when a
+    run lacks it, so the path printed here always names a file that exists.
+    """
+    return [guidance.OWNER_RULE, guidance.index_pointer(Path(root) / context_index.INDEX_FILE)]
+
+
 def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
                          workitem: str | None) -> list[str]:
-    """Point every packet at the run's whole record (what this stage builds on is in the References block)."""
-    line = f"Run context index (the whole run's record; open it after compaction): {Path(root) / context_index.INDEX_FILE}"
+    """This action's pass log, and the progress view (what this stage builds on is in the References block).
+
+    The pointer to the run's master index is the packet's second line (``_owner_lines``), so it is not said here.
+    """
+    lines = []
     if state["status"] in ("active", "paused", "blocked"):
         action_id = current_action(state)["id"]
-        line += (" · this action's pass log (" + context_index.PASS_LOG_RULE + "): "
-                 + str(context_index.pass_log_path(root, action_id)))
-    lines = [line]
+        lines.append("This action's pass log (" + context_index.PASS_LOG_RULE + "): "
+                     + str(context_index.pass_log_path(root, action_id)))
     if state["status"] == "active":
         # The progress view stays (owner, 2026-10-10); with the packet printed whole it is named here, once.
         lines.append(f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to "
@@ -4556,27 +4578,68 @@ _INNER_GATES = {
 #
 # Every file name comes from knowledge_home's tables (LIVING, STAGE_FILES), so a change there changes the block with no
 # edit here.
-REFERENCES_HEAD = "References (defined once; the packet names files by these symbols):"
-REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE")
+REFERENCES_HEAD = "References (symbols expand to these absolute paths; commands stay literal):"
+REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE", "GUIDES")
 BUILDS_ON_HEAD = ("Results this stage builds on (open each not already in your context; report a conflict instead of "
                   "choosing silently):")
 
-def reference_paths(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
-    """{symbol: absolute path} for the References block's global symbols."""
+def reference_paths(root: Path, state: Mapping[str, Any], core: Any = None) -> dict[str, str]:
+    """{symbol: absolute path} for the References block's global symbols (GUIDES is the skill's references directory)."""
     repo = Path(str(state["repo"]))
-    return {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo)}
+    return {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo),
+            "GUIDES": str(_reference_dir(core))}
 
 
-def symbolic(text: str, root: Path, state: Mapping[str, Any]) -> str:
-    """``text`` with each absolute HOME, RUN or WORKTREE path written as its symbol (longest prefix first).
+def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None) -> str:
+    """``text`` with each absolute HOME, RUN, WORKTREE or GUIDES path written as its symbol (longest prefix first).
 
     For prose only: a command the model runs verbatim keeps its absolute paths.  A relative or root path is never
     replaced, so a symbol cannot stand for a fragment of a word.
     """
-    for name, prefix in sorted(reference_paths(root, state).items(), key=lambda pair: -len(pair[1])):
+    for name, prefix in sorted(reference_paths(root, state, core).items(), key=lambda pair: -len(pair[1])):
         if prefix.startswith("/") and len(prefix) > 1:
             text = re.sub(re.escape(prefix) + r"(?![\w.@+~-])", name, text)
     return text
+
+
+# The packet lines that name a path under HOME, RUN, WORKTREE or the skill's guides as prose (owner, 2026-10-16: absolute
+# paths were 14% of a live run's packet bytes and 22% of the model's output tokens).  Their paths print as the symbols the
+# References block defines.  The list is closed on purpose: a line prints its paths symbolically only when it is named here
+# or is a guide line ("<label>: GUIDES/<file>#<anchor>") or a bare evidence bullet, so a new line that prints a path stays
+# literal until someone adds it, and no command can be rewritten by accident.  ALWAYS LITERAL, because hooks and the loop
+# runtime read the absolute paths: the callback and every command line (complete, next, pause, halt, lint, red-check,
+# backchain-check, improve-start, improve-commit, improve-bind), the Keepalive marker, the "Full packet:" line, the
+# Progress view link, the evidence_refs example in the result template, the /until-loop Argument block, the
+# `/improve ShipLoop Improve: ...` line and the index pointer line.  A test lists the paths left in a packet's lines and
+# fails on any that is neither listed here nor one of those.
+PROSE_PATH_LINES = re.compile(
+    r"^(?:This action's pass log \(|Full ordered work queue: |Prior Improve evidence and lessons: |"
+    r"Latest reconciliation finding and immutable evidence: |Spec and architecture changes since the run began: not computed|"
+    r"State: |Repository knowledge \w+ \(host-authored|Test rerun: on done|Where and floors: |Commands ShipLoop ran \(|"
+    r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
+    r"This stage's result before the replan: |The result that sent it back \(|The item's previous step plan \(|"
+    r"Proposed queue awaiting Improve: |"
+    r"(?:Current item step-plan|Current item test-decision|Run-wide test strategy) source \()")
+
+
+def prose_symbols(text: str, core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """``text`` with the paths of its prose lines (``PROSE_PATH_LINES``) written as the References block's symbols.
+
+    A packet without that block defines no symbols and is returned unchanged (a done or halted run's packet, the Improve
+    packet).  Applied to the whole packet, so every generator's prose line is covered in one place.
+    """
+    if REFERENCES_HEAD not in text:
+        return text
+    paths = reference_paths(root, state, core)
+    anywhere = "|".join(re.escape(path) for path in paths.values())
+    guide = re.compile(r"[^:\n]{3,80}: " + re.escape(paths["GUIDES"]) + r"/[\w./-]+(?:#[\w-]+)?")
+    entry = re.compile(r"- (?:[\w-]+: )?(?:" + anywhere + r")(?![\w.@+~-])\S*(?:[;] .*)?")  # a bullet that is a path
+    rows = []
+    for line in text.split("\n"):
+        if PROSE_PATH_LINES.match(line) or guide.fullmatch(line) or entry.fullmatch(line):
+            line = symbolic(line, root, state, core)
+        rows.append(line)
+    return "\n".join(rows)
 
 
 def reference_name(name: str) -> str:
@@ -4599,8 +4662,8 @@ def reference_writer(name: str) -> str:
 _LIVING_LABELS = {"spec.md": "living spec", "environment.md": "environment", knowledge.ARCHITECTURE: "architecture"}
 
 
-def _reference_global_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
-    paths = reference_paths(root, state)
+def _reference_global_lines(root: Path, state: Mapping[str, Any], core: Any = None) -> list[str]:
+    paths = reference_paths(root, state, core)
     repo = Path(str(state["repo"]))
 
     def entry(name: str) -> str:
@@ -4612,7 +4675,8 @@ def _reference_global_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
                    + reference_writer(name) + ")"))
 
     return [REFERENCES_HEAD,
-            "HOME = " + paths["HOME"] + " (knowledge home) · RUN = " + paths["RUN"] + " (run records)",
+            "HOME = " + paths["HOME"] + " (knowledge home) · RUN = " + paths["RUN"] + " (run records) · GUIDES = "
+            + paths["GUIDES"] + " (the skill's guides)",
             "WORKTREE = " + str(repo) + " (all product work; a working directory, never a --result value"
             + ("; an isolated worktree, returned to the original branch only at release or handoff)"
                if state.get("execution_mode") == "navigator-worktree" else ")"),
@@ -4669,9 +4733,105 @@ def _one_line(value: Any) -> str:
     return " ".join(str(value if value is not None else "").split())
 
 
-def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str]:
-    """One hand-off value in the consumer contract's wording (section 4); "not recorded by <stage>" when missing."""
+# The diff of a living file that is new since the run baseline is the whole file.  When the same packet quotes that file
+# whole (reads_lines), the diff block prints a pointer in its place instead of the text a second time (owner study
+# 2026-10-16: in the live run the plan packet's 22.1 KB diff was 20.7 KB of the 22 KB spec it had just quoted).  The
+# pointer is used only when the diff's added lines equal the quoted text exactly; any other diff stays whole.
+SPEC_DIFF_NOTE = "nothing cut that is not printed in this packet"
+_DIFF_FILE_HEAD = re.compile(r"(?m)^diff --git a/(\S+) b/\S+$")
+_NEW_FILE_HUNK = re.compile(r"^@@ -0,0 \+1(?:,(\d+))? @@")
+_HEADING = re.compile(r"^#{1,2}[ \t]+(.+?)[ \t]*$")  # the named sections; a spec's R-<n> entries are deeper headings
+_POINTER_HEADINGS = 12
+
+
+def _diff_chunks(diff: str) -> list[tuple[str, str]]:
+    """``[(path, chunk)]``: the diff split at its ``diff --git`` lines; the chunks joined give the diff back."""
+    starts = [match.start() for match in _DIFF_FILE_HEAD.finditer(diff)]
+    if not starts or starts[0] != 0:
+        return [("", diff)]
+    ends = starts[1:] + [len(diff)]
+    return [(_DIFF_FILE_HEAD.match(diff, start).group(1), diff[start:end]) for start, end in zip(starts, ends)]
+
+
+def _added_whole_file(chunk: str) -> str | None:
+    """The text of a file this diff chunk adds whole (new file, one hunk of added lines); None for any other chunk."""
+    lines = chunk.split("\n")
+    hunk = next((number for number, line in enumerate(lines) if line.startswith("@@")), None)
+    if hunk is None or not any(line.startswith("new file mode") for line in lines[:hunk]):
+        return None
+    header = _NEW_FILE_HUNK.match(lines[hunk])
+    body = [line for line in lines[hunk + 1:] if line != "\\ No newline at end of file"]
+    if body and body[-1] == "":
+        body.pop()  # the chunk's closing newline
+    if header is None or any(not line.startswith("+") for line in body):
+        return None
+    if len(body) != int(header.group(1) if header.group(1) is not None else 1):
+        return None
+    return "\n".join(line[1:] for line in body)
+
+
+def _headings(text: str) -> list[str]:
+    """The section headings (levels 1 and 2) of ``text`` outside code fences, in order."""
+    found, fence = [], False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fence = not fence
+        elif not fence and (match := _HEADING.match(line)):
+            found.append(match.group(1))
+    return found
+
+
+def _new_file_pointer(name: str, text: str) -> str:
+    """The one line that stands for a new file's diff: its name, size and section headings."""
+    headings = _headings(text)
+    shown = "; ".join(headings[:_POINTER_HEADINGS]) + (
+        "; ... " + str(len(headings) - _POINTER_HEADINGS) + " more" if len(headings) > _POINTER_HEADINGS else "")
+    return ("HOME/" + name + ": new since the baseline, so its diff is the whole file, which is quoted whole above ("
+            + str(len(text.encode("utf-8"))) + " bytes" + ("; sections: " + shown if headings else "") + ")")
+
+
+def _spec_diff_lines(diff: str, quoted: Mapping[str, str]) -> list[str]:
+    """The diff as quoted lines, a pointer for each new file the packet already quotes whole."""
+    lines: list[str] = []
+    for path, chunk in _diff_chunks(diff):
+        name = path[len(knowledge.HOME) + 1:] if path.startswith(knowledge.HOME + "/") else ""
+        added = _added_whole_file(chunk) if name in quoted else None
+        if added is not None and added.rstrip("\n") == quoted[name].rstrip("\n"):
+            lines.append(_new_file_pointer(name, quoted[name]))
+        else:
+            lines += _quoted(chunk.rstrip("\n"))
+    return lines
+
+
+def _followed_lines(repo: Path, label: str, value: Any, quoted: Mapping[str, str]) -> list[str]:
+    """The followed R-<n> and AD-<n> entries; one whose exact text sits in a file the packet quotes whole is listed by ID."""
+    listed: list[str] = []
+    files: list[str] = []
+    rest: list[str] = []
+    for ident, text in value:
+        prefix = str(ident).split("-", 1)[0]
+        file = {"R": "spec.md", "AD": knowledge.ARCHITECTURE}.get(prefix)
+        if file in quoted and text and text.strip() in quoted[file]:
+            entry = knowledge.entries(repo, file).get(str(ident))
+            listed.append(str(ident) + (_RETIRED_MARK[prefix] if entry is not None and entry.retired else ""))
+            if file not in files:
+                files.append(file)
+        else:
+            rest += _entry_lines(repo, str(ident))
+    if not listed:
+        return [label + ":", *rest]
+    return [label + ": " + ", ".join(listed) + " (each entry is in " + ", ".join("HOME/" + name for name in files)
+            + ", quoted whole above)" + (", and these follow:" if rest else ""), *rest]
+
+
+def _source_lines(root: Path, state: Mapping[str, Any], source: Any, quoted: Mapping[str, str] | None = None) -> list[str]:
+    """One hand-off value in the consumer contract's wording (section 4); "not recorded by <stage>" when missing.
+
+    ``quoted`` is ``{file: text}`` of the living files the same packet quotes whole; a value that only repeats one of
+    them (a new file's diff, a followed entry) prints as a pointer or an ID.
+    """
     repo = Path(str(state["repo"]))
+    quoted = quoted or {}
     if source.key == "spec_diff":
         head = "Spec and architecture changes since the run began"
         if source.value is None:
@@ -4682,7 +4842,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str
             baseline = (Path(root) / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()[:12] or "none"
         except OSError:
             baseline = "none"
-        return [head + " (baseline " + baseline + "), the uncut diff:", *_quoted(source.value.rstrip("\n"))]
+        return [head + " (baseline " + baseline + "), " + SPEC_DIFF_NOTE + ":", *_spec_diff_lines(source.value, quoted)]
     if source.key == "assumptions":
         label = "open items" + (" for " + str(source.workitem) if source.workitem else "")
         if not source.value:
@@ -4701,10 +4861,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str
     if value is None:
         return [label + ": not recorded by " + str(source.stage)]
     if source.key == "follows":
-        lines = [label + ":"]
-        for ident, _text in value:
-            lines += _entry_lines(repo, str(ident))
-        return lines if value else [label + ": none"]
+        return _followed_lines(repo, label, value, quoted) if value else [label + ": none"]
     if source.key == "criteria":
         return [label + ":", *("- " + str(row.get("id")) + ": " + _one_line(row.get("text"))
                                for row in value if isinstance(row, Mapping))]
@@ -4728,11 +4885,15 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str
     return [label + ":", *_quoted(json.dumps(value, ensure_ascii=False, sort_keys=True))]
 
 
-def handoff_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
-    """What earlier stages handed this stage (``CONSUMES``), by value and uncut."""
+def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, quoted: Mapping[str, str] | None = None) -> list[str]:
+    """What earlier stages handed this stage (``CONSUMES``), by value and uncut.
+
+    ``quoted`` is ``{file: text}`` of the living files the packet quotes whole before this block (``reads_lines``): a
+    hand-off that only repeats one of them prints as a pointer (``_source_lines``).
+    """
     lines: list[str] = []
     for source in handoff_sources(root, state, stage):
-        lines += _source_lines(root, state, source)
+        lines += _source_lines(root, state, source, quoted)
     return [HANDOFF_HEAD, *lines] if lines else []
 
 
@@ -4741,7 +4902,10 @@ def _consumer_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[st
     alike (consumer contract X15)."""
     if state["status"] != "active":
         return []
-    lines = reads_lines(state, stage) + handoff_lines(root, state, stage)
+    # The files this block quotes whole come first, so the hand-offs after them may point at them instead of repeating them.
+    quoted = {quote.file: quote.text for quote in knowledge.reads_quotes(state, stage) if quote.text is not None} \
+        if stage in knowledge.READS else {}
+    lines = reads_lines(state, stage) + handoff_lines(root, state, stage, quoted)
     return lines + [""] if lines else []
 
 
@@ -4847,7 +5011,8 @@ def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
     return [BUILDS_ON_HEAD, *lines] if lines else []
 
 
-def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None,
+                     core: Any = None) -> list[str]:
     """The packet's References block: the global symbols, then this stage's consult note and what it builds on.
 
     Every packet a model acts on carries it (producer, Improve parent, paused, blocked, awaiting); a done or halted
@@ -4856,7 +5021,7 @@ def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
     if state["status"] in ("done", "halted"):
         return []
     # The quotes block after the status names the files this stage reads (aggressive re-cut: no separate pointer).
-    return _reference_global_lines(root, state) + _builds_on_lines(root, state, stage, workitem)
+    return _reference_global_lines(root, state, core) + _builds_on_lines(root, state, stage, workitem)
 
 
 # The knowledge home's packet lines (the E2E session's architecture and spec-retire builds, 2026-10-10: "Lines for the
@@ -5179,7 +5344,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
     named = _named_text(state, stage, route) + "\n" + guidance.improve_prompt(stage, delegation=route)
     context = [
         *_goal_lines(state, stage, root),
-        *_reference_lines(root, state, stage, workitem),
+        *_reference_lines(root, state, stage, workitem, core),
         *([f"Work item: {workitem} — " + str(state["work_items"][state["work_index"]].get("title", "")),
            "Work item context: " + str(state["work_items"][state["work_index"]].get("context", ""))]
           if workitem is not None else []),
@@ -5197,7 +5362,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
             str(child.get("contract_marker", "")), "",
             *prefix,
             "## What the reviewed stage worked from", *context, "", "## The review"]
-    return _render_improve(core, root, state, head)
+    return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state)
 
 
 def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
@@ -5205,7 +5370,8 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
     """An Improve packet: invoke the improve skill, then run the done command (plus the hooks' machine lines)."""
     child = state["active_improve"]
     action_id, stage = child["action_id"], child["stage"]
-    lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result"]
+    lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result",
+             *_owner_lines(root)]
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         lines += [("No Improve card is recorded for this run. " if not state.get("improve_skill") else "")

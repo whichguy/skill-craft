@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_navigator as nav
+import shiploop_packet_symbols as symbols
 import shiploop_store as store
 import shiploop_chain_ledger as chain_ledger
 import shiploop_chain as chain
@@ -862,7 +863,7 @@ class ChainIntegrationTests(ChainFixture):
         cold = store.read_record(self.run / "state.md")
         before = (self.run / "state.md").read_bytes()
         packet = nav.render(None, self.run, cold)
-        self.assertIn(str(SCRIPTS.parent / "references/parallel-chain.md"), packet)
+        self.assertIn(str(SCRIPTS.parent / "references/parallel-chain.md"), symbols.guides_expanded(packet))
         self.assertIn("Parallel-chain guide", packet)
         self.assertIn("default parallel", packet)
         self.assertIn("native slots are observed free", " ".join(packet.split()))   # was "observed native slots" (re-cut)

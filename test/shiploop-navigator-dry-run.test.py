@@ -15,6 +15,7 @@ SCRIPTS = ROOT / 'skills/shiploop/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_navigator_dry_run as driver  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_prompts as guidance  # noqa: E402
 import shiploop_protocol as protocol  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
@@ -136,7 +137,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertTrue(report['ok'], report.get('error'))
             for event in report['events']:
                 with self.subTest(scenario=name, stage=event['from'], command=event['command']):
-                    prompt = event['prompt']
+                    prompt = symbols.guides_expanded(event['prompt'])  # a packet prints guides as GUIDES/<file>
                     if is_improve_packet(prompt):
                         # The Improve packet is two instructions (re-cut, 2026-10-11) and carries no policy
                         # locators; those reach the Improve child through the handoff file.

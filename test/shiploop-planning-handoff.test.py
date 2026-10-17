@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_planning_revision as planning_revision  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 # Consumer stage -> the root planning results its packet must name.
@@ -161,8 +162,11 @@ class ContextIndexTests(unittest.TestCase):
                 for stage, workitem, packet, state in full_walk(run, repo, delegation):
                     visited.add(stage)
                     with self.subTest(delegation=delegation, stage=stage, workitem=workitem):
-                        self.assertIn("Run context index", packet)
-                        self.assertIn(str(run / context_index.INDEX_FILE), packet)
+                        # The pointer to the master index is the packet's second line (2026-10-16).
+                        lines = packet.splitlines()
+                        header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
+                        self.assertEqual(lines[header + 2], prompts.index_pointer(run / context_index.INDEX_FILE))
+                        self.assertEqual(packet.count(str(run / context_index.INDEX_FILE)), 1)
                         self.assertNotIn("not accepted yet", packet)
                         # Every stage it reads that has an accepted result is listed, by the References block's name.
                         current = planning_revision.current_actions(state)

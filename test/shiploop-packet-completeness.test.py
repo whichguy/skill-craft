@@ -590,17 +590,26 @@ def symbol_paths(block: list) -> dict:
     """{symbol: absolute path} from the block's definition lines."""
     found = {}
     for row in block:
-        for match in re.finditer(r"(?:^| · )(HOME|RUN|WORKTREE) = (\S+)", row):
+        for match in re.finditer(r"(?:^| · )(HOME|RUN|WORKTREE|GUIDES) = (\S+)", row):
             found[match.group(1)] = match.group(2)
     return found
+
+
+# The lines that keep their absolute paths (owner, 2026-10-16), besides every command line (``--run-dir``) and the
+# /until-loop argument block: what hooks and the loop runtime read.
+LITERAL_LINES = re.compile(
+    r"^(?:Start \(the card runs exactly this|Keepalive marker: |Full packet: |Progress view: |\s*\"evidence_refs\": \[|"
+    r"\s*/improve ShipLoop Improve: |Lost context, or unsure of anything about this run\? Read )")
 
 
 def prose_lines(packet: str) -> list:
     """The packet's lines outside the References block that are prose, with the exemption rule applied.
 
-    Exempt: (1) a command the model runs verbatim, which keeps its absolute paths so it still runs: any line holding a
-    ShipLoop CLI call (``--run-dir``) or the Until Loop Start line; (2) the /until-loop argument, which the packet says
-    to pass verbatim: the lines indented by four spaces under "Argument:".
+    Exempt (ALWAYS LITERAL, because hooks and the loop runtime read them; ``LITERAL_LINES``): (1) a command the model
+    runs verbatim, which keeps its absolute paths so it still runs: any line holding a ShipLoop CLI call (``--run-dir``)
+    or the Until Loop Start line; (2) the /until-loop argument, which the packet says to pass verbatim: the lines indented
+    by four spaces under "Argument:"; (3) the Keepalive marker, the "Full packet:" line, the Progress view link, the
+    evidence_refs example, the `/improve ShipLoop Improve: ...` line and the index pointer line.
     """
     lines = packet.splitlines()
     start = lines.index(navigator.REFERENCES_HEAD)
@@ -613,7 +622,7 @@ def prose_lines(packet: str) -> list:
         if argument and line.startswith("    "):
             continue
         argument = False
-        if number in block or "--run-dir" in line or line.startswith("Start (the card runs exactly this"):
+        if number in block or "--run-dir" in line or LITERAL_LINES.match(line):
             continue
         found.append(line)
     return found
@@ -698,12 +707,56 @@ class ReferencesBlockTests(unittest.TestCase):
                     # Nothing exists in these walks, so every file is marked with the stage that writes it.
                     self.assertTrue(rows[0].endswith("(not written yet: " + writer + " writes it)"), rows[0])
 
-    def test_no_absolute_home_or_feature_path_appears_in_prose_outside_the_block(self) -> None:
+    def test_no_absolute_home_run_worktree_or_guides_path_appears_in_prose_outside_the_block(self) -> None:
+        """Every prose path under a root prints as that root's symbol; only the literal lines keep an absolute path."""
+        checked = 0
         for run, number, packet in self.each():
             paths = symbol_paths(reference_block(packet))
+            self.assertEqual(set(paths), set(navigator.REFERENCE_SYMBOLS))
             with self.subTest(run=run, packet=number):
                 for line in prose_lines(packet):
-                    self.assertNotIn(paths["HOME"], line)
+                    for symbol, path in paths.items():
+                        self.assertNotRegex(line, re.escape(path) + r"(?![\w.@+~-])",
+                                            f"{symbol} is written out in a prose line: {line[:160]}")
+                    checked += 1
+        self.assertGreater(checked, 1_000)
+
+    def test_the_literal_lines_keep_their_absolute_paths(self) -> None:
+        """The callback and every command, the Keepalive marker, the index pointer and the loop contract paths stay literal."""
+        for run, number, packet in self.each():
+            run_path = symbol_paths(reference_block(packet))["RUN"]
+            with self.subTest(run=run, packet=number):
+                lines = packet.splitlines()
+                for line in lines:
+                    if line.startswith(("Callback for this stage", "Keepalive marker: ", "Pause without consuming",
+                                        "Halt (terminal", "Lost context, or unsure")):
+                        self.assertIn(run_path, line)
+                    if line.lstrip().startswith(("Contract: ", "Receipt: ")):
+                        self.assertIn(run_path, line)
+                self.assertFalse([line for line in lines if re.search(r"\b(?:RUN|HOME|GUIDES|WORKTREE)\b/?", line)
+                                  and "--run-dir" in line and "python" in line and re.search(r"--run-dir[= ](?:RUN)\b", line)],
+                                 "a command was written with a symbol")
+
+    def test_every_symbol_a_packet_uses_is_defined_in_its_references_block(self) -> None:
+        used_somewhere = set()
+        for run, number, packet in self.each():
+            defined = set(symbol_paths(reference_block(packet)))
+            lines = [line for line in packet.splitlines() if not re.match(r"(?:HOME|WORKTREE) = ", line)]
+            used = set(re.findall(r"\b(HOME|RUN|GUIDES)/[\w.@+~-]", "\n".join(lines)))
+            used |= {"WORKTREE"} if re.search(r"(?<![\w/])WORKTREE(?![\w=])", "\n".join(lines)) else set()
+            used_somewhere |= used
+            with self.subTest(run=run, packet=number):
+                self.assertLessEqual(used, defined)
+        self.assertEqual(used_somewhere, set(navigator.REFERENCE_SYMBOLS))     # every symbol is used somewhere
+
+    def test_the_references_heading_says_symbols_expand_and_commands_stay_literal(self) -> None:
+        self.assertEqual(navigator.REFERENCES_HEAD,
+                         "References (symbols expand to these absolute paths; commands stay literal):")
+        self.assertEqual(navigator.REFERENCE_SYMBOLS, ("HOME", "RUN", "WORKTREE", "GUIDES"))
+        for run, number, packet in self.each():
+            with self.subTest(run=run, packet=number):
+                self.assertEqual(packet.count(navigator.REFERENCES_HEAD), 1)
+                self.assertIn(" · GUIDES = " + str(ROOT / "skills/shiploop/references") + " (the skill's guides)", packet)
 
     def test_the_global_part_is_identical_in_every_packet_of_a_run(self) -> None:
         for run, found in self.runs.items():
@@ -747,6 +800,101 @@ class ReferencesBlockTests(unittest.TestCase):
                 for name in names:
                     self.assertTrue(("HOME/" + name + " (source: HOME/" + name + ", whole file):") in after
                                     or ("HOME/" + name + ": not written yet") in after, name)
+
+class ProseSymbolsTests(unittest.TestCase):
+    """``navigator.prose_symbols``: the closed list of lines whose paths print as symbols (owner, 2026-10-16)."""
+
+    RUN, REPO = Path("/r/repo/.runs/w1/run"), Path("/r/repo")
+    GUIDES = ROOT / "skills/shiploop/references"
+
+    def state(self) -> dict:
+        return {"repo": str(self.REPO)}
+
+    def head(self) -> str:
+        return navigator.REFERENCES_HEAD + "\nHOME = " + str(self.REPO / "docs/shiploop") + " (knowledge home) · RUN = " \
+            + str(self.RUN) + " (run records) · GUIDES = " + str(self.GUIDES) + " (the skill's guides)\n" \
+            + "WORKTREE = " + str(self.REPO) + " (all product work)\n"
+
+    def converted(self, *body: str) -> list:
+        """The body's lines after ``prose_symbols`` has run over a packet that defines the symbols."""
+        packet = self.head() + "\n".join(body) + "\n"
+        return navigator.prose_symbols(packet, CORE, self.RUN, self.state()).splitlines()[len(self.head().splitlines()):]
+
+    def test_prose_lines_print_the_symbol_of_their_longest_root(self) -> None:
+        got = self.converted(
+            "This action's pass log (optional): " + str(self.RUN / "notes/nav-a.md"),
+            "Full ordered work queue: " + str(self.RUN / "state.md") + "; field work_items.",
+            "- intake: " + str(self.RUN / "results/nav-b.md") + "; full summary and evidence_refs also in state.md accepted.nav-b",
+            "Coding decision guide: " + str(self.GUIDES / "coding-guidance.md") + "#select-guidance",
+            "- " + str(self.RUN / "notes/discovery.md"),
+            "- " + str(self.REPO / "docs/shiploop/spec.md"),
+            "State: " + str(self.RUN / "state.md") + " (results/, inbox/ beside it) · Scratch directory (x): "
+            + str(self.RUN / "scratch"),
+            "Repository knowledge index (host-authored, if present): " + str(self.REPO / "SHIPLOOP.md"),
+            "Test rerun: on done, ShipLoop runs every test command from " + str(self.REPO) + " and refuses",
+            "[Excerpt only. Full value: " + str(self.RUN / "state.md") + "; field work_items[0].context.]")
+        self.assertEqual(got, [
+            "This action's pass log (optional): RUN/notes/nav-a.md",
+            "Full ordered work queue: RUN/state.md; field work_items.",
+            "- intake: RUN/results/nav-b.md; full summary and evidence_refs also in state.md accepted.nav-b",
+            "Coding decision guide: GUIDES/coding-guidance.md#select-guidance",
+            "- RUN/notes/discovery.md",
+            "- HOME/spec.md",
+            "State: RUN/state.md (results/, inbox/ beside it) · Scratch directory (x): RUN/scratch",
+            "Repository knowledge index (host-authored, if present): WORKTREE/SHIPLOOP.md",
+            "Test rerun: on done, ShipLoop runs every test command from WORKTREE and refuses",
+            "[Excerpt only. Full value: RUN/state.md; field work_items[0].context.]"])
+
+    def test_commands_and_the_lines_hooks_read_stay_absolute(self) -> None:
+        cli = "python3 " + str(ROOT / "skills/shiploop/scripts/shiploop")
+        literal = [
+            "Callback for this stage (run once): " + cli + " complete --run-dir=" + str(self.RUN) + " --action=nav-a --result="
+            + str(self.RUN / "inbox/nav-a.md"),
+            "Pause without consuming the action: " + cli + " pause --run-dir=" + str(self.RUN),
+            "Recovery command:", cli + " next --run-dir=" + str(self.RUN),
+            "Keepalive marker: SHIPLOOP-RUN run=nav-r rev=1 dir=" + str(self.RUN),
+            "Full packet: " + str(self.RUN / "packets/nav-a.md"),
+            "Progress view: [HTML file](<" + str(self.RUN / "progress.html") + ">) — track changes.",
+            '  "evidence_refs": ["' + str(self.RUN / "loops/nav-a-terminal.json") + '"],',
+            "    Contract: " + str(self.RUN / "loops/nav-a-contract.json"),
+            "    Work: Do duty items 1-4 of " + str(self.RUN / "packets/nav-a.md") + ", writing " + str(self.RUN / "inbox/nav-a.md"),
+            "       /improve ShipLoop Improve: " + str(self.RUN / ".shiploop-improve/nav-a/handoff.md"),
+            prompts.index_pointer(self.RUN / "context-index.md"),
+            "red-check: " + cli + " red-check --run-dir=" + str(self.RUN) + " --action=nav-a",
+            "Start (the card runs exactly this): python3 " + str(self.RUN / "loop.py"),
+            "- [focused] node " + str(self.REPO / "test.js"),            # a recorded test command is the host's own
+            "- python3 " + str(self.REPO / "t.py"),                       # a bullet that is a command is not a bare path
+        ]
+        self.assertEqual(self.converted(*literal), literal)
+
+    def test_a_line_that_is_not_listed_stays_literal(self) -> None:
+        """The list is closed: a new line that prints a path keeps it until the list names the line."""
+        new_line = "A brand new line naming " + str(self.RUN / "state.md") + " and " + str(self.REPO / "app.py")
+        self.assertEqual(self.converted(new_line), [new_line])
+
+    def test_a_packet_without_a_references_block_is_returned_as_it_is(self) -> None:
+        """The Improve packet, and a done or halted run's packet, define no symbols, so they use none."""
+        for text in ("State: " + str(self.RUN / "state.md") + "\n", "Report: " + str(self.RUN / "report.html") + "\n"):
+            self.assertEqual(navigator.prose_symbols(text, CORE, self.RUN, self.state()), text)
+
+    def test_the_longest_root_wins_when_one_contains_another(self) -> None:
+        """The skill's guides directory sits inside the repository when ShipLoop is developed on itself, and the run
+        directory inside the repository by default."""
+        repo = ROOT                                    # the guides live under this repository
+        state = {"repo": str(repo)}
+        run = repo / ".shiploop-runs" / "w1" / "run"
+        head = navigator.REFERENCES_HEAD + "\n"
+        text = head + "Coding decision guide: " + str(self.GUIDES / "coding-guidance.md") + "#a\nState: " \
+            + str(run / "state.md") + "\nRepository knowledge index (host-authored, if present): " + str(repo / "SHIPLOOP.md") + "\n"
+        self.assertEqual(navigator.prose_symbols(text, CORE, run, state).splitlines()[1:],
+                         ["Coding decision guide: GUIDES/coding-guidance.md#a", "State: RUN/state.md",
+                          "Repository knowledge index (host-authored, if present): WORKTREE/SHIPLOOP.md"])
+
+    def test_symbolic_knows_the_guides_root(self) -> None:
+        self.assertEqual(navigator.symbolic("see " + str(self.GUIDES / "navigator.md#x") + " and " + str(self.RUN / "state.md"),
+                                            self.RUN, self.state(), CORE), "see GUIDES/navigator.md#x and RUN/state.md")
+        self.assertEqual(navigator.reference_paths(self.RUN, self.state(), CORE)["GUIDES"], str(self.GUIDES.resolve()))
+
 
 if __name__ == "__main__":
     unittest.main()

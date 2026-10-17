@@ -968,8 +968,9 @@ run directory as evidence and start the same request again with a fresh
 
 ## Command reference
 
-The compact stdout packet is authoritative for the current action; its first
-line after the header is the one legal callback. The command surface is:
+The compact stdout packet is authoritative for the current action; the two lines
+under its header are the owner rule and the pointer to the run's context index,
+and the line after them is the one legal callback. The command surface is:
 
 ```sh
 # Start a navigator protocol 4 run

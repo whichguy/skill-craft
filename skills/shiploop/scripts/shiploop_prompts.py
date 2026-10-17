@@ -106,6 +106,22 @@ def inner_context(delegation: str, *, improve: bool) -> str:
     return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
 
 
+# The two lines under every packet's first line, Improve packets included (owner, 2026-10-16: "the first line of each
+# packet should say something like: read this file if you don't have context about prior paths and what you're doing,
+# or if you're uncertain in any way ... point to the file and let the model inspect it and open subfiles from there").
+# Each text is defined here once; the navigator prints them in render, packet_head and improve_packet, and nothing else
+# in a packet says either again.  A model that lost its context reads the index first, so the pointer carries the
+# absolute path of the run's context-index.md (a derived master index: shiploop_context_index).
+OWNER_RULE = "Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value."
+INDEX_POINTER_PREFIX = "Lost context, or unsure of anything about this run? Read "
+INDEX_POINTER_SUFFIX = (" first: it maps every file of this run and what it holds; open the file you need from there.")
+
+
+def index_pointer(index_path: object) -> str:
+    """The pointer line: the absolute path of the run's context-index.md, which maps every other file."""
+    return INDEX_POINTER_PREFIX + str(index_path) + INDEX_POINTER_SUFFIX
+
+
 # The graph and each stage's fixed considerations live in shiploop_stage_spec.
 PRELUDE = stage_spec.PRELUDE
 INNER = stage_spec.INNER

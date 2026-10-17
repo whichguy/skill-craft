@@ -1,0 +1,11 @@
+plan                 removed   493 lines, added   3
+test-strategy        removed   435 lines, added   2
+test-spec            removed   179 lines, added   1
+implement            removed    11 lines, added   1
+test                 removed    11 lines, added   1
+document             removed    70 lines, added   3
+verify               removed    70 lines, added   3
+carry-forward        removed     1 lines, added   1
+product-acceptance   removed   435 lines, added   2
+system-test-author   removed     0 lines, added   0
+every removed line is a duplicate of a quoted file
