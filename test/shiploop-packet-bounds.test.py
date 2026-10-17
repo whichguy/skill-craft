@@ -61,7 +61,7 @@ class PacketBoundsTests(unittest.TestCase):
             state = self.complete(state, **extra)
         packet = self.cold_packet(state)
         self.assertNotIn(long_context, packet)
-        self.assertIn(str(self.run / "state.md"), packet)
+        self.assertIn("Full value: RUN/state.md; field work_items[0].context", packet)  # RUN is defined by the References block
         self.assertIn("work_items[0].context", packet)
         self.assertIn("work_items[0].title", packet)
         self.assertIn("Read the complete required context before acting", packet)

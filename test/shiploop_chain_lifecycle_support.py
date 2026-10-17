@@ -205,7 +205,8 @@ class PerStepChainFixture(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         full = fixture.with_packet_file(result.stdout)
         self.assertIn("ShipLoop navigator | implement |", result.stdout)
-        self.assertIn("State: " + str(self.f.run / "state.md"), full)
+        self.assertIn("State: RUN/state.md", full)   # a prose path prints as the References block's symbol (2026-10-16)
+        self.assertIn(" · RUN = " + str(self.f.run) + " (run records)", full)
         self.assertIn(self.f.action, result.stdout)
         return full
 

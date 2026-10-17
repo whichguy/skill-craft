@@ -22,6 +22,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 
 
@@ -223,8 +224,11 @@ class ReferenceRoutingTests(unittest.TestCase):
                     state = navigator.finish_improve(
                         state, action, {"summary": "Synthetic receipt; no review claim."})
                 packets.append(navigator.render(None, run, state))
+        # A packet prints a guide as GUIDES/<file>#<anchor> (2026-10-16; its References block defines GUIDES): read it as the
+        # absolute path it stands for, so the walk still checks that every locator names a real file and heading.
+        self.assertTrue(any("GUIDES/" in packet for packet in packets))
         seen = {(match.group(1), match.group(2)) for packet in packets
-                for match in locator.finditer(packet)}
+                for match in locator.finditer(symbols.guides_expanded(packet))}
         for relative, anchor in sorted(seen, key=lambda item: (item[0], item[1] or "")):
             with self.subTest(reference=relative, anchor=anchor):
                 if anchor:

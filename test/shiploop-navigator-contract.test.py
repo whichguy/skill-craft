@@ -35,6 +35,7 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -200,6 +201,7 @@ class NavigatorContractTests(unittest.TestCase):
         when its text names the label, and otherwise reaches it through the one line pointing at the run reference
         file's #policies section, which lists every label with the same locator."""
         line = label + ": " + locator
+        packet = symbols.expanded(packet, ("GUIDES", "RUN"))  # a packet prints guides and run files as symbols (2026-10-16)
         reference = run_reference.render({"run_id": "r", "repo": str(self.repo)}, Path("/run"))
         self.assertIn("- " + line, reference.splitlines(), label)
         self.assertLessEqual(packet.count(line), 1, packet)
@@ -222,7 +224,7 @@ class NavigatorContractTests(unittest.TestCase):
             + str(self.backchain_planning_guide)
             + "#navigator-planning"
         )
-        self.assertEqual(packet.count(locator), 1 if expected else 0, packet)
+        self.assertEqual(symbols.guides_expanded(packet).count(locator), 1 if expected else 0, packet)
 
     def _expected_backchain_resource_block(self, skills_root: Path) -> str:
         lines = [
@@ -1897,9 +1899,9 @@ class NavigatorContractTests(unittest.TestCase):
         """Packets expose the whole durable queue without inventing ready-item selection."""
         root = (Path(self.temp.name) / "queue-packet-contracts").resolve()
         root.mkdir()
-        queue_locator = f"Full ordered work queue: {root / 'state.md'}; field work_items."
+        queue_locator = "Full ordered work queue: RUN/state.md; field work_items."  # RUN: the References block
         proposed_queue_locator = (
-            f"Proposed queue awaiting Improve: {root / 'state.md'}; "
+            "Proposed queue awaiting Improve: RUN/state.md; "
             "field active_improve.seed_result.work_items."
         )
         replacement_rule = (
@@ -2751,9 +2753,11 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertIn(f"CLI locator: {cli.resolve()}", initial)
         # One State line locates the run directory (and names results and inbox); the repository is located by the
         # knowledge-index line (2026-10-11 dedupe: the separate run-directory and repository lines went).
-        self.assertIn(f"State: {run_dir.resolve() / 'state.md'} (results/, inbox/ beside it)", initial)
-        self.assertIn(f"Repository knowledge index (host-authored, if present): {repo.resolve() / 'SHIPLOOP.md'}",
-                      initial)
+        # (prose paths print as the References block's symbols since 2026-10-16; the block defines them)
+        self.assertIn("State: RUN/state.md (results/, inbox/ beside it)", initial)
+        self.assertIn(f" · RUN = {run_dir.resolve()} (run records)", initial)
+        self.assertIn("Repository knowledge index (host-authored, if present): WORKTREE/SHIPLOOP.md", initial)
+        self.assertIn(f"WORKTREE = {repo.resolve()} (all product work", initial)
         self.assertNotIn("Run directory locator:", initial)
         self.assertNotIn("Repository locator:", initial)
         self.assertEqual(initial.count("Current stage guidance:"), 1)

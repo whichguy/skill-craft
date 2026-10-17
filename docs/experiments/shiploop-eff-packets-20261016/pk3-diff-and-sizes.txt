@@ -1,0 +1,99 @@
+# PK3 (symbolic prose paths), obligation check: the 24 whole renders of node-fix-bug (inline and ask-agent), PK2 -> this commit
+# both sides have their symbols written back as absolute paths (--expand), so only what is not a symbol substitution shows
+  16    - References (defined once; the packet names files by these symbols):
+  16    - HOME = /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP/docs/shiploop (knowledge home) · RUN = /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP/run (run records)
+  16    + References (symbols expand to these absolute paths; commands stay literal):
+  16    + HOME = /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP/docs/shiploop (knowledge home) · RUN = /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP/run (run records) · GUIDES = /Users/dadleet/src/skill-cr
+
+# the real change, per packet (lines removed/added are the substituted lines), whole renders
+=== inline/full
+01-step-plan                  23957 ->  22725 (-1232)  removed 17 lines, added 17 lines
+02-step-plan-improve           2362 ->   2362 (+0)  removed 0 lines, added 0 lines
+03-test-spec                  13215 ->  12759 (-456)  removed 9 lines, added 9 lines
+04-test-spec-improve           1594 ->   1594 (+0)  removed 0 lines, added 0 lines
+05-validate-existing          13565 ->  13100 (-465)  removed 10 lines, added 10 lines
+06-implement                  17601 ->  17048 (-553)  removed 10 lines, added 10 lines
+07-implement-improve           2303 ->   2303 (+0)  removed 0 lines, added 0 lines
+08-test                       18933 ->  18239 (-694)  removed 12 lines, added 12 lines
+09-document                   12291 ->  11888 (-403)  removed 9 lines, added 9 lines
+10-verify                     19208 ->  18470 (-738)  removed 13 lines, added 13 lines
+11-carry-forward              20955 ->  19811 (-1144)  removed 18 lines, added 18 lines
+12-carry-forward-improve       2291 ->   2291 (+0)  removed 0 lines, added 0 lines
+=== ask-agent/full
+01-step-plan                  27382 ->  26053 (-1329)  removed 18 lines, added 18 lines
+02-step-plan-improve           2362 ->   2362 (+0)  removed 0 lines, added 0 lines
+03-test-spec                  14783 ->  14327 (-456)  removed 9 lines, added 9 lines
+04-test-spec-improve           1594 ->   1594 (+0)  removed 0 lines, added 0 lines
+05-validate-existing          15133 ->  14668 (-465)  removed 10 lines, added 10 lines
+06-implement                  20854 ->  20204 (-650)  removed 11 lines, added 11 lines
+07-implement-improve           2303 ->   2303 (+0)  removed 0 lines, added 0 lines
+08-test                       20501 ->  19807 (-694)  removed 12 lines, added 12 lines
+09-document                   13859 ->  13456 (-403)  removed 9 lines, added 9 lines
+10-verify                     20975 ->  20237 (-738)  removed 13 lines, added 13 lines
+11-carry-forward              23726 ->  22582 (-1144)  removed 18 lines, added 18 lines
+12-carry-forward-improve       2291 ->   2291 (+0)  removed 0 lines, added 0 lines
+TOTAL 314038 -> 302474 (-11564)
+
+# raw characters per packet (packet_sizes.py --rows), after PK2 -> after PK3 (the printed heads included)
+== inline/full: total 157794 -> 150543 (-7251, -4.6%)
+step-plan         24995  23601 -1394
+step-plan-improv   2524   2524    +0
+test-spec         14199  13581  -618
+test-spec-improv   1756   1756    +0
+validate-existin  14711  14030  -681
+implement         18504  17789  -715
+implement-improv   2465   2465    +0
+test              20079  19196  -883
+document          13464  12872  -592
+verify            20327  19373  -954
+carry-forward     22317  20903 -1414
+carry-forward-im   2453   2453    +0
+== inline/printed: total 133364 -> 132051 (-1313, -1.0%)
+step-plan         19850  19994  +144
+step-plan-improv   2524   2524    +0
+test-spec         14199  13581  -618
+test-spec-improv   1756   1756    +0
+validate-existin  14711  14030  -681
+implement         15165  15309  +144
+implement-improv   2465   2465    +0
+test              15057  15130   +73
+document          13464  12872  -592
+verify            15680  15753   +73
+carry-forward     16040  16184  +144
+carry-forward-im   2453   2453    +0
+== ask-agent/full: total 175282 -> 167837 (-7445, -4.2%)
+step-plan         28420  26929 -1491
+step-plan-improv   2524   2524    +0
+test-spec         15767  15149  -618
+test-spec-improv   1756   1756    +0
+validate-existin  16279  15598  -681
+implement         21757  20945  -812
+implement-improv   2465   2465    +0
+test              21647  20764  -883
+document          15032  14440  -592
+verify            22094  21140  -954
+carry-forward     25088  23674 -1414
+carry-forward-im   2453   2453    +0
+== ask-agent/printed: total 137045 -> 140953 (+3908, +2.9%)
+step-plan         21532  21676  +144
+step-plan-improv   2524   2524    +0
+test-spec         15767  15149  -618
+test-spec-improv   1756   1756    +0
+validate-existin  11058  15598 +4540
+implement         16279  16423  +144
+implement-improv   2465   2465    +0
+test              15057  15130   +73
+document          15032  14440  -592
+verify            15879  15952   +73
+carry-forward     17243  17387  +144
+carry-forward-im   2453   2453    +0
+ALL 603485 -> 591384 (-12101, -2.0%)
+
+# whole series: base 398466a3 -> this commit
+== inline/full: total 155050 -> 150543 (-4507, -2.9%)
+== inline/printed: total 129991 -> 132051 (+2060, +1.6%)
+== ask-agent/full: total 172538 -> 167837 (-4701, -2.7%)
+== ask-agent/printed: total 133263 -> 140953 (+7690, +5.8%)
+ALL 590842 -> 591384 (+542, +0.1%)
+
+# note: ask-agent/printed 05-validate-existing was a head (full render 16,108 characters, over the 16,000 print limit); the symbols bring the full render to 15,976, so it now prints whole. That is why the printed rows grow while the whole renders shrink.

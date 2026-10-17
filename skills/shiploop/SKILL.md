@@ -773,10 +773,14 @@ test that ShipLoop ran is the evidence.
 
 Every packet opens, after its goal, with a **References** block that defines each
 path once: `HOME` (the knowledge home `docs/shiploop/`, each file with its
-sections, a missing one marked with the stage that writes it), `FEATURE` (this
-run's feature folder: spec, plan, test spec), `RUN` (the run directory) and
-`WORKTREE` (the execution checkout). The rest of the packet names files by these
-symbols; a command you run verbatim keeps its absolute paths. An inner stage's
+sections, a missing one marked with the stage that writes it), `RUN` (the run
+directory), `WORKTREE` (the execution checkout) and `GUIDES` (this skill's
+references directory). Its heading reads "symbols expand to these absolute paths;
+commands stay literal": the prose of the packet names files by these symbols
+(`RUN/notes/x.md`, `GUIDES/navigator.md#anchor`), while the callback and every
+command line, the Keepalive marker, the "Full packet:" line, the Progress view
+link, the `evidence_refs` example and the `/until-loop` argument keep absolute
+paths, because hooks and the loop runtime read them. An inner stage's
 block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
 results and durable products this stage depends on, labelled `<item> <stage>

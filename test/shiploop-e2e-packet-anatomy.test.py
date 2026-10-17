@@ -264,7 +264,10 @@ OWNED = DEDUPED.replace(
     f"Lost context, or unsure of anything about this run? Read {RUN}/context-index.md first: it maps every file of this run "
     "and what it holds; open the file you need from there.\n").replace(
     f"Run context index (the run's request): {RUN}/context.md\n",
-    f"This action's pass log (optional): {RUN}/notes/nav-a.md\n")
+    f"This action's pass log (optional): {RUN}/notes/nav-a.md\n").replace(
+    f"Every other policy and guide, and the long form of the rules: {RUN}/reference.md (#policies, #rules, #recovery).\n",
+    "Every other policy and guide, and the long form of the rules: RUN/reference.md (#policies, #rules, #recovery).\n"
+    "Access-readiness policy: GUIDES/research-loop.md#early-access-readiness\n")
 
 OWNED_EXPECTED = {
     "ShipLoop navigator | step-plan": "head",
@@ -273,6 +276,8 @@ OWNED_EXPECTED = {
     "Callback for this stage": "callback",
     "Allowed outcomes: done | repeat": "result-contract",
     "This action's pass log": "context-index",
+    "Access-readiness policy: GUIDES/": "reading-list",
+    "Every other policy and guide": "reading-list",
     "Results this stage builds on": "context-index",
     "- plan: ": "context-index",
 }

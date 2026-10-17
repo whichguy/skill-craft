@@ -68,7 +68,7 @@ def last_action(state: dict, stage: str, outcome: str, item: str = "W1") -> str:
 
 
 def result_path(action: str) -> str:
-    return str(dry_run.RUN / "results" / (action + ".md"))
+    return "RUN/results/" + action + ".md"   # a prose path prints as the References block's symbol (2026-10-16)
 
 
 class ReviseTests(unittest.TestCase):

@@ -28,6 +28,7 @@ if str(SCRIPTS) not in sys.path:
 
 import shiploop_consumer_delivery as consumer_delivery  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_prompts as guidance  # noqa: E402
 
 
@@ -680,7 +681,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertIn('"delivery_assessment"', intake)
         self.assertIn('"necessity": "unresolved"', intake)
         self.assertIn('"obligations": []', intake)
-        self.assertIn(str(SCRIPTS.parent / "references" / "consumer-delivery.md"), intake)
+        self.assertIn(str(SCRIPTS.parent / "references" / "consumer-delivery.md"), symbols.guides_expanded(intake))
         self.assertEqual(
             consumer_delivery.canonical_assessment(
                 consumer_delivery.template_assessment(state, "intake")

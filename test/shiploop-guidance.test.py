@@ -167,10 +167,22 @@ if str(SCRIPTS) not in sys.path:
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_standalone_improve as standalone_improve  # noqa: E402
 import shiploop_store as store  # noqa: E402
+
+
+def render_with_guides(*args, **kwargs) -> str:
+    """The packet, with GUIDES/<file> written as the guide's absolute path: these tests pin WHICH guide a packet routes to
+    (a packet prints guides as GUIDES/<file> since 2026-10-16; the References block defines the symbol)."""
+    return symbols.guides_expanded(navigator.render(*args, **kwargs))
+
+
+def handoff_with_guides(*args, **kwargs) -> str:
+    """The Improve handoff file's text, guides expanded as in ``render_with_guides``."""
+    return symbols.guides_expanded(navigator.improve_handoff_text(*args, **kwargs))
 
 
 def heading_anchor(text: str) -> str:
@@ -293,11 +305,11 @@ class GuidanceTests(unittest.TestCase):
             shown, _ = navigator._improve_entry(self.run, {**state, "improve_skill": str(IMPROVE_CARD)})
         if guarded:
             with patch.object(Path, "read_text", new=_knowledge_reads_only()):
-                packet = navigator.render(None, self.run, shown)
+                packet = render_with_guides(None, self.run, shown)
         else:
-            packet = navigator.render(None, self.run, shown)
+            packet = render_with_guides(None, self.run, shown)
         if shown.get("active_improve") is not None and shown["active_improve"]["skill"] is not None:
-            packet += "\n" + navigator.improve_handoff_text(None, self.run, shown)
+            packet += "\n" + handoff_with_guides(None, self.run, shown)
         return packet
 
     def cold_packet(self, state: dict) -> tuple[dict, str]:
@@ -508,13 +520,13 @@ class GuidanceTests(unittest.TestCase):
             if stage == "plan":
                 # The preceding host-authored test-strategy result explicitly
                 # carries these locators; the navigator did not discover them.
-                self.assertIn(prior_baseline_ref, producer_packet)
-                self.assertIn(incoming_delta_ref, producer_packet)
+                self.assertIn(prior_baseline_ref, symbols.expanded(producer_packet))
+                self.assertIn(incoming_delta_ref, symbols.expanded(producer_packet))
             if stage == "step-plan":
                 self.assertEqual(navigator._current_work_item(recovered), "W1")
                 self.assertIn("Work item context: " + item_context, producer_packet)
-                self.assertIn(prior_baseline_ref, producer_packet)
-                self.assertIn(incoming_delta_ref, producer_packet)
+                self.assertIn(prior_baseline_ref, symbols.expanded(producer_packet))
+                self.assertIn(incoming_delta_ref, symbols.expanded(producer_packet))
 
             extra: dict[str, object] = {}
             if stage in {"discovery", "test-strategy", "plan", "step-plan"}:
@@ -626,7 +638,7 @@ class GuidanceTests(unittest.TestCase):
         state = self.state()
         while state["status"] != "done":
             stage = navigator.current_stage(state)
-            packet = navigator.render(None, self.run, state)
+            packet = render_with_guides(None, self.run, state)
             for label, locator in prompts.STAGE_REFERENCES[stage]:
                 with self.subTest(stage=stage, locator=locator):
                     self.assertIn(label + ": " + str(REFERENCES / locator), packet)
@@ -653,7 +665,7 @@ class GuidanceTests(unittest.TestCase):
                 navigator.save(self.run, state)
                 before = (self.run / "state.md").read_bytes()
                 recovered = store.read_record(self.run / "state.md")
-                packet = navigator.render(None, self.run, recovered)
+                packet = render_with_guides(None, self.run, recovered)
 
                 self.assertEqual((self.run / "state.md").read_bytes(), before)
                 self.assertEqual(navigator.current_stage(recovered), stage)
@@ -802,7 +814,7 @@ class GuidanceTests(unittest.TestCase):
         """
         index = self.repo / "SHIPLOOP.md"
         index.write_text("# Fixture local skill index\n", encoding="utf-8")
-        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
+        index_route = "Repository knowledge index (host-authored, if present): WORKTREE/" + index.name
         observed: list[str] = []
         improved: list[str] = []
 
@@ -1019,7 +1031,7 @@ class GuidanceTests(unittest.TestCase):
         first_item, first_packet = self.cold_packet(state)
         self.assertEqual(navigator._current_work_item(first_item), "W1")
         self.assertIn("Work item context: " + w1_selection, first_packet)
-        self.assertIn("Repository knowledge index (host-authored, if present): " + str(index), first_packet)
+        self.assertIn("Repository knowledge index (host-authored, if present): WORKTREE/" + index.name, first_packet)
 
         while not (
             navigator.current_stage(state) == "step-plan"
@@ -1030,7 +1042,7 @@ class GuidanceTests(unittest.TestCase):
         second_item, second_packet = self.cold_packet(state)
         self.assertEqual(navigator._current_work_item(second_item), "W2")
         self.assertIn("Work item context: " + w2_context, second_packet)
-        self.assertIn("Repository knowledge index (host-authored, if present): " + str(index), second_packet)
+        self.assertIn("Repository knowledge index (host-authored, if present): WORKTREE/" + index.name, second_packet)
         self.assertNotIn(str(selected_card), second_packet)
         self.assertNotIn(w1_selection, second_packet)
 
@@ -1161,7 +1173,7 @@ class GuidanceTests(unittest.TestCase):
         navigator.save(self.run, state)
         before = (self.run / "state.md").read_bytes()
         recovered = store.read_record(self.run / "state.md")
-        packet = navigator.render(None, self.run, recovered)
+        packet = render_with_guides(None, self.run, recovered)
 
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         self.assertEqual(recovered["work_items"][0]["context"], context)
@@ -1267,7 +1279,7 @@ class GuidanceTests(unittest.TestCase):
                     continue
 
                 with patch.object(Path, "read_text", new=_knowledge_reads_only()):
-                    packet = navigator.render(None, self.run, recovered)
+                    packet = render_with_guides(None, self.run, recovered)
                 self.assertEqual((self.run / "state.md").read_bytes(), before)
                 assert_test_sources(packet, inner=stage != "system-test-author")
                 observed.add(stage)
@@ -1313,7 +1325,7 @@ class GuidanceTests(unittest.TestCase):
             # the stage does not read it, by one printed block carrying the references.
             if strategy_printed:
                 self.assertIn("Run-wide test strategy source (untrusted host report; revalidate relevance before use): "
-                              + str(self.run / "results" / (strategy_action + ".md")) + " (action "
+                              + "RUN/results/" + strategy_action + ".md" + " (action "
                               + strategy_action + "; state.md accepted." + strategy_action + ")", packet)
                 self.assertIn(strategy_ref, packet)
             else:
@@ -1325,7 +1337,7 @@ class GuidanceTests(unittest.TestCase):
                 # Packet re-cut: one line names the source, its result and its state entry (it was four).
                 self.assertIn(
                     "Current item test-decision source (untrusted host report; revalidate relevance before use): "
-                    + str(record) + " (action " + action_id + "; state.md accepted." + action_id + ")",
+                    + "RUN/results/" + action_id + ".md" + " (action " + action_id + "; state.md accepted." + action_id + ")",
                     packet,
                 )
                 self.assertIn(reference, packet)
@@ -1688,8 +1700,8 @@ class GuidanceTests(unittest.TestCase):
         pending = store.read_record(self.run / "state.md")
         pending_bytes = (self.run / "state.md").read_bytes()
         # The Improve packet is two instructions; the handoff file holds the rest (packet re-cut R3).
-        pending_packet = normalized(navigator.render(None, self.run, pending) + "\n"
-                                    + navigator.improve_handoff_text(None, self.run, pending))
+        pending_packet = normalized(render_with_guides(None, self.run, pending) + "\n"
+                                    + handoff_with_guides(None, self.run, pending))
         self.assertEqual((self.run / "state.md").read_bytes(), pending_bytes)
         self.assertEqual(pending["active_improve"]["action_id"], release_plan_action)
         self.assertEqual(
@@ -1909,7 +1921,7 @@ class GuidanceTests(unittest.TestCase):
         cold = store.read_record(self.run / "state.md")
         self.assertEqual(cold["work_items"][0]["context"], context)
         self.assertEqual(cold["accepted"][action["id"]]["evidence_refs"], refs)
-        self.assertIn("Work item context: " + context, navigator.render(None, self.run, cold))
+        self.assertIn("Work item context: " + context, render_with_guides(None, self.run, cold))
 
     def test_improve_and_source_return_guidance_keep_the_existing_boundary(self) -> None:
         card = IMPROVE_CARD.read_text(encoding="utf-8")
@@ -2011,7 +2023,7 @@ class GuidanceTests(unittest.TestCase):
             navigator.save(self.run, state)
             before = (self.run / "state.md").read_bytes()
             recovered = store.read_record(self.run / "state.md")
-            packet = navigator.render(core, self.run, recovered)
+            packet = render_with_guides(core, self.run, recovered)
             self.assertEqual((self.run / "state.md").read_bytes(), before)
             self.assertEqual(packet.count(relocated_route), 1, packet)
             self.assertNotIn(str(REFERENCES), packet)
@@ -2066,7 +2078,7 @@ class GuidanceTests(unittest.TestCase):
             recovered = store.read_record(self.run / "state.md")
             self.assertEqual(recovered["improve_skill"], "")
             self.assertIsNone(recovered["active_improve"])
-            packet = navigator.render(core, self.run, recovered)
+            packet = render_with_guides(core, self.run, recovered)
             self.assertEqual((self.run / "state.md").read_bytes(), before)
             self.assertEqual(packet.count(relocated_route), 1, packet)
             self.assertNotIn(str(REFERENCES), packet)
@@ -2122,7 +2134,7 @@ class GuidanceTests(unittest.TestCase):
         """Current-stage routing survives recovery without replaying earlier guide refs."""
         index = self.repo / "SHIPLOOP.md"
         index.write_text("# Fixture decision index\n", encoding="utf-8")
-        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
+        index_route = "Repository knowledge index (host-authored, if present): WORKTREE/" + index.name
         routes = tuple(dict.fromkeys(SERVICE_DISCOVERY_ROUTES.values()))
         observed: list[str] = []
         improved: list[str] = []
@@ -2228,7 +2240,7 @@ class GuidanceTests(unittest.TestCase):
             "W2 local change: reopen " + index_ref
             + " and reassess its own scope; no customer-service decision carries over."
         )
-        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
+        index_route = "Repository knowledge index (host-authored, if present): WORKTREE/" + index.name
         state = self.state()
 
         while navigator.current_stage(state) != "plan":

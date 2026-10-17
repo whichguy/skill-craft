@@ -16,6 +16,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_prompts as navigator_prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -102,10 +103,10 @@ class InteractionGuidanceTests(unittest.TestCase):
         before_state = deepcopy(recovered)
         before_action = dict(navigator.current_action(recovered))
 
-        packet = navigator.render(None, run_root, recovered)
+        packet = symbols.guides_expanded(navigator.render(None, run_root, recovered))   # GUIDES/<file> as an absolute path
         if recovered.get("active_improve"):
             # The Improve packet is two instructions; the guidance rides in the handoff file it names (re-cut R3).
-            packet += "\n" + navigator.improve_handoff_text(None, run_root, recovered)
+            packet += "\n" + symbols.guides_expanded(navigator.improve_handoff_text(None, run_root, recovered))
 
         # A packet prints a policy locator only when its stage text names that guide; every other packet points to
         # reference.md#policies, which lists the same locator (2026-10-11 dedupe).
@@ -160,7 +161,7 @@ class InteractionGuidanceTests(unittest.TestCase):
             label="bound-v3-improve-child",
         )
 
-        self.assertIn(self.locator, packet)
+        self.assertIn(self.locator, symbols.guides_expanded(packet))
         self.assertIn("Selected Improve skill:", packet)
         for term in (
             "actor interactions",
@@ -411,7 +412,7 @@ class InteractionGuidanceTests(unittest.TestCase):
                 bound_handoff = navigator.improve_handoff_text(None, run_root, recovered_bound)
                 self.assertIn("Interaction design guide", producer_packet)
                 for packet in (producer_packet, pending_packet + pending_handoff, bound_packet + bound_handoff):
-                    self.assertIn(self.locator, packet)
+                    self.assertIn(self.locator, symbols.guides_expanded(packet))
                     self.assertIn(case["source"], packet)
                     self.assertIn(case["decision"], packet)
                 if case.get("design_basis"):

@@ -210,9 +210,11 @@ class PacketTests(unittest.TestCase):
         expected = "This action's pass log"  # its own line; the index pointer is the packet's second line (2026-10-16)
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
         self.assertIn(expected, packet)
-        self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), packet)
+        # A prose path prints as the References block's symbol (2026-10-16); RUN is defined in the same packet.
+        self.assertIn("RUN/notes/" + action + ".md", packet)
+        self.assertIn(" · RUN = " + str(dry_run.RUN) + " (run records)", packet)
         paused = nav.control(state, "pause", "The user asked to stop for now.")
-        self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), nav.render(dry_run.CORE, dry_run.RUN, paused))
+        self.assertIn("RUN/notes/" + action + ".md", nav.render(dry_run.CORE, dry_run.RUN, paused))
 
     def test_the_pass_log_line_tells_the_pass_to_create_it_and_a_reset_to_open_it_only_if_it_exists(self) -> None:
         # Wording-level check, not a refusal route: the packet file is written once, when the action starts,

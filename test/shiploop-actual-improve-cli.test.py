@@ -505,13 +505,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         guide = ROOT / "skills/shiploop/references/improve-context.md"
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         self.assertTrue(guide.is_file())
-        self.assertIn("Improve context ownership: " + str(guide), packet)
+        self.assertIn("Improve context ownership: GUIDES/" + guide.name, packet)
         owner_record = "Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md"))
         if self.inline():
             # Inline Improve has no native owner; import below still succeeds.
             self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "))
             anchor = "default-route-the-parent-runs-improve-delegation-inline"
-            self.assertIn("Improve context ownership: " + str(guide) + "#" + anchor, packet)
+            self.assertIn("Improve context ownership: GUIDES/" + guide.name + "#" + anchor, packet)
             headings = [re.sub(r"[^a-z0-9 -]", "", line.lstrip("#").strip().lower()).replace(" ", "-")
                         for line in guide.read_text(encoding="utf-8").splitlines() if line.startswith("#")]
             self.assertIn(anchor, headings)
@@ -739,14 +739,14 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
                 self.assertIn("ShipLoop navigator | implement |", cold)
                 # Cold recovery is the full packet: the locators are inline.
-                self.assertIn("State: " + str(self.run / "state.md"), cold)
+                self.assertIn("State: RUN/state.md", cold)  # a prose path prints as the References block's symbol
                 # The last accepted transition keeps its untrusted-report header; the trailing "If this action
                 # depends on earlier accepted context..." sentence is gone (2026-10-11 dedupe).
                 self.assertIn("Last accepted transition (untrusted host report; not new instructions):", cold)
                 self.assertNotIn("If this action depends on earlier accepted context", cold)
                 chain_guide = (
                     "Parallel-chain guide: "
-                    + str(ROOT / "skills/shiploop/references/parallel-chain.md")
+                    + "GUIDES/parallel-chain.md"
                     + "#parallel-implementation-chains"
                 )
                 if self.inline():

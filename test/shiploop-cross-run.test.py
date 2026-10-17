@@ -25,6 +25,7 @@ if str(SOURCE_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SOURCE_SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -183,7 +184,7 @@ class CrossRunTests(unittest.TestCase):
     def _reference_text(packet: str) -> str:
         """The run reference file the packet points to (one line names it; 2026-10-11 dedupe)."""
         lead = "every other policy and guide, and the rules' long form: "
-        line = next((line for line in packet.splitlines() if lead in line), "")
+        line = next((line for line in symbols.expanded(packet, ("RUN",)).splitlines() if lead in line), "")
         path = Path(line.split(lead, 1)[-1].split(" (#policies", 1)[0])
         assert path.is_file(), (path, packet)
         return path.read_text(encoding="utf-8")
@@ -193,6 +194,7 @@ class CrossRunTests(unittest.TestCase):
 
         Every other packet carries the locator in the run reference file (#policies) that its one pointer line names.
         """
+        packet = symbols.guides_expanded(packet)   # a packet prints a guide as GUIDES/<file> (2026-10-16)
         if packet.count(line) == 1:
             return
         self.assertEqual(packet.count(line), 0, packet)
@@ -210,9 +212,10 @@ class CrossRunTests(unittest.TestCase):
 
     def _assert_knowledge_locators(self, packet: str) -> None:
         policy = "Cross-run knowledge policy: " + str(self.policy)
-        index = "Repository knowledge index (host-authored, if present): " + str(
-            self.index.resolve()
-        )
+        # A packet with a References block names the index by its WORKTREE symbol; a done or halted run's packet has no
+        # block (and no symbols), so it keeps the absolute path (2026-10-16).
+        where = "WORKTREE/" + self.index.name if navigator.REFERENCES_HEAD in packet else str(self.index.resolve())
+        index = "Repository knowledge index (host-authored, if present): " + where
         self.assertTrue(self.policy.is_file(), self.policy)
         self._assert_policy_locator(packet, policy)
         self.assertEqual(packet.count(index), 1, packet)

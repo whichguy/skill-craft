@@ -208,6 +208,7 @@ RULES: tuple[Rule, ...] = (
     # --- reading list: a "Label: /absolute/path[#anchor]" line (_run_rules policies and guides, STAGE_REFERENCES)
     _r("reading-list", r"^Repository knowledge index "),
     _r("reading-list", r"^[^:\n]{3,140}: /[^ \n]+$"),
+    _r("reading-list", r"^[^:\n]{3,140}: GUIDES/[^ \n]+$"),   # a guide, since 2026-10-16 written as the GUIDES symbol
     _r("reading-list", r"^[^:\n]{3,140}: [A-Za-z0-9_.-]+\.md$"),
     # One pointer line replaces every locator the packet's stage text does not name (2026-10-11 dedupe).
     _r("reading-list", r"^Every other policy and guide"),

@@ -1743,7 +1743,7 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         """One statement per packet: the duty says an isolated run's release-verify cannot return; the rerun block must not."""
         self.drive_to("release-verify")
         text = " ".join(self.packet().split())
-        self.assertIn("recorded from the work area " + str(self.repo), text)
+        self.assertIn("recorded from the work area WORKTREE", text)   # WORKTREE: the References block (2026-10-16)
         self.assertEqual(text.count("cannot return"), 1, text)
 
 

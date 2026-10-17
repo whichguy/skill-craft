@@ -58,3 +58,32 @@ is in a quoted file; no unexplained line in any of the ten stages.
 
 Not done: nothing listed in the brief was skipped. The ID list for followed entries was done because it can be exact (substring
 of the quoted file's text, which is where the entry was cut from).
+
+## PK3: symbolic prose paths (status: firm on offline and live-file estimate; model behaviour unmeasured)
+
+Question: how many absolute-path bytes in a packet are prose that a symbol can stand for without breaking a hook, the loop
+runtime or a command? Live run: absolute paths were 14% of packet bytes and 22% of the model's output tokens.
+
+Change: `navigator.prose_symbols` runs over the whole packet text (render, packet_head, the Improve handoff) when it carries the
+References block, and writes the paths of a closed list of prose lines as symbols (`PROSE_PATH_LINES`, the guide lines
+`<label>: GUIDES/<file>#<anchor>` and bare evidence bullets). `symbolic()` knows `GUIDES`; `reference_paths` computes it from the
+package the packet belongs to. Nothing is symbolic unless named: commands (every line with a ShipLoop CLI call), recorded test
+commands, the Keepalive marker, `Full packet:`, the Progress view link, the `evidence_refs` example, the Argument block, the
+`/improve` line and the index pointer keep absolute paths. The lines found by running every dry-run scenario and the live packets:
+see `PROSE_PATH_LINES`; two more (the revise and replan lines) were found only by the existing scenario test, which now fails on
+any remaining prose path.
+
+Measured: whole renders of the node-fix-bug case (`pk3-diff-and-sizes.txt`): -4,507 (inline,
+-2.9%) and -4,701 (ask-agent, -2.7%) against the base; the series PK1+PK2+PK3 nets +542 of 590,842 over all 48 packets because
+PK1 adds 344 characters to every packet and the printed heads change mode (below). On the live Salesforce packet files
+(`live_estimate.py` applied to the 11 real files, symbols and GUIDES definition added) 641,731 -> 619,774 characters (-3.4%),
+-1.9% to -6.5% per packet.
+
+Obligation check (`pk3-diff-and-sizes.txt`): with the symbols written back as absolute paths on both sides, the only lines that
+differ in the 24 whole renders are the References heading and the line that defines `GUIDES`. One printed head changed mode:
+ask-agent `validate-existing` was a head (full render 16,108 characters) and is now 15,976, under the 16,000 print limit, so it
+prints whole; nothing was lost, the head's quoted block simply appears.
+
+Risks recorded: a model must expand a symbol to read a file or run a command that uses one (the block defines each and says
+commands stay literal); a host that copies a prose path into a command would now copy `RUN/...` (no command in a packet is
+symbolic, and the existing test refuses one that is).

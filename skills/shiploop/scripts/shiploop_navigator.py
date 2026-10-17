@@ -1625,7 +1625,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         "Current stage guidance:",
         _named_text(state, stage, route),
         "",
-        *_reference_lines(root, state, stage, workitem),
+        *_reference_lines(root, state, stage, workitem, core),
         *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if not state.get("active_improve") else []),
         "",
@@ -1646,7 +1646,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         head = "\n".join(lines + ["Knowledge files this stage reads and the hand-offs from earlier stages: in the full "
                                   "packet, each quoted whole."])
     # A closing line a reader can tell a whole print by (the harness measures what was shown; a head cut by a pipe lacks it).
-    return head + "\n" + HEAD_END + "\n"
+    return prose_symbols(head, core, Path(root), state) + "\n" + HEAD_END + "\n"
 
 
 _GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance.INNER_GROUPS)
@@ -4025,8 +4025,13 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            timeline: Mapping[str, Any] | None = None) -> str:
     """Render a packet; worktree packets derive a read-only return projection.
 
-    Rendering does not mutate run or product state; ``emit`` supplies the display-only timeline.
+    Rendering does not mutate run or product state; ``emit`` supplies the display-only timeline.  Prose paths print as the
+    References block's symbols (``prose_symbols``); commands and the other lines hooks read keep their absolute paths.
     """
+    return prose_symbols(_render_lines(core, root, state, timeline), core, Path(root), state)
+
+
+def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Mapping[str, Any] | None) -> str:
     validate(state)
     root = Path(root)
     try:
@@ -4054,7 +4059,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
-        *_reference_lines(root, state, stage, workitem),
+        *_reference_lines(root, state, stage, workitem, core),
         *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if state["status"] == "active" and not state.get("active_improve") else []),
         *_step_lines(state, stage, workitem),
@@ -4550,27 +4555,68 @@ _INNER_GATES = {
 #
 # Every file name comes from knowledge_home's tables (LIVING, STAGE_FILES), so a change there changes the block with no
 # edit here.
-REFERENCES_HEAD = "References (defined once; the packet names files by these symbols):"
-REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE")
+REFERENCES_HEAD = "References (symbols expand to these absolute paths; commands stay literal):"
+REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE", "GUIDES")
 BUILDS_ON_HEAD = ("Results this stage builds on (open each not already in your context; report a conflict instead of "
                   "choosing silently):")
 
-def reference_paths(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
-    """{symbol: absolute path} for the References block's global symbols."""
+def reference_paths(root: Path, state: Mapping[str, Any], core: Any = None) -> dict[str, str]:
+    """{symbol: absolute path} for the References block's global symbols (GUIDES is the skill's references directory)."""
     repo = Path(str(state["repo"]))
-    return {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo)}
+    return {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo),
+            "GUIDES": str(_reference_dir(core))}
 
 
-def symbolic(text: str, root: Path, state: Mapping[str, Any]) -> str:
-    """``text`` with each absolute HOME, RUN or WORKTREE path written as its symbol (longest prefix first).
+def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None) -> str:
+    """``text`` with each absolute HOME, RUN, WORKTREE or GUIDES path written as its symbol (longest prefix first).
 
     For prose only: a command the model runs verbatim keeps its absolute paths.  A relative or root path is never
     replaced, so a symbol cannot stand for a fragment of a word.
     """
-    for name, prefix in sorted(reference_paths(root, state).items(), key=lambda pair: -len(pair[1])):
+    for name, prefix in sorted(reference_paths(root, state, core).items(), key=lambda pair: -len(pair[1])):
         if prefix.startswith("/") and len(prefix) > 1:
             text = re.sub(re.escape(prefix) + r"(?![\w.@+~-])", name, text)
     return text
+
+
+# The packet lines that name a path under HOME, RUN, WORKTREE or the skill's guides as prose (owner, 2026-10-16: absolute
+# paths were 14% of a live run's packet bytes and 22% of the model's output tokens).  Their paths print as the symbols the
+# References block defines.  The list is closed on purpose: a line prints its paths symbolically only when it is named here
+# or is a guide line ("<label>: GUIDES/<file>#<anchor>") or a bare evidence bullet, so a new line that prints a path stays
+# literal until someone adds it, and no command can be rewritten by accident.  ALWAYS LITERAL, because hooks and the loop
+# runtime read the absolute paths: the callback and every command line (complete, next, pause, halt, lint, red-check,
+# backchain-check, improve-start, improve-commit, improve-bind), the Keepalive marker, the "Full packet:" line, the
+# Progress view link, the evidence_refs example in the result template, the /until-loop Argument block, the
+# `/improve ShipLoop Improve: ...` line and the index pointer line.  A test lists the paths left in a packet's lines and
+# fails on any that is neither listed here nor one of those.
+PROSE_PATH_LINES = re.compile(
+    r"^(?:This action's pass log \(|Full ordered work queue: |Prior Improve evidence and lessons: |"
+    r"Latest reconciliation finding and immutable evidence: |Spec and architecture changes since the run began: not computed|"
+    r"State: |Repository knowledge \w+ \(host-authored|Test rerun: on done|Where and floors: |Commands ShipLoop ran \(|"
+    r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
+    r"This stage's result before the replan: |The result that sent it back \(|The item's previous step plan \(|"
+    r"Proposed queue awaiting Improve: |"
+    r"(?:Current item step-plan|Current item test-decision|Run-wide test strategy) source \()")
+
+
+def prose_symbols(text: str, core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """``text`` with the paths of its prose lines (``PROSE_PATH_LINES``) written as the References block's symbols.
+
+    A packet without that block defines no symbols and is returned unchanged (a done or halted run's packet, the Improve
+    packet).  Applied to the whole packet, so every generator's prose line is covered in one place.
+    """
+    if REFERENCES_HEAD not in text:
+        return text
+    paths = reference_paths(root, state, core)
+    anywhere = "|".join(re.escape(path) for path in paths.values())
+    guide = re.compile(r"[^:\n]{3,80}: " + re.escape(paths["GUIDES"]) + r"/[\w./-]+(?:#[\w-]+)?")
+    entry = re.compile(r"- (?:[\w-]+: )?(?:" + anywhere + r")(?![\w.@+~-])\S*(?:[;] .*)?")  # a bullet that is a path
+    rows = []
+    for line in text.split("\n"):
+        if PROSE_PATH_LINES.match(line) or guide.fullmatch(line) or entry.fullmatch(line):
+            line = symbolic(line, root, state, core)
+        rows.append(line)
+    return "\n".join(rows)
 
 
 def reference_name(name: str) -> str:
@@ -4593,8 +4639,8 @@ def reference_writer(name: str) -> str:
 _LIVING_LABELS = {"spec.md": "living spec", "environment.md": "environment", knowledge.ARCHITECTURE: "architecture"}
 
 
-def _reference_global_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
-    paths = reference_paths(root, state)
+def _reference_global_lines(root: Path, state: Mapping[str, Any], core: Any = None) -> list[str]:
+    paths = reference_paths(root, state, core)
     repo = Path(str(state["repo"]))
 
     def entry(name: str) -> str:
@@ -4606,7 +4652,8 @@ def _reference_global_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
                    + reference_writer(name) + ")"))
 
     return [REFERENCES_HEAD,
-            "HOME = " + paths["HOME"] + " (knowledge home) · RUN = " + paths["RUN"] + " (run records)",
+            "HOME = " + paths["HOME"] + " (knowledge home) · RUN = " + paths["RUN"] + " (run records) · GUIDES = "
+            + paths["GUIDES"] + " (the skill's guides)",
             "WORKTREE = " + str(repo) + " (all product work; a working directory, never a --result value"
             + ("; an isolated worktree, returned to the original branch only at release or handoff)"
                if state.get("execution_mode") == "navigator-worktree" else ")"),
@@ -4941,7 +4988,8 @@ def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
     return [BUILDS_ON_HEAD, *lines] if lines else []
 
 
-def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None,
+                     core: Any = None) -> list[str]:
     """The packet's References block: the global symbols, then this stage's consult note and what it builds on.
 
     Every packet a model acts on carries it (producer, Improve parent, paused, blocked, awaiting); a done or halted
@@ -4950,7 +4998,7 @@ def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
     if state["status"] in ("done", "halted"):
         return []
     # The quotes block after the status names the files this stage reads (aggressive re-cut: no separate pointer).
-    return _reference_global_lines(root, state) + _builds_on_lines(root, state, stage, workitem)
+    return _reference_global_lines(root, state, core) + _builds_on_lines(root, state, stage, workitem)
 
 
 # The knowledge home's packet lines (the E2E session's architecture and spec-retire builds, 2026-10-10: "Lines for the
@@ -5275,7 +5323,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
     named = _named_text(state, stage, route) + "\n" + guidance.improve_prompt(stage, delegation=route)
     context = [
         *_goal_lines(state, stage, root),
-        *_reference_lines(root, state, stage, workitem),
+        *_reference_lines(root, state, stage, workitem, core),
         *([f"Work item: {workitem} — " + str(state["work_items"][state["work_index"]].get("title", "")),
            "Work item context: " + str(state["work_items"][state["work_index"]].get("context", ""))]
           if workitem is not None else []),
@@ -5293,7 +5341,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
             str(child.get("contract_marker", "")), "",
             *prefix,
             "## What the reviewed stage worked from", *context, "", "## The review"]
-    return _render_improve(core, root, state, head)
+    return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state)
 
 
 def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
