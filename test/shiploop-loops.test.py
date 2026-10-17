@@ -143,8 +143,12 @@ class ContractTests(Synthetic):
                 writes = self.write(state)
                 value = loops.contract(self.root, state, action)
                 # The runtime's own validator returns the contract unchanged: no field added, dropped or normalised.
-                # The 0.8.0 runtime normalizes a contract without exit checks to an empty list; nothing else changes.
-                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
+                # The 0.8.0 runtime normalizes a contract without exit checks to an empty list, and the bundled runtime
+                # one without candidate paths (the stop rule's optional list) to an empty list; nothing else changes.
+                # The stage loops never write candidate_paths: the published until-loop plugin refuses an unknown field.
+                self.assertNotIn("candidate_paths", value)
+                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True),
+                                 {**value, "exit_checks": [], "candidate_paths": []})
                 self.assertEqual(json.loads(writes[loops.contract_path(action)]), value)
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
                 self.assertEqual(value["required_trivial_reviews"], 1 if stage == "verify" else 0)
@@ -172,7 +176,10 @@ class ContractTests(Synthetic):
         state = dict(self.state_for("implement"), delegation="ask-agent")
         writes = self.write(state)
         value = loops.contract(self.root, state, "A-implement")
-        self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
+        # The runtime normalises the two optional lists a stage loop does not write (exit_checks, and since the stop rule
+        # candidate_paths, which only an Improve child lists): both come back empty.
+        self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True),
+                         {**value, "exit_checks": [], "candidate_paths": []})
         lines = value["exit_condition"].splitlines()
         self.assertEqual(len(lines), len(stage_spec.stage("implement").done_when))
         self.assertEqual(lines[0], "1. only the paths of steps S1 to S2 (src/a.py, src/b.py, src/c.py) changed since the "

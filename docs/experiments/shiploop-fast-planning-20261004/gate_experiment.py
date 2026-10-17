@@ -1,5 +1,9 @@
 """Scratch experiment: how the vendored Until Loop (read only import) decides complete for gate 0, 1 and 2.
 
+Amended 2026-10-16: gate 2 is now the unchanged-content gate (one trivial, satisfied pass after which the runtime measures
+the content equal to the previous pass's), so its lines print `changed=` in place of a streak. The output recorded on
+2026-10-04, when gate 2 counted two consecutive trivial passes, is kept as gate_experiment.before-2026-10-16.out.
+
 Run: python3 docs/experiments/shiploop-fast-planning-20261004/gate_experiment.py
 Writes only under a temporary directory it removes at the end; reads the vendored runtime in this repository.
 """
@@ -50,8 +54,10 @@ def run(label, gate, steps, exit_text="exit"):
         except ul.StateError as error:
             trace.append(f"pass {n}: REFUSED {error}")
             break
-        trace.append(f"pass {n}: {cls}/{ex}{' +edit' if change else ''} -> {packet['status']} streak={packet['progress']['trivial_streak']}"
-                     + (" unchanged_first_pass" if packet['progress'].get('unchanged_first_pass') else ""))
+        progress = packet["progress"]
+        measure = f"streak={progress['trivial_streak']}" if "trivial_streak" in progress \
+            else f"changed={progress['last_pass_changed_tree']}"
+        trace.append(f"pass {n}: {cls}/{ex}{' +edit' if change else ''} -> {packet['status']} {measure}")
         if packet["status"] != "active":
             break
     print(f"[{label}] gate={gate}")
@@ -59,11 +65,11 @@ def run(label, gate, steps, exit_text="exit"):
         print("   ", t)
     return packet["status"]
 
-# gate 2: today's Improve
-run("improve today, first pass trivial and tree unchanged", 2, [("trivial", "satisfied", False)])
-run("improve today, first pass trivial but edited (tree changed)", 2, [("trivial", "satisfied", True), ("trivial", "satisfied", False), ("trivial", "satisfied", False)])
-run("improve today, first pass non-trivial (changed), then two trivial", 2, [("non-trivial", "unsatisfied", True), ("trivial", "unsatisfied", False), ("trivial", "satisfied", False)])
-run("improve today, test-strategy shape: non-trivial but exit satisfied on pass 1", 2, [("non-trivial", "satisfied", True), ("trivial", "satisfied", False), ("trivial", "satisfied", False)])
+# gate 2: Improve
+run("improve (gate 2), first pass trivial and tree unchanged", 2, [("trivial", "satisfied", False)])
+run("improve (gate 2), first pass trivial but edited (tree changed)", 2, [("trivial", "satisfied", True), ("trivial", "satisfied", False), ("trivial", "satisfied", False)])
+run("improve (gate 2), first pass non-trivial (changed), then two trivial", 2, [("non-trivial", "unsatisfied", True), ("trivial", "unsatisfied", False), ("trivial", "satisfied", False)])
+run("improve (gate 2), test-strategy shape: non-trivial but exit satisfied on pass 1", 2, [("non-trivial", "satisfied", True), ("trivial", "satisfied", False), ("trivial", "satisfied", False)])
 # gate 1: test and quality loops
 run("gate 1, first pass trivial", 1, [("trivial", "satisfied", False)])
 run("gate 1, first pass non-trivial changes candidate", 1, [("non-trivial", "satisfied", True), ("trivial", "satisfied", False)])

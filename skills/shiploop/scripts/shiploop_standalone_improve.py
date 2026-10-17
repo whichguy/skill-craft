@@ -387,8 +387,8 @@ def _absolute_local_reference(workspace: Path, locator: str, value: Any, label: 
 def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[str, Any]:
     """Validate a successful Improve receipt and return a normalized copy. ``receipt`` must be a mapping with
     ``summary``, ``review_refs`` and ``check_refs``; ``lessons``, ``final_result`` and ``no_commit`` are
-    optional and any other key is rejected. ``review_refs`` must hold one or two distinct paths and
-    ``check_refs`` at least one. Each path is rewritten by ``_local_reference`` relative to ``workspace`` and
+    optional and any other key is rejected. ``review_refs`` must hold exactly one path (the final pass's review)
+    and ``check_refs`` at least one. Each path is rewritten by ``_local_reference`` relative to ``workspace`` and
     must already exist on disk as a regular single-link file with no symlink in its path. Writes nothing and
     does not mutate its input; raises ``StandaloneImproveError`` on a violation it checks.
     """
@@ -398,10 +398,10 @@ def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[
           "Improve receipt has unsupported or missing fields")
     review_raw = receipt["review_refs"]
     check_raw = receipt["check_refs"]
-    _need(isinstance(review_raw, list) and len(review_raw) in (1, 2),
-          "Improve receipt requires the trivial-streak review references (two, or one when the first pass "
-          "changed nothing), got " + (str(len(review_raw)) if isinstance(review_raw, list) else "a non-list")
-          + "; leave earlier material reviews on disk")
+    _need(isinstance(review_raw, list) and len(review_raw) == 1,
+          "Improve receipt requires the one review reference of the final pass (the pass the runtime ended on), got "
+          + (str(len(review_raw)) if isinstance(review_raw, list) else "a non-list")
+          + "; leave earlier reviews on disk")
     _need(isinstance(check_raw, list) and bool(check_raw),
           "Improve receipt requires at least one check reference")
     reviews = [_local_reference(workspace, locator, value, "review reference") for value in review_raw]
@@ -601,6 +601,34 @@ def _runtime_wrote_receipt(packet: Mapping[str, Any], binding: Mapping[str, Any]
           + "; start the child with the printed --receipt so the runtime keeps this copy itself")
 
 
+# The runtime's required_trivial_reviews values for "trivial, and the content is unchanged": 2 ends the review on one such
+# pass, 3 (code reviews) on the first pass or on two in a row once a pass has changed the content.  Both complete only on
+# a pass the runtime measured unchanged, so the terminal check below is the same for both.
+_UNCHANGED_GATES = (2, 3)
+_PROGRESS_KEYS = {"action_number", "required_trivial_reviews", "last_pass_changed_tree"}
+_OLDER_RUNTIME = (
+    "Until Loop {kind} packet was written by an older Until Loop (it counts a trivial streak or reports "
+    "unchanged_first_pass), which ShipLoop no longer imports: the Improve review now ends on a trivial pass that "
+    "leaves the content unchanged (a code review: two in a row once a pass has changed it). Preserve this run; start "
+    "new work with init or workspace start in a fresh --run-dir"
+)
+
+
+def _progress(value: Any, kind: str) -> Mapping[str, Any]:
+    """The Improve child's progress as the bundled runtime reports it at its unchanged-content gate."""
+    _need(isinstance(value, Mapping), f"Until Loop {kind} progress has an invalid schema")
+    gate = value.get("required_trivial_reviews")
+    # The older runtime counted a streak at this gate and reported unchanged_first_pass; the current one never does.
+    _need("unchanged_first_pass" not in value and not ("trivial_streak" in value and gate in _UNCHANGED_GATES),
+          _OLDER_RUNTIME.format(kind=kind))
+    _need(gate in _UNCHANGED_GATES, f"Until Loop {kind} packet was not run at Improve's unchanged-content review gate")
+    _need(set(value) == _PROGRESS_KEYS, f"Until Loop {kind} progress has an invalid schema")
+    changed = value["last_pass_changed_tree"]
+    _need(changed is None or isinstance(changed, bool),
+          f"Until Loop {kind} last_pass_changed_tree must be a boolean or null")
+    return value
+
+
 def _ephemeral_terminal_packet(
     packet: Mapping[str, Any], *, workspace: Path, binding_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
@@ -619,26 +647,12 @@ def _ephemeral_terminal_packet(
           "Until Loop terminal conditions have an invalid schema")
     _text(conditions.get("exit"), "Until Loop terminal exit condition")
     _text(conditions.get("repeat"), "Until Loop terminal repeat condition")
-    progress = packet.get("progress")
-    _need(isinstance(progress, Mapping) and set(progress) in ({
-        "action_number", "trivial_streak", "required_trivial_reviews",
-    }, {"action_number", "trivial_streak", "required_trivial_reviews", "unchanged_first_pass"}),
-        "Until Loop terminal progress has an invalid schema")
-    unchanged_first_pass = progress.get("unchanged_first_pass", False)
-    _need(isinstance(unchanged_first_pass, bool), "Until Loop terminal unchanged_first_pass must be a boolean")
-    action_number = _integer(progress.get("action_number"), "Until Loop terminal action number", minimum=1)
-    trivial_streak = _integer(progress.get("trivial_streak"), "Until Loop terminal trivial streak")
-    required_reviews = _integer(
-        progress.get("required_trivial_reviews"), "Until Loop terminal required trivial reviews"
-    )
-    _need(required_reviews >= 2,
-          "Until Loop terminal packet does not meet Improve's two-review minimum")
-    # The runtime closes on one trivial pass only when it saw the workspace unchanged (Git tree).
-    _need(trivial_streak >= required_reviews
-          or (unchanged_first_pass and trivial_streak == 1 and action_number == 1),
-          "Until Loop terminal packet does not meet its required trivial-review gate")
-    _need(trivial_streak <= action_number,
-          "Until Loop terminal progress has an incoherent trivial streak")
+    progress = _progress(packet.get("progress"), "terminal")
+    _integer(progress.get("action_number"), "Until Loop terminal action number", minimum=1)
+    # Improve's gate is the unchanged-content gate: the runtime completes on a trivial pass only after it measured the
+    # content (Git tree plus the stage result file) equal to the previous pass's.
+    _need(progress.get("last_pass_changed_tree") is False,
+          "Until Loop terminal packet does not show the final pass leaving the content unchanged")
     context = _ephemeral_context(packet.get("context"))
     _need(_marked_request_binding_id(context["request"], "Until Loop terminal context") == binding_id,
           "Until Loop terminal context is not bound to this ShipLoop action")
@@ -677,15 +691,8 @@ def _ephemeral_stopped_packet(
           "Until Loop stopped conditions have an invalid schema")
     _text(conditions.get("exit"), "Until Loop stopped exit condition")
     _text(conditions.get("repeat"), "Until Loop stopped repeat condition")
-    progress = packet.get("progress")
-    _need(isinstance(progress, Mapping) and set(progress) == {
-        "action_number", "trivial_streak", "required_trivial_reviews",
-    }, "Until Loop stopped progress has an invalid schema")
-    action_number = _integer(progress.get("action_number"), "Until Loop stopped action number", minimum=1)
-    trivial_streak = _integer(progress.get("trivial_streak"), "Until Loop stopped trivial streak")
-    _integer(progress.get("required_trivial_reviews"), "Until Loop stopped required trivial reviews")
-    _need(trivial_streak <= action_number,
-          "Until Loop stopped progress has an incoherent trivial streak")
+    progress = _progress(packet.get("progress"), "stopped")
+    _integer(progress.get("action_number"), "Until Loop stopped action number", minimum=1)
     context = _ephemeral_context(packet.get("context"))
     _need(_marked_request_binding_id(context["request"], "Until Loop stopped context") == binding_id,
           "Until Loop stopped context is not bound to this ShipLoop action")
@@ -728,11 +735,6 @@ def _complete_ephemeral(
     )
     _runtime_wrote_receipt(packet, binding, "Until Loop terminal packet")
     checked_receipt = _receipt(receipt, workspace, workspace_value)
-    single = bool(packet["progress"].get("unchanged_first_pass"))
-    _need(len(checked_receipt["review_refs"]) == (1 if single else 2),
-          "Improve receipt lists " + str(len(checked_receipt["review_refs"])) + " review references; this run "
-          + ("ended on one unchanged trivial pass, so list that one review"
-             if single else "needs the two trivial-streak reviews"))
     evidence_digests = _reference_digests(workspace, checked_receipt)
     prefix = f"improve/{action}"
     archive: dict[str, str] = {

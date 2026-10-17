@@ -423,13 +423,24 @@ two consecutive clean residual rounds with green suite
         self.assertIn("error:", absent.stderr)
         self.assert_no_bytecode()
 
+    def edit_between_passes(self, name: str) -> None:
+        """A change in the consumer directory, which stays outside Git on purpose: the unchanged-content gate measures a
+        directory that is not a worktree through a throwaway bare repository (F3 of the stop-rule branch), and this
+        installed, read-only copy is where that has to work."""
+        outside_git = subprocess.run(["git", "-C", str(self.consumer), "rev-parse", "--git-dir"],
+                                     capture_output=True, text=True, check=False)
+        self.assertNotEqual(outside_git.returncode, 0, "the fixture directory must stay outside Git")
+        edited = self.consumer / name
+        self.addCleanup(lambda: edited.unlink(missing_ok=True))
+        edited.write_text("a change made during the first synthetic pass\n", encoding="utf-8")
+
     def test_improve_ephemeral_runtime_from_read_only_installed_copy(self) -> None:
         package = self.package("improve")
         runtime = package / "runtime/until-loop/scripts/until_loop_ephemeral.py"
         contract = {
             "workspace": str(self.consumer),
             "work": "Exercise one synthetic protocol review; do not change product files.",
-            "exit_condition": "Two synthetic qualifying reviews complete.",
+            "exit_condition": "A synthetic review that leaves the content unchanged completes.",
             "repeat_condition": "Continue while the review gate remains open.",
             "required_trivial_reviews": 2,
             "context": {"request": "Installed runtime protocol fixture", "scope": "Fixture only",
@@ -452,10 +463,11 @@ two consecutive clean residual rounds with green suite
         report = {"classification": "trivial", "exit_assessment": "satisfied",
                   "continuation_assessment": "allowed", "evidence": "Synthetic review fixture",
                   "handoff": "Retain this protocol-only fixture; no semantic review claim."}
-        first = call(packet["done_argv"], report)
-        self.assertEqual(first["status"], "active")
+        self.edit_between_passes("installed-runtime-fixture-edit.txt")
+        first = call(packet["done_argv"], report)  # labelled trivial, but the content changed: the runtime says so
+        self.assertEqual((first["status"], first["progress"]["last_pass_changed_tree"]), ("active", True))
         terminal = call(first["done_argv"], report)
-        self.assertEqual(terminal["status"], "complete")
+        self.assertEqual((terminal["status"], terminal["progress"]["last_pass_changed_tree"]), ("complete", False))
         self.assertEqual(terminal["context"], contract["context"])
         self.assertFalse(state.exists())
         self.assertFalse((self.consumer / ".until-loop").exists())
@@ -500,7 +512,7 @@ two consecutive clean residual rounds with green suite
         contract = {
             "workspace": str(self.consumer),
             "work": "Exercise one synthetic protocol review; do not change product files.",
-            "exit_condition": "Two synthetic qualifying reviews complete.",
+            "exit_condition": "A synthetic review that leaves the content unchanged completes.",
             "repeat_condition": "Continue while the review gate remains open.",
             "required_trivial_reviews": 2,
             "context": {"request": "Ambient runtime isolation fixture", "scope": "Fixture only",
@@ -524,6 +536,7 @@ two consecutive clean residual rounds with green suite
         report = {"classification": "trivial", "exit_assessment": "satisfied",
                   "continuation_assessment": "allowed", "evidence": "Synthetic review fixture",
                   "handoff": "Retain this protocol-only fixture; no semantic review claim."}
+        self.edit_between_passes("ambient-runtime-fixture-edit.txt")
         first = call(packet["done_argv"], report)
         self.assertEqual(first["done_argv"][1], str(runtime))
         terminal = call(first["done_argv"], report)

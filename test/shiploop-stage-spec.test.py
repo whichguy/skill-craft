@@ -8,6 +8,7 @@ change to a stage's behaviour has to change both the table and this suite.
 from __future__ import annotations
 
 import dataclasses
+import importlib.util
 from pathlib import Path
 import sys
 import unittest
@@ -84,6 +85,44 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({
             "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
+
+    def test_the_improve_review_gate_of_each_stage(self) -> None:
+        """D-6 / R1 (a proposal awaiting the owner's S-10 text): the reviews of the `always` stages stop on one unchanged
+        pass (gate 2); an implement step's and the last carry-forward's, which review code, need two in a row once a pass has
+        changed the content (gate 3).  Written out here independently of the table, and tied to the runtime's constants."""
+        expected = {name: 2 for name in ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author",
+                                         "release-plan")}
+        expected.update({"implement": 3, "carry-forward": 3})
+        self.assertEqual({name: spec.improve_gate(name) for name in spec.STAGES if spec.STAGE_SPEC[name].improve},
+                         expected)
+        self.assertEqual(dict(spec.IMPROVE_GATES), {"always": 2, "step": 3, "last-item": 3})
+        with self.assertRaisesRegex(ValueError, "starts no Improve child"):
+            spec.improve_gate("verify")
+        runtime_spec = importlib.util.spec_from_file_location(
+            "until_loop_ephemeral_gates", ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py")
+        runtime = importlib.util.module_from_spec(runtime_spec)
+        runtime_spec.loader.exec_module(runtime)
+        self.assertEqual((spec.ONE_PASS_GATE, spec.TWO_PASS_GATE),
+                         (runtime.UNCHANGED_GATE, runtime.UNCHANGED_AFTER_EDIT_GATE))
+
+    def test_the_s10_proposal_says_which_always_stages_the_study_did_not_measure(self) -> None:
+        """U2-R3: the owner approves S-10 on its text.  The Improve-value study measured five planning stages; the other two
+        stages of the rule `always` were not measured, and one of them (system-test-author) writes test code, which the
+        study said not to extend the one-pass rule to.  The proposal must say so and put that stage to the owner, not call
+        all seven "document stages"."""
+        measured = frozenset({"spec", "test-strategy", "plan", "step-plan", "test-spec"})   # written out, not derived
+        unmeasured = spec.with_improve("always") - measured
+        self.assertEqual(unmeasured, frozenset({"system-test-author", "release-plan"}))
+        text = (ROOT / "test/shiploop_e2e/SPEC.md").read_text(encoding="utf-8")
+        start = text.index("**S-10 carve-out, scope of the 2026-10-16 rule: PROPOSED")
+        paragraph = " ".join(text[start:text.index("\n\n", start)].split())
+        for name in measured | unmeasured:
+            self.assertIn("`" + name + "`", paragraph)
+        self.assertNotIn("seven document stages", paragraph)
+        self.assertIn("unmeasured", paragraph)
+        for name in sorted(unmeasured):
+            if spec.STAGE_SPEC[name].edits & {"code", "tests"}:
+                self.assertRegex(paragraph, "Open question for the owner[^.]*`" + name + "`")
 
     def test_planning_review_modes(self) -> None:
         """The run option `planning_review`: the registered modes and the stages a mode reviews."""

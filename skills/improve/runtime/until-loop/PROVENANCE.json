@@ -9,9 +9,9 @@
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "c71931fc5b3981490ba967a87dbcfea0e1d24a79247f259809004e8100101e19",
+      "sha256": "52ccf933dd6252a16dd7c7192798ea28c16354f16af39418031d3024c6d61d4f",
       "upstream_sha256": "93f1e97d1442c1219f56f6bf26d498e26c5d6ae21feb7cdb6063312cdaaf231f",
-      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run."
+      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run. Also documents the script's stop rule (gates 2 and 3, candidate_paths, a directory outside Git); see scripts/until_loop_ephemeral.py."
     },
     {
       "bundled_path": "LICENSE",
@@ -21,12 +21,16 @@
     {
       "bundled_path": "scripts/until_loop_ephemeral.py",
       "upstream_path": "scripts/until_loop_ephemeral.py",
-      "sha256": "dd8b3513f5795391fd9ef13afa0f9487557547d950836b306b53b8760f663488"
+      "sha256": "83ebd16c6533a3046cdfb6d05b601adc9db828935ec94201104b52c78be54148",
+      "upstream_sha256": "dd8b3513f5795391fd9ef13afa0f9487557547d950836b306b53b8760f663488",
+      "adaptation_reason": "Stop rule (owner 2026-10-16, Improve-value study; scope proposed 2026-10-17, awaiting the owner): required_trivial_reviews 2 is the unchanged-content gate instead of two consecutive trivial passes plus an unchanged-first-pass shortcut. It completes on one trivial, satisfied pass whose measured content tree (Git tree plus optional candidate_paths file bytes) equals the previous pass's tree (the first pass: the tree at start); state last_tree replaces start_tree and gate-2 packets report progress.last_pass_changed_tree instead of the streak. Gate 3 (code reviews) is the same measurement with the rule this runtime had before: a first pass that is trivial, satisfied and unchanged completes, and once any pass has changed the tree it takes two such passes in a row; it adds no state field. A directory that is not a Git worktree is measured through a throwaway bare repository, so the gates need no worktree. Gates 0 and 1 and their packet shape are unchanged, so contracts written for the published until-loop plugin stay valid. Version skew (N12): the published plugin 0.8.3 reads 3 as three trivial reviews and refuses candidate_paths, so a contract at gate 3 is for this bundled runtime only; ShipLoop writes it only for an Improve child, which always uses the bundled runtime. Not yet upstreamed to whichguy/until-loop; a re-vendor must carry it."
     },
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "d742a78a079312a890d83014be8219d75b97c326962cdb90adf28ec12fe633d2"
+      "sha256": "4b718a9c44d927580772ff0d5164fb71af2d21142c6769440fb214156d18c80e",
+      "upstream_sha256": "d742a78a079312a890d83014be8219d75b97c326962cdb90adf28ec12fe633d2",
+      "adaptation_reason": "Documents the script's stop rule (gates 2 and 3, candidate_paths, progress.last_pass_changed_tree, a directory outside Git); see scripts/until_loop_ephemeral.py."
     }
   ]
 }

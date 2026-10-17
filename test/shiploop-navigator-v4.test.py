@@ -76,7 +76,7 @@ class NavigatorV4Tests(unittest.TestCase):
     def synthetic_improve(stage: str) -> dict:
         return {
             "summary": f"Synthetic Improve result for {stage}.",
-            "review_refs": [f"synthetic://review/{stage}/one", f"synthetic://review/{stage}/two"],
+            "review_refs": [f"synthetic://review/{stage}/final"],
             "check_refs": [f"synthetic://check/{stage}"],
             "lessons": f"Keep the current conclusion from {stage}.",
         }
@@ -146,6 +146,7 @@ class NavigatorV4Tests(unittest.TestCase):
                 "resources": [],
             },
         }
+        subprocess.run(["git", "-C", binding["workspace"], "init", "-q"], check=True)  # gate 2 measures a Git worktree
         started = subprocess.run(
             [sys.executable, "-B", self.skill["runtime_cli"], "start", "--receipt", str(_receipt(binding))],
             input=json.dumps(contract), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
