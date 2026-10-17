@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import packet_anatomy as anatomy  # noqa: E402
+import packets as offline  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 
 RUN = "/work/.shiploop-runs/w1/run"
@@ -565,6 +567,32 @@ class CurrentEngineTests(unittest.TestCase):
             self.assertLessEqual(
                 unclassified / total, self.UNCLASSIFIED_LIMIT,
                 "unclassified lines (extend RULES in packet_anatomy.py): " + "; ".join(sorted({l[:70] for _, l in worst})[:8]))
+
+
+class LoopBlockTests(unittest.TestCase):
+    """The RUN-this-skill block (2026-10-16) is one `until-loop` section, from its heading to its closing rule."""
+
+    def test_the_loop_block_of_every_offline_packet_is_one_whole_until_loop_section(self):
+        cases = json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text())
+        seen = 0
+        for key, text in offline.offline_packets(cases["node-fix-bug"]).items():
+            if loops.ARGUMENT_BEGIN not in text:
+                continue
+            seen += 1
+            rows = labels(text)
+            start = next(i for i, (_, line) in enumerate(rows) if line.startswith("Until Loop (no iteration limit"))
+            end = next(i for i in range(start, len(rows)) if rows[i][1].startswith("ShipLoop wrote the loop contract"))
+            with self.subTest(packet=key):
+                self.assertEqual({section for section, _ in rows[start:end + 1]}, {"until-loop"})
+                # The RUN line, both markers, the start command and the result line are all inside it.
+                lines = [line for _, line in rows[start:end + 1]]
+                for needed in (loops.INVOKE_LINE, loops.ARGUMENT_BEGIN, loops.ARGUMENT_END, loops.HOST_LINE,
+                               loops.RESULT_LINE):
+                    self.assertIn(needed, lines)
+                self.assertTrue(any(line.startswith("python3 ") and " start --receipt " in line for line in lines))
+                self.assertFalse(anatomy.unclassified_lines(text) and
+                                 [line for _, line in anatomy.unclassified_lines(text) if line in lines])
+        self.assertGreaterEqual(seen, 6)
 
 
 if __name__ == "__main__":

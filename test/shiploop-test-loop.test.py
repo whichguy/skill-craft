@@ -27,6 +27,7 @@ IMPROVE_CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as inner  # noqa: E402
+import shiploop_loop_support as support  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_mutation as mutation  # noqa: E402
@@ -275,8 +276,8 @@ class TestLoopTests(unittest.TestCase):
 
     # -- the bound Until Loop ------------------------------------------------------
 
-    # Packet re-cut (2026-10-11): how to invoke and the start command are one line; the command ends it.
-    START = "How to invoke: "
+    # The packet's Until Loop block (2026-10-16): the line before the literal start command anchors it in the packet.
+    START = loops.HOST_LINE
 
     def terminal(self) -> Path:
         return loops.receipt_path(self.run_dir, self.action())
@@ -286,12 +287,12 @@ class TestLoopTests(unittest.TestCase):
 
         A callable entry runs between reports (the host's fix).  The runtime writes every packet to the receipt.
         """
-        # The packet prints no start command (re-cut round 2): the card holds it, so build it as the card says.
-        lines = self.packet().splitlines()
-        self.assertTrue(any(line.startswith(self.START) for line in lines))
-        contract_line = next(line for line in lines if line.strip().startswith("Contract: ")).strip()[len("Contract: "):]
-        receipt_line = next(line for line in lines if line.strip().startswith("Receipt: ")).strip()[len("Receipt: "):]
-        words = shlex.split(loops.start_command(loops.runtime(self.state()), Path(receipt_line), Path(contract_line)))
+        # The command is the one the packet prints.
+        block = support.LoopBlock(self.packet())
+        self.assertTrue(block.command)
+        words = shlex.split(block.command)
+        self.assertEqual(block.command, loops.start_command(loops.runtime(self.state()), Path(block.field("Receipt: ")),
+                                                            Path(block.field("Contract: "))))
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:
@@ -332,7 +333,7 @@ class TestLoopTests(unittest.TestCase):
         self.drive_to("test")
         packet = self.packet()
         self.assertIn(loops.INVOKE_LINE, packet)
-        self.assertIn(str(ROOT / "skills/improve/runtime/until-loop/ADAPTER.md"), packet)
+        self.assertIn(" " + str(ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py") + " start ", packet)
         self.assert_refused(DONE, "the test loop has not run: no terminal packet exists")
         self.drive_to("verify")
         self.assertIn(loops.INVOKE_LINE, self.packet())
@@ -403,8 +404,10 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(contract["exit_condition"], loops.exit_condition("test"))
         self.assertEqual(contract["required_trivial_reviews"], 0)
         packet = self.packet()
-        self.assertIn("  1. [focused] sh check.sh fixed.txt", packet)
-        self.assertIn("  2. [regression] test -f retained.txt", packet)
+        # The commands are part of the Work field, between the argument's marker lines.
+        argument = support.LoopBlock(packet).argument
+        self.assertEqual(argument[argument.index(loops.COMMANDS_HEAD) + 1:][:2],
+                         ["1. [focused] sh check.sh fixed.txt", "2. [regression] test -f retained.txt"])
         self.assertIn(loops.INVOKE_LINE, packet)
         self.pass_loop()
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
@@ -1447,10 +1450,10 @@ class TestLoopTests(unittest.TestCase):
                       next(row for row in head.splitlines() if row.startswith("Checked by: ")))
         lines = head.splitlines()
         for condition in loops.exit_condition(stage).splitlines():  # the contract's words, not a paraphrase
-            self.assertIn("    " + condition, lines)
-        self.assertIn("    " + loops.REPEAT[stage], lines)
+            self.assertIn(condition, lines)
+        self.assertIn(loops.REPEAT[stage], lines)
         self.assertIn(loops.INVOKE_LINE, lines)
-        self.assertIn("    Receipt: " + str(receipt), lines)
+        self.assertIn("Receipt: " + str(receipt), lines)
         self.assertNotIn(loops.RECEIPT_REF_LINE, lines)  # the prefilled template and the Checked-by line carry it
 
     def test_a_loop_head_prefills_the_receipt_prints_the_exit_and_accepts_its_template(self):

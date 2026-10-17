@@ -2,10 +2,11 @@
 
 Every INNER stage does its work inside one bound Until Loop run.  ShipLoop
 writes the loop contract on entry to the stage's action (``contract_writes``),
-prints the strong invoke block in the packet (``invoke_lines``) and, before it
-accepts the result, compares the runtime's terminal packet with the contract
-rebuilt from state (``check_terminal``), so editing the contract file cannot
-reshape the loop.
+prints the loop block in the packet (``invoke_lines``: RUN the until-loop skill
+with the argument between two marker lines, the literal start command for a host
+with no Skill tool, and the result to report) and, before it accepts the result,
+compares the runtime's terminal packet with the contract rebuilt from state
+(``check_terminal``), so editing the contract file cannot reshape the loop.
 
 The contract is rebuilt deterministically from state: the same state gives
 the same bytes at entry and at complete.  It therefore names no install path
@@ -21,7 +22,6 @@ import json
 import os
 import shlex
 import stat
-import sys
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
@@ -389,16 +389,26 @@ def runtime(state: Mapping[str, Any]) -> dict[str, str]:
 def start_command(bound: Mapping[str, str], receipt: Path, contract_file: Path) -> str:
     """The one command that starts a bound loop: the packet prints it, and the refusal for a loop that never ran
     repeats it."""
-    return (shlex.join([sys.executable, bound["runtime_cli"], "start", "--receipt", str(receipt)])
+    return (shlex.join(["python3", bound["runtime_cli"], "start", "--receipt", str(receipt)])
             + " < " + shlex.quote(str(contract_file)))
 
 
-INVOKE_LINE = "INVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop."
+# The Until Loop block, as a model with no other context reads it (owner, 2026-10-16: say "RUN this skill" with the
+# explicit argument and command, not in generalities).  The argument sits between two marker lines; the commands are
+# literal, absolute and copy-ready, because the hooks and the runtime read command text.
+INVOKE_LINE = ("RUN the until-loop skill now, once, with exactly the lines between the two markers (nothing outside "
+               "them is part of the argument). Do this stage's work only inside the loop.")
+ARGUMENT_BEGIN = "----- BEGIN until-loop ARGUMENT -----"
+ARGUMENT_END = "----- END until-loop ARGUMENT -----"
+# Claude Code has the Skill tool; any other host runs the start command itself and follows each packet the runtime
+# prints (its done_argv takes the JSON report, whose fields the packet's report_schema lists).
+HOST_LINE = ('Claude Code: the Skill tool, skill "until-loop", with that argument. Any other host: run this in the '
+             "foreground, then follow each packet it prints (run its done_argv as printed) until the receipt says "
+             "complete or stopped:")
 # How an inner stage works inside its loop: printed once, in the invoke block (packet re-cut, 2026-10-11).
 LOOP_RULE = """\
-ShipLoop wrote the loop contract; do not edit it. Call an exit condition satisfied only when a command or file shows
-it after your last edit. If ShipLoop refuses done after the loop ends, fix the cause, start the loop again with the
-same command, and submit again.
+ShipLoop wrote the loop contract; do not edit it or the receipt. Call an exit condition satisfied only when a command
+or file shows it after your last edit.
 """
 
 RECEIPT_RULE = ("Never write or edit the receipt. If it exists and is active, run its next_argv instead of starting "
@@ -408,8 +418,10 @@ RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one
 RECEIPT_REF_LINE = ("The result template's evidence_refs already lists the receipt: keep it when you report done. "
                     "ShipLoop refuses done without it.")
 RESUME_LINE = ("The loop already started: do not invoke it again. While the receipt's status is active, run its "
-               "next_argv once and follow the returned packet; once it is complete or stopped, submit this stage's "
-               "result.")
+               "next_argv once and follow the packet it prints; when complete or stopped, submit this stage's result.")
+RESULT_LINE = ("Result: when the Receipt above says status complete (stopped: report it), keep it in evidence_refs "
+               "and run the Callback command above. If that refuses for the loop, run the start command above again "
+               "(an active receipt: its next_argv instead), then complete again.")
 
 
 def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
@@ -438,7 +450,7 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         return []
     root = Path(root)
     stage, action_id, _ = found
-    lines = ["", "Until Loop (no iteration limit; the loop script counts the iterations):"]
+    lines = ["", "Until Loop (no iteration limit):"]
     try:
         bound = runtime(state)
         value = contract(root, state, action_id)
@@ -447,22 +459,21 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         return lines
     contract_file, receipt = root / contract_path(action_id), receipt_path(root, action_id)
     lines += [
-        INVOKE_LINE,
-        "Argument:",
-        *("    " + line for line in ("Work: " + value["work"]).splitlines()),  # the test stage lists its commands
-        "    Exit when ALL of these hold:",
-        *("    " + line for line in value["exit_condition"].splitlines()),
-        "    " + value["repeat_condition"],  # each repeat text opens with "Repeat while"
-        "    Contract: " + str(contract_file),
-        "    Receipt: " + str(receipt),
-        # The start command and the receipt rules are the card's ("Start from a parent-written contract"); the packet
-        # keeps the invocation and what is ShipLoop's own (owner-approved aggressive re-cut, 2026-10-11).
-        "How to invoke: on Claude Code, the Skill tool with skill until-loop and the argument above; elsewhere, the card "
-        + bound["runtime_card"] + ", section \"Start from a parent-written contract\".",
+        # A started loop is continued, never restarted: the runtime does not refuse a second start for one receipt.
+        RESUME_LINE if os.path.lexists(receipt) else INVOKE_LINE,
+        ARGUMENT_BEGIN,
+        *("Work: " + value["work"]).splitlines(),  # the test stage lists its commands
+        "Exit when ALL of these hold:",
+        *value["exit_condition"].splitlines(),
+        value["repeat_condition"],  # each repeat text opens with "Repeat while"
+        "Contract: " + str(contract_file),
+        "Receipt: " + str(receipt),
+        ARGUMENT_END,
+        HOST_LINE,
+        start_command(bound, receipt, contract_file),
+        RESULT_LINE,
         " ".join(LOOP_RULE.split()),
     ]
-    if os.path.lexists(receipt):
-        lines.append(RESUME_LINE)
     if not contract_file.is_file():
         lines.append("The loop contract is missing; report outcome blocked naming this path.")
     return lines
@@ -617,8 +628,11 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
 
 
 __all__ = (
+    "ARGUMENT_BEGIN",
+    "ARGUMENT_END",
     "BUNDLED_IMPROVE_CARD",
     "COMMANDS_HEAD",
+    "HOST_LINE",
     "INVOKE_LINE",
     "LOOP_DIR",
     "LoopError",
@@ -626,6 +640,7 @@ __all__ = (
     "RECEIPT_REF_LINE",
     "RECEIPT_RULE",
     "REPEAT",
+    "RESULT_LINE",
     "RESUME_LINE",
     "RUBRIC_PATH",
     "STAGES",

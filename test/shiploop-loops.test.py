@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Hermetic tests for ``shiploop_loops``: the Until Loop every inner stage runs (owner decision 2026-10-10).
 
-ShipLoop writes each inner action's loop contract on entry, prints the strong ``INVOKE /until-loop`` block in the
-packet and, before it accepts the result, checks the runtime's receipt against the contract rebuilt from state.
+ShipLoop writes each inner action's loop contract on entry, prints the loop block in the packet (RUN the skill with
+the argument between two marker lines, the literal start command, the result) and, before it accepts the result,
+checks the runtime's receipt against the contract rebuilt from state.
 The contract tests feed the contract to the real bundled runtime (its own schema validator and its ``start``); the
 terminal tests run the real runtime to the state they need; the navigator tests submit through the real gate.
 """
@@ -21,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as fx  # noqa: E402
+import shiploop_loop_support as support  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -204,41 +206,115 @@ class ContractTests(Synthetic):
 
 
 class InvokeLinesTests(Synthetic):
-    def test_the_invoke_block_prints_the_argument_the_start_command_and_the_receipt_rules(self):
-        state = self.state_for("implement")
-        self.write(state)
-        lines = loops.invoke_lines(self.root, state)
-        value = loops.contract(self.root, state, "A-implement")
-        contract_file = self.root / loops.contract_path("A-implement")
-        receipt = loops.receipt_path(self.root, "A-implement")
-        start = loops.start_command(loops.runtime(state), receipt, contract_file)
-        exits = ["    " + line for line in value["exit_condition"].splitlines()]
-        head = lines.index(loops.INVOKE_LINE)
-        self.assertEqual(lines[head:head + 7 + len(exits)], [
-            loops.INVOKE_LINE, "Argument:", "    Work: " + value["work"], "    Exit when ALL of these hold:",
-            *exits, "    " + value["repeat_condition"], "    Contract: " + str(contract_file),
-            "    Receipt: " + str(receipt)])
-        self.assertTrue(lines[0] == "" and "no iteration limit" in lines[1])
-        # Packet re-cut (2026-10-11): how to invoke and the start command are one line, and the loop's rules and the
-        # receipt rules are one closing line.
-        how = next(line for line in lines if line.startswith("How to invoke:"))
-        self.assertIn("Skill tool with skill until-loop", how)
-        self.assertIn(loops.runtime(state)["runtime_card"], how)
-        self.assertIn('section "Start from a parent-written contract"', how)
-        # Round 2: the card holds the start command and the receipt rules; the packet prints neither.
-        self.assertFalse([line for line in lines if start in line or line.startswith("Start (")])
-        self.assertFalse([line for line in lines if loops.RECEIPT_RULE in line])
-        self.assertEqual(lines[-1], " ".join(loops.LOOP_RULE.split()))
-        self.assertEqual(lines.index(how), len(lines) - 2)
-        self.assertIn("Never write or edit the receipt", loops.RECEIPT_RULE)
-        self.assertNotIn(loops.RESUME_LINE, lines)
+    """The block says what to run, with what argument, and what the result is (owner, 2026-10-16): a cleared model acts
+    on it without opening any card."""
 
-    def test_a_started_loop_says_resume_and_a_missing_contract_says_blocked(self):
+    def block(self, state: dict, stage: str | None = None) -> support.LoopBlock:
+        return support.LoopBlock("\n".join(loops.invoke_lines(self.root, state)))
+
+    def test_the_block_says_run_the_skill_with_the_argument_between_two_markers(self):
+        for stage in stage_spec.INNER:
+            state = self.state_for(stage)
+            if stage == "implement":
+                state["inner_loops"]["W1"]["action"]["id"] = "A-implement"
+            with self.subTest(stage=stage):
+                self.write(state)
+                lines = loops.invoke_lines(self.root, state)
+                value = loops.contract(self.root, state, "A-" + stage)
+                contract_file = self.root / loops.contract_path("A-" + stage)
+                receipt = loops.receipt_path(self.root, "A-" + stage)
+                self.assertEqual(lines[:3], ["", "Until Loop (no iteration limit):", loops.INVOKE_LINE])
+                self.assertTrue(loops.INVOKE_LINE.startswith("RUN the until-loop skill now, once, with exactly the "))
+                self.assertIn("nothing outside them is part of the argument", loops.INVOKE_LINE)
+                # (a) Both marker lines, once, and between them exactly the five fields, nothing else.
+                self.assertEqual((lines.count(loops.ARGUMENT_BEGIN), lines.count(loops.ARGUMENT_END)), (1, 1))
+                begin, end = lines.index(loops.ARGUMENT_BEGIN), lines.index(loops.ARGUMENT_END)
+                self.assertLess(begin, end)
+                self.assertEqual(lines[begin + 1:end], [
+                    *("Work: " + value["work"]).splitlines(), "Exit when ALL of these hold:",
+                    *value["exit_condition"].splitlines(), value["repeat_condition"],
+                    "Contract: " + str(contract_file), "Receipt: " + str(receipt)])
+                labelled = [line for line in lines[begin + 1:end] if line.startswith(support.ARGUMENT_FIELDS)]
+                self.assertEqual([next(label for label in support.ARGUMENT_FIELDS if line.startswith(label))
+                                  for line in labelled], list(support.ARGUMENT_FIELDS))
+                # The argument is nothing but those fields; the prose that follows is outside the markers.
+                self.assertEqual(lines[end + 1], loops.HOST_LINE)
+                self.assertNotIn("Argument:", lines)
+                self.assertFalse([line for line in lines if line.startswith("    ")], "an indented argument line")
+                # The card is not what the packet sends a host to.
+                self.assertFalse([line for line in lines if "ADAPTER.md" in line or line.startswith("How to invoke")])
+
+    def test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop(self):
+        """(b), (c): the printed command is the one that starts the loop, on this action's own contract and receipt."""
+        for stage in ("step-plan", "test", "document", "verify"):
+            with self.subTest(stage=stage):
+                state = self.state_for(stage)
+                self.write(state)
+                block = self.block(state)
+                action = "A-" + stage
+                contract_file, receipt = self.root / loops.contract_path(action), loops.receipt_path(self.root, action)
+                expected = loops.start_command(loops.runtime(state), receipt, contract_file)
+                self.assertEqual(block.command, expected)
+                words = shlex.split(block.command)
+                self.assertEqual(words[:2][0], "python3")
+                self.assertTrue(words[1].endswith("until-loop/scripts/until_loop_ephemeral.py"))
+                self.assertEqual(words[2:], ["start", "--receipt", str(receipt), "<", str(contract_file)])
+                # The command and the argument name the same two files.
+                self.assertEqual(block.field("Contract: "), str(contract_file))
+                self.assertEqual(block.field("Receipt: "), str(receipt))
+                self.assertFalse(receipt.exists())
+                with tempfile.TemporaryDirectory(prefix="shiploop-cwd-") as elsewhere:
+                    started = block.run(Path(elsewhere))
+                self.assertEqual(started["status"], "active", started)
+                self.assertEqual(started["receipt"], str(receipt))
+                self.assertEqual(json.loads(receipt.read_text()), started)
+                self.assertEqual(started["work"], json.loads(contract_file.read_text())["work"])
+                self.assertEqual([started["done_argv"][2], started["next_argv"][2]], ["done", "next"])
+
+    def test_the_result_line_names_the_receipt_and_the_next_command(self):
+        """(d): what the finished loop leaves, and what to do with it."""
+        state = self.state_for("document")
+        self.write(state)
+        block = self.block(state)
+        self.assertEqual(block.result, loops.RESULT_LINE)
+        for needed in ("the Receipt above", "status complete", "stopped: report it", "evidence_refs",
+                       "the Callback command above", "the start command above again", "an active receipt: its next_argv",
+                       "complete again"):
+            self.assertIn(needed, block.result)
+        # The Receipt it points at is the argument's, one line up, with the path the command writes.
+        self.assertEqual(block.field("Receipt: "), str(loops.receipt_path(self.root, "A-document")))
+        # The closing rule keeps the obligations the old rule carried, and no longer repeats the result line.
+        self.assertEqual(block.lines[-1], " ".join(loops.LOOP_RULE.split()))
+        for kept in ("do not edit it or the receipt", "only when a command or file shows it after your last edit"):
+            self.assertIn(kept, block.lines[-1])
+        self.assertNotIn("start the loop again", block.lines[-1])
+        self.assertIn("Never write or edit the receipt", loops.RECEIPT_RULE)
+
+    def test_the_host_line_names_the_skill_tool_and_the_command_for_every_other_host(self):
+        self.assertIn('Claude Code: the Skill tool, skill "until-loop", with that argument.', loops.HOST_LINE)
+        self.assertIn("Any other host: run this in the foreground", loops.HOST_LINE)
+        for named in ("done_argv", "until the receipt says complete or stopped"):
+            self.assertIn(named, loops.HOST_LINE)
+
+    def test_a_started_loop_leads_with_resume_not_run_and_keeps_the_rest(self):
+        """The runtime does not refuse a second start for one receipt, so a packet read after the start says so first."""
+        state = self.state_for("test")
+        self.write(state)
+        fresh = loops.invoke_lines(self.root, state)
+        self.assertEqual(fresh[:3], ["", "Until Loop (no iteration limit):", loops.INVOKE_LINE])
+        self.assertEqual(self.block(state).run(self.root)["status"], "active")
+        started = loops.invoke_lines(self.root, state)
+        self.assertEqual(started[:3], ["", "Until Loop (no iteration limit):", loops.RESUME_LINE])
+        self.assertNotIn(loops.INVOKE_LINE, started)
+        self.assertIn("do not invoke it again", loops.RESUME_LINE)
+        # Only the first line differs: the argument, the command and the result stay for a reader who lost context.
+        self.assertEqual(started[3:], fresh[3:])
+
+    def test_a_missing_contract_says_blocked(self):
         state, _receipt = self.start("test")
-        self.assertEqual(loops.invoke_lines(self.root, state)[-1], loops.RESUME_LINE)
         (self.root / loops.contract_path("A-test")).unlink()
-        self.assertIn("The loop contract is missing; report outcome blocked naming this path.",
-                      loops.invoke_lines(self.root, state))
+        self.assertEqual(loops.invoke_lines(self.root, state)[-1],
+                         "The loop contract is missing; report outcome blocked naming this path.")
 
     def test_no_runtime_prints_unavailable_with_the_blocked_route(self):
         state = dict(self.state_for("document"), improve_skill=str(self.repo / "missing" / "SKILL.md"))
@@ -333,11 +409,11 @@ class NavigatorLoopTests(fx.RunDriver):
 
     def run_loop(self, reports: list, *, contract_edit=None) -> dict:
         """Start the packet's printed command, submit ``reports`` in order; the runtime writes the receipt."""
-        # The packet prints no start command (re-cut round 2); the card holds it, so build it as the card says.
-        lines = self.packet().splitlines()
-        self.assertTrue(any(line.startswith("How to invoke:") for line in lines))
-        contract_file = next(l for l in lines if l.strip().startswith("Contract: ")).strip()[len("Contract: "):]
-        words = shlex.split(loops.start_command(loops.runtime(self.state()), self.receipt(), Path(contract_file)))
+        # The command is the one the packet prints (owner, 2026-10-16), split into words so a test can edit the contract.
+        block = support.LoopBlock(self.packet())
+        words = shlex.split(block.command)
+        self.assertEqual(block.command, loops.start_command(loops.runtime(self.state()), self.receipt(),
+                                                            Path(block.field("Contract: "))))
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:
@@ -362,7 +438,11 @@ class NavigatorLoopTests(fx.RunDriver):
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
         self.assertEqual(contract, loops.contract(self.run_dir, self.state(), self.action()))
         self.assertEqual(contract["workspace"], str(self.repo))
-        self.assertIn("    Work: " + contract["work"], packet)
+        self.assertIn("\nWork: " + contract["work"] + "\n", packet)
+        block = support.LoopBlock(packet)
+        self.assertEqual((len(block.begins), len(block.ends)), (1, 1))
+        self.assertEqual(block.field("Contract: "), str(self.run_dir / loops.contract_path(self.action())))
+        self.assertEqual(block.field("Receipt: "), str(self.receipt()))
 
     def test_a_run_without_an_improve_card_uses_the_bundled_runtime(self):
         """Since 2026-10-10 every inner stage runs a loop, so a run that selected no Improve card binds the improve
@@ -371,7 +451,10 @@ class NavigatorLoopTests(fx.RunDriver):
         self.drive_to("verify")
         packet = self.packet()
         self.assertIn(loops.INVOKE_LINE, packet)
-        self.assertIn(str(fx.ROOT / "skills/improve/runtime/until-loop/ADAPTER.md"), packet)
+        # The packet names the bundled runtime's script in the command it prints, not a card to read.
+        self.assertIn(" " + str(fx.ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py") + " start ",
+                      packet)
+        self.assertNotIn("ADAPTER.md", packet.split("Until Loop (no iteration limit)")[1])
         self.assertNotIn("Unavailable:", packet)
 
     def test_a_completed_loop_is_accepted_as_done(self):

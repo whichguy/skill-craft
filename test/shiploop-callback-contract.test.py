@@ -40,7 +40,7 @@ import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
-from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+from shiploop_loop_support import LoopBlock, finish_loop, with_receipt  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -1302,10 +1302,10 @@ class LoopRefusalRouteTests(RealCliCase):
                 write_block(path, block, loop=False)
                 reply = self.refused(command, run)
                 self.assertIn(f"the {stage} loop has not run: no terminal packet exists at", reply)
-                # The packet no longer prints a start command (re-cut round 2): it names the card section that holds it,
-                # and the refusal reply carries the one command.
-                self.assertIn('section "Start from a parent-written contract"', full_packet_text(head))
-                self.assertIn("Start it with: ", reply)
+                # The packet prints the one start command (owner, 2026-10-16), and the refusal reply carries the same one.
+                printed = LoopBlock(full_packet_text(head)).command
+                self.assertTrue(printed)
+                self.assertIn("Start it with: " + printed + "  and follow", reply)
                 receipt = self.follow_start(reply)
                 write_block(path, {**block, "evidence_refs": [*block["evidence_refs"], str(receipt)]}, loop=False)
                 self.accepted(command)

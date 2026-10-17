@@ -4096,7 +4096,9 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         shown = self.cli("next", "--run-dir", str(self.run_dir))
         self.assertEqual(shown.returncode, 0, shown.stderr)
         packet = _with_packet_file(shown.stdout)
-        self.assertIn("INVOKE /until-loop NOW", packet)
+        import shiploop_loops as loops
+
+        self.assertIn(loops.INVOKE_LINE, packet)
         self.assertIn("grep -q ok status.txt", packet)
         head = self.git("rev-parse", "HEAD").strip()
 
