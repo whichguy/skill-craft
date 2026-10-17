@@ -32,6 +32,16 @@ def _receipt(binding):
     return path
 
 
+
+def _full(stdout: str) -> tuple[dict[str, object], str]:
+    """The full packet and its exact text: a run started with --receipt prints a lean return from start and done
+    (vendored runtime adaptation U21) and keeps the full packet, byte for byte, in its receipt."""
+    printed = json.loads(stdout)
+    if "report_fields" not in printed:
+        return printed, stdout
+    raw = Path(printed["receipt"]).read_text(encoding="utf-8")
+    return json.loads(raw), raw
+
 class StoppedStandaloneImproveTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-stopped-improve-")
@@ -84,7 +94,7 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        return json.loads(completed.stdout), completed.stdout
+        return _full(completed.stdout)
 
     def done(self, packet: dict[str, object], report: dict[str, str]) -> tuple[dict[str, object], str]:
         argv = packet["done_argv"]
@@ -94,7 +104,7 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        return json.loads(completed.stdout), completed.stdout
+        return _full(completed.stdout)
 
     def stopped(
         self, *, marker: str | None = None, classification: str = "unresolved",

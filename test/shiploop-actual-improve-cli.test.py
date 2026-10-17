@@ -26,12 +26,12 @@ import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
-from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
-from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt  # noqa: E402
 
 
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
@@ -302,9 +302,14 @@ class ImproveCliFixture(unittest.TestCase):
         return self.child_contract()["context"]
 
     def save_packet(self, result):
-        """Check that the runtime's own receipt is the packet it printed; the test never writes a receipt."""
+        """Check that the runtime's own receipt is the packet it printed (for a lean start or done return: the packet
+        whose lean fields it printed, U21); the test never writes a receipt."""
         path = bridge.receipt_path(self.bound)
-        self.assertEqual(path.read_bytes(), result.stdout)
+        printed = json.loads(result.stdout)
+        if set(printed) == LEAN_KEYS:
+            self.assertEqual(full_packet(printed), json.loads(path.read_bytes()))
+        else:
+            self.assertEqual(path.read_bytes(), result.stdout)
         self.packet_path = path
         return path
 
@@ -343,9 +348,9 @@ class ImproveCliFixture(unittest.TestCase):
                            env=self.environment)
 
     def done_ephemeral(self, packet, report):
-        result, successor = self.invoke_argv(packet["done_argv"], report)
-        self.save_packet(result)
-        return result, successor
+        result, _printed = self.invoke_argv(packet["done_argv"], report)
+        raw = self.save_packet(result).read_bytes()  # the full packet behind the lean print
+        return types.SimpleNamespace(stdout=raw, stderr=result.stderr, returncode=result.returncode), json.loads(raw)
 
     def finish_ephemeral(self, first=None):
         if first is None:

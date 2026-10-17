@@ -87,7 +87,7 @@ class Synthetic(unittest.TestCase):
     def runtime(self, args: list, stdin: str) -> dict:
         done = subprocess.run([sys.executable, self.cli, *args], input=stdin, text=True, capture_output=True,
                               timeout=60)
-        return json.loads(done.stdout)
+        return support.full_packet(json.loads(done.stdout))  # a receipt run prints a lean return (U21)
 
     def start(self, stage: str) -> tuple[dict, Path]:
         """Write the stage's contract and start it under the real runtime; returns (state, receipt)."""
@@ -322,7 +322,7 @@ class InvokeLinesTests(Synthetic):
                 self.assertEqual(block.field("Receipt: "), str(receipt))
                 self.assertFalse(receipt.exists())
                 with tempfile.TemporaryDirectory(prefix="shiploop-cwd-") as elsewhere:
-                    started = block.run(Path(elsewhere))
+                    started = support.full_packet(block.run(Path(elsewhere)))
                 self.assertEqual(started["status"], "active", started)
                 self.assertEqual(started["receipt"], str(receipt))
                 self.assertEqual(json.loads(receipt.read_text()), started)
@@ -571,6 +571,7 @@ class NavigatorLoopTests(fx.RunDriver):
             self.assertEqual(packet["status"], "active")
             packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(report), text=True,
                                                capture_output=True, check=True, timeout=30).stdout)
+        packet = support.full_packet(packet)  # the receipt holds the full packet behind the lean print (U21)
         self.assertEqual(json.loads(self.receipt().read_text()), packet)
         return packet
 
