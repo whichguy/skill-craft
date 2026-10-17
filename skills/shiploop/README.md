@@ -302,7 +302,7 @@ and submit the exact `done_argv`. It does not remember or choose the next state.
 Relevant resources still have to be available; a locator does not embed their
 contents or grant authority to change them.
 
-For example, with `required_trivial_reviews: 2` (Improve's unchanged-content gate for document stages; code reviews run at 3, see SKILL.md), a
+For example, with `required_trivial_reviews: 2` (Improve's unchanged-content gate for the stages with the Improve rule `always`; code reviews run at 3, see SKILL.md), a
 material repair reported as `non-trivial` returns another active action, and so does a
 `trivial` report on a pass that changed the content: the runtime reports
 `last_pass_changed_tree: true`. A `trivial` self-pass that changes nothing since the

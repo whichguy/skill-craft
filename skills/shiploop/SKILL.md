@@ -357,11 +357,14 @@ the content (Git, plus the stage's result file under the run directory) unchange
 from the previous pass, or from the start for the first pass (`last_pass_changed_tree:
 false` in the terminal packet). A pass that changed the content never completes the
 loop, however it is labelled, so a material pass is always followed by another;
-there is no pass count and no timer. That is the rule for the document stages' reviews (Improve rule `always`,
-`required_trivial_reviews: 2`). An implement step's review and the last carry-forward's review code, so they run at 3
-(`stage_spec.improve_gate`): a first pass that leaves the content as it started still ends the review, and once a pass
-has changed the content it takes two such passes in a row. The receipt lists the final pass's review. When the loop ends
-on its first pass, ShipLoop cross-checks it against the tree it recorded at `improve-bind`.
+there is no pass count and no timer. That is the rule for the reviews of the stages with
+the Improve rule `always` (`required_trivial_reviews: 2`; the study behind it measured spec
+to test-spec, not `system-test-author` or `release-plan`). An implement step's review and
+the last carry-forward's review code, so they run at 3 (`stage_spec.improve_gate`): a
+first pass that leaves the content as it started still ends the review, and once a pass
+has changed the content it takes two such passes in a row. The receipt lists the final
+pass's review. When the loop ends on its first pass, ShipLoop cross-checks it against the
+tree it recorded at `improve-bind`.
 
 An Improve review makes the changes it finds warranted, in code, tests or
 documentation, and commits them. At `improve-bind` ShipLoop snapshots the

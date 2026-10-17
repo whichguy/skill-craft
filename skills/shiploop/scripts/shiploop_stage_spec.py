@@ -56,7 +56,8 @@ IMPROVE_RULES = ("always", "last-item", "step")
 # The Until Loop review gate (`required_trivial_reviews`) each rule starts its Improve child at: the stop rule per stage
 # kind.  SPEC S-10, dated carve-out of 2026-10-16 as scoped by the efficiency plan (D-6 / R1; the text awaits the owner).
 # ONE_PASS_GATE: one trivial, satisfied pass that leaves the content as the previous pass left it ends the review.  The
-# study that measured it covered five planning stages; the rule "always" is those and the other document stages.
+# study that measured it covered five planning stages (spec to test-spec); the rule "always" is those and two it did not
+# measure, release-plan and system-test-author (which writes test code; SPEC S-10 asks the owner about its gate).
 # TWO_PASS_GATE: code reviews (an implement step, the last carry-forward): a first pass that leaves the content as it
 # started ends the review (2be7906b); once a pass has changed the content it takes two such passes in a row.  Pinned to
 # the runtime's own constants by test/shiploop-stage-spec.test.py.

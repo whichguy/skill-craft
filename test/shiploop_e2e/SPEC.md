@@ -244,9 +244,10 @@ D-6 / R1 of the ShipLoop efficiency plan; this paragraph is a proposal written w
 owner decision, and a release that ships the code waits for the owner to approve, amend or reject it). The study behind the
 2026-10-16 carve-out measured five planning stages and said not to extend the rule to code; the live run has an
 implement-step review whose pass 3 found a real defect (a case-insensitive string comparison) that a rule ending at pass 2
-would have stopped before. So the one-pass rule above applies to the Improve children after the seven document stages
-(`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`, `release-plan`; Improve rule `always`), whose
-Until Loop runs at `required_trivial_reviews: 2`. The child after each accepted `implement` step and the one after the last
+would have stopped before. So the one-pass rule above applies to the Improve children after the seven stages of the Improve rule `always`, whose
+Until Loop runs at `required_trivial_reviews: 2`: the five planning stages the study measured (`spec`, `test-strategy`, `plan`,
+`step-plan`, `test-spec`) and two it did not, which are unmeasured (`release-plan`, a plan document, and `system-test-author`,
+which writes end-to-end test code). The child after each accepted `implement` step and the one after the last
 `carry-forward` (rules `step` and `last-item`), which review code, run at `required_trivial_reviews: 3`: a first pass that is
 trivial, satisfied and leaves the content as it started still ends the review (the 2026-09-26 rule, 2be7906b); once any pass
 has changed the content, two consecutive trivial, satisfied passes that each leave it unchanged are needed. At both gates a
@@ -254,7 +255,10 @@ pass that changed the tree never ends the loop, however it is labelled, the runt
 never sufficient), and there is no iteration cap, no timer and no ceiling the model reads; the two-pass rule is a stop
 condition the script measures, not a limit on iterations. Replayed through the runtime, the same 21 study passes stop where
 the run stopped under the two-pass rule (test/improve-runtime.test.py, StopRuleReplayTests), so the saving above is claimed
-for the document stages only. If the owner rejects this text, both gates are set to the rule of 2be7906b (a trivial first pass
+for the five measured planning stages only. Open question for the owner: should the child after `system-test-author` run at 3
+like the other reviews of code? As written it runs at 2, because the gate follows the Improve rule and not what a stage edits;
+running it at 3 needs a per-stage override in `stage_spec` (a mapping by `edits` would also move `carry-forward`, which edits
+documentation and needs 3 as the last item's review). If the owner rejects this text, both gates are set to the rule of 2be7906b (a trivial first pass
 that leaves the content unchanged ends the review, otherwise two consecutive trivial passes) and the rest of the stop-rule
 branch stays. The Git requirement the 2026-10-16 text implies is lifted the same day: a directory that is not a worktree is
 measured through a throwaway bare repository, so an in-place run outside Git ends its Improve review by the same rules.

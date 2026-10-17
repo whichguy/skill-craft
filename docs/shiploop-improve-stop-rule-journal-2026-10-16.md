@@ -114,18 +114,18 @@ Decision proposed (D-6 / R1 of the plan; SPEC S-10 carries the text, flagged PRO
 
 | Improve rule | stages | gate | ends on |
 |---|---|---|---|
-| `always` | spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan | 2 | one trivial, satisfied pass that leaves the content unchanged (above) |
+| `always` | spec, test-strategy, plan, step-plan, test-spec (measured by the study); system-test-author (writes test code), release-plan (both unmeasured; see the review fixes below) | 2 | one trivial, satisfied pass that leaves the content unchanged (above) |
 | `step`, `last-item` | implement (every accepted step), carry-forward (the last item) | 3 | the first pass if it is trivial, satisfied and leaves the content as it started; otherwise two such passes in a row after any pass has changed it |
 
 Built: `stage_spec.IMPROVE_GATES` and `improve_gate(stage)` (pinned to the runtime's own constants by test), `improve_start_contract`
-passes the stage's gate and says the rule in the exit and repeat conditions, the handoff adds one sentence for gate 3, the bridge
+passes the stage's gate and says the rule in the repeat condition (the first build also put it in the exit condition: superseded 2026-10-17, see U2-R1 below), the handoff adds one sentence for gate 3, the bridge
 imports a terminal packet from either gate (`_UNCHANGED_GATES`). The runtime reads the gate-3 pair from the latest report,
 `trivial_streak` and `last_pass_changed_tree`, so no state field was added. A pass that is unchanged but not trivial and satisfied
 (or whose checks failed) breaks the pair; a first pass that is unchanged but unsatisfied does not make the next pass a "first pass".
 
 Evidence (firm for the mechanism, interim for the value): `StopRuleReplayTests` replays the study's 21 passes under gate 3: spec 8,
 test-strategy 5, plan 4, step-plan 1, test-spec 3, 21 of 21, the count the run took. So the saving measured above (21 passes become
-15) belongs to the document stages only, and gate 3 costs nothing against the old two-pass behaviour on code reviews; whether the
+15) belongs to the five measured planning stages only, and gate 3 costs nothing against the old two-pass behaviour on code reviews; whether the
 late find that motivated it recurs is one observation (the implement review of the live run), not a rate. `passes.md` (unit U19)
 will record what gate 2 would have done at each step review; the plan re-decides at 10 step reviews with 3 or more edits.
 
@@ -153,3 +153,32 @@ so no stage loop or Backchain child sees it. Recorded in `PROVENANCE.json`. An I
 alternative (D-5).
 
 Related commits: 60018152 and 3b9ca9c9 (the stop rule), 2be7906b (the first-pass rule gate 3 keeps), 398466a3.
+
+### 2026-10-17 review fixes (second review of unit U2, one read-only reviewer; status firm for R1 and R2, interim for R3's owner question)
+
+- U2-R1 (P2, confirmed): the frozen exit condition of a gate-3 review said "once any pass has changed the content, two such passes
+  in a row are needed". The runtime asks the model to report `satisfied` only when every clause holds against its literal wording
+  (ADAPTER.md, `exit_assessment`), so a careful model reports the first clean pass after an edit unsatisfied, and the runtime then
+  rejects that pass as the first of the pair. Driven through the real runtime (`TwoPassGateTests.drive`) with the clean pass
+  reported unsatisfied: ENN ends at pass 3, EUNN at pass 4, EUN is still open after three. Fixed at the cause: the two-pass rule is a
+  runtime gate, not a clause of the exit the model assesses, so `improve_start_contract` no longer writes it into `exit_condition`
+  (the repeat condition, the handoff sentence and the runtime's own packets still say it). Pinned by
+  `test/shiploop-quality.test.py` `assert_review_gate` (fail-first: 2 failures on the implement and carry-forward reviews) and by two
+  new `TwoPassGateTests.SEQUENCES` rows (EUN, EUNN). The review's second observation is kept as designed: a trivial pass with an
+  unsatisfied exit is stricter than the streak of 2be7906b (which counted any trivial pass: U then N ended at pass 2), because an
+  unsatisfied exit says something still remains; it is rare once the contract no longer invites it, and the SEQUENCES rows UN, UNN
+  and ENUNN pin it. The earlier claim "the gate-3 edge is main's" holds for the first pass only.
+- U2-R2 (P2, confirmed): exit item 3 of U2 ("G-SUITES exits 0 on INT after the merge") had been measured on the old base e4c675d5.
+  Merging the integration tip df8fef57 (nine units later) conflicted in the imports of `test/shiploop-stage-spec.test.py` (both
+  kept) and turned `shiploop-loops` red: U11's contract test expected `{**value, "exit_checks": []}` while the stop-rule runtime also
+  normalises `"candidate_paths": []`. The expectation now lists both. The merge is committed on the unit branch (ab5313fe).
+- U2-R3 (P2, confirmed): the S-10 proposal, the change note and the SKILL.md sentence called all seven `always` stages "document
+  stages". The study measured five (spec to test-spec). `system-test-author` writes end-to-end test code (`edits={'tests'}`), the case
+  the study said not to extend the one-pass rule to, and `release-plan` is a plan document; neither was measured. The texts now say so,
+  and S-10 carries an open question for the owner: should the review after `system-test-author` run at 3? It runs at 2 as written
+  because the gate follows the Improve rule, not what a stage edits; running it at 3 needs a per-stage override in `stage_spec`
+  (mapping by `edits` would also move `carry-forward`, which edits documentation and needs 3 as the last item's review). Pinned by
+  `test/shiploop-stage-spec.test.py` `test_the_s10_proposal_says_which_always_stages_the_study_did_not_measure` (fail-first).
+
+Related commits: c374549f (the unit), 467268e6, ab5313fe (the merge that carries R2), df8fef57 (integration tip merged),
+d1ae8537 (U11).
