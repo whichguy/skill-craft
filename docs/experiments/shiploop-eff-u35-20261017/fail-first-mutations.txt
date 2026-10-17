@@ -1,0 +1,8 @@
+test/shiploop_e2e/flow.py: 'said = "say" if kind == "assistant" else "injected"' -> 'said = "say"'  [-k injected] exit 5 Ran 0 tests in 0.000s
+test/shiploop_e2e/owner_page.py: 'if s not in seeded]' -> ']'  [-k sizes] exit 1 Ran 1 test in 0.607s FAILED (failures=1)
+test/shiploop_e2e/flow.py: 'STATUS_DISPLAY = re.compile(r"^PostToolUse:\\S* says:.*ShipLo' -> 'STATUS_DISPLAY = re.compile(r"^PreToolUs'  [-k commands] exit 1 Ran 1 test in 0.334s FAILED (failures=1)
+test/shiploop_e2e/flow.py: '(10 if i["cut"]["into"] in ("head", "tail") else 0)' -> '0'  [-k commands] exit 1 Ran 1 test in 0.293s FAILED (failures=1)
+test/shiploop_e2e/owner_page.py: 'if saved.is_file() else packets.build(earlier)' -> 'if False else packets.build(out)'  [-k comparison] exit 1 Ran 1 test in 0.574s FAILED (failures=1)
+test/shiploop_e2e/flow.py: 'f"{sha}..{tip}", "--", GENERATORS' -> 'f"{sha}..{tip}"'  [-k generator] exit 1 Ran 1 test in 1.267s FAILED (failures=1)
+test/shiploop_e2e/owner_page.py: '"aa_spread": spread.get(name)' -> '"aa_spread": None'  [-k carry_n] exit 1 Ran 1 test in 1.409s FAILED (failures=1)
+rerun of the first row with the right pattern: test/shiploop_e2e/flow.py: 'said = "say" if kind == "assistant" else "injected"' -> 'said = "say"'  [-k host_injects] exit 1 Ran 1 test in 0.008s FAILED (failures=1)

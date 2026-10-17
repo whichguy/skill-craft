@@ -1,0 +1,7 @@
+U35 exit check on SP/v9/node-fix-bug (a copy at SP/eff2/U35/v9copy; earlier SP/v7/node-fix-bug copy), 2026-10-17
+ShipLoop commands 21: complete piped 20 of 20; literal 1; variable-built 20 (run dir 19); median N 20.0; status displays 1 in 21
+packet file opened in 3 of 8 producer stages: step-plan whole, test-spec slice, implement none, test none, document none, verify none, carry-forward slice, system-test-author none
+gates: 0 ran, 4 skipped (base, mutation, inventory, item_commit)
+refusals 3; item commit present False; improve skill 1 of 4
+staleness: recorded 2026-10-12 on 28b27f7c, main 90fa2ca0, 17 packet-generator commits since
+compare text equals packets.py <out> --compare <earlier> (run on separate copies, only the copy folder prefix normalised): True

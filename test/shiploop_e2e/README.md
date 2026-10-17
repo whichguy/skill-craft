@@ -1530,7 +1530,8 @@ Every slice and every full run writes `flow.json` and `flow.html` into its outpu
 `slice.py` and by `run.py` after `result.json`; a failure is one printed line, never a verdict). Open `flow.html` to
 see the run as a sequence: one row per action, with the packet ShipLoop wrote on the left and what the model did on
 the right. Expand a row to see three views:
-- **what the model saw:** the printed head, exactly as the tool result showed it;
+- **seen by the model (after any head pipe):** the printed head, exactly as the tool result showed it, which is only
+  what survived the model's own `| head`, not what ShipLoop printed;
 - **what the model did:** its text, every call, and every result;
 - **the full packet:** split into its largest sections.
 
@@ -1558,6 +1559,38 @@ A partial read (grep, sed) is shown but not counted.
 The no-model checks are `test/shiploop-step-packets.test.py` and `test/shiploop-e2e-slice.test.py`. The second uses
 a fake host that moves `state.md`, to prove the stop, the overrun report, the stop after queue growth, the
 committed-product rule and the packet archive.
+
+Text the host injects into the conversation (Claude writes an invoked skill's body as a `user` message) is an event of
+its own kind, `injected`, tagged "host-injected" in the viewer, never shown as the model's words.
+
+### The owner page: one run's Read first panel, sizes, comparison and decisions
+
+The owner reads one page after a run to choose the next change. `owner_page.py` builds it from the run's files only;
+`flow.py --read-first <output>` prints its first panel as JSON and writes nothing.
+
+```sh
+python3 test/shiploop_e2e/owner_page.py <output> --earlier <earlier output> --html page.html \
+    [--control <control output> <control output>] [--decisions decisions.json] [--artifact]
+```
+
+- **Staleness banner:** "recorded <date> on <sha>, main <sha>, N packet-generator commits since" (commits under
+  `skills/shiploop/scripts` after the recorded `local_head`).
+- **Read first:** ShipLoop commands run, literal, variable-built (any variable, and by the run directory), piped, cut
+  by a head pipe with the median N, status displays fired (Claude only); per producer stage the characters written and
+  those seen after any pipe, and whether the packet file was opened (whole, slice, none); per stage seconds, turns,
+  tool calls and context peak; gates run and skipped (`metrics.skipped_gates`); refusals by stage and cause; the item
+  commit; skills invoked and the Improve stages that invoked the improve skill. Each figure links its file.
+- **Sizes:** packet characters per stage before and now, both on disk from `packets.py` (seeded stages left out),
+  then the comparison text exactly as `packets.py <output> --compare <earlier>` writes it.
+- **Time and turns** are shown only with n and the A/A spread: `--control A B` names two runs of one arm, whose
+  difference is the spread; without them the spread reads "not measured".
+- **Decisions:** `--decisions` gives the starting rows (`id`, `title`, `status`, `note`). Published with the `db`
+  capability the page keeps them in its `decisions` collection (`id`, `title`, `status`, `note`, `updatedAt`);
+  without it the page offers a copy-prompt button.
+- **What the run cannot show**, as a list the script derives (n=1, the host's stream, seeded stages).
+
+The script never publishes; the session that owns the page publishes the HTML (`--artifact` leaves out the skeleton).
+The check is `test/shiploop-e2e-owner-page.test.py`, on the saved Claude step slice under `test/fixtures/efficiency`.
 
 ### Efficiency measurement: the reading path, arms and planted defects
 

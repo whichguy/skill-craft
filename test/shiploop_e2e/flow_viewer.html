@@ -372,7 +372,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
           <span class="muted num">${k(p.packet.chars)} chars written · head ${k(p.head_chars)} · ${p.packet.emissions} emission${p.packet.emissions === 1 ? "" : "s"} · ${p.packet.skill_references ?? 0} skill references</span>
           <span class="muted">${reads}</span></div>
         <div class="tabs" role="tablist">
-          <button role="tab" data-tab="seen" aria-selected="${tab === "seen"}">What the model saw</button>
+          <button role="tab" data-tab="seen" aria-selected="${tab === "seen"}">Seen by the model (after any head pipe)</button>
           <button role="tab" data-tab="did" aria-selected="${tab === "did"}">What the model did (${p.calls} call${p.calls === 1 ? "" : "s"})</button>
           <button role="tab" data-tab="packet" aria-selected="${tab === "packet"}">Full packet</button></div>
         <div class="pane" data-pane="seen" ${tab === "seen" ? "" : "hidden"}>${head}</div>
@@ -388,6 +388,8 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     const more = e.body.clipped ? ` <span class="muted">(first ${k(e.body.text.length)} of ${k(e.body.chars)} chars)</span>` : "";
     if (e.kind === "say") return `<div class="ev say">${t}<div class="b">${esc(e.body.text)}</div></div>`;
     if (e.kind === "hook") return `<div class="ev hook">${t}<div class="b">${esc(e.body.text)}</div></div>`;
+    // Text the host put into the conversation (a skill body Claude injects after a Skill call): never the model's words.
+    if (e.kind === "injected") return `<div class="ev hook">${t}<div class="b"><span class="pill quiet">host-injected</span>${more}<details><summary>${esc(e.body.text.split("\n")[0].slice(0, 140))}</summary><pre>${esc(e.body.text)}</pre></details></div></div>`;
     if (e.kind === "call") {
       const flags = (e.flags || []).map((f) => `<span class="pill flag">${esc(flagText(f))}</span>`).join(" ");
       const first = e.body.text.split("\n")[0];

@@ -1,0 +1,297 @@
+{
+ "output": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/eff2/U35/v9copy",
+ "run_dir": ".shiploop-runs/seed/run",
+ "host": "claude",
+ "case": "node-fix-bug",
+ "versions": {
+  "plugin_version": "2.3.1",
+  "shiploop_version": "1.3.0",
+  "plugin_sha256": "eefe269f3d29"
+ },
+ "delegation": "inline",
+ "staleness": {
+  "recorded": "2026-10-12",
+  "sha": "28b27f7ca5fb0225027d13f13b24112f0e02dc44",
+  "branch": "main",
+  "tip": "90fa2ca0fa0c183d30ef3760354ecd05f7c81959",
+  "generator_commits": 17,
+  "text": "recorded 2026-10-12 on 28b27f7c, main 90fa2ca0, 17 packet-generator commits since",
+  "file": "invocation.json"
+ },
+ "commands": {
+  "invocations": 21,
+  "literal": 1,
+  "variable_built": 20,
+  "variable_run_dir": 19,
+  "piped": 20,
+  "by_verb": {
+   "next": {
+    "invocations": 1,
+    "piped": 0
+   },
+   "complete": {
+    "invocations": 20,
+    "piped": 20
+   }
+  },
+  "cut_by_pipe": 20,
+  "median_n": 20.0,
+  "status_displays": 1,
+  "status_displays_reason": null,
+  "file": "events.jsonl"
+ },
+ "producers": {
+  "measured": true,
+  "count_opened": 3,
+  "of": 8,
+  "rows": [
+   {
+    "stage": "step-plan",
+    "action": "nav-3a28fd23340c4d02b25b75858c852abc",
+    "written": 28303,
+    "seen": 12417,
+    "cut_by": [],
+    "opened": "whole",
+    "file": ".shiploop-runs/seed/run/packets/nav-3a28fd23340c4d02b25b75858c852abc.md"
+   },
+   {
+    "stage": "test-spec",
+    "action": "nav-5abc7f7e0a1645a4aa3f1a682045235b",
+    "written": 17134,
+    "seen": 7361,
+    "cut_by": [
+     "head -50"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/seed/run/packets/nav-5abc7f7e0a1645a4aa3f1a682045235b.md"
+   },
+   {
+    "stage": "implement",
+    "action": "nav-60214ef934314757bef02fff25cf64ab",
+    "written": 24870,
+    "seen": 4556,
+    "cut_by": [
+     "head -30"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/seed/run/packets/nav-60214ef934314757bef02fff25cf64ab.md"
+   },
+   {
+    "stage": "test",
+    "action": "nav-79bce5991df24327b04976482c8782e8",
+    "written": 24571,
+    "seen": 4872,
+    "cut_by": [
+     "head -30"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/seed/run/packets/nav-79bce5991df24327b04976482c8782e8.md"
+   },
+   {
+    "stage": "document",
+    "action": "nav-07a6da3f65874c2191ae946fb8e773bd",
+    "written": 17439,
+    "seen": 5656,
+    "cut_by": [
+     "head -40"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/seed/run/packets/nav-07a6da3f65874c2191ae946fb8e773bd.md"
+   },
+   {
+    "stage": "verify",
+    "action": "nav-23316944c2e14a1599963329ac7295d3",
+    "written": 28804,
+    "seen": 3463,
+    "cut_by": [
+     "head -14"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/seed/run/packets/nav-23316944c2e14a1599963329ac7295d3.md"
+   },
+   {
+    "stage": "carry-forward",
+    "action": "nav-a4fd6cda001649a996a9599bc78e4d41",
+    "written": 27449,
+    "seen": 4670,
+    "cut_by": [
+     "head -30"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/seed/run/packets/nav-a4fd6cda001649a996a9599bc78e4d41.md"
+   },
+   {
+    "stage": "system-test-author",
+    "action": "nav-cdb53dcef2b34fcba947baee875859e7",
+    "written": 18299,
+    "seen": 3394,
+    "cut_by": [
+     "head -25"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/seed/run/packets/nav-cdb53dcef2b34fcba947baee875859e7.md"
+   }
+  ],
+  "reason": null,
+  "file": ".shiploop-runs/seed/run/packets"
+ },
+ "steps": {
+  "measured": true,
+  "rows": [
+   {
+    "stage": "step-plan",
+    "seconds": 66.4,
+    "turns": 21,
+    "tool_calls": 15,
+    "context_peak": 108853,
+    "incomplete": false
+   },
+   {
+    "stage": "test-spec",
+    "seconds": 49.0,
+    "turns": 21,
+    "tool_calls": 10,
+    "context_peak": 122350,
+    "incomplete": false
+   },
+   {
+    "stage": "validate-existing",
+    "seconds": 0.0,
+    "turns": 0,
+    "tool_calls": 0,
+    "context_peak": null,
+    "incomplete": false
+   },
+   {
+    "stage": "implement",
+    "seconds": 29.0,
+    "turns": 8,
+    "tool_calls": 4,
+    "context_peak": 129992,
+    "incomplete": false
+   },
+   {
+    "stage": "test",
+    "seconds": 20.0,
+    "turns": 5,
+    "tool_calls": 4,
+    "context_peak": 134848,
+    "incomplete": false
+   },
+   {
+    "stage": "document",
+    "seconds": 13.0,
+    "turns": 4,
+    "tool_calls": 2,
+    "context_peak": 139052,
+    "incomplete": false
+   },
+   {
+    "stage": "verify",
+    "seconds": 15.0,
+    "turns": 3,
+    "tool_calls": 2,
+    "context_peak": 142766,
+    "incomplete": false
+   },
+   {
+    "stage": "carry-forward",
+    "seconds": 27.0,
+    "turns": 6,
+    "tool_calls": 3,
+    "context_peak": 150232,
+    "incomplete": false
+   },
+   {
+    "stage": "system-test-author",
+    "seconds": 2.4,
+    "turns": 2,
+    "tool_calls": 1,
+    "context_peak": 152716,
+    "incomplete": true
+   }
+  ],
+  "file": "metrics.json"
+ },
+ "gates": {
+  "measured": true,
+  "count": 4,
+  "gates": [
+   {
+    "gate": "base",
+    "records": 1,
+    "skipped": 1,
+    "reason": "no item base was recorded (not a Git checkout, or the base was not captured)"
+   },
+   {
+    "gate": "mutation",
+    "records": 1,
+    "skipped": 1,
+    "reason": "no item base was recorded (not a Git checkout, or the base was not captured)"
+   },
+   {
+    "gate": "inventory",
+    "records": 1,
+    "skipped": 1,
+    "reason": "no base snapshot was captured when W1 started"
+   },
+   {
+    "gate": "item_commit",
+    "records": 1,
+    "skipped": 1,
+    "reason": "no base snapshot for W1 (lint/items/W1.md): the item's changes cannot be read, so nothing is committed"
+   }
+  ],
+  "ran": 0,
+  "file": ".shiploop-runs/seed/run/tests"
+ },
+ "refusals": {
+  "count": 3,
+  "rows": [
+   {
+    "stage": "test-spec",
+    "cause": "test_cases[0] needs exactly id, criterion, requirement, oracle, red, green",
+    "count": 2
+   },
+   {
+    "stage": "test-spec",
+    "cause": "Fix case requirements in <path> then run the same complete command again.",
+    "count": 1
+   }
+  ],
+  "file": "events.jsonl"
+ },
+ "item_commit": {
+  "measured": true,
+  "present": false,
+  "uncommitted_product": [
+   "src/paginate.js",
+   "test/paginate.test.js"
+  ],
+  "reason": "no base snapshot for W1 (lint/items/W1.md): the item's changes cannot be read, so nothing is committed",
+  "file": ".shiploop-runs/seed/run/lint/items"
+ },
+ "skills": {
+  "calls": {
+   "until-loop": 1,
+   "skill-craft:improve": 1
+  },
+  "improve_invoked": 1,
+  "improve_stages": 4,
+  "file": "events.jsonl"
+ },
+ "seeded": [
+  "intake",
+  "discovery",
+  "research",
+  "spec",
+  "test-strategy",
+  "plan",
+  "prepare"
+ ],
+ "cannot_show": [
+  "whether the model read or used the text a tool result showed it: only what reached it is counted",
+  "a time or turn difference between runs: one run per side (n=1); the page shows it only beside an A/A spread",
+  "the stages the harness recorded without the model (intake, discovery, research, spec, test-strategy, plan, prepare): their packets were never run"
+ ]
+}
