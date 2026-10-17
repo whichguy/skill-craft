@@ -9,7 +9,9 @@ A full E2E run (run.py) plans from intake and releases at the end; a step slice 
 step-plan, test-spec, validate-existing, implement, test, document, verify, carry-forward (with an Improve child after
 each implement step and the last item's carry-forward Improve child). The harness copies the case's fixture (step_cases.json) into a new git repository, records every stage before
 step-plan without doing it (run.seed_run, on the plugin's own navigator, with the case's work item as the plan's only
-item), and the host follows ShipLoop's packets from step-plan. A poll every POLL_SECONDS archives each distinct packet
+item), records what those stages would have left (the item's base snapshot, which the base run, the mutation check, the
+change inventory and the item commit read; a neutral docs/shiploop/ home, unless --seed-without-home), and the host follows
+ShipLoop's packets from step-plan. A poll every POLL_SECONDS archives each distinct packet
 ShipLoop emits (packets.archive_packets) and ends the host once the item's inner loop is over (``slice_complete``): the
 item is advanced past, the run left the inner loop, or the run is no longer active. That stop is final: nothing resumes
 a completed slice.
@@ -249,6 +251,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--max-resumes", type=int, default=5,
                    help="resumable hosts (grok, codex): continue a session that ended before the slice was complete")
+    p.add_argument("--seed-without-home", action="store_true",
+                   help="do not commit the neutral knowledge home (docs/shiploop/spec.md with R-1 = the request, environment.md "
+                        "with the case's checks) into the seed repository; the item base is recorded either way. The flagged "
+                        "variant, to see which refusals a run with no spec hits")
     p.add_argument("--clear-at", metavar="STAGE[:inside]",
                    help="the S-6 probe: stop the host when STAGE's packet arrives (or, with :inside, after its first "
                         "completed call), continue in a fresh session, and grade no_redo (clear.py)")
@@ -301,7 +307,8 @@ def main(argv: list[str] | None = None) -> int:
     plugin = host.install_plugin(env, plugin_dir)
     cli = run.run_cli(host.name, out, plugin_dir)
     seeded = run.seed_run(cli, work, out, case["prompt"], SEED_AT, fixture=FIXTURES / case["fixture"],
-                          work_item=case["work_item"], delegation=args.delegation)
+                          work_item=case["work_item"], delegation=args.delegation, checks=case["checks"],
+                          home=not args.seed_without_home)
     run_dir = Path(seeded["run_dir"])
     opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], args.delegation))
     common = dict(cwd=work, model=model, effort=effort, permission_mode=args.permission_mode, max_turns=args.max_turns,

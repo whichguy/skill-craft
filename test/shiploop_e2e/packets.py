@@ -36,6 +36,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
+import fidelity  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -189,7 +190,16 @@ def overlap_shares(texts: list[str]) -> list[float | None]:
     return shares
 
 
-def effectiveness(state: dict, out: Path) -> dict:
+def gate_facts(run_dir: Path | None) -> dict | None:
+    """The test stage's base-run and mutation-check records and those that say skipped (fidelity.gates_not_exercised);
+    None when the run folder cannot be read."""
+    try:
+        return fidelity.gates_not_exercised(run_dir)
+    except fidelity.Unmeasured:
+        return None
+
+
+def effectiveness(state: dict, out: Path, run_dir: Path | None = None) -> dict:
     """Script facts on whether the stages did their job (the slice verdicts when slice.py wrote them)."""
     history = [row for row in state.get("history") or [] if isinstance(row, dict)]
     order = [row.get("stage") for row in history]
@@ -198,7 +208,8 @@ def effectiveness(state: dict, out: Path) -> dict:
     found = {"stage_outcomes": [{"stage": row.get("stage"), "outcome": row.get("outcome"), "work_item": row.get("workitem")}
                                 for row in history],
              "revise_loops": sum(1 for row in history if row.get("outcome") == "revise"),
-             "test_spec_before_implement": None if spec is None or build is None else spec < build}
+             "test_spec_before_implement": None if spec is None or build is None else spec < build,
+             "gates": gate_facts(run_dir)}
     try:
         found["slice"] = json.loads((out / "slice-result.json").read_text())
     except (OSError, ValueError):
@@ -279,7 +290,7 @@ def build(out: Path) -> dict:
                    "no session reported a cost (a session the slice stop ends never writes its result event)"},
         "packets": rows,
         "stages": run_metrics.get("stages") or [],
-        "effectiveness": effectiveness(state, out),
+        "effectiveness": effectiveness(state, out, run_dir),
     }
     return report
 
@@ -363,6 +374,19 @@ def _cell(value) -> str:
     return "–" if value is None else f"{value:.0%}" if isinstance(value, float) and value <= 1 else str(value)
 
 
+def gates_line(gates: dict | None) -> str:
+    """One report line on the test stage's gates: which ones wrote a record that says skipped (they did nothing, so this run is
+    no evidence about them), or that none did, or that no record exists to say."""
+    if gates is None:
+        return "Gates not exercised: not measured (the run folder cannot be read)."
+    if gates["skipped"]:
+        return ("**Gates not exercised:** " + fidelity.gates_phrase(gates["skipped"]) + f" ({len(gates['skipped'])} of "
+                f"{gates['records']} base-run and mutation-check records say skipped: the gate wrote a record and did nothing).")
+    if gates["records"]:
+        return f"Gates not exercised: none ({gates['records']} base-run and mutation-check records, none says skipped)."
+    return "Gates not exercised: not measured (no base-run or mutation-check record: the test stage was not reached)."
+
+
 def render(report: dict) -> str:
     t = report["totals"]
     lines = [f"# Packet report: {report['output']}", "",
@@ -380,7 +404,8 @@ def render(report: dict) -> str:
         verdicts = ", ".join(f"{name} {'PASS' if ok else 'FAIL'}" for name, ok in slice_result.get("verdicts", {}).items())
         lines += [f"**Slice {'PASS' if slice_result.get('pass') else 'FAIL'}**: {verdicts}", ""]
     eff = report["effectiveness"]
-    lines += [f"Revise loops {eff['revise_loops']}; test-spec before implement: {_cell(eff['test_spec_before_implement'])}.", "",
+    lines += [f"Revise loops {eff['revise_loops']}; test-spec before implement: {_cell(eff['test_spec_before_implement'])}.",
+              gates_line(eff.get("gates")), "",
               "## Packets", "",
               "| # | stage | kind | outcome | chars | ~tokens | emissions | next | repeated | skill refs | missing | largest section |",
               "|---|---|---|---|---|---|---|---|---|---|---|---|"]

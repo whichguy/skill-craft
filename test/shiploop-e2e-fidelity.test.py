@@ -831,6 +831,64 @@ class ValidationTest(unittest.TestCase):
         self.assertIsNone(block["validation"])
         self.assertIn("run directory", block["unmeasured"]["validation"])
 
+    # The records the test stage's base run and mutation check write when they did nothing, as a live run recorded them
+    # (the wording of shiploop_test_loop._base_run and shiploop_mutation._check).
+    NO_BASE = "no item base was recorded (not a Git checkout, or the base was not captured)"
+
+    def gate_record(self, run_dir: Path, name: str, schema: str, **fields):
+        (run_dir / "tests").mkdir(parents=True, exist_ok=True)
+        record = {"schema": schema, "action": "nav-t", "stage": "test", "work_item": "W1", "passed": True, **fields}
+        (run_dir / "tests" / name).write_text("# ShipLoop record\n\n```shiploop-state\n" + json.dumps(record, indent=2) + "\n```\n")
+
+    def test_a_base_run_or_mutation_record_that_says_skipped_is_a_gate_not_exercised(self):
+        """X-2 / TD-5: every seeded slice recorded all three test-stage gates as silent no-ops with disposition passed, so
+        no earlier baseline showed that the gate had not run. The block names them; a record that ran is not named."""
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            self.gate_record(run_dir, "nav-t-base1.md", "shiploop-test-base/v1", skipped=self.NO_BASE, disposition="passed", runs=[])
+            self.gate_record(run_dir, "nav-t-mutation1.md", "shiploop-test-mutation/v1", skipped=self.NO_BASE, mutants=[])
+            self.gate_record(run_dir, "nav-u-base1.md", "shiploop-test-base/v1", disposition="passed", runs=[{"command": "c"}])
+            found = self.fidelity.gates_not_exercised(run_dir)
+            self.assertEqual(found["records"], 3)
+            self.assertEqual([(row["gate"], row["record"], row["work_item"]) for row in found["skipped"]],
+                             [("base", "tests/nav-t-base1.md", "W1"), ("mutation", "tests/nav-t-mutation1.md", "W1")])
+            self.assertTrue(all(row["reason"].startswith("no item base was recorded") for row in found["skipped"]))
+            block = self.fidelity.build(Path(tmp), run_dir, None)
+            self.assertEqual(block["validation"]["gates_not_exercised"], found["skipped"])
+            line = self.fidelity.lines(block)[1]
+            self.assertIn("; gates not exercised (a record that says skipped): base W1 (no item base was recorded), "
+                          "mutation W1 (no item base was recorded)", line)
+
+    def test_a_mutation_check_with_no_mutants_is_named_with_its_own_reason(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            self.gate_record(run_dir, "nav-t-mutation1.md", "shiploop-test-mutation/v1",
+                             skipped="no mutants: no changed product line matched an operator", mutants=[])
+            line = self.fidelity.lines(self.fidelity.build(Path(tmp), run_dir, None))[1]
+            self.assertIn("gates not exercised (a record that says skipped): mutation W1 (no mutants: no changed product "
+                          "line matched an operator)", line)
+
+    def test_runs_that_exercised_every_gate_and_the_saved_runs_print_no_gates_clause(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            self.gate_record(run_dir, "nav-t-base1.md", "shiploop-test-base/v1", disposition="passed", runs=[{"command": "c"}])
+            self.assertEqual(self.fidelity.gates_not_exercised(run_dir), {"records": 1, "skipped": []})
+            self.assertNotIn("gates not exercised", self.fidelity.lines(self.fidelity.build(Path(tmp), run_dir, None))[1])
+        for alias in ELEVEN:
+            with self.subTest(run=alias):
+                self.assertEqual(replay(alias)["block"]["validation"]["gates_not_exercised"], [])
+                self.assertNotIn("gates not exercised", "\n".join(self.fidelity.lines(replay(alias)["block"])))
+
+    def test_gates_not_exercised_is_unmeasured_without_a_run_directory_and_ignores_unreadable_records(self):
+        with self.assertRaises(self.fidelity.Unmeasured):
+            self.fidelity.gates_not_exercised(None)
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "tests").mkdir(parents=True)
+            (run_dir / "tests" / "nav-t-base1.md").write_text("```shiploop-state\n{not json\n```\n")
+            (run_dir / "tests" / "nav-t-verify1.md").write_text("no fence at all\n")
+            self.assertEqual(self.fidelity.gates_not_exercised(run_dir), {"records": 0, "skipped": []})
+
     def test_the_regex_reader_and_the_json_reader_agree_on_all_eleven_saved_runs_and_the_two_v1220_runs(self):
         for alias in ELEVEN + V1220:
             with self.subTest(run=alias):
