@@ -580,17 +580,13 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
     a loop still running.
     """
     outcome = result.get("outcome")
-    refs = result.get("evidence_refs")
     if start and not os.path.lexists(path):
         until = ("complete" if outcome == "done" else
                  "stopped: report continuation_assessment blocked when the work proved unachievable as planned")
         raise LoopError(
             "the " + label + " has not run: no terminal packet exists at " + str(path) + ". Start it with: " + start
             + "  and follow each packet it returns (its done_argv takes your report) until its status is "
-            + until + "; the runtime writes that file itself. Then list " + str(path)
-            + " in evidence_refs and submit " + str(outcome) + " again")
-    _need(isinstance(refs, list) and str(path) in refs,
-          "list the saved terminal packet in evidence_refs: " + str(path))
+            + until + "; the runtime writes that file itself. Then submit " + str(outcome) + " again")
     packet = _read_json(path, "Until Loop terminal packet")
     _need(isinstance(packet, Mapping), "the Until Loop terminal packet must be a JSON object")
     _need(set(packet) == _PACKET_KEYS,
@@ -662,12 +658,15 @@ def _verify_refused(root: Path, action_id: str) -> bool:
     return bool(refused and refused(root, action_id) >= 1)
 
 
-def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, Any]) -> None:
+def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, Any]) -> Path | None:
     """Refuse the current inner action's result that its Until Loop terminal packet does not support.
 
-    Reads the receipt the result names in evidence_refs and compares it with the contract rebuilt from state, never
-    the contract file.  Refused: ``repeat`` (the loop repeats, not the graph), an outcome the stage does not accept,
-    a missing receipt for any outcome but blocked, an active receipt, or a packet from another contract.
+    Reads the action's receipt, which ShipLoop derives (the result need not list it: ``cite_receipt`` adds it to
+    evidence_refs once this check holds), and compares it with the contract rebuilt from state, never the contract
+    file.  Refused: ``repeat`` (the loop repeats, not the graph), an outcome the stage does not accept, a missing
+    receipt for any outcome but blocked, an active receipt, or a packet from another contract.  Returns the receipt
+    it checked, or None when the result is accepted without one (a blocked result before the loop started, a route
+    out of the test or verify stage).
     """
     found = cursor(state)
     _need(found is not None, "the run is not in an inner stage, so it has no stage loop")
@@ -679,17 +678,32 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     root = Path(root)
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
-        return  # The loop never started (for example, no runtime resolves); the summary and blocked_by say why.
+        return None  # The loop never started (for example, no runtime resolves); the summary and blocked_by say why.
     if outcome in ("revise", "blocked") and (
             (stage in ("test", "verify") and _remedy_open(root, action_id))
             or (stage == "verify" and _verify_refused(root, action_id))):
-        return
+        return None
     try:
         start = start_command(runtime(state), path, root / contract_path(action_id))
     except LoopError:
-        start = ""  # No runtime resolves: a missing receipt is then refused by its evidence and file checks.
+        start = ""  # No runtime resolves: a missing receipt is then refused by its file check.
     check_loop_packet(path, result, contract(root, state, action_id), stage + " loop",
                       str(root / contract_path(action_id)), start)
+    return path
+
+
+def cite_receipt(result: Mapping[str, Any], receipt: Path | None) -> Mapping[str, Any]:
+    """``result`` with the checked loop receipt listed in evidence_refs when the model left it out (X-15: the path was
+    typed in every producer result, and ShipLoop derives it).  A result that is not a mapping, one whose evidence_refs
+    is not a list, and a check that found no receipt are returned as they are."""
+    if receipt is None or not isinstance(result, Mapping):
+        return result
+    refs = result.get("evidence_refs")
+    if refs is None:
+        refs = []
+    if not isinstance(refs, list) or str(receipt) in refs:
+        return result
+    return {**result, "evidence_refs": [*refs, str(receipt)]}
 
 
 __all__ = (
@@ -717,6 +731,7 @@ __all__ = (
     "WORK",
     "check_loop_packet",
     "check_terminal",
+    "cite_receipt",
     "command_listing",
     "condition_lines",
     "contract",

@@ -84,6 +84,9 @@ NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 # A line the head prints whole, which a cut by column shortens: its end is how the cut is told.
 CALLBACK_LINE = re.compile(r"^Callback for this stage[^\n]*$", re.M)
+# How a whole callback line ends: with its action id (the result path is in the label since 2026-10-17; a real id is
+# `nav-` and 32 hex digits, so a cut inside it does not pass) or, in a packet of the earlier layout, with the result path.
+CALLBACK_END = re.compile(r"(?:\.md|--action=(?:nav-[0-9a-f]{32}|(?!nav-)[A-Za-z][\w-]*))$")
 KEEPALIVE_LINE = re.compile(r"^Keepalive marker:[^\n]*$", re.M)
 
 HEAD_BYTES_WHY = ("a reply is a whole print only from its head's first line to the head's own closing line, with the packet's "
@@ -122,9 +125,9 @@ def head_or_why(reply: str) -> tuple[str | None, str | None]:
     if reply[cut:cut + 1] == "\n":
         cut += 1
     head = reply[:cut]
-    # A cut by column keeps every line and shortens the long ones: the callback line must still end with its result path and the
-    # keepalive line with the run directory, as ShipLoop prints them.
-    if any(not line.rstrip().endswith(".md") for line in CALLBACK_LINE.findall(head)):
+    # A cut by column keeps every line and shortens the long ones: the callback line must still end as ShipLoop prints it
+    # (CALLBACK_END) and the keepalive line with the run directory.
+    if any(not CALLBACK_END.search(line.rstrip()) for line in CALLBACK_LINE.findall(head)):
         return None, NOT_WHOLE_SHORTENED
     if any(not re.search(r"\bdir=\S+$", line.rstrip()) for line in KEEPALIVE_LINE.findall(head)):
         return None, NOT_WHOLE_SHORTENED

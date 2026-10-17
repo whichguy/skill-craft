@@ -611,8 +611,9 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         if name == "improve-reconcile":
             sub.add_argument("--result", required=True)
         if name == "complete":
-            # Every producer stage needs it; an improve stage takes it only for a changed result (--final-result).
-            sub.add_argument("--result")
+            # Every producer stage reads it; the one path accepted is RUN/inbox/<action>.md, so it may be left out.  An
+            # improve stage takes no result (--final-result is its changed result).
+            sub.add_argument("--result", help="the result file; default and only accepted path: RUN/inbox/<action>.md")
         if name == "complete":
             sub.add_argument("--check-only", dest="check_only", action="store_true",
                              help="run this stage's script gates on the result and report, without completing the "

@@ -27,6 +27,7 @@ if str(SOURCE_SCRIPTS) not in sys.path:
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E402
 
 
 ACCESS_POLICY_LABEL = "Access-readiness policy: "
@@ -208,17 +209,11 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
     def _submit(self, run_dir: Path, packet: str, result: dict) -> tuple[str, Path, list[str]]:
         state = self._state(run_dir)
         action = self._current_action(state)
-        # The one callback line carries both the command and the result file it reads (--result=); the separate
-        # "Write the structured result to:" and "Call this when done:" lines are gone (2026-10-11 dedupe).
-        callback_prefix = (
-            "Callback for this stage (run once after its work, with the result written to the file it names): "
-        )
-        command = shlex.split(
-            packet.split(callback_prefix, 1)[1].splitlines()[0]
-        )
-        result_args = [arg for arg in command if arg.startswith("--result=")]
-        self.assertEqual(len(result_args), 1, command)
-        callback = Path(result_args[0].partition("=")[2])
+        # The one callback line names the result file in its label and carries the command, which has no --result flag
+        # (complete reads RUN/inbox/<action>.md by default).
+        command = callback_argv(packet)
+        self.assertFalse([arg for arg in command if arg.startswith("--result")], command)
+        callback = callback_result_path(packet)
         self.assertEqual(
             callback,
             run_dir.resolve() / "inbox" / f"{action['id']}.md",

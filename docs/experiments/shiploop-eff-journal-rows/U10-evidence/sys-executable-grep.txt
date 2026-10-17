@@ -1,0 +1,7 @@
+$ grep -n "sys.executable" skills/shiploop/scripts/shiploop_loops.py skills/shiploop/scripts/shiploop_navigator.py
+skills/shiploop/scripts/shiploop_navigator.py:6880:            [sys.executable, "-B", child["skill"]["runtime_cli"], "start", "--directory", str(state_dir),
+(the one match is the subprocess argv that starts the Improve runtime, not a printed command; the pin is PrintedInterpreterTests in test/shiploop-packet-completeness.test.py)
+
+$ git grep -n "sys.executable" at the base 5e0ef0d0 (before the change)
+skills/shiploop/scripts/shiploop_navigator.py:4597:        cli = shlex.join([sys.executable, str(Path(__file__).resolve().parent / "shiploop")])
+skills/shiploop/scripts/shiploop_navigator.py:6776:            [sys.executable, "-B", child["skill"]["runtime_cli"], "start", "--directory", str(state_dir),

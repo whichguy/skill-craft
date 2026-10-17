@@ -1,0 +1,38 @@
+Suites run once on the final tree, as SHIPLOOP_PROGRESS=off PYTHONDONTWRITEBYTECODE=1 python3 -B test/shiploop-<name>.test.py (the machine was shared: load average 12 to 38, so the times are long).
+Tier A (pins of the changed text), tier B, tier C (path notation changed), then the callers by git grep of the changed symbols and pinned phrases.
+
+packet-recut exit=0 7s Ran 28 tests in 6.490s OK 
+step-packets exit=0 2s Ran 9 tests in 1.513s OK 
+packet-bounds exit=0 2s Ran 10 tests in 1.239s OK 
+packet-completeness exit=0 27s Ran 59 tests in 25.671s OK 
+reference exit=0 1s Ran 8 tests in 0.253s OK 
+reference-routing exit=0 3s Ran 4 tests in 2.892s OK 
+guidance exit=0 23s Ran 63 tests in 22.128s OK 
+packet-obligations exit=0 19s Ran 15 tests in 17.721s OK 
+head-order exit=0 12s Ran 29 tests in 11.479s OK 
+navigator-contract exit=0 483s Ran 110 tests in 480.967s OK 
+delegation exit=0 137s Ran 57 tests in 134.943s OK 
+loops exit=0 361s Ran 48 tests in 359.302s OK 
+quality exit=0 153s Ran 11 tests in 151.745s OK 
+handoff exit=0 479s Ran 74 tests in 477.660s OK 
+improve-schedule exit=0 104s Ran 33 tests in 103.132s OK 
+callback-contract exit=0 1252s Ran 72 tests in 1250.877s OK 
+test-loop exit=0 1363s Ran 135 tests in 1363.170s OK 
+auth-readiness exit=0 6s Ran 3 tests in 5.160s OK 
+cross-run exit=0 11s Ran 10 tests in 10.439s OK 
+keepalive exit=0 276s Ran 60 tests in 274.716s OK 
+e2e-commit-counters exit=0 187s Ran 106 tests in 184.911s OK 
+e2e-packet-anatomy exit=0 2s Ran 29 tests in 1.744s OK 
+actual-improve-cli exit=1 502s Ran 71 tests in 501.421s FAILED (failures=3) 
+status-display exit=0 12s Ran 15 tests in 11.546s OK 
+lint exit=0 139s Ran 82 tests in 138.171s OK 
+rehydration exit=0 5s Ran 17 tests in 4.075s OK 
+discovery exit=1 1s Ran 8 tests in 0.244s FAILED (failures=9) 
+navigator-v4 exit=0 5s Ran 18 tests in 5.303s OK 
+
+shiploop-actual-improve-cli: the run above has 3 failures (the handoff pins of the absolute child path: Native owner record, Child latest packet receipt, the planning improve-commit line);
+the 3 pins were re-pointed at CHILD/... and the 3 tests re-run alone: 'Ran 4 tests ... OK' (-k consumer_owned_context -k default_ephemeral_callbacks -k planning_packet_names). The other 68 tests of the suite passed in that run.
+shiploop-discovery: FAILED (failures=9) on the final tree AND on the INT base 5e0ef0d0 with the same 9 failures (the step-plan duty 9 conditional bullets moved to plan-record.md by U7 rung 4: 'Interaction design guide' etc.); not this unit's.
+shiploop-packet-obligations (G-LEDGER) is in the list above; test/test-groups.test.py run once after it: Ran 37 tests in 10.431s  OK 
+
+After this pass the only edits were the 3 actual-improve-cli pins and the journal and evidence files.

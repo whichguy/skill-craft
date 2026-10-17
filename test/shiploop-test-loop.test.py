@@ -464,12 +464,17 @@ class TestLoopTests(unittest.TestCase):
         self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
                             "not from a run of this action's contract")
         self.run_loop([TRIVIAL])
-        self.assert_refused(DONE, "list the saved terminal packet in evidence_refs")
+        # ShipLoop lists the receipt itself (U10, X-15): a result that leaves it out passes the loop check, which returns it.
+        self.assertEqual(loops.check_terminal(self.run_dir, self.state(), dict(DONE)), self.terminal())
         # No iteration limit: a long loop that ends complete is done.
         self.run_loop([MATERIAL] * 6 + [TRIVIAL])
         self.assert_refused(dict(DONE, outcome="revise", evidence_refs=[str(self.terminal())]),
                             "a complete test loop reports outcome done")
-        self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        action, receipt = self.action(), str(self.terminal())
+        self.complete(dict(DONE), loop=False)  # no evidence_refs of its own: the receipt is listed in what ShipLoop stores
+        state = self.state()
+        kept = (state["accepted"].get(action) or state["active_improve"]["seed_result"])["evidence_refs"]
+        self.assertIn(receipt, [str(ref) for ref in kept])
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
 
     def test_stopped_loop_reports_blocked_and_runs_no_command(self):
@@ -844,7 +849,7 @@ class TestLoopTests(unittest.TestCase):
         packet = self.packet()
         self.assertIn("Unavailable: the Until Loop runtime cannot be resolved", packet)
         self.assertIn("Report outcome blocked with this reason.", packet)
-        self.assert_refused(DONE, "list the saved terminal packet in evidence_refs")
+        self.assert_refused(DONE, "Until Loop terminal packet is missing")   # done still needs the loop's receipt
         self.complete(dict(DONE, outcome="blocked", blocked_by="external", summary="No Until Loop runtime."))
         self.assertEqual(self.state()["status"], "blocked")
 

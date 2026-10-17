@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as fx  # noqa: E402
 import shiploop_loop_support as support  # noqa: E402
+from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -472,10 +473,31 @@ class CheckTerminalTests(Synthetic):
                 self.refused(state, {"outcome": "repeat", **refs},
                              f"{stage} accepts only done, blocked, revise; the bound Until Loop repeats the work")
                 self.refused(state, {"outcome": "revise", **refs}, f"a complete {stage} loop reports outcome done")
-                self.refused(state, {"outcome": "done", "evidence_refs": []},
-                             "list the saved terminal packet in evidence_refs")
+                # ShipLoop lists the receipt itself (U10, X-15): the check needs only the file, and returns it.
+                self.assertEqual(loops.check_terminal(self.root, state, {"outcome": "done", "evidence_refs": []}), receipt)
+                self.assertEqual(loops.cite_receipt({"outcome": "done", "evidence_refs": []}, receipt)["evidence_refs"],
+                                 [str(receipt)])
                 self.refused(self.state_for(stage, title="Other title"), {"outcome": "done", **refs},
                              "not from a run of this action's contract")
+
+    def test_cite_receipt_lists_the_checked_receipt_once_and_changes_nothing_else(self):
+        receipt = Path("/run/loops/A-terminal.json")
+        base = {"outcome": "done", "summary": "s", "evidence_refs": ["/run/notes/a.md"]}
+        cited = loops.cite_receipt(base, receipt)
+        self.assertEqual(cited, {**base, "evidence_refs": ["/run/notes/a.md", str(receipt)]})
+        self.assertEqual(base["evidence_refs"], ["/run/notes/a.md"])             # the submitted mapping is not changed
+        self.assertIs(loops.cite_receipt(cited, receipt), cited)                  # already listed: as it is
+        self.assertEqual(loops.cite_receipt({"outcome": "done"}, receipt)["evidence_refs"], [str(receipt)])
+        self.assertIs(loops.cite_receipt(base, None), base)                       # no receipt was checked
+        text = {"outcome": "done", "evidence_refs": "not a list"}
+        self.assertIs(loops.cite_receipt(text, receipt), text)                    # a malformed field is left to its gate
+
+    def test_a_blocked_result_before_the_loop_started_checks_no_receipt_and_cites_none(self):
+        state = self.state_for("carry-forward")
+        self.write(state)
+        result = {"outcome": "blocked", "evidence_refs": []}
+        self.assertIsNone(loops.check_terminal(self.root, state, result))
+        self.assertIs(loops.cite_receipt(result, None), result)
 
     def test_verify_needs_a_final_trivial_satisfied_report(self):
         state, receipt = self.start("verify")
@@ -903,9 +925,8 @@ class WorkTextTests(Synthetic):
             printed = subprocess.run([sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "next",
                                       "--run-dir", str(run)], capture_output=True, text=True,
                                      env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
-            label = next(line for line in printed.stdout.splitlines() if line.startswith("Callback for this stage"))
-            command = shlex.split(label.split("): ", 1)[1])
-            result = Path(next(part for part in command if part.startswith("--result=")).split("=", 1)[1])
+            command = callback_argv(printed.stdout)
+            result = callback_result_path(printed.stdout)  # the label names it; the command has no --result flag
             result.parent.mkdir(parents=True, exist_ok=True)
             result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
                               "headline": "Docs updated.", "evidence_refs": [str(loops.receipt_path(run, action))]})
