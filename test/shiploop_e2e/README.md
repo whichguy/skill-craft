@@ -631,8 +631,9 @@ Each case in `cases.json` has a `style`; `suites.json` groups them into focused
 suites (one style) and the `breadth` suite (one case of each style in its `styles`:
 `web-service`, `cli-files` and `stateful-service`). Breadth names the styles it
 leaves out in `not_covered`: `smoke` (hello covers it in the smoke suite and as the
-batch gate) and `parallel-graph` (no qualified passing baseline; its cases run only
-with `--case`). Every suite's `styles` must equal the styles of its cases, and SPEC
+batch gate), `parallel-graph` (no qualified passing baseline; its cases run only
+with `--case`) and `hosted-platform` (its cases deploy to a real hosted org and need
+the owner's go for each deploy). Every suite's `styles` must equal the styles of its cases, and SPEC
 and this README must name the same styles; `SuiteTest` pins all three. `--suite`
 runs the cases into one directory, each in its own folder; independent chains
 (a case with its follow-ons) run concurrently, up to `--max-parallel` (default

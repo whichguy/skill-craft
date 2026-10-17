@@ -365,7 +365,8 @@ on quickly before the breadth of everything is checked.
   shows no regression in any of them. It does not cover `smoke`, which
   `hello` covers in its focused suite and as the batch gate, or
   `parallel-graph`, whose cases have no qualified passing baseline and stay
-  opt-in (`--case`). A style joins breadth once its focused suite has passed
+  opt-in (`--case`), or `hosted-platform`, whose cases deploy to a real hosted
+  org and need the owner's go for each deploy. A style joins breadth once its focused suite has passed
   (Promotion); until then the breadth claim leaves it out by name
   (amended 2026-10-16: the claim said every style while breadth held three
   of five).
