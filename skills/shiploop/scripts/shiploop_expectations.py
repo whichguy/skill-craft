@@ -45,6 +45,7 @@ at the base.
 from __future__ import annotations
 
 import fnmatch
+import json
 import os
 import re
 import shlex
@@ -90,8 +91,20 @@ PLACES = ("checkout", "base")
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 # A test-spec result's cases (consumer contract 3.3, D4: no surface key; the oracle names it).
 TEST_CASE_KEYS = ("id", "criterion", "requirement", "oracle", "red", "green")
-_TEST_CASE_SHAPE = ('test_cases are [{"id": "TC-1", "criterion": "C1", "requirement": "R-3", "oracle": "<what observes '
-                    'the behaviour>", "red": "<how it fails before the change>", "green": "<what passes after>"}]')
+# What the printed shape holds in each field, and the only values the template and every refusal print: a placeholder,
+# never an example ID.  An example ID is accepted wherever such an ID exists, so a copied row mapped a case to the wrong
+# requirement silently, and a model copied a refusal's example requirement and wrote a spec entry to match (2026-10-17,
+# SPEC-3/X-5).  A row that keeps a placeholder is refused as one (the navigator's HANDOFF_PLACEHOLDERS lists these).
+CASE_PLACEHOLDERS = {"id": "<a focused command ID>", "criterion": "<a step-plan criterion id>", "requirement": "R-<n>",
+                     "oracle": "<what observes the behaviour, and where>", "red": "<how the case fails before the change>",
+                     "green": "<what the case shows once the change works>"}
+_TEST_CASE_SHAPE = "test_cases are " + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])
+# The test-spec template prints at most this many skeleton rows (about 220 characters each); the focused IDs after them are
+# named in one line.  A plan with dozens of IDs would otherwise push the head past the host's 20,000-character print, and a
+# host that elides the middle of a long print would drop template rows that the gate requires.
+SKELETON_ROWS = 12
+# The counted line a criterion with nothing confirming it gets (a notice, never a refusal).
+COVERAGE_PREFIX = "ShipLoop coverage notice: "
 _SHAPE = ('expectations are [{"id": "E1", "state": "works" | "absent" | "broken", "statement": "<the fact>", '
           '"steps": ["S1"], "paths": ["<repository-relative path or glob>"], "check": "<one read-only shell command '
           'from the repository root that exits 0 when the state holds>", "from": "<open plan assumption id, '
@@ -401,35 +414,118 @@ def _check_check_suite(result: Mapping[str, Any]) -> None:
     _need(not (has_check and "check_na" in result), "test_commands has a check row, so drop check_na")
 
 
-def normalise_test_cases(value: Any) -> List[Dict[str, str]]:
+def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]]:
     """A done test-spec result's ``test_cases``: shape only (the gate, ``check_test_cases``, checks meaning).
 
     Each case has exactly ``TEST_CASE_KEYS``, every value non-blank text; ``id`` and ``criterion`` hold no whitespace;
-    ids are unique; ``requirement`` names at least one R-<n>.  Raises ExpectationError, whose message ends with the
-    route-free next step (a shape refusal cannot know whether complete or improve-complete submitted it).
+    ids are unique; ``requirement`` names at least one R-<n>.  A value that is still the template's placeholder
+    (``CASE_PLACEHOLDERS``) passes this shape check, so the navigator's placeholder gate names every one at once.
+    Raises ExpectationError, whose message ends with the route-free next step (a shape refusal cannot know whether
+    complete or improve-complete submitted it); ``spec_hint`` (``requirement_ids_text``), when given, follows a refusal
+    about a row with no ``requirement`` or one that names no R-<n> as a line of its own.
     """
     import shiploop_knowledge_home as knowledge
     tail = "; then run the same command again."
+    said = tail + ("\n" + spec_hint if spec_hint else "")      # the ending of a refusal about the requirement
     _need(isinstance(value, list), "test_cases must be a list (empty only when the item's focused commands list no "
           "IDs); " + _TEST_CASE_SHAPE + tail)
     rows: List[Dict[str, str]] = []
     for index, entry in enumerate(value):
         label = "test_cases[" + str(index) + "]"
         _need(isinstance(entry, Mapping) and set(entry) == set(TEST_CASE_KEYS),
-              label + " needs exactly " + ", ".join(TEST_CASE_KEYS) + "; " + _TEST_CASE_SHAPE + tail)
+              label + " needs exactly " + ", ".join(TEST_CASE_KEYS) + "; " + _TEST_CASE_SHAPE
+              + (said if isinstance(entry, Mapping) and "requirement" not in entry else tail))
         row = {}
         for key in TEST_CASE_KEYS:
             _need(isinstance(entry[key], str) and entry[key].strip() and "\0" not in entry[key],
                   label + "." + key + " must be nonblank text" + tail)
             row[key] = entry[key].strip()
         for key in ("id", "criterion"):
-            _need(not any(character.isspace() for character in row[key]), label + "." + key + " has no spaces" + tail)
-        _need(knowledge._ids(row["requirement"]), label + ".requirement names no R-<n>: name the requirement it "
-              "proves, such as R-3" + tail)
+            _need(row[key] == CASE_PLACEHOLDERS[key] or not any(character.isspace() for character in row[key]),
+                  label + "." + key + " has no spaces" + tail)
+        _need(row["requirement"] == CASE_PLACEHOLDERS["requirement"] or knowledge._ids(row["requirement"]),
+              label + ".requirement names no R-<n>: write the ID of the requirement the case proves" + said)
         rows.append(row)
-    ids = [row["id"] for row in rows]
+    ids = [row["id"] for row in rows if row["id"] != CASE_PLACEHOLDERS["id"]]
     _need(len(set(ids)) == len(ids), "test_cases ids must be unique" + tail)
     return rows
+
+
+def _requirement_order(ident: str) -> int:
+    return int(ident.split("-")[1])
+
+
+def requirement_ids_text(repo: Path, label: str) -> str:
+    """Which R-<n> a case's ``requirement`` may name, as a sentence: the IDs the living spec holds (a retired one is
+    marked), or that it holds none and the route out.  ``label`` is how the sentence names the spec."""
+    import shiploop_knowledge_home as knowledge
+    found = knowledge.entries(Path(repo), "spec.md")
+    if not found:
+        return label + " lists no R-<n> entry: report revise naming the missing requirement."
+    return label + " lists " + ", ".join(ident + (" (retired)" if found[ident].retired else "")
+                                         for ident in sorted(found, key=_requirement_order)) + "."
+
+
+def _plan_of(state: Mapping[str, Any]) -> Tuple[Optional[str], Mapping[str, Any]]:
+    """The current work item's latest accepted step plan: ``(item, plan)``, ``(None, {})`` when there is none."""
+    item, _action = _cursor(state)
+    if not item:
+        return None, {}
+    action, plan = test_loop._step_plan(state, str(item))
+    return (str(item), plan) if action else (None, {})
+
+
+def case_skeleton(state: Mapping[str, Any]) -> Optional[List[Dict[str, str]]]:
+    """The test-spec template's rows: one per focused-command ID of the current item's step plan, or ``None``.
+
+    ``None`` when the run holds no step plan for the item (the template then prints one placeholder row); ``[]`` when
+    the plan lists no focused ID (the item needs no case).  Every ID has a row here; the template prints the first
+    ``SKELETON_ROWS`` and the packet names the rest.  ``id`` is the focused ID.  ``criterion`` is the one
+    criterion the plan's focused commands list for that ID, else the placeholder.  ``requirement`` is the one R-<n>
+    the criterion's text names that the living spec holds an entry for, else the placeholder.  The model fills
+    ``oracle``, ``red`` and ``green`` and may change any other field: nothing is derived that the plan does not state.
+    """
+    import shiploop_knowledge_home as knowledge
+    item, plan = _plan_of(state)
+    if item is None:
+        return None
+    listed: Dict[str, List[str]] = {}
+    for row in plan.get("test_commands") or ():
+        if isinstance(row, Mapping) and row.get("suite") == "focused":
+            for ident in row.get("ids") or ():
+                names = listed.setdefault(str(ident), [])
+                names += [str(name) for name in row.get("criteria") or () if str(name) not in names]
+    text = {str(row.get("id")): str(row.get("text") or "") for row in plan.get("criteria") or ()
+            if isinstance(row, Mapping)}
+    held = knowledge.entries(Path(str(state["repo"])), "spec.md") if listed else {}
+    rows = []
+    for ident, names in listed.items():
+        criterion = names[0] if len(names) == 1 else CASE_PLACEHOLDERS["criterion"]
+        named = [found for found in knowledge._ids(text.get(criterion, "")) if found in held]
+        rows.append({**CASE_PLACEHOLDERS, "id": ident, "criterion": criterion,
+                     "requirement": named[0] if len(named) == 1 else CASE_PLACEHOLDERS["requirement"]})
+    return rows
+
+
+def coverage_notices(state: Mapping[str, Any], result: Mapping[str, Any]) -> List[str]:
+    """A counted notice per step-plan criterion that nothing confirms: never a refusal (SPEC-6).
+
+    A criterion is confirmed by a test case naming it, by a recorded command that is not a focused one and lists it in
+    ``criteria``, or by an open item of the result that names it.  The plan's exit condition 1 (every criterion has a
+    case or a justified not-applicable) is otherwise a clause of the free-text summary.  Reads state only.
+    """
+    _item, plan = _plan_of(state)
+    criteria = [str(row.get("id")) for row in plan.get("criteria") or () if isinstance(row, Mapping) and row.get("id")]
+    covered = {str(case.get("criterion")) for case in result.get("test_cases") or () if isinstance(case, Mapping)}
+    for row in plan.get("test_commands") or ():
+        if isinstance(row, Mapping) and row.get("suite") != "focused":
+            covered |= {str(name) for name in row.get("criteria") or ()}
+    said = " ".join(str(row.get(key) or "") for row in result.get("assumptions") or () if isinstance(row, Mapping)
+                    for key in ("assumption", "check", "reason"))
+    return [COVERAGE_PREFIX + "Criterion " + name + " has no test case and no recorded non-focused command lists it in "
+            "criteria: add a case, add the command to the step plan, or record an assumptions open item naming the "
+            "inspection that confirms it (this result is accepted)."
+            for name in criteria if name not in covered and not re.search(r"\b" + re.escape(name) + r"\b", said)]
 
 
 def check_test_cases(root: Path, state: Mapping[str, Any],
@@ -483,8 +579,9 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
             unknown.append(case["id"] + " names " + ", ".join(absent))
     if unknown:
         return ("Fix case requirements in {result}", "fixes requirements",
-                ["Set each case's requirement to R-<n> that have an entry in the living spec, " + str(spec)
-                 + " (a line that starts with the ID).", "; ".join(unknown) + "."])
+                ["Set each case's requirement to an R-<n> that has an entry in the living spec (a line that starts "
+                 "with the ID). " + requirement_ids_text(Path(str(state["repo"])), str(spec)),
+                 "; ".join(unknown) + "."])
     return None
 
 
@@ -783,8 +880,10 @@ def check_complete(root: Path, state: Mapping[str, Any], result: Mapping[str, An
                                      run_dir=Path(root))
 
 
-__all__ = ("CHECK_TIMEOUT_SECONDS", "DONE_WHEN_PREPARATORY", "EXISTING_STATES", "NEW_STATES", "PLACES",
-           "PREPARATORY_COMMIT", "ROUTES", "STAGE", "STATES", "ExpectationError", "check_complete",
-           "check_place", "check_preparatory_changes", "check_step_plan", "check_test_cases", "entry", "normalise_expectations", "normalise_failed_expectations", "normalise_test_cases",
-           "normalise_skills", "open_assumptions", "preparatory_commit", "read_record", "record_path", "result_lines", "run",
-           "write_problem")
+__all__ = ("CASE_PLACEHOLDERS", "CHECK_TIMEOUT_SECONDS", "COVERAGE_PREFIX", "DONE_WHEN_PREPARATORY", "EXISTING_STATES",
+           "NEW_STATES", "PLACES", "PREPARATORY_COMMIT", "ROUTES", "SKELETON_ROWS", "STAGE", "STATES", "ExpectationError",
+           "case_skeleton",
+           "check_complete", "check_place", "check_preparatory_changes", "check_step_plan", "check_test_cases",
+           "coverage_notices", "entry", "normalise_expectations", "normalise_failed_expectations", "normalise_test_cases",
+           "normalise_skills", "open_assumptions", "preparatory_commit", "read_record", "record_path",
+           "requirement_ids_text", "result_lines", "run", "write_problem")

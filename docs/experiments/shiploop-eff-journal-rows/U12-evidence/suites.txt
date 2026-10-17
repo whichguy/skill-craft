@@ -1,0 +1,85 @@
+# U12 suite results: python3 -B test/<name>.test.py with SHIPLOOP_PROGRESS=off; a suite run twice shows its last run
+# pass = first round (logs, logs2, logs3: partly before the one-line hint narrowing), final = run on the committed tree's content (logs4)
+suite | exit | tests | seconds | round
+shiploop-assumptions | 0 | 9 | 0 | pass
+shiploop-callback-contract | 0 | 61 | 133 | final
+shiploop-chain | 0 | 43 | 640 | pass
+shiploop-consumer-delivery | 0 | 27 | 2 | pass
+shiploop-delegation | 0 | 52 | 15 | pass
+shiploop-e2e-fidelity | 0 | 131 | 13 | final
+shiploop-e2e-packet-anatomy | 0 | 20 | 0 | final
+shiploop-full-runtime | 0 | 2 | 82 | pass
+shiploop-guidance | 0 | 63 | 5 | pass
+shiploop-handoff | 0 | 71 | 49 | final
+shiploop-improve-schedule | 0 | 33 | 29 | pass
+shiploop-keepalive | 0 | 58 | 73 | pass
+shiploop-knowledge | 0 | 132 | 35 | pass
+shiploop-lint | 0 | 82 | 77 | pass
+shiploop-loops | 0 | 33 | 41 | pass
+shiploop-narrative | 0 | 11 | 0 | pass
+shiploop-navigator-contract | 0 | 110 | 63 | final
+shiploop-navigator-dry-run | 0 | 34 | 22 | pass
+shiploop-navigator-v4 | 0 | 18 | 3 | pass
+shiploop-package-integrity | 0 | 7 | 1 | pass
+shiploop-packet-bounds | 0 | 10 | 1 | pass
+shiploop-packet-completeness | 0 | 43 | 5 | final
+shiploop-packet-recut | 0 | 21 | 2 | final
+shiploop-planning-handoff | 0 | 7 | 2 | pass
+shiploop-privacy | 0 | 5 | 0 | pass
+shiploop-quality | 0 | 11 | 18 | pass
+shiploop-reference | 0 | 4 | 0 | pass
+shiploop-reference-routing | 0 | 4 | 1 | pass
+shiploop-rehydration | 0 | 17 | 2 | pass
+shiploop-run-review | 0 | 657 | 79 | pass
+shiploop-status-display | 0 | 15 | 8 | pass
+shiploop-step-packets | 0 | 9 | 0 | final
+shiploop-store | 0 | 8 | 0 | pass
+shiploop-test-counts | 0 | 43 | 0 | pass
+shiploop-test-loop | 0 | 123 | 325 | pass
+
+not a suite file (named by mistake, no run): shiploop-e2e-apparatus, shiploop-mock-replay (catalog ids of the e2e-apparatus tier; mock-replay is in the quick selection below)
+
+# quick tier, bash test/run-all.sh --group quick --changed-from feat/shiploop-eff-int-c5f79b, env -i HOME=<empty> PATH=<every Homebrew binary except sf and sfdx>:/usr/bin:/bin:/usr/sbin:/sbin
+# receipt status running: 24 of 46 selected suites finished, all passed; the runner process then disappeared (killed from outside; another worker's pkill is the likely cause), so the unfinished ones were run by hand (below) or were already run on the final tree (above)
+quick suite | status | seconds
+test-groups | passed | 4.367
+ci-policy | passed | 2.61
+skill-frontmatter | passed | 0.063
+shiploop-no-model-launch | passed | 6.581
+shiploop-navigator-contract | passed | 38.63
+shiploop-navigator-v4 | passed | 1.333
+shiploop-stopped-improve | passed | 1.394
+shiploop-v4-consumers | passed | 1.365
+shiploop-actual-improve-cli | passed | 70.759
+shiploop-packet-bounds | passed | 0.599
+shiploop-packet-completeness | passed | 4.328
+shiploop-step-packets | passed | 0.395
+shiploop-packet-recut | passed | 1.568
+shiploop-guidance | passed | 3.617
+shiploop-navigator-dry-run | passed | 14.639
+shiploop-status-display | passed | 5.714
+shiploop-narrative | passed | 0.412
+shiploop-stage-spec | passed | 0.255
+shiploop-rehydration | passed | 0.878
+shiploop-chain-async | passed | 96.416
+shiploop-delegation | passed | 12.489
+shiploop-lint | passed | 110.598
+shiploop-quality | passed | 27.724
+shiploop-loops | passed | 99.712
+not finished by the receipt: shiploop-test-loop, shiploop-knowledge, shiploop-handoff, shiploop-store, shiploop-privacy, shiploop-keepalive, shiploop-planning-handoff, shiploop-e2e, shiploop-e2e-runrecord, shiploop-e2e-slice, shiploop-e2e-fidelity, shiploop-e2e-reorientation, shiploop-e2e-environment, shiploop-e2e-baseline, shiploop-e2e-quality, shiploop-e2e-packet-anatomy, shiploop-e2e-commit-counters, shiploop-e2e-chess-salesforce, shiploop-e2e-platform, shiploop-e2e-sf-guard, shiploop-run-review, shiploop-mock-replay
+
+# run by hand afterwards under the same clean env (SHIPLOOP_PROGRESS=off python3 -B test/<name>.test.py)
+shiploop-e2e-slice | exit 0 | 28 tests | 127 s
+shiploop-e2e-commit-counters | exit 0 | 105 tests | 144 s
+shiploop-e2e-runrecord | exit 0 | 6 tests | 0 s
+shiploop-e2e | exit 0 | 428 tests | 532 s
+shiploop-e2e-reorientation | exit 0 | 120 tests | 18 s
+shiploop-e2e-environment | exit 1 | 133 tests | 146 s
+shiploop-e2e-baseline | exit 0 | 143 tests | 110 s
+shiploop-e2e-quality | exit 0 | 128 tests | 162 s
+shiploop-actual-improve-cli | exit 0 | 70 tests | 226 s
+shiploop-stage-spec | exit 0 | 10 tests | 1 s
+shiploop-v4-consumers | exit 0 | 5 tests | 4 s
+shiploop-stopped-improve | exit 0 | 8 tests | 4 s
+shiploop-no-model-launch | exit 0 | 8 tests | 21 s
+shiploop-e2e-environment | exit 0 | 133 tests | 115 s   (rerun of the 146 s run that had one error, test_a_harness_told_to_end_during_the_probe_ends_the_browser_at_once_and_the_run_reads_stopped: KeyError 'interrupted', a signal-timing test of the harness's browser probe under load; passed 4 of 5 alone and in the full rerun; U12 touches no harness file)

@@ -724,14 +724,15 @@ def _result_shape_problem(value: Mapping[str, Any]) -> str | None:
 
 
 def _canonical_result(
-    value: Any, *, stage: str, delivery_contract: bool = False
+    value: Any, *, stage: str, delivery_contract: bool = False, spec_hint: str = ""
 ) -> dict[str, Any]:
     """Validate a submitted stage result and return its canonical form as a new ``dict``. The ``value`` must be a
     mapping with only keys from ``_RESULT_KEYS``, a ``summary`` and an ``outcome`` of ``done``, ``repeat``,
     ``blocked``, ``replan``, ``revise`` or ``reconcile``, where some outcomes are limited by ``stage``. Optional
     fields such as ``work_items``, ``criteria`` or ``awaiting`` are accepted only at the stages and outcomes
-    that own them. ``delivery_assessment`` needs ``delivery_contract`` true. Raises ``NavigatorError`` with a
-    correction message on a violation.
+    that own them. ``delivery_assessment`` needs ``delivery_contract`` true. ``spec_hint``
+    (``expectations.requirement_ids_text``) is the line a test-spec shape refusal about ``requirement`` ends with.
+    Raises ``NavigatorError`` with a correction message on a violation.
     """
     _need(isinstance(value, Mapping), "result must be an object")
     keys = set(value)
@@ -916,7 +917,7 @@ def _canonical_result(
             )
         except consumer_delivery.ConsumerDeliveryError as exc:
             raise NavigatorError(str(exc)) from exc
-    _canonical_handoff(value, stage, outcome, result)
+    _canonical_handoff(value, stage, outcome, result, spec_hint)
     if "blocked_by" in value:
         result["blocked_by"] = value["blocked_by"]
     return result
@@ -932,7 +933,8 @@ _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
 _SHAPE_TAIL = "; then run the same command again."
 
 
-def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, result: dict[str, Any]) -> None:
+def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, result: dict[str, Any],
+                       spec_hint: str = "") -> None:
     """Shapes only of the hand-off fields (owner decisions 2026-10-10: meaning is checked at the CLI gates)."""
     for key, owner in HANDOFF_FIELDS.items():
         if key in value:
@@ -947,7 +949,7 @@ def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, resul
         result["follows"] = list(follows)
     if "test_cases" in value:
         try:
-            result["test_cases"] = expectations.normalise_test_cases(value["test_cases"])
+            result["test_cases"] = expectations.normalise_test_cases(value["test_cases"], spec_hint)
         except expectations.ExpectationError as exc:
             raise NavigatorError(str(exc)) from exc
     if "lessons" in value:
@@ -2380,9 +2382,13 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
     spec, architecture = repo / knowledge.HOME / "spec.md", repo / knowledge.HOME / knowledge.ARCHITECTURE
     placeholders = _placeholders(result)
     if placeholders:
+        # An unfilled requirement is the one placeholder whose real value the script can list (the spec's R-<n>).
+        ids = ([expectations.requirement_ids_text(repo, str(spec))]
+               if any(where.endswith(".requirement") for where in placeholders) else [])
         return _Fault("Replace placeholders in {result}", "has real values",
-                      ["Write the real value in place of each template placeholder (the text in angle brackets), or "
-                       "delete an optional field.", "Still a template placeholder: " + ", ".join(placeholders) + "."])
+                      ["Write the real value in place of each template placeholder (the text in angle brackets, or "
+                       "R-<n>), or delete an optional field.", *ids,
+                       "Still a template placeholder: " + ", ".join(placeholders) + "."])
     if stage == "step-plan":
         if "follows" not in result:
             return _Fault("Add follows to {result}", "adds follows",
@@ -2443,7 +2449,11 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
         return
     # Only the fields this gate reads: another field's shape fault stays the refusal of the gate that owns it.
     projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions") if key in result}
-    canonical = _canonical_result(projected, stage=stage, delivery_contract="delivery_contract_version" in state)
+    repo = Path(str(state["repo"]))
+    hint = (expectations.requirement_ids_text(repo, str(repo / knowledge.HOME / "spec.md"))
+            if stage == "test-spec" and "test_cases" in projected else "")
+    canonical = _canonical_result(projected, stage=stage, delivery_contract="delivery_contract_version" in state,
+                                  spec_hint=hint)
     fault = _handoff_fault(Path(root), state, stage, canonical, command)
     _need(fault is None, _handoff_refusal(fault, next_step) if fault else "")
 
@@ -3413,24 +3423,22 @@ HEADLINE_LIMIT = 100
 # The template's placeholder text for the hand-off fields (contract rule 5): the gate refuses any hand-off string equal to
 # one of them, as the headline and evidence placeholders are refused.
 FOLLOWS_PLACEHOLDER = "<R-<n> or AD-<n> this item follows>"
-_ORACLE_PLACEHOLDER = "<what observes the behaviour, and where>"
-_RED_PLACEHOLDER = "<how the case fails before the change>"
-_GREEN_PLACEHOLDER = "<what the case shows once the change works>"
+# One test case's placeholders live with its shape (expectations.CASE_PLACEHOLDERS), which every refusal prints too.
+_CASE_PLACEHOLDERS = expectations.CASE_PLACEHOLDERS
 _BEHAVIOUR_PLACEHOLDER = "<behaviour this step added that no test case covers>"
 _REASON_PLACEHOLDER = "<why no test case covers it>"
 _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
 _CONSUMER_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
-HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, _ORACLE_PLACEHOLDER, _RED_PLACEHOLDER, _GREEN_PLACEHOLDER,
-                        _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER, *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER)
+HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
+                        *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER)
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
 # field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
 # result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
 HANDOFF_SHAPES: dict[str, Any] = {
     "follows": [FOLLOWS_PLACEHOLDER],
-    "test_cases": [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": _ORACLE_PLACEHOLDER,
-                    "red": _RED_PLACEHOLDER, "green": _GREEN_PLACEHOLDER}],
+    "test_cases": [dict(_CASE_PLACEHOLDERS)],
     "not_covered": [{"behaviour": _BEHAVIOUR_PLACEHOLDER, "reason": _REASON_PLACEHOLDER}],
     "lessons": dict(_LESSON_PLACEHOLDERS),
     "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...",
@@ -3509,6 +3517,12 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     # beside it; a blocked or other outcome drops them, as the fill line says.
     for key in _required_handoff_keys(stage):
         result.setdefault(key, HANDOFF_SHAPES[key])
+    if stage == "test-spec":
+        # One row per focused ID of this item's step plan, with the fields that plan states (expectations.case_skeleton);
+        # without a recorded plan the generic placeholder row above stays.
+        skeleton = expectations.case_skeleton(state)
+        if skeleton is not None:
+            result["test_cases"] = skeleton[:expectations.SKELETON_ROWS]
     return _compact_record(result, "ShipLoop navigator result")
 
 
@@ -4467,7 +4481,51 @@ def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, act
         *_allowed_outcome_lines(state, stage),
         *_outcome_shape_lines(stage),
         *_handoff_shape_lines(stage, result_template),
+        *_case_lines(state, stage),
     ]
+
+
+# How much of an entry the requirement list quotes after its ID: enough to tell the requirements apart.  A spec with so many
+# entries that the line passes the limit lists the IDs alone (the text of each is in HOME/spec.md): the head must stay under
+# the host's 20,000-character print however large the spec grows.
+_REQUIREMENT_GIST = 60
+_REQUIREMENT_LINE_LIMIT = 2_400
+
+
+def _case_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """test-spec only: the focused IDs the template's rows leave out, then the requirements a case may name."""
+    if stage != "test-spec":
+        return []
+    rest = (expectations.case_skeleton(state) or [])[expectations.SKELETON_ROWS:]
+    return ([("Focused IDs after the template's rows, one case each with the same fields: "
+              + ", ".join(row["id"] for row in rest))] if rest else []) + _requirement_lines(state, stage)
+
+
+def _requirement_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """test-spec only: the R-<n> a case's ``requirement`` may name, each with the start of its entry in HOME/spec.md.
+
+    The quoted spec drops out of a printed head that passes ``PRINT_LIMIT``, and the result template can only print a
+    placeholder where the plan does not say which requirement a criterion serves, so the IDs the gate accepts are listed
+    beside the template (SPEC-3, 2026-10-17: a model copied an example ID from a refusal and wrote a spec entry to match).
+    A spec that holds no entry says so and names the way out (``expectations.requirement_ids_text``).
+    """
+    if stage != "test-spec":
+        return []
+    found = knowledge.entries(Path(str(state["repo"])), "spec.md")
+    if not found:
+        return [expectations.requirement_ids_text(Path(str(state["repo"])), reference_name("spec.md"))
+                + " A case's requirement names an R-<n> that has an entry there."]
+    rows, names = [], []
+    for ident in sorted(found, key=lambda value: int(value.split("-")[1])):
+        first = next((line for line in found[ident].text.splitlines() if line.strip()), "")
+        gist = " ".join(re.sub(r"[`*|#>\[\]]", " ", first).replace(ident, " ", 1).split()).strip(" :.-_\u2013\u2014")
+        if len(gist) > _REQUIREMENT_GIST:
+            gist = gist[:_REQUIREMENT_GIST].rstrip() + "\u2026"
+        names.append(ident + (" (retired)" if found[ident].retired else ""))
+        rows.append(names[-1] + (" " + gist if gist else ""))
+    lead = "Requirements in " + reference_name("spec.md") + " (a case's requirement names one of these"
+    line = lead + "): " + "; ".join(rows)
+    return [line if len(line) <= _REQUIREMENT_LINE_LIMIT else lead + "; the text of each entry is there): " + ", ".join(names)]
 
 
 def _handoff_shape_lines(stage: str, template: str) -> list[str]:
@@ -6800,6 +6858,11 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "
                   "Until Loop receipt is checked only on the real complete). The action is not completed; run the "
                   "same complete command without --check-only to submit it.")
+            if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
+                    and submitted.get("outcome") == "done"):
+                # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.
+                for line in expectations.coverage_notices(state, submitted):
+                    print(line)
             return 0
         updated = apply(state, action_id, submitted)
         if updated != state:

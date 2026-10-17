@@ -24,6 +24,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
+import shiploop_expectations as expectations  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -582,7 +583,7 @@ class HandoffGateTests(GateCase):
         bare = {"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}}
         shapes = str(navigator.HANDOFF_SHAPES)
         for value in navigator.HANDOFF_PLACEHOLDERS:
-            self.assertTrue(value.startswith("<") and value.endswith(">"), value)
+            self.assertTrue(value == "R-<n>" or value.startswith("<") and value.endswith(">"), value)
             self.assertIn(value, shapes)                       # every placeholder is one a printed shape carries
         self.assertIn(navigator.FOLLOWS_PLACEHOLDER, navigator._result_template(bare, "step-plan"))
         self.assertIn('"open_next": "<what a later run should pick up, or none>"',
@@ -673,6 +674,187 @@ EXPECTED_CONSUMES = {
 # script, from the run baseline) have no single producer and are exempt.
 PRODUCER = {"follows": "step-plan", "criteria": "step-plan", "test_commands": "step-plan", "test_cases": "test-spec",
             "not_covered": "implement", "system_commands": "system-test-author", "lessons": "release-verify"}
+
+
+def case_plan(focused: list, criteria: list, extra: list | None = None) -> tuple:
+    """A step plan for W1 whose focused rows are ``(ids, criteria)`` pairs and whose criteria are ``(id, text)`` pairs."""
+    result = {"outcome": "done", "summary": "planned", "criteria": [{"id": ident, "text": text} for ident, text in criteria],
+              "test_commands": [{"command": "run-focused", "suite": "focused", "ids": ids, "criteria": names}
+                                for ids, names in focused] + list(extra or [])}
+    return {"action": "sp1", "stage": "step-plan", "workitem": "W1", "outcome": "done"}, result
+
+
+def filled(rows: list, **fields) -> list:
+    """The skeleton ``rows`` with oracle, red and green written, and any ``fields`` set on each row."""
+    return [dict(row, oracle="observed by the focused command", red="fails on the base", green="passes after", **fields)
+            for row in rows]
+
+
+class CaseRowTests(GateCase):
+    """The test-spec cases (SPEC-3, X-5, SP-7b, SPEC-6): the template's skeleton, the refusals, and the coverage notice.
+
+    A model copied ``R-3`` from a refusal's example row, then wrote a spec entry to match (2026-10-17).  Nothing printed
+    carries an example ID now; a row that keeps a placeholder is refused as one, and every refusal about the requirement
+    lists the IDs the living spec holds.  The gate here is ``_handoff_gate``, the function ``complete`` calls.
+    """
+
+    DONE = {"outcome": "done", "summary": "s", "assumptions": []}
+
+    def template_rows(self, state: dict) -> list:
+        return store.loads(navigator._result_template(state, "test-spec"))["test_cases"]
+
+    def two_case_state(self) -> dict:
+        rows = [case_plan([(["TC-1"], ["C1"]), (["TC-2"], ["C1", "C2"])],
+                          [("C1", "The first behaviour holds (R-1)."), ("C2", "The second behaviour holds.")])]
+        return item_state(self.repo, "W1", rows, "test-spec")
+
+    def test_the_template_has_a_row_per_focused_id_with_only_what_the_plan_states(self) -> None:
+        rows = self.template_rows(self.two_case_state())
+        placeholders = navigator.expectations.CASE_PLACEHOLDERS
+        self.assertEqual([row["id"] for row in rows], ["TC-1", "TC-2"])
+        # TC-1: one criterion, whose text names R-1, which the spec holds.  TC-2 lists two criteria: nothing is chosen.
+        self.assertEqual((rows[0]["criterion"], rows[0]["requirement"]), ("C1", "R-1"))
+        self.assertEqual((rows[1]["criterion"], rows[1]["requirement"]), (placeholders["criterion"], "R-<n>"))
+        for row in rows:
+            for key in ("oracle", "red", "green"):
+                self.assertEqual(row[key], placeholders[key])
+
+    def test_a_requirement_is_filled_only_from_one_r_id_in_the_criterion_text_that_the_spec_holds(self) -> None:
+        criteria = [("C1", "Both R-1 and R-2 apply."), ("C2", "Names R-9, which the spec lacks."),
+                    ("C3", "The second behaviour holds (R-2)."), ("C4", "Names no requirement.")]
+        rows = [case_plan([([f"TC-{n}"], [f"C{n}"]) for n in range(1, 5)], criteria)]
+        found = self.template_rows(item_state(self.repo, "W1", rows, "test-spec"))
+        self.assertEqual([row["requirement"] for row in found], ["R-<n>", "R-<n>", "R-2", "R-<n>"])
+
+    def test_an_item_with_no_focused_id_prints_an_empty_list_and_a_run_with_no_plan_the_generic_row(self) -> None:
+        none = item_state(self.repo, "W1", [case_plan([], [("C1", "x")])], "test-spec")
+        self.assertEqual(self.template_rows(none), [])
+        generic = self.template_rows({"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}})
+        self.assertEqual(generic, [navigator.expectations.CASE_PLACEHOLDERS])
+
+    def test_the_template_prints_at_most_twelve_rows_and_the_packet_names_the_other_focused_ids(self) -> None:
+        ids = ["TC-%d" % n for n in range(1, 15)]
+        state = item_state(self.repo, "W1", [case_plan([(ids, ["C1"])], [("C1", "It works.")])], "test-spec")
+        rows = self.template_rows(state)
+        self.assertEqual([row["id"] for row in rows], ids[:12])
+        self.assertEqual(navigator._case_lines(state, "test-spec")[0],
+                         "Focused IDs after the template's rows, one case each with the same fields: TC-13, TC-14")
+        # The model writes the other two rows itself, and the gate wants all fourteen.
+        every = filled(rows, criterion="C1", requirement="R-1") + [dict(CASE, id=ident, criterion="C1") for ident in ids[12:]]
+        self.accepts(state, "test-spec", dict(self.DONE, test_cases=every))
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=every[:12]))
+        self.assertEqual(message.splitlines()[-1], "Focused IDs with no case: TC-13, TC-14.")
+        # Twelve or fewer: no such line.
+        few = item_state(self.repo, "W1", [case_plan([(ids[:12], ["C1"])], [("C1", "It works.")])], "test-spec")
+        self.assertFalse([line for line in navigator._case_lines(few, "test-spec") if line.startswith("Focused IDs")])
+
+    def test_a_row_copied_from_the_template_is_refused_naming_each_placeholder_and_the_spec_ids(self) -> None:
+        state = self.two_case_state()
+        rows = self.template_rows(state)
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=rows))
+        self.assertTrue(message.startswith("Replace placeholders in "), message)
+        self.assertEqual(message.splitlines()[-1], "Still a template placeholder: test_cases[0].oracle, "
+                         "test_cases[0].red, test_cases[0].green, test_cases[1].criterion, test_cases[1].requirement, "
+                         "test_cases[1].oracle, test_cases[1].red, test_cases[1].green.")
+        self.assertIn("lists R-1, R-2, R-4 (retired).", message)
+        self.assertNotIn("R-3", message)
+        # Only the answers written: the criterion and the requirement are still the template's.
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=filled(rows)))
+        self.assertEqual(message.splitlines()[-1],
+                         "Still a template placeholder: test_cases[1].criterion, test_cases[1].requirement.")
+
+    def test_every_value_of_a_copied_shape_row_is_a_placeholder_and_two_such_ids_are_not_a_duplicate(self) -> None:
+        state = self.two_case_state()
+        generic = dict(navigator.expectations.CASE_PLACEHOLDERS)
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=[generic, dict(generic)]))
+        self.assertTrue(message.startswith("Replace placeholders in "), message)
+        self.assertEqual(message.splitlines()[-1].count("test_cases["), 12)
+        self.assertNotIn("unique", message)
+
+    def test_a_skeleton_row_can_be_overridden_and_a_filled_one_is_accepted(self) -> None:
+        state = self.two_case_state()
+        rows = filled(self.template_rows(state))
+        rows[1].update(criterion="C2", requirement="R-2")                       # the placeholders replaced
+        self.accepts(state, "test-spec", dict(self.DONE, test_cases=rows))
+        rows[0].update(criterion="C2", requirement="R-2")                       # a derived value changed on purpose
+        self.accepts(state, "test-spec", dict(self.DONE, test_cases=rows))
+
+    def test_a_row_without_a_requirement_is_refused_with_the_ids_the_spec_holds_or_that_it_holds_none(self) -> None:
+        state = self.two_case_state()
+        rows = filled(self.template_rows(state), criterion="C1", requirement="R-1")
+        spec = str(self.repo / knowledge.HOME / "spec.md")
+        for row in rows:
+            del row["requirement"]
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=rows))
+        first, second = message.splitlines()[:2]
+        self.assertTrue(first.startswith("ShipLoop navigator: ") or first.startswith("test_cases[0] needs exactly"), first)
+        self.assertIn("test_cases[0] needs exactly id, criterion, requirement, oracle, red, green", first)
+        self.assertTrue(first.endswith("then run the same command again."), first)
+        self.assertEqual(second, spec + " lists R-1, R-2, R-4 (retired).")
+        self.assertNotIn("R-3", message)
+        (self.repo / knowledge.HOME / "spec.md").unlink()
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=rows))
+        self.assertEqual(message.splitlines()[1], spec + " lists no R-<n> entry: report revise naming the missing "
+                         "requirement.")
+        # A row that lacks another key gets the shape alone: the spec's IDs would be noise there.
+        no_oracle = [{key: value for key, value in row.items() if key != "oracle"} for row in filled(
+            self.template_rows(state), criterion="C1", requirement="R-1")]
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=no_oracle))
+        self.assertEqual(len(message.splitlines()), 1, message)
+
+    def test_an_unknown_requirement_names_the_ids_the_spec_holds_in_the_fix_line(self) -> None:
+        state = self.two_case_state()
+        rows = filled(self.template_rows(state), criterion="C1", requirement="R-12")
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=rows))
+        self.assertTrue(message.startswith("Fix case requirements in "), message)
+        self.assertIn("lists R-1, R-2, R-4 (retired).", message.splitlines()[1])
+        self.assertEqual(message.splitlines()[-1], "TC-1 names R-12; TC-2 names R-12.")
+        (self.repo / knowledge.HOME / "spec.md").unlink()
+        message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=rows))
+        self.assertIn("lists no R-<n> entry: report revise naming the missing requirement.", message.splitlines()[1])
+
+    def test_no_printed_shape_carries_an_example_id(self) -> None:
+        shape = navigator.expectations._TEST_CASE_SHAPE
+        for example in ('"TC-1"', '"C1"', '"R-1"', '"R-3"'):
+            self.assertNotIn(example, shape)
+        self.assertIn('"requirement": "R-<n>"', shape)
+        self.assertIn('"criterion": "<a step-plan criterion id>"', shape)
+        for row in navigator.HANDOFF_SHAPES["test_cases"]:
+            self.assertEqual(row, navigator.expectations.CASE_PLACEHOLDERS)
+        source = (ROOT / "skills/shiploop/scripts/shiploop_expectations.py").read_text(encoding="utf-8")
+        self.assertNotIn('"R-3"', source)
+        self.assertNotIn("such as R-3", source)
+
+    def plan_with_two_criteria(self, extra: list | None = None, second: list | None = None) -> dict:
+        """TC-1's focused command lists C1 and, as the step-plan gate requires of every criterion, C2 as well (or ``second``)."""
+        rows = [case_plan([(["TC-1"], second or ["C1", "C2"])],
+                          [("C1", "The first behaviour holds."), ("C2", "The suite stays green.")], extra)]
+        return item_state(self.repo, "W1", rows, "test-spec")
+
+    def test_a_criterion_nothing_confirms_gets_a_counted_notice_and_the_result_is_still_accepted(self) -> None:
+        state = self.plan_with_two_criteria()
+        result = dict(self.DONE, test_cases=[dict(CASE, id="TC-1", criterion="C1")])
+        self.accepts(state, "test-spec", result)                                  # a notice never refuses
+        notices = navigator.expectations.coverage_notices(state, result)
+        self.assertEqual(len(notices), 1, notices)
+        self.assertEqual(notices[0], navigator.expectations.COVERAGE_PREFIX + "Criterion C2 has no test case and no "
+                         "recorded non-focused command lists it in criteria: add a case, add the command to the step "
+                         "plan, or record an assumptions open item naming the inspection that confirms it (this result "
+                         "is accepted).")
+
+    def test_a_case_a_recorded_command_or_an_open_item_that_names_the_criterion_clears_the_notice(self) -> None:
+        notices = navigator.expectations.coverage_notices
+        result = dict(self.DONE, test_cases=[dict(CASE, id="TC-1", criterion="C1")])
+        regression = {"command": "npm test", "suite": "regression", "criteria": ["C2"]}
+        self.assertEqual(notices(self.plan_with_two_criteria([regression], ["C1"]), result), [])
+        unrelated = {"command": "npm test", "suite": "focused", "ids": ["TC-9"], "criteria": ["C2"]}
+        self.assertEqual(len(notices(self.plan_with_two_criteria([unrelated], ["C1"]), result)), 1)   # focused: no proof
+        item = open_row("A1", "carry-forward", assumption="C2 is confirmed by reading the build log.")
+        self.assertEqual(notices(self.plan_with_two_criteria(), dict(result, assumptions=[item])), [])
+        both = dict(self.DONE, test_cases=[dict(CASE, id="TC-1", criterion="C1"), dict(CASE, id="TC-2", criterion="C2")])
+        self.assertEqual(notices(self.plan_with_two_criteria(), both), [])
+        self.assertEqual(notices({"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}}, result), [])
+
 
 
 def open_row(ident: str, consumer: str, **extra) -> dict:
@@ -1032,6 +1214,119 @@ class CompleteRouteTests(inner.RunDriver):
         accepted = subprocess.run(argv, capture_output=True, text=True, env=env)
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
         self.assertEqual(self.state()["active_improve"]["stage"], "step-plan")
+
+
+class CaseRowCliTests(inner.RunDriver):
+    """The test-spec cases through the real CLI: the refusal's spec line and the check-only coverage notice (U12)."""
+
+    def command(self, action: str, path: Path, *flags: str) -> list:
+        return [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run_dir), "--action", action,
+                "--result", str(path), *flags]
+
+    def run_cli(self, argv: list) -> subprocess.CompletedProcess:
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+                   SHIPLOOP_PROGRESS="off", SHIPLOOP_KEEPALIVE="off")
+        return subprocess.run(argv, capture_output=True, text=True, env=env)
+
+    def test_a_missing_requirement_is_refused_with_the_spec_ids_and_check_only_prints_the_coverage_notice(self) -> None:
+        self.start()
+        self.drive_to("step-plan")
+        self.complete(dict(inner.DONE, paths=list(self.PATHS),
+                           criteria=[{"id": "C1", "text": "The change works (R-1)."}, {"id": "C2", "text": "Nothing else breaks."}],
+                           test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"],
+                                           "criteria": ["C1", "C2"]}, {"command": "true", "suite": "check"}]))
+        state = self.drive_to("test-spec")
+        home = self.repo / knowledge.HOME
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text("## Requirements\n\n- R-1: The change works.\n- R-2: Reload keeps it.\n",
+                                      encoding="utf-8")
+        action = navigator.current_action(state)["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        good = inner.prepare(self.run_dir, state, dict(inner.DONE))
+        self.assertEqual([row["id"] for row in good["test_cases"]], ["TC-1"])
+        # A row without its requirement: refused, and the second line lists the spec's IDs (R-3 is nowhere).
+        bare = [{key: value for key, value in row.items() if key != "requirement"} for row in good["test_cases"]]
+        store.write_record(path, dict(good, test_cases=bare), "result")
+        refused = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        lines = refused.stderr.splitlines()
+        self.assertIn("test_cases[0] needs exactly id, criterion, requirement, oracle, red, green", lines[0])
+        self.assertEqual(lines[1], str(home / "spec.md") + " lists R-1, R-2.")
+        self.assertNotIn("R-3", refused.stderr)
+        # The fixed result: check-only accepts it and counts C2, which no case and no recorded command confirms.
+        store.write_record(path, good, "result")
+        checked = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        notices = [line for line in checked.stdout.splitlines() if line.startswith(expectations.COVERAGE_PREFIX)]
+        self.assertEqual(len(notices), 1, checked.stdout)
+        self.assertIn("Criterion C2 has no test case", notices[0])
+        self.assertEqual(self.state()["accepted"].get(action), None)             # check-only completes nothing
+        # The real complete accepts the same result: a notice never refuses.
+        done = self.run_cli(self.command(action, path))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(self.state()["active_improve"]["stage"], "test-spec")
+
+
+class RequirementLinesTests(inner.RunDriver):
+    """The test-spec head and file list the IDs a case's requirement may name (U12), beside the result template."""
+
+    SPEC = ("# Spec\n\n## Requirements\n\n- R-1: Alpha rule.\n  Alpha detail.\n"
+            "- **R-2** Beta rule; this differs from R-1 and from R-10.\n"
+            "### R-3 " + "A long heading requirement that goes on well past what a list of IDs needs to quote. " * 2
+            + "\n\nBody text.\n\n## Retired\n\n- R-4: Dropped.\n")
+
+    def packets(self, spec: str | None) -> tuple:
+        self.start()
+        self.drive_to("step-plan")
+        self.complete(dict(inner.DONE, paths=list(self.PATHS), criteria=[{"id": "C1", "text": "It works (R-1)."}],
+                           test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+                                          {"command": "true", "suite": "check"}]))
+        state = self.drive_to("test-spec")
+        home = self.repo / knowledge.HOME
+        home.mkdir(parents=True, exist_ok=True)
+        if spec is not None:
+            (home / "spec.md").write_text(spec, encoding="utf-8")
+        whole = navigator.render(inner.CORE, self.run_dir, state)
+        head = navigator.packet_head(inner.CORE, self.run_dir, state, self.run_dir / "packets" / "p.md")
+        return state, whole, head
+
+    def test_each_requirement_is_listed_with_the_start_of_its_entry_in_the_head_and_the_file(self) -> None:
+        _state, whole, head = self.packets(self.SPEC)
+        long = ("A long heading requirement that goes on well past what a list of IDs needs to quote. " * 2).strip()
+        expected = ("Requirements in HOME/spec.md (a case's requirement names one of these): R-1 Alpha rule; "
+                    "R-2 Beta rule; this differs from R-1 and from R-10; R-3 " + long[:60].rstrip()
+                    + "\u2026; R-4 (retired) Dropped")
+        self.assertEqual(len(long[:60]), 60)
+        for name, text in (("file", whole), ("head", head)):
+            with self.subTest(name):
+                lines = [line for line in text.splitlines() if line.startswith("Requirements in HOME/spec.md")]
+                self.assertEqual(lines, [expected])
+                self.assertGreater(text.index(lines[0]), text.index("Result template:"))
+
+    def test_a_large_spec_lists_the_ids_alone_so_the_head_stays_under_the_host_cut(self) -> None:
+        import shiploop_head_budget as budget
+        spec = "## Requirements\n\n" + "".join("- R-%d: Requirement %d %s\n" % (n, n, "x" * 70) for n in range(1, 101))
+        _state, whole, head = self.packets(spec)
+        line = next(row for row in head.splitlines() if row.startswith("Requirements in HOME/spec.md"))
+        self.assertLessEqual(len(line), 2_400)
+        self.assertTrue(line.endswith(", R-99, R-100"), line[-40:])
+        self.assertNotIn("Requirement 7 ", line)                                    # no text: the IDs alone
+        self.assertEqual(line.count("R-"), 100)
+        self.assertLessEqual(budget.at_reference_install(head), budget.HOST_CUT)
+        self.assertTrue(head.endswith(navigator.HEAD_END + "\n"))
+        medium = "## Requirements\n\n" + "".join("- R-%d: Requirement %d %s\n" % (n, n, "x" * 70) for n in range(1, 21))
+        _state, _whole, head = self.packets(medium)
+        line = next(row for row in head.splitlines() if row.startswith("Requirements in HOME/spec.md"))
+        self.assertIn("R-20 Requirement 20 ", line)                                 # under the limit: the text stays
+
+    def test_a_spec_with_no_entry_says_so_and_names_the_way_out_and_other_stages_have_no_such_line(self) -> None:
+        state, whole, head = self.packets("# Spec\n\nNo requirement has an ID yet.\n")
+        for text in (whole, head):
+            self.assertIn("HOME/spec.md lists no R-<n> entry: report revise naming the missing requirement. A case's "
+                          "requirement names an R-<n> that has an entry there.", text)
+        self.assertEqual(navigator._requirement_lines(state, "step-plan"), [])
+        self.assertEqual(navigator._requirement_lines(state, "implement"), [])
 
 
 class ImproveRouteTests(_improve_cli.ImproveCliFixture):
