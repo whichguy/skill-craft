@@ -1681,14 +1681,24 @@ class HttpCheckBindingTest(unittest.TestCase):
         self.assertFalse(result["pass"], result)
         self.assertIsNone(sibling.poll(), "the check must not stop a process it did not start")
 
-    def test_a_valid_candidate_passes_alone_and_fails_with_its_startup_error_when_a_sibling_holds_its_port(self):
+    def test_a_valid_candidate_passes_alone_and_is_refused_when_a_sibling_holds_its_port(self):
         work = self.candidate(VALID_PAGE)
         self.assertTrue(self.check(work)["pass"], "the valid candidate alone")
         port, env = self.check_port()
-        self.sibling(port)
+        sibling = self.sibling(port)
         result = self.check(work, env)
         self.assertFalse(result["pass"], result)
-        self.assertIn("EADDRINUSE", result["output"])
+        # Either the candidate exits first or the ownership probe sees the sibling first.
+        # Both refuse its response; the latter can happen before Node emits its bind error.
+        self.assertRegex(result["output"], r"EADDRINUSE|not by the candidate")
+        self.assertIsNone(sibling.poll(), "the check must not stop the foreign listener")
+
+    def test_a_candidate_that_exits_before_listening_reports_its_startup_error(self):
+        work = self.candidate("process.stderr.write('startup fixture refused\\n'); process.exit(23);\n")
+        result = self.check(work)
+        self.assertFalse(result["pass"], result)
+        self.assertIn("the candidate exited (rc 23)", result["output"])
+        self.assertIn("startup fixture refused", result["output"])
 
     def test_a_listener_that_is_not_the_candidate_is_refused_and_only_the_candidate_is_ended(self):
         port, env = self.check_port()
