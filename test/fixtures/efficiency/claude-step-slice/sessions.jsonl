@@ -1,0 +1,2 @@
+{"row": "start", "n": 1, "kind": "first", "reason": "slice", "host": "claude", "model": "claude-sonnet-5-5", "t": 1791778315.046, "events_line": 0, "told": null, "resumed_session": null, "engine": null}
+{"row": "end", "n": 1, "t": 1791778537.956, "events_line": 139, "status": "interrupted", "returncode": -9, "engine": null}
