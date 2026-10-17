@@ -484,5 +484,20 @@ class E2EFamilySelectionTest(unittest.TestCase):
         self.assertNotIn("shiploop-e2e-apparatus", suite_catalog.targeted(["test/shiploop_e2e/run.py"]))
 
 
+class VendoredRuntimeSelectionTests(unittest.TestCase):
+    """F2 of the stop-rule branch: a change under the vendored Until Loop runtime reached the suites that start it only by
+    accident of their names, so `installed-skill-invocation` (which starts the runtime from a read-only installed copy)
+    and `until-loop-vendor` (which pins its provenance) were red on the branch and not selected by the quick tier."""
+
+    RUNTIME = "skills/improve/runtime/until-loop/"
+
+    def test_an_edit_of_the_runtime_selects_the_suites_that_start_or_pin_it(self) -> None:
+        for name in ("scripts/until_loop_ephemeral.py", "ADAPTER.md", "PROVENANCE.json",
+                     "references/runtime-ephemeral.md"):
+            with self.subTest(path=name):
+                selected = suite_catalog.targeted([self.RUNTIME + name])
+                self.assertGreaterEqual(selected, {"until-loop-vendor", "installed-skill-invocation", "improve-runtime"})
+
+
 if __name__ == "__main__":
     unittest.main()

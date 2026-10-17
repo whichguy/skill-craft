@@ -9,6 +9,15 @@ it is labelled. This generalises the 2026-09-26 unchanged-first-pass rule from t
 the two-consecutive-trivial streak at gate 2. There is no count and no timer. Gates 0 and 1 are unchanged, so contracts
 written for the published until-loop plugin (ShipLoop's inner-stage loops, Backchain) stay valid.
 
+Gate 3 (D-6 / R1 of the efficiency plan, a PROPOSAL awaiting the owner's S-10 text) is the same measurement with the
+rule main had before the stop rule, for ShipLoop's implement and carry-forward reviews, which are code reviews: a first
+pass that is trivial, satisfied and leaves the content as it started completes; once any pass has changed the content,
+it takes TWO consecutive trivial, satisfied passes that each leave it unchanged. A trivial pass that changed the
+content never completes at either gate. Gate 2 is unchanged.
+
+A directory that is not a Git worktree is measured too (through a throwaway bare repository), so an in-place run
+outside Git starts its Improve review the same way (F3 of the efficiency plan).
+
 Owner decision 2026-10-04 (fast planning, increment I2). The ShipLoop plan packet's one-pass text tells the host
 to write `required_trivial_reviews: 0` for the Backchain planning child. OnePassGateTests reads the gate from the
 printed text and drives this runtime with it, so the one-pass exit is proved through the real gate.
@@ -25,6 +34,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
@@ -226,15 +236,19 @@ class UnchangedGateTests(LoopCase):
         contract = {"workspace": str(self.repo), "work": "w", "exit_condition": "e", "repeat_condition": "r",
                     "context": {"request": "r", "scope": "s", "authority": "a", "environment": "e", "resources": []}}
         self.assertEqual(runtime.start(contract, self.state_dir)["progress"]["required_trivial_reviews"], 0)
-        with self.assertRaisesRegex(runtime.StateError, "must be 0, 1 or 2.*no longer counts that many reviews"):
-            runtime.start(dict(contract, required_trivial_reviews=3), self.state_dir)
+        with self.assertRaisesRegex(runtime.StateError, "must be 0, 1, 2 or 3.*no longer count that many reviews"):
+            runtime.start(dict(contract, required_trivial_reviews=4), self.state_dir)
+        self.assertEqual(runtime.start(dict(contract, required_trivial_reviews=3),
+                                       self.state_dir)["progress"]["required_trivial_reviews"], 3)
 
-    def test_the_unchanged_gate_needs_a_tree_it_can_measure(self) -> None:
-        plain = self.root / "plain"
-        plain.mkdir()
-        with self.assertRaisesRegex(runtime.StateError, "needs a content tree the runtime can measure"):
-            self.start(workspace=plain)
-        self.assertEqual(self.start(gate=1, workspace=plain)["status"], "active")  # the other gates need no Git
+    def test_the_unchanged_gates_need_a_tree_the_runtime_can_measure(self) -> None:
+        # A tree that cannot be measured (Git fails on the workspace, or a candidate file cannot be read) can never show a
+        # pass unchanged, so the loop would never end: the start is refused, at both unchanged gates.
+        for gate in (2, 3):
+            with self.subTest(gate=gate), mock.patch.object(runtime, "_workspace_tree", return_value=None):
+                with self.assertRaisesRegex(runtime.StateError, "needs a content tree the runtime can measure"):
+                    self.start(gate=gate)
+        self.assertNotIn("must be a Git worktree", SCRIPT.read_text())  # a directory outside Git is measured (F3)
 
     def test_candidate_paths_must_be_absolute_unique_paths(self) -> None:
         for bad, message in (("a.md", "must be a list"), (["a.md"], "absolute file path"),
@@ -302,8 +316,8 @@ class OldShapeIsRefusedTests(LoopCase):
             self.assertEqual(source.count(retired), 1 if retired == '"start_tree"' else 0,
                              retired + ": only the refusal of an old state may name start_tree")
 
-    def test_the_contract_can_not_carry_a_gate_above_two_or_a_relative_candidate(self) -> None:
-        for extra, message in (({"required_trivial_reviews": 4}, "must be 0, 1 or 2"),
+    def test_the_contract_can_not_carry_a_gate_above_three_or_a_relative_candidate(self) -> None:
+        for extra, message in (({"required_trivial_reviews": 4}, "must be 0, 1, 2 or 3"),
                                ({"candidate_paths": ["rel.md"]}, "absolute file path")):
             with self.subTest(extra=extra), self.assertRaisesRegex(runtime.StateError, message):
                 runtime.start(dict(self.contract(), **extra), self.state_dir)
@@ -336,10 +350,14 @@ class StopRuleReplayTests(LoopCase):
     OBSERVED_PASSES = {"spec": 8, "test-strategy": 5, "plan": 4, "step-plan": 1, "test-spec": 3}
     EXPECTED_STOP = {"spec": 7, "test-strategy": 2, "plan": 3, "step-plan": 1, "test-spec": 2}
 
-    def replay(self, outside: bool, passes: list[tuple[str, bool, bool]], stage: str = "stage") -> int:
+    # Where gate 3 (the two-pass rule of ShipLoop's code reviews) would have stopped the same passes: 21 of 21, the count the
+    # run actually took, so the two-pass rule gives back none of the saving that gate 2 measured on planning stages.
+    EXPECTED_STOP_GATE_3 = {"spec": 8, "test-strategy": 5, "plan": 4, "step-plan": 1, "test-spec": 3}
+
+    def replay(self, outside: bool, passes: list[tuple[str, bool, bool]], stage: str = "stage", gate: int = 2) -> int:
         """Drive the real runtime with these passes; return the pass number the loop completed on (0 if never)."""
         extra = {"candidate_paths": [str(self.outside)]} if outside else {}
-        packet = self.start(**extra)
+        packet = self.start(gate=gate, **extra)
         for number, (label, changed, _material) in enumerate(passes, 1):
             if changed:
                 target = self.outside if outside else self.repo / "app.py"
@@ -365,12 +383,260 @@ class StopRuleReplayTests(LoopCase):
                 total_replayed += stop
         self.assertEqual((total_observed, total_replayed), (21, 15))
 
+    def test_the_same_passes_under_the_two_pass_gate_stop_where_the_run_actually_stopped(self) -> None:
+        for stage, (outside, passes) in self.STAGES.items():
+            with self.subTest(stage=stage):
+                stop = self.replay(outside, passes, stage, gate=3)
+                self.assertEqual(stop, self.EXPECTED_STOP_GATE_3[stage])
+                self.assertEqual(stop, self.OBSERVED_PASSES[stage])
+                self.assertGreaterEqual(stop, self.EXPECTED_STOP[stage])  # never earlier than gate 2
+                self.assertTrue(all(n < stop for n, (_l, _c, material) in enumerate(passes, 1) if material))
+
     def test_a_polish_edit_labelled_trivial_is_followed_by_another_pass(self) -> None:
         # The old rule would have counted spec P6 (one word changed) toward two clean passes if it were labelled trivial.
         outside, passes = self.STAGES["spec"]
         relabelled = [(("trivial" if n == 6 else label), changed, material)
                       for n, (label, changed, material) in enumerate(passes, 1)]
         self.assertEqual(self.replay(outside, relabelled), 7)  # not 6, however the pass is labelled
+
+
+class TwoPassGateTests(LoopCase):
+    """Gate 3: ShipLoop's implement and carry-forward reviews (efficiency plan D-6 / R1).
+
+    A first pass that is trivial, satisfied and leaves the content as it started completes (the 2026-09-26 rule, 2be7906b).
+    Once any pass has changed the content, two consecutive trivial, satisfied passes that each leave it unchanged complete.
+    A trivial pass that changed the content never completes, and a pass that is unchanged but unsatisfied (or not trivial)
+    breaks the pair.  Gate 2 stops on the first of them.
+    """
+
+    # Each letter is one pass: E = edits the file, reported non-trivial; T = edits the file, reported trivial (the label is
+    # not trusted); N = changes nothing, reported trivial and satisfied; U = changes nothing, reported trivial but with the
+    # exit unsatisfied.  (passes, the pass gate 2 completes on, the pass gate 3 completes on); 0 = still open afterwards.
+    SEQUENCES = (
+        ("N", 1, 1),
+        ("EN", 2, 0),
+        ("ENN", 2, 3),
+        ("ENENN", 2, 5),
+        ("EEN", 3, 0),
+        ("EENN", 3, 4),
+        ("TN", 2, 0),
+        ("TNN", 2, 3),
+        ("TTTT", 0, 0),
+        ("UN", 2, 0),
+        ("UNN", 2, 3),
+        ("ENUNN", 2, 5),
+    )
+
+    def drive(self, gate: int, passes: str, **extra) -> tuple[int, dict]:
+        self.edit("x = 1\n")  # every sequence starts from the committed content
+        packet = self.start(gate=gate, **extra)
+        for number, mark in enumerate(passes, 1):
+            if mark in "ET":
+                self.edit(f"x = {number + 1}\n")  # a new content every time, and never the committed "x = 1"
+            report = dict(TRIVIAL)
+            if mark == "E":
+                report["classification"] = "non-trivial"
+            if mark == "U":
+                report["exit_assessment"] = "unsatisfied"
+            packet = self.done(packet, report)
+            if packet["status"] == "complete":
+                return number, packet
+        return 0, packet
+
+    def test_each_sequence_completes_on_the_pass_its_gate_names(self) -> None:
+        for passes, at_gate_2, at_gate_3 in self.SEQUENCES:
+            for gate, expected in ((2, at_gate_2), (3, at_gate_3)):
+                with self.subTest(passes=passes, gate=gate):
+                    self.assertEqual(self.drive(gate, passes)[0], expected)
+
+    def test_the_first_pass_rule_is_the_one_main_had_and_gate_two_ends_there_too(self) -> None:
+        for gate in (2, 3):
+            with self.subTest(gate=gate):
+                number, terminal = self.drive(gate, "N")
+                self.assertEqual((number, terminal["progress"]), (1, {
+                    "action_number": 1, "required_trivial_reviews": gate, "last_pass_changed_tree": False}))
+
+    def test_a_trivial_label_on_a_pass_that_changed_the_content_never_completes(self) -> None:
+        for gate in (2, 3):
+            with self.subTest(gate=gate):
+                number, packet = self.drive(gate, "TTTT")
+                self.assertEqual((number, packet["status"]), (0, "active"))
+                self.assertIs(packet["progress"]["last_pass_changed_tree"], True)
+
+    def test_a_candidate_file_edit_alone_counts_as_a_change_at_gate_three(self) -> None:
+        packet = self.start(gate=3, candidate_paths=[str(self.outside)])
+        self.outside.write_text("result v1\n")                  # absent -> present, the worktree untouched
+        packet = self.done(packet, MATERIAL)
+        packet = self.done(packet)                              # one unchanged pass after a change is not enough at gate 3
+        self.assertEqual(packet["status"], "active")
+        self.assertEqual(self.done(packet)["status"], "complete")
+        # the same run without the edit completes on its first pass
+        self.assertEqual(self.done(self.start(gate=3, candidate_paths=[str(self.outside)]))["status"], "complete")
+
+    def test_a_then_b_then_a_trees_is_not_clean_at_gate_three(self) -> None:
+        packet = self.start(gate=3)
+        self.edit("x = 2\n")                                    # tree B
+        packet = self.done(packet, MATERIAL)
+        self.edit("x = 1\n")                                    # back to the start tree A: a change against B
+        packet = self.done(packet, TRIVIAL)
+        self.assertEqual((packet["status"], packet["progress"]["last_pass_changed_tree"]), ("active", True))
+        packet = self.done(packet)                              # the first unchanged pass since
+        self.assertEqual(packet["status"], "active")
+        self.assertEqual(self.done(packet)["status"], "complete")
+
+    def test_failed_checks_on_an_unchanged_pass_break_the_pair(self) -> None:
+        checks = [{"id": "C1", "clause": "the suite passes", "command": "false"}]
+        passed = io.BytesIO  # one recorded run per pass, the way the packet's verify_script reports it
+        ok = b"=== until-loop check C1\n\nUNTIL-LOOP-CHECK C1 exit=0\n"
+        packet = self.start(gate=3, exit_checks=checks)
+        self.edit()
+        runtime.record(packet["state_file"], token(packet), passed(ok), io.StringIO())
+        packet = self.done(packet, MATERIAL)                    # pass 1 changed the content
+        runtime.record(packet["state_file"], token(packet), passed(ok), io.StringIO())
+        packet = self.done(packet, TRIVIAL)                     # pass 2: unchanged, checks pass: the first of the pair
+        self.assertEqual(packet["status"], "active")
+        runtime.record(packet["state_file"], token(packet),
+                       io.BytesIO(b"=== until-loop check C1\nboom\n\nUNTIL-LOOP-CHECK C1 exit=1\n"), io.StringIO())
+        packet = self.done(packet, TRIVIAL)                     # pass 3: unchanged but a check failed: not a pair
+        self.assertEqual(packet["status"], "active")
+        runtime.record(packet["state_file"], token(packet),
+                       io.BytesIO(b"=== until-loop check C1\n\nUNTIL-LOOP-CHECK C1 exit=0\n"), io.StringIO())
+        packet = self.done(packet, TRIVIAL)                     # pass 4: the first clean pass since the failure
+        self.assertEqual(packet["status"], "active")
+        runtime.record(packet["state_file"], token(packet),
+                       io.BytesIO(b"=== until-loop check C1\n\nUNTIL-LOOP-CHECK C1 exit=0\n"), io.StringIO())
+        self.assertEqual(self.done(packet, TRIVIAL)["status"], "complete")  # pass 5: the second
+
+    def test_cancelled_and_blocked_still_stop_a_gate_three_loop(self) -> None:
+        for fields in ({"continuation_assessment": "cancelled"},
+                       {"continuation_assessment": "blocked", "exit_assessment": "unsatisfied"}):
+            with self.subTest(fields=fields):
+                self.assertEqual(self.done(self.start(gate=3), dict(MATERIAL, **fields))["status"], "stopped")
+
+    def test_the_packets_say_which_pass_ends_the_loop(self) -> None:
+        packet = self.start(gate=3)
+        self.assertEqual(packet["progress"], {"action_number": 1, "required_trivial_reviews": 3,
+                                              "last_pass_changed_tree": None})
+        self.assertIn("After a pass has changed the content it takes two such passes in a row", packet["instruction"])
+        self.assertNotIn("two such passes in a row", self.start(gate=2)["instruction"])
+        self.edit()
+        changed = self.done(packet, TRIVIAL)                    # labelled trivial, but it edited: the runtime says why not
+        self.assertIn("ends on two consecutive passes you report trivial and satisfied", changed["instruction"])
+        one_clean = self.done(changed)
+        self.assertEqual(one_clean["status"], "active")
+        self.assertIn("one more distinct full review", one_clean["instruction"])
+        terminal = self.done(one_clean)
+        self.assertEqual(terminal["status"], "complete")
+        self.assertIn("also trivial and satisfied with the content unchanged", terminal["instruction"])
+        self.assertEqual(set(terminal["progress"]), {"action_number", "required_trivial_reviews", "last_pass_changed_tree"})
+        self.assertIs(terminal["progress"]["last_pass_changed_tree"], False)
+        # the first-pass completion keeps the gate-2 wording: nothing before it changed the content
+        first = self.done(self.start(gate=3))
+        self.assertIn("unchanged from the previous pass", first["instruction"])
+        self.assertNotIn("also trivial and satisfied", first["instruction"])
+
+    def test_no_new_state_field_keeps_the_two_pass_gate_inside_the_gate_two_state_shape(self) -> None:
+        # The pair is read from the latest report, trivial_streak and last_pass_changed_tree, so a gate-3 run adds no field.
+        two, three = Path(self.start(gate=2)["state_file"]), Path(self.start(gate=3)["state_file"])
+        self.assertEqual(set(runtime.json.loads(two.read_text())), set(runtime.json.loads(three.read_text())))
+
+
+class PlainDirectoryTests(LoopCase):
+    """F3: a workspace that is not a Git worktree (an explicit in-place ShipLoop run) is measured like one.
+
+    The unchanged-content gates measure the workspace through a throwaway bare repository, so the same rule applies and
+    nothing is written into the workspace.  The measurement honours .gitignore files in the directory, like the Git case.
+    """
+
+    def plain(self) -> Path:
+        directory = self.root / "plain"
+        directory.mkdir()
+        (directory / "doc.md").write_text("# Notes\n")
+        return directory
+
+    @staticmethod
+    def listing(directory: Path) -> list[str]:
+        return sorted(str(path.relative_to(directory)) for path in directory.rglob("*"))
+
+    def test_a_start_outside_git_is_accepted_and_an_unchanged_trivial_pass_completes(self) -> None:
+        for gate in (2, 3):
+            with self.subTest(gate=gate):
+                plain = self.plain() if gate == 2 else self.root / "plain"
+                packet = self.start(gate=gate, workspace=plain)
+                self.assertEqual(packet["status"], "active")
+                self.assertEqual(self.done(packet)["status"], "complete")
+
+    def test_a_change_outside_git_is_a_change_and_the_next_unchanged_pass_ends_the_loop(self) -> None:
+        plain = self.plain()
+        packet = self.start(workspace=plain)
+        (plain / "doc.md").write_text("# Notes\nA new line.\n")
+        packet = self.done(packet, TRIVIAL)
+        self.assertEqual((packet["status"], packet["progress"]["last_pass_changed_tree"]), ("active", True))
+        (plain / "added.md").write_text("new file\n")
+        packet = self.done(packet, TRIVIAL)
+        self.assertEqual((packet["status"], packet["progress"]["last_pass_changed_tree"]), ("active", True))
+        self.assertEqual(self.done(packet)["status"], "complete")
+
+    def test_ignored_and_runtime_files_outside_git_do_not_count_and_nothing_is_written_into_the_directory(self) -> None:
+        plain = self.plain()
+        (plain / ".gitignore").write_text("build/\n")
+        before = self.listing(plain)
+        packet = self.start(workspace=plain)
+        (plain / "build").mkdir()
+        (plain / "build" / "out.txt").write_text("ignored output\n")
+        (plain / ".shiploop-improve").mkdir()
+        (plain / ".shiploop-improve" / "review-1.md").write_text("review\n")
+        terminal = self.done(packet)
+        self.assertEqual(terminal["status"], "complete")
+        self.assertEqual(sorted(set(self.listing(plain)) - set(before)),
+                         [".shiploop-improve", ".shiploop-improve/review-1.md", "build", "build/out.txt"])
+        self.assertFalse((plain / ".git").exists(), "the throwaway repository lives elsewhere")
+
+    def test_a_candidate_file_outside_a_plain_directory_counts_too(self) -> None:
+        plain = self.plain()
+        packet = self.start(workspace=plain, candidate_paths=[str(self.outside)])
+        self.outside.write_text("result v1\n")
+        packet = self.done(packet, TRIVIAL)
+        self.assertEqual((packet["status"], packet["progress"]["last_pass_changed_tree"]), ("active", True))
+        self.assertEqual(self.done(packet)["status"], "complete")
+
+    def test_the_measurement_is_repeatable_and_leaves_no_temporary_repository_behind(self) -> None:
+        plain = self.plain()
+        scratch = Path(tempfile.gettempdir())
+        before = {path.name for path in scratch.glob("until-loop-tree-*")}
+        first, second = runtime._workspace_tree(str(plain)), runtime._workspace_tree(str(plain))
+        self.assertRegex(first, r"^[0-9a-f]{40}$")
+        self.assertEqual(first, second)
+        (plain / "doc.md").write_text("# Notes\nchanged\n")
+        self.assertNotEqual(runtime._workspace_tree(str(plain)), first)
+        self.assertEqual({path.name for path in scratch.glob("until-loop-tree-*")}, before)
+
+    def test_a_temporary_directory_inside_the_workspace_is_not_part_of_the_tree(self) -> None:
+        # Review finding (P2): with TMPDIR inside the measured workspace the throwaway repository, or in a worktree the
+        # temporary index file, was part of the tree it measured, so no pass could ever read as unchanged.
+        for kind in ("plain", "worktree"):
+            with self.subTest(kind=kind):
+                workspace = self.plain() if kind == "plain" else self.repo
+                scratch = workspace / "tmp"
+                scratch.mkdir(exist_ok=True)
+                with mock.patch.object(tempfile, "tempdir", str(scratch)):
+                    first, second = runtime._workspace_tree(str(workspace)), runtime._workspace_tree(str(workspace))
+                    self.assertIsNotNone(first)
+                    self.assertEqual(first, second)
+                    packet = self.start(workspace=workspace)
+                    self.assertEqual(self.done(packet)["status"], "complete")
+                self.assertEqual(list(scratch.iterdir()), [], "the measurement removes its own scratch")
+
+    def test_a_directory_git_cannot_snapshot_is_still_refused_at_start(self) -> None:
+        if os.geteuid() == 0:
+            self.skipTest("root reads an unreadable file")
+        plain = self.plain()
+        locked = plain / "locked.md"
+        locked.write_text("secret\n")
+        locked.chmod(0)
+        self.addCleanup(locked.chmod, 0o600)
+        with self.assertRaisesRegex(runtime.StateError, "needs a content tree the runtime can measure"):
+            self.start(workspace=plain)
 
 
 # --------------------------------------------------------------------------------------------------------------------

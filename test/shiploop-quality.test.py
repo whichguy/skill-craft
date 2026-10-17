@@ -43,6 +43,20 @@ class QualityLoopTests(fx.RunDriver):
         self.assertTrue(standalone.receipt_path(child).is_file())
         self.assertNotIn("write the opening file", nav.improve_handoff_text(CORE, self.run_dir, state))
         self.assertIn("complete --run-dir=" + str(self.run_dir) + " --action=" + nav.improve_id(state), self.packet())
+    def assert_review_gate(self, state, gate):
+        """The contract ShipLoop froze for the child and the handoff the review reads both name the gate of the stage's
+        Improve rule (D-6 / R1): 2 stops on one unchanged pass, 3 (the code reviews) needs two in a row after an edit."""
+        child = state["active_improve"]
+        contract = json.loads(nav.improve_opening_path(child).with_name("start.json").read_text())
+        handoff = " ".join(nav.improve_handoff_text(CORE, self.run_dir, state).split())
+        two = gate == 3
+        self.assertEqual(contract["required_trivial_reviews"], gate)
+        self.assertEqual("once any pass has changed the content, two such passes in a row are needed"
+                         in contract["exit_condition"], two)
+        self.assertEqual("until two passes in a row leave it unchanged" in contract["repeat_condition"], two)
+        self.assertEqual("the runtime needs two such passes in a row to end the review" in handoff, two)
+        self.assertIn("a pass that changed content never ends it, however you label it", handoff)
+
     def test_verify_is_the_review_stage_and_its_entry_writes_the_rubric_and_the_inventory(self):
         self.assertEqual(quality.STAGE, "verify")
         self.start()
@@ -96,6 +110,7 @@ class QualityLoopTests(fx.RunDriver):
         state = self.drive_to("carry-forward", improve_stage="carry-forward")
         self.assert_improve_stage_started(state)
         packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
+        self.assert_review_gate(self.state(), 3)
         self.assertIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertIn("2. Fail at the door.", packet)
         self.assertIn("4. Spend tokens on information.", packet)
@@ -108,6 +123,7 @@ class QualityLoopTests(fx.RunDriver):
         state = self.drive_to("implement", improve_stage="implement")
         self.assert_improve_stage_started(state)
         packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
+        self.assert_review_gate(self.state(), 3)
         self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertEqual(packet.count("2. Fail at the door."), 1)
         self.assertNotIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
@@ -117,6 +133,7 @@ class QualityLoopTests(fx.RunDriver):
         state = self.drive_to("spec", improve_stage="spec")
         self.assert_improve_stage_started(state)
         handoff = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
+        self.assert_review_gate(self.state(), 2)
         self.assertIn("Planning review focus", handoff)
         self.assertNotIn("End-of-work code review focus", handoff)
 

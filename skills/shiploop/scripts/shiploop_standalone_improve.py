@@ -601,12 +601,16 @@ def _runtime_wrote_receipt(packet: Mapping[str, Any], binding: Mapping[str, Any]
           + "; start the child with the printed --receipt so the runtime keeps this copy itself")
 
 
-_UNCHANGED_GATE = 2  # the runtime's required_trivial_reviews value for "trivial, and the content is unchanged"
+# The runtime's required_trivial_reviews values for "trivial, and the content is unchanged": 2 ends the review on one such
+# pass, 3 (code reviews) on the first pass or on two in a row once a pass has changed the content.  Both complete only on
+# a pass the runtime measured unchanged, so the terminal check below is the same for both.
+_UNCHANGED_GATES = (2, 3)
 _PROGRESS_KEYS = {"action_number", "required_trivial_reviews", "last_pass_changed_tree"}
 _OLDER_RUNTIME = (
     "Until Loop {kind} packet was written by an older Until Loop (it counts a trivial streak or reports "
-    "unchanged_first_pass), which ShipLoop no longer imports: the Improve review now ends on one trivial pass that "
-    "leaves the content unchanged. Preserve this run; start new work with init or workspace start in a fresh --run-dir"
+    "unchanged_first_pass), which ShipLoop no longer imports: the Improve review now ends on a trivial pass that "
+    "leaves the content unchanged (a code review: two in a row once a pass has changed it). Preserve this run; start "
+    "new work with init or workspace start in a fresh --run-dir"
 )
 
 
@@ -615,9 +619,9 @@ def _progress(value: Any, kind: str) -> Mapping[str, Any]:
     _need(isinstance(value, Mapping), f"Until Loop {kind} progress has an invalid schema")
     gate = value.get("required_trivial_reviews")
     # The older runtime counted a streak at this gate and reported unchanged_first_pass; the current one never does.
-    _need("unchanged_first_pass" not in value and not ("trivial_streak" in value and gate == _UNCHANGED_GATE),
+    _need("unchanged_first_pass" not in value and not ("trivial_streak" in value and gate in _UNCHANGED_GATES),
           _OLDER_RUNTIME.format(kind=kind))
-    _need(gate == _UNCHANGED_GATE, f"Until Loop {kind} packet was not run at Improve's unchanged-content review gate")
+    _need(gate in _UNCHANGED_GATES, f"Until Loop {kind} packet was not run at Improve's unchanged-content review gate")
     _need(set(value) == _PROGRESS_KEYS, f"Until Loop {kind} progress has an invalid schema")
     changed = value["last_pass_changed_tree"]
     _need(changed is None or isinstance(changed, bool),

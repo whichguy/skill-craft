@@ -1,0 +1,41 @@
+# U2 render check (2026-10-17)
+
+packets.py --offline node-fix-bug, before (stop branch merged, d07a3219) vs after (this unit), trees at paths of equal length: diff exit 0, 12 packets, 155,023 characters in both.
+
+## implement handoff diff
+385c385
+< Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial.
+---
+> Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial. Once a pass has changed content, the runtime needs two such passes in a row to end the review.
+## implement contract diff
+45,47c45,47
+<   "exit_condition": "A full review pass finds nothing material to change and leaves the content (the Git worktree and the stage result file) exactly as the previous pass left it, the first pass as it was at the start, which the runtime measures; no material defect remains in the candidate; the applicable checks are recorded. The implement result meets its own done-when criteria: only the step's paths changed since the step began, and no later step's work is in them; after the last edit, every recorded check command exited 0; after the last edit, the lint gate reports no unwaived new finding on a line this step changed; the result lists each behaviour the change added that no test-spec case covers (or none), and whether each of the step's skills was used.",
+<   "repeat_condition": "Repeat while a warranted change remains or the latest pass changed the content. Stop incomplete on an actual blocker or a user stop. Never push.",
+<   "required_trivial_reviews": 2,
+---
+>   "exit_condition": "A full review pass finds nothing material to change and leaves the content (the worktree and the stage result file) exactly as the previous pass left it, the first pass as it was at the start, which the runtime measures; once any pass has changed the content, two such passes in a row are needed; no material defect remains in the candidate; the applicable checks are recorded. The implement result meets its own done-when criteria: only the step's paths changed since the step began, and no later step's work is in them; after the last edit, every recorded check command exited 0; after the last edit, the lint gate reports no unwaived new finding on a line this step changed; the result lists each behaviour the change added that no test-spec case covers (or none), and whether each of the step's skills was used.",
+>   "repeat_condition": "Repeat while a warranted change remains or the latest pass changed the content, and after any pass has changed it until two passes in a row leave it unchanged. Stop incomplete on an actual blocker or a user stop. Never push.",
+>   "required_trivial_reviews": 3,
+
+## carry-forward handoff diff
+316c316
+< Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial.
+---
+> Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial. Once a pass has changed content, the runtime needs two such passes in a row to end the review.
+## carry-forward contract diff
+45,47c45,47
+<   "exit_condition": "A full review pass finds nothing material to change and leaves the content (the Git worktree and the stage result file) exactly as the previous pass left it, the first pass as it was at the start, which the runtime measures; no material defect remains in the candidate; the applicable checks are recorded. The carry-forward result meets its own done-when criteria: every still-required future item is in the queue, in prerequisite order; learnings and durable knowledge are recorded in the knowledge home, not in run notes; the skill decision is recorded: none, reuse, update or create, with its reason and repeat evidence.",
+<   "repeat_condition": "Repeat while a warranted change remains or the latest pass changed the content. Stop incomplete on an actual blocker or a user stop. Never push.",
+<   "required_trivial_reviews": 2,
+---
+>   "exit_condition": "A full review pass finds nothing material to change and leaves the content (the worktree and the stage result file) exactly as the previous pass left it, the first pass as it was at the start, which the runtime measures; once any pass has changed the content, two such passes in a row are needed; no material defect remains in the candidate; the applicable checks are recorded. The carry-forward result meets its own done-when criteria: every still-required future item is in the queue, in prerequisite order; learnings and durable knowledge are recorded in the knowledge home, not in run notes; the skill decision is recorded: none, reuse, update or create, with its reason and repeat evidence.",
+>   "repeat_condition": "Repeat while a warranted change remains or the latest pass changed the content, and after any pass has changed it until two passes in a row leave it unchanged. Stop incomplete on an actual blocker or a user stop. Never push.",
+>   "required_trivial_reviews": 3,
+
+## spec handoff diff
+## spec contract diff
+45c45
+<   "exit_condition": "A full review pass finds nothing material to change and leaves the content (the Git worktree and the stage result file) exactly as the previous pass left it, the first pass as it was at the start, which the runtime measures; no material defect remains in the candidate; the applicable checks are recorded. The spec result meets its own done-when criteria: every request outcome maps to at least one acceptance criterion; each criterion is independently verifiable and says how it will be confirmed; non-functional requirements are assessed, or excluded with a reason; unaffected existing requirements are preserved.",
+---
+>   "exit_condition": "A full review pass finds nothing material to change and leaves the content (the worktree and the stage result file) exactly as the previous pass left it, the first pass as it was at the start, which the runtime measures; no material defect remains in the candidate; the applicable checks are recorded. The spec result meets its own done-when criteria: every request outcome maps to at least one acceptance criterion; each criterion is independently verifiable and says how it will be confirmed; non-functional requirements are assessed, or excluded with a reason; unaffected existing requirements are preserved.",
+

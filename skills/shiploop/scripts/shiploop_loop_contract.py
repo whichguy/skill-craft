@@ -19,8 +19,8 @@ def contract(*, workspace: str, work: str, exit_condition: str, repeat_condition
              resources: Sequence[Mapping[str, str]], candidate_paths: Sequence[str] = ()) -> Dict[str, Any]:
     """A complete Until Loop start contract; every field but ``candidate_paths`` is required.
 
-    ``required_trivial_reviews`` is the runtime's review gate: 0 and 1 for the stage loops, 2 (the unchanged-content
-    gate) for an Improve child.  ``candidate_paths`` are the files outside the worktree whose bytes that gate also
+    ``required_trivial_reviews`` is the runtime's review gate: 0 and 1 for the stage loops, 2 or 3 (the unchanged-content
+    gates, ``stage_spec.improve_gate``) for an Improve child.  ``candidate_paths`` are the files outside the worktree whose bytes those gates also
     compares between passes (a stage result under the run directory).  The key is written only when there are some:
     the stage loops' contracts must stay valid for the published until-loop plugin, which refuses an unknown field.
     """

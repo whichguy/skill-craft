@@ -1,0 +1,55 @@
+# U2 fail-first record (2026-10-17)
+
+Method: the pre-U2 source (merge commit d07a3219: the stop branch merged into the integration base) with only the new tests overlaid, or the runtime script alone reverted in place. Each line is the suite's own summary.
+
+## improve-runtime (runtime script reverted to d07a3219, tests as committed)
+Ran 45 tests in 7.679s
+FAILED (failures=4, errors=32)
+   1 FAILED (failures=4, errors=32)
+   1 test_a_candidate_file_edit_alone_counts_as_a_change_at_gate_three
+   1 test_a_candidate_file_outside_a_plain_directory_counts_too
+   1 test_a_change_outside_git_is_a_change_and_the_next_unchanged_pass_ends_the_loop
+   2 test_a_start_outside_git_is_accepted_and_an_unchanged_trivial_pass_completes
+   1 test_a_then_b_then_a_trees_is_not_clean_at_gate_three
+   1 test_a_trivial_label_on_a_pass_that_changed_the_content_never_completes
+   2 test_cancelled_and_blocked_still_stop_a_gate_three_loop
+  12 test_each_sequence_completes_on_the_pass_its_gate_names
+   1 test_failed_checks_on_an_unchanged_pass_break_the_pair
+   1 test_ignored_and_runtime_files_outside_git_do_not_count_and_nothing_is_written_into_the_directory
+   1 test_no_new_state_field_keeps_the_two_pass_gate_inside_the_gate_two_state_shape
+   1 test_the_contract_can_not_carry_a_gate_above_three_or_a_relative_candidate
+   1 test_the_default_gate_is_zero_and_a_larger_one_is_refused
+   1 test_the_first_pass_rule_is_the_one_main_had_and_gate_two_ends_there_too
+   1 test_the_measurement_is_repeatable_and_leaves_no_temporary_repository_behind
+   1 test_the_packets_say_which_pass_ends_the_loop
+   5 test_the_same_passes_under_the_two_pass_gate_stop_where_the_run_actually_stopped
+   2 test_the_unchanged_gates_need_a_tree_the_runtime_can_measure
+
+## shiploop-quality (ShipLoop source at d07a3219, new test overlaid)
+Ran 11 tests in 17.008s
+FAILED (failures=2)
+test_each_implement_step_improve_carries_the_step_focus_with_the_full_rubric
+test_end_of_work_improve_carries_the_full_rubric
+FAILED (failures=2)
+
+## shiploop-standalone-improve (ShipLoop source at d07a3219, new test overlaid)
+Ran 12 tests in 4.560s
+FAILED (failures=1)
+test_a_two_pass_terminal_from_the_real_runtime_is_imported_and_another_gate_is_not
+FAILED (failures=1)
+
+## shiploop-stage-spec (ShipLoop source at d07a3219, new test overlaid)
+Ran 11 tests in 0.289s
+FAILED (errors=1)
+test_the_improve_review_gate_of_each_stage
+FAILED (errors=1)
+
+## test-groups (suite_catalog.py without the new _PREFIX_SUITE_IDS entry): VendoredRuntimeSelectionTests fails 4 subtests (scripts/until_loop_ephemeral.py, ADAPTER.md, PROVENANCE.json, references/runtime-ephemeral.md); the fifth failure in that overlay run is an artefact of running outside a git checkout and is not counted.
+
+## installed-skill-invocation: red on the merged tree before the change (measured at the start of this unit, 2 failures: both fixtures start a gate-2 contract outside Git); green after.
+
+## review fix: TMPDIR inside the workspace (runtime without the until-loop-tree-* excludes, new test only)
+Ran 1 test in 0.373s FAILED (failures=2) 
+subtest kind=plain fails: two measurements of an unchanged workspace differ
+subtest kind=worktree fails: two measurements of an unchanged workspace differ
+FAILED (failures=2)

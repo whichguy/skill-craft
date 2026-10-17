@@ -7,6 +7,7 @@ change to a stage's behaviour has to change both the table and this suite.
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 import sys
 import unittest
@@ -60,6 +61,25 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({
             "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
+
+    def test_the_improve_review_gate_of_each_stage(self) -> None:
+        """D-6 / R1 (a proposal awaiting the owner's S-10 text): the document stages' reviews stop on one unchanged pass
+        (gate 2); an implement step's and the last carry-forward's, which review code, need two in a row once a pass has
+        changed the content (gate 3).  Written out here independently of the table, and tied to the runtime's constants."""
+        expected = {name: 2 for name in ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author",
+                                         "release-plan")}
+        expected.update({"implement": 3, "carry-forward": 3})
+        self.assertEqual({name: spec.improve_gate(name) for name in spec.STAGES if spec.STAGE_SPEC[name].improve},
+                         expected)
+        self.assertEqual(dict(spec.IMPROVE_GATES), {"always": 2, "step": 3, "last-item": 3})
+        with self.assertRaisesRegex(ValueError, "starts no Improve child"):
+            spec.improve_gate("verify")
+        runtime_spec = importlib.util.spec_from_file_location(
+            "until_loop_ephemeral_gates", ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py")
+        runtime = importlib.util.module_from_spec(runtime_spec)
+        runtime_spec.loader.exec_module(runtime)
+        self.assertEqual((spec.ONE_PASS_GATE, spec.TWO_PASS_GATE),
+                         (runtime.UNCHANGED_GATE, runtime.UNCHANGED_AFTER_EDIT_GATE))
 
     def test_planning_review_modes(self) -> None:
         """The run option `planning_review`: the registered modes and the stages a mode reviews."""

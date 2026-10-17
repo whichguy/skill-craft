@@ -53,6 +53,17 @@ OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise"})
 # and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.
 IMPROVE_RULES = ("always", "last-item", "step")
 
+# The Until Loop review gate (`required_trivial_reviews`) each rule starts its Improve child at: the stop rule per stage
+# kind.  SPEC S-10, dated carve-out of 2026-10-16 as scoped by the efficiency plan (D-6 / R1; the text awaits the owner).
+# ONE_PASS_GATE: one trivial, satisfied pass that leaves the content as the previous pass left it ends the review.  The
+# study that measured it covered five planning stages; the rule "always" is those and the other document stages.
+# TWO_PASS_GATE: code reviews (an implement step, the last carry-forward): a first pass that leaves the content as it
+# started ends the review (2be7906b); once a pass has changed the content it takes two such passes in a row.  Pinned to
+# the runtime's own constants by test/shiploop-stage-spec.test.py.
+ONE_PASS_GATE = 2
+TWO_PASS_GATE = 3
+IMPROVE_GATES = MappingProxyType({"always": ONE_PASS_GATE, "step": TWO_PASS_GATE, "last-item": TWO_PASS_GATE})
+
 # A work item whose goal proves wrong while it is being built goes back to its
 # step plan with the evidence, at most MAX_REVISES times; after that the user
 # decides (blocked, blocked_by user).
@@ -656,6 +667,14 @@ DEFAULT_PLANNING_REVIEW = "stage"
 PLANNING_CHOICE_STAGES = frozenset(("spec", "test-strategy", "plan", "step-plan", "test-spec"))
 
 
+def improve_gate(stage: str) -> int:
+    """The review gate of the Improve child that reviews ``stage``'s accepted result (see IMPROVE_GATES)."""
+    rule = STAGE_SPEC[stage].improve
+    if rule is None:
+        raise ValueError(f"{stage} starts no Improve child")
+    return IMPROVE_GATES[rule]
+
+
 def reviewed_stages(mode: str) -> frozenset[str]:
     """Stages whose accepted result starts an Improve child under planning review ``mode``."""
     if mode not in PLANNING_REVIEW_MODES:
@@ -681,6 +700,8 @@ def _check_table() -> None:
     phases = [row.phase for row in _ROWS]
     if phases != sorted(phases, key=PHASES.index):
         raise RuntimeError("stages must be grouped prelude, inner, outer")
+    if set(IMPROVE_GATES) != set(IMPROVE_RULES):
+        raise RuntimeError("every Improve rule needs exactly one review gate")
 
 
 _check_table()

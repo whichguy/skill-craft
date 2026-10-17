@@ -42,11 +42,13 @@ Otherwise the executor builds the contract. A start call needs JSON on stdin:
 
 `work` is one iteration, not the entire loop. Preserve requested scope, negative
 constraints and order there; retain all outcome and stop predicates in their
-respective conditions. The review gate, `required_trivial_reviews`, defaults to 0 and is 0, 1 or 2:
+respective conditions. The review gate, `required_trivial_reviews`, defaults to 0 and is 0, 1, 2 or 3:
 0 completes on the first report that assesses the exit as satisfied; 1 also needs the report to
 classify the pass trivial; 2 is the unchanged-content gate (Improve's), which also needs the runtime
 to measure the content tree after the pass equal to the tree after the previous pass (see below) and
-no longer counts two reviews. Larger values are refused. `candidate_paths` is an optional list of
+no longer counts two reviews; 3 is the same measurement for code reviews, with the first-pass rule kept
+and two such passes in a row needed once a pass has changed the tree (see below). Larger values are
+refused. `candidate_paths` is an optional list of
 absolute files outside the worktree whose bytes also count toward that tree. A test repetition
 count is not a trivial-review count. All four text fields must be nonblank;
 workspace must be an existing absolute directory. `context` is required; a
@@ -66,7 +68,7 @@ clause; the runtime records each repair (old and new command, reason) in every l
 result and allows two per check. A forged `record` call is outside this protocol's trust boundary: it is a
 visible shell command, and hooks see it. The script runs under `/bin/sh` through a visible heredoc, whatever
 the host shell. Ids are 1-64 letters, digits, `.`, `_` or `-`; commands must parse under `sh -n` at start and in
-repairs. Limits, documented rather than enforced: outside Git (or when Git cannot snapshot the tree) a change
+repairs. Limits, documented rather than enforced: when Git cannot snapshot the tree a change
 after the recorded run is not detected; ignored files and changes made while the checks run are not
 fingerprinted; a check that hangs or leaves a child holding the pipe open is bounded only by the host's command
 timeout, and a run cut off that way records nothing. No other fields are accepted.
@@ -134,21 +136,30 @@ further work would be possible. Blocked before success stops incomplete.
 
 `done` validates the issued run/action token, computes the streak for gates 0 and 1
 (trivial adds one; non-trivial or unresolved resets to zero), and returns one of
-the statuses below. With `required_trivial_reviews` 2, `start` records the content
-tree (the workspace's Git tree of tracked and untracked files, with ignored files,
+the statuses below. With `required_trivial_reviews` 2 or 3, `start` records the content
+tree (the workspace's tracked and untracked files, with ignored files,
 the runtime's state file and `.shiploop-improve/`, `.shiploop/`, `.until-loop/`
 aside, plus the bytes of each `candidate_paths` file) and `done` measures it again
-after every pass. The loop completes on a report that is trivial and satisfied,
+after every pass. The tree is Git's own tree of the worktree; a directory that is not a
+Git worktree is measured the same way through a throwaway bare repository in a
+temporary directory, honouring the `.gitignore` files in it and writing nothing into it.
+Gate 2 completes the loop on a report that is trivial and satisfied,
 with checks passing, whose content tree equals the tree after the previous pass
-(for the first pass, the tree at start). A pass that changed the tree never
-completes the loop, however it is labelled, so a material pass is always followed
-by at least one more; there is no pass count and no timer. Gate 2 packets report
+(for the first pass, the tree at start). Gate 3 completes it on the same report for
+the first pass; after that it needs the pass before it to have been trivial and
+satisfied with checks passing and the content unchanged too, so once any pass has changed
+the tree it takes two such passes in a row. A pass that changed the tree never
+completes the loop at either gate, however it is labelled, so a material pass is always
+followed by at least one more; there is no pass count the report can claim and no timer.
+Gate 2 and 3 packets report
 `progress.last_pass_changed_tree` (the measured fact; `null` before a pass or when
-the tree could not be measured) in place of a streak. `start` refuses a gate-2
-contract whose tree cannot be measured (outside Git, or an unreadable candidate
-file), because no pass could ever be shown unchanged. A file a check or tool
+the tree could not be measured) in place of a streak. `start` refuses a gate-2 or
+gate-3 contract whose tree cannot be measured (Git cannot snapshot the directory, or a
+`candidate_paths` file is unreadable), because no pass could ever be shown unchanged.
+A file a check or tool
 rewrites on every pass that Git does not ignore counts as a change: ignore it or
-have the check clean it up.
+have the check clean it up. A nested Git repository inside the workspace counts as its
+commit only (Git records it as one entry), so uncommitted edits inside it are not seen.
 
 - **active:** execute the new instruction, then its new callback, immediately.
 - **complete:** report success and stop callbacks; the state file was removed.

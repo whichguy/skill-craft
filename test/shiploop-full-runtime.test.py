@@ -37,6 +37,9 @@ GENERATED_IMPROVE = PLUGINS / "skill-craft" / "skills" / "improve"
 # This expectation is intentionally independent of the prompt catalog and
 # navigator implementation.  A changed graph must update this public-contract
 # test deliberately instead of silently changing its own oracle.
+# The Improve reviews of code (the child after each implement step and after the last carry-forward) run at the two-pass
+# gate (D-6 / R1, SPEC S-10 proposal of 2026-10-17); every other Improve child runs at the one-pass gate.
+TWO_PASS_IMPROVE_STAGES = ("implement", "carry-forward")
 EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
@@ -472,10 +475,12 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(packet["status"], "active")
         binding = context["binding"]
         contract = json.loads((packet_path.parent / "start.json").read_text(encoding="utf-8"))
-        # The frozen contract is ShipLoop's: the binding line, workspace, the unchanged-content gate (2) and its locators.
+        # The frozen contract is ShipLoop's: the binding line, workspace, the unchanged-content gate (2, or 3 for the
+        # code reviews) and its locators.
         self.assertEqual(packet["context"], contract["context"])
         self.assertEqual(packet["context"]["request"].splitlines()[0], binding["contract_marker"])
-        self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
+        self.assertEqual(packet["progress"]["required_trivial_reviews"],
+                         3 if context["stage"] in TWO_PASS_IMPROVE_STAGES else 2)
         resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
         self.assertEqual(resources["latest child packet receipt"], str(packet_path))
         self.assertEqual(resources["ShipLoop parent state"], str(context["run"] / "state.md"))
@@ -546,16 +551,19 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             }
 
         packet = child["packet"]
+        two_pass = context["stage"] in TWO_PASS_IMPROVE_STAGES
         for classification, exit_assessment, label in (
             ("non-trivial", "unsatisfied", "material finding"),
             ("trivial", "satisfied", "qualifying review that changed nothing"),
+            *((("trivial", "satisfied", "second qualifying review that changed nothing"),) if two_pass else ()),
         ):
             raw, packet = self._run_child_argv(
                 packet["done_argv"], report(classification, exit_assessment, label)
             )
             context["packet_path"].write_bytes(raw)
         self.assertEqual(packet["status"], "complete")
-        self.assertEqual(packet["progress"], {"action_number": 2, "required_trivial_reviews": 2,
+        self.assertEqual(packet["progress"], {"action_number": 3 if two_pass else 2,
+                                              "required_trivial_reviews": 3 if two_pass else 2,
                                               "last_pass_changed_tree": False})
         self.assertIsNone(packet["next_argv"])
         self.assertIsNone(packet["done_argv"])

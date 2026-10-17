@@ -34,8 +34,14 @@ _REQUIRED_INPUT_CONTRACT_FIELDS = _CONTRACT_FIELDS - {"required_trivial_reviews"
 # be trivial and satisfied AND the runtime must measure the content tree after the pass equal to the tree after the
 # previous pass (for the first pass: the tree at start).  A pass that changed the tree never completes the loop, however
 # it is labelled; the label is necessary, the measured fact decides.  No count, no timer.  The value 2 no longer counts
-# two reviews, and anything above it is refused.
+# two reviews.
+# 3 is the same measurement with the rule this runtime had before the stop rule, for code reviews (efficiency plan D-6 / R1,
+# a proposal awaiting the owner's S-10 text): a first pass that is trivial, satisfied and leaves the content as it started
+# completes; once any pass has changed the content, two consecutive trivial, satisfied passes that each leave it unchanged
+# are needed.  Anything above 3 is refused.  Both are measured by the runtime, never counted from the report's label.
 UNCHANGED_GATE = 2
+UNCHANGED_AFTER_EDIT_GATE = 3
+_UNCHANGED_GATES = (UNCHANGED_GATE, UNCHANGED_AFTER_EDIT_GATE)
 _CHECK_FIELDS = {"id", "clause", "command"}
 CHECK_OUTPUT_CHARS = 300
 _CHECK_ID = re.compile(r"[A-Za-z0-9._-]{1,64}")
@@ -132,7 +138,8 @@ def _validate_context(context: object) -> dict[str, Any]:
 _RETIRED_STATE = (
     "this run's state was written by an older Until Loop (it records start_tree): the runtime now records last_tree, and "
     "required_trivial_reviews 2 ends the loop on one trivial, satisfied pass that leaves the content tree as the "
-    "previous pass left it. The state cannot be continued; start a new run with a current contract"
+    "previous pass left it (3: after a pass has changed it, on two such passes in a row). The state cannot be "
+    "continued; start a new run with a current contract"
 )
 
 
@@ -311,9 +318,9 @@ def _validate_contract(contract: object, *, input_contract: bool) -> dict[str, A
         "repeat_condition": _require_text(contract["repeat_condition"], "repeat_condition"),
     }
     gate = _require_nonnegative_integer(contract.get("required_trivial_reviews", 0), "required_trivial_reviews")
-    if gate > UNCHANGED_GATE:
-        raise StateError("required_trivial_reviews must be 0, 1 or 2: 2 is the unchanged-content gate and no longer "
-                         "counts that many reviews")
+    if gate > UNCHANGED_AFTER_EDIT_GATE:
+        raise StateError("required_trivial_reviews must be 0, 1, 2 or 3: 2 and 3 are the unchanged-content gates and "
+                         "no longer count that many reviews")
     normalized["required_trivial_reviews"] = gate
     normalized["candidate_paths"] = _validate_candidate_paths(contract.get("candidate_paths", []))
     normalized["context"] = _validate_context(contract["context"])
@@ -469,11 +476,51 @@ def _write_receipt(state: dict[str, Any], packet: dict[str, Any]) -> None:
         raise
 
 
+def _tree_excludes() -> list[str]:
+    """The pathspecs a content tree leaves out: the runtime's own and the review notes' locations."""
+    excludes = [":(exclude,glob)**/" + part + "/**" for part in _RUNTIME_EXCLUDES]
+    excludes.append(":(exclude,glob)**/innerloop-*.json")
+    # The measurement's own scratch (a temporary index file, or a throwaway repository) when TMPDIR lies inside the workspace:
+    # it would otherwise be part of the tree it is measuring and no pass could ever read as unchanged.
+    excludes.extend((":(exclude,glob)**/until-loop-tree-*", ":(exclude,glob)**/until-loop-tree-*/**"))
+    return excludes
+
+
+def _plain_tree(workspace: str) -> str | None:
+    """The content tree of a directory that is not a Git worktree, measured through a throwaway bare repository.
+
+    The same rule as in a worktree (every file, ``.gitignore`` files in the directory honoured, runtime and review-note
+    locations left out), so an explicit in-place run outside Git ends its Improve review the same way.  The
+    repository and its index live in a temporary directory that is removed afterwards; nothing is written into the
+    workspace.  ``None`` on any Git error, as for a worktree.
+    """
+    try:
+        with tempfile.TemporaryDirectory(prefix="until-loop-tree-") as scratch:
+            repository = os.path.join(scratch, "tree.git")
+            plain = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
+            if subprocess.run(["git", "init", "-q", "--bare", repository], capture_output=True, text=True,
+                              env=plain, timeout=60, check=False).returncode:
+                return None
+            env = {**plain, "GIT_DIR": repository, "GIT_WORK_TREE": workspace,
+                   "GIT_INDEX_FILE": os.path.join(scratch, "index"), "GIT_OPTIONAL_LOCKS": "0"}
+            def git(*args: str) -> subprocess.CompletedProcess:
+                return subprocess.run(["git", *args], cwd=workspace, capture_output=True, text=True,
+                                      env=env, timeout=60, check=False)
+            if git("add", "-A", "--", ".", *_tree_excludes()).returncode:
+                return None
+            written = git("write-tree")
+            tree = written.stdout.strip()
+            return tree if written.returncode == 0 and _TREE_ID.fullmatch(tree) else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def _workspace_tree(workspace: str) -> str | None:  # the Git part of the content tree
     """A content tree of the workspace (tracked and untracked, never ignored or runtime files).
 
-    Built in a private index so the real index is untouched.  ``None`` outside
-    Git or on any Git error: then no pass can be shown unchanged.
+    Built in a private index so the real index is untouched.  A directory that is not a Git worktree is measured
+    through a throwaway bare repository (``_plain_tree``).  ``None`` on any Git error: then no pass can be shown
+    unchanged.
     """
     def git(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", workspace, *args], capture_output=True, text=True,
@@ -481,7 +528,7 @@ def _workspace_tree(workspace: str) -> str | None:  # the Git part of the conten
     try:
         located = git("rev-parse", "--git-path", "index")
         if located.returncode:
-            return None
+            return _plain_tree(workspace)
         real_index = Path(located.stdout.strip())
         if not real_index.is_absolute():
             real_index = Path(workspace) / real_index
@@ -497,9 +544,7 @@ def _workspace_tree(workspace: str) -> str | None:  # the Git part of the conten
             else:
                 os.unlink(index)
             env = {**os.environ, "GIT_INDEX_FILE": index, "GIT_OPTIONAL_LOCKS": "0"}
-            excludes = [":(exclude,glob)**/" + part + "/**" for part in _RUNTIME_EXCLUDES]
-            excludes.append(":(exclude,glob)**/innerloop-*.json")
-            if git("add", "-A", "--", ".", *excludes, env=env).returncode:
+            if git("add", "-A", "--", ".", *_tree_excludes(), env=env).returncode:
                 return None
             written = git("write-tree", env=env)
             tree = written.stdout.strip()
@@ -658,7 +703,16 @@ def _required_trivial_reviews(state: dict[str, Any]) -> int:
 
 
 def _unchanged_gate(state: dict[str, Any]) -> bool:
-    return _required_trivial_reviews(state) == UNCHANGED_GATE
+    return _required_trivial_reviews(state) in _UNCHANGED_GATES
+
+
+def _previous_pass_clean(state: dict[str, Any]) -> bool:
+    """Whether the latest completed pass was trivial and satisfied, its checks passed, and it left the content as the
+    pass before it left it.  ``trivial_streak`` is above 0 only after a trivial pass whose checks passed, so with the
+    report and the measured fact this needs no state of its own: gate 3 reads the pair from the state gate 2 keeps."""
+    report = state["last_report"]
+    return (report is not None and report["classification"] == "trivial" and report["exit_assessment"] == "satisfied"
+            and state["trivial_streak"] >= 1 and state["last_pass_changed_tree"] is False)
 
 
 def _next_argv(path: Path) -> list[str]:
@@ -772,8 +826,18 @@ def _next_action(state: dict[str, Any]) -> str:
             + ("compared the workspace content and found the latest pass changed it"
                if state["last_pass_changed_tree"] else "could not compare the workspace content for the latest pass")
             + ", so that pass cannot end the loop however it was labelled. Perform another distinct full review; "
-            "the loop ends on a pass you report trivial and satisfied that leaves the content as the previous pass "
-            "left it."
+            + ("the loop ends on two consecutive passes you report trivial and satisfied that each leave the content "
+               "as the pass before left it."
+               if _required_trivial_reviews(state) == UNCHANGED_AFTER_EDIT_GATE else
+               "the loop ends on a pass you report trivial and satisfied that leaves the content as the previous "
+               "pass left it.")
+        )
+    if _required_trivial_reviews(state) == UNCHANGED_AFTER_EDIT_GATE and _previous_pass_clean(state):
+        return (
+            "The latest pass was trivial and satisfied and left the content unchanged. At this gate that ends the loop "
+            "only on the first pass or as the second of two consecutive such passes, so perform one more distinct "
+            "full review; it ends the loop if you again report trivial and satisfied and the content is again "
+            "unchanged."
         )
     if not _unchanged_gate(state) and state["trivial_streak"] < _required_trivial_reviews(state):
         return (
@@ -825,7 +889,7 @@ def _metadata(
         },
         "progress": (
             # The unchanged gate does not count reviews: it reports the measured fact instead of a streak.
-            {"action_number": action_number, "required_trivial_reviews": UNCHANGED_GATE,
+            {"action_number": action_number, "required_trivial_reviews": _required_trivial_reviews(state),
              "last_pass_changed_tree": state["last_pass_changed_tree"]}
             if _unchanged_gate(state) else
             {"action_number": action_number, "trivial_streak": trivial_streak,
@@ -874,6 +938,8 @@ def _active_packet(path: Path, state: dict[str, Any]) -> dict[str, Any]:
         "This loop ends only on a trivial, satisfied pass after which the runtime finds the workspace content (Git, "
         "plus any candidate_paths files) exactly as the previous pass left it (the first pass: as at start); a pass "
         "that changed content never ends it, however you label it. "
+        + ("After a pass has changed the content it takes two such passes in a row. "
+           if _required_trivial_reviews(state) == UNCHANGED_AFTER_EDIT_GATE else "")
         if _unchanged_gate(state) else ""
     )
     verify_step = (
@@ -1009,13 +1075,14 @@ def start(
     # The unchanged gate closes on a trivial pass that left the content as the previous pass left it (the first pass:
     # as it is now), so the runtime, not the report, decides that.  Without a measurable tree no pass could ever be
     # shown unchanged and the loop would never end: refuse it here.
-    if initial["contract"]["required_trivial_reviews"] == UNCHANGED_GATE:
+    if initial["contract"]["required_trivial_reviews"] in _UNCHANGED_GATES:
         initial["last_tree"] = _content_tree(initial["contract"])
         if initial["last_tree"] is None:
             raise StateError(
-                "required_trivial_reviews 2 (unchanged content) needs a content tree the runtime can measure: the "
-                "workspace must be a Git worktree (git add and write-tree must succeed there) and every "
-                "candidate_paths file readable; otherwise use required_trivial_reviews 1"
+                "required_trivial_reviews 2 or 3 (unchanged content) needs a content tree the runtime can measure: "
+                "git must be able to snapshot the workspace (git add and write-tree must succeed on its files, in a "
+                "worktree or not) and every candidate_paths file must be readable; otherwise use "
+                "required_trivial_reviews 1"
             )
     payload = _encode_state(initial)
     if directory is not None:
@@ -1126,8 +1193,14 @@ def done(
         before = current["last_tree"]
         changed = None if tree_now is None or before is None else tree_now != before
         trivial_report = validated_report["classification"] == "trivial"
-        gate_met = (trivial_report and changed is False) if unchanged_gate else (
-            trivial_streak >= _required_trivial_reviews(current))
+        if unchanged_gate:
+            gate_met = trivial_report and changed is False
+            if _required_trivial_reviews(current) == UNCHANGED_AFTER_EDIT_GATE:
+                # Gate 3 (code reviews): the first pass completes by itself; afterwards the pass before it must have been
+                # a trivial, satisfied pass that left the content unchanged too.
+                gate_met = gate_met and (current["action_number"] == 1 or _previous_pass_clean(current))
+        else:
+            gate_met = trivial_streak >= _required_trivial_reviews(current)
         measured = {**current, "last_pass_changed_tree": changed}
         updated = {
             **measured,
@@ -1160,7 +1233,11 @@ def done(
                     report=validated_report,
                     trivial_streak=trivial_streak,
                     reason=("the semantic exit assessment is satisfied and the pass was trivial with the "
-                            "workspace content unchanged from the previous pass, which meets the review gate."
+                            "workspace content unchanged from the previous pass"
+                            + (", and the pass before it was also trivial and satisfied with the content unchanged, "
+                               if _required_trivial_reviews(current) == UNCHANGED_AFTER_EDIT_GATE
+                               and current["action_number"] > 1 else ", ")
+                            + "which meets the review gate."
                             if unchanged_gate
                             else "the semantic exit assessment is satisfied and the review gate is met."),
                 )

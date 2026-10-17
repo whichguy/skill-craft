@@ -5093,6 +5093,13 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     return gates
 
 
+def _improve_two_pass_sentence(stage: str) -> str:
+    """What a code review's handoff adds to the stop rule: its Until Loop gate is the two-pass one (IMPROVE_GATES)."""
+    if stage_spec.improve_gate(stage) != stage_spec.TWO_PASS_GATE:
+        return ""
+    return " Once a pass has changed content, the runtime needs two such passes in a row to end the review."
+
+
 def _improve_rerun_clause(stage: str) -> str:
     """What reruns over an Improve child's committed edits, by the parent stage (no claim beyond what runs)."""
     if stage in stage_spec.with_improve("last-item"):
@@ -5669,7 +5676,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         guidance.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
-        "Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial.",
+        "Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial."
+        + _improve_two_pass_sentence(child["stage"]),
         "Changes: change what is warranted in code, tests or documentation, and commit it; "
         + _improve_rerun_clause(child["stage"])
         + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the complete command with --no-commit.",
@@ -6234,12 +6242,16 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
                  "materially change a decision in this provisional plan or determine whether its consumer may "
                  "proceed; reuse sufficient evidence; zero experiments is valid. Scratch writes stay in the "
                  "planning scratch directory named in context.scope.")
-    exit_condition = ("A full review pass finds nothing material to change and leaves the content (the Git "
+    gate = stage_spec.improve_gate(child["stage"])
+    two_pass = gate == stage_spec.TWO_PASS_GATE
+    exit_condition = ("A full review pass finds nothing material to change and leaves the content (the "
                       "worktree and the stage result file) exactly as the previous pass left it, the first "
-                      "pass as it was at the start, which the runtime measures; no material defect remains "
-                      "in the candidate; the applicable checks are recorded.")
-    repeat = ("Repeat while a warranted change remains or the latest pass changed the content. Stop "
-              "incomplete on an actual blocker or a user stop. Never push.")
+                      "pass as it was at the start, which the runtime measures"
+                      + ("; once any pass has changed the content, two such passes in a row are needed" if two_pass else "")
+                      + "; no material defect remains in the candidate; the applicable checks are recorded.")
+    repeat = ("Repeat while a warranted change remains or the latest pass changed the content"
+              + (", and after any pass has changed it until two passes in a row leave it unchanged" if two_pass else "")
+              + ". Stop incomplete on an actual blocker or a user stop. Never push.")
     if planning:
         exit_condition += (" Planning experiment exit: coherent current planning artifacts, a complete "
                            "assumption list with no open entry a bounded probe could settle now, and the "
@@ -6272,7 +6284,7 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
     return loop_contract.contract(
         workspace=child["workspace"], work=work,
         exit_condition=exit_condition + loop_contract.stage_exit(child["stage"]),
-        repeat_condition=repeat, required_trivial_reviews=2, request=request, scope=scope,
+        repeat_condition=repeat, required_trivial_reviews=gate, request=request, scope=scope,
         authority=authority, environment=sections["Environment"], resources=resources,
         candidate_paths=[os.path.abspath(root / "inbox" / (child["action_id"] + ".md"))])  # the runtime needs absolute
 

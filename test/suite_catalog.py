@@ -601,6 +601,9 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/quality/": ("shiploop-e2e-quality",),
     "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
+    # The vendored Until Loop runtime: one suite pins its provenance and hashes, one starts it from a read-only installed
+    # copy. Their file names select nothing, so an edit of the runtime ran neither (the stop-rule branch's F2).
+    "skills/improve/runtime/until-loop/": ("until-loop-vendor", "installed-skill-invocation"),
 }
 
 

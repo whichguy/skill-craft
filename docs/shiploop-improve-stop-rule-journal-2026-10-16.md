@@ -52,7 +52,7 @@ Where: `skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py`; Ship
   0.8.3 and refuses an unknown contract field. A renamed gate field would have broken those loops on every host that uses the
   plugin, so gates 0 and 1, their contracts and their packet shape are unchanged and only gate 2 changed. The stage loops never carry
   `candidate_paths` (a test pins that).
-- **Git required (constraint 2).** A gate-2 `start` is refused when the tree cannot be measured (outside Git, unreadable candidate):
+- **Git required (constraint 2). SUPERSEDED 2026-10-17 (F3): a directory outside Git is now measured through a throwaway bare repository; see the update below.** A gate-2 `start` is refused when the tree cannot be measured (outside Git, unreadable candidate):
   otherwise no pass could ever be shown unchanged and the loop would never end. ShipLoop always works in Git (it commits); the
   synthetic non-Git fixtures in about ten test files now `git init` their workspace.
 - **Racy Git (finding, firm).** The first run of the new tests was flaky: a pass "changed" nothing, then "changed" it back. The
@@ -91,7 +91,8 @@ Where: `skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py`; Ship
 - Interim: saved minutes. The study estimated about 4 of the 40 Improve minutes (6.7 gross); the replay says 6 of 21 passes. A
   different stop rule changes what the model does in later passes, so this is an estimate until a live run measures it.
 - Open (owner): Backchain `converge` keeps its two-consecutive-reviews exit condition, but the bundled runtime no longer counts: the
-  gate adds a measurement of the workspace content and needs Git. A Backchain call in a non-Git scratch directory at gate 2 is
+  gate adds a measurement of the workspace content and needs Git (superseded 2026-10-17: a non-Git directory is measured too, so a
+  Backchain call in a scratch directory is no longer refused at start). A Backchain call in a non-Git scratch directory at gate 2 was
   refused at start. Plan files outside the worktree are measured only if the contract lists them in `candidate_paths`, which the
   published plugin refuses, so the Backchain texts do not ask for it.
 - Open (owner): upstream the rule to whichguy/until-loop, re-vendor, and then retire the gate's name.
@@ -102,3 +103,53 @@ Where: `skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py`; Ship
 
 2be7906b (unchanged first pass, the rule generalised here), b7653edc (no loop limit), 11f5a5b9 and 398466a3 (the packet-head work this
 branch builds on).
+
+## 2026-10-17 update: scope narrowed to the stages measured (efficiency plan unit U2; status interim, awaiting the owner's S-10 text)
+
+Question: the one-pass rule was applied to every Improve child, including the review after each implement step, which the study said
+not to extend to (it measured five planning stages). Finding F1 of the branch review (P1, owner call): the live run has an implement
+review whose pass 3 found a real defect (a case-insensitive string comparison) that a rule ending at pass 2 would have stopped before.
+
+Decision proposed (D-6 / R1 of the plan; SPEC S-10 carries the text, flagged PROPOSED 2026-10-17, and a release waits for the owner):
+
+| Improve rule | stages | gate | ends on |
+|---|---|---|---|
+| `always` | spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan | 2 | one trivial, satisfied pass that leaves the content unchanged (above) |
+| `step`, `last-item` | implement (every accepted step), carry-forward (the last item) | 3 | the first pass if it is trivial, satisfied and leaves the content as it started; otherwise two such passes in a row after any pass has changed it |
+
+Built: `stage_spec.IMPROVE_GATES` and `improve_gate(stage)` (pinned to the runtime's own constants by test), `improve_start_contract`
+passes the stage's gate and says the rule in the exit and repeat conditions, the handoff adds one sentence for gate 3, the bridge
+imports a terminal packet from either gate (`_UNCHANGED_GATES`). The runtime reads the gate-3 pair from the latest report,
+`trivial_streak` and `last_pass_changed_tree`, so no state field was added. A pass that is unchanged but not trivial and satisfied
+(or whose checks failed) breaks the pair; a first pass that is unchanged but unsatisfied does not make the next pass a "first pass".
+
+Evidence (firm for the mechanism, interim for the value): `StopRuleReplayTests` replays the study's 21 passes under gate 3: spec 8,
+test-strategy 5, plan 4, step-plan 1, test-spec 3, 21 of 21, the count the run took. So the saving measured above (21 passes become
+15) belongs to the document stages only, and gate 3 costs nothing against the old two-pass behaviour on code reviews; whether the
+late find that motivated it recurs is one observation (the implement review of the live run), not a rate. `passes.md` (unit U19)
+will record what gate 2 would have done at each step review; the plan re-decides at 10 step reviews with 3 or more edits.
+
+F2 (P1): `test/installed-skill-invocation.test.py` was red on the merged tree (2 failures) and `suite_catalog.targeted` returned
+13 ids for the runtime script without it. `_PREFIX_SUITE_IDS` now maps `skills/improve/runtime/until-loop/` to `until-loop-vendor`
+and `installed-skill-invocation` (test: `VendoredRuntimeSelectionTests`). The two fixtures were rewritten for the one-pass rule (a
+pass edits a file, then an unchanged pass completes) and stay outside Git on purpose, so the installed read-only copy also covers F3.
+
+F3 (P1): a non-Git in-place run could never start its first Improve review (the runtime refused an unmeasurable gate, the error was
+swallowed, the restart route failed the same way). `_workspace_tree` falls back to `_plain_tree`: `git init --bare` in a temporary
+directory, `GIT_DIR`, `GIT_WORK_TREE` and a temporary index, the same excludes and `write-tree`. Nothing is written into the
+workspace; `.gitignore` files in it are honoured; Git failures and timeouts still refuse the start with the existing message.
+Cost: a large non-Git tree with no ignore rules is hashed on every pass (the 60 s timeout bounds it).
+
+Review (gpt-6.1-sol, medium, read-only, one round, 2026-10-17): two P2 findings, both about the measurement, none in the gate logic.
+(1) With `TMPDIR` inside the measured workspace the throwaway repository (and, in a worktree, the temporary index file) was part of the
+tree it measured, so no pass could read as unchanged and the loop never ended: fixed (`_tree_excludes` leaves `until-loop-tree-*` out;
+fail-first test `test_a_temporary_directory_inside_the_workspace_is_not_part_of_the_tree`, plain and worktree). (2) A nested Git
+repository counts as its commit only, so uncommitted edits inside it do not change the tree. The same holds in a worktree (the stop
+branch) and is not new; documented in `runtime-ephemeral.md` rather than guarded (KISS: no observed run has one).
+
+Skew (N12): the published until-loop plugin (0.8.3) reads `required_trivial_reviews: 3` as three trivial reviews and refuses
+`candidate_paths`. ShipLoop writes gate 3 only for an Improve child, which runs on the bundled runtime of the selected Improve card,
+so no stage loop or Backchain child sees it. Recorded in `PROVENANCE.json`. An Improve-only optional field is the upstream
+alternative (D-5).
+
+Related commits: 60018152 and 3b9ca9c9 (the stop rule), 2be7906b (the first-pass rule gate 3 keeps), 398466a3.
