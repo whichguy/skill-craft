@@ -938,6 +938,14 @@ class GuidanceTests(unittest.TestCase):
                         }
                         self.assertIn(anchor, headings)
 
+    def test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_red_na_route(self) -> None:
+        """An org-run Apex test: the reporter the reader can use, and why a new test cannot fail on the base (the unread route)."""
+        card = " ".join((REFERENCES / "platforms" / "salesforce.md").read_text(encoding="utf-8").split())
+        for phrase in ("with a reporter it can read", "--result-format tap", "an `ok` or `not ok` line per test",
+                       "put the outcome word after the test name", "refused as unread",
+                       "cannot fail unless the command deploys the tree first", "`red_na`"):
+            self.assertIn(phrase, card)
+
     def test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields(self) -> None:
         """Exercise host-authored evidence handoff, not automatic model compliance."""
         state = self.state()

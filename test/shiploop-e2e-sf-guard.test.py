@@ -15,7 +15,8 @@ stub), and no real org, real `sf` or model is ever reached. What these prove, on
           sfdx-project.json at or above the working dir) is checked, with paths kept inside the project, however a flag is spelled
           (-rd, a value that starts with `-`, `link/../x`, a class file named like another type's meta file), and `-t` is the tests
           flag there, not a boolean; a manifest with a DOCTYPE or ENTITY declaration is refused; a deploy that would not wait
-          (--async, --wait under 5 or not plain digits) is refused
+          (--async, --wait under 5 or not plain digits) is refused; a file named exactly `.gitkeep` (git's placeholder for an
+          empty folder) is not judged, every other name is
   pass    the build's own commands (deploy --source-dir, apex run test --synchronous, data query, --version, org list), --help
           anywhere on an allowed command, and the local generate families reach sf
   log     a decision line before the call and an end line after it (same call id) in $E2E_PLATFORM_DIR/sf-calls.jsonl, no stdout, no
@@ -582,6 +583,45 @@ class ScopeTest(GuardCase):
                       ["--source-dir", "./force-app/"], ["--source-dir", str(self.work / "force-app")], []):
             self.assert_scope_ok(*flags)
         self.assert_scope_ok("-d", "force-app", command=("project", "deploy", "validate"))
+
+    def test_a_gitkeep_placeholder_is_not_a_component_and_only_that_exact_name_is_forgiven(self):
+        """The live Salesforce run's default-scope deploy was refused for force-app/main/default/.gitkeep, the placeholder git
+        keeps in a folder with no other file. It has no metadata suffix, so the CLI deploys nothing for it: the exact name `.gitkeep` is
+        skipped in the scope walk, wherever it sits, and every other name is judged as before."""
+        base = self.layout(base=self.work / "keep")
+        only = base / "force-app" / "main" / "default" / ".gitkeep"
+        only.write_text("")
+        for flags in ([], ["--source-dir", "force-app"], ["-d", "force-app/main/default"], ["-d", self.D + ".gitkeep"]):
+            self.assert_scope_ok(*flags, base=base)
+            self.assert_scope_ok(*flags, base=base, command=("project", "deploy", "validate"))
+        for folder in self.GENERATED:  # one in every generated folder, an lwc and an objects folder included
+            (base / (self.D + folder) / ".gitkeep").write_text("")
+        self.assert_scope_ok(base=base)
+        # The approved files beside the placeholders still pass; a refused file beside one is still named, and the placeholder is not.
+        full = self.layout(self.GOOD | {"classes/.gitkeep": ""}, base=self.work / "full")
+        self.assert_scope_ok(base=full)
+        (full / (self.D + "classes") / "Other.cls").write_text("x")
+        why = self.assert_scope_denied(reason="classes/Other.cls", base=full)
+        self.assertNotIn(".gitkeep", why)
+        # Anything that only looks like it is judged as before.
+        for number, (what, rel) in enumerate({"another dot file": ".gitignore", "a suffixed name": ".gitkeep.bak", "a prefixed name": "x.gitkeep",
+                                              "a different case": ".GITKEEP", "a name without the dot": "gitkeep",
+                                              "a class-shaped name": "classes/.gitkeep.cls",
+                                              "a meta-shaped name": "classes/.gitkeep.cls-meta.xml"}.items()):
+            with self.subTest(what):
+                case = self.layout({rel: "x"}, base=self.work / f"keep-{number}")
+                self.assert_scope_denied(reason=sf_guard.shown(rel), base=case)
+        # The skip comes after the project boundary: a link named .gitkeep that leads outside the project is still refused.
+        outside = self.tmp / "outside"
+        outside.write_text("x")
+        linked = self.layout(base=self.work / "linked")
+        (linked / (self.D + "classes") / ".gitkeep").symlink_to(outside)
+        self.assert_scope_denied(reason="leads outside the project directory", base=linked)
+        # Through the wrapper: a deploy of a tree that holds only a placeholder reaches the (fake) org.
+        wrapped = self.layout(base=self.work)
+        (wrapped / (self.D + ".gitkeep")).write_text("")
+        deployed = self.assert_reaches_sf("project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG, "--json")
+        self.assertEqual(json.loads(deployed.stdout)["result"]["status"], "Succeeded")
 
     def test_the_approved_classes_and_bundles_pass_as_a_tree_a_folder_or_a_single_file(self):
         self.layout(self.GOOD)

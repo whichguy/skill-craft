@@ -30,7 +30,8 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
     <lwcPrefix>* (SLChess -> slChess). Every `--source-dir` tree, `--metadata` entry and `--manifest` is checked (with none of them,
     the `packageDirectories` of the sfdx-project.json at or above the working directory); anything else, a path that leaves the
     project, or an unreadable manifest is refused with what to change. The tab, app and app page name check is on the file name, the
-    --metadata entry and the manifest member only, never on the file's content.
+    --metadata entry and the manifest member only, never on the file's content. A file named exactly `.gitkeep` (git's placeholder
+    for an empty folder; it names no component) and an empty folder are not judged.
   * LOCAL commands (`--version`, `--help`, `help`, `project generate`, `lightning generate`, `apex generate`, `template generate`,
     `org list`) pass unchanged. `--help` or `-h` after an allowed command, or a group of allowed commands, passes too, without
     `--target-org`: the CLI prints help and runs nothing. A denied command stays denied with `--help`.
@@ -86,6 +87,7 @@ ARG_LIMIT = 300  # characters of one argument kept in the log
 KILL_GRACE = 5.0  # seconds a signalled sf gets to exit before it is killed
 SCOPE_SHOWN = 5  # out-of-scope files a refusal names
 SCOPE_WALK = 50000  # entries one deploy may make the guard look at before it is refused as too large
+PLACEHOLDER = ".gitkeep"  # the file name git users keep in an otherwise empty folder; it has no metadata suffix, so it is no component
 MANIFEST_LIMIT = 1_000_000  # bytes of a manifest the guard reads
 MIN_DEPLOY_WAIT = 5  # minutes: a deploy command with a shorter --wait is refused
 SHOWN_LIMIT = 80  # characters of a model- or file-chosen name a refusal repeats
@@ -439,7 +441,8 @@ def in_scope(parts: list[str], prefix: str, lwc: str) -> bool:
 
 def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, limit: int) -> list[str]:
     """Up to `limit` paths (relative to the project) under `path`, a file or a directory tree walked through its symlinks, that the
-    approved scope does not cover; a link that leads outside the project counts. Empty directories are fine."""
+    approved scope does not cover; a link that leads outside the project counts. Empty directories are fine, and so is a file named
+    exactly `.gitkeep` (PLACEHOLDER)."""
     bad: list[str] = []
     stack: list[tuple[str, tuple[str, ...]]] = [(path, ())]
     looked = 0
@@ -464,6 +467,8 @@ def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, li
                 bad.append(f"{rel} (cannot be read)")
                 continue
             stack.extend((os.path.join(current, name), above + (real,)) for name in names)
+        elif os.path.basename(current) == PLACEHOLDER:
+            continue  # after the project boundary above: a link to somewhere else is still refused
         elif not in_scope(rel.split(os.sep), prefix, lwc):
             bad.append(rel)
     return bad
@@ -538,7 +543,8 @@ def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str) -> list[s
     CLI deploys it) and must stay inside the project root (symlinks included); every file under it must be `classes/<prefix>*.cls`,
     `classes/<prefix>*.cls-meta.xml`, `tabs/<prefix>*.tab-meta.xml`, `applications/<prefix>*.app-meta.xml`,
     `flexipages/<prefix>*.flexipage-meta.xml`, inside `lwc/<lwcPrefix>*/`, or `lwc/jsconfig.json` / `lwc/.eslintrc.json`; empty
-    directories are fine. The tab, app and app page checks are on file names, --metadata entries and manifest members, not on content."""
+    directories are fine, and so is a file named exactly `.gitkeep` (git's placeholder for an empty folder: it names no component).
+    The tab, app and app page checks are on file names, --metadata entries and manifest members, not on content."""
     if not prefix:
         return ["the wrapper has no --prefix, so no deploy scope is defined"]
     lwc = lwc_prefix(prefix)

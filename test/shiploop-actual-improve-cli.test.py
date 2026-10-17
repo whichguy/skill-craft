@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_privacy as privacy  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -1470,6 +1471,23 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.import_the_review()
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
 
+    def test_a_reviewed_stage_whose_summary_looks_like_a_credential_still_starts_its_improve_child(self):
+        """CR-1 (owner decision 2026-10-16, no credential-pattern refusal): the Improve opening quotes the reviewed stage's
+        summary, and a documentation line such as `Auth: sf login (alias de)` is what a run writes about its login. The
+        producer's complete must start the child through the real gate on both routes: the opening holds the line as written,
+        the contract is frozen from it and the runtime is active, with no refusal and no rewording asked for."""
+        auth = "Auth: sf login (alias de)"
+        summary = "Wrote the engine. " + auth + "; signature: static."
+        self.assertTrue(privacy.sensitive_text(summary), "the screen the owner removed read this summary as a credential")
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)], producer_extra={"summary": summary})
+        receipt = bridge.receipt_path(self.bound)
+        self.assertTrue(receipt.is_file(), "the producer's complete started no Improve child")
+        opening = receipt.with_name("opening.md").read_text(encoding="utf-8")
+        self.assertIn("Its summary: " + summary, opening)
+        self.assertEqual(json.loads(receipt.read_text(encoding="utf-8"))["status"], "active")
+        self.assertIn("Its summary: " + summary, self.child_context()["request"])
+        self.assertEqual(store.read_record(self.run / "state.md")["active_improve"]["seed_result"]["summary"], summary)
+
     def test_the_notes_and_the_final_result_of_an_improve_import_may_quote_credential_looking_text(self):
         """Owner decision 2026-10-16: no credential-pattern refusal at the Improve stage's complete. The review's notes
         and a revised final result are taken as written; the accepted record holds the text and the run moves on."""
@@ -2390,6 +2408,8 @@ class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
     test_the_producers_complete_leaves_the_improve_stage_started = (
         EphemeralImproveCliTests.test_the_producers_complete_leaves_the_improve_stage_started)
     test_improve_complete_is_not_a_command = EphemeralImproveCliTests.test_improve_complete_is_not_a_command
+    test_a_reviewed_stage_whose_summary_looks_like_a_credential_still_starts_its_improve_child = (
+        EphemeralImproveCliTests.test_a_reviewed_stage_whose_summary_looks_like_a_credential_still_starts_its_improve_child)
 
 
 if __name__ == "__main__":
