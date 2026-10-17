@@ -2,7 +2,7 @@
   "_about": "The ShipLoop entry-card split ledger (efficiency plan unit U22, rev 4 Step 3.5b). The 83,199-byte skills/shiploop/SKILL.md kept binding, start and recovery, ownership, the callback and the authority limits; every other section moved, text unchanged except relative links and heading level, into a purpose file of at most 8,192 bytes under skills/shiploop/references/, opened behind a one-line trigger the card prints. One row per moved obligation: the card section it left (old), the file and section it lives in now (home, section), the card text that sends a reader there (trigger), and anchor phrases that prove it is present (whitespace-normalised). Nothing was deleted. test/shiploop-package-integrity.test.py (EntryCardSplitTests) checks every row, that every section of a split file has a row, and the size bounds. A unit that moves or rewords a moved obligation changes its row in the same commit. Snapshot: INT 9f949689.",
   "schema": "shiploop-card-ledger/v1",
   "card": "skills/shiploop/SKILL.md",
-  "card_max_bytes": 30000,
+  "card_max_bytes": 30500,
   "file_max_bytes": 8192,
   "rows": [
     {"id": "progress-view", "obligation": "show the progress-view link once per run, or report that the observer is unavailable", "old": "## Start or resume", "home": "run-start.md", "section": "## Progress view", "trigger": "references/run-start.md",

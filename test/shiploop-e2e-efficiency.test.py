@@ -716,7 +716,9 @@ class AuditProbeTests(unittest.TestCase):
         self.assertEqual(set(found["figures"]), set(audit_probes.AUDITED))
         for name, value in found["figures"].items():
             with self.subTest(figure=name):
-                self.assertTrue(0.8 < value / audit_probes.AUDITED[name] < 1.5, value)
+                # Only an upper bound: the efficiency units cut these figures (U22 entry card 79,647 -> ~30,000; U18 bound handoffs
+                # 276,270 -> ~157,000), so a smaller figure is the intended saving, never a regression.
+                self.assertTrue(0 < value / audit_probes.AUDITED[name] < 1.5, value)
         self.assertEqual(found["delivery"]["packets"], 33)
         self.assertEqual(found["handoffs"]["handoffs"], 9)
 

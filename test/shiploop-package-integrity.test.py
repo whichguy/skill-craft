@@ -277,7 +277,7 @@ class CardSplitSensitivityTests(unittest.TestCase):
         card = (self.package / "SKILL.md").read_text(encoding="utf-8")
         title, rest = card.split("# ShipLoop\n\n", 1)
         block, after = rest.split("\n\n", 1)
-        (self.package / "SKILL.md").write_text(title + "# ShipLoop\n\n" + after + "\n" + "x" * 30_000 + "\n\n"
+        (self.package / "SKILL.md").write_text(title + "# ShipLoop\n\n" + after + "\n" + "x" * 31_000 + "\n\n"
                                                + block.replace("instead of guessing", "or take the newest folder")
                                                + "\n", encoding="utf-8")
         with (self.package / "references" / "run-start.md").open("a", encoding="utf-8") as handle:
@@ -286,7 +286,7 @@ class CardSplitSensitivityTests(unittest.TestCase):
         self.assertTrue(any(problem.startswith("SKILL.md: 'shiploop next --run-dir' first at line") for problem in problems))
         self.assertIn("SKILL.md: the recovery block does not follow the title", problems)
         self.assertIn("SKILL.md: a 'newest' fallback is named", problems)
-        self.assertTrue(any(problem.startswith("SKILL.md: ") and "> 30000" in problem for problem in problems))
+        self.assertTrue(any(problem.startswith("SKILL.md: ") and "> " + str(json.loads((ROOT / "test/fixtures/shiploop-card-ledger.json").read_text())["card_max_bytes"]) in problem for problem in problems))
         self.assertTrue(any(problem.startswith("run-start.md: ") and "> 8192" in problem for problem in problems))
 
 if __name__ == "__main__":
