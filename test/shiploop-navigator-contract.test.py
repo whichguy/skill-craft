@@ -1317,7 +1317,13 @@ class NavigatorContractTests(unittest.TestCase):
                     self.assertIn("Reopen the item's test decision and HOME/environment.md's harness and suite "
                                   "decisions", instruction)
                     self.assertIn("retain, refine or supersede and why", instruction)
-                self.assertIn("locators", instruction)
+                if stage == "test":
+                    # TD-12: the test stage's evidence_refs hold the loop receipt ShipLoop prefilled; no gate reads a decision
+                    # locator there and the next packet lists the step-plan result itself, so duty 2 keeps the decisions
+                    # (the summary says which are retained, refined or superseded) and no longer asks for the locators.
+                    self.assertNotIn("locators and the step plan's in evidence_refs", instruction)
+                else:
+                    self.assertIn("locators", instruction)
 
     def test_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
         """Route remote test assets without treating a local result as their evidence."""

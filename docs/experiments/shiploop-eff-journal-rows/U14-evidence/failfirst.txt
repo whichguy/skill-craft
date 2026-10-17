@@ -1,0 +1,64 @@
+# Fail-first record (unit U14)
+
+Method: git diff of skills/, test/shiploop_e2e/metrics.py and test/shiploop_e2e/fidelity.py (the source of the change) was reverse-applied (git apply -R), each new test run alone, then the diff re-applied. The tests and their pin updates stayed. 'errors' are tests that call a symbol the change adds (refused_note, TEST_SUMMARY_PLACEHOLDER, metrics.skipped_reason); 'failures' are behaviour failures.
+
+## test/shiploop-test-loop.test.py -k <name>
+```
+== RefusedRunTally
+----------------------------------------------------------------------
+Ran 4 tests in 0.654s
+
+FAILED (failures=30, errors=1)
+== a_gate_that_did_nothing
+----------------------------------------------------------------------
+Ran 1 test in 2.490s
+
+FAILED (failures=1)
+== a_proof_prints
+----------------------------------------------------------------------
+Ran 1 test in 3.213s
+
+FAILED (errors=1)
+== check_only_prints
+----------------------------------------------------------------------
+Ran 1 test in 2.989s
+
+FAILED (failures=1)
+== test_packet_prints_the_refused
+----------------------------------------------------------------------
+Ran 1 test in 2.405s
+
+FAILED (failures=1)
+== asks_the_summary
+----------------------------------------------------------------------
+Ran 1 test in 2.638s
+
+FAILED (errors=1)
+== item_base_was_never
+----------------------------------------------------------------------
+Ran 1 test in 2.974s
+
+FAILED (errors=1)
+```
+
+## test/shiploop-e2e-fidelity.test.py -k disposition_skipped
+```
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (failures=1)
+```
+
+## test/shiploop-e2e-efficiency.test.py -k disposition_says
+```
+AttributeError: module 'metrics' has no attribute 'skipped_reason'. Did you mean: 'skipped_gates'?
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (errors=1)
+```
+
+RefusedRunTallyTests without the change: 30 failures (every refusal and packet line that printed the cap while it was patched to 4242), 1 error; with the change: 4 tests OK.

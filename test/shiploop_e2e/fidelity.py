@@ -500,12 +500,15 @@ def reader_disagreement(found: dict, regex: dict) -> str | None:
 
 # The two gates the test stage runs on a work item before it counts a candidate run: the base run (a new test must fail on the item's
 # base) and the mutation check (a test must kill a mutant of the changed lines). Each writes a record that says `skipped` when it did
-# nothing: no item base was recorded, no focused command, or no changed line matched an operator.
+# nothing: no item base was recorded, no focused command, or no changed line matched an operator. The record says it as
+# `disposition: skipped` with `passed` true and the reason under `skipped` (metrics.skipped_reason reads both, and the reason of a
+# record from before the disposition existed).
 GATE_SCHEMAS = {"shiploop-test-base/v1": "base", "shiploop-test-mutation/v1": "mutation"}
 
 
 def gates_not_exercised(run_dir: Path | None) -> dict:
-    """The base-run and mutation-check records (tests/*-base*.md, tests/*-mutation*.md) of a run, and those that say `skipped`.
+    """The base-run and mutation-check records (tests/*-base*.md, tests/*-mutation*.md) of a run, and those that say `skipped`
+    (a disposition `skipped`, or the reason key a record of an older ShipLoop kept alone).
 
     ``{"records": n, "skipped": [{"gate", "record", "work_item", "reason"}]}``, the records in file order. A record that says
     skipped is evidence of nothing: the gate wrote it and did not run. A record that cannot be read is not counted. No run folder
@@ -524,9 +527,10 @@ def gates_not_exercised(run_dir: Path | None) -> dict:
         if gate is None:
             continue
         records += 1
-        if record.get("skipped"):
+        reason = metrics.skipped_reason(record)
+        if reason:
             skipped.append({"gate": gate, "record": f"tests/{path.name}", "work_item": record.get("work_item"),
-                            "reason": clip(record["skipped"], 160)})
+                            "reason": clip(reason, 160)})
     return {"records": records, "skipped": skipped}
 
 
