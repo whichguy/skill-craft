@@ -1,0 +1,9 @@
+#!/bin/sh
+# usage: imp.sh <reviewed-action-id> <improve-action-id> <note>: one trivial first-pass Improve review, then parent complete
+RD=/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/run
+D=$RD/../worktree/.shiploop-improve/nav-8c78468f562640c0922f54952398bd8d/$1
+printf '# Review 1 (self-review)\n%s\n' "$3" > $D/reviews/review-1.md; echo "no executable checks apply; result gates accepted earlier" > $D/reviews/checks.md
+ST=$(python3 -c "import json,sys;print(json.loads(open('$D/packet.json').read(),strict=False)['state_file'])")
+AC=$(python3 -c "import json,sys;print(json.loads(open('$D/packet.json').read(),strict=False)['done_argv'][-1].split('=',1)[1])")
+$RD/scratch/rep.sh $ST $AC trivial satisfied "$3" "Reviewed; no change." || exit 1
+python3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --run-dir=$RD --action=$2 2>&1 | head -${4:-4} | cut -c1-300

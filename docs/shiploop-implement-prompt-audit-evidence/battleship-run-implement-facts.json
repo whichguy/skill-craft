@@ -1,0 +1,317 @@
+{
+ "source": "Battleship E2E audit-fix run, 2026-10-16, claude-sonnet-5-5, plugin 2.4.0 / ShipLoop 1.4.0, inline, pass 4/4; run folder /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4 (not committed)",
+ "step_plan_steps": [
+  {
+   "id": "S1",
+   "deps": [],
+   "criteria": [
+    "C1",
+    "C2",
+    "C4",
+    "C5",
+    "C9"
+   ],
+   "paths": [
+    "game.js"
+   ],
+   "skills": [],
+   "task_chars": 331
+  },
+  {
+   "id": "S2",
+   "deps": [],
+   "criteria": [
+    "C7",
+    "C8"
+   ],
+   "paths": [
+    "public/index.html",
+    "package.json"
+   ],
+   "skills": [],
+   "task_chars": 463
+  },
+  {
+   "id": "S3",
+   "deps": [
+    "S1",
+    "S2"
+   ],
+   "criteria": [
+    "C3",
+    "C4",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C10"
+   ],
+   "paths": [
+    "server.js"
+   ],
+   "skills": [],
+   "task_chars": 389
+  }
+ ],
+ "test_commands": [
+  {
+   "command": "node --test test/game.test.js",
+   "criteria": [
+    "C1",
+    "C2",
+    "C4",
+    "C5",
+    "C9"
+   ],
+   "ids": [
+    "TC-8",
+    "TC-9",
+    "TC-10",
+    "TC-11",
+    "TC-14",
+    "TC-15",
+    "TC-16",
+    "TC-17"
+   ],
+   "min_tests": 8,
+   "suite": "focused"
+  },
+  {
+   "command": "node --test test/server.test.js",
+   "criteria": [
+    "C3",
+    "C6",
+    "C7"
+   ],
+   "ids": [
+    "TC-1",
+    "TC-2",
+    "TC-3",
+    "TC-4",
+    "TC-5",
+    "TC-7",
+    "TC-12",
+    "TC-13"
+   ],
+   "min_tests": 8,
+   "suite": "focused"
+  },
+  {
+   "command": "BATTLESHIP_BROWSER=1 node --test test/browser.test.js",
+   "criteria": [
+    "C8"
+   ],
+   "ids": [
+    "TC-6"
+   ],
+   "min_tests": 1,
+   "suite": "focused"
+  },
+  {
+   "command": "node --check game.js && node --check server.js && node --check test-support/helpers.js",
+   "criteria": [
+    "C10"
+   ],
+   "suite": "check"
+  },
+  {
+   "command": "node --test",
+   "suite": "regression"
+  }
+ ],
+ "step_plan_summary": "W1 builds the Battleship game (rules module, page, server) proven by node --test (TC-1..TC-17; TC-6 via BATTLESHIP_BROWSER=1). Test decisions retained: node:test, port 0, injected fleet, helper outside test/, CDP-driven headless Chrome for TC-6 (environment.md ## Harnesses and suites); no revision. Plan record: CommonJS, no package type field; exports game.js {SIZE,FLEET,placeFleet,createGame,fire,createStore,GameError}, server.js {createServer,resolvePort}; failure cases per AC-4.5; no stored data beyond in-memory map (AD-2); interaction design per AD-5/AD-7: request/response, keyboard-operable cells, reduced-motion respected, design guidance fallback none. Worked-example fixtures (fleet with destroyer at 0,0-0,1 and length-1 ship at 5,5) are source-check fixtures injected through createGame({fleet}); runtime placement stays random. Documentation: none beyond HOME. Open items: none. Test files (paths) are written by the test stage, not a step; expectations for them are absent checks.",
+ "implement_results": {
+  "S1": {
+   "action": "35a1b08c5a484b88812ab29bc569aceb",
+   "notes": "S1 game.js: node --check game.js exit 0; smoke worked example (AC-4.6) printed expected results; lint report: 0 new findings.\nFull recorded check command also checks server.js and test-support/helpers.js, which later steps create: not runnable yet.\n",
+   "summary": "Wrote game.js exporting SIZE, FLEET, GameError, placeFleet, createGame, fire, createStore with argument checks and contract comments. node --check game.js exit 0; AC-4.6 worked example reproduced by a smoke script; lint 0 findings. The recorded check command also names server.js and test-support/helpers.js (S2/S3 and the test stage create them), so it cannot pass at S1. No step skills. Added behaviour not in a test case: createStore.size() accessor and placeFleet's attempt limit error.",
+   "not_covered": [
+    {
+     "behaviour": "createStore.size() accessor",
+     "reason": "used by TC-14 assertions only indirectly; no dedicated case"
+    },
+    {
+     "behaviour": "placeFleet throws after 1000 failed attempts with a broken random source",
+     "reason": "defensive guard, not in the spec"
+    }
+   ]
+  },
+  "S2": {
+   "action": "7eef1c6bc78a40c59db9bb51fbf723de",
+   "notes": "S2: page script extracted and node --check exit 0; package.json parses; <title>Battleship</title> present; lint 0 findings. Recorded check command names files of later steps.\n",
+   "summary": "Wrote public/index.html (10x10 #board buttons, arrow-key focus, New game, aria-live status, fetch /api/new and /api/fire, hit/miss/sunk classes, reduced-motion respected) and package.json (private, start/test scripts, no deps). Inline script passes node --check; JSON parses; lint 0 findings. Cannot run end to end until server.js exists (S3). No step skills.",
+   "not_covered": [
+    {
+     "behaviour": "cell keyboard navigation with arrow keys and clamping at the edges",
+     "reason": "covered only by TC-6 indirectly; no dedicated case"
+    },
+    {
+     "behaviour": "error text shown in the status line when a fetch fails",
+     "reason": "no case injects a network failure"
+    }
+   ]
+  },
+  "S3": {
+   "action": "ef537109fb2f4ad086a9e389f7458555",
+   "notes": "S3 server.js: node --check server.js exit 0; curl smoke against PORT=0 server: /api/new 200, fire miss 200, repeat 400, row 10 400, unknown game 404, 12KB body 413, POST / 405, /zzz 404, GET / contains Battleship; lint 0 findings. test-support/helpers.js (in recorded check command) is written by the test stage.\n",
+   "summary": "Wrote server.js: resolvePort, createServer (GET /, GET /api/new, POST /api/fire, 404/405/413/400 mapping through game.js GameError), starts only when run directly and logs the actual port. node --check exit 0; curl smoke against a live server (PORT=0) showed the expected statuses and bodies; lint 0 findings. No step skills.",
+   "not_covered": [
+    {
+     "behaviour": "500 JSON response for unexpected errors and console.error logging",
+     "reason": "no case forces an internal error"
+    },
+    {
+     "behaviour": "Allow header on 405 responses",
+     "reason": "TC-3 asserts status and JSON body only"
+    }
+   ]
+  }
+ },
+ "implement_stages": [
+  {
+   "outcome": "done",
+   "seconds": 61.0,
+   "turns": 14,
+   "tool_calls": 7
+  },
+  {
+   "outcome": "done",
+   "seconds": 41.0,
+   "turns": 7,
+   "tool_calls": 4
+  },
+  {
+   "outcome": "done",
+   "seconds": 793.0,
+   "turns": 24,
+   "tool_calls": 13
+  }
+ ],
+ "tool_calls_step_plan_and_implement": [
+  [
+   "step-plan",
+   "Bash",
+   "RD=/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/run; F=$(ls -t $RD/packets/*.md | head -1); echo $F; sed -n '1,2p;/INVOKE/,$p' $F | cut -c1-900 | head -150"
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/run; F=$RD/packets/nav-d473c101df4d43559670aeac7ce8745e.md; grep -n \"Result template\\|Current stage guidance\\|Duty\\|^Steps\\|duty\" $F | head; "
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "RD=/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/run; F=$RD/packets/nav-d473c101df4d43559670aeac7ce8745e.md; sed -n '19,82p' $F | cut -c1-500; sed -n '313,400p' $F | cut -c1-700"
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "-600; RD=/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/run; grep -n \"start command\\|until_loop_ephemeral.py.*start\" $RD/packets/nav-d473c101df4d43559670aeac7ce8745e.md | cut -c1-900"
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "ody)\nEOF\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --check-only --run-dir=$RD --action=$A --result=$RD/inbox/$A.md 2>&1 | head -30 | cut -c1-500"
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "e(s)\nEOF\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --check-only --run-dir=$RD --action=$A --result=$RD/inbox/$A.md 2>&1 | head -30 | cut -c1-600"
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "l.py\npython3 $S start --receipt $RD/loops/$A-terminal.json < $RD/loops/$A-contract.json | python3 -c \"\nimport json,sys;p=json.load(sys.stdin);print(p['status']);print(p['state_file']);print(p['done_argv'][-1]);print(p['instruction'][:600])\""
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "until-loop/scripts/until_loop_ephemeral.py; python3 $S next --state /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-e5xqx0w3.json | python3 -c \"\nimport json,sys;p=json.load(sys.stdin);print(json.dumps(p['report_schema'])[:1800])\""
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "tions 1-7 hold).\" \"Result at inbox/nav-d473...md accepted by check-only; submit complete.\"; ls $RD/loops/ | grep d473; python3 -c \"import json;print(json.load(open('$RD/loops/nav-d473c101df4d43559670aeac7ce8745e-terminal.json'))['status'])\""
+  ],
+  [
+   "step-plan",
+   "Bash",
+   "d43559670aeac7ce8745e\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --run-dir=$RD --action=$A --result=$RD/inbox/$A.md 2>&1 | head -12 | cut -c1-400"
+  ],
+  [
+   "implement",
+   "Bash",
+   "d/run; F=$(ls -t $RD/packets/*.md | head -1); echo $F; sed -n '/^Argument:/,/^How to invoke/p' $F | cut -c1-900; sed -n '/Result template/,/Allowed outcomes/p' $F; sed -n '/Current stage guidance/,/RULES (each/p' $F | cut -c1-700 | head -70"
+  ],
+  [
+   "implement",
+   "Write",
+   "/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/worktree/game.js"
+  ],
+  [
+   "implement",
+   "Bash",
+   "(x.result!=='miss')n++}catch(e){}} console.log(n)\"\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop lint --run-dir=$RD --action=$A 2>&1 | tail -15 | cut -c1-300"
+  ],
+  [
+   "implement",
+   "Bash",
+   "\\`\\`\nEOF\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --check-only --run-dir=$RD --action=$A --result=$RD/inbox/$A.md 2>&1 | head -10 | cut -c1-500"
+  ],
+  [
+   "implement",
+   "Bash",
+   "e(s)\nEOF\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --check-only --run-dir=$RD --action=$A --result=$RD/inbox/$A.md 2>&1 | head -10 | cut -c1-500"
+  ],
+  [
+   "implement",
+   "Bash",
+   "ch/loop1.sh $RD $A && python3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --run-dir=$RD --action=$A --result=$RD/inbox/$A.md 2>&1 | head -12 | cut -c1-400"
+  ],
+  [
+   "implement",
+   "Bash",
+   "et.col) + move[1]));\n      cellAt(row, col).focus();\n      event.preventDefault();\n    });\n\n    document.getElementById('new-game').addEventListener('click', newGame);\n    buildBoard();\n    newGame();\n  </script>\n</body>\n</html>\nEOF\necho ok"
+  ],
+  [
+   "implement",
+   "Bash",
+   "sename | sed 's/.md//'); echo $A\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop lint --run-dir=$RD --action=$A 2>&1 | grep -E \"^Result|Findings\" | cut -c1-300"
+  ],
+  [
+   "implement",
+   "Bash",
+   "ard navigation with arrow keys and clamping at the edges\",\"reason\":\"covered only by TC-6 indirectly; no dedicated case\"},{\"behaviour\":\"error text shown in the status line when a fetch fails\",\"reason\":\"no case injects a network failure\"}]' 3"
+  ],
+  [
+   "implement",
+   "Write",
+   "/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/worktree/server.js"
+  ],
+  [
+   "implement",
+   "Bash",
+   " tr '\\0' 'a' | curl -s -X POST --data-binary @- localhost:$P/api/fire -w ' %{http_code}\\n'\ncurl -s -X POST localhost:$P/ -w ' %{http_code}\\n'; curl -s localhost:$P/zzz -w ' %{http_code}\\n'; curl -s localhost:$P/ | grep -c Battleship\nkill %1"
+  ],
+  [
+   "implement",
+   "Bash",
+   "cat /private/tmp/claude-501/-Users-dadleet-e2e-runs-20261016-battleship-e2eaudit-4dd3b4b4-work/7b084830-84c0-4b36-99d9-c7e3191efff8/tasks/bb0q0wk55.output | cut -c1-300; pgrep -fl \"node server.js\""
+  ],
+  [
+   "implement",
+   "Bash",
+   "r.js; echo c=$?\npython3 /Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/build/plugins/skill-craft/skills/shiploop/scripts/shiploop lint --run-dir=$RD --action=$A 2>&1 | grep -E \"^Result|^  |Findings|^- \\[\" | cut -c1-300 | head"
+  ],
+  [
+   "implement",
+   "Bash",
+   "audit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d/run; A=nav-ef537109fb2f4ad086a9e389f7458555\n# the action id is the implement action, not the improve one: find it\nls -t $RD/packets | head -3; grep -l \"S3\" $RD/packets/*.md | head -3"
+  ],
+  [
+   "implement",
+   "Bash",
+   "tep skills.\" '[{\"behaviour\":\"500 JSON response for unexpected errors and console.error logging\",\"reason\":\"no case forces an internal error\"},{\"behaviour\":\"Allow header on 405 responses\",\"reason\":\"TC-3 asserts status and JSON body only\"}]' 3"
+  ]
+ ]
+}
