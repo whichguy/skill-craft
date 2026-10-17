@@ -258,7 +258,9 @@
       "check_timeout": 900,
       "host_allow": ["Bash(sf *)", "Bash(cd *)", "Bash(tail *)", "Bash(head *)", "Bash(tee *)", "Bash(grep *)"],
       "resume_note": "The platform was reset to its baseline when your last session ended, so anything you deployed to the org was removed. Deploy again from your source before you rely on it or run tests in the org.",
-      "source": "owner go 2026-10-16: deploy to the Developer Edition org `de`, prefix SLChess, remove afterwards; Grok 4.7 medium"
+      "resume_note_kept": "Your last session's work was kept: what you deployed is still in the org; check it before you deploy again.",
+      "keep_checks": ["deployed", "tests", "rules"],
+      "source": "owner go 2026-10-16: deploy to the Developer Edition org `de`, prefix SLChess, remove afterwards; Grok 4.7 medium. Owner 2026-10-17: with --keep-platform the app stays in the org to be played, also when ShipLoop did not finish and the org checks deployed, tests and rules pass (not project, which needs a commit); recorded NOT a pass"
     },
     "budget": {
       "seeded_minutes": 90,

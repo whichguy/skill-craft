@@ -2186,6 +2186,26 @@ class TestCaseDefinition(unittest.TestCase):
             self.assertIn(part, note)
         self.assertNotIn("guard", note.lower())
 
+    def test_the_case_keeps_a_working_app_of_a_run_that_did_not_finish_by_its_org_checks_and_not_by_project(self) -> None:
+        """Owner 2026-10-17: the app stays in the org to be played. Run 2 hit its session cap with `deployed`, `tests` and `rules`
+        passing; `project` reads the work folder and needs a commit, which an unfinished run may not have made."""
+        sys.path.insert(0, str(E2E))
+        try:
+            import run
+        finally:
+            sys.path.remove(str(E2E))
+        platform = self.case["platform"]
+        self.assertEqual(platform["keep_checks"], ["deployed", "tests", "rules"])
+        self.assertIs(run.validate_platform("chess-salesforce", platform), platform)
+        run.refuse_unmatched_keep_checks("chess-salesforce", platform, self.case["checks"])  # each word names exactly one check
+        self.assertEqual(sum("project" in c.split() for c in self.case["checks"]), 1)
+        self.assertNotIn("project", platform["keep_checks"])
+        kept = platform["resume_note_kept"]
+        self.assertIn("still in the org", kept)
+        self.assertIn("check it before you deploy again", kept)
+        self.assertNotIn("reset", kept)
+        self.assertNotIn("guard", kept.lower())
+
 
 class TestNoCredentialsAnywhere(FakeOrg):
     def test_the_token_never_reaches_any_output_or_file_and_org_display_is_never_called(self) -> None:
