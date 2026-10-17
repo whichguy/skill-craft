@@ -771,7 +771,7 @@ SUMMARY_PLACEHOLDERS = {
              "assignment or a restatement of the request>"),
     "test-spec": ("<which recorded harness and suite decisions this item keeps, refines or supersedes, and why; each "
                   "value all cases share, once>"),
-    "verify": ("<entry points traced; each trace's issue and fix; each command's exit code; each required check not run "
+    "verify": ("<entry points traced; each trace's issue and fix; each required check not run "
                "and why; known limitations>"),
 }
 
@@ -1367,7 +1367,7 @@ in order; """ + _VERIFY_ONCE + """
    pending with its owner in HOME/architecture.md ## Real-boundary checks (Real-boundary test guidance).
 10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
     commit. """ + _ITEM_COMMIT + """
-11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+11. **Summary:** as the template says.
 12. Criterion or check unachievable as planned: report revise naming it. Report blocked, with blocked_by, only when
     the user, an access grant or an outside dependency must unblock it.
 """,
