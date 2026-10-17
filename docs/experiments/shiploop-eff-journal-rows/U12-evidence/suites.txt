@@ -83,3 +83,16 @@ shiploop-v4-consumers | exit 0 | 5 tests | 4 s
 shiploop-stopped-improve | exit 0 | 8 tests | 4 s
 shiploop-no-model-launch | exit 0 | 8 tests | 21 s
 shiploop-e2e-environment | exit 0 | 133 tests | 115 s   (rerun of the 146 s run that had one error, test_a_harness_told_to_end_during_the_probe_ends_the_browser_at_once_and_the_run_reads_stopped: KeyError 'interrupted', a signal-timing test of the harness's browser probe under load; passed 4 of 5 alone and in the full rerun; U12 touches no harness file)
+
+# last round: this branch after merging the INT tip bcd59f70 (U5a render tooling, U5b ledger and journal test), python3 -B test/<name>.test.py
+shiploop-packet-obligations | exit 0 | 14 tests | 9 s
+shiploop-efficiency-journal | exit 1 | 11 tests | 0 s
+shiploop-packet-recut | exit 0 | 21 tests | 5 s
+shiploop-step-packets | exit 0 | 9 tests | 2 s
+shiploop-packet-completeness | exit 0 | 43 tests | 13 s
+shiploop-e2e-packet-anatomy | exit 0 | 29 tests | 1 s
+shiploop-handoff | exit 0 | 71 tests | 100 s
+shiploop-e2e-fidelity | exit 0 | 135 tests | 23 s
+shiploop-reference | exit 0 | 4 tests | 0 s
+shiploop-rehydration | exit 0 | 17 tests | 2 s
+shiploop-efficiency-journal exit 1 is test_a_fragment_directory_holds_at_least_the_row_of_the_unit_that_made_the_suite ('U5b.md' not in the fragment dir after the fold commit bcd59f70); the same test fails on the INT tip alone, with a second failure (no fragment row at all) that U12.md clears
