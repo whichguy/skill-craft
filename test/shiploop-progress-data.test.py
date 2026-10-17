@@ -143,6 +143,19 @@ class ProgressDataTests(unittest.TestCase):
             fifo = progress_data.build_snapshot(self.run_root)
             self.assertEqual(self.document(fifo, "living-spec")["status"], "withheld")
 
+    def test_a_result_with_credential_looking_text_is_recorded_as_written_and_the_view_still_redacts_it(self) -> None:
+        """Owner decision 2026-10-16: ShipLoop refuses no credential pattern, so the run keeps the result's text as
+        written; the progress projection is display only and withholds that text from the page."""
+        secret = "Authorization: Bearer abcdefghijklmnopqrstuvwxyz012345"
+        summary = "The service answered with " + secret
+        state = self.accept(self.state(), summary=summary)
+        action = state["history"][-1]["action"]
+        self.assertEqual(state["accepted"][action]["summary"], summary)  # the record is not rewritten
+        self.save_state(state)
+        snapshot = progress_data.build_snapshot(self.run_root)
+        self.assertNotIn("abcdefghijklmnopqrstuvwxyz012345", repr(snapshot))
+        self.assertIn("Credential-like", repr(snapshot))
+
     def test_credential_content_and_unstable_optional_document_are_withheld(self) -> None:
         directory = self.repo / "docs" / "shiploop"
         directory.mkdir(parents=True)

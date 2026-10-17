@@ -219,24 +219,23 @@ def commit_scope(changed: Sequence[str], allowed: Sequence[str],
 
 
 def commit_item(run_dir: Path, state: Mapping[str, Any], work_item: str,
-                message: str) -> Tuple[str, List[str], List[str]]:
+                message: str) -> Tuple[str, List[str]]:
     """Commit the item's changed files per ``commit_scope``: declared paths, documentation and the knowledge home.
 
     Returns (new commit ID or '', changed paths left alone (undeclared and not documentation, or withheld by the
-    workspace), paths the privacy screen left uncommitted).  The model never
-    writes this commit: committing is mechanical (SPEC S-5), and headless hosts
+    workspace)).  The model never writes this commit: committing is mechanical (SPEC S-5), and headless hosts
     refuse model-written ``git commit`` shell.
     """
     import shiploop_git
     changed = changed_paths(run_dir, work_item)
     if not changed:
-        return "", [], []
+        return "", []
     chosen, undeclared = commit_scope(changed, declared(state, work_item), withheld(run_dir, state))
     try:
         committed = shiploop_git.commit_paths(Path(str(state["repo"])), chosen, message)
     except shiploop_git.CommitError as exc:
         raise ItemScopeError(str(exc)) from exc
-    return committed.commit, undeclared, committed.skipped
+    return committed.commit, undeclared
 
 
 def scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str) -> str:
