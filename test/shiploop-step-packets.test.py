@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -24,7 +25,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
+sys.path.insert(0, str(ROOT / "test"))
 import packets  # noqa: E402
+import shiploop_head_budget as budget  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -117,25 +120,33 @@ class StepPacketTests(unittest.TestCase):
 
     def test_the_printed_head_fits_the_host_output_limit(self) -> None:
         case = CASES["node-fix-bug"]
-        with tempfile.TemporaryDirectory(prefix="shiploop-step-head-") as temp:
-            run_dir = Path(temp) / "run"
-            run_dir.mkdir()
-            state = navigator.new_state(temp, case["prompt"], delegation="inline")
-            while navigator.current_stage(state) != "step-plan":
-                action = navigator.current_action(state)["id"]
-                extra = {"work_items": [case["work_item"]]} if navigator.current_stage(state) == "plan" else {}
-                state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
-                if state.get("active_improve") is not None:
-                    state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "x"})
-            store.write_record(run_dir / "state.md", state)
-            shown = io.StringIO()
-            with contextlib.redirect_stdout(shown):
-                full = navigator.emit(None, run_dir, store.read_record(run_dir / "state.md"))
+        with budget.reference_tmpdir():
+            with tempfile.TemporaryDirectory(prefix="shiploop-step-packets-") as temp:
+                run_dir = Path(temp) / "run"
+                run_dir.mkdir()
+                state = navigator.new_state(temp, case["prompt"], delegation="inline")
+                while navigator.current_stage(state) != "step-plan":
+                    action = navigator.current_action(state)["id"]
+                    extra = {"work_items": [case["work_item"]]} if navigator.current_stage(state) == "plan" else {}
+                    state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                    if state.get("active_improve") is not None:
+                        state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "x"})
+                store.write_record(run_dir / "state.md", state)
+                shown = io.StringIO()
+                with contextlib.redirect_stdout(shown):
+                    full = navigator.emit(None, run_dir, store.read_record(run_dir / "state.md"))
         printed = shown.getvalue()
-        # The head leads with the stage's duties (2026-10-16), and step-plan's alone are 9,000 characters, so its head
-        # (19,400) passes PRINT_LIMIT, which bounds a packet printed whole.  It stays under the ~20,000-character cut
-        # some hosts apply to shell output.
-        self.assertLessEqual(len(printed), 20_000)
+        # The head leads with the stage's duties (2026-10-16).  step-plan's alone are 9,000 characters, so its head passes
+        # PRINT_LIMIT (which bounds a packet printed whole) and, at a plugin-cache install, the ~20,000-character cut some
+        # hosts apply to shell output: a recorded gap in head_table.json (over_the_cut), not a limit.  The head may not grow
+        # past its journaled value, measured at the reference install.
+        self.assertGreater(len(full), navigator.PRINT_LIMIT)
+        self.assertEqual(budget.known_over_the_cut("inline"), ["step-plan"])
+        # The table was measured on the offline walk, whose "Full packet:" line names packet.md (30 characters shorter than
+        # emit's nav-<id>.md): compare like with like.
+        offline_form = re.sub(r"(?m)^(Full packet: \S*/packets/)[^/\s]+\.md$", r"\1packet.md", printed)
+        self.assertEqual(len(printed) - len(offline_form), 30)
+        self.assertLessEqual(budget.at_reference_install(offline_form), budget.ceiling("inline", "step-plan", "head"))
         self.assertIn("Current stage guidance:", printed)
         self.assertGreater(len(full), len(printed))  # the packet file holds the rest
 

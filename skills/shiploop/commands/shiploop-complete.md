@@ -1,7 +1,8 @@
 # /shiploop complete
 
-Run exactly the callback the current packet printed on the line after its
-header. There are three kinds:
+Run exactly the callback the current packet printed on its line labelled
+`Callback for this stage` (an Improve child's packet labels it `Next command (` or
+`2. When the improve skill has completed, run:`). There are three kinds:
 
 ~~~sh
 # Producer step result

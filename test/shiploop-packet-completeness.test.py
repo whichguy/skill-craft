@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_loop_contract as loop_contract  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -595,33 +596,36 @@ def symbol_paths(block: list) -> dict:
     return found
 
 
-# The lines that keep their absolute paths (owner, 2026-10-16), besides every command line (``--run-dir``) and the
-# /until-loop argument block: what hooks and the loop runtime read.
+# The lines that keep their absolute paths (owner, 2026-10-16), besides every command line (``--run-dir``) and the Until
+# Loop block's argument (the lines between its two markers: its Work, Exit, Contract and Receipt lines): what hooks and
+# the loop runtime read.  The loop's start command (its own line) is a command too.
 LITERAL_LINES = re.compile(
     r"^(?:Start \(the card runs exactly this|Keepalive marker: |Full packet: |Progress view: |\s*\"evidence_refs\": \[|"
-    r"\s*/improve ShipLoop Improve: |Lost context, or unsure of anything about this run\? Read )")
+    r"\s*/improve ShipLoop Improve: |Lost context, or unsure of anything about this run\? Read |"
+    r"python3 .+ start --receipt )")
 
 
 def prose_lines(packet: str) -> list:
     """The packet's lines outside the References block that are prose, with the exemption rule applied.
 
     Exempt (ALWAYS LITERAL, because hooks and the loop runtime read them; ``LITERAL_LINES``): (1) a command the model
-    runs verbatim, which keeps its absolute paths so it still runs: any line holding a ShipLoop CLI call (``--run-dir``)
-    or the Until Loop Start line; (2) the /until-loop argument, which the packet says to pass verbatim: the lines indented
-    by four spaces under "Argument:"; (3) the Keepalive marker, the "Full packet:" line, the Progress view link, the
-    evidence_refs example, the `/improve ShipLoop Improve: ...` line and the index pointer line.
+    runs verbatim, which keeps its absolute paths so it still runs: any line holding a ShipLoop CLI call (``--run-dir``),
+    the Until Loop start command or its Start line; (2) the /until-loop argument, which the packet says to pass verbatim:
+    the lines from the BEGIN marker to the END marker (``loops.ARGUMENT_BEGIN``, ``ARGUMENT_END``), so its Work,
+    Exit, Contract and Receipt lines; (3) the Keepalive marker, the "Full packet:" line, the Progress view link, the
+    evidence_refs example, the `/improve ShipLoop Improve: ...` line and the index pointer line.  Every other line that
+    holds a HOME, RUN, WORKTREE or GUIDES path is prose and is returned.
     """
     lines = packet.splitlines()
     start = lines.index(navigator.REFERENCES_HEAD)
     block = set(range(start, start + len(reference_block(packet))))
     found, argument = [], False
     for number, line in enumerate(lines):
-        if line == "Argument:":
+        if line == loops.ARGUMENT_BEGIN:
             argument = True
+        if argument:
+            argument = line != loops.ARGUMENT_END
             continue
-        if argument and line.startswith("    "):
-            continue
-        argument = False
         if number in block or "--run-dir" in line or LITERAL_LINES.match(line):
             continue
         found.append(line)
@@ -641,6 +645,40 @@ def offline_slice_packets() -> list:
     import packets as slice_packets
     cases = json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text())
     return list(slice_packets.offline_packets(cases["node-fix-bug"]).values())
+
+
+class ProseLineGuardTests(unittest.TestCase):
+    """The symbols guard exempts the Until Loop block's argument and start command, and nothing else with a path."""
+
+    RUN = "/r/run"
+    PACKET = "\n".join([
+        "ShipLoop navigator | step-plan | run x",
+        navigator.REFERENCES_HEAD,
+        "HOME = /r/docs/shiploop (knowledge home) · RUN = /r/run (run records) · GUIDES = /g (the skill's guides)",
+        "WORKTREE = /r (all product work; a working directory, never a --result value)",
+        "Knowledge files: HOME/spec.md: living spec",
+        "Until Loop (no iteration limit):",
+        loops.INVOKE_LINE,
+        loops.ARGUMENT_BEGIN,
+        "Work: Do duty items 1-4 of /r/run/packets/a.md, writing the result at /r/run/inbox/a.md",
+        "Exit when ALL of these hold:",
+        "1. the result opens with one sentence",
+        "Contract: /r/run/loops/a-contract.json",
+        "Receipt: /r/run/loops/a-terminal.json",
+        loops.ARGUMENT_END,
+        loops.HOST_LINE,
+        "python3 /s/until_loop_ephemeral.py start --receipt /r/run/loops/a-terminal.json < /r/run/loops/a-contract.json",
+        "Prose that names /r/run/state.md outside every exemption.",
+    ])
+
+    def test_the_argument_block_and_the_start_command_are_exempt(self) -> None:
+        found = prose_lines(self.PACKET)
+        self.assertEqual([line for line in found if "/r/run/" in line],
+                         ["Prose that names /r/run/state.md outside every exemption."])
+
+    def test_a_line_between_the_block_and_the_start_command_is_not_exempt(self) -> None:
+        packet = self.PACKET.replace(loops.HOST_LINE, "See /r/run/notes/x.md first.")
+        self.assertIn("See /r/run/notes/x.md first.", prose_lines(packet))
 
 
 class ReferencesBlockTests(unittest.TestCase):

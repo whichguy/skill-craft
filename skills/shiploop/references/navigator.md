@@ -259,8 +259,9 @@ for the transition example and validation limits.
 
 Two lines follow the packet header (`ShipLoop navigator | stage | revision N`) in every
 packet: the owner rule, then the pointer to the run's `context-index.md`, the master index that
-maps every file of the run. The line after them is
-the one legal callback for the current owner: `complete` for a producer,
+maps every file of the run. The one legal callback for the current owner is the
+line labelled `Callback for this stage` (an Improve child's packet labels it `Next command (` or
+`2. When the improve skill has completed, run:`): `complete` for a producer,
 `improve-bind` for an unbound child, or `complete --action=<improve id>` for the Improve stage
 (its header reads `ShipLoop navigator | improve | revision N | the <stage> result`).
 Paused, blocked, halted and done packets print none. A producer result fills in

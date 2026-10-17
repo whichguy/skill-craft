@@ -69,6 +69,8 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/chains/", "a parallel chain's ledger and attempts, per action", "a chain is bound"),
     ("RUN/decisions/", "the user's replies to a blocked question", "after a resume"),
     ("RUN/run-baseline.txt", "the commit the run began from; spec diffs run against it", "a diff since the run began"),
+    ("RUN/skill-calls.jsonl", "the Skill-tool calls the session made in this run (the Improve stage's gate reads it)",
+     "an Improve stage refuses for a missing skill call"),
     ("RUN/report.html, progress.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
      ".progress-disabled, transaction.md, .lock, callback-attempts", "report, progress view, display files, save "
      "journal, lock, counter; no workflow state", "the user asks how the run stands"),

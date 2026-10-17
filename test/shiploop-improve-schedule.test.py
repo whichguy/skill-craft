@@ -67,16 +67,19 @@ def full_packet(head):
     return Path(row.removeprefix("Full packet: ")).read_text(encoding="utf-8") if row else head
 
 
-OWNER = 2  # the owner rule and the index pointer sit directly under every header (2026-10-16)
+# The labels a packet's one legal callback line starts with (shiploop_navigator._first_callback_lines; a started Improve
+# child's packet is two numbered instructions and the second is its callback).
+CALLBACK_LABELS = ("Callback for this stage", "2. When the improve skill has completed, run:", "Next command (",
+                   "No Improve card is recorded for this run.")
 
 
 def after_header(packet):
-    """Return the line after the owner rule and the index pointer that follow the navigator header (the one legal
-    callback slot)."""
+    """Return the packet's one legal callback line, found by its label: the owner rule and the pointer lines sit between the
+    header and the callback, and how many they are is not the callback's address."""
     lines = packet.splitlines()
     index = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
     assert lines[index + 1] == prompts.OWNER_RULE and lines[index + 2].startswith(prompts.INDEX_POINTER_PREFIX), lines[index:index + 3]
-    return lines[index + 1 + OWNER]
+    return next(line for line in lines[index + 1:] if line.startswith(CALLBACK_LABELS))
 
 
 class ImproveScheduleTests(unittest.TestCase):
@@ -117,8 +120,10 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertTrue(lines[0].startswith("ShipLoop navigator | intake"))
         self.assertEqual(lines[1], prompts.OWNER_RULE)
         self.assertTrue(lines[2].startswith(prompts.INDEX_POINTER_PREFIX), lines[2])
-        self.assertIn(" complete ", lines[1 + OWNER])
-        self.assertIn(nav.current_action(state)["id"], lines[1 + OWNER])
+        callback = after_header("\n".join(lines))
+        self.assertTrue(callback.startswith("Callback for this stage"), callback)
+        self.assertIn(" complete ", callback)
+        self.assertIn(nav.current_action(state)["id"], callback)
         # A stage with no Improve child says nothing about Improve (owner rule 2026-10-10) and prints an empty line
         # in the Improve line's place.  How to report a stop has one home, the outcome shapes (2026-10-11 dedupe):
         # the trailing "If work cannot continue, submit outcome 'blocked'..." sentence is gone from the Improve line.
@@ -177,8 +182,10 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("       /improve " + nav.IMPROVE_ARGUMENT_PREFIX + str(handoff_path), lines)
         self.assertEqual(lines[1], prompts.OWNER_RULE)
         self.assertTrue(lines[2].startswith(prompts.INDEX_POINTER_PREFIX), lines[2])
-        self.assertIn(" complete ", lines[4 + OWNER])
-        self.assertIn("--action=" + improve, lines[4 + OWNER])
+        callback = after_header(packet)
+        self.assertTrue(callback.startswith("2. When the improve skill has completed, run:"), callback)
+        self.assertIn(" complete ", callback)
+        self.assertIn("--action=" + improve, callback)
         self.assertNotEqual(improve, action)
         self.assertNotIn("improve-start", packet)
         self.assertNotIn("improve-complete", packet)

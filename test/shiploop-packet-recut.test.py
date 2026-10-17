@@ -25,7 +25,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
+sys.path.insert(0, str(ROOT / "test"))
 import packets  # noqa: E402
+import shiploop_head_budget as budget  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -235,14 +237,27 @@ class PrintedHeadTests(unittest.TestCase):
 
     A packet longer than PRINT_LIMIT prints a head and keeps the rest in its file.  Measured on node-fix-bug at 2686b427,
     the head of all five such packets left out the stage's duties and rules, which began at 10,400 to 15,000 characters
-    of the file, so a model that read only what was printed never saw what to do."""
+    of the file, so a model that read only what was printed never saw what to do.
 
-    # Printed output stays under the ~20,000-character cut some hosts apply to shell output; step-plan is the largest.
-    HOST_CUT = 20_000
+    Length is checked against the journaled value of each stage (``test/shiploop_e2e/head_table.json``), at a reference
+    install, so a head cannot grow unnoticed and the result does not move with the machine's paths
+    (``shiploop_head_budget``).  A head above the ~20,000-character cut some hosts apply is a recorded gap in that table
+    (``over_the_cut``); no other head may cross it."""
+
+    def check_length(self, route: str, key: str, printed: str, whole: str) -> None:
+        stage = key.split("-", 1)[1]
+        mode = budget.mode_of(whole, navigator.PRINT_LIMIT)
+        length = budget.at_reference_install(printed)
+        self.assertLessEqual(length, budget.ceiling(route, stage, mode),
+                             f"{route} {stage} printed as a {mode} is {length} characters at the reference install: above its "
+                             f"journaled value; raise it in head_table.json with the reason, or shorten the packet")
+        if stage not in budget.known_over_the_cut(route):
+            self.assertLess(length, budget.HOST_CUT, f"{route} {stage} crosses the host's output cut and is not a recorded gap")
 
     def test_the_printed_text_of_every_producer_packet_holds_its_duties(self) -> None:
-        printed = packets.offline_packets(CASES["node-fix-bug"], printed=True)
-        full = _offline()
+        with budget.reference_tmpdir():
+            printed = packets.offline_packets(CASES["node-fix-bug"], printed=True)
+            full = _offline()
         over = [key for key, text in full.items() if len(text) > navigator.PRINT_LIMIT and not key.endswith("-improve")]
         self.assertGreaterEqual(len(over), 4, "the case no longer has packets over the limit: pick a larger one")
         for key, text in printed.items():
@@ -251,7 +266,7 @@ class PrintedHeadTests(unittest.TestCase):
             with self.subTest(packet=key):
                 self.assertIn("Current stage guidance:", text)
                 self.assertIn("\nRULES ", text)  # the duties' own closing rules came with them
-                self.assertLess(len(text), self.HOST_CUT)
+                self.check_length("inline", key, text, full[key])
 
     def test_the_status_block_ends_inside_the_status_hooks_window_and_leads_the_duties(self) -> None:
         import shiploop_status_hook as hook
@@ -264,20 +279,23 @@ class PrintedHeadTests(unittest.TestCase):
                 self.assertLess(end, text.index("Current stage guidance:"))
 
     def test_the_ask_agent_route_keeps_the_duties_and_the_status_window_and_its_step_plan_head_is_the_one_over_the_cut(self) -> None:
-        """Known and recorded: on the opt-in ask-agent route step-plan's duties are 10.6k, so its head is about 21,200
-        characters, above the ~20,000 some hosts cut at (inline: 19,500).  Only the tail is cut: the Recovery and Pause
-        lines, which the packet file repeats.  Every other stage and route stays under the cut."""
+        """Known and recorded: on the opt-in ask-agent route step-plan's duties are 10.6k, so its head is about 22,300
+        characters at the reference install, above the ~20,000 some hosts cut at (inline: 20,600, also recorded).  Above the
+        cut Grok shows only the first and last ~10,000 characters, so the middle of these two heads is not read (journal,
+        LP-1; the print-order unit makes the required text fit).  Every other stage and route stays under the cut and under
+        its journaled value."""
         import shiploop_status_hook as hook
-        printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True)
-        over = [key for key, text in printed.items() if len(text) > self.HOST_CUT]
-        self.assertEqual(over, ["01-step-plan"])
+        with budget.reference_tmpdir():
+            printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True)
+            whole = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent")
+        self.assertEqual(budget.known_over_the_cut("ask-agent"), ["step-plan"])
         for key, text in printed.items():
             if key.endswith("-improve"):
                 continue
             with self.subTest(packet=key):
                 self.assertIn("Current stage guidance:", text)
                 self.assertLess(text.index("=== end ShipLoop status ==="), hook.WINDOW)
-                self.assertLess(len(text), 22_000)
+                self.check_length("ask-agent", key, text, whole[key])
 
     def test_a_head_that_would_pass_the_limit_drops_the_quoted_knowledge_not_the_duties(self) -> None:
         for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():

@@ -1,0 +1,86 @@
+{
+ "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), measured at the merge of main da9e2e75 with feat/shiploop-eff-packets-6afcbc and feat/shiploop-eff-loop-6afcbc (unit U1). A printed text above its value fails its test; a change that grows a packet raises the value in the same commit and says why in docs/shiploop-efficiency-journal-2026-10-16.md. over_the_cut names the heads above the 20,000-character host cut today: a recorded gap that the print-order unit (U7) closes, not a goal.",
+ "reference": {
+  "run_dir_length": 83,
+  "root_length": 63,
+  "cli_path_length": 96
+ },
+ "heads": {
+  "inline": {
+   "step-plan": {
+    "head": 20638,
+    "whole": 24448
+   },
+   "test-spec": {
+    "head": 12268,
+    "whole": 14419
+   },
+   "validate-existing": {
+    "head": 11891,
+    "whole": 14860
+   },
+   "implement": {
+    "head": 15436,
+    "whole": 18057
+   },
+   "test": {
+    "head": 15798,
+    "whole": 20005
+   },
+   "document": {
+    "head": 11400,
+    "whole": 13710
+   },
+   "verify": {
+    "head": 15973,
+    "whole": 20203
+   },
+   "carry-forward": {
+    "head": 16877,
+    "whole": 21799
+   }
+  },
+  "ask-agent": {
+   "step-plan": {
+    "head": 22320,
+    "whole": 27776
+   },
+   "test-spec": {
+    "head": 12268,
+    "whole": 15987
+   },
+   "validate-existing": {
+    "head": 11891,
+    "whole": 16428
+   },
+   "implement": {
+    "head": 16550,
+    "whole": 21213
+   },
+   "test": {
+    "head": 15798,
+    "whole": 21573
+   },
+   "document": {
+    "head": 11400,
+    "whole": 15278
+   },
+   "verify": {
+    "head": 16172,
+    "whole": 21970
+   },
+   "carry-forward": {
+    "head": 18080,
+    "whole": 24570
+   }
+  }
+ },
+ "over_the_cut": {
+  "inline": [
+   "step-plan"
+  ],
+  "ask-agent": [
+   "step-plan"
+  ]
+ }
+}

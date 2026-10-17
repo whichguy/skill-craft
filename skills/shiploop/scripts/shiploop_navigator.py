@@ -4608,7 +4608,8 @@ def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None) 
 # literal until someone adds it, and no command can be rewritten by accident.  ALWAYS LITERAL, because hooks and the loop
 # runtime read the absolute paths: the callback and every command line (complete, next, pause, halt, lint, red-check,
 # backchain-check, improve-start, improve-commit, improve-bind), the Keepalive marker, the "Full packet:" line, the
-# Progress view link, the evidence_refs example in the result template, the /until-loop Argument block, the
+# Progress view link, the evidence_refs example in the result template, the Until Loop block's argument (the lines
+# between its two marker lines) and its start command, the
 # `/improve ShipLoop Improve: ...` line and the index pointer line.  A test lists the paths left in a packet's lines and
 # fails on any that is neither listed here nor one of those.
 PROSE_PATH_LINES = re.compile(

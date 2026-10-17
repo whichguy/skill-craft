@@ -972,7 +972,9 @@ run directory as evidence and start the same request again with a fresh
 
 The compact stdout packet is authoritative for the current action; the two lines
 under its header are the owner rule and the pointer to the run's context index,
-and the line after them is the one legal callback. The command surface is:
+and the one legal callback is the line labelled `Callback for this stage` (an
+Improve child's packet labels it `Next command (` or `2. When the improve skill
+has completed, run:`). The command surface is:
 
 ```sh
 # Start a navigator protocol 4 run
