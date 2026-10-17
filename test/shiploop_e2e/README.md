@@ -125,7 +125,13 @@ pre-created. It grades five verdicts into `result.json`:
   run started, holds at least one file (ShipLoop's own empty baseline commit is not
   product; any file counts, so this is a floor, not a check of what the product is),
   and no product path is left modified or untracked (`*.log` aside);
-- **checks**: each case check command exits 0 in `work/`.
+- **checks**: each case check command exits 0 in `work/`. A check of an HTTP
+  product runs through `checks/serve.py` (added 2026-10-16): it starts the
+  candidate on a free port, confirms with `lsof` that the candidate's own process
+  group holds the listener, runs the check with `PORT` and `BASE` set, and ends
+  only that group. A candidate that exits first fails with its exit code and
+  stderr (an `EADDRINUSE` stays visible), a port answered by another process
+  fails and names it, and a listener that cannot be identified fails.
 
 The output directory keeps the prompt, argv, raw events, a readable
 `transcript.md` (built from the text the model actually saw), stderr and the

@@ -419,10 +419,16 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   are compared is the exception stated in the bullet "Runs compared on wall
   time or per-call cost run one after the other".
 - Concurrency must not change a verdict. Concurrent runs are quiet (no
-  interleaved live view), share no files, and pass the same checks. A
+  interleaved live view), share no files and no check ports, and pass the
+  same checks. A case's HTTP check starts the candidate on a free port of
+  its own and accepts a response only once the candidate's own process
+  group holds the listener (`checks/serve.py`; amended 2026-10-16: on a
+  fixed port a sibling's server answered the check, a false green). A
   failure seen only in a parallel run (for example two products' own tests
   binding the same fixed port, or a host rate limit) is rerun alone
-  (`--serial`) before it is attributed to ShipLoop.
+  (`--serial`) before it is attributed to ShipLoop. A pass is never rerun,
+  so rerunning alone cannot catch a false green: a check must not accept a
+  response its own candidate did not serve.
 - **Runs compared on wall time or per-call cost run one after the other**
   (amended 2026-10-08; anchor "Concurrency must not change a verdict"). A
   before/after pair, or a host or model comparison, is started the second

@@ -1,0 +1,147 @@
+{
+  "question": "Do the rewritten HTTP checks (serve.py: per-check free port, candidate-owned listener) give the same verdicts as the fixed-port checks of 2686b427 on saved real deliveries?",
+  "method": "git ls-files of each saved run work/ copied to a scratch directory; run.run_checks with the 2686b427 catalog (old) and the new catalog (new), same machine, one after the other",
+  "source_runs_root": "~/e2e-runs",
+  "results": [
+    {
+      "run": "20261008/r2-battleship-sonnet",
+      "case": "battleship",
+      "old": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new_fail_output": []
+    },
+    {
+      "run": "20261010/battleship-1",
+      "case": "battleship",
+      "old": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new_fail_output": []
+    },
+    {
+      "run": "20261007/v1230-battleship-sonnet",
+      "case": "battleship",
+      "old": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new_fail_output": []
+    },
+    {
+      "run": "20261008/r3-checkers-sonnet",
+      "case": "checkers",
+      "old": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new_fail_output": []
+    },
+    {
+      "run": "20261008/r1-checkers-sonnet",
+      "case": "checkers",
+      "old": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new_fail_output": []
+    },
+    {
+      "run": "20261011/battleship-scoring-probe-28191c5b",
+      "case": "battleship-scoring (product checks, no retention)",
+      "old": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "new": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "run": "20261003/batch-sonnet/battleship-scoring",
+      "case": "battleship-scoring (product checks, no retention)",
+      "old": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "new": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "run": "docs/experiments/shiploop-e2e-audit-20261016/grading/battleship-fixture (the audit broken-product control)",
+      "case": "battleship",
+      "new": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "note": "still passes the protocol-smoke checks: the behavioural verifier (audit item 3) is deferred, not addressed by binding checks to their candidate"
+    }
+  ]
+}

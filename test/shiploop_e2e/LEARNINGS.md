@@ -2309,7 +2309,25 @@ Each fix has a fail-first regression built from the audit's control. It ran red 
    - Fixture change: the `chain-hang` fake now finishes its seeded run. It used to leave that run active and pass only
      because the shared fake product wrote a second, finished `work/.shiploop`. That was the audit's misgrade, inside
      the test fakes.
-3. **Bind HTTP checks to their candidate process.** Pending.
+3. **Bind HTTP checks to their candidate process** (`cases.json`, new `checks/serve.py`).
+   - Control (`port-probe/`): a sibling serving `<title>Battleship</title>` held fixed port 39171, and the candidate
+     could only answer `candidate`. The exact Battleship page check exited 0. The candidate's bind error went to
+     `/dev/null`.
+   - Fix: the nine fixed-port checks (Battleship, Battleship scoring and Checkers) now run through `serve.py`. It
+     takes a free port and starts `node server.js` in its own process group, keeping stderr. It confirms with `lsof`
+     that the listener belongs to that group, then runs the check with `PORT` and `BASE` and ends only that group. A
+     candidate that exits first fails with its stderr. A port held by another process, or a listener nobody can
+     identify, fails and is named. The catalog was rewritten by one mechanical transform, not by hand.
+   - SPEC change ("Concurrency must not change a verdict"): checks share no ports. Rerunning alone only re-examines
+     failures, so it cannot catch a false green, and a check must not accept a response its own candidate did not
+     serve.
+   - Regression: `HttpCheckBindingTest`, using the `port-probe/` sibling and candidate. Three tests: the audit
+     candidate beside the sibling fails; a valid candidate passes alone and fails with `EADDRINUSE` when a sibling
+     holds its port; a listener that is not the candidate is refused, and only the candidate is ended. Red on 2686b427:
+     3 of 3 checks passed, which is the false green. Green after the fix.
+   - Same verdicts on real deliveries: 7 saved runs (3 Battleship, 2 Checkers, 2 Battleship scoring) gave identical
+     per-check results under the old and new catalogs (`fixes/http-check-equivalence.json`).
+   - Not fixed: the audit's broken Battleship fixture still passes 4 of 4. That is item 3 of the audit, deferred below.
 4. **Make the breadth selection match its claim.** Pending.
 5. **Review the source that actually ran** (`review.py`). Pending.
 

@@ -1527,6 +1527,92 @@ class SuiteTest(HarnessCase):
         self.assertIn("baseline  vs", output.getvalue())
         self.assertEqual(len(self.baselines.read_text().splitlines()), 2)
 
+PORT_PROBE = ROOT / "docs" / "experiments" / "shiploop-e2e-audit-20261016" / "port-probe"
+VALID_PAGE = ("require('http').createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html'});"
+              "res.end('<title>Battleship</title> candidate')}).listen(Number(process.env.PORT));\n")
+# Ignores PORT: it listens on a port of its own choosing and records its pid, as a product with a hard-coded port does.
+ELSEWHERE = ("require('fs').writeFileSync('pid.txt', String(process.pid));"
+             "require('http').createServer((req,res)=>res.end('<title>Battleship</title>')).listen(0, '127.0.0.1');\n")
+
+
+@unittest.skipUnless(shutil.which("node") and shutil.which("lsof"), "needs node and lsof")
+class HttpCheckBindingTest(unittest.TestCase):
+    """The 2026-10-16 E2E audit's port control (docs/experiments/shiploop-e2e-audit-20261016/port-probe/): with a sibling
+    serving a Battleship page on the check's port, the Battleship page check passed for a candidate that could only answer
+    "candidate". A check must accept only a response its own candidate served."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.page_check = json.loads(run.CASES.read_text())["battleship"]["checks"][1]
+
+    def candidate(self, source: str) -> Path:
+        work = self.tmp / f"candidate-{len(list(self.tmp.iterdir()))}"
+        work.mkdir()
+        (work / "server.js").write_text(source)
+        return work
+
+    def check_port(self) -> tuple[int, dict]:
+        """The port the page check will use: a fixed one written in the check, else the one pinned through E2E_SERVE_PORT."""
+        fixed = re.search(r"127\.0\.0\.1:(\d+)", self.page_check)
+        if fixed and "serve.py" not in self.page_check:
+            return int(fixed.group(1)), {}
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        return port, {"E2E_SERVE_PORT": str(port)}
+
+    def sibling(self, port: int) -> subprocess.Popen:
+        proc = subprocess.Popen(["node", str(PORT_PROBE / "sibling" / "server.js")], env=dict(os.environ, PORT=str(port)),
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(proc.wait)
+        self.addCleanup(proc.kill)
+        for _ in range(100):
+            with contextlib.suppress(OSError), socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                return proc
+            time.sleep(0.05)
+        self.fail("the sibling never listened")
+
+    def check(self, work: Path, env: dict | None = None) -> dict:
+        with mock.patch.dict(os.environ, env or {}):
+            return run.run_checks(work, [self.page_check], timeout=60)[0]
+
+    def test_the_audit_candidate_beside_a_sibling_on_the_check_port_fails(self):
+        port, env = self.check_port()
+        sibling = self.sibling(port)
+        result = self.check(self.candidate((PORT_PROBE / "candidate" / "server.js").read_text()), env)
+        self.assertFalse(result["pass"], result)
+        self.assertIsNone(sibling.poll(), "the check must not stop a process it did not start")
+
+    def test_a_valid_candidate_passes_alone_and_fails_with_its_startup_error_when_a_sibling_holds_its_port(self):
+        work = self.candidate(VALID_PAGE)
+        self.assertTrue(self.check(work)["pass"], "the valid candidate alone")
+        port, env = self.check_port()
+        self.sibling(port)
+        result = self.check(work, env)
+        self.assertFalse(result["pass"], result)
+        self.assertIn("EADDRINUSE", result["output"])
+
+    def test_a_listener_that_is_not_the_candidate_is_refused_and_only_the_candidate_is_ended(self):
+        port, env = self.check_port()
+        sibling = self.sibling(port)
+        work = self.candidate(ELSEWHERE)
+        result = self.check(work, env)
+        self.assertFalse(result["pass"], result)
+        self.assertIn("not by the candidate", result["output"])
+        self.assertIsNone(sibling.poll())
+        pid = int((work / "pid.txt").read_text())
+        for _ in range(50):
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        else:
+            self.fail(f"the candidate {pid} the check started is still running")
+
+
 class CheckHygieneTest(unittest.TestCase):
     def test_temperature_unit_check_requires_tests_and_success(self):
         check = json.loads(run.CASES.read_text())["temperature-report"]["checks"][0]
