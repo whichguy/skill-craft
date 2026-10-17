@@ -787,6 +787,8 @@ def _canonical_result(
         "outcome": outcome,
         "summary": _text(value.get("summary"), "result summary"),
     }
+    _need(" ".join(result["summary"].split()) not in _summary_placeholders(),
+          "summary still holds the template placeholder; write what the placeholder asks for")
     if "headline" in value:
         result["headline"] = value["headline"].strip()
     refs = value.get("evidence_refs", [])
@@ -3669,6 +3671,12 @@ TEST_SUMMARY_PLACEHOLDER = ("<tests added by ID and what each asserts; test deci
                             "and why; any test changed to pass a run and its independent reason; ShipLoop's records "
                             "hold the counts>")
 HEADLINE_LIMIT = 100
+
+
+def _summary_placeholders() -> frozenset[str]:
+    """Every result template's `summary` placeholder, whitespace-collapsed: a summary equal to one is unfilled."""
+    return frozenset(" ".join(text.split()) for text in (
+        TEST_SUMMARY_PLACEHOLDER, guidance.SUMMARY_PLACEHOLDER, *guidance.SUMMARY_PLACEHOLDERS.values()))
 # The template's placeholder text for the hand-off fields (contract rule 5): the gate refuses any hand-off string equal to
 # one of them, as the headline and evidence placeholders are refused.
 FOLLOWS_PLACEHOLDER = "<R-<n> or AD-<n> this item follows>"
@@ -3704,11 +3712,9 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     result: dict[str, Any] = {
         "outcome": "done",
         "headline": HEADLINE_PLACEHOLDER,
-        "summary": "...",
+        "summary": TEST_SUMMARY_PLACEHOLDER if stage in test_loop.STAGES else guidance.summary_placeholder(stage),
         "evidence_refs": [str(receipt)] if receipt is not None else [EVIDENCE_PLACEHOLDER],
     }
-    if stage in test_loop.STAGES:
-        result["summary"] = TEST_SUMMARY_PLACEHOLDER
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":

@@ -1,0 +1,71 @@
+# Render diff: node-fix-bug / ask-agent/83/96, unit U25
+
+- old SP/eff2/u25/before-ask-agent-83 (commit 9f949689ff3d)
+- new SP/eff2/u25/after-ask-agent-83 (commit 9f949689ff3d)
+- the head table is checked
+
+| stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|---|
+| step-plan | 19449 | 19628 | +179 | 19628 | 372 | 26742 | 26921 | 0 | ok |
+| step-plan-improve | 2713 | 2713 | +0 | 2713 | 17287 | 2687 | 2687 | 0 | ok |
+| test-spec | 12856 | 12886 | +30 | 12886 | 7114 | 16301 | 16331 | 0 | ok |
+| test-spec-improve | 1945 | 1945 | +0 | 1945 | 18055 | 1919 | 1919 | 0 | ok |
+| validate-existing | 12562 | 12648 | +86 | 12648 | 7352 | 16825 | 16911 | 0 | ok |
+| implement | 17217 | 17303 | +86 | 17303 | 2697 | 21386 | 21472 | 0 | ok |
+| implement-improve | 2654 | 2654 | +0 | 2654 | 17346 | 2628 | 2628 | 0 | ok |
+| test | 18239 | 18239 | +0 | 18239 | 1761 | 22038 | 22038 | 0 | ok |
+| document | 15684 | 15770 | +86 | 15770 | 4230 | 15658 | 15744 | 0 | ok |
+| verify | 18608 | 18601 | -7 | 18608 | 1399 | 22396 | 22389 | 0 | ok |
+| carry-forward | 19294 | 19380 | +86 | 19380 | 620 | 25013 | 25099 | 0 | ok |
+| carry-forward-improve | 2642 | 2642 | +0 | 2642 | 17358 | 2616 | 2616 | 0 | ok |
+
+## step-plan
+  -   114  [PW]      "and", or too large for one review. Merge a step no check confirms alone (half a rename, unused scaffold…
+  -   117  [PW]      `criteria` it satisfies and the `paths` it changes (inside the item's `paths`). Every criterion is satis…
+  -   100  [PW]      `ids` or `min_tests`. None: `check_na` with the reason; no command at all: `test_commands_na`.
+  -    81  [PW]      into the step it serves. A single bug fix or mechanical rename is one step.
+  -    16  [PW]      some step.
+  -    95  [PW]    This record is supporting reference; each step's task and criteria stay its only directive.
+  -    20  [PW]   "summary": "...",
+  -    59  [PW] 9. **Plan record** in the item's `context` or the summary:
+  +   115  [PW]      "and", or too large for one review. Fold a step no check confirms alone (half a rename, scaffolding) int…   <- U25 offset: "and", or too large for one review. Merge | into the step it serves.
+  +   117  [PW]      `criteria` it satisfies and the `paths` it changes (inside the item's `paths`); its `task` cites IDs, no…   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a step `task` cites IDs, not their text (+38)
+  +   129  [PW]      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: …   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): check commands are safe to repeat locally (every implement step prints and runs them) (+29)
+  +    81  [PW]      first step that uses it. A single bug fix or mechanical rename is one step.   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): scaffolding folded into the first step that uses it (+1 character over the line it replaces)
+  +    54  [PW]      text. Every criterion is satisfied by some step.   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): the reflowed tail of the task-cites-IDs sentence (counted with it)
+  +    63  [PW]    its only directive), for the topics this item touches only:   <- U25 approval: plan 3.2 row SP-8 and 5.6 U25: duty 9 covers only the topics the item touches (+25 with the moved opening)
+  +   106  [PW]   "summary": "<decisions, defaults, open questions and owners only this result records; no restatement>",   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a per-stage summary placeholder says what only this result records (generic 88 characters; intake, plan, test-spec and verify carry what their duties used to say, moved out of the duty); +86 per inner head without its own placeholder; test-spec and verify pay theirs with the duty text they moved
+  +   116  [PW] 9. **Plan record** in the item's `context` or the summary (supporting reference; each step's task and criteri…   <- U25 offset: 9. **Plan record** in the item's `context` or the summary: | This record is supporting reference;
+
+## test-spec
+  -    87  [PW]    why. evidence_refs: their locators, the step plan's, the requirement sections used.
+  -    20  [PW]   "summary": "...",
+  -   113  [PW] 7. Summary: which harness and suite decisions in HOME/environment.md this item keeps, refines or supersedes, …
+  +   143  [PW]   "summary": "<which recorded harness and suite decisions this item keeps, refines or supersedes, and why; ea…   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a per-stage summary placeholder says what only this result records (generic 88 characters; intake, plan, test-spec and verify carry what their duties used to say, moved out of the duty); +86 per inner head without its own placeholder; test-spec and verify pay theirs with the duty text they moved
+  +   107  [PW] 7. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.   <- U25 offset: 7. Summary: which harness and suite decisions | why. evidence_refs: their locators
+
+## validate-existing
+  -    19  [PW]   "summary": "..."
+  +   105  [PW]   "summary": "<decisions, defaults, open questions and owners only this result records; no restatement>"   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a per-stage summary placeholder says what only this result records (generic 88 characters; intake, plan, test-spec and verify carry what their duties used to say, moved out of the duty); +86 per inner head without its own placeholder; test-spec and verify pay theirs with the duty text they moved
+
+## implement
+  -    19  [PW]   "summary": "..."
+  +   105  [PW]   "summary": "<decisions, defaults, open questions and owners only this result records; no restatement>"   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a per-stage summary placeholder says what only this result records (generic 88 characters; intake, plan, test-spec and verify carry what their duties used to say, moved out of the duty); +86 per inner head without its own placeholder; test-spec and verify pay theirs with the duty text they moved
+
+## document
+  -    19  [PW]   "summary": "..."
+  +   105  [PW]   "summary": "<decisions, defaults, open questions and owners only this result records; no restatement>"   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a per-stage summary placeholder says what only this result records (generic 88 characters; intake, plan, test-spec and verify carry what their duties used to say, moved out of the duty); +86 per inner head without its own placeholder; test-spec and verify pay theirs with the duty text they moved
+
+## verify
+  -    59  [PW]     any required check not run and why, known limitations.
+  -    19  [PW]   "summary": "..."
+  -   115  [PW] 11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit …
+  +   147  [PW]   "summary": "<entry points traced; each trace's issue and fix; each command's exit code; each required check…   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a per-stage summary placeholder says what only this result records (generic 88 characters; intake, plan, test-spec and verify carry what their duties used to say, moved out of the duty); +86 per inner head without its own placeholder; test-spec and verify pay theirs with the duty text they moved
+  +    39  [PW] 11. **Summary:** as the template says.   <- U25 offset: 11. **Summary:** entry points traced | any required check not run and why, known limitations.
+
+## carry-forward
+  -    19  [PW]   "summary": "..."
+  +   105  [PW]   "summary": "<decisions, defaults, open questions and owners only this result records; no restatement>"   <- U25 approval: plan 5.6 U25 Work (rev 4 Step 8.2): a per-stage summary placeholder says what only this result records (generic 88 characters; intake, plan, test-spec and verify carry what their duties used to say, moved out of the duty); +86 per inner head without its own placeholder; test-spec and verify pay theirs with the duty text they moved
+
+All 12 stages pass.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.

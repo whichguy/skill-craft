@@ -252,8 +252,9 @@ an existing run's current packet with:
 python3 "$CLI" next --run-dir "$RUN_DIR"
 ```
 
-For a new run explicitly piloting consumer-delivery declaration checks, add
-`--delivery-contract` to `workspace start` (or direct `init`). Read
+Add `--delivery-contract` to `workspace start` (or direct `init`) only when the
+request or the host asks for consumer-delivery declaration checks; never add it
+unasked. Read
 [consumer delivery](references/consumer-delivery.md) before starting a
 deploy-and-interact pilot so its declared behavior obligations are enabled from
 initialization. That reference defines the result contract, source-only cases,
