@@ -24,6 +24,7 @@ import unittest
 
 import package_build
 import shiploop_knowledge_support as knowledge_support
+from shiploop_packet_view import head_packet_path
 from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt
 
 
@@ -65,12 +66,9 @@ def _with_packet_file(stdout: str) -> str:
     print (paused/blocked/halted/done) already carries the full text and has
     no such line, so it passes through unchanged.
     """
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            packet_file = Path(line[len(marker):])
-            if packet_file.is_file():
-                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    packet_file = head_packet_path(stdout)  # the file a head names; None for a whole print (it holds the file's text)
+    if packet_file is not None and packet_file.is_file():
+        return stdout + "\n" + packet_file.read_text(encoding="utf-8")
     return stdout
 COLD_RECOVERY_STAGES = {"discovery", "implement", "release-check"}
 # An actual Improve child now starts only for a planning/contract producer

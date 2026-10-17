@@ -258,9 +258,11 @@ block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
 results and durable products this stage depends on, labelled `<item> <stage>
 <product>` (for example `W1 test base run`, `W1 implement S1 Improve review`)
-with the same label and path in every packet. Under its first line every packet carries
-the **owner rule** and a pointer to the run's **context index** (`context-index.md`): read it
-first when you lost context or are unsure of anything. It maps every file of the run, the
+with the same label and path in every packet. Under its header every producer packet carries two
+pointer lines, then the callback and the **owner rule**: the `next` command to run when you lost
+context or are unsure of anything, and the packet file (`Full packet: <path>`), which holds the
+whole packet and whose References block lists the other references and what each holds, among them
+the run's **context index** (`context-index.md`). The index maps every file of the run, the
 knowledge files and the guides (what each holds and when to read it), then lists the request, the
 accepted planning basis, each work item's results and their notes. Open a product when its content
 is not already in your context, use the index when you need the global picture, and
@@ -271,10 +273,11 @@ Every packet is complete, and it lives in a file: ShipLoop writes the full
 packet to `<run>/packets/<action>.md` (the Improve stage is its own action, so its packet goes to
 `<improve id>.md`, and the packet asking for `improve-bind` to `<improve id>-bind.md`; the producer packet that
 was sent stays on disk) and prints it whole when it is at most 16,000 characters.
-A longer packet prints a head, built from the same ordered blocks as the file: the callback, the goal and
+A longer packet prints a head, built from the same ordered blocks as the file: the two pointer lines (the `next`
+command and the packet file's path), the callback, the owner rule, the goal and
 done-when, the Until Loop block, the status block, the stage's duties and rules, the stage's own input (the work item,
 the step with its paths, skills and check commands, the test floors, the rerun list, the queue rule), the result
-template and allowed outcomes, the packet file's path and the recovery command; then, while the head fits 20,000
+template and allowed outcomes; then, while the head fits 20,000
 characters, the References block, the pass log, the progress view and the pause command; and the quoted knowledge
 files and hand-offs when the head stays within 16,000. Every print, whole or head, ends with the line
 `=== end ShipLoop head ===`: a print without it was cut (by the host, or by a pipe such as `head -N`), so run the

@@ -391,7 +391,7 @@ def offline_packets(case: dict, delegation: str = "inline", printed: bool = Fals
             text = navigator.render(None, run_dir, cold_state)
             if printed and measure(text) > navigator.PRINT_LIMIT and cold_state["status"] == "active":
                 # What emit prints for a packet over the limit: the head, with the rest in the file.
-                text = navigator.packet_head(None, run_dir, cold_state, run_dir / "packets" / "packet.md", measure=measure)
+                text = navigator.packet_head(None, run_dir, cold_state, navigator.packet_path(run_dir, cold_state), measure=measure)
             found[key] = text
     return found
 
@@ -503,7 +503,7 @@ def offline_renders(case: dict, delegation: str = "inline", *, run_dir_length: i
 
         for key, cold_state in (walk or _walk)(case, delegation, str(work), run_dir):
             real = navigator.render(core, run_dir, cold_state)
-            printed = navigator.printed_text(core, run_dir, cold_state, run_dir / "packets" / "packet.md", real,
+            printed = navigator.printed_text(core, run_dir, cold_state, navigator.packet_path(run_dir, cold_state), real,
                                              measure=at_install)
             found[key] = {"whole": canon(real), "printed": canon(printed), "state": cold_state,
                           "head": at_install(real) > navigator.PRINT_LIMIT and cold_state["status"] == "active"}

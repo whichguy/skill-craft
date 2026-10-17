@@ -178,9 +178,10 @@ class TextRenderTests(unittest.TestCase):
     def test_the_longer_run_directory_makes_longer_packets_and_a_packet_may_flip_between_whole_and_head(self):
         short, long = ({row["key"]: row for row in self.manifests[name]["packets"]} for name in ("a83", "a163"))
         self.assertTrue(all(long[key]["whole"] > short[key]["whole"] for key in short))
-        # validate-existing is a whole print at 83 and passes the print limit at 163 (the plan's head-to-whole flip, read the other way).
-        self.assertFalse(short["05-validate-existing"]["head"])
-        self.assertTrue(long["05-validate-existing"]["head"])
+        # test-spec is a whole print at 83 and passes the print limit at 163 (the plan's head-to-whole flip, read the other way;
+        # validate-existing was the example until unit U8's pointer lines put its file over the limit at 83 too).
+        self.assertFalse(short["03-test-spec"]["head"])
+        self.assertTrue(long["03-test-spec"]["head"])
 
     def test_the_natural_run_directory_is_this_machines_temporary_directory_and_the_sizes_are_still_fixed(self):
         manifest = self.manifests["bare"]

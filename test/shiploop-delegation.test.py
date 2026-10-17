@@ -24,7 +24,7 @@ import shiploop_reference as reference  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from shiploop_packet_view import assert_top_block, callback_argv, callback_result_path  # noqa: E402
+from shiploop_packet_view import assert_top_block, callback_argv, callback_line, callback_result_path, head_packet_path  # noqa: E402
 from shiploop_improve_route import route_text  # noqa: E402
 
 
@@ -36,12 +36,9 @@ def _with_packet_file(stdout: str) -> str:
     print (paused/blocked/halted/done) already carries the full text and has
     no such line, so it passes through unchanged.
     """
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            packet_file = Path(line[len(marker):])
-            if packet_file.is_file():
-                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    packet_file = head_packet_path(stdout)  # the file a head names; None for a whole print (it holds the file's text)
+    if packet_file is not None and packet_file.is_file():
+        return stdout + "\n" + packet_file.read_text(encoding="utf-8")
     return stdout
 
 # Instructions that route work to a delegated executor.  Inline packets may
@@ -247,9 +244,11 @@ class DelegationStateTests(unittest.TestCase):
         self.assertIn("Prefer a native fresh worker", pending)
         change = "Delegation change: this action keeps ask-agent; actions issued after it use inline."
         self.assertIn(change, pending)
-        # The held-route line never displaces the one legal callback after it.
+        # The held-route line never displaces the one legal callback: it follows the callback and the owner rule (plan 6.2).
         lines = pending.splitlines()
-        callback = lines[lines.index(change) + 1]
+        view = assert_top_block(self, lines, require=("pointer", "packet", "callback", "owner"), label="held route")
+        callback = view["callback"]
+        self.assertLess(view.index("callback"), lines.index(change))
         self.assertTrue(callback.startswith("Callback for this stage"), callback)
         self.assertIn("--action=" + action, callback)
         checkpoint = nav.apply(switched, action, {"outcome": "done", "summary": "Synthetic."})
@@ -445,6 +444,8 @@ class PacketContractTests(DelegationStateTests):
         self.assertIn("\nCallback for this stage (run once after its work, with the result written to ", head)
         self.assertEqual(callback_result_path(head).parent.name, "inbox")  # the label names the path; no --result flag
         self.assertFalse([arg for arg in callback_argv(head) if arg.startswith("--result")])
+        # U8: the label says why the command is run exactly as printed (no pipe, redirect, ";" or variable).
+        self.assertIn(prompts.CALLBACK_REASON, callback_line(head))
         self.assertNotIn("Write the structured result to: ", entry)
         # repeat is no longer an inner outcome (8-stage loop, 2026-10-10).
         self.assertIn("\nAllowed outcomes: done | blocked | revise", entry)
@@ -697,8 +698,11 @@ class PacketContractTests(DelegationStateTests):
                                          + " | the " + stage + " result")
                         self.assertEqual(header, 0)
                         view = assert_top_block(self, lines, label=route + " " + stage)
+                        # D-26: the bound Improve packet carries neither the next pointer nor the owner rule
+                        self.assertNotIn("pointer", view)
+                        self.assertNotIn("owner", view)
                         first, _instruction = view.find("1. Run the improve skill on the " + stage + " result.")
-                        self.assertLess(view.index("pointer"), first)    # the two instructions follow the owner lines ...
+                        self.assertLess(view.index("header"), first)     # the two instructions follow the header ...
                         self.assertLess(first, view.index("callback"))   # ... and the callback is the second of them
                         argument = view.text_after(first)               # the improve skill's one argument line
                         self.assertTrue(argument.lstrip().startswith("/improve ShipLoop Improve: "), argument)

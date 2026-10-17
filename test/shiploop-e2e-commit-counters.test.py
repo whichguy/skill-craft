@@ -399,9 +399,36 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
         import flow  # noqa: PLC0415 - the second reader of the head's closing line
         self.assertEqual(flow.HEAD_END, shiploop_navigator.HEAD_END)
         source = (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_navigator.py").read_text()
-        for line in ('f"ShipLoop navigator | {stage} | revision {state[\'revision\']}"', 'f"Full packet: {path}"',
-                     'f"Keepalive marker: {KEEPALIVE_MARKER} run='):
+        for line in ('f"ShipLoop navigator | {stage} | revision {state[\'revision\']}"', 'f"Keepalive marker: {KEEPALIVE_MARKER} run='):
             self.assertIn(line, source)
+        # The pointer line is built by shiploop_prompts (plan 6.2): the path, then " - " and the sentence that names the
+        # closing line; the harness reads the path from it, and the closing line as a line, never as that sentence.
+        import shiploop_prompts
+        pointer = shiploop_prompts.packet_pointer("/r/run/packets/nav-a.md", shiploop_navigator.HEAD_END)
+        self.assertEqual(counters.FULL_PACKET.search(pointer).group("path"), "/r/run/packets/nav-a.md")
+        self.assertIn("ends with the line " + counters.HEAD_END, pointer)
+
+    def test_a_print_cut_before_its_closing_line_is_cut_though_its_pointer_names_that_line(self):
+        """The packet's second pointer line quotes the closing line inside a sentence, and the first lines of every cut print
+        keep it: a reader that searched the text would find a closing line a cut print never had."""
+        import flow  # noqa: PLC0415
+        import shiploop_navigator
+        import shiploop_prompts
+        end = shiploop_navigator.HEAD_END
+        top = ("ShipLoop navigator | spec | revision 4\nLost context, or unsure? Run python3 /i/shiploop next --run-dir=/r\n"
+               + shiploop_prompts.packet_pointer("/r/packets/nav-a.md", end)
+               + "\nCallback for this stage (run once): python3 /i/shiploop complete --run-dir=/r --action=nav-a --result=/r/a.md\n"
+               "Keepalive marker: SHIPLOOP-RUN run=r rev=4 dir=/r\n=== ShipLoop status ===\nx\n=== end ShipLoop status ===\n")
+        cut, whole = top + "Current stage guidance:\nmore\n", top + "Current stage guidance:\nmore\n" + end + "\n"
+        self.assertEqual(counters.head_or_why(cut), (None, counters.NOT_WHOLE_BEFORE_CLOSING))
+        head, why = counters.head_or_why(whole)
+        self.assertIsNone(why)
+        self.assertTrue(head.rstrip().endswith(end))
+        self.assertIsNone(counters.HEAD_END_LINE.search(cut))
+        self.assertIsNotNone(flow.HEAD_END_LINE.search(whole))
+        self.assertIsNone(flow.HEAD_END_LINE.search(cut))
+        self.assertIsNone(metrics.HEAD_END_LINE.search(cut))
+        self.assertIsNotNone(metrics.HEAD_END_LINE.search(whole))
 
     def test_a_head_printed_by_this_layout_is_measured_whole_and_a_cut_one_is_not(self):
         """Review of 2026-10-16: the status block moved ahead of the duties, so the old reader (head = up to the status
@@ -412,7 +439,7 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
         import shiploop_navigator
         cases = json.loads((ROOT / "test" / "shiploop_e2e" / "step_cases.json").read_text())
         printed = packets_module.offline_packets(cases["node-fix-bug"], printed=True)
-        heads = {key: text for key, text in printed.items() if "Full packet:" in text}
+        heads = {key: text for key, text in printed.items() if text.rstrip().endswith(shiploop_navigator.HEAD_END)}
         self.assertGreaterEqual(len(heads), 4, "the case no longer prints heads: pick a larger one")
         for key, text in heads.items():
             with self.subTest(packet=key):

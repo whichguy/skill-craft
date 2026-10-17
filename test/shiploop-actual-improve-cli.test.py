@@ -22,6 +22,7 @@ import shiploop_privacy as privacy  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_packet_view import head_packet_path, packet_file_named  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
@@ -40,11 +41,7 @@ CLI = ROOT / "skills/shiploop/scripts/shiploop"
 
 def _packet_path_from_stdout(stdout: str) -> Path | None:
     """The ``Full packet: <path>`` locator an active-state head prints, if any."""
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            return Path(line[len(marker):])
-    return None
+    return head_packet_path(stdout)
 
 
 def _with_packet_file(stdout: str) -> str:
@@ -780,7 +777,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     # (it is not a stage step or run rule), but render() is
                     # unchanged, so the full packet file it writes still leads
                     # with it for a host that opens the file before acting.
-                    cold_packet_path = _packet_path_from_stdout(cold)
+                    # (``cold`` already ends with the file's text when the print was a head: read the file the pointer names)
+                    cold_packet_path = packet_file_named(cold)
                     self.assertIsNotNone(cold_packet_path, cold)
                     self.assertTrue(
                         cold_packet_path.read_text(encoding="utf-8").startswith(

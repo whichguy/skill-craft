@@ -37,7 +37,7 @@ sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
-from shiploop_packet_view import assert_top_block, callback_result_path  # noqa: E402
+from shiploop_packet_view import assert_top_block, callback_result_path, head_packet_path, packet_file_named  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -117,11 +117,7 @@ def result(*, outcome: str = "done", summary: str = "Synthetic producer result."
 
 def _packet_path_from_stdout(stdout: str) -> Path | None:
     """The ``Full packet: <path>`` locator an active-state head prints, if any."""
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            return Path(line[len(marker):])
-    return None
+    return head_packet_path(stdout)
 
 
 def _with_packet_file(stdout: str) -> str:
@@ -522,7 +518,8 @@ class NavigatorContractTests(unittest.TestCase):
             else:
                 # emit prints the whole packet when it fits PRINT_LIMIT, else a head and the file; either way the
                 # complete packet leads with the prefix.
-                packet_path = _packet_path_from_stdout(cold)
+                # (``cold`` already ends with the file's text when the print was a head: read the file the pointer names)
+                packet_path = packet_file_named(cold)
                 full = packet_path.read_text(encoding="utf-8") if packet_path else cold
                 self.assertTrue(full.startswith(expected_prefix), cold)
             for command in ("pause", "halt"):
@@ -2788,16 +2785,17 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(initial.count("Current stage guidance:"), 1)
         # The first callback line is the only one: no second "Call this when done:" and no "Write the structured
         # result to:" line (the callback's --result names the file).
-        # emit prints the whole packet at or below PRINT_LIMIT: no head and no "Full packet:" pointer.
+        # emit prints the whole packet at or below PRINT_LIMIT: no head (its "Full packet:" line names the file the print holds).
         self.assertIsNone(_packet_path_from_stdout(started.stdout), started.stdout)
         self.assertEqual(started.stdout.count("Callback for this stage "), 1)
         self.assertNotIn("Call this when done:", initial)
         self.assertNotIn("Write the structured result to:", initial)
-        # The owner rule, the index pointer and the callback lead the packet, in that order (2026-10-16), found by constant
+        # The two pointers, the callback and the owner rule lead the packet, in that order (2026-10-17), found by constant
         # and label (shiploop_packet_view), not by line number.
-        view = assert_top_block(self, initial)
+        view = assert_top_block(self, initial, require=("pointer", "packet", "callback", "owner"))
         self.assertTrue(view["header"].startswith("ShipLoop navigator | intake | "), view["header"])
-        self.assertEqual(view["pointer"], prompts.index_pointer(run_dir.resolve() / "context-index.md"))
+        self.assertEqual(view["pointer"], prompts.recovery_pointer(" ".join(shlex.quote(part) for part in (
+            "python3", str(cli.resolve()), "next", f"--run-dir={run_dir.resolve()}"))))
         lead = view["callback"]
         self.assertTrue(lead.startswith("Callback for this stage "), lead)
         completion_command = lead.split("): ", 1)[1]

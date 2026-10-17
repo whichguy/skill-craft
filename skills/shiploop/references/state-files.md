@@ -110,11 +110,14 @@ superseded results. It is a derived view with pointers and short summaries, not
 another record; `state.md` stays the authority, and nothing writes the index
 but the script.
 
-Every packet, the Improve packets included, puts two lines under its header (owner,
-2026-10-16): the owner rule, then a pointer to this index to read first after lost context or
-any doubt, so no stage is limited to the result of the stage before it. The pointer is
-defined once (`shiploop_prompts.index_pointer`) and `emit` writes the index when a run lacks
-it. Active packets also print, in
+Every producer packet puts two pointer lines under its header (owner, 2026-10-16; moved
+2026-10-17 because a model follows a command and rarely opens a file): the `next` command to run
+after lost context or any doubt, then `Full packet: <path>`, the packet file, whose References
+block lists this index (`Run records: RUN/context-index.md`) and `reference.md` and what each holds,
+so no stage is limited to the result of the stage before it. Each is defined once
+(`shiploop_prompts.recovery_pointer`, `packet_pointer`), and `emit` writes the index when a run
+lacks it. An Improve packet that asks for a bind or a restart keeps the `next` pointer; the bound one
+carries neither pointer. Active packets also print, in
 their References block, **Results this stage builds on**: the accepted results
 and durable products of the stages named by the script-owned `STAGE_READS` map in
 `shiploop_context_index.py` (for example `verify` reads the spec, test strategy

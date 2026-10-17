@@ -94,8 +94,9 @@ class IndexTests(unittest.TestCase):
 
 
 class MasterIndexTests(unittest.TestCase):
-    """context-index.md is the run's master index (owner, 2026-10-16): every packet's second line points at it, so a model
-    that lost its context finds every other file of the run from here.  It stays a derived view (the existing tests)."""
+    """context-index.md is the run's master index (owner, 2026-10-16): every producer packet's References block names it
+    (the "Run records" line that the packet's second pointer line relies on, unit U8), so a model that lost its context
+    finds every other file of the run from here.  It stays a derived view (the existing tests)."""
 
     MAP_LIMIT = 3_600  # "about 3 KB" of map (3,500 until U17 added the RUN/request.md row); paths take the rest
 

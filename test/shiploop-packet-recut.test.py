@@ -306,60 +306,92 @@ class PrintedHeadTests(unittest.TestCase):
 
     def test_a_head_that_would_pass_the_host_cut_drops_the_quoted_knowledge_not_the_duties(self) -> None:
         """The quoted knowledge files and hand-offs are the last thing a head carries, and only while the head stays within
-        the host's cut (efficiency plan U7; before it, while the head stayed within PRINT_LIMIT): else one line says they
-        are in the packet file.  The duties and the rules are never dropped."""
+        the host's cut (efficiency plan U7; before it, while the head stayed within PRINT_LIMIT): else the packet's second
+        pointer line, which every print carries, says the file holds them (the stub line that did is gone, unit U8).  The
+        duties and the rules are never dropped."""
         with budget.reference_tmpdir():
             heads = packets.offline_packets(CASES["node-fix-bug"], printed=True, measure_for=budget.reference_measure)
         for key, text in heads.items():
-            if "Full packet:" not in text:
-                continue
+            if not text.endswith(navigator.HEAD_END + "\n") or "Full packet:" not in text:
+                continue  # the file (a whole print's text) and the Improve packets have no head to check
             with self.subTest(packet=key):
-                quoted = ("Knowledge files this stage reads, each quoted whole" in text
-                          or "Handed off by earlier stages, quoted by value" in text)
-                stub = "in the full packet, each quoted whole" in text
-                self.assertNotEqual(quoted, stub, "a head quotes the files or says where they are, not both and not neither")
+                self.assertNotIn("in the full packet, each quoted whole", text)  # nothing stands in for what was left out
+                self.assertIn("the knowledge files quoted whole and the hand-offs", text)  # line B says the file holds them
                 self.assertIn("Current stage guidance:", text)
-                self.assertIn("Never end the turn while a ShipLoop command is still running.", text)
+                self.assertIn("Run ShipLoop commands in the foreground", text)  # the rules' own text, not a pointer line
 
 
 class OwnerLinesTests(unittest.TestCase):
     """The owner, 2026-10-16: "the first line of each packet should say something like: read this file if you don't have
     context about prior paths and what you're doing, or if you're uncertain in any way ... be clear at the top of each
     packet about where the master reference index is".  Measured in the Salesforce chess run: the model never opened the
-    run's context-index.md (0 reads across five compactions) although a mid-packet line named it, so the pointer moved
-    under the first line and the mid-packet line went."""
+    run's context-index.md (0 reads across five compactions) although a mid-packet line named it, and it cut every print
+    with its own `head`.  A command is followed and a file is not (0 of 103 listed pointers), so the first pointer line is
+    the literal `next` command and the second names the packet file, which holds everything and whose References block
+    lists the other references (efficiency plan 6.2, D-21; unit U8).  Which kind of packet carries which lines (D-26):
 
-    POINTER = re.compile(r"^Lost context, or unsure of anything about this run\? Read (/\S+/context-index\.md) first: "
-                         r"it maps every file of this run and what it holds; open the file you need from there\.$")
+    - a producer packet: the two pointers, the callback, the owner rule;
+    - the paused, halted, blocked and done packets: the `next` pointer and the owner rule (they have no callback);
+    - an Improve packet that asks for a bind or a restart: the `next` pointer; the bound one: neither pointer nor owner rule
+      (it was followed exactly, 4 of 4, and is two instructions)."""
 
-    def check(self, text: str, label: str) -> None:
-        # Both lines under the header, in order (found by constant and label, not by line number: shiploop_packet_view).
-        view = assert_top_block(self, text, require=("owner", "pointer"), label=label)
-        self.assertRegex(view["pointer"], self.POINTER, label)
-        # Once each, and the old mid-packet line is gone (nothing says the pointer twice).
-        self.assertEqual(text.count("Owner rule:"), 1, label)
-        self.assertEqual(text.count("Lost context, or unsure"), 1, label)
-        self.assertEqual(text.count("context-index.md"), 1, label)
+    POINTER = re.compile(r"^Lost context, or unsure\? Run (python3 \S+ next --run-dir=\S+) \(it reprints this step\)\.$")
+    PACKET = re.compile(r"^Full packet: (/\S+\.md) - open it with a file tool, not the shell, when this print was cut \(a complete "
+                        r"print ends with the line === end ShipLoop head ===\) or you need the duties or the template; it also "
+                        r"holds the original request, the knowledge files quoted whole and the hand-offs\. Its References block "
+                        r"lists the other references and what each holds; open only the section a step needs, never a whole "
+                        r"reference file, and do not re-read the ShipLoop skill card\.$")
+
+    def check(self, text: str, label: str, kind: str = "producer") -> None:
+        """The top block of one packet, found by constant and label (shiploop_packet_view), once each, in order."""
+        require = {"producer": packet_view.PRODUCER, "non-producer": ("pointer", "owner"), "improve-open": ("pointer",),
+                   "improve-bound": ()}[kind]
+        view = assert_top_block(self, text, require=require, label=label)
+        absent = {"producer": (), "non-producer": ("packet", "callback"), "improve-open": ("owner", "packet"),
+                  "improve-bound": ("pointer", "packet", "owner")}[kind]
+        for part in absent:
+            self.assertNotIn(part, view, label + ": a " + kind + " packet carries no " + part + " line")
+        if "pointer" in view:
+            self.assertRegex(view["pointer"], self.POINTER, label)
+        if "packet" in view:
+            self.assertRegex(view["packet"], self.PACKET, label)
+        # Once each, and the old index pointer is gone (nothing says the pointers twice).
+        self.assertEqual(text.count("Owner rule:"), 1 if "owner" in view else 0, label)
+        self.assertEqual(text.count("Lost context, or unsure"), 1 if "pointer" in view else 0, label)
+        self.assertEqual(text.count("Full packet: "), 1 if "packet" in view else 0, label)
+        self.assertNotIn("Lost context, or unsure of anything", text, label)
         self.assertNotIn("Run context index", text, label)
+        if kind == "producer":
+            packet_view.assert_callback_after_pointers(self, text, label=label)
 
-    def test_every_offline_packet_has_both_lines_directly_under_its_header_once(self) -> None:
+    def kind_of(self, key: str) -> str:
+        # The offline walk does not start the runtime, so its Improve packets are the ones that ask for a restart.
+        return "improve-open" if key.endswith("-improve") else "producer"
+
+    def test_every_offline_packet_has_its_top_block_once(self) -> None:
         seen = 0
         for delegation in prompts.DELEGATIONS:
             for printed in (False, True):
                 for key, text in packets.offline_packets(CASES["node-fix-bug"], delegation, printed=printed).items():
                     with self.subTest(delegation=delegation, printed=printed, packet=key):
-                        self.check(text, key)
+                        self.check(text, key, self.kind_of(key))
                         seen += 1
         self.assertGreater(seen, 40)  # inner producers and Improve packets, both routes, whole and printed
 
-    def test_the_constants_are_defined_once_and_the_pointer_takes_the_path(self) -> None:
+    def test_the_constants_are_defined_once_and_the_pointers_take_the_command_and_the_path(self) -> None:
         self.assertEqual(prompts.OWNER_RULE,
                          "Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value.")
-        self.assertEqual(prompts.index_pointer("/r/run/context-index.md"),
-                         "Lost context, or unsure of anything about this run? Read /r/run/context-index.md first: it maps "
-                         "every file of this run and what it holds; open the file you need from there.")
+        self.assertEqual(prompts.recovery_pointer("python3 /i/shiploop next --run-dir=/r/run"),
+                         "Lost context, or unsure? Run python3 /i/shiploop next --run-dir=/r/run (it reprints this step).")
+        self.assertEqual(prompts.packet_pointer("/r/run/packets/a.md", navigator.HEAD_END),
+                         "Full packet: /r/run/packets/a.md - open it with a file tool, not the shell, when this print was cut "
+                         "(a complete print ends with the line === end ShipLoop head ===) or you need the duties or the "
+                         "template; it also holds the original request, the knowledge files quoted whole and the hand-offs. "
+                         "Its References block lists the other references and what each holds; open only the section a step "
+                         "needs, never a whole reference file, and do not re-read the ShipLoop skill card.")
         scripts = ROOT / "skills/shiploop/scripts"
-        for needle in ("Owner rule: concise and exact", "Lost context, or unsure of anything"):
+        for needle in ("Owner rule: concise and exact", "Lost context, or unsure?", " - open it with a file tool, not the shell",
+                       "Callback for this stage (run once after its work"):
             homes = sorted(path.name for path in scripts.glob("*.py") if needle in path.read_text(encoding="utf-8"))
             self.assertEqual(homes, ["shiploop_prompts.py"], needle)
 
@@ -377,26 +409,34 @@ class OwnerLinesTests(unittest.TestCase):
                 state = navigator.apply(state, action, step["result"])
                 if state.get("active_improve") is not None:  # the unbound Improve packet (improve-bind)
                     improves += 1
-                    self.check(navigator.render(dry_run.CORE, dry_run.RUN, state), stage + " improve")
+                    self.check(navigator.render(dry_run.CORE, dry_run.RUN, state), stage + " improve", "improve-open")
             else:
                 state = navigator.finish_improve(state, action, step["receipt"], step.get("final_result"))
         self.assertEqual(stages, set(stage_spec.STAGES))
         self.assertGreater(improves, 5)
         self.assertEqual(state["status"], "done")
-        self.check(navigator.render(dry_run.CORE, dry_run.RUN, state), "done")
+        self.check(navigator.render(dry_run.CORE, dry_run.RUN, state), "done", "non-producer")
         fresh = navigator.new_state("/simulation-only/repo", "Owner lines fixture.", delegation="inline")
-        self.check(navigator.render(dry_run.CORE, dry_run.RUN, navigator.control(fresh, "pause", "The user asked.")), "paused")
-        self.check(navigator.render(dry_run.CORE, dry_run.RUN, navigator.control(fresh, "halt", "The user stopped.")), "halted")
+        self.check(navigator.render(dry_run.CORE, dry_run.RUN, navigator.control(fresh, "pause", "The user asked.")),
+                   "paused", "non-producer")
+        self.check(navigator.render(dry_run.CORE, dry_run.RUN, navigator.control(fresh, "halt", "The user stopped.")),
+                   "halted", "non-producer")
 
-    def test_a_started_improve_packet_has_both_lines_and_stays_under_its_ceiling(self) -> None:
+    def test_a_started_improve_packet_carries_neither_pointer_nor_owner_rule_and_stays_under_its_ceiling(self) -> None:
         with tempfile.TemporaryDirectory(prefix="recut-owner-") as temp:
             run, state = ImprovePacketTests()._started_state(temp)
             packet = navigator.render(None, run, state)
-            self.check(packet, "started improve")
+            self.check(packet, "started improve", "improve-bound")
             self.assertLess(len(packet), IMPROVE_CEILING)
             self.assertEqual(navigator.improve_packet(None, run, state), packet)
+            # a review the runtime refused to start keeps the pointer: its model has no instruction yet to come back to
+            import shiploop_standalone_improve as standalone
+            standalone.receipt_path(state["active_improve"]).unlink()
+            stopped = navigator.render(None, run, state)
+            self.check(stopped, "stopped improve", "improve-open")
+            self.assertIn("--restart-stopped", stopped)
 
-    def test_the_pointer_names_the_real_index_and_emit_leaves_that_file_on_disk(self) -> None:
+    def test_emit_names_the_file_it_writes_and_the_references_block_names_the_two_run_records(self) -> None:
         import contextlib
         import io
         with tempfile.TemporaryDirectory(prefix="recut-owner-") as temp:
@@ -414,9 +454,14 @@ class OwnerLinesTests(unittest.TestCase):
                 with contextlib.redirect_stdout(out):
                     navigator.emit(CORE, run, state)
                 self.assertTrue(index.is_file())
-                view = assert_top_block(self, out.getvalue(), require=("owner", "pointer"))
-                self.assertEqual(view["pointer"], prompts.index_pointer(index))
+                view = packet_view.assert_callback_after_pointers(self, out.getvalue())
+                written = navigator.packet_path(run, state)
+                self.assertTrue(written.is_file())
+                self.assertEqual(self.PACKET.match(view["packet"]).group(1), str(written))
+                self.assertEqual(view["pointer"], prompts.recovery_pointer(navigator._callback(CORE, run, "next")))
                 self.assertIn(f"revision {state['revision']}", index.read_text(encoding="utf-8"))
+                # line B promises "its References block lists the other references and what each holds"
+                self.assertIn("Run records: " + navigator.RUN_RECORDS_LINE, written.read_text(encoding="utf-8"))
 
 
 class ImproveInvocationTests(unittest.TestCase):
@@ -451,11 +496,14 @@ class TopBlockHelperTests(unittest.TestCase):
             assert_top_block(self, lines, **kwargs)
         self.assertIn(expect, str(caught.exception))
 
+    ALL = ("pointer", "packet", "callback", "owner", "goal", "done_when")
+
     def test_a_real_packet_passes_and_the_view_names_each_part_in_order(self) -> None:
-        view = assert_top_block(self, self.lines, require=("owner", "pointer", "callback", "goal", "done_when"))
+        view = assert_top_block(self, self.lines, require=self.ALL)
         self.assertEqual(sorted(view.at, key=view.at.get), list(packet_view.TOP_ORDER))
         self.assertEqual(view["owner"], prompts.OWNER_RULE)
         self.assertTrue(view["callback"].startswith("Callback for this stage"))
+        packet_view.assert_callback_after_pointers(self, self.lines)
 
     def test_a_callback_moved_below_the_goal_fails(self) -> None:
         view = packet_view.top_block(self.lines)
@@ -474,13 +522,16 @@ class TopBlockHelperTests(unittest.TestCase):
         below = list(self.lines)
         below.insert(view.index("callback") + 1, below.pop(view.index("pointer")))  # the pointer below the callback
         self.fails(below, "pointer")
+        packet = list(self.lines)
+        packet[view.index("pointer")], packet[view.index("packet")] = packet[view.index("packet")], packet[view.index("pointer")]
+        self.fails(packet, "packet")  # the two pointer lines swapped
 
     def test_a_part_that_is_required_and_not_found_fails_never_passes(self) -> None:
         view = packet_view.top_block(self.lines)
-        for part in ("owner", "pointer", "callback", "goal", "done_when"):
+        for part in self.ALL:
             with self.subTest(part=part):
                 lines = [line for number, line in enumerate(self.lines) if number != view.index(part)]
-                self.fails(lines, "has no " + part + " line", require=("owner", "pointer", "callback", "goal", "done_when"))
+                self.fails(lines, "has no " + part + " line", require=self.ALL)
         self.fails(self.lines[view.index("header") + 1:], "no line starts with")   # no header at all
         self.fails(self.lines, "is not a part of the top block", require=("calback",))  # a misspelt part is refused
         with self.assertRaises(AssertionError):
@@ -488,21 +539,58 @@ class TopBlockHelperTests(unittest.TestCase):
 
     def test_a_callback_that_sank_out_of_the_top_block_fails_even_without_a_goal(self) -> None:
         view = packet_view.top_block(self.lines)
-        # A packet with no goal (the bound Improve packet is one): only the bound can say the callback left the top.
-        lines = [line for number, line in enumerate(self.lines) if number not in (view.index("goal"), view.index("done_when"))]
+        # A packet with no goal and no owner rule (an Improve packet is one): only the bound can say the callback left the top.
+        gone = (view.index("goal"), view.index("done_when"), view.index("owner"))
+        lines = [line for number, line in enumerate(self.lines) if number not in gone]
         callback = lines.pop(view.index("callback"))
         lines.insert(view.index("header") + packet_view.TOP_WINDOW + 5, callback)
-        self.fails(lines, "not within", require=("owner", "pointer", "callback"))
-        assert_top_block(self, lines, require=("owner", "pointer", "callback"), within=None)  # the bound is the only failure
+        self.fails(lines, "not within", require=("pointer", "packet", "callback"))
+        assert_top_block(self, lines, require=("pointer", "packet", "callback"), within=None)  # the bound is the only failure
 
-    def test_a_line_inserted_between_the_parts_is_tolerated(self) -> None:
-        """The later layouts add lines (a recovery pointer, a Full packet pointer, a style slot) between the parts: the
-        order holds and nothing addresses a line, so nothing fails."""
+    def test_a_line_inserted_between_the_parts_is_tolerated_by_the_order_check(self) -> None:
+        """A later layout adds a line between the parts: the order holds and nothing addresses a line, so no caller of
+        ``assert_top_block`` fails.  Only the one position test (``assert_callback_after_pointers``) says what may stand
+        between the header and the callback."""
         view = packet_view.top_block(self.lines)
         lines = list(self.lines)
         lines.insert(view.index("pointer") + 1, "A line a later layout adds under the pointer.")
         lines.insert(view.index("header") + 1, "A line a later layout adds under the header.")
-        assert_top_block(self, lines, require=("owner", "pointer", "callback", "goal", "done_when"))
+        assert_top_block(self, lines, require=self.ALL)
+
+    def test_the_callback_position_test_fails_on_a_line_between_the_pointers_and_on_a_label_too_far_down(self) -> None:
+        view = packet_view.top_block(self.lines)
+        for where in (view.index("header") + 1, view.index("pointer") + 1, view.index("packet") + 1):
+            lines = list(self.lines)
+            lines.insert(where, "A line a unit puts between the header and the callback.")
+            with self.assertRaises(AssertionError) as caught:
+                packet_view.assert_callback_after_pointers(self, lines)
+            self.assertIn("between the header and the callback", str(caught.exception))
+        long = list(self.lines)
+        long[view.index("packet")] += " " + "x" * packet_view.CALLBACK_CHARS
+        with self.assertRaises(AssertionError) as caught:
+            packet_view.assert_callback_after_pointers(self, long)
+        self.assertIn("characters after the header", str(caught.exception))
+        # a line after the callback (the owner rule, a style slot, the delegation notice) is not a failure
+        after = list(self.lines)
+        after.insert(view.index("callback") + 1, "A style slot.")
+        packet_view.assert_callback_after_pointers(self, after)
+
+    def test_the_packet_file_a_print_names_is_read_from_the_pointer_line_and_a_whole_print_is_not_a_head(self) -> None:
+        """Ten suites read the complete packet from the file the `Full packet:` line names (the line carries a sentence
+        after the path since plan 6.2, and every producer print has it): a head leads to the file, a whole print holds it."""
+        with tempfile.TemporaryDirectory(prefix="recut-view-") as temp:
+            path = Path(temp) / "nav-a.md"
+            body = ("ShipLoop navigator | spec | revision 1\n" + prompts.packet_pointer(path, navigator.HEAD_END)
+                    + "\nGoal: x\nthe rest of the file\n")
+            path.write_text(body, encoding="utf-8")
+            whole = body + navigator.HEAD_END + "\n"
+            head = body[:body.index("the rest")] + navigator.HEAD_END + "\n"
+            self.assertEqual(packet_view.packet_file_named(whole), path)
+            self.assertEqual(packet_view.packet_file_named(head), path)
+            self.assertIsNone(packet_view.head_packet_path(whole))
+            self.assertEqual(packet_view.head_packet_path(head), path)
+            self.assertIsNone(packet_view.packet_file_named("a print with no pointer line\n"))
+            self.assertIsNone(packet_view.head_packet_path("a print with no pointer line\n"))
 
     def test_a_reported_outcome_the_stage_does_not_accept_is_found(self) -> None:
         """named_outcomes reads only 'report <outcome>' and 'Report outcome <outcome>'; unaccepted_outcomes compares them
