@@ -2434,7 +2434,7 @@ class ConsumerCheckLocationTests(unittest.TestCase):
         self.assertIn("did not observe the user's checkout", text)
 
     def test_the_skill_card_and_the_workspace_lifecycle_card_say_the_same(self) -> None:
-        skill = " ".join((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8").split())
+        skill = " ".join((REFERENCES / "test-loop.md").read_text(encoding="utf-8").split())  # moved from the card by U22
         self.assertIn("clean copy of the result the workspace return delivered", skill)
         self.assertIn("`consumer-check`", skill)
         lifecycle = " ".join((REFERENCES / "workspace-lifecycle.md").read_text(encoding="utf-8").split())
@@ -2641,7 +2641,7 @@ class UnverifiedWordingTests(unittest.TestCase):
 
     def test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints(self) -> None:
         # S-3: the card agrees with the script. The four faults are the ones the stage's Checked-by line names.
-        skill = normalized((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8"))
+        skill = normalized((REFERENCES / "test-loop.md").read_text(encoding="utf-8"))  # moved from the card by U22
         for phrase in ("a done `product-acceptance` lists it in `unverified`",
                        "(outcome, reason, check, owner, due stage)", "`[]` says every outcome was observed",
                        "ShipLoop refuses a missing list, an incomplete or placeholder entry and a due stage that is "

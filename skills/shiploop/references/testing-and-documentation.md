@@ -93,7 +93,7 @@ move them.
 
 ## How ShipLoop runs the recorded commands
 
-The card's [test loop](../SKILL.md#test-loop) says what ShipLoop runs at `test`
+The card's [test loop](test-loop.md#test-loop) says what ShipLoop runs at `test`
 and `verify`. This section holds the detailed rules: how a run is read, the
 floors and their known limits, stages recorded as not applicable, the outer
 reruns and runs that reached no verdict.

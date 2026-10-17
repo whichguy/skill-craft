@@ -1,0 +1,9 @@
+fail-first on base 9f949689 (SKILL.md and references before U22): 13 problems
+  SKILL.md: 'shiploop next --run-dir' first at line None, not by line 40
+  SKILL.md: the recovery block does not follow the title
+  SKILL.md: 83199 bytes > 30000
+  backchain-route.md: missing
+  chain-navigation.md: missing
+  chain-route.md: missing
+  guide-map.md: missing
+  improve-child.md: missing

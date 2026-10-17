@@ -42,7 +42,7 @@
      "anchors": [{"any": ["Until Loop (no iteration limit"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
                  {"any": ["Exit when ALL of these hold"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
                  {"any": ["----- BEGIN until-loop ARGUMENT -----"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
-                 {"any": [" start --receipt "], "source": "skills/shiploop/SKILL.md"}]},
+                 {"any": [" start --receipt "], "source": "skills/shiploop/references/inner-loop.md"}]},
     {"id": "test-summary", "obligation": "the test stage's duty 2 asks the summary for the test decisions retained, refined or superseded, and its result template asks the summary for what no ShipLoop record holds: the tests added and what each asserts, and any test changed to pass a run with its independent reason (unit U14, TD-12)", "kinds": ["producer"], "surface": "head",
      "when": {"file_has": "ShipLoop navigator | test |"},
      "anchors": [{"any": ["Summary: which decisions you retain, refine or supersede and why"], "source": "skills/shiploop/scripts/shiploop_prompts.py"},

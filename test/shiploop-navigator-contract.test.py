@@ -955,7 +955,8 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertNotIn("Until Loop `SKILL.md`", plan)
         self.assertNotIn("convergence_policy.max_passes", plan)
         self.assertNotIn("default maximum of six assessment passes", plan)
-        for source in (self.backchain_planning_guide, SCRIPTS.parent / "SKILL.md"):
+        # The card's Backchain section moved to references/backchain-route.md (unit U22, the entry-card split).
+        for source in (self.backchain_planning_guide, SCRIPTS.parent / "references" / "backchain-route.md"):
             with self.subTest(source=source):
                 source_text = " ".join(source.read_text(encoding="utf-8").split())
                 for requirement in (
@@ -1111,7 +1112,9 @@ class NavigatorContractTests(unittest.TestCase):
         """The frozen embedded Backchain adaptation is retired (no mode, default or pin)."""
         texts = {
             "guide": self.backchain_planning_guide.read_text(encoding="utf-8"),
-            "card": (SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8"),
+            # The card and the purpose file its Backchain section moved to (unit U22).
+            "card": (SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8")
+            + (SCRIPTS.parent / "references" / "backchain-route.md").read_text(encoding="utf-8"),
         }
         for stage in EXPECTED_STAGES:
             texts["prompt " + stage] = prompts.prompt(stage)
@@ -3289,9 +3292,11 @@ class PlanningReviewOptionTest(unittest.TestCase):
 
     def test_the_documents_the_host_reads_name_the_option(self) -> None:
         skill = ROOT / "skills" / "shiploop"
-        guide = (skill / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("### Planning review option", guide)
-        option = " ".join(guide.split("### Planning review option", 1)[1].split("\n### ", 1)[0].split())
+        # The option's section moved from the card to references/run-options.md (unit U22); the card names the option.
+        self.assertIn("--planning-review stage|none", (skill / "SKILL.md").read_text(encoding="utf-8"))
+        guide = (skill / "references" / "run-options.md").read_text(encoding="utf-8")
+        self.assertIn("## Planning review option", guide)
+        option = " ".join(guide.split("## Planning review option", 1)[1].split("\n## ", 1)[0].split())
         self.assertIn("`planning_review`", option)
         self.assertIn("--planning-review", option)
         synopsis = [line for line in (skill / "README.md").read_text(encoding="utf-8").splitlines()
@@ -3624,7 +3629,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
     # (document, words of the sentence) -> why it may stay unqualified.  A sentence that says a planning result
     # is reviewed is not here: it says when (`stage` runs) in its own words.
     SENTENCES = {
-        ("SKILL.md", "Their Improve handoffs carry a planning review focus"):
+        ("references/improve-stages.md", "Their Improve handoffs carry a planning review focus"):
             "the same list item's first sentence names `planning_review` and the stages its reviews cover",
         ("references/behavioral-requirements.md", "The spec producer and its Improve review apply them"):
             DESCRIBES_THE_CONTENT,
@@ -3718,12 +3723,13 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
                           "candidate."])  # naming a child that always runs does not excuse the rest of the sentence
 
     def test_the_schedule_statements_say_what_none_does(self) -> None:
-        raw = (self.SKILL / "SKILL.md").read_text(encoding="utf-8")
-
-        def section(heading: str) -> str:
+        # Both sections moved from the card to purpose files (unit U22, the entry-card split).
+        def section(name: str, heading: str) -> str:
+            raw = (self.SKILL / "references" / name).read_text(encoding="utf-8")
             return " ".join(re.split(r"\n#{2,3} ", raw.split(heading, 1)[1], maxsplit=1)[0].split())
 
-        when, option = section("### When Improve runs"), section("### Planning review option")
+        when = section("improve-stages.md", "## When Improve runs")
+        option = section("run-options.md", "## Planning review option")
         self.assertIn("`planning_review`", when)
         self.assertIn("`none`", when)
         for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `carry-forward`",
@@ -3848,8 +3854,8 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                 self.assertTrue(holders, statement)
                 for paragraph in holders:
                     self.assertIn("`none`", paragraph)
-        skill = (self.SHIPLOOP / "SKILL.md").read_text(encoding="utf-8")
-        option = " ".join(skill.split("### Backchain passes option", 1)[1].split("\n### ", 1)[0].split())
+        skill = (self.SHIPLOOP / "references" / "backchain-route.md").read_text(encoding="utf-8")  # moved by U22
+        option = " ".join(skill.split("## Backchain passes option", 1)[1].split("\n## ", 1)[0].split())
         for required in ("`none`", "no whole `plan`/`draft` is requested"):
             with self.subTest(required=required):
                 self.assertIn(required, option)
@@ -3863,7 +3869,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
         for mode, pointer in (("one", True), ("none", True), ("converge", False)):
             with self.subTest(mode=mode):
                 self.assertEqual("Backchain passes: one" in guidance("spec", mode), pointer)
-        for path in (self.SHIPLOOP / "SKILL.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
+        for path in (self.SHIPLOOP / "references" / "backchain-route.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
             for sentence in self.sentences(path.read_text(encoding="utf-8")):
                 if "exit condition" in sentence and "`converge`" in sentence:
                     with self.subTest(path=path.name, text=sentence[:80]):
@@ -3902,7 +3908,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                 self.assertIn(required, step)
 
     def test_the_shiploop_documents_point_to_the_packets_printed_gate(self) -> None:
-        for path in (self.SHIPLOOP / "SKILL.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
+        for path in (self.SHIPLOOP / "references" / "backchain-route.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
             flat = self.flat(path)
             with self.subTest(path=path.name):
                 self.assertIn("packet's printed gate", flat)

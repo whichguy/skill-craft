@@ -110,6 +110,75 @@ def python_script_problems(package: Path) -> list[str]:
     return problems
 
 
+CARD_LEDGER = ROOT / "test" / "fixtures" / "shiploop-card-ledger.json"
+_RECOVERY_COMMAND = "shiploop next --run-dir"
+
+
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
+def card_split_problems(package: Path, ledger: dict) -> list[str]:
+    """The entry-card split (efficiency unit U22): the recovery block, the size bounds and the moved-obligation ledger.
+
+    The card starts, right after its title, with the recovery block that names ``next --run-dir`` (by line 40) and
+    no "newest folder" guess; it is at most ``card_max_bytes`` and every split file at most ``file_max_bytes``; every
+    ledger row's anchors are in its home file, the card links that file, and every section of a split file has a row.
+    """
+
+    problems: list[str] = []
+    card_path = package / "SKILL.md"
+    card = card_path.read_text(encoding="utf-8")
+    lines = card.splitlines()
+    first = next((number for number, line in enumerate(lines, 1) if _RECOVERY_COMMAND in line), None)
+    if first is None or first > 40:
+        problems.append(f"SKILL.md: '{_RECOVERY_COMMAND}' first at line {first}, not by line 40")
+    title = next((number for number, line in enumerate(lines) if line.startswith("# ")), None)
+    block = next((line for line in lines[(title or 0) + 1:] if line.strip()), "") if title is not None else ""
+    if not block.startswith("Recovering after a reset"):
+        problems.append("SKILL.md: the recovery block does not follow the title")
+    if "newest" in card.lower():
+        problems.append("SKILL.md: a 'newest' fallback is named")
+    if len(card.encode("utf-8")) > ledger["card_max_bytes"]:
+        problems.append(f"SKILL.md: {len(card.encode('utf-8'))} bytes > {ledger['card_max_bytes']}")
+    homes = sorted({row["home"] for row in ledger["rows"]})
+    sections: dict[str, set[str]] = {}
+    for home in homes:
+        path = package / "references" / home
+        if not path.is_file():
+            problems.append(f"{home}: missing")
+            continue
+        text = path.read_text(encoding="utf-8")
+        size = len(text.encode("utf-8"))
+        if size > ledger["file_max_bytes"]:
+            problems.append(f"{home}: {size} bytes > {ledger['file_max_bytes']}")
+        heads = [line for line in text.splitlines() if line.startswith("## ")]
+        sections[home] = set(heads) | {line for line in text.splitlines()[:1] if line.startswith("# ")}
+        if f"references/{home}" not in card:
+            problems.append(f"{home}: the card does not link it")
+    flat_card = _flat(card)
+    covered: dict[str, set[str]] = {home: set() for home in homes}
+    for row in ledger["rows"]:
+        home, section = row["home"], row["section"]
+        path = package / "references" / home
+        if not path.is_file():
+            continue
+        if section not in sections.get(home, set()):
+            problems.append(f"{row['id']}: no section {section!r} in {home}")
+        covered[home].add(section)
+        if row["trigger"] not in flat_card:
+            problems.append(f"{row['id']}: the card lacks its trigger {row['trigger']!r}")
+        text = _flat(path.read_text(encoding="utf-8"))
+        for phrase in row["anchors"]:
+            if _flat(phrase) not in text:
+                problems.append(f"{row['id']}: {home} lacks {phrase!r}")
+    for home, heads in sections.items():
+        for head in sorted(heads - covered[home]):
+            if head.startswith("## "):
+                problems.append(f"{home}: section {head!r} has no ledger row")
+    return problems
+
+
 class PackageIntegrityTests(unittest.TestCase):
     def test_every_relative_markdown_link_resolves(self) -> None:
         self.assertEqual(broken_links(PACKAGE), [])
@@ -125,6 +194,9 @@ class PackageIntegrityTests(unittest.TestCase):
 
     def test_graph_dry_run_scenario_is_valid_json(self) -> None:
         json.loads((PACKAGE / "references" / "graph-dry-run-scenario.json").read_text())
+
+    def test_entry_card_split_holds_its_ledger_and_bounds(self) -> None:
+        self.assertEqual(card_split_problems(PACKAGE, json.loads(CARD_LEDGER.read_text(encoding="utf-8"))), [])
 
     @unittest.skipUnless(shutil.which("node"), "node is required for the OpenCode hook")
     def test_opencode_keepalive_hook_is_valid_module_syntax(self) -> None:
@@ -167,6 +239,55 @@ class CheckerSensitivityTests(unittest.TestCase):
         self.assertTrue(any(problem.startswith("shiploop-hook: ") and "line" in problem
                             for problem in script_problems), script_problems)
 
+
+
+class CardSplitSensitivityTests(unittest.TestCase):
+    """Each card-split check fails on a copy of the package with the defect it looks for."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.package = Path(tmp.name) / "shiploop"
+        shutil.copytree(PACKAGE, self.package, ignore=shutil.ignore_patterns("__pycache__", "scripts", "hooks"))
+        self.ledger = json.loads(CARD_LEDGER.read_text(encoding="utf-8"))
+        self.assertEqual(card_split_problems(self.package, self.ledger), [])
+
+    def edit(self, relative: str, old: str, new: str) -> None:
+        path = self.package / relative
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(old, text)
+        path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+    def test_a_lost_anchor_is_reported(self) -> None:
+        self.edit("references/test-loop.md", "7 genuine fix attempts", "several attempts")
+        self.assertEqual(card_split_problems(self.package, self.ledger),
+                         ["tests-pass-or-stop: test-loop.md lacks '7 genuine fix attempts'"])
+
+    def test_an_unledgered_section_and_an_unlinked_file_are_reported(self) -> None:
+        self.edit("references/chain-navigation.md", "## Navigation and settlement", "## Navigation\n\n## Settlement")
+        card = self.package / "SKILL.md"
+        card.write_text(card.read_text(encoding="utf-8").replace("references/chain-navigation.md", "elsewhere"),
+                        encoding="utf-8")
+        problems = card_split_problems(self.package, self.ledger)
+        self.assertIn("chain-navigation.md: the card does not link it", problems)
+        self.assertIn("chain-navigation.md: section '## Settlement' has no ledger row", problems)
+        self.assertIn("chain-navigation: no section '## Navigation and settlement' in chain-navigation.md", problems)
+
+    def test_the_size_bounds_and_the_recovery_block_are_checked(self) -> None:
+        card = (self.package / "SKILL.md").read_text(encoding="utf-8")
+        title, rest = card.split("# ShipLoop\n\n", 1)
+        block, after = rest.split("\n\n", 1)
+        (self.package / "SKILL.md").write_text(title + "# ShipLoop\n\n" + after + "\n" + "x" * 30_000 + "\n\n"
+                                               + block.replace("instead of guessing", "or take the newest folder")
+                                               + "\n", encoding="utf-8")
+        with (self.package / "references" / "run-start.md").open("a", encoding="utf-8") as handle:
+            handle.write("y" * 8_192)
+        problems = card_split_problems(self.package, self.ledger)
+        self.assertTrue(any(problem.startswith("SKILL.md: 'shiploop next --run-dir' first at line") for problem in problems))
+        self.assertIn("SKILL.md: the recovery block does not follow the title", problems)
+        self.assertIn("SKILL.md: a 'newest' fallback is named", problems)
+        self.assertTrue(any(problem.startswith("SKILL.md: ") and "> 30000" in problem for problem in problems))
+        self.assertTrue(any(problem.startswith("run-start.md: ") and "> 8192" in problem for problem in problems))
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,7 +6,7 @@ never migrated). The gate pass runs at `complete`: an `implement` step, `test`
 or `verify` is not accepted as done while a new finding on a line the item
 changed has no waiver. The pass on entry to `verify` is advisory, and ShipLoop never gates on the `shiploop lint` exit code.
 The step still selects and runs its own checks. See
-[the run option](../SKILL.md#script-owned-lint).
+[the run option](run-options.md#script-owned-lint).
 
 The fenced record at the end of this page is data that
 `scripts/shiploop_lint.py` reads at runtime. The safety pins below are fixed in
