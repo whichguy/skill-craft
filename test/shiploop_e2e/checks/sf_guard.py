@@ -12,11 +12,18 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
     own configuration (`org display|login|logout|create|delete`, `auth`, `login`, `logout`, `config`, `alias`, `plugins`, `update`,
     `org open`, `sfdxAuthUrl`, `--sfdx-url-file`), data writes (`data delete|create|update|upsert|import|export|bulk`), `project
     delete`, any deploy with `--post-destructive-changes`, `--pre-destructive-changes`, `--metadata-dir` or a manifest holding
-    `<members>*</members>`, a deploy that does not wait (`--async`, `--wait 0`: it would keep running in the org after the command
+    `<members>*</members>` or a DOCTYPE/ENTITY declaration (the CLI's XML parser and this check's could read it differently), a
+    deploy that does not wait (`--async`, or `--wait` below 5 minutes: the deploy can keep running in the org after the command
     returned), `--flags-dir` on any command (the CLI reads flag values from that directory after this check, so the call could not
-    be judged), a bare `--`, and every command not in ALLOW (the refusal lists what is allowed).
+    be judged), the old spellings of the org flags (`-u`, `--targetusername`, `--fromorg`: they select an org without being read as
+    `--target-org` / `--from-org`), a bare `--`, and every command not in ALLOW (the refusal lists what is allowed). `project deploy
+    quick|cancel|resume` are not in ALLOW: they take the org from the CLI's global deploy cache (~/.sf/deploy-cache.json, shared
+    with the owner's own deploys), so `--target-org` does not pin them. `project deploy report` is allowed only with `--job-id` and
+    never with `--use-most-recent` / `-r`, for the same reason.
   * PINNED: a command that talks to an org must carry `--target-org <org>` (or `-o <org>`), every occurrence equal to the case's
-    org; a missing or different one is refused, so no command falls back to the default org.
+    org; a missing or different one is refused, so no command falls back to the default org. The real sf is also run with
+    `SF_TARGET_ORG=<org>` and every other default-org variable (`SFDX_DEFAULTUSERNAME`, `SF_TARGET_DEV_HUB` ...) removed from its
+    environment, so a pin the guard read but the CLI did not (a flag spelling the guard misjudged) falls back to the case's org.
   * SCOPED: `project deploy start|validate` may carry only the components the owner approved: ApexClass, CustomTab,
     CustomApplication and FlexiPage named <prefix>* (an underscore suffix is fine: SLChess_Board) and LightningComponentBundle named
     <lwcPrefix>* (SLChess -> slChess). Every `--source-dir` tree, `--metadata` entry and `--manifest` is checked (with none of them,
@@ -40,6 +47,9 @@ The real sf is the first `sf` on PATH outside the wrapper's own directory ($E2E_
 wrapper never calls itself; in hermetic tests that `sf` is test/shiploop_e2e/fake_sf.py.
 
 Known limits (adversarial only; the harness's cleanup and its comparison with the recorded baseline are the backstop, not this file):
+a deploy can outlive its command: a host's tool timeout kills the local sf with SIGTERM but not the deploy running server side, and
+even a wait of 5 minutes can end before a large deploy does, so the CASE's cleanup must check for deploys still in progress before it
+removes anything (the guard cannot see the org's deploy queue);
 the deploy scope does not bound what else runs in the org, because `apex run --file` and `apex run test` execute arbitrary Apex there
 (including the DML the `data` denials stop); sfdx-project.json is writable by the model, and its packageDirectories (the default
 scope), registryCustomizations and replacements change what the CLI deploys; `project retrieve start` accepts `--output-dir`,
@@ -64,20 +74,22 @@ SECRET_FIELD_RE = re.compile(r"""(?P<head>(?:%s)(?:\\*["'])?\s*[:=]\s*(?:\\*["']
 SESSION_RE = re.compile(r"00D[A-Za-z0-9]{12,15}![A-Za-z0-9._]{20,}")
 AUTH_URL_RE = re.compile(r"force://[^\s\"']+")
 WILDCARD_RE = re.compile(r"<members>\s*\*\s*</members>")
+DECLARATION_RE = re.compile(r"<!(?:DOCTYPE|ENTITY)", re.IGNORECASE)
 LOG_NAME = "sf-calls.jsonl"
 ARG_LIMIT = 300  # characters of one argument kept in the log
 KILL_GRACE = 5.0  # seconds a signalled sf gets to exit before it is killed
 SCOPE_SHOWN = 5  # out-of-scope files a refusal names
 SCOPE_WALK = 50000  # entries one deploy may make the guard look at before it is refused as too large
 MANIFEST_LIMIT = 1_000_000  # bytes of a manifest the guard reads
+MIN_DEPLOY_WAIT = 5  # minutes: a deploy command with a shorter --wait is refused
 SHOWN_LIMIT = 80  # characters of a model- or file-chosen name a refusal repeats
 REASON_LIMIT = 2000  # characters of a reason kept in the log
 SIGNALS = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)  # forwarded to the real sf while it runs
 
-# (command words) -> exact match unless listed in PREFIX_OK. Org-talking commands are PINNED; the rest are LOCAL.
+# (command words) -> exact match unless listed in PREFIX_OK. Org-talking commands are PINNED; the rest are LOCAL. `project deploy
+# quick|cancel|resume` are left out on purpose: they take the org from the CLI's global deploy cache, which --target-org does not pin.
 PINNED = {
     ("project", "deploy", "start"), ("project", "deploy", "validate"), ("project", "deploy", "report"),
-    ("project", "deploy", "quick"), ("project", "deploy", "cancel"), ("project", "deploy", "resume"),
     ("project", "retrieve", "start"), ("project", "retrieve", "preview"),
     ("apex", "run"), ("apex", "run", "test"), ("apex", "get", "test"), ("apex", "get", "log"), ("apex", "list", "log"),
     ("data", "query"), ("data", "get", "record"),
@@ -132,9 +144,16 @@ DEPLOY_OPTIONS = {
 }
 DEPLOY_SHORT = {short: name for name, short in DEPLOY_OPTIONS.items() if short}
 DEPLOY_GREEDY = ("--source-dir", "--metadata", "--tests", "--coverage-formatters")
-# The boolean short flags of the deploy commands (-c --ignore-conflicts, -r --ignore-errors, -g --ignore-warnings). oclif reads
-# `-rd evil` as -r and then -d, so they are peeled off the front of a short-flag token before it is looked up.
-DEPLOY_BOOLEAN_SHORTS = "crg"
+# The boolean short flags of the allowed commands, all together: -c -r -g (deploy start), -r (deploy report), -c -z (retrieve start),
+# -y -c -v (apex run test), -c (apex get test|log), -b -t (data query), -t (data get record, sobject describe). oclif reads `-rd evil`
+# as -r and then -d, so they are peeled off the front of a short-flag token before it is looked up. A letter that takes a value in
+# another command (-r, -t) is only over-peeled there: the guard then reads a flag the CLI does not, which blocks a call or checks a
+# path the CLI would not deploy, and a pin that exists only for the guard falls back to the case's org (child_env).
+BOOLEAN_SHORTS = "bcgrtvyz"
+# The old spellings of --target-org (-u, --targetusername) and --from-org (--fromorg) that the CLI still accepts on some commands.
+LEGACY_ORG_FLAGS = ("--targetusername", "--fromorg")
+# The environment variables that set a default org or dev hub for the CLI (SF_TARGET_ORG, SFDX_DEFAULTUSERNAME ...).
+DEFAULT_ORG_ENV_RE = re.compile(r"(?:SF|SFDX)_(?:DEFAULT\w*|TARGET_\w+)")
 
 
 # ---------------------------------------------------------------------------------------------------------------- scrub
@@ -187,6 +206,16 @@ def has_flag(argv: list[str], long_name: str) -> bool:
     return any(token == long_name or token.startswith(long_name + "=") for token in argv)
 
 
+def has_short(argv: list[str], letter: str) -> bool:
+    """Whether a boolean short flag is given, alone or fused with other boolean short flags in front of another flag (`-r`, `-ro`)."""
+    for token in argv:
+        if token.startswith("-") and not token.startswith("--"):
+            letters = token[1:]
+            if letter in letters[:len(letters) - len(letters.lstrip(BOOLEAN_SHORTS))]:
+                return True
+    return False
+
+
 def allowed_commands() -> str:
     return ", ".join(sorted(" ".join(words) + (" ..." if words in PREFIX_OK else "") for words in PINNED | LOCAL))
 
@@ -202,6 +231,11 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
         return False, "auth URLs are credentials; none are accepted"
     if has_flag(argv, "--flags-dir"):
         return False, "--flags-dir is denied: the CLI would read flag values from files after this check; pass the flags on the command line"
+    for token in argv:
+        peeled = peel(token, BOOLEAN_SHORTS)  # `-tu other`: a boolean short flag in front of -u hides it
+        if token.startswith(LEGACY_ORG_FLAGS) or peeled.startswith("-u"):
+            return False, (f"{clip(token, 40)!r} is denied: -u, --targetusername and --fromorg are old spellings of the org flags that this "
+                           f"check does not read; use --target-org {org} (or --from-org {org})")
     if len(argv) == 1 and (argv[0],) in HELP_ONLY:
         return True, "local flag"
     if argv[0].startswith("-"):
@@ -221,8 +255,7 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
     if helping:
         return True, "help"
     deploying = match[:2] == ("project", "deploy")
-    booleans = DEPLOY_BOOLEAN_SHORTS if deploying else ""
-    given = flag_values(rest, "--target-org", "-o", booleans)
+    given = flag_values(rest, "--target-org", "-o", BOOLEAN_SHORTS)
     wrong = [value for value in given if value != org]
     if wrong:
         return False, f"--target-org must be {org!r} on every command (got {wrong[0]!r})"
@@ -238,12 +271,14 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
         for flag in ("--post-destructive-changes", "--pre-destructive-changes", "--metadata-dir"):
             if has_flag(rest, flag):
                 return False, f"deploy {flag} is denied (destructive or unreviewable package)"
-        if match[2] in ("start", "validate", "quick", "resume"):
-            no_wait = deploy_no_wait(rest, booleans)
+        if match[2] == "report":
+            problem = report_problem(rest)
+            if problem:
+                return False, problem
+        else:  # start, validate
+            no_wait = deploy_no_wait(rest)
             if no_wait:
-                return False, (f"deploy {no_wait} is denied: the deploy would keep running in the org after the command returns; "
-                               "leave it out and wait for the deploy to finish")
-        if match[2] in ("start", "validate"):
+                return False, f"deploy {no_wait[0]} is denied: the deploy can keep running in the org after the command returns; {no_wait[1]}"
             problems = deploy_scope_problems(rest, cwd or os.getcwd(), prefix)
             if problems:
                 scope = f" (approved: {approved_text(prefix, lwc_prefix(prefix))})" if prefix else ""
@@ -251,16 +286,29 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
     return True, "allowed"
 
 
-def deploy_no_wait(rest: list[str], booleans: str) -> str | None:
-    """`--async` or a wait of zero minutes (as written), the two ways a deploy command returns while the deploy keeps running."""
+def deploy_no_wait(rest: list[str]) -> tuple[str, str] | None:
+    """(the flag as written, what to do instead) for `--async` or a `--wait` under MIN_DEPLOY_WAIT minutes, the ways a deploy command
+    returns while the deploy keeps running. The default wait (33 minutes) is fine, so leaving the flag out passes."""
     if has_flag(rest, "--async"):
-        return "--async"
-    for value in flag_values(rest, "--wait", "-w", booleans):
+        return "--async", "leave it out and wait for the deploy to finish"
+    for value in flag_values(rest, "--wait", "-w", BOOLEAN_SHORTS):
         try:
-            if float(value) <= 0:
-                return f"--wait {clip(value)}"
+            if float(value) < MIN_DEPLOY_WAIT:
+                return (f"--wait {clip(value)}", f"use --wait {MIN_DEPLOY_WAIT} or a larger value (or leave it out) and wait for the deploy "
+                                                  "to finish")
         except ValueError:  # no value or not a number: the CLI refuses it
             pass
+    return None
+
+
+def report_problem(rest: list[str]) -> str | None:
+    """Why a `project deploy report` is refused, or None. The CLI reads the deploy to report on from its global cache when it is not
+    named, so --use-most-recent (-r) is refused and a --job-id is required."""
+    if has_flag(rest, "--use-most-recent") or has_short(rest, "r"):
+        return ("deploy report --use-most-recent (-r) is denied: the CLI takes the newest deploy of any org from its global cache; "
+                "name your deploy with --job-id")
+    if not any(flag_values(rest, "--job-id", "-i", BOOLEAN_SHORTS)):
+        return "deploy report must carry --job-id (the CLI would otherwise report the newest deploy of any org from its global cache)"
     return None
 
 
@@ -320,7 +368,7 @@ def deploy_inputs(rest: list[str]) -> dict[str, list[str]]:
                 name, eq, inline = token.partition("=")
                 attached = inline if eq else None
             else:
-                token = peel(token, DEPLOY_BOOLEAN_SHORTS)
+                token = peel(token, BOOLEAN_SHORTS)
                 name = DEPLOY_SHORT.get(token[:2], token)
                 attached = token[2:].removeprefix("=") if len(token) > 2 else None
             if name not in DEPLOY_OPTIONS:
@@ -362,8 +410,9 @@ def package_dirs(root: str) -> list[str] | None:
 
 def in_scope(parts: list[str], prefix: str, lwc: str) -> bool:
     """Whether a file at this path (relative to the project) is an approved file: a class, tab, app or app page file of the right
-    suffix straight in its own folder, or a file of an approved bundle. The CLI types a file by ANY strict folder above it (lwc, aura,
-    objects ...), not by its own parent, so a class file under one of those is judged by that folder."""
+    suffix straight in its own folder (and no `-meta.xml` in front of that suffix), or a file of an approved bundle. The CLI types a
+    file by ANY strict folder above it (lwc, aura, objects ...), not by its own parent, so a class file under one of those is judged
+    by that folder."""
     name, dirs = parts[-1], parts[:-1]
     if any(folder in STRICT_DIRS and folder != "lwc" for folder in dirs):
         return False
@@ -371,7 +420,10 @@ def in_scope(parts: list[str], prefix: str, lwc: str) -> bool:
         return all(dirs[i + 1].startswith(lwc) if i + 1 < len(dirs) else name in LWC_CONFIG_FILES
                    for i, folder in enumerate(dirs) if folder == "lwc")
     suffixes = FLAT_FOLDERS.get(dirs[-1]) if dirs else None
-    return suffixes is not None and name.startswith(prefix) and name.endswith(suffixes)
+    suffix = next((end for end in suffixes or () if name.endswith(end)), None)
+    # The CLI finds `<name>.<type>-meta.xml` anywhere in a file name (unanchored), so `SLChess.permissionset-meta.xml.cls` is a
+    # PermissionSet named SLChess: a stem that holds `-meta.xml` is not a plain class, tab, app or app page file.
+    return suffix is not None and name.startswith(prefix) and "-meta.xml" not in name[:-len(suffix)]
 
 
 def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, limit: int) -> list[str]:
@@ -441,8 +493,11 @@ def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str) ->
         os.close(fd)
     if not regular or len(data) > MANIFEST_LIMIT:
         return [f"manifest {shown_path!r} must be a regular file of at most {MANIFEST_LIMIT // 1_000_000} MB (not a pipe, device or folder)"]
-    if WILDCARD_RE.search(data.decode("utf-8", errors="replace")):
+    text = data.decode("utf-8", errors="replace")
+    if WILDCARD_RE.search(text):
         return [f"manifest {shown_path!r} holds a wildcard member (<members>*</members>); list the {prefix}* components by name"]
+    if DECLARATION_RE.search(text):  # entities declared twice: the first wins here, the CLI's parser takes the last
+        return [f"manifest {shown_path!r} holds a DOCTYPE or ENTITY declaration; write the members out in a plain package.xml"]
     try:
         root = ET.fromstring(data)
     except (ET.ParseError, LookupError, ValueError):  # LookupError: an encoding the parser does not know
@@ -572,12 +627,21 @@ def parse_fixed(args: list[str]) -> tuple[str, str, bool, list[str]]:
     return org, prefix, deny_all, args[i:]
 
 
-def run_real(real: str, argv: list[str], state: dict) -> tuple[str, str, int]:
-    """Run the real sf with its output captured; (stdout, stderr, exit code). A signal seen in `state` ends it: SIGTERM first, SIGKILL
-    after KILL_GRACE seconds."""
+def child_env(org: str, environ: dict | None = None) -> dict:
+    """The real sf's environment: the caller's, with every default-org variable removed and SF_TARGET_ORG set to the case's org. The
+    CLI falls back to that variable when no --target-org reaches it, so a pin the guard read but the CLI did not selects the case's
+    org, never the owner's default."""
+    env = {key: value for key, value in (os.environ if environ is None else environ).items() if not DEFAULT_ORG_ENV_RE.fullmatch(key)}
+    env["SF_TARGET_ORG"] = org
+    return env
+
+
+def run_real(real: str, argv: list[str], state: dict, env: dict | None = None) -> tuple[str, str, int]:
+    """Run the real sf (with `env`, or the caller's environment) and capture its output; (stdout, stderr, exit code). A signal seen in
+    `state` ends it: SIGTERM first, SIGKILL after KILL_GRACE seconds."""
     if state["interrupted"]:
         return "", "", 143
-    proc = subprocess.Popen([real, *argv], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen([real, *argv], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     state["proc"] = proc
     if state["interrupted"]:  # the signal came between the check and the child's start
         proc.terminate()
@@ -628,7 +692,7 @@ def main(args: list[str]) -> int:
         print("sf_guard: no real `sf` found on PATH outside the wrapper", file=sys.stderr)
         return 127
     try:
-        out, err, code = run_real(real, argv, state)
+        out, err, code = run_real(real, argv, state, child_env(org))
     except OSError as exc:
         log_end(call, 126, str(exc), False)
         print(f"sf_guard: the real `sf` could not be started: {scrub(str(exc))}", file=sys.stderr)

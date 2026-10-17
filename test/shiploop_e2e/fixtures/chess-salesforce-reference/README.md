@@ -6,6 +6,8 @@ prefix (`SLChess` / `slChess`).
 
 **Nothing in this folder is ever shown to a model.** It is the harness's own fixture: the case prompt is all a model sees, and a model's
 working directory never contains this folder. Do not copy it into a case workspace, a prompt or a packet.
+Known limit: a host with file access could still read it from the checkout; the main session greps the run's commands for
+`chess-salesforce-reference` to see whether one did.
 
 ## What it is for
 
@@ -24,6 +26,9 @@ under Node. All 26 Apex test methods, every `rules` script of the grader as it s
 published perft counts below to depth 4, and 30,769 random-game positions compared move for move with an independent generator agreed.
 That proves the logic. It does not prove that Apex compiles: the first real deploy is the proof. If the compiler objects, look first at
 the places below.
+
+After that cross-check, `SLChessEngineTest` got one `System.debug('CPU ' + Limits.getCpuTime());` after each of the Kiwipete and
+position-5 depth-2 counts, so the first rehearsal can read the real CPU use of the heaviest enumerations from the test log.
 
 ## If the first deploy fails, look first at
 

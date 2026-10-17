@@ -15,12 +15,14 @@ executables, and no real platform, org or model is ever reached. They say nothin
              wrapper by a path, is an invalid trial
   keep       --keep-platform: a finished delivery is left in the platform, any other ending cleans as always
   resume_note a sentence for the prompt of a resumed run whose platform was reset
+  check_timeout the ceiling of the case's own checks (60..3600 s, default 180), for that case only
   scrub      one function through which every stored or printed command output goes
 """
 
 from __future__ import annotations
 
 import contextlib
+import inspect
 import io
 import json
 import os
@@ -244,10 +246,10 @@ class PlatformCase(unittest.TestCase):
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
-    def resume(self, host: str, out: Path, mode: str, *extra: str) -> tuple[dict, str]:
+    def resume(self, host: str, out: Path, mode: str, *extra: str, ci: str = "success") -> tuple[dict, str]:
         os.environ["FAKE_MODE"] = mode
         released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": "9.9.9",
-                    "shiploop_version": None, "unreleased": [], "ci": "success"}
+                    "shiploop_version": None, "unreleased": [], "ci": ci}
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed), mock.patch.object(run, "released_versions", return_value=released):
             run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
@@ -327,6 +329,17 @@ class SchemaTest(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(SystemExit) as raised:
                 run.validate_platform("c", bad)
             self.assertIn(words, str(raised.exception))
+
+    def test_a_check_timeout_is_a_whole_number_of_seconds_from_a_minute_to_an_hour(self):
+        for bad in (59, 0, -1, 3601, 86400, "900", 900.5, 900.0, True, None, [900]):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit) as raised:
+                run.validate_platform("c", {"cleanup": "c", "check_timeout": bad})
+            self.assertIn("check_timeout must be an integer number of seconds from 60 to 3600", str(raised.exception))
+        for good in (60, 180, 900, 3600):
+            with self.subTest(good=good):
+                spec = {"cleanup": "c", "check_timeout": good}
+                self.assertIs(run.validate_platform("c", spec), spec)
+        self.assertEqual(run.validate_platform("c", {"cleanup": "c"}), {"cleanup": "c"}, "a case without one is as it was")
 
     def test_a_well_formed_platform_is_returned_as_given(self):
         spec = {"kind": "k", "preflight": "p", "before": "b", "cleanup": "c", "home_links": [".sf"], "org": "x",
@@ -957,6 +970,7 @@ class ShellPreflightTest(ShellTest):
         self.assertEqual(state["model_bin_resolution"], {"ok": False, "problems": ["`mytool` resolves to /x/mytool under `/bin/zsh -lc`"]})
         self.assertEqual(state["shell_path_pinned"], [".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"])
         self.assertNotIn("guard_log_preflight", state)
+        self.assertFalse((out / "platform" / run.PREFLIGHT_RANGES).exists(), "no preflight ran, so there is no range to record")
 
     def test_a_good_resolution_is_recorded_and_the_cases_command_runs_behind_it(self):
         env, out = self.host()
@@ -964,7 +978,9 @@ class ShellPreflightTest(ShellTest):
         state = run.platform_preflight(self.platform(model_bin=self.model_bin(), home_links=None), env, out)
         self.assertEqual(state["model_bin_resolution"], {"ok": True, "problems": []})
         self.assertTrue(state["preflight"]["ok"])
-        self.assertEqual(state["guard_log_preflight"], [0, 0], "no wrapper call: the preflight wrote no guard-log line")
+        self.assertNotIn("guard_log_preflight", state, "the range is the preflight's own file, not a field of each invocation's record")
+        self.assertEqual((out / "platform" / run.PREFLIGHT_RANGES).read_text(), "[0, 0]\n", "no wrapper call: no guard-log line")
+        self.assertEqual(run.preflight_ranges(out), [(0, 0)])
         self.assertEqual(self.verbs(), ["preflight"])
 
     def test_a_case_without_a_model_bin_pins_nothing_and_checks_nothing(self):
@@ -974,6 +990,7 @@ class ShellPreflightTest(ShellTest):
             state = run.platform_preflight(self.platform(), env, out)
         for key in ("shell_path_pinned", "model_bin_resolution", "guard_log_preflight", "model_bin"):
             self.assertNotIn(key, state)
+        self.assertFalse((out / "platform" / run.PREFLIGHT_RANGES).exists(), "no wrapper, no range")
         self.assertEqual(os.listdir(out / "home"), [".sfdx"])
 
     def with_bin(self) -> dict:
@@ -1231,16 +1248,16 @@ class ModelCommandTest(PlatformCase):
         self.assertIn("saw no model call", unseen[0])
         self.assertEqual(run.bypass_lines(dict(coverage, direct_sf_commands=0)), [], "a guarded call and no direct one: nothing to say")
 
-    def test_each_invocation_records_the_range_of_log_lines_its_own_preflight_wrote(self):
+    def test_each_preflight_appends_the_range_of_log_lines_it_wrote_to_one_file(self):
         out = self.tmp / "run"
-        out.mkdir()
-        (out / "invocation.json").write_text(json.dumps({"platform": {"guard_log_preflight": [0, 2]}}))
-        (out / "invocation-resume-grok-1.json").write_text(json.dumps({"platform": {"guard_log_preflight": [4, 6]}}))
-        (out / "invocation-resume-grok-2.json").write_text(json.dumps({"platform": {"home_links": []}}))  # a regrade: no preflight
-        (out / "invocation-resume-grok-3.json").write_text(json.dumps({"platform": {"guard_log_preflight": "x"}}))
-        (out / "invocation-resume-grok-4.json").write_text("not json")
-        self.assertEqual(run.preflight_ranges(out), [(0, 2), (4, 6)])
+        (out / "platform").mkdir(parents=True)
+        ranges = out / "platform" / run.PREFLIGHT_RANGES
+        ranges.write_text("[0, 2]\n[4, 6]\n[\"x\", 1]\n[1]\n{\"a\": 1}\n7\nnot json\n\n[8, 9]\n")
+        self.assertEqual(run.preflight_ranges(out), [(0, 2), (4, 6), (8, 9)], "a line that is not a pair of integers is skipped")
         self.assertEqual(run.preflight_ranges(self.tmp / "nowhere"), [])
+        # the invocation records no longer carry it: a record that is written only after a gate cannot be what the count rests on
+        (out / "invocation.json").write_text(json.dumps({"platform": {"guard_log_preflight": [20, 22]}}))
+        self.assertEqual(run.preflight_ranges(out), [(0, 2), (4, 6), (8, 9)])
 
 
 class CoverageRunTest(PlatformCase):
@@ -1263,9 +1280,11 @@ class CoverageRunTest(PlatformCase):
         self.assertEqual(code, 0, result)
         block = result["platform"]
         self.assertEqual(block["guard_log_preflight_ranges"], [[0, 2]], "the preflight's own probe: a decision and an end line")
-        self.assertNotIn("guard_log_preflight", block, "the pair is each invocation's own record; the result carries all of them")
+        self.assertNotIn("guard_log_preflight", block, "the ranges are the preflights' own file; the result carries all of them")
         self.assertEqual(block["guard_coverage"], {"model_sf_commands": 1, "guard_calls": 2, "direct_sf_commands": 0, "bypassed": False})
-        self.assertEqual(json.loads((Path(result["output"]) / "invocation.json").read_text())["platform"]["guard_log_preflight"], [0, 2])
+        out = Path(result["output"])
+        self.assertEqual((out / "platform" / run.PREFLIGHT_RANGES).read_text(), "[0, 2]\n")
+        self.assertNotIn("guard_log_preflight", json.loads((out / "invocation.json").read_text())["platform"])
         self.assertIn("  platform  PASS  cleanup ran;", printed)
         self.assertIn("guard saw 2 model calls (transcript shows 1 sf-looking commands)", printed)
         self.assertNotIn("invalid trial", printed)
@@ -1336,13 +1355,37 @@ class CoverageRunTest(PlatformCase):
         self.assertEqual(first["platform"]["guard_coverage"]["guard_calls"], 1)
         result, _ = self.resume("grok", out, "done")
         self.assertEqual(result["platform"]["guard_log_preflight_ranges"], [[0, 2], [4, 6]], "one range per invocation")
-        self.assertEqual(json.loads((out / "invocation.json").read_text())["platform"]["guard_log_preflight"], [0, 2])
-        (resume_file,) = out.glob("invocation-resume-grok-*.json")
-        self.assertEqual(json.loads(resume_file.read_text())["platform"]["guard_log_preflight"], [4, 6])
+        self.assertEqual((out / "platform" / run.PREFLIGHT_RANGES).read_text(), "[0, 2]\n[4, 6]\n")
         # the first model call and the resumed model's call: the resume preflight's probe is not one
         self.assertEqual(result["platform"]["guard_coverage"],
                          {"model_sf_commands": 1, "guard_calls": 2, "direct_sf_commands": 0, "bypassed": False})
         self.assertTrue(result["pass"], result)
+
+    def test_a_resume_refused_after_its_preflight_still_has_its_probe_out_of_the_model_s_calls(self):
+        """R2-H-1: the version gate refuses a resume after its preflight called the wrapper and before any invocation record is
+        written; the next resume must not count that probe as a model call and hide a model that never reached the guard."""
+        self.use_case(self.sf_case())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")  # the fake model's transcript shows sf; it never calls the wrapper
+        out = Path(first["output"])
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.resume("grok", out, "done", ci="failure")
+        self.assertIn("origin/main's CI failed", str(refused.exception))
+        self.assertEqual(list(out.glob("invocation-resume-*.json")), [], "refused before the invocation record")
+        self.assertEqual(run.preflight_ranges(out), [(0, 2), (2, 4)], "the refused resume's probe has its range all the same")
+        result, _ = self.resume("grok", out, "done")
+        self.assertEqual(result["platform"]["guard_log_preflight_ranges"], [[0, 2], [2, 4], [4, 6]])
+        self.assertEqual(result["platform"]["guard_coverage"],
+                         {"model_sf_commands": 1, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": True})
+        self.assertFalse(result["pass"])
+
+    def test_a_preflight_that_fails_still_records_its_range(self):
+        """R2-H-1: the range is recorded as the preflight ends, whether it passed or not."""
+        self.use_case(self.sf_case())
+        os.environ["PLAT_FAIL"] = "preflight"
+        with self.assertRaises(SystemExit), contextlib.redirect_stdout(io.StringIO()):
+            self.invoke("grok", "done")
+        self.assertEqual(run.preflight_ranges(self.tmp / "out-grok-a"), [(0, 2)])
+        del os.environ["PLAT_FAIL"]
 
     def test_a_resumed_model_that_bypasses_the_guard_completely_is_found_out(self):
         self.use_case(self.sf_case())
@@ -1363,10 +1406,8 @@ class CoverageRunTest(PlatformCase):
         regraded, _ = self.resume("grok", out, "done", "--grade-only")
         self.assertTrue(regraded["platform"]["guard_coverage"]["bypassed"])
         self.assertFalse(regraded["pass"])
-        # a run recorded before the field existed has no preflight range: it is not judged
-        record = json.loads((out / "invocation.json").read_text())
-        del record["platform"]["guard_log_preflight"]
-        (out / "invocation.json").write_text(json.dumps(record))
+        # a run that recorded no preflight range is not judged
+        (out / "platform" / run.PREFLIGHT_RANGES).unlink()
         old, _ = self.resume("grok", out, "done", "--grade-only")
         self.assertNotIn("guard_coverage", old["platform"])
         self.assertTrue(old["pass"], old)
@@ -1466,7 +1507,9 @@ class KeepPlatformTest(PlatformCase):
         again, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
         self.assertEqual(self.calls(), calls)
         self.assertEqual(again["platform"]["cleanup"], self.KEPT)
-        self.assertIn("NOT honoured (no cleanup was pending", printed)
+        self.assertIn("--keep-platform changes nothing here: no cleanup was pending", printed)
+        self.assertNotIn("NOT honoured", printed, "nothing was cleaned, so nothing is said to have been")
+        self.assertNotIn("keep_not_honoured", again["platform"], "a kept platform and a not-honoured keep are not shown together")
         self.assertNotIn("PLATFORM KEPT (--keep-platform)", printed, "the block belongs to the run that kept it")
 
     def test_pass_does_not_depend_on_the_cleanup_when_the_platform_is_kept(self):
@@ -1613,6 +1656,117 @@ class KeepPlatformTest(PlatformCase):
         with mock.patch.object(run.TERMINATION, "is_set", return_value=True):
             self.assertIn("the run was stopped", run.keep_refusal(**good))
         self.assertIsNone(run.keep_refusal(**{**good, "process": {"status": "not observed", "pass": None}}), "a regrade observed no exit")
+        failed = {"ran": True, "ok": False, "returncode": 3, "output": "boom"}
+        self.assertEqual(run.keep_refusal(**good, earlier_cleanup=failed),
+                         "an earlier cleanup of this run failed: run the printed command first")
+        self.assertIn("earlier cleanup", run.keep_refusal(**good, earlier_cleanup={"ran": False, "ok": False, "reason": "no cleanup record"}))
+        for record in (None, {}, {"ran": True, "ok": True}, self.KEPT, {"ran": False, "ok": True, "reason": "the case names no cleanup command"}):
+            with self.subTest(earlier_cleanup=record):
+                self.assertIsNone(run.keep_refusal(**good, earlier_cleanup=record))
+
+    def late_crash(self, *extra: str, tag: str) -> Path:
+        """A run that raises after the platform decision (the cleanup, or the keep) and before result.json is written."""
+        with mock.patch.object(environment, "result_block", side_effect=RuntimeError("late")), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
+            run.main(self.argv(*extra, tag=tag))
+        out = self.tmp / f"out-grok-{tag}"
+        self.assertFalse((out / "result.json").exists(), "the run never reached its result")
+        return out
+
+    def test_a_regrade_of_a_run_that_never_wrote_result_json_reads_the_cleanup_record(self):
+        """R2-H-2: --grade-only is the recovery for a run that never wrote its records; it must not treat the platform as uncleaned."""
+        self.use_case(self.platform())
+        out = self.late_crash("--keep-platform", tag="kept")
+        self.assertEqual(self.verbs(), ["preflight", "before"], "kept before the crash")
+        regraded, printed = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), ["preflight", "before"], "a kept platform is not cleaned by the regrade that follows a crash")
+        self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
+        self.assertTrue(regraded["pass"], regraded)
+        self.assertNotIn("PLATFORM KEPT (--keep-platform)", printed, "the block belongs to the run that kept it")
+        # a crash after a normal cleanup: cleaned once, not twice
+        self.plat_log.unlink()
+        out = self.late_crash(tag="cleaned")
+        self.assertEqual(self.verbs(), self.CLEANED)
+        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), self.CLEANED, "no second cleanup")
+        self.assertTrue(regraded["platform"]["cleanup"]["ran"] and regraded["platform"]["cleanup"]["ok"])
+        self.assertTrue(regraded["pass"], regraded)
+        # a crash after a cleanup that failed: the regrade cleans again, as it does for a run that did write its result
+        self.plat_log.unlink()
+        os.environ["PLAT_FAIL"] = "cleanup"
+        out = self.late_crash(tag="failed")
+        del os.environ["PLAT_FAIL"]
+        self.assertFalse(json.loads((out / "platform" / "cleanup-record.json").read_text())["ok"])
+        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), self.CLEANED + ["cleanup"])
+        self.assertTrue(regraded["platform"]["cleanup"]["ok"])
+
+    def test_the_latest_cleanup_record_wins_over_the_one_in_an_older_result(self):
+        """R2-H-2: a later invocation that crashed after a failed cleanup leaves result.json holding the earlier invocation's."""
+        self.use_case(self.platform())
+        _, first, _ = self.invoke("grok", "done")
+        out = Path(first["output"])
+        self.assertTrue(first["platform"]["cleanup"]["ok"])
+        (out / "platform" / "cleanup-record.json").write_text(json.dumps({"ran": True, "ok": False, "returncode": 3, "output": "boom"}))
+        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), self.CLEANED + ["cleanup"], "the failed cleanup is cleaned again")
+        self.assertTrue(regraded["platform"]["cleanup"]["ok"])
+        self.assertNotIn("checks_restated", regraded["platform"], "the platform was not clean when the regrade began")
+
+    def test_keep_on_a_regrade_of_a_run_whose_cleanup_failed_is_refused_and_the_regrade_cleans(self):
+        """R2-H-3: the failed run's leftovers must not become a kept, passing run with the failure record overwritten."""
+        self.use_case(self.platform())
+        os.environ["PLAT_FAIL"] = "cleanup"
+        _, first, _ = self.invoke("grok", "done")
+        out = Path(first["output"])
+        self.assertFalse(first["platform"]["cleanup"]["ok"])
+        del os.environ["PLAT_FAIL"]
+        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        self.assertEqual(self.verbs(), self.CLEANED + ["cleanup"], "cleaned, not kept")
+        cleanup = regraded["platform"]["cleanup"]
+        self.assertTrue(cleanup["ran"] and cleanup["ok"])
+        self.assertNotIn("kept", cleanup)
+        self.assertEqual(regraded["platform"]["keep_not_honoured"],
+                         "an earlier cleanup of this run failed: run the printed command first")
+        self.assertIn("--keep-platform NOT honoured (an earlier cleanup of this run failed: run the printed command first), "
+                      "so the platform was cleaned as usual", printed)
+        self.assertNotIn("PLATFORM KEPT", printed)
+        self.assertNotIn("kept", json.loads((out / "platform" / "cleanup-record.json").read_text()))
+
+    def test_a_regrade_with_no_cleanup_record_at_all_can_still_keep_a_finished_delivery(self):
+        """R2-H-3: a harness killed after the delivery finished leaves no record; there is no failure to refuse on."""
+        self.use_case(self.platform())
+        _, first, _ = self.invoke("grok", "done")
+        out = Path(first["output"])
+        (out / "result.json").unlink()
+        (out / "platform" / "cleanup-record.json").unlink()
+        calls = self.calls()
+        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        self.assertEqual(self.calls(), calls, "kept: the regrade cleaned nothing")
+        self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
+        self.assertNotIn("keep_not_honoured", regraded["platform"])
+        self.assertEqual(printed.count("PLATFORM KEPT (--keep-platform)"), 1)
+
+    def test_keep_where_no_cleanup_was_pending_says_it_changes_nothing_and_records_no_refusal(self):
+        """R2-H-4: a regrade of a run that was already cleaned cleans nothing, so it does not say it cleaned and does not record a refusal."""
+        self.use_case(self.platform())
+        _, first, _ = self.invoke("grok", "done")
+        out = Path(first["output"])
+        calls = self.calls()
+        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        self.assertEqual(self.calls(), calls)
+        self.assertIn("--keep-platform changes nothing here: no cleanup was pending", printed)
+        self.assertNotIn("NOT honoured", printed)
+        self.assertNotIn("cleaned as usual", printed)
+        self.assertNotIn("keep_not_honoured", regraded["platform"])
+        self.assertTrue(regraded["platform"]["cleanup"]["ok"] and not regraded["platform"]["cleanup"].get("kept"))
+        # the same where another harness holds the case: nothing is pending for this invocation either
+        held = listeners.hold_case(out)
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        again, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        self.assertIn("changes nothing here", printed)
+        self.assertNotIn("keep_not_honoured", again["platform"])
 
     def test_the_guard_keeps_only_what_is_pending_and_a_later_finish_cleans_nothing(self):
         out = self.tmp / "guard-out"
@@ -1886,6 +2040,41 @@ class ResumeAfterCrashTest(ResumeNoteTest):
         self.assertIsNone(run.earlier_cleanup_record(out / "platform"), "no record there, and none inside platform/platform")
         (out / "platform" / "cleanup-record.json").write_text("[1]")
         self.assertIsNone(run.earlier_cleanup_record(out), "a record that is not an object is no record")
+
+
+class CheckTimeoutTest(PlatformCase):
+    """H3-1: platform.check_timeout is the ceiling of the case's own checks in that case's run, and nowhere else."""
+
+    def timeouts(self, platform: dict | None, *extra: str, mode: str = "done") -> list:
+        self.use_case(platform)
+        with mock.patch.object(run, "run_checks", wraps=run.run_checks) as spy:
+            code, result, _ = self.invoke("grok", mode, *extra, tag=f"t{len(list(self.tmp.glob('out-grok-*')))}")
+        self.assertEqual(code, 0, result)
+        return [call.kwargs["timeout"] for call in spy.call_args_list]
+
+    def test_a_case_with_one_has_its_checks_run_with_it(self):
+        self.assertEqual(self.timeouts(self.platform(check_timeout=900)), [900])
+        self.assertEqual(self.timeouts(self.platform(check_timeout=60)), [60])
+
+    def test_a_platform_without_one_and_a_case_without_a_platform_keep_the_default(self):
+        self.assertEqual(run.CHECK_TIMEOUT, 180)
+        self.assertEqual(self.timeouts(self.platform()), [180])
+        self.assertEqual(self.timeouts(None), [180])
+
+    def test_the_default_of_run_checks_is_the_constant_and_a_check_that_ends_in_time_passes(self):
+        self.assertEqual(inspect.signature(run.run_checks).parameters["timeout"].default, run.CHECK_TIMEOUT)
+        self.assertEqual(run.PRODUCT_AT_STOP_TIMEOUT, 180, "the product-at-stop ceiling is its own and does not follow the case")
+        (self.tmp / "w").mkdir()
+        self.assertTrue(run.run_checks(self.tmp / "w", ["true"], timeout=run.CHECK_TIMEOUT)[0]["pass"])
+
+    def test_a_regrade_runs_the_checks_it_asks_again_with_the_case_s_ceiling(self):
+        self.use_case(self.platform(check_timeout=900))
+        _, first, _ = self.invoke("grok", "done", "--keep-platform")
+        out = Path(first["output"])
+        (out / "result.json").unlink()  # nothing to restate: the checks are asked of the platform again
+        with mock.patch.object(run, "run_checks", wraps=run.run_checks) as spy:
+            self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual([call.kwargs["timeout"] for call in spy.call_args_list], [900])
 
 
 class UnchangedCaseTest(PlatformCase):

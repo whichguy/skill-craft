@@ -6,18 +6,22 @@ stub), and no real org, real `sf` or model is ever reached. What these prove, on
 
   deny    a command that shows credentials, changes the CLI or the org destructively, or is unknown never reaches sf (exit 2);
           --flags-dir is denied on every command (the CLI reads flag values from it after the policy ran)
-  pin     an org-talking command must name the case's org on every --target-org / -o; none or another is refused
+  pin     an org-talking command must name the case's org on every --target-org / -o; none or another is refused, whatever boolean
+          short flag is fused in front of -o, and the old spellings (-u, --targetusername, --fromorg) are refused; the real sf runs
+          with SF_TARGET_ORG set to the case's org and no other default-org variable; `project deploy quick|cancel|resume` (they
+          take the org from the CLI's global deploy cache) are not allowed, and `deploy report` needs a --job-id and no --use-most-recent
   scope   a deploy may carry only ApexClass, CustomTab, CustomApplication and FlexiPage named SLChess* and LightningComponentBundle
           named slChess*: every --source-dir tree, --metadata entry and --manifest (or the package directories of the
           sfdx-project.json at or above the working dir) is checked, with paths kept inside the project, however a flag is spelled
-          (-rd, a value that starts with `-`, `link/../x`); a deploy that would not wait (--async, --wait 0) is refused
+          (-rd, a value that starts with `-`, `link/../x`, a class file named like another type's meta file); a manifest with a
+          DOCTYPE or ENTITY declaration is refused; a deploy that would not wait (--async, --wait under 5) is refused
   pass    the build's own commands (deploy --source-dir, apex run test --synchronous, data query, --version, org list), --help
           anywhere on an allowed command, and the local generate families reach sf
   log     a decision line before the call and an end line after it (same call id) in $E2E_PLATFORM_DIR/sf-calls.jsonl, no stdout, no
           credential; a call that cannot be logged, or that the guard cannot judge, is denied with a line; SIGTERM/SIGHUP/SIGINT are
           forwarded, logged as interrupted and exit 143
   scrub   a token in sf's output never reaches the model; the exit code and everything else pass through
-  wrapper no recursion, the real HOME, the baked E2E_* variables
+  wrapper no recursion, the real HOME, the baked E2E_* variables, the real sf's environment (SF_TARGET_ORG = the case's org)
 """
 
 from __future__ import annotations
@@ -53,6 +57,7 @@ GUARD = f"{shlex.quote(sys.executable)} \"$E2E_CHECKS/sf_guard.py\" --org {ORG} 
 STUB = f"""#!{sys.executable}
 import json, os, sys
 print(json.dumps({{"argv": sys.argv[1:], "home": os.environ.get("HOME"), "e2e": sorted(k for k in os.environ if k.startswith("E2E_")),
+                  "sf_env": {{k: v for k, v in os.environ.items() if k.startswith(("SF_", "SFDX_"))}},
                   "accessToken": "{TOKEN}", "note": "{SESSION}"}}))
 print("stderr says refreshToken={TOKEN} and {SESSION}", file=sys.stderr)
 sys.exit(int(os.environ.get("STUB_EXIT", "0")))
@@ -203,8 +208,7 @@ class PinTest(GuardCase):
         for argv in (("data", "query", "-q", "SELECT Name FROM ApexClass", "--use-tooling-api", "--json"),
                      ("project", "deploy", "start", "--source-dir", "force-app"),
                      ("project", "deploy", "start"),
-                     ("project", "deploy", "validate"), ("project", "deploy", "report"), ("project", "deploy", "quick"),
-                     ("project", "deploy", "cancel"), ("project", "deploy", "resume"),
+                     ("project", "deploy", "validate"), ("project", "deploy", "report"),
                      ("project", "retrieve", "start"), ("project", "retrieve", "preview"),
                      ("apex", "run", "--file", "x.apex"), ("apex", "run", "test", "--synchronous"),
                      ("apex", "get", "test"), ("apex", "get", "log"), ("apex", "list", "log"),
@@ -237,6 +241,89 @@ class PinTest(GuardCase):
     def test_from_org_of_a_generated_manifest_is_pinned_too(self):
         self.assert_denied("project", "generate", "manifest", "--from-org", "other", reason="--from-org")
         self.assert_reaches_sf("project", "generate", "manifest", "--from-org", ORG)
+
+    def test_deploy_quick_cancel_and_resume_are_not_allowed_whatever_they_carry(self):
+        # They take the org from the CLI's global deploy cache (~/.sf/deploy-cache.json, which also holds the owner's own deploys), so
+        # a right --target-org does not pin them: not in the allow list at all.
+        job = "0Af000000000000AAA"
+        for verb in ("quick", "cancel", "resume"):
+            for flags in ([], ["--target-org", ORG], ["-o", ORG, "--job-id", job], ["-o", ORG, "--use-most-recent"], ["-o", ORG, "-r"],
+                          ["-i", job, "-o", ORG, "--wait", "10"], ["--help"]):
+                self.assert_denied("project", "deploy", verb, *flags, reason="not in the allow list")
+            self.assert_denied(f"project:deploy:{verb}", "--target-org", ORG, reason="not in the allow list")
+        done = self.sf("project", "deploy", "quick", "--target-org", ORG)
+        allowed = done.stderr.split("allowed:")[1]
+        self.assertIn("project deploy start", allowed)
+        self.assertIn("project deploy report", allowed)
+        for verb in ("quick", "cancel", "resume"):
+            self.assertNotIn(f"project deploy {verb}", allowed)
+        self.assertEqual(self.reached(), [])
+
+    def test_deploy_report_needs_a_job_id_and_is_never_the_most_recent(self):
+        job = "0Af000000000000AAA"
+        report = ("project", "deploy", "report")
+        for flags in (["--job-id", job], ["-i", job], [f"--job-id={job}"], [f"-i{job}"], [f"-i={job}"], ["--job-id", job, "--wait", "10"]):
+            allowed, reason = sf_guard.decide([*report, *flags, "--target-org", ORG], ORG)
+            self.assertTrue(allowed, (flags, reason))
+        # The cached deploy of any org: --use-most-recent, -r alone, -r fused in front of another flag, with or without a job id.
+        for flags in (["--use-most-recent", "--target-org", ORG], ["--target-org", ORG, "--use-most-recent"], ["-o", ORG, "--use-most-recent=true"],
+                      ["-r", "--target-org", ORG], ["--target-org", ORG, "-r"], ["-ro", ORG], ["-ri", job, "-o", ORG],
+                      ["--job-id", job, "-r", "-o", ORG], ["-i", job, "--use-most-recent", "-o", ORG], ["-rr", "-o", ORG]):
+            self.assert_denied(*report, *flags, reason="--use-most-recent")
+        # No job id: the CLI would report the newest cached deploy.
+        for flags in (["--target-org", ORG], ["-o", ORG, "--wait", "10"], ["-o", ORG, "--job-id"], ["-o", ORG, "--job-id", ""]):
+            self.assert_denied(*report, *flags, reason="must carry --job-id")
+        self.assert_reaches_sf(*report, "--job-id", job, "--target-org", ORG, "--json")
+        self.assertEqual(len(self.reached()), 1)
+
+    def test_the_old_spellings_of_the_org_flags_are_denied_on_every_command(self):
+        # -u and --targetusername still select the org on many commands and --fromorg is --from-org's old name; the guard reads none of
+        # them. The CLI errors when --target-org is given twice, so the attack pairs one with a pin the CLI swallows as another flag's
+        # value (`--loglevel --target-org=de`).
+        decoy = ["--loglevel", f"--target-org={ORG}"]
+        commands = (("apex", "run", "--file", "x.apex"), ("apex", "run", "test", "--synchronous"), ("apex", "get", "test"), ("apex", "get", "log"),
+                    ("apex", "list", "log"), ("data", "query", "-q", "SELECT Name FROM ApexClass"), ("data", "get", "record"),
+                    ("sobject", "describe"), ("sobject", "list"), ("org", "list", "metadata"), ("project", "retrieve", "start"),
+                    ("project", "deploy", "start"), ("org", "list"), ("project", "generate", "manifest"))
+        for command in commands:
+            for flags in (["-u", "other"], ["-uother"], ["-u=other"], ["--targetusername", "other"], ["--targetusername=other"],
+                          ["-u", ORG], ["--targetusername", ORG], ["--fromorg", "other"], ["--fromorg=other"], ["--fromorg", ORG],
+                          ["-tu", "other"], ["-cyu", "other"]):
+                for tail in ([], decoy, ["--target-org", ORG]):
+                    allowed, reason = sf_guard.decide([*command, *flags, *tail], ORG, prefix="SLChess", cwd=str(self.work))
+                    self.assertFalse(allowed, (command, flags, tail))
+                    self.assertIn("old spellings", reason)
+        # Through the wrapper: refused before the real sf is reached, and the log keeps the call.
+        self.assert_denied("project", "generate", "manifest", "--fromorg", "other", reason="old spellings")
+        self.assert_denied("apex", "run", "test", "-u", "other", *decoy, reason="old spellings")
+        self.assert_denied("data", "query", "-q", "SELECT Name FROM ApexClass", "--targetusername", "other", *decoy, reason="old spellings")
+        self.assertEqual(self.reached(), [])
+        # Flags that only start like them are not confused with them.
+        for flags in (["--use-tooling-api"], ["--user-x"], ["--from-org", ORG], ["-q", "SELECT Name FROM ApexClass"]):
+            allowed, reason = sf_guard.decide(["project", "generate", "manifest", *flags], ORG)
+            self.assertTrue(allowed, (flags, reason))
+
+    def test_a_boolean_short_flag_fused_in_front_of_the_org_flag_is_read_on_every_command(self):
+        # `data query -to other` is -t (--use-tooling-api) and then -o other. Unread, it leaves the decoy pin the only one the guard sees.
+        decoy = ["--loglevel", f"--target-org={ORG}"]
+        read = ("data", "query", "-q", "SELECT Name FROM ApexClass")
+        cases = ((read, "-to"), (read, "-bo"), (read, "-tbo"), (("apex", "run", "test"), "-yo"), (("apex", "run", "test"), "-co"),
+                 (("apex", "run", "test"), "-vo"), (("apex", "run", "test"), "-cvyo"), (("project", "retrieve", "start"), "-co"),
+                 (("project", "retrieve", "start"), "-zo"), (("sobject", "describe"), "-to"), (("data", "get", "record"), "-to"),
+                 (("apex", "get", "log"), "-co"), (("apex", "get", "test"), "-co"), (("project", "deploy", "start"), "-co"))
+        for command, fused in cases:
+            with self.subTest(command=command[:2], fused=fused):
+                allowed, reason = sf_guard.decide([*command, fused, "other", *decoy], ORG, prefix="SLChess", cwd=str(self.work))
+                self.assertFalse(allowed)
+                self.assertIn("--target-org must be", reason)
+                allowed, reason = sf_guard.decide([*command, fused, "other"], ORG, prefix="SLChess", cwd=str(self.work))
+                self.assertFalse(allowed)
+                self.assertIn("--target-org must be", reason)  # named as the wrong org, not as a missing one
+                if command[:2] != ("project", "deploy"):
+                    allowed, reason = sf_guard.decide([*command, fused, ORG], ORG, prefix="SLChess", cwd=str(self.work))
+                    self.assertTrue(allowed, reason)
+        self.assert_denied(*read, "-to", "other", *decoy, "--json", reason="--target-org must be")
+        self.assertEqual(self.reached(), [])
 
 
 class PassTest(GuardCase):
@@ -374,6 +461,18 @@ class WrapperTest(GuardCase):
         seen = json.loads(done.stdout)
         self.assertEqual(seen["home"], str(self.real_home))
         self.assertNotEqual(seen["home"], self.env()["HOME"])
+
+    def test_the_real_sf_runs_with_the_case_org_as_its_default_and_no_other_default_org_variable(self):
+        # A pin the guard read but the CLI did not falls back to the environment's default org: the case's, never the owner's.
+        self.use_sf(STUB)
+        seen = json.loads(self.sf("org", "list", "--json").stdout)["sf_env"]
+        self.assertEqual(seen, {"SF_TARGET_ORG": ORG})
+        env = self.env(SF_TARGET_ORG="other", SFDX_DEFAULTUSERNAME="other", SFDX_DEFAULTDEVHUBUSERNAME="hub", SF_TARGET_DEV_HUB="hub",
+                       SF_DEFAULT_X="x", SF_ORG_API_VERSION="64.0")
+        seen = json.loads(self.sf("data", "query", "-q", "x", "--target-org", ORG, env=env).stdout)["sf_env"]
+        self.assertEqual(seen, {"SF_TARGET_ORG": ORG, "SF_ORG_API_VERSION": "64.0"})  # another SF_ variable is the caller's own
+        self.assertEqual(sf_guard.child_env("de", {"PATH": "/bin", "SF_TARGET_ORG": "x", "SFDX_DEFAULTUSERNAME": "y", "SF_TARGET_DEV_HUB": "z"}),
+                         {"PATH": "/bin", "SF_TARGET_ORG": "de"})
 
     def test_the_wrapper_does_not_call_itself(self):
         self.assert_reaches_sf("org", "list", "--json")
@@ -601,6 +700,19 @@ class ScopeTest(GuardCase):
             "a tab inside an object": "objects/Foo__c/tabs/SLChess_X.tab-meta.xml",
             "a baseline bundle nested in an approved one": "lwc/slChessBoard/lwc/chess/chess.js",
             "a file with a newline in its name": "classes/Bad\nName.cls",
+            # The CLI reads `<name>.<type>-meta.xml` anywhere in a file name, so these are deployed as other types named SLChess*.
+            "a class file named like a permission set's meta file": "classes/SLChess.permissionset-meta.xml.cls",
+            "a class file named like a profile's meta file": "classes/SLChess.profile-meta.xml.cls",
+            "a class file named like a flow's meta file": "classes/SLChess.flow-meta.xml.cls",
+            "a class meta file named like a layout's meta file": "classes/SLChess.layout-meta.xml.cls-meta.xml",
+            "a tab file named like a profile's meta file": "tabs/SLChess_A.profile-meta.xml.tab-meta.xml",
+            "an app file named like a flow's meta file": "applications/SLChess.flow-meta.xml.app-meta.xml",
+            "a flexipage file named like a profile's meta file": "flexipages/SLChess.profile-meta.xml.flexipage-meta.xml",
+            # Each rule of in_scope on its own: the suffix of an app, of a class, and the folder straight above the file.
+            "an app with a bare xml suffix": "applications/SLChess_x.xml",
+            "a class with a text suffix": "classes/SLChess.txt",
+            "a class in a folder below classes": "classes/sub/SLChessX.cls",
+            "a tab in a folder below tabs": "tabs/sub/SLChess_X.tab-meta.xml",
         }
         for number, (what, rel) in enumerate(cases.items()):
             with self.subTest(what):
@@ -718,6 +830,34 @@ class ScopeTest(GuardCase):
                 self.assert_scope_denied("--manifest", "m.xml", reason=reason)
                 self.assert_scope_denied("-x", "m.xml", reason=reason, command=("project", "deploy", "validate"))
 
+    def test_a_manifest_with_a_doctype_or_entity_declaration_is_refused(self):
+        # An entity declared twice is read with the first declaration by the XML parser here (SLChessA, which passes) and with the last
+        # by the CLI's (a wildcard, which deploys every local class).
+        self.layout()
+        header = '<?xml version="1.0"?>'
+        body = "<Package><types><members>&m;</members><name>ApexClass</name></types></Package>"
+        manifests = {
+            "an entity declared twice": f'{header}<!DOCTYPE Package [<!ENTITY m "SLChessA"><!ENTITY m "*">]>{body}',
+            "an entity declared once": f'{header}<!DOCTYPE Package [<!ENTITY m "SLChessA">]>{body}',
+            "a doctype without entities": f"{header}<!DOCTYPE Package><Package/>",
+            "a lower-case doctype": f"{header}<!doctype Package><Package/>",
+            "an entity outside a doctype": f'{header}<!ENTITY m "SLChessA">{body}',
+        }
+        for what, text in manifests.items():
+            with self.subTest(what):
+                (self.work / "m.xml").write_text(text)
+                self.assert_scope_denied("--manifest", "m.xml", reason="DOCTYPE or ENTITY")
+                self.assert_scope_denied("-x", "m.xml", reason="DOCTYPE or ENTITY", command=("project", "deploy", "validate"))
+        # Without the declaration the same members are fine.
+        (self.work / "m.xml").write_text(f"{header}<Package><types><members>SLChessA</members><name>ApexClass</name></types></Package>")
+        self.assert_scope_ok("--manifest", "m.xml")
+        # Through the wrapper the deploy never reaches the real sf.
+        (self.work / "m.xml").write_text(manifests["an entity declared twice"])
+        done = self.sf("project", "deploy", "start", "--manifest", "m.xml", "--target-org", ORG, "--json")
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("DOCTYPE or ENTITY", done.stderr)
+        self.assertEqual(self.reached(), [])
+
     def test_a_missing_or_unreadable_manifest_is_refused_not_passed_through(self):
         self.layout()
         self.assert_scope_denied("--manifest", "no-such.xml", reason="cannot be read")
@@ -754,9 +894,8 @@ class ScopeTest(GuardCase):
         self.assertEqual(self.reached(), [])
 
     def test_only_a_deploy_that_sends_source_is_scoped(self):
-        # Nothing to judge for a report, cancel, resume or quick deploy (they name a job), or a retrieve (it only reads the org).
-        for command in (("project", "deploy", "report"), ("project", "deploy", "cancel"), ("project", "deploy", "resume"),
-                        ("project", "deploy", "quick"), ("project", "retrieve", "start")):
+        # Nothing to judge for a report (it names a job) or a retrieve (it only reads the org).
+        for command in (("project", "deploy", "report"), ("project", "retrieve", "start")):
             allowed, reason = sf_guard.decide([*command, "--job-id", "0Af000000000000AAA", "--target-org", ORG], ORG, prefix="SLChess",
                                               cwd=str(self.work))
             self.assertTrue(allowed, (command, reason))
@@ -922,11 +1061,11 @@ class ScopeTest(GuardCase):
             (self.work / "long.xml").write_text(f"<Package><types><members>{member}</members><name>{kind}</name></types></Package>")
             why = self.assert_scope_denied("--manifest", "long.xml", reason="manifest 'long.xml'")
             self.assertLess(len(why), 1500)
-        # A member that a DOCTYPE entity expands to a megabyte is judged on the expansion and echoed clipped.
+        # A member that a DOCTYPE entity would expand to a megabyte is refused on the declaration, before anything expands.
         levels = ['<!ENTITY a "' + "x" * 1000 + '">'] + [f'<!ENTITY {n} "' + f"&{m};" * 10 + '">' for m, n in zip("abc", "bcd")]
         (self.work / "bomb.xml").write_text(f"<?xml version=\"1.0\"?><!DOCTYPE Package [{''.join(levels)}]><Package><types>"
                                             "<members>&d;</members><name>ApexClass</name></types></Package>")
-        why = self.assert_scope_denied("--manifest", "bomb.xml", reason="manifest 'bomb.xml'")
+        why = self.assert_scope_denied("--manifest", "bomb.xml", reason="DOCTYPE or ENTITY")
         self.assertLess(len(why), 1500)
         # The log keeps at most 2000 characters of a reason whatever echoes into it.
         done = self.sf("data", "query", "-q", "x", "--target-org", "y" * 5000)
@@ -968,28 +1107,39 @@ class ScopeTest(GuardCase):
                 self.assert_scope_denied(*flags, reason=reason, base=default / "classes")
 
     def test_a_deploy_that_does_not_wait_is_refused(self):
+        # --async, and a --wait the CLI accepts (1 minute and more) that is too short for a deploy to finish: the command returns and
+        # the deploy keeps running in the org, where the case's cleanup could overlap it.
         self.layout(self.GOOD)
-        commands = (("project", "deploy", "start"), ("project", "deploy", "validate"), ("project", "deploy", "quick", "--job-id", "0Af000000000000AAA"),
-                    ("project", "deploy", "resume", "--job-id", "0Af000000000000AAA"))
-        for command in commands:
+        for command in (("project", "deploy", "start"), ("project", "deploy", "validate")):
             for flags in (["--async"], ["--wait", "0"], ["-w", "0"], ["--wait=0"], ["-w0"], ["-gw", "0"], ["--wait", "00"], ["--wait", "0.0"],
-                          ["--async", "--wait", "10"], ["--wait", "10", "--async"], ["--wait", "-1"]):
+                          ["--async", "--wait", "10"], ["--wait", "10", "--async"], ["--wait", "-1"],
+                          ["--wait", "1"], ["-w", "1"], ["--wait=4"], ["-w4"], ["-gw", "2"], ["--wait", "4.9"], ["--wait", "10", "--wait", "3"]):
                 with self.subTest(command=command[2], flags=flags):
                     allowed, reason = sf_guard.decide([*command, *flags, "--source-dir", "force-app", "--target-org", ORG], ORG, prefix="SLChess",
                                                       cwd=str(self.work))
                     self.assertFalse(allowed)
                     self.assertIn("wait for the deploy to finish", reason)
-            for flags in ([], ["--wait", "10"], ["-w", "33"], ["--wait=10"], ["-w10"], ["-gw", "10"]):
+            for flags in ([], ["--wait", "10"], ["-w", "33"], ["--wait=10"], ["-w10"], ["-gw", "10"], ["--wait", "5"], ["-w5"]):
                 with self.subTest(command=command[2], flags=flags, allowed=True):
                     allowed, reason = sf_guard.decide([*command, *flags, "--source-dir", "force-app", "--target-org", ORG], ORG, prefix="SLChess",
                                                       cwd=str(self.work))
                     self.assertTrue(allowed, reason)
-        # Only the deploys that run on in the org are refused: a cancel or a report with the flag is another matter.
-        for command in (("project", "deploy", "cancel"), ("project", "deploy", "report")):
-            allowed, reason = sf_guard.decide([*command, "--async", "--job-id", "0Af000000000000AAA", "--target-org", ORG], ORG, prefix="SLChess")
-            self.assertTrue(allowed, reason)
+        # A short wait is told to use a larger value; --async is told to leave the flag out.
+        allowed, reason = sf_guard.decide(["project", "deploy", "start", "--wait", "1", "--source-dir", "force-app", "--target-org", ORG], ORG,
+                                          prefix="SLChess", cwd=str(self.work))
+        self.assertIn("--wait 1 is denied", reason)
+        self.assertIn("use --wait 5 or a larger value", reason)
+        allowed, reason = sf_guard.decide(["project", "deploy", "start", "--async", "--source-dir", "force-app", "--target-org", ORG], ORG,
+                                          prefix="SLChess", cwd=str(self.work))
+        self.assertIn("leave it out", reason)
+        # A report is not a deploy that runs on: the flag is another matter there.
+        allowed, reason = sf_guard.decide(["project", "deploy", "report", "--async", "--job-id", "0Af000000000000AAA", "--target-org", ORG], ORG,
+                                          prefix="SLChess")
+        self.assertTrue(allowed, reason)
         self.assert_denied("project", "deploy", "start", "--source-dir", "force-app", "--async", "--target-org", ORG, "--json",
                            reason="wait for the deploy to finish")
+        self.assert_denied("project", "deploy", "start", "--source-dir", "force-app", "--wait", "1", "--target-org", ORG, "--json",
+                           reason="use --wait 5 or a larger value")
         self.assertEqual(self.reached(), [])
 
 

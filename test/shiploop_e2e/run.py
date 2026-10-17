@@ -1350,7 +1350,10 @@ def untracked(work: Path) -> set[str]:
     return {ln[3:] for ln in done.stdout.splitlines() if ln.startswith("?? ")} if done.returncode == 0 else set()
 
 
-def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | None = None, scrubbed: bool = False) -> list[dict]:
+CHECK_TIMEOUT = 180  # seconds, one case check's ceiling; a platform case may raise it (platform.check_timeout)
+
+
+def run_checks(work: Path, checks: list[str], timeout: int = CHECK_TIMEOUT, env: dict | None = None, scrubbed: bool = False) -> list[dict]:
     """Run each check in `work`, then delete any untracked file the checks created.
 
     A follow-on run copies this checkout; a leftover (a server log, say) would
@@ -1375,8 +1378,9 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
     return results
 
 
-# One check's ceiling in the product-at-stop run, the same 180 s as a check in the working directory. A ceiling for a check
-# that never ends, not a tuning value.
+# One check's ceiling in the product-at-stop run, the same 180 s as a check in the working directory (CHECK_TIMEOUT); a platform
+# case's check_timeout does not raise it, because a check that runs out here is `timed_out`, never a product failure. A ceiling
+# for a check that never ends, not a tuning value.
 PRODUCT_AT_STOP_TIMEOUT = 180
 
 
@@ -1426,6 +1430,8 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
 #              of the PATH the host was launched with, so pin_shell_path writes the PATH back to the front in the throwaway
 #              HOME's startup files and shell_resolution_problems proves, per shell, that each name still resolves to the wrapper
 #   resume_note  a sentence appended to the prompt of a RESUMED run whose earlier segment's cleanup ran (the platform was reset)
+#   check_timeout  seconds (60..3600) one of the case's checks may run, in place of CHECK_TIMEOUT: a check that asks the platform many
+#              times and cannot be run again once the cleanup has reset it
 # Every command output the harness stores or prints goes through scrub().
 PLATFORM_COMMANDS = ("preflight", "before", "cleanup")
 PLATFORM_TIMEOUT = 900  # seconds, one command's ceiling; a command that never ends, not a tuning value
@@ -1485,6 +1491,9 @@ def validate_platform(name: str, spec) -> dict:
             problems.append(f"{key} must be a non-empty command string")
     if "resume_note" in spec and not (isinstance(spec["resume_note"], str) and spec["resume_note"].strip()):
         problems.append("resume_note must be a non-empty string")
+    timeout = spec.get("check_timeout", CHECK_TIMEOUT)
+    if not (isinstance(timeout, int) and 60 <= timeout <= 3600):
+        problems.append("check_timeout must be an integer number of seconds from 60 to 3600")
     if spec.get("before") and not spec.get("cleanup"):
         problems.append("before without cleanup: nothing would remove what the run makes")
     links = spec.get("home_links", [])
@@ -1600,6 +1609,7 @@ def shell_resolution_problems(names, bin_dir: Path, env: dict) -> list[str]:
 
 # What a model that was given a guarded sf can be seen to have run, and where the guard (checks/sf_guard.py) keeps its record.
 GUARD_LOG = "sf-calls.jsonl"
+PREFLIGHT_RANGES = "preflight-ranges.jsonl"  # next to the guard log: one [from, to] line per preflight that ran, appended as it ends
 GUARDED_NAMES = ("sf", "sfdx")
 
 # A command counts as running sf only where a shell would start it: the case prompt ShipLoop's `workspace start` is given, a note
@@ -1871,14 +1881,19 @@ def guard_log_lines(out: Path) -> int:
 
 
 def preflight_ranges(out: Path) -> list[tuple[int, int]]:
-    """The ranges [from, to) of guard-log lines that the harness's own preflights wrote, one per invocation that recorded one
-    (invocation.json for the first, invocation-resume-*.json for each later one): wrapper calls the case's preflight command made,
-    which are not the model's. Empty for a run recorded before the field existed."""
+    """The ranges [from, to) of guard-log lines that the harness's own preflights wrote, one per preflight that ran
+    (<output>/platform/preflight-ranges.jsonl, appended by platform_preflight the moment the preflight ends, so a resume that is
+    refused later still has its range): wrapper calls the case's preflight command made, which are not the model's. A line that
+    is not a pair of integers is skipped; empty where the file is absent."""
     ranges = []
-    for path in [out / "invocation.json", *sorted(out.glob("invocation-resume-*.json"))]:
+    try:
+        lines = (out / "platform" / PREFLIGHT_RANGES).read_text().splitlines()
+    except OSError:
+        return ranges
+    for line in lines:
         try:
-            first, last = json.loads(path.read_text())["platform"]["guard_log_preflight"]
-        except (OSError, ValueError, KeyError, TypeError):
+            first, last = json.loads(line)
+        except (ValueError, TypeError):
             continue
         if isinstance(first, int) and isinstance(last, int):
             ranges.append((first, last))
@@ -1979,8 +1994,9 @@ def link_homes(names: list[str], env: dict) -> list[dict]:
 def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
     """Make the home links and the model_bin wrappers, then run the case's preflight command with the host's environment;
     {home_links, preflight} (plus, where the case has a model_bin: model_bin {name: wrapper path}, shell_path_pinned,
-    model_bin_resolution {ok, problems} and guard_log_preflight [from, to]: the guard-log lines the case's preflight command
-    wrote through the wrappers, which are not the model's calls). ``preflight`` is None where the case names no command.
+    model_bin_resolution {ok, problems}). With a model_bin it also appends [from, to], the guard-log lines the case's preflight
+    command wrote through the wrappers (not the model's calls), to <output>/platform/preflight-ranges.jsonl as the preflight
+    ends (see preflight_ranges). ``preflight`` is None where the case names no command.
     ``host_env`` is changed in place: with model_bin its PATH starts with the wrappers' folder, which is what the host launches
     with and what the preflight runs under (so it proves the wrapper works from the host's environment).
 
@@ -2005,9 +2021,14 @@ def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
             return state
     command = spec.get("preflight")
     first = guard_log_lines(out)  # where this invocation's preflight starts writing (a resume's preflight calls are not the model's)
-    state["preflight"] = run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None
-    if spec.get("model_bin"):
-        state["guard_log_preflight"] = [first, guard_log_lines(out)]
+    try:
+        state["preflight"] = run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None
+    finally:
+        if spec.get("model_bin"):
+            # Recorded here, not with the invocation record: a resume can be refused after its preflight (the version gate), and
+            # the wrapper lines that preflight wrote must still not read as the model's calls at the next resume.
+            with (platform_dir / PREFLIGHT_RANGES).open("a") as handle:
+                handle.write(json.dumps([first, guard_log_lines(out)]) + "\n")
     return state
 
 
@@ -2061,10 +2082,14 @@ def kept_banner(out: Path, spec: dict) -> str:
 
 
 def keep_refusal(*, shiploop: dict, engine: dict, process: dict, stop_seen: bool, stop_file: Path, checks: list,
-                 invalid: bool) -> str | None:
+                 invalid: bool, earlier_cleanup: dict | None = None) -> str | None:
     """Why a --keep-platform request is not honoured; None where it is. Only a delivery that finished is kept: ShipLoop done and
     its report written, the host ended by itself, every case check passed, and no stop, no timeout and no invalid trial. Every
-    other ending cleans the platform as it always did, so a half-built trial is never left behind."""
+    other ending cleans the platform as it always did, so a half-built trial is never left behind. ``earlier_cleanup`` is the
+    cleanup record of the run being graded again (a regrade): one that was attempted and failed left the platform dirty, so what
+    is there is not a finished delivery; no record at all (a harness that was killed) does not refuse."""
+    if earlier_cleanup and not earlier_cleanup.get("ok"):
+        return "an earlier cleanup of this run failed: run the printed command first"
     if TERMINATION.is_set() or stop_seen or stop_file.exists() or process.get("status") == "stopped":
         return f"the run was stopped ({stop_cause(stop_file)})"
     if process.get("status") == "timeout":
@@ -3514,6 +3539,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     args.skill = args.skill or host.skill
     env = host.env(out / "home")
     earlier_platform = earlier_result.get("platform") or {}
+    # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
+    # crash leaves result.json holding an older one, so the record the cleanup itself writes (platform/cleanup-record.json) wins.
+    earlier_cleanup = (earlier_cleanup_record(out) if resumed else None) or earlier_platform.get("cleanup")
     # A run that ended by Ctrl-C or a crash ran its cleanup but wrote no result.json: its cleanup record tells the resumed model.
     note_platform = earlier_platform if earlier_platform.get("cleanup") or not resumed else {"cleanup": earlier_cleanup_record(out)}
     platform_state: dict = {}
@@ -3700,7 +3728,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 raise SystemExit(f"platform before command failed (exit {platform_before['returncode']}), so no model started: "
                                  f"{platform_before['output'].strip()[-600:]} (see {out / 'result.json'})")
         guard.arm(platform_spec, out)  # from here the model may start: the cleanup runs after grading, whatever happens
-    elif platform_spec and regrade and not (earlier_platform.get("cleanup") or {}).get("ok"):
+    elif platform_spec and regrade and not (earlier_cleanup or {}).get("ok"):
         if lock is not None:
             # A run whose cleanup never succeeded is cleaned when it is graded again. The lock proves that no harness is running
             # this case, not that no model is: a host runs in its own session and outlives a harness that was killed (SIGKILL
@@ -3837,8 +3865,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
     # A regrade of a platform run that was cleaned cannot ask the platform again: it restates the checks the run made while the
     # work was deployed, rather than replace a pass with checks that find nothing there.
-    restated = bool(regrade and platform_spec and (earlier_platform.get("cleanup") or {}).get("ok") and earlier_result.get("checks"))
-    check_results = earlier_result["checks"] if restated else run_checks(work, checks, env=check_env, scrubbed=bool(platform_spec))
+    restated = bool(regrade and platform_spec and (earlier_cleanup or {}).get("ok") and earlier_result.get("checks"))
+    check_results = (earlier_result["checks"] if restated else
+                     run_checks(work, checks, timeout=(platform_spec or {}).get("check_timeout", CHECK_TIMEOUT), env=check_env,
+                                scrubbed=bool(platform_spec)))
     engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     try:
         # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
@@ -3853,26 +3883,30 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # starts no host, and the run it grades may have a live one.
         left_behind.append(listeners.reap(out))
     platform_block = None
-    keep_not_honoured = None  # why --keep-platform did not keep the platform (None: kept, or not asked)
+    keep_not_honoured = None  # why --keep-platform did not keep the platform (None: kept, moot, or not asked)
+    keep_moot = False  # --keep-platform where no cleanup was pending (a regrade of a run already cleaned or kept): changes nothing
     if platform_spec:
         # Did the guard see the model's sf at all, and did the model go around it? Counted outside the harness's own preflights
-        # (one range per invocation, from the invocation records); a run recorded before the field existed is not judged.
+        # (one range per preflight that ran, platform/preflight-ranges.jsonl); a run that recorded none is not judged.
         ranges = preflight_ranges(out)
         guarded = any(name in (platform_spec.get("model_bin") or {}) for name in GUARDED_NAMES)
         coverage = guard_coverage(out, ranges) if guarded and ranges else None
         if args.keep_platform:
-            keep_not_honoured = keep_refusal(shiploop=shiploop, engine=engine, process=process, stop_seen=stop_seen,
-                                             stop_file=stop_file, checks=check_results, invalid=bool((coverage or {}).get("bypassed")))
-            if keep_not_honoured is None and not guard.keep("--keep-platform"):
-                keep_not_honoured = "no cleanup was pending: an earlier invocation already cleaned or kept the platform"
+            if not guard.armed():
+                keep_moot = True
+            else:
+                keep_not_honoured = keep_refusal(shiploop=shiploop, engine=engine, process=process, stop_seen=stop_seen,
+                                                 stop_file=stop_file, checks=check_results, invalid=bool((coverage or {}).get("bypassed")),
+                                                 earlier_cleanup=earlier_cleanup if regrade else None)
+                if keep_not_honoured is None:
+                    guard.keep("--keep-platform")
         # After grading, so the checks saw the deployed work; the guard's `finally` in main() is the same call for a run that never gets here.
-        cleanup = guard.finish() or earlier_platform.get("cleanup") or {"ran": False, "ok": False, "reason": "no cleanup record"}
+        cleanup = guard.finish() or earlier_cleanup or {"ran": False, "ok": False, "reason": "no cleanup record"}
         scrub_files(out)
         earlier_cleanups = list(earlier_platform.get("earlier_cleanups") or [])
         if resumed and not regrade and earlier_platform.get("cleanup"):
             earlier_cleanups.append(earlier_platform["cleanup"])
-        invoked_state = {key: value for key, value in platform_state.items() if key != "guard_log_preflight"}  # a pair per invocation
-        platform_block = {"spec": platform_spec, "dir": str(platform_dir), **invoked_state, "before": platform_before,
+        platform_block = {"spec": platform_spec, "dir": str(platform_dir), **platform_state, "before": platform_before,
                           "cleanup": cleanup, **({"earlier_cleanups": earlier_cleanups} if earlier_cleanups else {}),
                           **({"guard_log_preflight_ranges": [list(item) for item in ranges]} if ranges else {}),
                           **({"guard_coverage": coverage} if coverage else {}),
@@ -4085,6 +4119,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                  if seen else ""))
         if keep_not_honoured:
             print(f"            --keep-platform NOT honoured ({keep_not_honoured}), so the platform was cleaned as usual")
+        elif keep_moot:
+            print("            --keep-platform changes nothing here: no cleanup was pending (an earlier invocation already "
+                  "cleaned or kept the platform, or another harness holds the run)")
         for line in bypass_lines(seen) if seen else []:
             print(f"            {line}")
     print(f"  {exported}")

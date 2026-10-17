@@ -60,6 +60,7 @@ private class SLChessEngineTest {
     static void perftKiwipete() {
         System.assertEquals(48, SLChessEngine.legalMoves(KIWIPETE).size());
         System.assertEquals(2039, perft2(KIWIPETE));
+        System.debug('CPU ' + Limits.getCpuTime());
     }
 
     @IsTest
@@ -78,6 +79,7 @@ private class SLChessEngineTest {
     static void perftPosition5() {
         System.assertEquals(44, SLChessEngine.legalMoves(POSITION_5).size());
         System.assertEquals(1486, perft2(POSITION_5));
+        System.debug('CPU ' + Limits.getCpuTime());
     }
 
     @IsTest

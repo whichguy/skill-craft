@@ -19,7 +19,10 @@ Subcommands (all exit 0 on success, 1 otherwise, and print scrubbed one-line rea
   selftest   rehearsal: deploy a probe class, component, tab, app and app page, test it, run anonymous Apex against it and remove
              it again (real org: main session only). `selftest --reference [DIR]` deploys the known-good reference project
              instead, grades it with project, deployed, tests and rules, and removes it; with `--keep` it stays in the org for
-             the owner to open and the by-hand cleanup command is printed
+             the owner to open and the by-hand cleanup command is printed. `--keep` needs `--platform-dir`, a folder that outlives
+             the run (the cleanup later needs the snapshot in it), and the printed command names this file, so run a `--keep`
+             from the checkout that stays (the canonical one after the merge). deployed, tests and rules print their seconds
+             against the case's check ceiling (cases.json, platform.check_timeout)
 
 Safety (the owner's rules for this case):
   * Every `sf` call resolves `sf` from PATH (so a test can substitute a fake) and names `--target-org <alias>` explicitly,
@@ -42,6 +45,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 TOKEN_RE = re.compile(r"00D[A-Za-z0-9]{12,15}![A-Za-z0-9._]{20,}")
@@ -213,6 +217,7 @@ OWN_TYPES = ("ApexClass", "LightningComponentBundle")  # queried with their Last
 # tabs, a tab shows the component or a page, the page and the component use the Apex class), and one deploy handles them together.
 REMOVABLE = ("CustomApplication", "CustomTab", "FlexiPage", "LightningComponentBundle", "ApexClass")
 UNSUPPORTED_RE = re.compile(r"not supported|INVALID_TYPE")  # the CLI's answer for an object the edition does not have
+NOT_QUERYABLE = "type was not queryable at the snapshot"
 
 
 def watched_names(org: str, spec: tuple, like_prefix: str | None = None) -> list[str]:
@@ -388,7 +393,7 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
     for kind in REMOVABLE:
         recorded = recorded_names(before, kind)
         if recorded is None:  # the snapshot could not query this type, so nothing in it can be told apart from the baseline
-            plan[kind], refused = [], [(n, "type was not queryable at the snapshot") for n in sorted(set(found[kind]))]
+            plan[kind], refused = [], [(n, NOT_QUERYABLE) for n in sorted(set(found[kind]))]
         else:
             plan[kind], refused = plan_removal(found[kind], set(recorded), removal_prefix(kind, prefix))
         record["refused"] += [{"type": kind, "name": n, "reason": why} for n, why in refused]
@@ -418,6 +423,9 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
     except SfError as exc:
         return finish(False, "%s; could not verify afterwards: %s" % (deploy_note or "deploy ran", exc), error=str(exc))
     diff = compare(before, now)
+    for r in record["refused"]:  # compare() skips a type the snapshot could not query, but a prefixed item of it is still left over
+        if r["reason"] == NOT_QUERYABLE:
+            diff["extra"].setdefault(r["type"], []).append(r["name"])
     record.update({key: diff[key] for key in ("extra", "missing", "modified", "unverified", "covered", "not_covered")})
     if any(diff[key] for key in ("extra", "missing", "modified", "unverified")):
         return finish(False, "%sorg differs from the before snapshot: %s" % (deploy_note + "; " if deploy_note else "", describe(diff)))
@@ -836,7 +844,22 @@ def do_rules(org: str, raw_dir: Path | None = None) -> tuple[bool, list[str]]:
 # ------------------------------------------------------------------------------------------------------------ selftest
 
 REFERENCE = Path(__file__).resolve().parents[1] / "fixtures" / "chess-salesforce-reference"
+CASES = Path(__file__).resolve().parents[1] / "cases.json"
 CASE_MIN_TESTS = 8  # the --min-tests of the case's `tests` check; a test holds the two together
+
+
+def check_ceiling() -> int | None:
+    """The seconds the harness gives each of this case's checks (cases.json, platform.check_timeout); None when it cannot be read."""
+    try:
+        return int(json.loads(CASES.read_text())["chess-salesforce"]["platform"]["check_timeout"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def timed(call, *args):
+    """(call(*args), seconds it took)."""
+    started = time.monotonic()
+    return call(*args), time.monotonic() - started
 
 
 def probe_script(klass: str) -> str:
@@ -890,12 +913,15 @@ def write_probe(root: Path, prefix: str) -> dict[str, str]:
 
 
 def do_selftest(org: str, prefix: str, reference: Path | None = None, keep: bool = False, platform: Path | None = None) -> bool:
+    if keep and platform is None:
+        raise ValueError("keep needs a platform folder that outlives the run")
     work = Path(tempfile.mkdtemp(prefix="chess-sf-selftest-"))
-    snap = (platform or Path(tempfile.mkdtemp(prefix="chess-sf-kept-"))) if keep else work / "platform"
-    snapped, all_ok = False, True
+    snap = platform if keep else work / "platform"
+    snapped, deployed, all_ok, ceiling = False, False, True, check_ceiling()
 
-    def step(name: str, ok: bool, message: str) -> bool:
-        say("%s %s: %s" % ("PASS" if ok else "FAIL", name, message))
+    def step(name: str, ok: bool, message: str, seconds: float | None = None) -> bool:
+        took = "" if seconds is None else " (%d s%s)" % (round(seconds), " of the case's %d s check ceiling" % ceiling if ceiling else "")
+        say("%s %s%s: %s" % ("PASS" if ok else "FAIL", name, took, message))
         return ok
 
     try:
@@ -933,21 +959,22 @@ def do_selftest(org: str, prefix: str, reference: Path | None = None, keep: bool
             want = expected_names(prefix)
         doc = sf(["project", "deploy", "start", "--source-dir", "force-app", "--wait", "10"], org, timeout=900, cwd=str(project))
         result = doc.get("result") or {}
-        if not step("deploy", doc.get("status") == 0 and result.get("success") is not False,
-                    "status=%s %s" % (result.get("status"), tail(str(doc.get("message") or "")) if doc.get("status") != 0 else "")):
+        deployed = step("deploy", doc.get("status") == 0 and result.get("success") is not False,
+                        "status=%s %s" % (result.get("status"), tail(str(doc.get("message") or "")) if doc.get("status") != 0 else ""))
+        if not deployed:
             return False
-        ok, msg = do_deployed(org, prefix, want["classes"], want["lwc"], 1, want["tabs"], want["apps"], want["pages"])
-        all_ok &= step("deployed", ok, msg)
-        ok, lines = do_tests(org, prefix, CASE_MIN_TESTS if reference else 1)
-        all_ok &= step("tests", ok, "; ".join(lines))
+        (ok, msg), took = timed(do_deployed, org, prefix, want["classes"], want["lwc"], 1, want["tabs"], want["apps"], want["pages"])
+        all_ok &= step("deployed", ok, msg, took)
+        (ok, lines), took = timed(do_tests, org, prefix, CASE_MIN_TESTS if reference else 1)
+        all_ok &= step("tests", ok, "; ".join(lines), took)
         if reference is None:
             err, seen, _log = run_apex(org, work, "probe", probe_script(names["class"]))
             got = seen.get("probe")
             all_ok &= step("apex-run", not err and got == "2",
                            "RESULT|probe| expected=2 got=%s" % (got if got is not None else (err or "no RESULT line")))
         else:
-            ok, lines = do_rules(org, platform or (snap if keep else None))
-            all_ok &= step("rules", ok, lines[-1])
+            (ok, lines), took = timed(do_rules, org, platform)
+            all_ok &= step("rules", ok, lines[-1], took)
             for line in lines[:-1]:
                 say("    " + line)
         return all_ok
@@ -956,10 +983,11 @@ def do_selftest(org: str, prefix: str, reference: Path | None = None, keep: bool
         return False
     finally:
         cleanup_failed = False
-        if snapped and keep:
+        if snapped and keep and deployed:
+            kept = snap.resolve()  # the command is run later, from any directory
             say("KEPT: nothing was removed from org %r; the %s* app stays there to open (App Launcher: %s, or /lightning/n/%s_Board). "
                 "The snapshot that cleanup needs is in %s. Remove everything by hand when you are done:\npython3 %s cleanup --org %s "
-                "--prefix %s --platform-dir %s" % (org, prefix, prefix, prefix, snap, Path(__file__).resolve(), org, prefix, snap))
+                "--prefix %s --platform-dir %s" % (org, prefix, prefix, prefix, kept, Path(__file__).resolve(), org, prefix, kept))
         elif snapped:
             try:
                 ok, msg = do_cleanup(org, prefix, snap)
@@ -971,8 +999,6 @@ def do_selftest(org: str, prefix: str, reference: Path | None = None, keep: bool
                 say("MANUAL CLEANUP NEEDED: remove the %s* and %s* items (%s) from org %r (destructive deploy of exactly those names)."
                     % (prefix, lwc_prefix(prefix), ", ".join(REMOVABLE), org))
         shutil.rmtree(work, ignore_errors=True)
-        if keep and not snapped and platform is None:
-            shutil.rmtree(snap, ignore_errors=True)
         if cleanup_failed:
             raise SystemExit(1)
 
@@ -1029,6 +1055,8 @@ def main(argv: list[str]) -> int:
         else:
             if args.keep and not args.reference:
                 parser.error("--keep needs --reference")
+            if args.keep and not args.platform_dir:
+                parser.error("--keep needs --platform-dir (a durable folder; the snapshot cleanup needs later must not live in $TMPDIR)")
             return 0 if do_selftest(args.org, args.prefix, Path(args.reference) if args.reference else None, args.keep,
                                     Path(args.platform_dir) if args.platform_dir else None) else 1
     except SfError as exc:
