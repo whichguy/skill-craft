@@ -495,16 +495,52 @@ class PlanRecordTests(unittest.TestCase):
                 self.assertIn(phrase, text)
 
     def test_the_duty_names_each_trigger_and_the_guide_in_both_routes(self) -> None:
+        # The interaction topic prints in the duty again for an item that names interactions, UI or service state (the
+        # catalog render, ``interactions=True``); an item that names none gets the pointer only (``interactions=False``).
         for delegation in ("inline", "ask-agent"):
-            duty = " ".join(plans.prompts.prompt("step-plan", delegation=delegation).split())
+            for interactions in (False, True):
+                duty = " ".join(plans.prompts.prompt("step-plan", delegation=delegation,
+                                                     interactions=interactions).split())
+                with self.subTest(route=delegation, interactions=interactions):
+                    for trigger in ("adds or moves code or stored data",
+                                    "replays a pinned value (fixed dice, seed data)",
+                                    "changes interactions, UI or service state", "GUIDES/plan-record.md",
+                                    "opening only its matching section"):
+                        self.assertIn(trigger, duty)
+                    for gone in ("collision check", "source-check fixture", "round-trip check"):
+                        self.assertNotIn(gone, duty)
+                    self.assertEqual("Design basis paragraph" in duty, interactions)
+                    self.assertIn("the Coding decision guide's selection", duty)  # unconditional: stays in the duty
+
+    def test_the_interaction_cue_follows_the_request_and_the_item(self) -> None:
+        """The navigator prints the interaction bullet when the request or the item names interactions, UI or held state."""
+        self.assertFalse(prompts.names_interactions(plans.CASE["prompt"], plans.CASE["work_item"]["title"],
+                                                    plans.CASE["work_item"]["context"]))
+        self.assertFalse(prompts.names_interactions(plans.SECOND_ITEM["title"], plans.SECOND_ITEM["context"]))
+        for text in ("Add an inline-editable list view", "Accept report-complete events", "keep the client state",
+                     "recover the subscription cursor after reconnect", "a settings screen with a save button"):
+            with self.subTest(text=text):
+                self.assertTrue(prompts.names_interactions("Fix a parser.", text))
+
+    def test_an_interaction_item_step_plan_head_prints_the_bullet_within_the_cut(self) -> None:
+        """Unit U7 left a UI item's step plan with only the guide's pointer; the bullet is back in its head, and the head
+        still fits the 20,000-character host print at the normal install (the context excerpt at its 400-character cap)."""
+        case = dict(plans.CASE, prompt="Add a list view people reorder by drag and drop, with keyboard paths and an undo "
+                                       "button; keep the list state in the client.")
+        case["work_item"] = {"id": "W1", "title": "List view with drag-and-drop reordering and keyboard paths",
+                             "context": ("Reuse the existing list component; animate moves with a reduced-motion "
+                                         "alternative; state owner: the client store. ") * 8}
+        for delegation in ("inline", "ask-agent"):
+            rows = packets.offline_renders(case, delegation, run_dir_length=INSTALL_RUN_DIR,
+                                           cli_path_length=CLI_PATH_LENGTH)
+            printed = next(row["printed"] for key, row in rows.items() if plans.stage_of(key) == "step-plan")
             with self.subTest(route=delegation):
-                for trigger in ("adds or moves code or stored data", "replays a pinned value (fixed dice, seed data)",
-                                "changes interactions, UI or service state", "GUIDES/plan-record.md",
-                                "opening only its matching section"):
-                    self.assertIn(trigger, duty)
-                for gone in ("collision check", "source-check fixture", "Design basis paragraph", "round-trip check"):
-                    self.assertNotIn(gone, duty)
-                self.assertIn("the Coding decision guide's selection", duty)  # unconditional: stays in the duty
+                self.assertLessEqual(len(printed), HOST_CUT)
+                flat = " ".join(printed.split())
+                for cue in ("a Design basis paragraph", "Give baseline and delta;", "planned recovery checks;",
+                            "design guidance identity and version or digest (or named fallback)", "GUIDES/plan-record.md"):
+                    self.assertIn(cue, flat)
+                self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
 
     def test_the_guide_is_a_stage_reference_with_a_heading_for_its_locator(self) -> None:
         label, locator = next(row for row in plans.prompts.STAGE_REFERENCES["step-plan"] if row[0] == "Plan record guide")

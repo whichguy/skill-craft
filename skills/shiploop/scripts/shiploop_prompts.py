@@ -8,6 +8,7 @@ Neither prompt contains a copied Improve algorithm or a second review counter.
 
 from __future__ import annotations
 
+import re
 import textwrap
 from pathlib import Path
 
@@ -814,6 +815,38 @@ def summary_placeholder(stage: str) -> str:
 _BACKCHAIN_ITEM = "<<backchain item>>"
 _ITEM_COMMIT = "<<item commit rule>>"
 
+# Step-plan duty 9's interaction topic, printed in the duty for an item that may change interactions, UI or service
+# state.  Print-order unit U7 moved it to references/plan-record.md to fit the 20,000-character host print, which left
+# a UI item's step plan with only a pointer a cold model rarely opens; the duty now prints it whenever the request or
+# the item names such a change (``names_interactions``), and only the pointer for an item that names none.
+_PLAN_RECORD_INTERACTIONS = """\
+   - interactions, UI or service state changing: a Design basis paragraph or exact section links, rechecking the
+     Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
+     plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
+     component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
+     and the rich interactions planned (a human-facing UI defaults to ambitious and highly interactive: direct
+     manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any
+     scaled back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
+"""
+
+# Words that mark a request or work item as one that may change interactions, UI or service state.  Deliberately
+# wide: a false match costs one bullet of packet text, a missed one loses the interaction obligations of a UI item.
+# "state" counts only with a word that makes it held state ("client state", "state owner"), not the verb ("State the
+# rule in the README").
+INTERACTION_CUES = re.compile(
+    r"\b(?:ui|ux|gui|user interface|interfaces?|screens?|views?|components?|buttons?|clicks?|keyboard|mouse|touch|"
+    r"drag|forms?|display\w*|render\w*|layouts?|browsers?|front-?end|interactive|interactions?|animat\w*|"
+    r"notifications?|events?|connections?|reconnect\w*|subscri\w*|websockets?|sockets?|sessions?|stateful|"
+    r"(?:service|client|server|shared|session|application|app|ui|user|live|persistent|stored) state|"
+    r"state (?:owner\w*|store|sync\w*)|real-?time|webhooks?|playable|players?)\b",
+    re.IGNORECASE)
+
+
+def names_interactions(*texts: str) -> bool:
+    """True when any text names a change to interactions, UI or service state (``INTERACTION_CUES``)."""
+    return any(INTERACTION_CUES.search(text or "") for text in texts)
+
+
 DUTIES = {
     "intake": """\
 1. Cover each request sentence in `summary`, do not copy it: one clause each, cited S<n> (S1 is the first), as the
@@ -1212,6 +1245,7 @@ Change no product file in this stage.
      conditions;
    - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
      sections;
+""" + _PLAN_RECORD_INTERACTIONS + """\
    - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
      interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
      topic, opening only its matching section.
@@ -2181,7 +2215,7 @@ def _one_step_carry_forward(text: str, item: str) -> str:
 
 def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage",
          backchain_passes: str = DEFAULT_BACKCHAIN_PASSES, execution_mode: str | None = None,
-         one_step_item: str | None = None) -> str:
+         one_step_item: str | None = None, interactions: bool = True) -> str:
     """Return one stage duty with the run's implementation-route paragraph.
 
     ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES): ``stage`` renders the
@@ -2190,7 +2224,9 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     default.  ``backchain_passes`` picks the Backchain item of spec and plan; ``execution_mode`` (state key
     ``execution_mode``) picks what the commit rule says about a file the item commit leaves.  ``one_step_item`` is the
     item's ID when the run has one work item with one step and no pending item (``shiploop_loops.one_step_run``): the
-    carry-forward duty then prints items 2 and 3 short; every other stage ignores it.
+    carry-forward duty then prints items 2 and 3 short; every other stage ignores it.  ``interactions`` False (the
+    navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves step-plan duty 9's
+    interaction bullet out, keeping its pointer to the Plan record guide; the catalog renders the bullet.
     """
     _require_stage(stage)
     _require_delegation(delegation)
@@ -2199,6 +2235,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     text = DUTIES[stage]
     if stage == "carry-forward" and one_step_item:
         text = _one_step_carry_forward(text, one_step_item)
+    if not interactions:
+        text = text.replace(_PLAN_RECORD_INTERACTIONS, "")
     if _BACKCHAIN_ITEM in text:
         text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage, backchain_passes))
     if _ITEM_COMMIT in text:
@@ -2282,7 +2320,8 @@ BACKCHAIN_STUB = "Backchain: the route's paragraph follows the result template."
 
 
 def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, planning_review: str,
-                  execution_mode: str | None, one_step_item: str | None = None) -> list[tuple[str, str]]:
+                  execution_mode: str | None, one_step_item: str | None = None,
+                  interactions: bool = True) -> list[tuple[str, str]]:
     """The producer instruction as ``(kind, text)`` parts in print order; ``prompt`` joins them.
 
     ``kind`` is ``duty``, ``audit`` (the inline route's short optional audit line), ``backchain`` (the route paragraph of a
@@ -2290,7 +2329,7 @@ def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, plannin
     """
     parts = [("duty", duty(stage, delegation=delegation, planning_review=planning_review,
                            backchain_passes=backchain_passes, execution_mode=execution_mode,
-                           one_step_item=one_step_item))]
+                           one_step_item=one_step_item, interactions=interactions))]
     # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
     # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
     # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
@@ -2310,7 +2349,7 @@ def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, plannin
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
            backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
            planning_review: str = "stage", execution_mode: str | None = None,
-           one_step_item: str | None = None) -> str:
+           one_step_item: str | None = None, interactions: bool = True) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
     The navigator always passes the run's delegation, Backchain passes option and planning review
@@ -2323,13 +2362,13 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     _require_planning_review(planning_review)
     return "\n\n".join(text for _, text in _prompt_parts(
         stage, delegation=delegation, backchain_passes=backchain_passes, planning_review=planning_review,
-        execution_mode=execution_mode, one_step_item=one_step_item))
+        execution_mode=execution_mode, one_step_item=one_step_item, interactions=interactions))
 
 
 def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
                  backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
                  planning_review: str = "stage", execution_mode: str | None = None,
-                 one_step_item: str | None = None) -> tuple[str, str]:
+                 one_step_item: str | None = None, interactions: bool = True) -> tuple[str, str]:
     """``(prompt text, Backchain route paragraph)`` for a packet that prints the paragraph behind its result template.
 
     The first holds everything ``prompt`` returns, with ``BACKCHAIN_STUB`` where the paragraph stood; the second is the
@@ -2341,7 +2380,8 @@ def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
     _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
     parts = _prompt_parts(stage, delegation=delegation, backchain_passes=backchain_passes,
-                          planning_review=planning_review, execution_mode=execution_mode, one_step_item=one_step_item)
+                          planning_review=planning_review, execution_mode=execution_mode, one_step_item=one_step_item,
+                          interactions=interactions)
     moved = next((text for kind, text in parts if kind == "backchain"), "")
     return ("\n\n".join(BACKCHAIN_STUB if kind == "backchain" else text for kind, text in parts), moved)
 

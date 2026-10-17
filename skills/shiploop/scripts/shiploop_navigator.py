@@ -1518,13 +1518,24 @@ def _named_text(state: Mapping[str, Any], stage: str | None, route: str) -> str:
     return guidance.prompt(stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
                            planning_review=recorded_planning_review(state),
                            execution_mode=state.get("execution_mode") or None,
-                           one_step_item=_one_step_item(state, stage))
+                           one_step_item=_one_step_item(state, stage), interactions=_interactions(state, stage))
 
 
 def _one_step_item(state: Mapping[str, Any], stage: str | None) -> str | None:
     """The item's ID at a carry-forward of a one-step one-item run (``loops.one_step_run``), which prints its short queue
     and skill duties (plan row VR-2); None at every other stage and run."""
     return loops.one_step_run(state) if stage == "carry-forward" else None
+
+
+def _interactions(state: Mapping[str, Any], stage: str | None) -> bool:
+    """False only at a step-plan whose request and current work item (title and context) name no change to
+    interactions, UI or service state (``guidance.names_interactions``): its duty 9 then prints the Plan record guide's
+    pointer without the interaction bullet.  True at every other stage."""
+    if stage != "step-plan":
+        return True
+    item = state["work_items"][state["work_index"]]
+    return guidance.names_interactions(str(state.get("prompt", "")), str(item.get("title", "")),
+                                       str(item.get("context", "")))
 
 
 def _named_policy_text(state: Mapping[str, Any], stage: str | None, route: str, stage_text: str) -> str:
@@ -1867,7 +1878,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     duties, backchain = guidance.prompt_split(
         stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
         planning_review=recorded_planning_review(state), execution_mode=state.get("execution_mode") or None,
-        one_step_item=_one_step_item(state, stage))
+        one_step_item=_one_step_item(state, stage), interactions=_interactions(state, stage))
     _need(isinstance(duties, str) and bool(duties.strip()), f"navigator prompt is unavailable for {stage}")
     blocks: list[_Block] = []
     if stage in inner:
