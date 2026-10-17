@@ -1,0 +1,13 @@
+{
+  "file": "p_step.txt",
+  "sha256": "c03496cc7e23d48eea5b918e1867078c5115c2695751cef17a203bfb11afe408",
+  "bytes": 71834,
+  "characters": 71746,
+  "lines": 653,
+  "provenance": "Pre-existing untracked file, contains a sanitized external installed-package path. Producer source revision and execution outcome not verified. Read only, unchanged.",
+  "Knowledge files this stage reads,": 9766,
+  "Handed off by earlier stages,": 46138,
+  "Current stage guidance:": 62319,
+  "Pause without consuming the action:": 71204,
+  "knowledge_block_characters": 36372
+}
