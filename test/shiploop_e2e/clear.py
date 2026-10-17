@@ -86,9 +86,10 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
-def stream(events_path: Path) -> tuple[list[dict], list[dict]]:
-    """(calls, arrivals) from a Claude stream. A call is {line, id, tool, input, answered, result_line}; an arrival is
-    {line, stage, revision}: a packet header printed in a tool result."""
+def stream(events_path: Path, keep_text: bool = False) -> tuple[list[dict], list[dict]]:
+    """(calls, arrivals) from a Claude stream. A call is {line, id, tool, input, answered, result_line, chars}; an arrival is
+    {line, stage, revision}: a packet header printed in a tool result. ``chars`` is the length of the result the model was
+    shown (None while unanswered); ``keep_text`` also keeps that text, as ``shown``, for a caller that classifies it."""
     calls: dict[str, dict] = {}
     arrivals = []
     if not events_path.is_file():
@@ -107,14 +108,14 @@ def stream(events_path: Path) -> tuple[list[dict], list[dict]]:
             if block.get("type") == "tool_use":
                 calls[block.get("id") or f"#{line}"] = {"line": line, "id": block.get("id"), "tool": block.get("name"),
                                                         "input": block.get("input") or {}, "answered": False,
-                                                        "result_line": None}
+                                                        "result_line": None, "chars": None}
             elif block.get("type") == "tool_result":
                 call = calls.get(block.get("tool_use_id"))
-                if call is not None:
-                    call.update(answered=True, result_line=line)
                 text = block.get("content")
                 text = text if isinstance(text, str) else "\n".join(
                     part.get("text", "") for part in text or [] if isinstance(part, dict))
+                if call is not None:
+                    call.update(answered=True, result_line=line, chars=len(text), **({"shown": text} if keep_text else {}))
                 arrivals += [{"line": line, "stage": m.group("stage"), "revision": int(m.group("rev"))}
                              for m in HEADER.finditer(text)]
     return sorted(calls.values(), key=lambda c: c["line"]), arrivals
@@ -204,6 +205,45 @@ def operations(call: dict) -> list[dict]:
         ops.append({"kind": "commit", "key": ("git commit",)})
     ops += [{"kind": "test", "key": (" ".join(m.group(0).split()),)} for m in TEST_RUN.finditer(command)]
     return ops
+
+
+def orientation(events_path: Path, clear_line: int, stamps: dict | None = None) -> dict:
+    """What the fresh session took in before it changed anything (efficiency plan, unit U5): the characters its read-only calls
+    returned, by class (``metrics.classify_call``: a file class such as entry_card or packet_file, else the bucket), and how long
+    it took to make its first state-changing call (``operations``: a write, a callback, a commit, a test run).
+
+    The calls are the ones from ``clear_line`` on, as ``redone`` reads them. The S-6 verdict does not change: it counts only
+    state-changing calls the fresh session repeated, so a clear that read 80,000 characters of cards and redid nothing passes,
+    and this record is what shows the reading. ``time_to_first_state_changing_call`` is seconds from the first stamped event at
+    or after the clear to that call (None where the run has no timeline, or the session never changed anything).
+    """
+    calls, _arrivals = stream(events_path, keep_text=True)
+    if not calls:
+        return {"measured": False, "reason": "no tool calls in Claude's event shape: clear.py reads Claude's stream, and another "
+                "host's reading of a fresh context is metrics.reading_path's cold calls after a break",
+                "orientation_bytes": None, "read_only_calls": None, "first_state_changing_call": None,
+                "time_to_first_state_changing_call": None}
+    stamps = metrics.timeline(events_path.parent / "timeline.jsonl") if stamps is None else stamps
+    by_class: dict[str, dict] = {}
+    first = None
+    read_only = 0
+    for call in (c for c in calls if c["line"] >= clear_line):
+        if operations(call):
+            first = call
+            break
+        read_only += 1
+        info = metrics.classify_call(str(call["tool"]), call["input"], call.get("shown") or "")
+        row = by_class.setdefault(info["cls"] or info["bucket"], {"calls": 0, "chars": 0})
+        row["calls"] += 1
+        row["chars"] += call["chars"] or 0
+    began = next((stamps[n] for n in sorted(stamps) if n >= clear_line), None)
+    at = stamps.get(first["line"]) if first else None
+    return {"measured": True,
+            "orientation_bytes": {"total": sum(r["chars"] for r in by_class.values()), "by_class": dict(sorted(by_class.items()))},
+            "read_only_calls": read_only,
+            "first_state_changing_call": None if first is None else {"line": first["line"], "tool": first["tool"],
+                                                                      "kinds": sorted({op["kind"] for op in operations(first)})},
+            "time_to_first_state_changing_call": None if began is None or at is None else round(at - began, 3)}
 
 
 def redone(events_path: Path, clear_line: int, until_line: int | None = None) -> list[dict]:
