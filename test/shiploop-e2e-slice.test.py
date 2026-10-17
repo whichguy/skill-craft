@@ -9,10 +9,13 @@ The fake commits its change; a model leaves it assembled and uncommitted, which 
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -29,6 +32,7 @@ import flow  # noqa: E402
 import metrics  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
+import sessionlog  # noqa: E402
 import slice as step_slice  # noqa: E402
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
 import shiploop_item_scope as item_scope  # noqa: E402
@@ -47,11 +51,12 @@ FAKE_HOST = textwrap.dedent('''
     import json, subprocess, sys, time
     from pathlib import Path
     scripts, cli, run_dir, mode = sys.argv[1:5]
-    pause_at = sys.argv[5] if len(sys.argv) > 5 else ""
-    paused = set()
+    pause_at = (sys.argv[5] if len(sys.argv) > 5 else "").split(",")  # stages to stay at once, e.g. "implement,test"
     sys.path.insert(0, scripts)
     import shiploop_navigator as nav, shiploop_stage_spec as spec, shiploop_store as store
     run_dir = Path(run_dir)
+    memo = run_dir.parent / "fake-paused.txt"  # a fresh session of the fake does not stay where an earlier one did
+    paused = set(memo.read_text().split()) if memo.exists() else set()
     worktree = run_dir.parent / "worktree"
     git = ["git", "-C", str(worktree), "-c", "user.name=Fake host", "-c", "user.email=fake-host@example.invalid"]
     extra_outer = 2 if mode == "overrun" else 0
@@ -63,8 +68,9 @@ FAKE_HOST = textwrap.dedent('''
         if past:
             break
         action = nav.current_action(state)["id"]
-        if stage == pause_at and action not in paused:
+        if stage in pause_at and action not in paused:
             paused.add(action)
+            memo.write_text("\\n".join(sorted(paused)))
             time.sleep(6)  # a model reading the packet: the probe's poll stops it here
             continue
         extra = {}
@@ -114,7 +120,7 @@ class SliceCase(unittest.TestCase):
                             work_item=item or CASE["work_item"], delegation="inline",
                             **{"checks": CASE["checks"], **options})
 
-    def fake(self, seeded: dict, mode: str, *, pause_at: str = "", clear_at: dict | None = None,
+    def fake(self, seeded: dict, mode: str, *, pause_at: str = "", clear_at: list[dict] | None = None,
              first: bool = True) -> dict:
         script = self.out / "fake_host.py"
         script.write_text(FAKE_HOST)
@@ -597,6 +603,18 @@ class ClearMetricTests(unittest.TestCase):
                 "result": "ShipLoop navigator | test-green | revision 4"}
         self.assertEqual([f["kind"] for f in self.redone([done], [done])], ["callback"])
 
+    def test_a_redo_is_counted_in_the_window_of_the_clear_it_follows_and_no_other(self):
+        def write(name):
+            return {"tool": "Write", "call": {"file_path": f"/w/{name}.js", "content": name}, "result": "ok"}
+        rows = [write("a"), write("b"), write("a"), write("c")]  # session 3 repeats session 1's write
+        _stream(self.events, rows)
+        first, second, third = 2, 4, 6                            # each row is a call and its result: the stop lines
+        self.assertEqual(clear.redone(self.events, first, second), [])
+        self.assertEqual([f["kind"] for f in clear.redone(self.events, second, third)], ["write"])
+        self.assertEqual(clear.redone(self.events, third), [])
+        # Unbounded (the last clear's window), a repeat after the second clear would also fail the first.
+        self.assertEqual([f["kind"] for f in clear.redone(self.events, first)], ["write"])
+
 
 class ClearTriggerTests(unittest.TestCase):
     def setUp(self):
@@ -622,13 +640,75 @@ class ClearTriggerTests(unittest.TestCase):
         self.assertIsNotNone(clear.trigger(self.events, self.state, inside, self.stage_of))
         self.assertIsNone(clear.trigger(self.events, dict(self.state, stage="test-red"), inside, self.stage_of))
 
+    IMPLEMENT_HEAD = {"call": "python3 /p/scripts/shiploop next --run-dir=/r", "result": "ShipLoop navigator | implement | revision 9"}
+    IMPROVE_HEAD = {"call": "python3 /p/scripts/shiploop complete --run-dir=/r --action=nav-x",
+                    "result": "ShipLoop navigator | improve | revision 10 | the implement result"}
+    READ = {"call": "sed -n 1,5p src/a.js", "result": "..."}
+
+    def reviewing(self):
+        # The producer's result waits at its Improve stage: the stage is still implement, the Improve child is bound.
+        return dict(self.state, active_improve={"action_id": "nav-x", "stage": "implement", "improve_action": "nav-i"})
+
+    def test_an_improve_position_stops_while_the_child_is_bound_and_a_stage_position_does_not(self):
+        improve = {"stage": "improve", "inside": False}
+        _stream(self.events, [self.IMPROVE_HEAD])
+        self.assertIsNone(clear.trigger(self.events, self.state, improve, self.stage_of), "no child, no Improve stage")
+        at = clear.trigger(self.events, self.reviewing(), improve, self.stage_of)
+        self.assertEqual((at["stage"], at["action"]), ("improve", "nav-i"), "the Improve stage is its own position")
+        for inside in (False, True):
+            self.assertIsNone(clear.trigger(self.events, self.reviewing(), {"stage": "implement", "inside": inside},
+                                            self.stage_of), "the reviewed stage is not current while its review runs")
+
+    def test_inside_an_improve_stage_waits_for_its_packet_and_a_completed_call_that_is_not_shiploops(self):
+        inside = {"stage": "improve", "inside": True}
+        _stream(self.events, [self.IMPROVE_HEAD])
+        self.assertIsNone(clear.trigger(self.events, self.reviewing(), inside, self.stage_of))
+        review = {"tool": "Skill", "call": {"skill": "skill-craft:improve"}, "result": None}
+        _stream(self.events, [self.IMPROVE_HEAD, review])        # the skill call is in flight
+        self.assertIsNone(clear.trigger(self.events, self.reviewing(), inside, self.stage_of))
+        _stream(self.events, [self.IMPROVE_HEAD, dict(review, result="Launching skill")])
+        self.assertIsNotNone(clear.trigger(self.events, self.reviewing(), inside, self.stage_of))
+        ledger = {"call": "python3 /p/scripts/shiploop improve-pass --run-dir=/r --action=nav-i", "result": "ok"}
+        _stream(self.events, [self.IMPROVE_HEAD, ledger])
+        self.assertIsNone(clear.trigger(self.events, self.reviewing(), inside, self.stage_of), "ShipLoop's own calls never count")
+
+    def test_a_later_clear_counts_only_the_packet_and_calls_that_came_after_the_earlier_stop(self):
+        inside = {"stage": "implement", "inside": True}
+        _stream(self.events, [self.IMPLEMENT_HEAD, self.READ])
+        self.assertIsNotNone(clear.trigger(self.events, self.state, inside, self.stage_of))
+        stopped = len(self.events.read_text().splitlines())
+        self.assertIsNone(clear.trigger(self.events, self.state, inside, self.stage_of, since=stopped),
+                          "the cleared session's packet and call are not the fresh session's")
+        _stream(self.events, [self.IMPLEMENT_HEAD, self.READ, self.READ])
+        self.assertIsNone(clear.trigger(self.events, self.state, inside, self.stage_of, since=stopped),
+                          "a call with no packet shown after the stop")
+        _stream(self.events, [self.IMPLEMENT_HEAD, self.READ, self.IMPLEMENT_HEAD])
+        self.assertIsNone(clear.trigger(self.events, self.state, inside, self.stage_of, since=stopped), "the packet, no call yet")
+        _stream(self.events, [self.IMPLEMENT_HEAD, self.READ, self.IMPLEMENT_HEAD, self.READ])
+        self.assertIsNotNone(clear.trigger(self.events, self.state, inside, self.stage_of, since=stopped))
+
+    def test_a_stream_the_harness_cannot_read_stops_at_a_boundary_and_never_inside(self):
+        # Grok and Codex events are tool_call / tool_call_update lines, not Claude's message blocks (hosts.CodexTranslator):
+        # the calls cannot be read, so an inside position has nothing to wait on. It is accepted, recorded as requested
+        # (invocation.json clear_at) and reported unfired; it is not refused, and a boundary is state-based.
+        grok = [{"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command",
+                 "rawInput": {"command": "sed -n 1,5p src/a.js"}},
+                {"type": "tool_call_update", "toolCallId": "c1", "status": "completed",
+                 "rawOutput": {"output_for_prompt": "ShipLoop navigator | implement | revision 9"}}]
+        self.events.write_text("".join(json.dumps(x) + "\n" for x in grok))
+        self.assertIsNotNone(clear.trigger(self.events, self.state, {"stage": "implement", "inside": False}, self.stage_of))
+        self.assertIsNone(clear.trigger(self.events, self.state, {"stage": "implement", "inside": True}, self.stage_of))
+
 
 class ClearProbeTests(SliceCase):
     def test_a_clear_at_the_boundary_records_the_stop_and_a_fresh_session_finishes_the_slice(self):
         seeded = self.seed()
-        first = self.fake(seeded, "normal", pause_at="implement", clear_at={"stage": "implement", "inside": False})
+        first = self.fake(seeded, "normal", pause_at="implement", clear_at=[{"stage": "implement", "inside": False}])
         self.assertEqual(first["status"], "cleared")
-        record = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+        records = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+        self.assertEqual(len(records), 1, "clear.json is a list, one record per clear")
+        record = records[0]
+        self.assertEqual((record["n"], record["stage"], record["inside"]), (1, "implement", False))
         self.assertEqual(record["stopped"]["stage"], "implement")
         self.assertEqual(record["triggered"]["action"], record["stopped"]["action"])
         second = self.fake(seeded, "normal", first=False)  # the fresh session: the fake reads the packet again
@@ -636,6 +716,258 @@ class ClearProbeTests(SliceCase):
         result = step_slice.grade(self.out, Path(seeded["run_dir"]), seeded, CASE, [first, second])
         self.assertTrue(result["verdicts"]["no_redo"])  # the fake's stream holds no calls: nothing to redo
         self.assertTrue(result["pass"], result["verdicts"])
+        self.assertEqual([c["pass"] for c in result["clear"]], [True])
+
+    def test_each_session_ends_at_the_next_position_not_yet_cleared_and_three_clears_give_three_records(self):
+        seeded = self.seed()
+        specs = clear.parse_spec(["implement", "test", "verify"])
+        statuses, first = [], True
+        for _ in range(6):                                   # the loop in slice.main: continue while a clear ended the session
+            process = self.fake(seeded, "normal", pause_at="implement,test,verify", clear_at=specs, first=first)
+            statuses.append(process["status"])
+            first = False
+            if process["status"] != "cleared":
+                break
+        self.assertEqual(statuses, ["cleared", "cleared", "cleared", "slice-complete"])
+        records = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+        self.assertEqual([(r["n"], r["stage"], r["stopped"]["stage"]) for r in records],
+                         [(1, "implement", "implement"), (2, "test", "test"), (3, "verify", "verify")])
+        lines = [r["stopped"]["events_line"] for r in records]
+        self.assertEqual(lines, sorted(lines))
+
+
+class ClearRecordTests(SliceCase):
+    """clear.json is a list; each clear is measured against its own stop, and a clear that never happened is reported."""
+
+    def stream_with_clears(self, rows: list[dict], stops: list[int], asked: list[str] | None = None) -> dict:
+        _stream(self.out / "events.jsonl", rows)
+        records = [{"n": n, "stage": "implement", "inside": False, "triggered": {}, "stopped": {"stage": "implement",
+                    "action": "", "revision": 5, "events_line": line, "last_answered_line": line - 1}}
+                   for n, line in enumerate(stops, 1)]
+        (self.out / step_slice.CLEAR_RECORD).write_text(json.dumps(records))
+        if asked is not None:
+            (self.out / "invocation.json").write_text(json.dumps({"clear_at": asked}))
+        return self.seed()
+
+    @staticmethod
+    def write(name: str) -> dict:
+        return {"tool": "Write", "call": {"file_path": f"/w/{name}.js", "content": name}, "result": "ok"}
+
+    def test_a_stream_redoing_a_call_after_the_second_clear_fails_that_clear_only(self):
+        seeded = self.stream_with_clears([self.write("a"), self.write("b"), self.write("a"), self.write("c")], [2, 4, 6])
+        facts = step_slice.clear_facts(self.out)
+        self.assertEqual([f["pass"] for f in facts], [True, False, True])
+        self.assertEqual([r["kind"] for r in facts[1]["redone"]], ["write"])
+        self.assertEqual([f["n"] for f in facts], [1, 2, 3])
+        result = step_slice.grade(self.out, Path(seeded["run_dir"]), seeded, CASE, [{"status": "slice-complete"}])
+        self.assertFalse(result["verdicts"]["no_redo"], "one failed clear fails the verdict")
+        self.assertEqual([c["pass"] for c in result["clear"]], [True, False, True])
+
+    def test_three_clean_clears_pass_and_a_position_that_never_fired_is_listed_not_hidden(self):
+        seeded = self.stream_with_clears([self.write("a"), self.write("b"), self.write("c")], [2, 4, 6],
+                                         asked=["implement", "implement:inside", "improve", "verify"])
+        result = step_slice.grade(self.out, Path(seeded["run_dir"]), seeded, CASE, [{"status": "slice-complete"}])
+        self.assertTrue(result["verdicts"]["no_redo"])
+        self.assertEqual(len(result["clear"]), 3)
+        self.assertEqual(result["clear_unfired"], ["verify"])
+
+    def test_no_clear_means_no_verdict_and_nothing_unfired_without_a_request(self):
+        seeded = self.seed()
+        result = step_slice.grade(self.out, Path(seeded["run_dir"]), seeded, CASE, [{"status": "slice-complete"}])
+        self.assertNotIn("no_redo", result["verdicts"])
+        self.assertEqual((result["clear"], result["clear_unfired"]), ([], []))
+
+    def test_a_record_from_the_one_clear_layout_is_refused_not_read_as_empty(self):
+        (self.out / step_slice.CLEAR_RECORD).write_text(json.dumps({"stage": "implement", "inside": False, "stopped": {}}))
+        with self.assertRaises(SystemExit) as raised:
+            step_slice.clear_facts(self.out)
+        self.assertIn("older", str(raised.exception))
+
+
+class ResumePromptTests(unittest.TestCase):
+    CLI = Path("/p/skills/shiploop/scripts/shiploop")
+
+    def test_names_next_is_the_runs_own_resume_prompt_and_told_says_so(self):
+        prompt, told = step_slice.continue_prompt("names-next", "/r/run", self.CLI)
+        self.assertEqual(prompt, run.resume_prompt("/r/run", self.CLI))
+        self.assertEqual(told, {"cli": str(self.CLI), "run_dir": "/r/run"})
+        self.assertIn("next --run-dir", prompt)
+
+    def test_withheld_names_no_command_no_path_and_no_stage(self):
+        prompt, told = step_slice.continue_prompt("withheld", "/r/run", self.CLI)
+        self.assertEqual(prompt, "Continue the ShipLoop work for the repository in this directory.")
+        self.assertIsNone(told, "sessions.jsonl records that the prompt named no recovery command")
+        for named in ("next", "/r/run", str(self.CLI), "--run-dir", "complete"):
+            self.assertNotIn(named, prompt)
+
+    def test_the_command_line_collects_every_position_and_offers_the_two_conditions(self):
+        args = step_slice.parser().parse_args(["--case", "x", "--clear-at", "implement:inside", "--clear-at", "test",
+                                               "--clear-at", "improve"])
+        self.assertEqual(args.clear_at, ["implement:inside", "test", "improve"])
+        self.assertEqual(args.resume_prompt, "names-next", "the default is today's prompt")
+        self.assertEqual(step_slice.parser().parse_args(["--resume-prompt", "withheld"]).resume_prompt, "withheld")
+        self.assertIsNone(step_slice.parser().parse_args([]).clear_at)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            step_slice.parser().parse_args(["--resume-prompt", "hint"])
+
+
+class ClearSpecTests(unittest.TestCase):
+    def test_the_flag_repeats_and_each_position_parses_in_the_order_given(self):
+        self.assertEqual(clear.parse_spec(["implement:inside", "test", "improve"]), [
+            {"stage": "implement", "inside": True}, {"stage": "test", "inside": False},
+            {"stage": "improve", "inside": False}])
+        self.assertEqual(clear.parse_spec(["improve:inside"]), [{"stage": "improve", "inside": True}])
+        self.assertEqual(clear.parse_spec(None), [])
+        self.assertEqual([clear.label(s) for s in clear.parse_spec(["implement:inside", "improve"])],
+                         ["implement:inside", "improve"])
+
+    def test_a_malformed_position_is_refused_before_anything_starts(self):
+        for text in ("test:outside", ":inside", "", "test:inside:more"):
+            with self.subTest(text), self.assertRaises(SystemExit):
+                clear.parse_spec([text])
+
+
+FAKE_CLAUDE = textwrap.dedent('''
+    import json, os, subprocess, sys, time
+    from pathlib import Path
+    cfg = json.loads(Path(os.environ["FAKE_SLICE_CONFIG"]).read_text())
+    prompt = sys.argv[sys.argv.index("-p") + 1]
+    with open(cfg["prompts"], "a") as handle:
+        handle.write(json.dumps(prompt) + "\\n")
+    sys.path.insert(0, cfg["scripts"])
+    import shiploop_navigator as nav, shiploop_stage_spec as spec, shiploop_store as store
+    cli, run_dir = cfg["cli"], Path(cfg["run_dir"])
+    worktree = run_dir.parent / "worktree"
+    git = ["git", "-C", str(worktree), "-c", "user.name=Fake host", "-c", "user.email=fake-host@example.invalid"]
+    memo = run_dir.parent / "fake-holds.json"
+    held = json.loads(memo.read_text()) if memo.exists() else {}   # how many sessions have already stayed at each place
+    here, count = set(), [0]
+
+    def shown(command, output):
+        count[0] += 1
+        ident = f"f{os.getpid()}-{count[0]}"
+        for event in ({"type": "assistant", "message": {"content": [
+                          {"type": "tool_use", "id": ident, "name": "Bash", "input": {"command": command}}]}},
+                      {"type": "user", "message": {"content": [
+                          {"type": "tool_result", "tool_use_id": ident, "content": output}]}}):
+            print(json.dumps(event), flush=True)
+
+    def hold(place, sessions):
+        # Stay long enough for the harness poll to end this session: once per session, for `sessions` sessions in all.
+        if place in here or held.get(place, 0) >= sessions:
+            return False
+        here.add(place)
+        held[place] = held.get(place, 0) + 1
+        memo.write_text(json.dumps(held))
+        time.sleep(8)
+        return True
+
+    while True:
+        printed = subprocess.run([sys.executable, cli, "next", f"--run-dir={run_dir}"], capture_output=True, text=True).stdout
+        shown(f"python3 {cli} next --run-dir={run_dir}", printed)
+        state = store.read_record(run_dir / "state.md")
+        stage = nav.current_stage(state)
+        if state["status"] != "active" or state["work_index"] > 0 or stage in spec.OUTER:
+            break
+        child = state.get("active_improve")
+        if child is not None:
+            if child["stage"] == cfg["improve_of"] and hold("improve:" + child["action_id"], 1):
+                continue
+            nav.save(run_dir, nav.finish_improve(state, child["action_id"], {"summary": "Fake review", "lessons": "x"}))
+            continue
+        action = nav.current_action(state)["id"]
+        if stage == "implement" and "read" not in here:
+            here.add("read")
+            shown("sed -n 1,5p src/paginate.js", "module.exports = {};")
+        if stage in cfg["holds"] and hold(stage + ":" + action, cfg["holds"].count(stage)):
+            continue
+        extra = {}
+        if stage == "step-plan":
+            extra["test_commands"] = [{"command": "test -f src/feature.js", "suite": "focused"}]
+        if stage == "implement":
+            (worktree / "src").mkdir(exist_ok=True)
+            (worktree / "src" / "feature.js").write_text("module.exports = 1;\\n")
+            subprocess.run([*git, "add", "src/feature.js"], check=True, capture_output=True)
+            subprocess.run([*git, "commit", "-qm", "feature"], check=True, capture_output=True)
+        nav.save(run_dir, nav.apply(state, action, {"outcome": "done", "summary": "Fake host", **extra}))
+    time.sleep(120)
+''')
+
+
+class ClearThroughMainTests(unittest.TestCase):
+    """slice.main with a fake `claude` that prints Claude-shaped events: the positions, the prompt condition and the
+    records as the live battery will produce them. The fake stays at a position for one poll; a fresh process of it
+    (the next session) continues from the ledger."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-slice-main-")
+        self.addCleanup(self.temp.cleanup)
+        self.tmp = Path(self.temp.name).resolve()
+        self.plugin = self.tmp / "plugin"
+        (self.plugin / "skills").mkdir(parents=True)
+        (self.plugin / "skills" / "shiploop").symlink_to(ROOT / "skills" / "shiploop")
+        self.out = self.tmp / "slice"
+        self.cli = self.plugin / "skills" / "shiploop" / "scripts" / "shiploop"
+        self.run_dir = self.out / ".shiploop-runs" / "seed" / "run"
+        self.fake = self.tmp / "claude"
+        self.fake.write_text(f"#!{sys.executable}\n{FAKE_CLAUDE}")
+        self.fake.chmod(0o755)
+        self.prompts = self.tmp / "prompts.jsonl"
+        self.handlers = {n: signal.getsignal(n) for n in (signal.SIGTERM, signal.SIGHUP)}  # slice.main takes them over
+        self.addCleanup(self.restore_signals)
+
+    def restore_signals(self):
+        for number, handler in self.handlers.items():
+            signal.signal(number, handler)
+
+    def main(self, holds: list[str], *flags: str) -> dict:
+        config = self.tmp / "config.json"
+        config.write_text(json.dumps({"prompts": str(self.prompts), "scripts": str(CLI.parent), "cli": str(CLI),
+                                      "run_dir": str(self.run_dir), "holds": holds, "improve_of": "implement"}))
+        case = {**CASE, "fixture": "node-base"}
+        with mock.patch.dict(os.environ, {"FAKE_SLICE_CONFIG": str(config)}), \
+                mock.patch.object(step_slice, "load_step_case", return_value=case), \
+                contextlib.redirect_stdout(io.StringIO()):
+            step_slice.main(["--case", "fake", "--host", "claude", "--claude-bin", str(self.fake),
+                             "--plugin-dir", str(self.plugin), "--output", str(self.out), "--timeout", "300", "--quiet",
+                             *flags])
+        return json.loads((self.out / "slice-result.json").read_text())
+
+    def sent(self) -> list[str]:
+        return [json.loads(line) for line in self.prompts.read_text().splitlines()]
+
+    def test_three_positions_with_the_prompt_withheld_give_three_records_a_flow_and_the_unfired_one_named(self):
+        result = self.main(["implement", "implement"], "--clear-at", "implement", "--clear-at", "implement:inside",
+                           "--clear-at", "improve", "--clear-at", "carry-forward:inside", "--resume-prompt", "withheld")
+        records = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+        self.assertEqual([(r["n"], r["stage"], r["inside"], r["stopped"]["stage"]) for r in records],
+                         [(1, "implement", False, "implement"), (2, "implement", True, "implement"),
+                          (3, "improve", False, "improve")])
+        self.assertEqual([s["status"] for s in result["sessions"]], ["cleared", "cleared", "cleared", "slice-complete"])
+        self.assertTrue(result["verdicts"]["no_redo"], result["clear"])
+        self.assertEqual([c["pass"] for c in result["clear"]], [True, True, True])
+        self.assertEqual(result["clear_unfired"], ["carry-forward:inside"])
+        # The condition reached the host, three times and never the opening, and the record says nothing was named.
+        sent = self.sent()
+        self.assertEqual(len(sent), 4)
+        self.assertEqual(sent[1:], [step_slice.WITHHELD_PROMPT] * 3)
+        self.assertIn("/skill-craft:shiploop", sent[0])
+        self.assertEqual([s["told"] for s in sessionlog.read(self.out)][1:], [None, None, None])
+        invocation = json.loads((self.out / "invocation.json").read_text())
+        self.assertEqual((invocation["clear_at"], invocation["resume_prompt"]),
+                         (["implement", "implement:inside", "improve", "carry-forward:inside"], "withheld"))
+        flow = json.loads((self.out / "flow.json").read_text())
+        self.assertEqual([(c["n"], c["stage"], c["inside"], c["pass"]) for c in flow["clear"]],
+                         [(1, "implement", False, True), (2, "implement", True, True), (3, "improve", False, True)])
+
+    def test_the_default_condition_names_next_and_the_record_says_what_it_named(self):
+        result = self.main(["implement"], "--clear-at", "implement")
+        sent = self.sent()
+        self.assertEqual(len(sent), 2)
+        self.assertEqual(sent[1], run.resume_prompt(str(self.run_dir), self.cli))
+        self.assertEqual(sessionlog.read(self.out)[1]["told"], {"cli": str(self.cli), "run_dir": str(self.run_dir)})
+        self.assertEqual(json.loads((self.out / "invocation.json").read_text())["resume_prompt"], "names-next")
+        self.assertEqual((len(result["clear"]), result["clear_unfired"]), (1, []))
 
 
 class FlowTests(SliceCase):

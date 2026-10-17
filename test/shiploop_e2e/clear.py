@@ -3,6 +3,20 @@ session that holds only the packet, and measure the work the fresh session redid
 
     slice.py --case node-fix-bug --clear-at implement            # at the boundary: the packet arrived, nothing done
     slice.py --case node-fix-bug --clear-at test:inside          # after the stage's first completed call
+    slice.py --case node-fix-bug --clear-at implement --clear-at implement:inside --clear-at improve   # three clears
+
+`--clear-at` repeats. The positions fire **in the order given**: each session ends at the first position not yet cleared,
+and the fresh session that follows is measured from its own stop (`redone`), so a redo after the second clear fails that
+clear only. A position that is out of the run's order, or that never comes (a stage the slice does not reach, an inside
+position whose stage finished in one call), blocks the ones after it; the slice result lists what never fired
+(`clear_unfired`), so a probe that stopped less often than asked is visible, not a pass. Positions:
+- `<stage>`: the run's current stage is the stage (its packet has just been printed) and no Improve stage is running;
+- `<stage>:inside`: the same, and after the fresh packet was shown a call that is not ShipLoop's has its result;
+- `improve`: an Improve stage is running (the producer's result waits at its review, `state["active_improve"]` is
+  bound); `improve:inside` waits for the Improve stage's packet and a completed call that is not ShipLoop's. An Improve
+  stage is a position of its own: the stage it reviews is not at its boundary while the review runs. Which review it is
+  follows from the order: the first one after the previous clear.
+A repeated identical position is the caller's mistake: the second fires at once and measures nothing.
 
 S-6 passes only with no redone work: zero completed state-changing calls repeated after the clear. A call counts
 as redone when it repeats one that was **completed** (its result was in the stream) before the stop. A call cut off
@@ -18,8 +32,10 @@ Same work, by operation (read-only orientation never counts: `next`, `status`, r
   when a ShipLoop callback recorded the work after the earlier run and before the stop.  A result that only the cleared
   context saw is unknown to the fresh session, so rerunning that test is verification, not redone work.
 
-Claude's stream gives calls and results; other hosts' translated streams are coarser, so their `:inside` stops are
-recorded but not gated (see the plan's open unknowns).
+Claude's stream gives calls and results; other hosts' translated streams (Grok's and Codex's tool_call lines) are not
+read here, so on them a boundary position works (it is state-based) and an `:inside` position is accepted and recorded
+as requested but never fires: nothing in the stream is a call this module can see. It is not refused; it is reported
+unfired. Likewise their `redone` is empty: not a measurement. Run Grok and Codex slices at boundaries.
 """
 from __future__ import annotations
 
@@ -47,13 +63,23 @@ REDIRECT = re.compile(r"(?<![0-9&>])>>?\s*(?!&|/dev/null)(?P<path>[^\s;&|<>()]+)
 READ_ONLY_VERBS = {"next", "status", "context", "lint"}
 
 
-def parse_spec(text: str | None) -> dict | None:
-    if not text:
-        return None
-    stage, _, where = text.partition(":")
-    if where not in ("", "inside"):
-        raise SystemExit(f"--clear-at {text!r}: use <stage> or <stage>:inside")
-    return {"stage": stage, "inside": where == "inside"}
+IMPROVE = "improve"  # the position of an Improve stage (the stage ShipLoop names `improve` in its header)
+
+
+def parse_spec(texts: list[str] | None) -> list[dict]:
+    """The `--clear-at` positions in the order given, each {"stage", "inside"}. None or an empty list is no probe."""
+    specs = []
+    for text in texts or []:
+        stage, _, where = text.partition(":")
+        if not stage or where not in ("", "inside"):
+            raise SystemExit(f"--clear-at {text!r}: use <stage> or <stage>:inside ({IMPROVE!r} is an Improve stage)")
+        specs.append({"stage": stage, "inside": where == "inside"})
+    return specs
+
+
+def label(spec: dict) -> str:
+    """The text of one position, as it was given: `implement`, `implement:inside`, `improve`."""
+    return spec["stage"] + (":inside" if spec["inside"] else "")
 
 
 def _digest(text: str) -> str:
@@ -102,17 +128,28 @@ def is_shiploop(call: dict) -> bool:
     return bool(SHIPLOOP_CALL.search(_command(call)))
 
 
-def trigger(events_path: Path, state: dict | None, spec: dict, current_stage, current_action=None) -> dict | None:
+def trigger(events_path: Path, state: dict | None, spec: dict, current_stage, current_action=None,
+            since: int = 0) -> dict | None:
     """The stop point when the probe should stop now, else None.
 
     At the boundary: the run's current stage is the target (its packet has been printed by the last `complete`).
     Inside: the same, and at least one non-ShipLoop call made after that packet arrived has its result.
+    `improve` is the stage whose result waits at its review: it needs the Improve child bound, and a stage position
+    needs none (the Improve stage is a position of its own, not the stage it reviews).
+    `since` is the stream line the previous clear stopped at: an inside position counts only the packet and the calls
+    the fresh session made after it, never the cleared session's.
     """
-    if not state or state.get("status") != "active" or current_stage(state) != spec["stage"]:
+    if not state or state.get("status") != "active":
         return None
-    calls, arrivals = stream(events_path)
+    reviewing = state.get("active_improve") is not None
+    if spec["stage"] == IMPROVE:
+        if not reviewing:
+            return None
+    elif reviewing or current_stage(state) != spec["stage"]:
+        return None
     if spec["inside"]:
-        arrived = [a["line"] for a in arrivals if a["stage"] == spec["stage"]]
+        calls, arrivals = stream(events_path)
+        arrived = [a["line"] for a in arrivals if a["stage"] == spec["stage"] and a["line"] >= since]
         if not arrived:
             return None
         done = [c for c in calls if c["line"] > arrived[0] and c["answered"] and not is_shiploop(c)]
@@ -122,15 +159,20 @@ def trigger(events_path: Path, state: dict | None, spec: dict, current_stage, cu
 
 
 def point(events_path: Path, state: dict, current_stage, current_action=None) -> dict:
-    """Where the stop actually is: the stream line count and the last answered call, with the ledger's position."""
+    """Where the stop actually is: the stream line count and the last answered call, with the ledger's position.
+    While an Improve stage runs the stage is `improve` and the action is the Improve stage's own."""
     calls, _ = stream(events_path)
     lines = len(events_path.read_text(errors="replace").splitlines()) if events_path.is_file() else 0
     answered = [c["result_line"] for c in calls if c["answered"]]
+    child = state.get("active_improve")
     try:
-        action = str((current_action(state) if current_action else state.get("action") or {}).get("id") or "")
+        if child is not None:
+            action = str(child.get("improve_action") or "")
+        else:
+            action = str((current_action(state) if current_action else state.get("action") or {}).get("id") or "")
     except Exception:  # noqa: BLE001 - a record, never a refusal
         action = ""
-    return {"stage": current_stage(state), "action": action,
+    return {"stage": IMPROVE if child is not None else current_stage(state), "action": action,
             "revision": state.get("revision"), "events_line": lines,
             "last_answered_line": max(answered) if answered else None}
 
@@ -164,8 +206,12 @@ def operations(call: dict) -> list[dict]:
     return ops
 
 
-def redone(events_path: Path, clear_line: int) -> list[dict]:
-    """Completed state-changing operations from before `clear_line` that a call after it repeated."""
+def redone(events_path: Path, clear_line: int, until_line: int | None = None) -> list[dict]:
+    """Completed state-changing operations from before `clear_line` that a call after it repeated.
+
+    With several clears, `until_line` (the next clear's stop line) bounds the window to the session that began at this
+    clear, so a redo is counted against the clear it follows and not against the earlier ones: it still repeats
+    everything that was completed before `clear_line`, the earlier sessions' work included."""
     calls, _ = stream(events_path)
     timeline = [(c["line"], c["answered"], op) for c in calls for op in operations(c)]
     writes = [line for line, _, op in timeline if op["kind"] == "write"]
@@ -175,6 +221,8 @@ def redone(events_path: Path, clear_line: int) -> list[dict]:
     for line, _, op in timeline:
         if line < clear_line:
             continue
+        if until_line is not None and line >= until_line:
+            break
         for earlier, old in reversed(before):
             if (old["kind"], old["key"]) != (op["kind"], op["key"]):
                 continue

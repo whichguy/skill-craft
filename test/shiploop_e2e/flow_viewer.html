@@ -247,19 +247,21 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     if (run.events_source !== "claude") notes.push(`This host's stream gives tool calls only; model text, results and the printed heads are not available.`);
     if (run.packets_source !== "archive") notes.push(`Packets come from run/packets, which keeps only the last copy of each packet.`);
 
-    // The row the clear belongs to: the action whose events straddle the stop line, else (a clear at a stage boundary)
-    // the first action of the stage the run stopped in.
-    let clearRow = null;
-    if (run.clear && run.clear.stopped) {
-      const line = run.clear.stopped.events_line;
+    // The row each clear belongs to: the action whose events straddle the stop line, else (a clear at a stage boundary)
+    // the first action of the stage the run stopped in. A flow written before several clears per slice holds an object
+    // or null here: no clear is shown for it.
+    const clears = Array.isArray(run.clear) ? run.clear.filter((c) => c && c.stopped) : [];
+    const clearRows = new Set();
+    clears.forEach((c) => {
+      const line = c.stopped.events_line;
       const straddles = (a) => {
         const evs = a.phases.flatMap((p) => p.events).filter((e) => e.line != null);
         return evs.some((e) => e.line < line) && evs.some((e) => e.line >= line);
       };
       const found = run.actions.find((a) => !a.seeded && straddles(a))
-        || run.actions.find((a) => !a.seeded && a.stage === run.clear.stopped.stage);
-      clearRow = found ? found.index : null;
-    }
+        || run.actions.find((a) => !a.seeded && a.stage === c.stopped.stage);
+      if (found) clearRows.add(found.index);
+    });
     let rows = "";
     const seeded = run.actions.filter((a) => a.seeded);
     if (seeded.length) rows += `<div class="seeded">${seeded.length} stages recorded by the harness without doing them: ${seeded.map((a) => esc(a.stage)).join(", ")}</div>`;
@@ -271,7 +273,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
       const said = phases.flatMap((p) => p.events).find((e) => e.kind === "say");
       const span = phases.reduce((n, p) => n + (p.span_seconds || 0), 0);
       const improve = phases.some((p) => p.kind === "improve");
-      const clearedHere = a.index === clearRow;
+      const clearedHere = clearRows.has(a.index);
       const clearedBefore = false;
       const expanded = open === a.index;
       rows += `<div class="row" role="button" tabindex="0" aria-expanded="${expanded}" data-a="${a.index}">
@@ -306,11 +308,11 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
           <span>Run status <b>${esc(run.run_status || "?")}</b></span></div>
         <div class="request"><div class="eyebrow">Request</div>${esc(run.prompt)}</div>
         ${renderCase(run)}
-        ${run.clear ? `<div class="cleared"><b>Context cleared</b> ${run.clear.inside ? "inside" : "at the start of"} <b>${esc(run.clear.stage)}</b>
-          (stopped at ${esc((run.clear.stopped || {}).stage || "?")}, revision ${esc((run.clear.stopped || {}).revision ?? "?")});
+        ${clears.map((c) => `<div class="cleared"><b>Context cleared${clears.length > 1 ? " (" + esc(c.n ?? "?") + " of " + clears.length + ")" : ""}</b> ${c.inside ? "inside" : "at the start of"} <b>${esc(c.stage)}</b>
+          (stopped at ${esc((c.stopped || {}).stage || "?")}, revision ${esc((c.stopped || {}).revision ?? "?")});
           a fresh session continued from the packet alone. Redone work after the clear:
-          <b>${(run.clear.redone || []).length}</b>${(run.clear.redone || []).length ? ": " + run.clear.redone.map((r) => esc(r.kind + " " + (r.key || [])[0])).join("; ") : ""}.
-          <span class="muted">(The redo metric is under repair after the 2026-10-10 review: read this count as provisional.)</span></div>` : ""}
+          <b>${(c.redone || []).length}</b>${(c.redone || []).length ? ": " + c.redone.map((r) => esc(r.kind + " " + (r.key || [])[0])).join("; ") : ""}.
+          <span class="muted">(The redo metric is under repair after the 2026-10-10 review: read this count as provisional.)</span></div>`).join("")}
         <div class="figures">
           <div class="figure"><div class="v">${s.phases.length}</div><div class="k">packets for live stages</div></div>
           <div class="figure"><div class="v">${k(s.written)}</div><div class="k">packet characters written</div></div>
@@ -341,19 +343,26 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
   }
 
   let tab = "seen";
+  // Where the run's clears fall: event line -> clears whose stop line the event is the first at or after.
+  function clearDividers(run) {
+    const stops = (Array.isArray(run.clear) ? run.clear : []).filter((c) => c && c.stopped).map((c) => c.stopped.events_line);
+    const lines = run.actions.flatMap((a) => a.phases.flatMap((p) => p.events)).map((e) => e.line).filter((n) => n != null);
+    const found = new Map();
+    stops.forEach((stop) => {
+      const after = lines.filter((n) => n >= stop);
+      if (after.length) { const at = after.reduce((x, y) => Math.min(x, y)); found.set(at, (found.get(at) || 0) + 1); }
+    });
+    return found;
+  }
   function renderDetail(a) {
+    const dividers = clearDividers(runs[current]);
     return a.phases.map((p, pi) => {
       const head = p.head ? `<pre>${esc(p.head)}</pre>` : `<p class="muted">No printed head was captured for this packet${p.kind === "producer" && !a.accepted ? " (the model cut the output short, or the run stopped here)" : ""}.</p>`;
       const reads = p.reads.length ? `Opened the packet file: ${p.reads.map(esc).join("; ")}.` : "Never opened the packet file.";
-      const clearLine = runs[current].clear && runs[current].clear.stopped ? runs[current].clear.stopped.events_line : null;
-      let divided = false;
+      // One divider per clear, before the first event of the whole run at or after its stop line.
       const events = p.events.length ? `<div class="events">${p.events.map((e) => {
-        let pre = "";
-        if (!divided && clearLine != null && e.line != null && e.line >= clearLine) {
-          divided = true;
-          pre = `<div class="ev divider"><span class="t"></span><div class="b">Context cleared here — a fresh session continues from the packet alone</div></div>`;
-        }
-        return pre + renderEvent(e);
+        const cuts = e.line != null ? dividers.get(e.line) || 0 : 0;
+        return "<div class=\"ev divider\"><span class=\"t\"></span><div class=\"b\">Context cleared here — a fresh session continues from the packet alone</div></div>".repeat(cuts) + renderEvent(e);
       }).join("")}</div>` : `<p class="muted">No model events in this phase.</p>`;
       const maxSec = Math.max(1, ...p.packet.sections.map((x) => x.chars));
       const sections = `<div class="sections">${p.packet.sections.map((x) => `<div class="sec"><span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.section)}</span>
