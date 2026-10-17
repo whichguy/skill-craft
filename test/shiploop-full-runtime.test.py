@@ -448,7 +448,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(bound_action, action_id)
         improve_id = bound["improve_action"]
         self.assertNotEqual(improve_id, action_id)
-        packet_path = repo / ".shiploop-improve" / run_id / action_id / "packet.json"
+        packet_path = repo / ".shiploop-improve" / f"{stage}-{action_id[-8:]}" / "packet.json"
         self.assertTrue(packet_path.is_file(), "ShipLoop starts the bound child at the transition")
         for written in ("opening.md", "start.json", "parent-return.md", "handoff.md"):
             self.assertTrue((packet_path.parent / written).is_file(), written)

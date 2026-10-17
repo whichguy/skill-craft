@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 REFERENCES = SCRIPTS.parent / "references"
 IMPROVE_CARD = ROOT / "skills" / "improve" / "SKILL.md"
+STANDALONE_ROUTE = ROOT / "skills" / "improve" / "references" / "standalone-route.md"   # the card's five standalone sections (plan U18)
 # Packet re-cut (2026-10-11): the stages that place or revalidate the harness cite the guide; test-spec,
 # validate-existing, implement, verify and system-test dropped the label (their drafts never cite it).
 TEST_HARNESS_STAGES = (
@@ -627,7 +628,7 @@ class GuidanceTests(unittest.TestCase):
                 self.assertIn("does not require future product checks to pass", text)
         self.assertIn(
             "Repeated templated wording is an audit cue only",
-            normalized(IMPROVE_CARD.read_text()),
+            normalized(IMPROVE_CARD.read_text() + STANDALONE_ROUTE.read_text()),
         )
         # Inspection of an untracked candidate must not grant edit authority.  The guard
         # is discovery's alone now: validate-existing may make a preparatory fix and has
@@ -1957,7 +1958,7 @@ class GuidanceTests(unittest.TestCase):
 
         # Commit policy is owned by the selected Improve card, not repeated
         # in every stage's handoff. Native experiments test execution of it.
-        improve = normalized(card)
+        improve = normalized(card + STANDALONE_ROUTE.read_text(encoding="utf-8"))
         for clause in (
             "commit authorized scoped changes in the bound candidate worktree",
             "never include runtime receipts or unrelated inherited staging",

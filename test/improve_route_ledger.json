@@ -1,0 +1,929 @@
+{
+ "_about": "The Improve obligation ledger (ShipLoop efficiency plan U18): one row per paragraph or list item of the four sources the Improve card's ShipLoop route replaces (skills/improve/SKILL.md as it stood before the split, references/review-policy.md, references/callback-evidence.md, runtime/until-loop/ADAPTER.md), and of the new text. `file` and `head` (the first five words, whitespace-normalized) say where the source block stands now: SKILL.md (the router, which a ShipLoop child loads), standalone-route.md (the five standalone sections moved whole, text unchanged but for three links) or its own file. `route` is a phrase of references/shiploop-route.md that carries the obligation for a ShipLoop child; a row with no `route` phrase and not in the router names why in `reason` (standalone-only, illustrative, or covered by another row). test/improve-route.test.py fails when a block of those files has no row, when a `head` or `route` phrase is gone, or when a row has neither a phrase, nor a reason, nor a place in the router. A unit that moves an obligation changes its row in the same commit.",
+ "schema": "improve-route-ledger/v1",
+ "snapshot": "5e0ef0d0 (the integration base the split started from)",
+ "bounds": {
+  "router_bytes": 10000,
+  "router_measured": 9995,
+  "route_bytes": 46000,
+  "route_measured": 45933,
+  "why": "Plan U18: the router bound is the plan's 10,000 bytes, which held (the base card's kept sections are 9,475 characters; the route choice and two links bring it to 9,995 bytes). The route bound is set from the measured text, never by trimming an obligation: it holds the policy of four sources (the base card, review-policy.md, callback-evidence.md, ADAPTER.md: 72 KB in all) once each, the handoff's ownership, recovery and return text moved word for word, and the fixed review inputs of improve_prompt (8.3 KB). The plan's first guess for the route was 8,192 bytes."
+ },
+ "rows": [
+  {
+   "id": "S01",
+   "file": "skills/improve/SKILL.md",
+   "head": "--- name: improve description: >-"
+  },
+  {
+   "id": "S02",
+   "file": "skills/improve/SKILL.md",
+   "head": "Use the shared [Improve review"
+  },
+  {
+   "id": "S03",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Read the shared policy in",
+   "reason": "standalone-only: reads the whole shared policy before interpreting; a ShipLoop child reads the route, which says what it keeps of the policy (the router's first paragraph chooses the route)"
+  },
+  {
+   "id": "S04",
+   "file": "skills/improve/SKILL.md",
+   "head": "Improve is an execution-capable coding"
+  },
+  {
+   "id": "S05",
+   "file": "skills/improve/SKILL.md",
+   "head": "This card runs inline: the"
+  },
+  {
+   "id": "S06",
+   "file": "skills/improve/SKILL.md",
+   "head": "Use your judgment to find"
+  },
+  {
+   "id": "S07",
+   "file": "skills/improve/SKILL.md",
+   "head": "For the standalone entrypoint, this"
+  },
+  {
+   "id": "S08",
+   "file": "skills/improve/SKILL.md",
+   "head": "Start with the absolute path"
+  },
+  {
+   "id": "S09",
+   "file": "skills/improve/SKILL.md",
+   "head": "```sh # Replace this illustrative"
+  },
+  {
+   "id": "S10",
+   "file": "skills/improve/SKILL.md",
+   "head": "The exact package-relative script locator"
+  },
+  {
+   "id": "S11",
+   "file": "skills/improve/SKILL.md",
+   "head": "Standalone runs use that per-run"
+  },
+  {
+   "id": "S12",
+   "file": "skills/improve/SKILL.md",
+   "head": "When this skill is invoked"
+  },
+  {
+   "id": "S13",
+   "file": "skills/improve/SKILL.md",
+   "head": "Treat a parent-provided candidate inventory"
+  },
+  {
+   "id": "S14",
+   "file": "skills/improve/SKILL.md",
+   "head": "ShipLoop starts the child itself"
+  },
+  {
+   "id": "S15",
+   "file": "skills/improve/SKILL.md",
+   "head": "The child `context.resources` must retain"
+  },
+  {
+   "id": "S16",
+   "file": "skills/improve/SKILL.md",
+   "head": "The ShipLoop child follows the"
+  },
+  {
+   "id": "S17",
+   "file": "skills/improve/SKILL.md",
+   "head": "For an `active` or `blocked`"
+  },
+  {
+   "id": "S18",
+   "file": "skills/improve/SKILL.md",
+   "head": "This card never dispatches itself."
+  },
+  {
+   "id": "S19",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "For every standalone cycle, read",
+   "route": "**Decision rationale.**"
+  },
+  {
+   "id": "S20",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **History window:** at the",
+   "route": "**History window.**"
+  },
+  {
+   "id": "S21",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Scope:** retain any named",
+   "route": "**Scope.** Keep the named branch range"
+  },
+  {
+   "id": "S22",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Trivial classification:** classify impact",
+   "route": "Uncertain impact remains unresolved until"
+  },
+  {
+   "id": "S23",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Agents and independent review:**",
+   "route": "`self-review (inline default)`"
+  },
+  {
+   "id": "S24",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Evidence location:** retain each",
+   "route": "Keep a host-visible record of each completed cycle"
+  },
+  {
+   "id": "S25",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Commit policy:** after required",
+   "route": "**The commit.** After required checks pass"
+  },
+  {
+   "id": "S26",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **One callback is one",
+   "route": "**One callback is one full cycle.**"
+  },
+  {
+   "id": "S27",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Assessment and finalization:** after",
+   "route": "`unresolved` if execution or assessment is"
+  },
+  {
+   "id": "S28",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Exit rule:** repeat until",
+   "route": "**Exit rule.**"
+  },
+  {
+   "id": "S29",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Runs are ephemeral across an",
+   "route": "**One writer.**"
+  },
+  {
+   "id": "S30",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Before `start`, freeze the actual",
+   "route": "Preserve an exact output path the invoking assignment"
+  },
+  {
+   "id": "S31",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Put the actual commit/no-commit, push/no-push",
+   "route": "act on an applicable approval without asking again"
+  },
+  {
+   "id": "S32",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Retain the parent-supplied **Current context",
+   "route": "**The opening.**"
+  },
+  {
+   "id": "S33",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Before each `done`, compare the",
+   "route": "compare it with `context.request` and the prior"
+  },
+  {
+   "id": "S34",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Use compact Markdown inside the",
+   "route": "Use compact Markdown strings inside the JSON"
+  },
+  {
+   "id": "S35",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Every `done` report must include",
+   "route": "**Handoff before each `done`.**"
+  },
+  {
+   "id": "S36",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Resume from the bound card's",
+   "route": "if required context or evidence cannot be recovered"
+  },
+  {
+   "id": "S37",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Include preparing a cumulative summary",
+   "route": "derives the outcome, key changes and check state itself",
+   "reason": "the caller-facing summary is a standalone obligation; a ShipLoop review keeps the whole run's account in its handoff and review files and ShipLoop writes the summary"
+  },
+  {
+   "id": "S38",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Key implemented changes:** what",
+   "route": "derives the outcome, key changes and check state itself",
+   "reason": "part of the standalone caller-facing summary (see the row above)"
+  },
+  {
+   "id": "S39",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **What was learned:** consequential",
+   "route": "derives the outcome, key changes and check state itself",
+   "reason": "part of the standalone caller-facing summary (see the row above)"
+  },
+  {
+   "id": "S40",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "- **Validation and remaining work:**",
+   "route": "derives the outcome, key changes and check state itself",
+   "reason": "part of the standalone caller-facing summary (see the row above)"
+  },
+  {
+   "id": "S41",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Synthesize from the final handoff",
+   "route": "Pass lessons for later steps to",
+   "reason": "the summary's synthesis rules are the standalone caller's; the lessons and --final-result routes are the ShipLoop child's"
+  },
+  {
+   "id": "S42",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "“Dry run,” “preview,” “show how",
+   "reason": "standalone-only: an interpretation preview; a ShipLoop child starts from the frozen contract and previews nothing"
+  },
+  {
+   "id": "S43",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "For Git inspection during preview,",
+   "reason": "standalone-only: preview Git options"
+  },
+  {
+   "id": "S44",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Show the scope and history",
+   "reason": "standalone-only: what a preview shows"
+  },
+  {
+   "id": "S45",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "Preserve the shared policy and",
+   "route": "Add no nested plan-convergence loop",
+   "reason": "standalone-only in its interpretation half (building the start contract); the execution half is in the route: follow the returned packet, external operations, no nested loop"
+  },
+  {
+   "id": "S46",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "The runtime validates action identity",
+   "route": "does not verify that a commit was made"
+  },
+  {
+   "id": "N01",
+   "file": "skills/improve/SKILL.md",
+   "head": "Pick the route first. A",
+   "route": null,
+   "reason": "new: chooses the ShipLoop route or the standalone route"
+  },
+  {
+   "id": "N02",
+   "file": "skills/improve/references/standalone-route.md",
+   "head": "This is the route of",
+   "route": null,
+   "reason": "new: says whose route this is and where a ShipLoop review goes"
+  },
+  {
+   "id": "R01",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "Policy ID: improve/review-policy/v1",
+   "route": "`improve/review-policy/v1`"
+  },
+  {
+   "id": "R02",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "This declarative policy defines the",
+   "route": "declarative, not an execution"
+  },
+  {
+   "id": "R03",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "Before a consumer applies this",
+   "route": "state what the"
+  },
+  {
+   "id": "R04",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "- the history window to",
+   "route": "**History window.**"
+  },
+  {
+   "id": "R05",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "- the precise candidate scope,",
+   "route": "**Scope.** Keep the named branch range"
+  },
+  {
+   "id": "R06",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "- the semantic classification rule",
+   "route": "**Trivial classification.**"
+  },
+  {
+   "id": "R07",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "- the durable evidence locations",
+   "route": "**Where the review goes.**"
+  },
+  {
+   "id": "R08",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "- the commit policy, including",
+   "route": "**The commit.** After required checks pass"
+  },
+  {
+   "id": "R09",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "- the callback that receives",
+   "route": "Parent callback; run only after the runtime returned complete"
+  },
+  {
+   "id": "R10",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "- the authority and conditions",
+   "route": "**Frozen context and later decisions.**"
+  },
+  {
+   "id": "R11",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "The binding must preserve explicit",
+   "route": "Explicit user and repository constraints bind"
+  },
+  {
+   "id": "R12",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "For each distinct review cycle,",
+   "route": "Preserve these ordered obligations"
+  },
+  {
+   "id": "R13",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "1. **Review.** Inspect the current",
+   "route": "1. **Review.**"
+  },
+  {
+   "id": "R14",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "2. **History-informed plan.** Select only",
+   "route": "2. **History-informed plan.**"
+  },
+  {
+   "id": "R15",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "3. **Apply.** Apply the accepted",
+   "route": "3. **Apply.**"
+  },
+  {
+   "id": "R16",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "4. **Checks.** Establish relevant cases",
+   "route": "4. **Checks.**"
+  },
+  {
+   "id": "R17",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "5. **Record.** Retain evidence for",
+   "route": "5. **Record.**"
+  },
+  {
+   "id": "R18",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "6. **Assess.** Count a pass",
+   "route": "6. **Assess.**"
+  },
+  {
+   "id": "R19",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "When work is interrupted after",
+   "route": "After an interruption that followed a commit"
+  },
+  {
+   "id": "R20",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "At final assessment, compare the",
+   "route": "At final assessment compare the candidate"
+  },
+  {
+   "id": "R21",
+   "file": "skills/improve/references/review-policy.md",
+   "head": "Use a fresh, read-only independent",
+   "route": "**Agents and independent review.**"
+  },
+  {
+   "id": "C01",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "This reference applies to a",
+   "reason": "applicability note: this reference is the standalone run's; the route is the ShipLoop child's equivalent"
+  },
+  {
+   "id": "C02",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "For every active callback, retain",
+   "route": "Keep a host-visible record of each completed cycle"
+  },
+  {
+   "id": "C03",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "1. **Candidate and scope.** State",
+   "route": "1. **Candidate and scope:**"
+  },
+  {
+   "id": "C04",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "2. **History.** Record that the",
+   "route": "2. **History:**"
+  },
+  {
+   "id": "C05",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "3. **Review and plan.** State",
+   "route": "3. **Review and plan:**"
+  },
+  {
+   "id": "C06",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "4. **Work and checks.** Record",
+   "route": "4. **Work and checks:**"
+  },
+  {
+   "id": "C07",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "5. **Commit and learning.** When",
+   "route": "5. **Commit and learning:**"
+  },
+  {
+   "id": "C08",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "6. **Assessment.** State the report",
+   "route": "6. **Assessment:**"
+  },
+  {
+   "id": "C09",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "The host may retain detailed",
+   "route": "run-isolated artifact"
+  },
+  {
+   "id": "C10",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "Repeated or templated review prose",
+   "route": "audit cue"
+  },
+  {
+   "id": "C11",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "Keep each iteration's learning-oriented record",
+   "route": "**Decision rationale.**"
+  },
+  {
+   "id": "C12",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "For each consequential decision, explain",
+   "route": "in connected prose"
+  },
+  {
+   "id": "C13",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "- Identify the concrete problem",
+   "route": "retrievable locators"
+  },
+  {
+   "id": "C14",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "- Explain how that detail",
+   "route": "alternatives actually considered"
+  },
+  {
+   "id": "C15",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "- Where interactions mattered, describe",
+   "route": "components and boundaries where interactions mattered"
+  },
+  {
+   "id": "C16",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "- Separate prior knowledge from",
+   "route": "observed versus inferred"
+  },
+  {
+   "id": "C17",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "Capture the decision basis as",
+   "route": "Keep material failed approaches"
+  },
+  {
+   "id": "C18",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "When prior commits contributed, integrate",
+   "route": "beside the decision it informed"
+  },
+  {
+   "id": "C19",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "Write the full explanation in",
+   "route": "no extra mandatory heading, reference quota or state file"
+  },
+  {
+   "id": "C20",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "The runtime requires a nonblank",
+   "route": "**The concise report.**"
+  },
+  {
+   "id": "C21",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "For example, a material first",
+   "route": "**The concise report.**",
+   "reason": "illustrative: the example reports show the content the route lists (candidate, review result, work and check result, commit receipt, remaining gap)"
+  },
+  {
+   "id": "C22",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "```text Candidate abc123 plus scoped",
+   "route": "**The concise report.**",
+   "reason": "illustrative example report (see the row above)"
+  },
+  {
+   "id": "C23",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "A later qualifying no-change review",
+   "route": "**The concise report.**",
+   "reason": "illustrative: a later no-change report (see the rows above)"
+  },
+  {
+   "id": "C24",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "```text Candidate def456 unchanged in",
+   "route": "**The concise report.**",
+   "reason": "illustrative example report (see the rows above)"
+  },
+  {
+   "id": "C25",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "These examples describe reported facts;",
+   "route": "no substitute for doing the work"
+  },
+  {
+   "id": "C26",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "If a receipt is saved",
+   "route": "round-trip it through a JSON library"
+  },
+  {
+   "id": "C27",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "`context` in the contract freezes",
+   "route": "**Frozen context and later decisions.**"
+  },
+  {
+   "id": "C28",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "For the example above, a",
+   "route": "A later handoff keeps the baseline and scope by reference"
+  },
+  {
+   "id": "C29",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "Keep the full latest `done`",
+   "route": "Keep the entire latest return"
+  },
+  {
+   "id": "C30",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "The final handoff must retain",
+   "route": "Keep the whole run's key"
+  },
+  {
+   "id": "C31",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "The script stores the latest",
+   "route": "**Limits.**"
+  },
+  {
+   "id": "C32",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "Do not fabricate a host",
+   "route": "Do not fabricate a record to submit `trivial`"
+  },
+  {
+   "id": "C33",
+   "file": "skills/improve/references/callback-evidence.md",
+   "head": "After `done`, consume the returned",
+   "route": "**Consume every `done` return in full.**"
+  },
+  {
+   "id": "A01",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "--- name: until-loop description: >-",
+   "reason": "card identity and frontmatter: the Until Loop card stays the bound runtime's card; the route links it"
+  },
+  {
+   "id": "A02",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "You are the executor of",
+   "route": "you are the executor of a script-owned loop"
+  },
+  {
+   "id": "A03",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "For authorized execution, always start",
+   "route": "ShipLoop wrote the contract and started the runtime before your review"
+  },
+  {
+   "id": "A04",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Apply this section first. When",
+   "route": "**Start.**"
+  },
+  {
+   "id": "A05",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- Skip interpretation. Do not",
+   "route": "Skip interpretation"
+  },
+  {
+   "id": "A06",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- Start the run with",
+   "route": "ShipLoop wrote the contract and started the runtime before your review",
+   "reason": "ShipLoop runs the start command; a child never starts the runtime"
+  },
+  {
+   "id": "A07",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- The file wins over",
+   "route": "The contract file wins"
+  },
+  {
+   "id": "A08",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- Before starting, check the",
+   "route": "Read the receipt `CHILD/packet.json`"
+  },
+  {
+   "id": "A09",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- Never write or edit",
+   "route": "never write it: the runtime writes every packet there"
+  },
+  {
+   "id": "A10",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Then follow \"Follow the returned",
+   "route": "The parent submits its own callback"
+  },
+  {
+   "id": "A11",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Resolve this selected card's real",
+   "reason": "the handoff prints the card and CLI locators ('Selected Improve skill', 'Bound Until Loop card'); resolving a card's real path and choosing an interpreter belong to a standalone start"
+  },
+  {
+   "id": "A12",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Use the actual existing absolute",
+   "route": "A packet grants no tool access or permission"
+  },
+  {
+   "id": "A13",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "If given an issued callback",
+   "route": "there is no shared current-run pointer"
+  },
+  {
+   "id": "A14",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "A workspace `.until-loop` directory from",
+   "route": "An old `.until-loop` directory is not a run"
+  },
+  {
+   "id": "A15",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Separate three questions, retaining each",
+   "reason": "standalone-only: interpreting a natural-language request into work, exit and repeat conditions; ShipLoop froze the contract"
+  },
+  {
+   "id": "A16",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- **Execution (`work`):** What ordered",
+   "reason": "standalone-only: interpretation (execution clause)"
+  },
+  {
+   "id": "A17",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- **Successful exit (`exit_condition`):** What",
+   "reason": "standalone-only: interpretation (exit clause)"
+  },
+  {
+   "id": "A18",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- **Continuation (`repeat_condition`):** What unresolved",
+   "reason": "standalone-only: interpretation (continuation clause)"
+  },
+  {
+   "id": "A19",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Check the interpretation against the",
+   "reason": "standalone-only: checking an interpretation against the request"
+  },
+  {
+   "id": "A20",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "For broad words such as",
+   "reason": "standalone-only: rubric for broad words and the question to ask when scope is missing"
+  },
+  {
+   "id": "A21",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Write exit checks before any",
+   "route": "**`verify_script`.**",
+   "reason": "writing exit checks before work is the contract author's job (ShipLoop); running the packet's verify_script is the executor's and is in the route"
+  },
+  {
+   "id": "A22",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Keep every requested outcome in",
+   "route": "never drop or reword an outcome"
+  },
+  {
+   "id": "A23",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "For preview repository inspection, disable",
+   "reason": "standalone-only: preview Git options"
+  },
+  {
+   "id": "A24",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "An interpretation-only preview/dry run of",
+   "reason": "standalone-only: the interpretation-only preview"
+  },
+  {
+   "id": "A25",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Every run's contract includes the",
+   "route": "ShipLoop froze `context.scope`"
+  },
+  {
+   "id": "A26",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Before each `done`, supply a",
+   "route": "**Handoff before each `done`.**"
+  },
+  {
+   "id": "A27",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Within the user's authorized scope,",
+   "route": "**The latest return owns the next action.**"
+  },
+  {
+   "id": "A28",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "For each active return, **execute",
+   "route": "**Execute, then `done`.**"
+  },
+  {
+   "id": "A29",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "One callback covers **one complete",
+   "route": "One callback covers one complete iteration"
+  },
+  {
+   "id": "A30",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Only after that execution (or",
+   "route": "**The report** goes as JSON on stdin"
+  },
+  {
+   "id": "A31",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `classification`: `trivial` only for",
+   "route": "- `classification`:"
+  },
+  {
+   "id": "A32",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `exit_assessment`: `satisfied`, `unsatisfied`, or",
+   "route": "- `exit_assessment`:"
+  },
+  {
+   "id": "A33",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `continuation_assessment`: `allowed`, `blocked`, or",
+   "route": "- `continuation_assessment`:"
+  },
+  {
+   "id": "A34",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `evidence`: actual observations, checks,",
+   "route": "- `evidence`:"
+  },
+  {
+   "id": "A35",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `handoff`: the complete compact",
+   "route": "- `handoff`: always required"
+  },
+  {
+   "id": "A36",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "`done` means **this action is",
+   "route": "`done` finishes this action and selects no state"
+  },
+  {
+   "id": "A37",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Consume the full return value",
+   "route": "**Consume every `done` return in full.**"
+  },
+  {
+   "id": "A38",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `active`: communicate the returned",
+   "route": "`active`: communicate the factual status"
+  },
+  {
+   "id": "A39",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `complete` or `stopped`: follow",
+   "route": "`complete` or `stopped`: follow the terminal instruction"
+  },
+  {
+   "id": "A40",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "- `error`: follow its correction/stop",
+   "route": "`error`: follow its correction or stop"
+  },
+  {
+   "id": "A41",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "After compaction or a cleared",
+   "route": "**Compaction or a cleared context.**"
+  },
+  {
+   "id": "A42",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "When a parent names a",
+   "route": "never write it: the runtime writes every packet there"
+  },
+  {
+   "id": "A43",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "When saving or passing a",
+   "route": "**Saving a packet:**"
+  },
+  {
+   "id": "A44",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "An error packet with `next_argv`",
+   "route": "its `next_argv` is read-only"
+  },
+  {
+   "id": "A45",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "If explicitly delegated only one",
+   "route": "If you were delegated only one action"
+  },
+  {
+   "id": "A46",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "The single tempfile lasts across",
+   "route": "One caller at a time"
+  },
+  {
+   "id": "A47",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "For authorized execution, send the",
+   "reason": "standalone-only: sending the interpreted contract to `start`, the contract fields and the trivial-review gate setting; ShipLoop starts the runtime"
+  },
+  {
+   "id": "A48",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "On user corrections, compare old",
+   "reason": "standalone-only: corrections to a direct invocation's frozen conditions"
+  },
+  {
+   "id": "A49",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "For an owner-bound invocation, first",
+   "route": "**Frozen context and later decisions.**"
+  },
+  {
+   "id": "A50",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "Communicate meaningful status changes to",
+   "route": "**Status to the user.**"
+  },
+  {
+   "id": "A51",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "A parent must load this",
+   "reason": "the parent's duties (load the card, hand over the work or a contract file, run no second state machine); ShipLoop is the parent of a ShipLoop review"
+  }
+ ]
+}

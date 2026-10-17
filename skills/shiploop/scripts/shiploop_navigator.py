@@ -5869,22 +5869,26 @@ def improve_handoff_path(child: Mapping[str, Any]) -> Path:
 
 
 def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str:
-    """Everything the improve skill needs for the current child: route, result, start, commit, evidence and return.
+    """What the improve skill needs for the current child that differs from review to review: how to read the file,
+    ``CHILD`` and ``ROUTE``, the one command to finish, the stage's review focus, the commit command, the result under
+    review, its start, evidence and return, each with its exact commands.
 
     ShipLoop writes it; the Improve packet names only this file (owner, 2026-10-11: "it's really just calling the
     improve skill and then, once complete, invoking the done activity ... we really do not need any other detail").
+    What is the same in every review (ownership of both routes, recovery, the stopped-child route, exclusions, the
+    ``final_result`` rules, the fixed review inputs) is the Improve skill's references/shiploop-route.md, which the first
+    lines name (plan U18); a bound child's first 2,000 characters are enough to find it, and the review focus and the
+    commit and complete commands sit inside the first 4,500.
     """
     child = state["active_improve"]
     stage, route = child["stage"], delegation(state)
     workitem = _current_work_item(state)
     reference_dir = _reference_dir(core)
-    # The child's directory is the handoff's fifth symbol, defined with the others (an unbound child has no directory).
+    # The child's directory is the handoff's fifth symbol (an unbound child has no directory).  It is defined once, on
+    # the handoff's top line (``_improve_handoff_top``: "CHILD = ... · ROUTE = ..."), inside the first 2,000 characters
+    # and before any line that uses it (units U10 and U18); prose_symbols then writes the child's paths as CHILD.
     child_dir = improve_opening_path(child).parent if child["skill"] is not None else None
     references = _reference_lines(root, state, stage, workitem, core)
-    if child_dir is not None and references:
-        references.insert(next(number for number, line in enumerate(references) if line.startswith("WORKTREE = ")) + 1,
-                          CHILD_SYMBOL + " = " + str(child_dir)
-                          + " (this review's directory: its receipt, opening, commit message and reviews)")
     # The review's context lives here, not in the packet (owner: the packet is "run the improve skill, then done"): what
     # the reviewed stage read and built on, the work item, and every guide or policy the review text names.
     named = _named_text(state, stage, route) + "\n" + guidance.improve_prompt(stage, delegation=route)
@@ -5903,12 +5907,95 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         *_run_rules(core, root, state, named),
         *_queue_lines(root, state, stage),
     ]
-    prefix = [guidance.inner_context(route, improve=True).rstrip(), ""] if stage in stage_spec.INNER else []
     head = ["# ShipLoop Improve handoff: the " + stage + " result (" + child["action_id"] + ")", "",
-            str(child.get("contract_marker", "")), "",
-            *prefix,
-            "## What the reviewed stage worked from", *context, "", "## The review"]
+            str(child.get("contract_marker", "")), ""]
+    if child["skill"] is not None:
+        # What a cleared child needs first, then the review focus and the commit: all inside the first 4,500 characters
+        # (the route file holds the policy that is the same in every review; efficiency plan U18).
+        focus, craft = _improve_focus(state, child)
+        head += [*_improve_handoff_top(core, root, state), "", "## What this review looks for", *focus, "",
+                 "## Commit", *_improve_commit_lines(core, root, state, child), "",
+                 *(["## Code craft", *craft, ""] if craft else [])]
+    head += ["## What the reviewed stage worked from", *context, "", "## The review"]
     return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
+
+
+IMPROVE_ROUTE_FILE = "shiploop-route.md"
+# The sentence that opens every bound handoff (Improve router, plan U18, IMP-1): the handoff is cut by a shell, not by a
+# file-reading tool.
+IMPROVE_READ_SENTENCE = ("Read this whole file with a file-reading tool, not the shell: a shell cuts a long file. The "
+                         "conditions below are what this review looks for; a pass that finds none of them is trivial.")
+
+
+def improve_route_path(child: Mapping[str, Any]) -> Path:
+    """The Improve skill's ShipLoop route file, beside the selected card (what a child reads once per context)."""
+    return Path(child["skill"]["skill_card"]).parent / "references" / IMPROVE_ROUTE_FILE
+
+
+def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
+    """The lines a bound handoff opens with: how to read it, CHILD, the route file, the files, the one command to finish.
+
+    Self-sufficient within 2,000 characters: a child that reads nothing else knows what to open, where its files are, how
+    to continue and finish, and when to open the route file.
+    """
+    import shiploop_standalone_improve as standalone
+    child = state["active_improve"]
+    inline = delegation(state) == guidance.INLINE
+    done = _callback(core, root, "complete", action=improve_id(state))
+    return [
+        IMPROVE_READ_SENTENCE,
+        CHILD_SYMBOL + " = " + str(standalone.receipt_path(child).parent) + " · ROUTE = " + str(improve_route_path(child))
+        + " · Route: " + delegation(state),
+        # Each pass ends with improve-pass (unit U19), whose command is under Commit: the 4,500-character bound leaves no
+        # room for it here.
+        "Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime "
+        "returns complete (ShipLoop started it: start nothing); end each pass with improve-pass (under Commit). You "
+        "write CHILD/commit-message.md, CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit "
+        "CHILD/packet.json.",
+        ("When the runtime returns complete (its terminal packet saved at CHILD/packet.json), run: " if inline else
+         "Parent only, after the worker's result is collected and CHILD/packet.json verified (the worker never runs it): ")
+        + done,
+        "Open ROUTE once per context and after a reset, and for recovery, the stopped-child route, the commit message "
+        "rules, final_result and the review inputs: this file leaves them out.",
+    ]
+
+
+def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[list[str], list[str]]:
+    """(the review focus, the Code craft rubric) for the reviewed stage; the rubric is [] where the focus has none."""
+    stage = child["stage"]
+    # The focus is numbered F1..Fn when FOCUS_IDS is on (U19); the Code craft rubric has no bullets, so the ids are the same
+    # as ``focus_ids``, which counts the whole focus text.
+    if stage in guidance.PLANNING_REVIEW_STAGES:
+        return _numbered_focus(guidance.PLANNING_REVIEW_FOCUS.rstrip(), state, child), []
+    if stage == "carry-forward":
+        return _numbered_focus(guidance.END_REVIEW_FOCUS_HEAD.rstrip(), state, child), [guidance.CODE_CRAFT.rstrip()]
+    if stage in stage_spec.with_improve("step"):
+        return (_numbered_focus(_several_steps(guidance.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), state, stage), state,
+                                child), [guidance.CODE_CRAFT.rstrip()])
+    return [], []
+
+
+def _improve_commit_lines(core: Any, root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """How a review iteration's changes are committed: the message file, its one required line and the command."""
+    if child["stage"] == "plan":
+        # The planning child prints no improve-commit command here; its start writes it and the message rules to parent-return.md.
+        return ["To commit a review iteration's changes, run the improve-commit command in CHILD/parent-return.md; its "
+                "message rules are there. ShipLoop commits exactly the files this review changed. Do not run git "
+                "commit yourself.", _improve_pass_line(core, root, state)]
+    # The message rules are under "The commit message" (in the facts below the review), so this line, the command at its
+    # end, still ends inside the first 4,500 characters of the longest implement handoff (U18 with U19's focus bullet).
+    # improve-pass follows it: each pass ends with it, and it commits what the pass left uncommitted (unit U19).
+    return ["To commit a review iteration's changes, write the commit message to CHILD/commit-message.md with a "
+            "file-writing tool (a subject and a `Key learnings:` line, as below). Then run: "
+            + _callback(core, root, "improve-commit", action=improve_id(state),
+                        message=str(improve_commit_message_path(child))),
+            _improve_pass_line(core, root, state)]
+
+
+def _improve_pass_line(core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """The line that ends each review pass (unit U19): write the review file, then improve-pass, which commits the pass."""
+    return ("End each review pass with improve-pass (its form and what it does are under Evidence below): write "
+            "CHILD/reviews/review-<n>.md, then run: " + _callback(core, root, "improve-pass", action=improve_id(state)))
 
 
 def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
@@ -5984,7 +6071,11 @@ def focus_ids(state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
 
 
 def _focus_lines(state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
-    text = _focus_text(state, child)
+    return _numbered_focus(_focus_text(state, child), state, child)
+
+
+def _numbered_focus(text: str, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """``text`` (focus conditions) as printed: as is, or numbered F1..Fn with the answer rule when FOCUS_IDS is on."""
     if not text:
         return []
     if not FOCUS_IDS:
@@ -6052,12 +6143,10 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     final_path = root / "inbox" / (action_id + "-final-result.md")
     inline = delegation(state) == guidance.INLINE
     planning_reconcile = child["stage"] == "plan"
+    # The invariant text of an Improve review (ownership, recovery, the stopped-child route, exclusions, final_result, the
+    # review inputs) is in the Improve skill's ShipLoop route file, which the head of this file names; this part keeps the
+    # facts of this review and the exact commands beside the action (efficiency plan U18, IMP-1, IMP-3).
     planning_lines: list[str] = []
-    exclusion = (
-        "Exclude .until-loop, .shiploop-improve and ShipLoop runtime metadata from product candidates, "
-        "edits and commits; adapter-owned state, packet receipts and review-note writes remain allowed. "
-        "Explicitly named planning artifacts may be reviewed."
-    )
     if planning_reconcile:
         scratch = planning_scratch_dir(state, child)
         planning_lines = [
@@ -6095,7 +6184,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Carry the applicable original requirements, current planning source locators, findings "
             "and their decision consequences into the review notes and return handoff.",
         ]
-        exclusion = (
+        plan_exclusion = (
             "Exclude .until-loop, .shiploop-improve and ShipLoop runtime metadata from product "
             "candidates, commits and product integration. The frozen planning scratch directory "
             "permits experimental edits only; it does not permit edits to runtime receipts, owner "
@@ -6107,110 +6196,6 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
 
     packet_path = standalone_improve.receipt_path(child)
     evidence_root = packet_path.parent / "reviews"
-    # ShipLoop started this review when the Improve stage began (owner, 2026-10-11): it wrote the opening from state,
-    # froze the contract and started the runtime, so no model writes the opening or starts the child.
-    start_lines = [
-        "ShipLoop started this review when the Improve stage began: it wrote the opening "
-        + str(improve_opening_path(child)) + " from the run's state, froze the child contract (start.json beside "
-        "the receipt below) and started the bound runtime. Continue the child from its receipt: run its next_argv "
-        "once, then follow the returned instruction. Do not write the opening or start the runtime yourself.",
-    ]
-    if not planning_reconcile:
-        # Beside the start, not 20 KB below it: a review that wrote the commit message to the wrong file name was
-        # refused, and another searched for the command (packet review 2026-10-10, P-improve-1).
-        # The message rules improve-commit enforces (_lessons_and_citations_refusal, the --remote-change path), so a
-        # first message is not refused for a Key learnings line no packet named; the command ends the line.
-        start_lines.append(
-            "To commit a review iteration's changes, write the commit message to "
-            + str(improve_commit_message_path(child)) + " with a file-writing tool. It needs a line `Key learnings: "
-            "<what this iteration taught that a later iteration or run should reuse>` (`Key learnings: none` if it "
-            "taught nothing new; a review that changed no file makes no commit). Optional: a line `Learned-from: "
-            "<commit id> <what it contributed>` credits a commit that helped (ShipLoop checks the ID and writes the "
-            "full one). For a change to a remote system that left no file change, add `Remote change: <system "
-            "alias>, <what changed>, <where its evidence is>` and append `--remote-change` to the command. Each goes "
-            "on a line of its own starting in column 1, not inside one paragraph. Do not write the message with a "
-            "shell heredoc or run git commit yourself: a hand-typed commit skips these checks. Then run: "
-            + _callback(core, root, "improve-commit", action=improve_id(state),
-                        message=str(improve_commit_message_path(child))))
-    if inline:
-        ownership_lines = [
-            *start_lines,
-            "Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
-            "This conversation holds the current approvals, declines and pending decisions (ShipLoop's opening cannot): apply an applicable approval without asking again, treat a decline as binding, and record each with its source in the review notes and handoff. A later user decision applies from the next review iteration: record its receipt and effect there; the frozen launch context stays unchanged.",
-            "Return order: only after the runtime has written the terminal packet to the receipt below, run the parent return and callback below. Runtime completion alone never advances this action.",
-        ]
-    else:
-        ownership_lines = [
-            *start_lines,
-            "Parent assignment preparation: ShipLoop's opening (opening.md beside the receipt) holds the stage result, scope, authority and environment; put it first in the worker prompt and add this conversation's learnings, decisions and unresolved concerns (the navigator cannot supply conversation-only learnings). Then say 'Run /improve' with the selected card, the concrete run binding and this started child's receipt. Do not forward this entire parent packet or repeat the skill's execution instructions.",
-            "For a genuinely new invocation, after ShipLoop has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
-            "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
-            "Native owner record: " + str(packet_path.with_name("host-owner.md")),
-            "ShipLoop's opening cannot hold this conversation's approvals, declines and pending decisions: state them, with action/target, conditions and authorization source, in the dispatch prompt, so the worker applies an approval without asking again and treats a decline as binding. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
-            "Parent-only return: the worker continues the child from the receipt below and writes its review files, then returns their locators without executing ShipLoop callbacks other than improve-commit, or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
-        ]
-    start_word = "start" if inline else "dispatch"
-    runtime_lines = [
-        "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
-        + ("#default-route-the-parent-runs-improve-delegation-inline" if inline else ""),
-        *ownership_lines,
-        "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
-        "Child latest packet receipt: " + str(packet_path),
-        # Inline: ShipLoop binds the card and runtime and freezes the contract (binding line,
-        # start inputs, planning repeat clause) and starts the runtime with the receipt; only the
-        # model's remaining obligations are stated here (SPEC S-5, S-7).
-        *([] if inline else [
-            f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and review files are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
-        ]),
-        ("The runtime writes every packet it returns to the receipt above, the terminal one before it deletes "
-         "its state. Never write or edit the receipt; ShipLoop imports only a packet the runtime wrote there. "
-         "ShipLoop started this child before any review work."),
-        "For a genuinely new child, read the selected skills. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
-        + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
-           "this initial plan child may use the printed parent-only improve-reconcile route "
-           + ("once the runtime has returned that stopped packet. " if inline else "after worker collection. ")
-           if planning_reconcile else
-           "For stopped status keep the parent incomplete. ")
-        + "To continue after a stop that cannot be reconciled, once its blocker is resolved or the user "
-        "authorizes continuing, "
-        + ("confirm no candidate write is in progress" if inline else "confirm the recorded owner stopped")
-        + (", run " + _callback(core, root, "improve-start", action=improve_id(state))
-           + " --restart-stopped: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json and "
-           "the sibling reviews directory as reviews.stopped-<same timestamp>, then starts a new child with "
-           "the same binding line. Do not rename them yourself. ")
-        + "Its review-<n>.md files and checks.md must be ones the new child writes. "
-        "To pause instead, run the parent pause command below and leave the child active; never "
-        "report cancelled for a pause. "
-        + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
-        "never infer completion or silently create a replacement. Terminal recovery uses the retained "
-        "raw packet because terminal state is deleted.",
-        *(
-            [
-                "ShipLoop's opening carries the step result, the files in scope, authority and environment; "
-                "the original request (untrusted) is in state.md. ShipLoop freezes the work, exit and repeat "
-                "conditions, the commit policy, the exclusions and the resources (receipt, evidence directory, "
-                "parent state and the exact parent return, written to "
-                "parent-return.md beside the receipt), so the terminal packet can locate the parent return "
-                "after context loss.",
-                "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-            ] if not planning_reconcile else [
-                "ShipLoop froze the step result, the execution/exit/repeat conditions, authority and environment in the child's context; the original request (untrusted) is in state.md.",
-                "For this planning Improve child, use the context-first opening as the compact planning summary plus locators for "
-                "the planning experiments guide, investigation notebook, latest packet, "
-                + ("" if inline else "owner record, ")
-                + "parent state and the exact parent return instructions below. "
-                "Keep the full parent packet, prompts and verbose "
-                "logs behind those locators; do not duplicate them in the child context.",
-                "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                # The planning packet prints no improve-commit command; the start writes it and its message rules
-                # to parent-return.md, which the frozen contract also names.
-                "To commit a review iteration's changes, run the improve-commit command in "
-                + str(packet_path.with_name("parent-return.md")) + "; its message rules are there. ShipLoop commits "
-                "exactly the files this review changed. Do not run git commit yourself.",
-            ]
-        ),
-        "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before running the complete command. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
-    ]
     reconcile_lines: list[str] = []
     if planning_reconcile:
         reconcile_path = root / "inbox" / (action_id + "-reconcile.md")
@@ -6235,8 +6220,19 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
              "Parent-only stopped-child callback after collection; it imports the preserved stopped ")
             + "packet and immutable evidence, then restarts the requested planning suffix:",
             _callback(core, root, "improve-reconcile", action=improve_id(state), result=str(reconcile_path)),
-            "A successful child still follows the normal complete callback below.",
+            "A successful child still follows the normal complete callback in the first lines of this file.",
         ]
+    plan_lines = [
+        "For this planning Improve child, use the context-first opening as the compact planning summary plus locators for "
+        "the planning experiments guide, investigation notebook, latest packet, "
+        + ("" if inline else "owner record, ")
+        + "parent state and the exact parent return instructions below. Keep the full parent packet, prompts and verbose "
+        "logs behind those locators; do not duplicate them in the child context.",
+        "For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only this initial "
+        "plan child may use the printed parent-only improve-reconcile route "
+        + ("once the runtime has returned that stopped packet. " if inline else "after worker collection."),
+        plan_exclusion,
+    ] if planning_reconcile else []
     lines.extend([
         "Selected Improve skill: " + skill["skill_card"],
         "Bound Until Loop card: " + skill["runtime_card"],
@@ -6244,20 +6240,25 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Until Loop root (its card's relative links, such as references/runtime-ephemeral.md, resolve here, "
         "not under the Improve skill): " + str(Path(skill["runtime_cli"]).parents[1]),
         "Child workspace: " + child["workspace"],
-        ("Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound "
-         "runtime card's \"Follow the returned action\" section with a file-reading tool, once per "
-         "context (again after a reset or if the card changed), then follow them; open other sections "
-         "only when a step needs them, and never print either card to the shell. The skill owns all "
-         "internal improvement iterations." if inline else
-         "Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound runtime "
-         "card's \"Follow the returned action\" section with a file-reading tool, then follow them; open "
-         "other sections only when a step needs them. The skill owns all internal improvement iterations."),
+        "ShipLoop started this review when the Improve stage began: it wrote the opening CHILD/opening.md from the run's "
+        "state, froze the child contract (CHILD/start.json beside the receipt) and started the bound runtime. Continue the "
+        "child from its receipt: run its next_argv once, then follow the returned instruction. Do not write the opening "
+        "or start the runtime yourself.",
+        *([] if planning_reconcile else [
+            "The commit message (each line starts in column 1, on a line of its own, not inside one paragraph): a line "
+            "`Key learnings: <what this iteration taught that a later iteration or run should reuse>` (`Key learnings: "
+            "none` if it taught nothing new; a review that changed no file makes no commit); optional "
+            "`Learned-from: <commit id> <what it contributed>` credits a commit that helped (ShipLoop checks the ID and "
+            "writes the full one). For a change to a remote system that left no file change, add `Remote change: <system "
+            "alias>, <what changed>, <where its evidence is>` and append `--remote-change` to the command. Do not write "
+            "the message with a shell heredoc or run git commit yourself: a hand-typed commit skips these checks. More: "
+            "ROUTE#record-commit-and-learning."]),
+        "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
+        + ("#default-route-the-parent-runs-improve-delegation-inline" if inline else ""),
+        *([] if inline else ["Native owner record: " + str(packet_path.with_name("host-owner.md"))]),
         *planning_lines,
-        *runtime_lines,
-        *_focus_lines(state, child),
-        _several_steps(guidance.improve_prompt(child["stage"], delegation=delegation(state)), state, child["stage"]),
-        exclusion,
-        "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
+        *plan_lines,
+        _several_steps(guidance.improve_stage_prompt(child["stage"], delegation=delegation(state)), state, child["stage"]),
         "Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial."
         + _improve_two_pass_sentence(child["stage"]),
         "Changes: change what is warranted in code, tests or documentation, and commit it; "
@@ -6271,37 +6272,17 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "there first: one older than the last edit is refused), and prints the runtime's done command for this pass "
         "and this stage's complete command, literal; run them as printed. The complete command imports the final "
         "pass (the last review file) and checks.md; nothing else to list. A plan/RED "
-        "disposition is checked against its own criteria, not future product success. After each pass, run:",
-        _callback(core, root, "improve-pass", action=improve_id(state)),
+        "disposition is checked against its own criteria, not future product success. The improve-pass command is under "
+        "Commit above.",
         "Optional, for later steps: lessons in a plain-text file passed as --notes " + str(notes_path) + ".",
-        "Temporary files, including each report you pass to the runtime on standard input, go in "
-        + str(scratch_dir(root)) + " with names of your own: /tmp is shared with other runs, so a fixed "
-        "/tmp name can read another run's file.",
-        "If Improve changes decisions or decision-relevant evidence needed by a successor, include "
-        "final_result: a complete step result with the same fields as the Step result record above "
-        "(outcome done, repeat, blocked, revise at the INNER stages test-spec to verify, or replan at OUTER stages; "
-        "never reconcile), preserving "
-        "authority; with outcome done at plan or carry-forward, list the complete intended queue in "
-        "work_items whenever the step result proposed one. When the step result is unchanged, omit "
-        "final_result: ShipLoop reuses the result already submitted, so do not restate it. Preserve "
-        "existing registered evidence_refs "
-        "and add every planning file produced or revised, plus a compact decision note and required "
-        "supporting evidence. Record the finding, applicable original constraints, affected decision "
-        "and consumer, conclusion, limits and source locators. Ordinary qualifying review/check "
-        "evidence belongs in the review-<n>.md files and checks.md; it alone does not require final_result. Do not "
-        "register all scratch output or copy the whole mutable notebook into every "
-        + ("context" if inline else "worker") + ". Retain "
-        "key planning decisions, constraints and acceptance expectations as reference statements "
-        "with source locators. The step definition remains the execution prompt; do not substitute "
-        "the original user request or a second consolidated directive. Write such a final_result as a "
-        "step-result record to " + str(final_path) + " and pass --final-result with that path.",
+        "If Improve changes a decision or decision-relevant evidence a successor needs, write a final_result (the rules are "
+        "in ROUTE#return-and-final_result) as a step-result record to " + str(final_path)
+        + " and pass --final-result with that path.",
         *reconcile_lines,
-        ("Parent callback; run only after the runtime returned complete, its terminal packet is saved at "
-         "the receipt above:" if inline else
-         "Parent-only callback; execute only after collecting and verifying successful bound runtime completion:"),
-        _callback(core, root, "complete", action=improve_id(state)),
-        "If incomplete, retain the child, its packet receipt and review notes; do not call complete on the producer again or advance the graph.",
         "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),
+        "Restart a stopped child, once its blocker is resolved or the user authorizes it and no candidate write is in "
+        "progress (the route file says how): " + _callback(core, root, "improve-start", action=improve_id(state))
+        + " --restart-stopped",
     ])
     return "\n".join(lines) + "\n"
 

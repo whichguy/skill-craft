@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 94)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 51)
-        self.assertEqual(len(suite_catalog.SUITES), 147)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 52)
+        self.assertEqual(len(suite_catalog.SUITES), 148)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -151,7 +151,7 @@ class TestGroupTests(unittest.TestCase):
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls", "shiploop-actual-improve-cli", "shiploop-domain-words"},
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls", "shiploop-domain-words"},
             "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},
-            "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime"},
+            "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime", "improve-route"},
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},
             "docs/notes.md": set(),

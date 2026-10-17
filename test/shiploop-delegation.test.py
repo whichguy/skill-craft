@@ -25,6 +25,7 @@ import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shiploop_packet_view import assert_top_block, callback_argv, callback_result_path  # noqa: E402
+from shiploop_improve_route import route_text  # noqa: E402
 
 
 def _with_packet_file(stdout: str) -> str:
@@ -558,21 +559,29 @@ class PacketContractTests(DelegationStateTests):
             if kind == "improve":
                 self.assertNotIn("Delegation:", packet)
             if kind == "handoff":
-                self.assertIn("Delegation: inline. Run the selected Improve card", packet)
-                self.assertIn("start no reviewer, test-runner or executor agent unless the user asked for "
-                              "independent review", packet)
-        # Positive control: every phrase is live on the delegated route, so the
-        # inline sweep above cannot pass merely because the wording changed.
-        delegated_text = "\n".join(packet for _stage, _kind, packet in delegated)
+                # The route text itself moved to the route file (plan U18); the handoff names its route.
+                self.assertIn(" · Route: inline", packet)
+                self.assertNotIn(" · Route: ask-agent", packet)
+        route = route_text()    # the invariant Improve text that left the handoff (plan U18)
+        self.assertIn("Delegation: inline. Run the selected Improve card", route)
+        self.assertIn("start no reviewer, test-runner or executor agent unless the user asked for "
+                      "independent review", route)
+        for _stage, kind, packet in delegated:
+            if kind == "handoff":
+                self.assertIn(" · Route: ask-agent", packet)
+        # Positive control: every phrase is live on the delegated route (its handoffs and the route file they name), so
+        # the inline sweep above cannot pass merely because the wording changed.
+        delegated_text = "\n".join(packet for _stage, _kind, packet in delegated) + "\n" + route
         for text in BOUND_DELEGATED_TEXT:
-            self.assertIn(text, delegated_text)
+            self.assertIn(" ".join(text.split()), " ".join(delegated_text.split()), text)
 
-    def test_a_bound_improve_packet_prints_the_commit_command_right_after_improve_start(self):
+    def test_a_bound_improve_handoff_prints_the_commit_command_early(self):
         # The command and the exact commit-message path sat at about 30 KB of a 47 KB packet, below improve-start: one
         # review wrote the wrong file name and was refused, another searched for the command (packet review
-        # 2026-10-10, P-improve-1).  The planning packet prints no command: it names parent-return.md, which improve-start
-        # writes with the command and its message rules, right after its Commit policy line.  Since 8f3d4cbe improve-commit
-        # refuses a message with no Key learnings line, so the line shows that format and ends with the command.
+        # 2026-10-10, P-improve-1).  Now both the commit and the complete command sit inside the first 4,500 characters of
+        # the handoff (plan U18), with the review focus ahead of them.  The planning packet prints no command: it names
+        # parent-return.md, which improve-start writes with the command and its message rules.  Since 8f3d4cbe
+        # improve-commit refuses a message with no Key learnings line, so the line shows that format and ends with it.
         with tempfile.TemporaryDirectory(prefix="shiploop-commit-walk-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
@@ -586,33 +595,34 @@ class PacketContractTests(DelegationStateTests):
                 lines = packet.splitlines()
                 with self.subTest(route=route, stage=stage):
                     commits = [i for i, line in enumerate(lines) if " improve-commit --run-dir=" in line]
+                    first_section = next(i for i, line in enumerate(lines) if line == "## What the reviewed stage worked from")
+                    early = packet[:packet.index("\n".join(lines[first_section:first_section + 1]))]
                     if stage == "plan":
                         self.assertEqual(commits, [])
-                        policy = next(i for i, line in enumerate(lines) if line.startswith("Commit policy:"))
-                        pointer = lines[policy + 1]
+                        pointer = next(line for line in lines if line.startswith("To commit a review iteration's changes"))
                         self.assertRegex(pointer, r"^To commit a review iteration's changes, run the improve-commit "
                                                   r"command in \S+/parent-return\.md; its message rules are there\.")
                         self.assertIn("Do not run git commit yourself.", pointer)
+                        self.assertIn(pointer, early)
                         planned += 1
                         continue
-                    # ShipLoop starts the child itself (owner, 2026-10-11): the paragraph saying so replaces the old
-                    # improve-start line, and the commit command still follows it directly.
-                    start = next(i for i, line in enumerate(lines)
-                                 if line.startswith("ShipLoop started this review when the Improve stage began"))
-                    self.assertNotIn("improve-start --run-dir=", "\n".join(lines[start:start + 2]))
-                    self.assertEqual(commits, [start + 1])
-                    commit = lines[start + 1]
+                    self.assertEqual(len(commits), 1, commits)
+                    commit = lines[commits[0]]
                     self.assertTrue(commit.startswith("To commit a review iteration's changes"), commit)
                     written = re.search(r"write the commit message to (\S+) with a file-writing tool", commit).group(1)
+                    self.assertEqual(written, "CHILD/commit-message.md")
                     self.assertIn("`Key learnings: none`", commit)
                     self.assertIn("column 1", commit)
                     command = commit.rsplit("Then run: ", 1)[1]
                     self.assertEqual(command.split()[2], "improve-commit")
-                    self.assertTrue(command.endswith("--message=" + written), command)  # one file; nothing after it
+                    child_dir = re.search(r"^CHILD = (\S+)", packet, re.M).group(1)
+                    self.assertTrue(command.endswith("--message=" + child_dir + "/commit-message.md"), command)  # one file
                     # improve-commit names the Improve stage's id: the one the complete callback in this file names.
-                    complete = next(line for line in lines if line.startswith("python3 shiploop complete --run-dir="))
+                    complete = next(line for line in lines if " shiploop complete --run-dir=" in line)
+                    complete = complete[complete.index("python3 shiploop complete"):]
                     self.assertEqual(shlex.split(command)[4], shlex.split(complete)[4])
                     self.assertTrue(shlex.split(command)[4].startswith("--action="), command)
+                    self.assertIn(commit, early)
                     checked += 1
         self.assertGreaterEqual(checked, 12)
         self.assertEqual(planned, 2)
@@ -738,13 +748,15 @@ class PacketContractTests(DelegationStateTests):
         started = next(line for line in lines
                        if line.startswith("ShipLoop started this review when the Improve stage began"))
         self.assertRegex(started, r"it wrote the opening \S+/opening\.md from the run's state")
+        self.assertRegex("\n".join(lines[:12]), r"(?m)^Run the receipt CHILD/packet\.json's next_argv once")
         self.assertIn("Do not write the opening or start the runtime yourself", started)
         self.assertNotIn("--opening", packet)
         self.assertNotIn("improve-complete", packet)
         self.assertFalse([line for line in lines if " improve-start " in line and "--restart-stopped" not in line])
-        parent = next(i for i, line in enumerate(lines)
-                      if line.startswith(("Parent callback;", "Parent-only callback;")))
-        argv = shlex.split(lines[parent + 1])
+        # The one command to finish is in the first lines (plan U18): inline after the runtime returns complete, on
+        # ask-agent for the parent only.
+        parent = next(line for line in lines[:12] if line.startswith(("When the runtime returns complete", "Parent only, after")))
+        argv = shlex.split(parent[parent.index("python3 shiploop"):])
         self.assertEqual(argv[2], "complete")
         self.assertFalse(any(arg.startswith("--result") for arg in argv), argv)
         reviewed = re.search(r"\((nav-[0-9a-f]+)\)", lines[0]).group(1)
@@ -828,7 +840,8 @@ class AggregateImplementWordingTests(unittest.TestCase):
 
     def test_the_inline_handoff_keeps_the_per_step_wording_byte_for_byte(self):
         text = self.handoff(self.at_implement("inline"))
-        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), text)
+        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), text)    # the focus, then the Code craft rubric
+        self.assertIn(prompts.CODE_CRAFT.rstrip(), text)
         row = stage_spec.stage("implement")
         self.assertIn("Goal: " + row.goal[0].upper() + row.goal[1:], text)
         for condition in row.done_when:
@@ -837,7 +850,7 @@ class AggregateImplementWordingTests(unittest.TestCase):
 
     def test_a_one_step_ask_agent_plan_keeps_the_per_step_wording(self):
         text = self.handoff(self.at_implement("ask-agent", self.STEPS[:1]))
-        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), text)
+        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), text)
         self.assertNotIn(" to S1", text)
 
     def test_the_packet_goal_and_the_loop_contract_say_the_same_steps(self):
@@ -980,7 +993,8 @@ class DelegationCliTests(unittest.TestCase):
         # and the "Delegation change" line (REPORTED) is no longer printed on Improve packets; the hold is on the state.
         self.assertIn("1. Run the improve skill on the spec result.", switched.stdout)
         handoff = Path(re.search(r"/improve ShipLoop Improve: (\S+)", switched.stdout).group(1))
-        self.assertIn("Delegation: inline. Run the selected Improve card", handoff.read_text(encoding="utf-8"))
+        self.assertIn(" · Route: inline", handoff.read_text(encoding="utf-8"))
+        self.assertNotIn(" · Route: ask-agent", handoff.read_text(encoding="utf-8"))
         self.assertNotIn("Prefer a native fresh worker", switched.stdout + handoff.read_text(encoding="utf-8"))
         self.assertEqual(self.saved()["delegation_hold"], {"action": action, "route": "inline"})
 

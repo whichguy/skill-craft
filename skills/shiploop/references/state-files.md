@@ -31,7 +31,7 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `lint/` | Script-owned lint output, never exit-criteria evidence: per-item base snapshots (`items/`), per-action records and patches, byte-exact tool logs (`logs/`, mode 0600), scratch space (`tmp/`) and pending fix journals. See the [lint catalog](lint-catalog.md). |
 
 The live Improve child keeps its own receipt at
-`<workspace>/.shiploop-improve/<run-id>/<reviewed action>/packet.json` in the execution
+`<workspace>/.shiploop-improve/<stage>-<last 8 characters of the reviewed action>/packet.json` in the execution
 worktree; see [Improve context ownership](improve-context.md). Beside that receipt
 ShipLoop writes `opening.md`, `start.json` and `parent-return.md` when it starts the child at the
 transition into the Improve stage: the `improve-commit` command with its

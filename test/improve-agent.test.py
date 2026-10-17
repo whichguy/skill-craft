@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGINS = package_build.plugins()
 AGENT = ROOT / "skills" / "improve-agent"
 IMPROVE = ROOT / "skills" / "improve"
+STANDALONE = IMPROVE / "references" / "standalone-route.md"   # the five standalone sections moved here whole (plan U18)
 
 
 def text(path: Path) -> str:
@@ -78,7 +79,7 @@ class ImproveAgentCardTests(unittest.TestCase):
 
 class InlineImproveTests(unittest.TestCase):
     def test_improve_starts_no_agent_by_default(self) -> None:
-        card = flat(IMPROVE / "SKILL.md")
+        card = flat(IMPROVE / "SKILL.md") + " " + flat(STANDALONE)
         self.assertIn("start no reviewer, test-runner or executor agent", card)
         self.assertIn("`self-review (inline default)`", card)
         self.assertIn("A host's standing permission or preference to start agents does not select one here.", card)
@@ -108,7 +109,7 @@ class InlineImproveTests(unittest.TestCase):
         for relative in ("scripts/capture_evidence.py", "references/legacy-standalone.md",
                          "references/evidence-capture.md"):
             self.assertFalse((IMPROVE / relative).exists(), relative)
-        for card in (IMPROVE / "SKILL.md", IMPROVE / "README.md",
+        for card in (IMPROVE / "SKILL.md", IMPROVE / "README.md", STANDALONE, IMPROVE / "references" / "shiploop-route.md",
                      IMPROVE / "references" / "review-policy.md",
                      IMPROVE / "references" / "callback-evidence.md"):
             body = flat(card)
@@ -117,7 +118,7 @@ class InlineImproveTests(unittest.TestCase):
                            "Never run the entire cycle in one action",
                            "supply only Current learnings", "legacy continuation"):
                 self.assertNotIn(phrase, body, f"{card.name}: {phrase}")
-        self.assertIn("## Execution handoff\n", text(IMPROVE / "SKILL.md"))
+        self.assertIn("## Execution handoff\n", text(STANDALONE))
 
     def test_policy_selects_independent_review_through_the_binding(self) -> None:
         policy = flat(IMPROVE / "references" / "review-policy.md")

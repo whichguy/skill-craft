@@ -27,6 +27,7 @@ import shiploop_stage_spec as stage_spec  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt  # noqa: E402
+from shiploop_improve_route import with_route  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
@@ -456,17 +457,17 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             self.assertEqual(packet.count(" improve-start "), 1)
             self.assertIn("--restart-stopped", packet)
             if self.inline():
-                self.assertIn("Run the selected Improve card's ShipLoop whole-skill subcall in this conversation", packet)
-                self.assertIn("Return order:", packet)
-                self.assertIn("the frozen launch context stays unchanged", packet)
+                self.assertIn("Run the selected Improve card's ShipLoop whole-skill subcall in this conversation", with_route(packet))
+                self.assertIn("Return order:", with_route(packet))
+                self.assertIn("the frozen launch context stays unchanged", with_route(packet))
             else:
-                self.assertIn("Parent assignment preparation:", packet)
-                self.assertIn("Run /improve", packet)
-                self.assertIn("navigator cannot supply conversation-only learnings", packet)
-                self.assertIn("Parent-only return:", packet)
-                self.assertIn("keep launch context immutable and continue the same child", packet)
+                self.assertIn("Parent assignment preparation:", with_route(packet))
+                self.assertIn("Run /improve", with_route(packet))
+                self.assertIn("navigator cannot supply conversation-only learnings", with_route(packet))
+                self.assertIn("Parent-only return:", with_route(packet))
+                self.assertIn("keep launch context immutable and continue the same child", with_route(packet))
                 # ShipLoop starts this child too; the worker continues it (551b8b49).
-                self.assertIn("continues the already-started loop from the receipt's next_argv", packet)
+                self.assertIn("continues the already-started loop from the receipt's next_argv", with_route(packet))
             # Neither route states a byte limit for the opening: the Until Loop runtime has none.
             self.assertNotIn("Size budget", packet)
             self.assertNotRegex(packet, r"\bbytes together\b|16,384|9,216")
@@ -476,11 +477,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             self.assertNotIn("Start inputs owned by ShipLoop", packet)
             self.assertNotIn("Start the child runtime with --receipt", packet)
             self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
-            self.assertIn("material unresolved findings, hypotheses, failed attempts", packet)
+            self.assertIn("material unresolved findings, hypotheses, failed attempts", with_route(packet))
             if self.inline():  # the conversation holds the approvals; a delegated worker is told them in the dispatch prompt
-                self.assertIn("holds the current approvals, declines and pending decisions", packet)
+                self.assertIn("holds the current approvals, declines and pending decisions", with_route(packet))
             else:
-                self.assertIn("approvals, declines and pending decisions: state them, with action/target", packet)
+                self.assertIn("approvals, declines and pending decisions: state them, with action/target", with_route(packet))
         self.assertEqual((self.run / "state.md").read_bytes(), before)
 
         # The context ShipLoop froze: its binding line first, the one opening heading once, and it survives cold recovery.
@@ -529,7 +530,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("Improve context ownership: GUIDES/" + guide.name, packet)
         # The handoff names the child's files by its own symbol CHILD, defined once with the child's directory.
         owner_record = "Native owner record: CHILD/host-owner.md"
-        self.assertIn("CHILD = " + str(bridge.receipt_path(self.bound).parent) + " (this review's directory", packet)
+        self.assertIn("CHILD = " + str(bridge.receipt_path(self.bound).parent) + " · ROUTE = ", packet)
         if self.inline():
             # Inline Improve has no native owner; import below still succeeds.
             self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "))
@@ -538,20 +539,20 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             headings = [re.sub(r"[^a-z0-9 -]", "", line.lstrip("#").strip().lower()).replace(" ", "-")
                         for line in guide.read_text(encoding="utf-8").splitlines() if line.startswith("#")]
             self.assertIn(anchor, headings)
-            self.assertIn("Parent callback; run only after the runtime returned complete", packet)
-            self.assertIn("Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall", packet)
+            self.assertIn("Parent callback; run only after the runtime returned complete", with_route(packet))
+            self.assertIn("Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall", with_route(packet))
             for delegated in ("consumer-owned", "host-owner.md", "delegation_owner", "improve-agent"):
                 self.assertNotIn(delegated, packet)
-            self.assertIn("Return order:", packet)
+            self.assertIn("Return order:", with_route(packet))
         else:
-            self.assertIn("ask-agent/consumer-owned-workspace/v1", packet)
-            self.assertIn("run the host-selected improve-agent card for this bound child", packet)
-            self.assertIn("Workspace route: consumer-owned; delivery mode: in-place", packet)
-            self.assertIn("execution_role: improve-executor; delegation_owner: parent", packet)
+            self.assertIn("ask-agent/consumer-owned-workspace/v1", with_route(packet))
+            self.assertIn("run the host-selected improve-agent card for this bound child", with_route(packet))
+            self.assertIn("Workspace route: consumer-owned; delivery mode: in-place", with_route(packet))
+            self.assertIn("execution_role: improve-executor; delegation_owner: parent", with_route(packet))
             self.assertIn(owner_record, packet)
-            self.assertIn("Parent-only return:", packet)
+            self.assertIn("Parent-only return:", with_route(packet))
         self.assertIn("Child workspace: " + str(self.repo), packet)
-        self.assertIn("Commit policy:", packet)
+        self.assertIn("Commit policy:", with_route(packet))
 
         # The candidate is already the worker's workspace. Native completion
         # is simulated here only to test the real parent/import boundary.
@@ -583,12 +584,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         """A cancelled non-plan child is archived, restarted once and imported; no halt needed."""
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         # Both routes restart through ShipLoop; neither renames files by hand (29786109, 551b8b49).
-        restart_command = (" improve-start --run-dir=" + str(self.run) + " --action=" + self.improve
-                           + " --restart-stopped: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json")
+        # (The command stands on its own line of the handoff; what ShipLoop archives is told in the route file.)
+        restart_command = " improve-start --run-dir=" + str(self.run) + " --action=" + self.improve + " --restart-stopped"
         self.assertIn(restart_command, packet)
-        self.assertIn("Do not rename them yourself.", packet)
-        self.assertIn("must be ones the new child writes", packet)
-        self.assertIn("never report cancelled for a pause", packet)
+        self.assertIn("ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json", with_route(packet))
+        self.assertIn("Do not rename them yourself.", with_route(packet))
+        self.assertIn("must be ones the new child writes", with_route(packet))
+        self.assertIn("never report cancelled for a pause", with_route(packet))
         _raw, first = self.start_ephemeral_child()
         start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.improve, "--restart-stopped"]
         # The child is running: it is continued from its receipt, never restarted over, and the verb needs its flag.
@@ -664,7 +666,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn(user_no_commit, packet)
         self.assertIn(
             "selected Improve card's scoped-commit policy with the task's explicit overrides",
-            handoff,
+            with_route(handoff),
         )
         self.assertIn("Selected Improve skill: " + str(CARD.resolve()), handoff)
         self.assertIn(
@@ -807,13 +809,15 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         )
         self.assertEqual(self.bound["skill"]["skill_version"], selected_version)
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        # The child's directory is named once (CHILD = ...) and its receipt is CHILD/packet.json (plan U18).
+        self.assertIn("CHILD = " + str(bridge.receipt_path(self.bound).parent) + " · ROUTE = ", parent_packet)
+        self.assertEqual(bridge.receipt_path(self.bound).name, "packet.json")
+        self.assertIn("saved at CHILD/packet.json", parent_packet)
         for text in ("Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
-                     "Child latest packet receipt: CHILD/packet.json",
-                     "CHILD = " + str(bridge.receipt_path(self.bound).parent) + " (this review's directory",
                      "Commit policy:",
                      "Never write or edit the receipt",
                      "Completion deletes the child's temporary state"):
-            self.assertIn(text, parent_packet)
+            self.assertIn(text, with_route(parent_packet))
 
         # Selected inputs are real before launch. Receipt/evidence paths are
         # outputs at this point, and must not become dispatch prerequisites.
@@ -924,13 +928,14 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         # P13: the run's scratch directory exists and takes the reports piped to the runtime, not /tmp.
         scratch = self.run / "scratch"
         self.assertTrue(scratch.is_dir())
-        self.assertIn("Temporary files, including each report you pass to the runtime on standard input, go in "
-                      + str(scratch), " ".join(full.split()))
+        self.assertIn("Scratch directory (your temporary files, not /tmp): RUN/scratch", full)
+        self.assertIn("Temporary files, including each report you pass to the runtime on standard input, go in the scratch "
+                      "directory the handoff's `State:` line names", " ".join(with_route(full).split()))
         obligations = {
             "continue the child ShipLoop started": "Continue the child from its receipt: run its next_argv once",
             "write nothing and start nothing": "Do not write the opening or start the runtime yourself",
             "restart a stopped child through ShipLoop": " improve-start --run-dir=",
-            "follow the runtime": "\"Follow the returned action\" section",
+            "follow the runtime": "follow each returned instruction",
             "commit review edits through ShipLoop": " improve-commit --run-dir=",
             "never edit the receipt": "Never write or edit the receipt",
             "recover an active child": "use its exact next_argv once to recover",
@@ -941,7 +946,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         }
         for name, text in obligations.items():
             with self.subTest(obligation=name):
-                self.assertIn(text, full)
+                self.assertIn(text, with_route(full))
         for gone in ("Binding inputs: before start", "Start inputs owned by ShipLoop",
                      "Start the child runtime with --receipt"):
             self.assertNotIn(gone, full)
@@ -949,7 +954,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn(" complete --run-dir=" + str(self.run) + " --action=" + self.improve, full)
         self.assertNotIn("improve-complete", full)
         self.assertEqual(full.count(self.bound["contract_marker"]), 1)  # the handoff file's head, once
-        self.assertEqual(full.count("Never write or edit the receipt"), 1)
+        self.assertEqual(with_route(full).count("Never write or edit the receipt"), 1)    # in the route now, once
 
     def test_shiploop_writes_the_opening_freezes_the_contract_and_starts_the_runtime(self):
         """ShipLoop writes the four opening sections, the contract and the receipt at the transition.
@@ -1273,7 +1278,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for locator in refs:
             self.assertIn(locator, packet)
-        handoff = " ".join(packet.split())
+        handoff = " ".join(with_route(packet).split())
         self.assertIn("carry selected prior-baseline and incoming-spec sections", handoff)
         self.assertIn("into this child's existing contract before review", handoff)
 
@@ -1342,7 +1347,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
         # This separate-process cold packet must tell the host to author the
         # transfer below. Resource transport alone would pass without that duty.
-        handoff = " ".join(parent_packet.split())
+        handoff = " ".join(with_route(parent_packet).split())
         for clause in (
             "When this candidate selects, uses or changes a repository-local skill",
             "effective input/default sources",
@@ -2345,11 +2350,12 @@ class ImproveCommitContractTests(ImproveCliFixture):
         """Size-free smoke over every Improve stage and route (the old guard measured the clause's byte cost)."""
         self.begin("plan")
         state = store.read_record(self.run / "state.md")
-        parent_return = str(bridge.receipt_path(self.bound).with_name("parent-return.md"))
         for stage in self.IMPROVE_STAGES:
             for route in ("inline", "ask-agent"):
                 with self.subTest(stage=stage, route=route):
                     chosen = dict(state, active_improve=dict(state["active_improve"], stage=stage), delegation=route)
+                    # the child's directory names its stage, so each stage's contract names its own parent-return.md
+                    parent_return = str(bridge.receipt_path(chosen["active_improve"]).with_name("parent-return.md"))
                     built = navigator.improve_start_contract(None, self.run, chosen, "".join(
                         "## " + name + "\nx\n\n" for name in navigator.OPENING_SECTIONS))
                     authority = built["context"]["authority"]
@@ -2375,15 +2381,19 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.begin()
         lines = self.packet_lines()
         line = next(row for row in lines if row.startswith("To commit a review iteration's changes"))
+        # The command line is short and early (plan U18); the message's optional lines follow in the facts section.
+        rules = next(row for row in lines if row.startswith("The commit message ("))
         self.assertEqual(re.search(r"write the commit message to (\S+) with a file-writing tool", line).group(1),
-                         str(self.message))
+                         "CHILD/commit-message.md")
+        self.assertEqual(Path(str(self.message)).name, "commit-message.md")
+        self.assertIn("CHILD = " + str(self.message.parent), "\n".join(lines))
         for needed in ("`Key learnings: <what this iteration taught that a later iteration or run should reuse>`",
                        "`Key learnings: none`", "`Learned-from: <commit id> <what it contributed>`",
                        "`Remote change: <system alias>, <what changed>, <where its evidence is>`",
                        "append `--remote-change` to the command", "starting in column 1", "shell heredoc",
                        "run git commit yourself"):
             with self.subTest(needed=needed):
-                self.assertIn(needed, line)
+                self.assertIn(needed, line + " " + rules)
         argv = shlex.split(line.rsplit("Then run: ", 1)[1])  # the line ends with the command, nothing after it
         self.assertEqual(argv[2:], ["improve-commit", "--run-dir=" + str(self.run), "--action=" + self.improve,
                                     "--message=" + str(self.message)])
@@ -2414,11 +2424,13 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.begin("plan")
         lines = self.packet_lines()
         parent_return = bridge.receipt_path(self.bound).with_name("parent-return.md")
-        policy = next(index for index, row in enumerate(lines) if row.startswith("Commit policy:"))
-        self.assertEqual(lines[policy + 1],
+        # The pointer stands early in the handoff (plan U18), with CHILD = the directory holding parent-return.md.
+        pointer = next(row for row in lines if row.startswith("To commit a review iteration's changes"))
+        self.assertEqual(pointer,
                          "To commit a review iteration's changes, run the improve-commit command in CHILD/parent-return.md"
-                         + "; its message rules are there. ShipLoop commits exactly the files this review changed. "
+                         "; its message rules are there. ShipLoop commits exactly the files this review changed. "
                          "Do not run git commit yourself.")
+        self.assertIn("CHILD = " + str(parent_return.parent) + " · ", "\n".join(lines))
         self.assertFalse([row for row in lines if " improve-commit --run-dir=" in row])
         _contract, written = self.start_child()
         self.assertEqual(written, parent_return)  # the file the packet names is the one ShipLoop wrote at the start

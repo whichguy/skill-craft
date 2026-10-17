@@ -217,12 +217,12 @@ or predicted successor into the handoff as graph authority.
 Under `delegation: inline`, every INNER producer packet, including the
 `step-plan` packet that opens each work item, begins "Continue in this context
 and execute the prompt." then "Delegation: inline.": no clear, no pause for a
-clear and no delegation. Inline INNER Improve handoffs begin "Keep the invoking
+clear and no delegation. On the inline route the Improve route file (named by the handoff) says "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
 invocation itself (see step 3 below) and never clears for it.
 
 On the opt-in `delegation: ask-agent` route, active INNER **producer**
-packets begin with "Execute the prompt in a fresh context." Improve handoffs instead begin "Keep the invoking parent
+packets begin with "Execute the prompt in a fresh context." The Improve route file instead says "Keep the invoking parent
 alive": never clear, replace or wrap the live parent for Improve. Before an `implement` producer or a delegated worker on
 that route, read [chains: route and binding](references/chain-route.md).
 

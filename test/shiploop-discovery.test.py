@@ -19,6 +19,7 @@ import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_prompts as navigator_prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_improve_route import with_route  # noqa: E402
 
 
 class InteractionGuidanceTests(unittest.TestCase):
@@ -169,7 +170,7 @@ class InteractionGuidanceTests(unittest.TestCase):
             "state ownership",
             "Carry those locators into the child contract",
         ):
-            self.assertIn(term, packet)
+            self.assertIn(term, with_route(packet))   # the review inputs moved to the Improve route file (plan U18)
 
     def test_prompt_catalogs_direct_relevant_work_to_interaction_design(self) -> None:
         shared_terms = (

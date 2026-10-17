@@ -36,13 +36,13 @@ Improve already binds continuation and completion to its bundled Until Loop
 adapter; it does not need a second goal controller. Convergence still requires
 two distinct, consecutive, fully completed review cycles with only trivial
 findings or no changes, no unresolved material finding, and current relevant
-checks. [SKILL.md - standalone owner binding: one continuation owner](../skills/improve/SKILL.md#standalone-owner-binding),
+checks. [standalone-route.md - standalone owner binding: one continuation owner](../skills/improve/references/standalone-route.md#standalone-owner-binding),
 [review-policy.md - review-cycle obligations: convergence requirements](../skills/improve/references/review-policy.md#review-cycle-obligations)
 
 New test and reviewer outputs are evidence inside a review cycle. They do not
 increment the clean-review streak or finalize the work; the bound adapter remains
-the only completion authority. [SKILL.md - execution handoff: adapter-owned
-finalization](../skills/improve/SKILL.md#execution-handoff)
+the only completion authority. [standalone-route.md - execution handoff: adapter-owned
+finalization](../skills/improve/references/standalone-route.md#execution-handoff)
 
 ## What the repositories contribute
 

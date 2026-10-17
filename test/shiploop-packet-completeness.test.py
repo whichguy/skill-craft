@@ -27,6 +27,7 @@ import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_counts as test_counts  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
@@ -935,8 +936,13 @@ class PrintedInterpreterTests(unittest.TestCase):
 
 
 def child_dir(handoff: str) -> str:
-    """The child directory the handoff's References block defines as CHILD."""
-    return re.search(r"(?m)^CHILD = (\S+) \(this review's directory", handoff).group(1)
+    """The child directory the handoff's top line defines as CHILD (beside ROUTE, plan U18)."""
+    return re.search(r"(?m)^CHILD = (\S+) · ROUTE = ", handoff).group(1)
+
+
+def child_definition(handoff: str) -> str:
+    """The handoff's line that defines CHILD."""
+    return next(line for line in handoff.splitlines() if line.startswith("CHILD = "))
 
 
 def literal_child_paths(handoff: str) -> list:
@@ -956,18 +962,21 @@ class ChildSymbolTests(unittest.TestCase):
         cls.found = packets()
         cls.handoffs = {stage: text for (stage, kind), text in cls.found.items() if kind == "improve-handoff"}
 
-    def test_every_handoff_defines_child_once_in_its_references_block_as_its_improve_action_directory(self) -> None:
+    def test_every_handoff_defines_child_once_before_its_first_use_as_its_review_directory(self) -> None:
+        # The definition moved from the References block to the handoff's top line (plan U18: a cleared child finds CHILD
+        # and ROUTE inside the first 2,000 characters), and the directory is <stage>-<last 8 of the reviewed action>.
         self.assertTrue(self.handoffs)
         for stage, handoff in self.handoffs.items():
             with self.subTest(stage=stage):
                 self.assertEqual(handoff.count("\nCHILD = "), 1)
-                self.assertIn("CHILD = " + child_dir(handoff) + " (this review's directory", "\n".join(reference_block(handoff)))
-                improve_action = re.search(r"\((nav-[0-9a-f]+)\)", handoff.splitlines()[0]).group(1)
-                self.assertEqual(Path(child_dir(handoff)).name, improve_action)
+                self.assertNotIn("CHILD = ", "\n".join(reference_block(handoff)))
+                self.assertLess(handoff.index("\nCHILD = "), handoff.index("CHILD/"))
+                reviewed = re.search(r"\((nav-[0-9a-f]+)\)", handoff.splitlines()[0]).group(1)
+                self.assertEqual(Path(child_dir(handoff)).name, standalone.child_directory(stage, reviewed))
 
     def test_every_symbol_a_handoff_uses_is_defined_in_its_references_block(self) -> None:
         for stage, handoff in self.handoffs.items():
-            defined = set(symbol_paths(reference_block(handoff)))
+            defined = set(symbol_paths(reference_block(handoff))) | set(symbol_paths([child_definition(handoff)]))
             self.assertEqual(defined, {*navigator.REFERENCE_SYMBOLS, "CHILD"})
             lines = [line for line in handoff.splitlines() if not re.match(r"(?:HOME|WORKTREE|CHILD) = ", line)]
             used = set(re.findall(r"\b(HOME|RUN|GUIDES|CHILD)/[\w.@+~-]", "\n".join(lines)))
