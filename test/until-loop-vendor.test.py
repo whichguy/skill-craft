@@ -51,6 +51,14 @@ class ProvenanceTests(unittest.TestCase):
     def test_the_adapter_card_declares_the_manifest_version(self):
         adapter = (RUNTIME_DIR / "ADAPTER.md").read_text()
         self.assertIn(f"version: {self.manifest['upstream']['version']}\n", adapter)
+        self.assertIn("start --isolated", adapter)
+
+    def test_the_session_and_recovery_helpers_are_vendored(self):
+        entries = {entry["bundled_path"] for entry in self.manifest["default_ephemeral_runtime"]}
+        self.assertTrue({
+            "scripts/until_loop_session.py",
+            "scripts/until_loop_recover.py",
+        }.issubset(entries))
 
     def test_the_marketplace_pin_is_the_vendored_commit(self):
         catalog = json.loads((ROOT / "catalog/external-plugins.json").read_text())
