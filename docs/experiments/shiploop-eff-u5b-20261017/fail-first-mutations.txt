@@ -1,0 +1,24 @@
+Fail-first record, unit U5b (2026-10-17). One source mutation at a time on the working tree; the named tests run with -k;
+the file is restored and its hash checked before the next. exit 1 = the tests notice. M13 (a ledger anchor taken out of the
+source: 'Checked by:' in shiploop_navigator.py) is recorded separately: shiploop-packet-obligations exit 1 with 3 failures and
+64 violations from obligations.py; restored, exit 0. A first M17 (restricting the packets by a filter the next loop applied
+again) was an equivalent mutant and survived; it was replaced by the one below.
+
+M01 cold window 12 -> 0 exit 1 failing 2 ['test_a_fresh_session_the_harness_recorded_is_a_break_and_makes_the_next_after_it_cold', 'test_a_next_within_twelve_calls_of_the_start_is_cold']
+M02 variable-built counts any variable exit 1 failing 1 ['test_every_complete_was_piped_and_all_but_one_named_the_run_directory_through_a_variable']
+M03 bare handoff.md not recognised exit 1 failing 1 ['test_the_runtime_a_bare_handoff_and_the_skill_tool']
+M04 closing line constant exit 1 failing 1 ['test_the_closing_line_constant_is_the_navigators']
+M05 skipped inventory gate not read exit 1 failing 2 ['test_four_gates_did_not_run_and_each_is_named', 'test_each_skipped_gate_counts_once_and_the_check_only_record_is_not_a_gate']
+M06 line numbers kept exit 1 failing 1 ['test_the_text_of_a_file_read_loses_its_line_numbers']
+M07 first change counted as reading exit 1 failing 3 ['test_a_big_card_read_before_the_first_change_is_orientation_and_a_pass_stays_a_pass', 'test_a_run_with_no_timeline_has_bytes_and_no_time']
+M08 refusal gate never fires exit 1 failing 2 ['test_each_hard_gate_rejects_the_candidate_however_few_bytes_it_took_in', 'test_each_hard_gate_rejects_the_candidate_however_few_bytes_it_took_in']
+M09 spread threshold ignored exit 1 failing 3 ['test_a_difference_inside_the_spread_decides_nothing', 'test_one_fixture_folder_of_two_arms_names_an_arm_and_exits_zero_and_exits_non_zero_inside_the_spread']
+M10 planted defect never present exit 1 failing 5 ['test_a_run_with_no_review_leaves_each_defect_in_a_tree_that_passes_its_own_checks_and_the_fixed_tree_does_not', 'test_a_run_with_no_review_leaves_each_defect_in_a_tree_that_passes_its_own_checks_and_the_fixed_tree_does_not']
+M11 fixed tree loses its guard exit 1 failing 3 ['test_a_run_with_no_review_leaves_each_defect_in_a_tree_that_passes_its_own_checks_and_the_fixed_tree_does_not', 'test_the_final_tree_of_a_slice_is_scored_by_its_export']
+M12 audit adjustment dropped exit 1 failing 1 ['test_the_audited_figures_reproduce_exactly_at_the_audited_commit']
+M14 journal accepts any status exit 1 failing 1 ['test_bad_values_are_named']
+M15 homes stop at zero size exit 1 failing 4 ['test_a_document_is_deterministic_neutral_and_has_the_files_sections', 'test_a_long_home_makes_the_packets_larger_and_a_small_one_barely']
+M16 authoring share counts the Improve child exit 1 failing 1 ['test_the_stage_share_of_the_planning_window_is_measured_offline']
+M17 a packet the harness seeded counts as met exit 1 failing 1 ['test_the_packet_file_was_opened_in_three_of_eight_producer_stages']
+M18 ledger drops Checked by from the head exit 1 failing 1 ['test_every_row_holds_in_every_packet_it_covers']
+M19 journal row evidence unchecked exit 1 failing 2 ['test_bad_values_are_named', 'test_bad_values_are_named']

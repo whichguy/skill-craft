@@ -1,0 +1,117 @@
+{
+  "root": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/u5b/at-2686",
+  "root_length": 114,
+  "adjusted_to_root_length": 30,
+  "figures": {
+    "delivery_packet_chars": 375278,
+    "bound_handoff_chars": 276270,
+    "entry_card_chars": 79647
+  },
+  "audited_at_2686b427": {
+    "delivery_packet_chars": 375278,
+    "bound_handoff_chars": 276270,
+    "entry_card_chars": 79647
+  },
+  "ratio_to_audit": {
+    "delivery_packet_chars": 1.0,
+    "bound_handoff_chars": 1.0,
+    "entry_card_chars": 1.0
+  },
+  "delivery": {
+    "packets": 33,
+    "characters": 402410,
+    "max": 29752,
+    "over_16000": 10,
+    "root_mentions": 323
+  },
+  "handoffs": {
+    "handoffs": 9,
+    "characters": 299064,
+    "root_mentions": 200,
+    "run_excess": 3429,
+    "repo_excess": 2565,
+    "per_stage": [
+      {
+        "stage": "spec",
+        "characters": 29524,
+        "root_mentions": 22,
+        "run_mentions": 13,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "test-strategy",
+        "characters": 30716,
+        "root_mentions": 21,
+        "run_mentions": 13,
+        "repo_mentions": 11,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "plan",
+        "characters": 36920,
+        "root_mentions": 28,
+        "run_mentions": 16,
+        "repo_mentions": 13,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "step-plan",
+        "characters": 34518,
+        "root_mentions": 25,
+        "run_mentions": 14,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "test-spec",
+        "characters": 30767,
+        "root_mentions": 19,
+        "run_mentions": 13,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "implement",
+        "characters": 36047,
+        "root_mentions": 20,
+        "run_mentions": 14,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "carry-forward",
+        "characters": 37065,
+        "root_mentions": 23,
+        "run_mentions": 17,
+        "repo_mentions": 11,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "system-test-author",
+        "characters": 30287,
+        "root_mentions": 19,
+        "run_mentions": 13,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "release-plan",
+        "characters": 33220,
+        "root_mentions": 23,
+        "run_mentions": 14,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "case": "node-fix-bug",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "seeded": {
+    "stage": "step-plan",
+    "run_dir": "/fixture/claude-run/.shiploop-runs/seed/run"
+  }
+}

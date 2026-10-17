@@ -1377,9 +1377,9 @@ python3 test/shiploop_e2e/packets.py <output>
 python3 test/shiploop_e2e/packets.py <output after an edit> --compare <output before>
 ```
 
-**The cases** are in `step_cases.json`: `node-add-function`, `node-fix-bug`, `node-add-route` and `node-rename`.
-Each is a generic operation a step produces, on one fixture, `fixtures/node-base/`: a dependency-free Node project
-whose tests use `node --test`, with a deliberate `paginate()` bug. A case gives:
+**The cases** are in `step_cases.json`: `node-add-function`, `node-fix-bug`, `node-add-route` and `node-rename`, and
+three that plant a defect (below). Each is a generic operation a step produces, on one fixture, `fixtures/node-base/`: a
+dependency-free Node project whose tests use `node --test`, with a deliberate `paginate()` bug. A case gives:
 - the step's request;
 - the work item the seed records as the plan's only item;
 - the paths its commits must touch;
@@ -1472,6 +1472,25 @@ A partial read (grep, sed) is shown but not counted.
 The no-model checks are `test/shiploop-step-packets.test.py` and `test/shiploop-e2e-slice.test.py`. The second uses
 a fake host that moves `state.md`, to prove the stop, the overrun report, the stop after queue growth, the
 committed-product rule and the packet archive.
+
+### Efficiency measurement: the reading path, arms and planted defects
+
+The ShipLoop efficiency plan (unit U5) added readers that take a finished run apart and one script that decides between two
+builds from them. None starts a host or a model, and all but `arms.py` decide nothing. Unknown is `None` (or
+`measured: false` with the reason), never 0.
+
+| Tool | What it answers |
+|---|---|
+| `metrics.reading_path(OUT)`, or `python3 test/shiploop_e2e/metrics.py reading-path OUT [--limit-events N]` | Where the characters the model took in came from: ShipLoop prints, files by class (entry card, packet file, Improve card, ADAPTER, references, knowledge, scripts), an Improve child's handoff, the Until Loop runtime. Cold (the first 12 calls after a break: the start, a compaction, a fresh session) against warm. How each ShipLoop command was typed (`piped_shiploop_calls`, `variable_built_shiploop_calls`, what the status display could read), prints a pipe cut (`shiploop_print_cut`, with N), packet files opened (`packet_file_opens`: whole, slice or none per producer stage), symbolic pointers followed, gates a run skipped (`skipped_gates`, including "no mutants"), `warm_next_calls`, the Improve skill invoked per Improve stage (Claude only), quoted knowledge that reached the model by file. `--limit-events N` reads the first N lines of the stream, which is how a snapshot taken while a run was live is read again. |
+| `metrics.stage_share(OUT)` | What a planning stage takes of the planning window: the stage's authoring time (accept to accept less its Improve child) and the span of its calls that name Backchain, as shares of the window on the engine clock. |
+| `clear.orientation(events, clear_line)` | What a fresh session read before its first state-changing call, by class, and how long that took. The S-6 verdict still counts only redone state-changing calls. Claude's stream only. |
+| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread, a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from. |
+| `seeded_defects.py verify` / `score OUT` | The three planted-defect cases (`node-seeded-*`): a request whose obvious implementation carries a defect the case's own checks do not exercise. `verify` proves each probe fails on the unreviewed tree and passes on the fixed one; `score` runs the probes on a slice's graded export (`OUT/export`). A record, never a verdict. |
+| `obligations.py` with `packet_obligations.json` | The packet obligation ledger: what every packet must carry, in the printed head or the packet file, checked on the 33-packet dry-run walk and the offline step slice on both routes. `--arm-checks DIR` writes the rows a checkout loses to `DIR/arm-checks.json` for `arms.py`. Its suite is `test/shiploop-packet-obligations.test.py`. |
+| `home_fixtures.py [long\|small\|empty]` | Generated, neutral knowledge homes (about 16/14/6 KB, and a few hundred characters) and the per-stage packet sizes over them, with `fingerprints` to show a change left a home's packets byte-identical. |
+| `audit_probes.py [--repo ROOT] [--root-length]` | The audit's three size probes (delivery packets, bound Improve handoffs, entry card) on any checkout, with path lengths adjusted to the audit's, which reproduces its 375,278 / 276,270 / 79,647 characters at 2686b427 exactly. |
+
+The two saved-run extracts the tests read are `test/fixtures/efficiency/` (`extract.py` there says how they were cut).
 
 ## Review one run
 

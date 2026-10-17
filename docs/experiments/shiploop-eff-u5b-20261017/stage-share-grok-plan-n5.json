@@ -1,0 +1,16 @@
+{
+  "measured": true,
+  "stage": "plan",
+  "window_seconds": 4661.0,
+  "through": "test-spec",
+  "stage_seconds": 612.0,
+  "improve_seconds": 410.6,
+  "authoring_seconds": 201.4,
+  "authoring_share": 0.0432,
+  "named": {
+    "needle": "backchain",
+    "calls": 8,
+    "span_seconds": 170.9,
+    "span_share": 0.0367
+  }
+}
