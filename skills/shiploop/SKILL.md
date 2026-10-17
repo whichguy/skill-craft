@@ -781,10 +781,12 @@ block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
 results and durable products this stage depends on, labelled `<item> <stage>
 <product>` (for example `W1 test base run`, `W1 implement S1 Improve review`)
-with the same label and path in every packet. Every packet also names the run's
-**context index** (`context-index.md`): the request, the accepted planning basis,
-each work item's results and their notes. Open a product when its content is not
-already in your context, use the index when you need the global picture, and
+with the same label and path in every packet. Under its first line every packet carries
+the **owner rule** and a pointer to the run's **context index** (`context-index.md`): read it
+first when you lost context or are unsure of anything. It maps every file of the run, the
+knowledge files and the guides (what each holds and when to read it), then lists the request, the
+accepted planning basis, each work item's results and their notes. Open a product when its content
+is not already in your context, use the index when you need the global picture, and
 report a conflict with an accepted decision instead of silently choosing. Packets
 point at material rather than asking you to reread it at every stage.
 

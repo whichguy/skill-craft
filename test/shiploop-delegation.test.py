@@ -18,6 +18,7 @@ sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -40,6 +41,16 @@ def _with_packet_file(stdout: str) -> str:
 
 # Instructions that route work to a delegated executor.  Inline packets may
 # name Ask Agent only to forbid it, so these are the positive route phrases.
+OWNER = 2  # the owner rule and the index pointer sit directly under every header (2026-10-16)
+
+
+def owner_lines_follow(test: unittest.TestCase, lines: list, header: int = 0) -> None:
+    """The two lines under the header are the owner rule and the pointer to the run's context-index.md."""
+    test.assertEqual(lines[header + 1], prompts.OWNER_RULE)
+    test.assertTrue(lines[header + 2].startswith(prompts.INDEX_POINTER_PREFIX), lines[header + 2])
+    test.assertTrue(lines[header + 2].endswith(prompts.INDEX_POINTER_SUFFIX), lines[header + 2])
+
+
 DELEGATED_ROUTE_TEXT = (
     "Prefer a native fresh worker",
     "run the host-selected improve-agent card",
@@ -253,7 +264,8 @@ class DelegationStateTests(unittest.TestCase):
                         lines[0].endswith("| the step-plan result"), lines[0])
         for text in DELEGATED_ROUTE_TEXT:
             self.assertNotIn(text, held_child)
-        callback = lines[1]
+        owner_lines_follow(self, lines)
+        callback = lines[1 + OWNER]
         # The parked child is unbound, so its one legal callback is improve-bind, which names the Improve stage's id,
         # never the reviewed action's.
         self.assertTrue(callback.startswith("No Improve card is recorded for this run. Next command (bind the Improve "
@@ -602,9 +614,10 @@ class PacketContractTests(DelegationStateTests):
             with self.subTest(stage=stage):
                 lines = packet.splitlines()
                 self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision "), lines[0])
-                self.assertTrue(lines[1].startswith("ShipLoop could not start this review; start it again first: "),
-                                lines[1])
-                argv = shlex.split(lines[1].split("first: ", 1)[1])
+                owner_lines_follow(self, lines)
+                self.assertTrue(lines[1 + OWNER].startswith("ShipLoop could not start this review; start it again first: "),
+                                lines[1 + OWNER])
+                argv = shlex.split(lines[1 + OWNER].split("first: ", 1)[1])
                 self.assertEqual(argv[2], "improve-start")
                 self.assertEqual(argv[-1], "--restart-stopped")
                 self.assertFalse(any(arg.startswith("--opening") for arg in argv), argv)
@@ -655,10 +668,11 @@ class PacketContractTests(DelegationStateTests):
                                          + lines[header].split("revision ", 1)[1].split(" |")[0]
                                          + " | the " + stage + " result")
                         self.assertEqual(header, 0)
-                        self.assertTrue(lines[1].startswith("1. Run the improve skill on the " + stage + " result."),
-                                        lines[1])
-                        self.assertTrue(lines[2].lstrip().startswith("/improve ShipLoop Improve: "), lines[2])
-                        self.assertTrue(lines[2].rstrip().endswith("/handoff.md"), lines[2])
+                        owner_lines_follow(self, lines)
+                        self.assertTrue(lines[1 + OWNER].startswith("1. Run the improve skill on the " + stage + " result."),
+                                        lines[1 + OWNER])
+                        self.assertTrue(lines[2 + OWNER].lstrip().startswith("/improve ShipLoop Improve: "), lines[2 + OWNER])
+                        self.assertTrue(lines[2 + OWNER].rstrip().endswith("/handoff.md"), lines[2 + OWNER])
                         callback = next(line for line in lines if line.startswith("2. When the improve skill"))
                         argv = shlex.split(callback.split("run: ", 1)[1])
                         self.assertEqual(argv[2], "complete")
@@ -670,7 +684,8 @@ class PacketContractTests(DelegationStateTests):
                         continue
                     self.assertRegex(lines[header],
                                      r"^ShipLoop navigator \| " + re.escape(stage) + r" \| revision \d+$")
-                    lead = lines[header + 1]
+                    owner_lines_follow(self, lines, header)
+                    lead = lines[header + 1 + OWNER]
                     self.assertTrue(lead.startswith("Callback for this stage "), lead)
                     # The first callback line is the only one: "Call this when done:" is gone (2026-10-11 dedupe),
                     # so the lead carries the complete command and the result file it reads.

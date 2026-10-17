@@ -2767,7 +2767,10 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         lines = initial.splitlines()
         header = next(index for index, line in enumerate(lines)
                       if line.startswith("ShipLoop navigator | intake | "))
-        lead = lines[header + 1]
+        # The owner rule and the index pointer sit directly under the header (2026-10-16); the callback leads after them.
+        self.assertEqual(lines[header + 1], prompts.OWNER_RULE)
+        self.assertEqual(lines[header + 2], prompts.index_pointer(run_dir.resolve() / "context-index.md"))
+        lead = lines[header + 3]
         self.assertTrue(lead.startswith("Callback for this stage "), lead)
         completion_command = lead.split("): ", 1)[1]
 

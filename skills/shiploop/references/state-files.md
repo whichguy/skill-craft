@@ -93,16 +93,23 @@ when it is missing or comes from another version, and the cursor does not move.
 
 ## Run context index
 
-Every save regenerates `context-index.md` in the run directory from `state.md`:
-the request, each current accepted planning result (result file, summary,
-registered notes, Improve receipt and lessons, and the plan's assumptions), the
-work-item queue with each item's accepted results, the outer loop, and
+Every save regenerates `context-index.md` in the run directory from `state.md`. It is the
+run's master index. It opens with a map of about 3 KB: the current stage with its packet file,
+the next and recovery commands, and one row per file or folder of the run, per knowledge file
+(`HOME/spec.md`, `architecture.md`, `environment.md`) and for the skill's guides, saying what
+it holds and when to read it. A test lists a populated run directory and fails on an entry
+the map lacks. After the map comes the run's record: the request, each current accepted
+planning result (result file, summary, registered notes, Improve receipt and lessons, and the
+plan's assumptions), the work-item queue with each item's accepted results, the outer loop, and
 superseded results. It is a derived view with pointers and short summaries, not
 another record; `state.md` stays the authority, and nothing writes the index
 but the script.
 
-Every packet prints the index path right after its callback line, so no stage is
-limited to the result of the stage before it. Active packets also print, in
+Every packet, the Improve packets included, puts two lines under its header (owner,
+2026-10-16): the owner rule, then a pointer to this index to read first after lost context or
+any doubt, so no stage is limited to the result of the stage before it. The pointer is
+defined once (`shiploop_prompts.index_pointer`) and `emit` writes the index when a run lacks
+it. Active packets also print, in
 their References block, **Results this stage builds on**: the accepted results
 and durable products of the stages named by the script-owned `STAGE_READS` map in
 `shiploop_context_index.py` (for example `verify` reads the spec, test strategy

@@ -1550,6 +1550,10 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     if run_reference.stale(root, version):
         # A run saved before this file existed, or by another version, gets it here; the cursor does not move.
         store.atomic_write_text(Path(root) / run_reference.REFERENCE_FILE, run_reference.render(state, root, version))
+    # Every packet's second line points at the run's master index; a run saved without it gets it here (as reference.md does).
+    if not (Path(root) / context_index.INDEX_FILE).is_file():
+        store.atomic_write_text(Path(root) / context_index.INDEX_FILE,
+                                context_index.render(state, root, current_stage(state)))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
     # The current inner action's Until Loop contract, when no transition wrote it: a run that reached the stage another
@@ -1607,6 +1611,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
     progress_target = quote(str(root / "progress.html"), safe="/ ")
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
+        *_owner_lines(root),
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
         # Keepalive hooks bind a host session to this run from this exact line.
@@ -4044,6 +4049,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         lines.extend([context_guidance, ""])
     lines += [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
+        *_owner_lines(root),
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
@@ -4326,15 +4332,26 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     return "\n".join(lines) + "\n"
 
 
+def _owner_lines(root: Path) -> list[str]:
+    """The two lines under every packet's first line: the owner rule, then the pointer to the run's master index.
+
+    One definition each (shiploop_prompts); the index file is written by every save, and ``emit`` writes it when a
+    run lacks it, so the path printed here always names a file that exists.
+    """
+    return [guidance.OWNER_RULE, guidance.index_pointer(Path(root) / context_index.INDEX_FILE)]
+
+
 def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
                          workitem: str | None) -> list[str]:
-    """Point every packet at the run's whole record (what this stage builds on is in the References block)."""
-    line = f"Run context index (the whole run's record; open it after compaction): {Path(root) / context_index.INDEX_FILE}"
+    """This action's pass log, and the progress view (what this stage builds on is in the References block).
+
+    The pointer to the run's master index is the packet's second line (``_owner_lines``), so it is not said here.
+    """
+    lines = []
     if state["status"] in ("active", "paused", "blocked"):
         action_id = current_action(state)["id"]
-        line += (" · this action's pass log (" + context_index.PASS_LOG_RULE + "): "
-                 + str(context_index.pass_log_path(root, action_id)))
-    lines = [line]
+        lines.append("This action's pass log (" + context_index.PASS_LOG_RULE + "): "
+                     + str(context_index.pass_log_path(root, action_id)))
     if state["status"] == "active":
         # The progress view stays (owner, 2026-10-10); with the packet printed whole it is named here, once.
         lines.append(f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to "
@@ -5184,7 +5201,8 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
     """An Improve packet: invoke the improve skill, then run the done command (plus the hooks' machine lines)."""
     child = state["active_improve"]
     action_id, stage = child["action_id"], child["stage"]
-    lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result"]
+    lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result",
+             *_owner_lines(root)]
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         lines += [("No Improve card is recorded for this run. " if not state.get("improve_skill") else "")

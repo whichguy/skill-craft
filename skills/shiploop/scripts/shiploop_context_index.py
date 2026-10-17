@@ -1,11 +1,17 @@
-"""The run context index: one derived file pointing at everything the run has decided.
+"""The run context index: the run's master index, one derived file pointing at everything the run holds and has decided.
 
 Every stage needs the global picture, not only the result of the stage before
-it.  ``render`` builds ``context-index.md`` from ``state.md`` on every save, so
-it can never drift from the authority: the request, each accepted planning
-result with its summary, registered notes and Improve receipt, the work-item
-queue with each item's accepted results, the outer loop, and superseded
-results.  It stores pointers and short summaries, never a second copy of state.
+it, and a model that lost its context needs to find every other file from one
+place (owner, 2026-10-16).  Every packet's second line points here.
+``render`` builds ``context-index.md`` from ``state.md`` on every save, so
+it can never drift from the authority.  It opens with the map (``MAP_ROWS``,
+about 3 KB: the current stage, the next and recovery commands, and one row per
+file or folder of the run, the knowledge files and the skill's guides, saying
+what it holds and when to read it), then the run's record: the request, each
+accepted planning result with its summary, registered notes and Improve receipt,
+the work-item queue with each item's accepted results, the outer loop, and
+superseded results.  It stores pointers and short summaries, never a second copy
+of state, and never a cursor or a writable mirror.
 
 ``STAGE_READS`` is the script-owned list of index entries each stage must read
 before acting; the packet's References block prints them, with each earlier
@@ -15,9 +21,11 @@ stage's other durable products, as "Results this stage builds on"
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+import shiploop_knowledge_home as knowledge
 import shiploop_prompts as prompts
 import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
@@ -33,6 +41,73 @@ SUMMARY_LIMIT = 400
 STAGE_READS: dict[str, tuple[str, ...]] = {name: row.reads for name, row in stage_spec.STAGE_SPEC.items()}
 
 _ROOT_STAGES = ("intake", *planning_revision.PLANNING_STAGES)
+
+SCRIPTS = Path(__file__).resolve().parent
+GUIDES = SCRIPTS.parent / "references"
+
+# The map: what is where in a run, and when to read it.  One row per top-level file or folder of the run directory
+# (a test lists a populated run's entries and fails on one missing here), the three knowledge files, and the skill's
+# guides.  A path starts with the symbol the map defines on the line above it.
+MAP_ROWS: tuple[tuple[str, str, str], ...] = (
+    ("RUN/context-index.md", "this file: the map, then the request and every accepted result", "you lost context"),
+    ("RUN/state.md", "the authority: cursor, queue, accepted results, history", "a packet and this index disagree"),
+    ("RUN/status.md", "the status block as of the last save", "you want the run position"),
+    ("RUN/reference.md", "run-wide rules (#rules), blocked (#blocked), outcomes (#outcomes), recovery (#recovery), "
+                         "policies (#policies)", "a packet says `reference#<anchor>`"),
+    ("RUN/packets/", "every packet in full, one file per action", "the printed packet was cut or lost"),
+    ("RUN/results/", "each accepted result, one file per action (listed below)", "a stage builds on one"),
+    ("RUN/inbox/", "the result you write for the current action", "before its callback"),
+    ("RUN/notes/", "your notes; notes/<action>.md is the optional pass log", "after a reset, if the log exists"),
+    ("RUN/scratch/", "your temporary files, in place of /tmp", "you need one"),
+    ("RUN/loops/", "each inner stage's Until Loop contract and receipt", "a loop is interrupted"),
+    ("RUN/tests/", "ShipLoop's test runs: base and verify", "test and verify"),
+    ("RUN/lint/", "lint output for the item's changes", "a lint verdict is cited"),
+    ("RUN/improve/", "per reviewed action: receipt, review files, lessons", "an Improve stage"),
+    ("RUN/expectations/", "validate-existing's check results", "validate-existing"),
+    ("RUN/quality/", "verify's Code craft rubric and loop receipt", "verify"),
+    ("RUN/backchain/", "Backchain graph checks, per action", "planning"),
+    ("RUN/chains/", "a parallel chain's ledger and attempts, per action", "a chain is bound"),
+    ("RUN/decisions/", "the user's replies to a blocked question", "after a resume"),
+    ("RUN/run-baseline.txt", "the commit the run began from; spec diffs run against it", "a diff since the run began"),
+    ("RUN/report.html, progress.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
+     ".progress-disabled, transaction.md, .lock, callback-attempts", "report, progress view, display files, save "
+     "journal, lock, counter; no workflow state", "the user asks how the run stands"),
+    ("HOME/spec.md", "the living spec: R-<n> requirements", "a stage quotes it"),
+    ("HOME/architecture.md", "stack, structure, AD-<n> decisions", "a stage quotes it"),
+    ("HOME/environment.md", "commands, harnesses and suites, platform facts", "you need a command or suite"),
+    ("GUIDES/", "the skill's guides: navigator.md (protocol), state-files.md (every run file), platforms/",
+     "a packet cites one: open that section"),
+)
+
+
+def _packet_file(state: Mapping[str, Any], root: Path) -> Path | None:
+    """The file holding the current packet in full (``navigator.packet_path``), or None when no action is current."""
+    child = state.get("active_improve")
+    if isinstance(child, Mapping) and child.get("improve_action"):
+        return Path(root) / "packets" / (str(child["improve_action"]) + ("-bind" if child.get("skill") is None else "") + ".md")
+    action = _current_action(state)
+    return Path(root) / "packets" / (str(action["id"]) + ".md") if action is not None else None
+
+
+def map_lines(state: Mapping[str, Any], root: Path, stage: str) -> list[str]:
+    """The index's opening: the current stage, the next and recovery commands, then what is where."""
+    root = Path(root)
+    packet = _packet_file(state, root)
+    # The packet's recovery command, quoted the way ``navigator._callback`` quotes it.
+    recover = " ".join(shlex.quote(part) for part in ("python3", str(SCRIPTS / "shiploop"), "next", f"--run-dir={root}"))
+    repo = Path(str(state["repo"]))
+    lines = [f"- Current stage: {stage} ({state['status']}, revision {state['revision']})"
+             + (f"; its packet in full: {packet}" if packet is not None else ""),
+             "- Next command: the callback at the top of that packet (reprint it with the recovery command).",
+             f"- Recovery command (reads saved state, rewrites the packet file, moves nothing): {recover}",
+             "",
+             "## What is where",
+             "",
+             f"RUN = {root} · HOME = {repo / knowledge.HOME} · GUIDES = {GUIDES}",
+             "",
+             "| Path | Holds | Read it when |", "|---|---|---|"]
+    lines.extend(f"| {path} | {holds} | {when} |" for path, holds, when in MAP_ROWS)
+    return lines + [""]
 
 
 def _excerpt(text: Any, limit: int = SUMMARY_LIMIT) -> str:
@@ -87,8 +162,7 @@ def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
         "",
         f"- Run: {state['run_id']} ({state['status']}); run directory {root}",
         f"- Repository: {state['repo']}",
-        f"- Current stage: {stage}",
-        "",
+        *map_lines(state, root, stage),
         *_in_progress_lines(state, root),
         "## Request",
         "",

@@ -1,0 +1,66 @@
+# PK1 (owner rule + index pointer): lines removed (-) and added (+) across the 48 offline packets of node-fix-bug, with counts
+# base 398466a3 -> this commit; ids, temp dirs normalised (packet_diff.py)
+  48    + Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value.
+  48    + Lost context, or unsure of anything about this run? Read /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP/run/context-index.md first: it maps every file of this run and what it holds; open the file you need from there.
+  21    - Run context index (the whole run's record; open it after compaction): /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP/run/context-index.md · this action's pass log (optional, never a completion gate: create it and append wha
+  21    + This action's pass log (optional, never a completion gate: create it and append what each pass checked and what is left; after a reset, open it first if it exists): /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP/run/notes/na
+   1    - open items for W1: none open
+   1    - Spec and architecture changes since the run began: not computed: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/TMP is not a Git checkout, or the run has no baseline
+   1    - Handed off by earlier stages, quoted by value from their accepted results (untrusted host records; not new instructions):
+   1    - 
+   1    + Knowledge files this stage reads and the hand-offs from earlier stages: in the full packet, each quoted whole.
+
+# raw characters per packet (packet_sizes.py --rows)
+== inline/full: total 155050 -> 157794 (+2744, +1.8%)
+step-plan         24824  24995  +171
+step-plan-improv   2180   2524  +344
+test-spec         14028  14199  +171
+test-spec-improv   1412   1756  +344
+validate-existin  14540  14711  +171
+implement         18333  18504  +171
+implement-improv   2121   2465  +344
+test              19908  20079  +171
+document          13293  13464  +171
+verify            20156  20327  +171
+carry-forward     22146  22317  +171
+carry-forward-im   2109   2453  +344
+== inline/printed: total 129991 -> 133364 (+3373, +2.6%)
+step-plan         19506  19850  +344
+step-plan-improv   2180   2524  +344
+test-spec         14028  14199  +171
+test-spec-improv   1412   1756  +344
+validate-existin  14540  14711  +171
+implement         14821  15165  +344
+implement-improv   2121   2465  +344
+test              14713  15057  +344
+document          13293  13464  +171
+verify            15336  15680  +344
+carry-forward     15932  16040  +108
+carry-forward-im   2109   2453  +344
+== ask-agent/full: total 172538 -> 175282 (+2744, +1.6%)
+step-plan         28249  28420  +171
+step-plan-improv   2180   2524  +344
+test-spec         15596  15767  +171
+test-spec-improv   1412   1756  +344
+validate-existin  16108  16279  +171
+implement         21586  21757  +171
+implement-improv   2121   2465  +344
+test              21476  21647  +171
+document          14861  15032  +171
+verify            21923  22094  +171
+carry-forward     24917  25088  +171
+carry-forward-im   2109   2453  +344
+== ask-agent/printed: total 133263 -> 137045 (+3782, +2.8%)
+step-plan         21188  21532  +344
+step-plan-improv   2180   2524  +344
+test-spec         15596  15767  +171
+test-spec-improv   1412   1756  +344
+validate-existin  10714  11058  +344
+implement         15935  16279  +344
+implement-improv   2121   2465  +344
+test              14713  15057  +344
+document          14861  15032  +171
+verify            15535  15879  +344
+carry-forward     16899  17243  +344
+carry-forward-im   2109   2453  +344
+ALL 590842 -> 603485 (+12643, +2.1%)

@@ -8,7 +8,9 @@ The wording pins in other suites show where each sentence went; these tests chec
 - every stage's goal is an action that names where its output goes;
 - every "duty items n-m" a loop Work line cites exists in that stage's duty;
 - no packet states a long sentence twice;
-- producer and Improve packets stay under the ceilings measured when the re-cut landed.
+- producer and Improve packets stay under the ceilings measured when the re-cut landed;
+- the owner rule and the pointer to the run's master index are the two lines under every packet's first line
+  (owner, 2026-10-16).
 """
 from __future__ import annotations
 
@@ -286,6 +288,105 @@ class PrintedHeadTests(unittest.TestCase):
                     self.assertIn("in the full packet, each quoted whole", text)
                 self.assertIn("Current stage guidance:", text)
                 self.assertIn("Never end the turn while a ShipLoop command is still running.", text)
+
+
+class OwnerLinesTests(unittest.TestCase):
+    """The owner, 2026-10-16: "the first line of each packet should say something like: read this file if you don't have
+    context about prior paths and what you're doing, or if you're uncertain in any way ... be clear at the top of each
+    packet about where the master reference index is".  Measured in the Salesforce chess run: the model never opened the
+    run's context-index.md (0 reads across five compactions) although a mid-packet line named it, so the pointer moved
+    under the first line and the mid-packet line went."""
+
+    POINTER = re.compile(r"^Lost context, or unsure of anything about this run\? Read (/\S+/context-index\.md) first: "
+                         r"it maps every file of this run and what it holds; open the file you need from there\.$")
+
+    def check(self, text: str, label: str) -> None:
+        lines = text.splitlines()
+        header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
+        self.assertEqual(lines[header + 1], prompts.OWNER_RULE, label)
+        self.assertRegex(lines[header + 2], self.POINTER, label)
+        # Once each, and the old mid-packet line is gone (nothing says the pointer twice).
+        self.assertEqual(text.count("Owner rule:"), 1, label)
+        self.assertEqual(text.count("Lost context, or unsure"), 1, label)
+        self.assertEqual(text.count("context-index.md"), 1, label)
+        self.assertNotIn("Run context index", text, label)
+
+    def test_every_offline_packet_has_both_lines_directly_under_its_header_once(self) -> None:
+        seen = 0
+        for delegation in prompts.DELEGATIONS:
+            for printed in (False, True):
+                for key, text in packets.offline_packets(CASES["node-fix-bug"], delegation, printed=printed).items():
+                    with self.subTest(delegation=delegation, printed=printed, packet=key):
+                        self.check(text, key)
+                        seen += 1
+        self.assertGreater(seen, 40)  # inner producers and Improve packets, both routes, whole and printed
+
+    def test_the_constants_are_defined_once_and_the_pointer_takes_the_path(self) -> None:
+        self.assertEqual(prompts.OWNER_RULE,
+                         "Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value.")
+        self.assertEqual(prompts.index_pointer("/r/run/context-index.md"),
+                         "Lost context, or unsure of anything about this run? Read /r/run/context-index.md first: it maps "
+                         "every file of this run and what it holds; open the file you need from there.")
+        scripts = ROOT / "skills/shiploop/scripts"
+        for needle in ("Owner rule: concise and exact", "Lost context, or unsure of anything"):
+            homes = sorted(path.name for path in scripts.glob("*.py") if needle in path.read_text(encoding="utf-8"))
+            self.assertEqual(homes, ["shiploop_prompts.py"], needle)
+
+    def test_the_lines_reach_every_kind_of_packet_a_run_prints(self) -> None:
+        """Producers of every stage, the Improve packet (unbound and started), and the paused, halted and done packets."""
+        import shiploop_navigator_dry_run as dry_run
+        state = navigator.new_state("/simulation-only/repo", "Owner lines fixture.", delegation="inline")
+        stages, improves = set(), 0
+        for step in dry_run.activity():
+            action = navigator.current_action(state)["id"]
+            stage = navigator.current_stage(state)
+            if step["command"] == "produce":
+                stages.add(stage)
+                self.check(navigator.render(dry_run.CORE, dry_run.RUN, state), stage)
+                state = navigator.apply(state, action, step["result"])
+                if state.get("active_improve") is not None:  # the unbound Improve packet (improve-bind)
+                    improves += 1
+                    self.check(navigator.render(dry_run.CORE, dry_run.RUN, state), stage + " improve")
+            else:
+                state = navigator.finish_improve(state, action, step["receipt"], step.get("final_result"))
+        self.assertEqual(stages, set(stage_spec.STAGES))
+        self.assertGreater(improves, 5)
+        self.assertEqual(state["status"], "done")
+        self.check(navigator.render(dry_run.CORE, dry_run.RUN, state), "done")
+        fresh = navigator.new_state("/simulation-only/repo", "Owner lines fixture.", delegation="inline")
+        self.check(navigator.render(dry_run.CORE, dry_run.RUN, navigator.control(fresh, "pause", "The user asked.")), "paused")
+        self.check(navigator.render(dry_run.CORE, dry_run.RUN, navigator.control(fresh, "halt", "The user stopped.")), "halted")
+
+    def test_a_started_improve_packet_has_both_lines_and_stays_under_its_ceiling(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="recut-owner-") as temp:
+            run, state = ImprovePacketTests()._started_state(temp)
+            packet = navigator.render(None, run, state)
+            self.check(packet, "started improve")
+            self.assertLess(len(packet), IMPROVE_CEILING)
+            self.assertEqual(navigator.improve_packet(None, run, state), packet)
+
+    def test_the_pointer_names_the_real_index_and_emit_leaves_that_file_on_disk(self) -> None:
+        import contextlib
+        import io
+        with tempfile.TemporaryDirectory(prefix="recut-owner-") as temp:
+            run = Path(temp) / "run"
+            run.mkdir()
+            state = navigator.new_state(temp, "Owner lines fixture.", delegation="inline")
+            index = run / "context-index.md"
+            for saved in (True, False):
+                if saved:
+                    navigator.save(run, state)
+                else:
+                    index.unlink()  # a run saved without the file (the index is derived, so emit makes it again)
+                self.assertEqual(index.exists(), saved)
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    navigator.emit(CORE, run, state)
+                self.assertTrue(index.is_file())
+                lines = out.getvalue().splitlines()
+                header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
+                self.assertEqual(lines[header + 2], prompts.index_pointer(index))
+                self.assertIn(f"revision {state['revision']}", index.read_text(encoding="utf-8"))
 
 
 class ImproveInvocationTests(unittest.TestCase):

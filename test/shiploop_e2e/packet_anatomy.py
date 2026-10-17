@@ -64,6 +64,9 @@ def _r(section: str, start: str, kind: str = "line", end: str | None = None, n: 
 RULES: tuple[Rule, ...] = (
     # --- head: stage line, callback, goal, done-when, checked-by, considerations (render(): _first_callback_lines, _goal_lines)
     _r("head", r"^ShipLoop navigator \|"),
+    # The two lines under every packet's head line (2026-10-16): the owner rule, then the pointer to the run's master index.
+    _r("head", r"^Owner rule:"),
+    _r("context-index", r"^Lost context, or unsure of anything about this run\? Read "),
     _r("head", r"^Delegation change:"),
     _r("callback", r"^(Callback for this stage|Next command \(|Callback for this Improve child)"),
     _r("callback", r"^The opening file holds exactly these headings"),
@@ -87,16 +90,16 @@ RULES: tuple[Rule, ...] = (
     _r("until-loop", r"^(The loop already started|The loop contract is missing)"),
     # --- result contract and template (_result_contract_lines)
     _r("result-contract", r"^Write the structured result to:", "before",
-       r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+       r"^(Run context index|This action's pass log|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
     # The 2026-10-11 dedupe dropped that line (the callback line names the result file), so a packet now opens its
     # contract at "Result template:" (the old rule above still wins on a saved run, which has both).  The compact
     # template is laid out one top-level key per line and one list element per line (_compact_record), so its rows
     # (two-space keys, four-space `{"` elements) stay inside this block; "Fill the template" follows the narrative.
     _r("result-contract", r"^Result template:$", "before",
-       r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+       r"^(Run context index|This action's pass log|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
     _r("result-contract", r"^Fill the template:"),
     _r("result-contract", r"^Optional at \S+:"),
-    # --- context index and pass log (_context_index_lines)
+    # --- context index and pass log (_context_index_lines; before 2026-10-16 one "Run context index ... pass log" line)
     _r("context-index", r"^Run context index"),
     _r("context-index", r"^This action's pass log"),
     _r("context-index", r"^Results this stage builds on", "bullets"),
