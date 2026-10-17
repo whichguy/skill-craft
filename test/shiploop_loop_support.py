@@ -81,7 +81,7 @@ def with_receipt(result: Mapping[str, Any], receipt: Path) -> dict[str, Any]:
     return {**result, "evidence_refs": [str(receipt), *refs]}
 
 
-# The labels that open the five fields of the /until-loop argument, in order (shiploop_loops.invoke_lines).
+# The labels that open the five fields of the Until Loop argument, in order (shiploop_loops.invoke_lines).
 ARGUMENT_FIELDS = ("Work: ", "Exit when ALL of these hold:", "Repeat while ", "Contract: ", "Receipt: ")
 
 
@@ -89,21 +89,22 @@ class LoopBlock:
     """A packet's Until Loop block cut into the parts a cold reader acts on (shiploop_loops.invoke_lines).
 
     ``lines`` run from the block's heading to its closing rule; ``argument`` is what lies between the marker lines;
-    ``command`` is the literal start line that follows the host line; ``result`` is the result line.  A part the packet
-    lacks is None (or [] for the argument), so a test asserts on what is there rather than on a parse error.
+    ``command`` is the literal start line, which comes before the argument; ``result`` is the result line.  A part the
+    packet lacks is None (or [] for the argument), so a test asserts on what is there rather than on a parse error.
     """
 
     def __init__(self, packet: str) -> None:
         lines = packet.splitlines()
         head = next(i for i, line in enumerate(lines) if line.startswith("Until Loop (no iteration limit"))
         end = next(i for i in range(head, len(lines))
-                   if lines[i].startswith(("ShipLoop wrote the loop contract", "Unavailable: ")))
+                   if lines[i].startswith(("Call an exit condition satisfied only when", "Unavailable: ")))
         self.lines = lines[head:end + 1]
         self.begins = [i for i, line in enumerate(self.lines) if line == loops.ARGUMENT_BEGIN]
         self.ends = [i for i, line in enumerate(self.lines) if line == loops.ARGUMENT_END]
         self.argument = (self.lines[self.begins[0] + 1:self.ends[0]] if self.begins and self.ends else [])
-        host = [i for i, line in enumerate(self.lines) if line == loops.HOST_LINE]
-        self.command: Optional[str] = self.lines[host[0] + 1] if host else None
+        outside = self.lines[:self.begins[0]] if self.begins else self.lines
+        commands = [line for line in outside if line.startswith("python3 ") and " start --receipt " in line]
+        self.command: Optional[str] = commands[0] if commands else None
         self.result = next((line for line in self.lines if line.startswith("Result: ")), None)
 
     def field(self, label: str) -> str:
@@ -114,7 +115,7 @@ class LoopBlock:
         return found[0][len(label):] if label in ("Contract: ", "Receipt: ") else found[0]
 
     def run(self, cwd: Path) -> dict[str, Any]:
-        """Run the printed start command in a shell, as a host with no Skill tool does; return the packet it prints."""
+        """Run the printed start command in a shell, as every host does; return the packet it prints."""
         done = subprocess.run(self.command, shell=True, cwd=str(cwd), capture_output=True, text=True, timeout=60)
         if done.returncode:
             raise RuntimeError("the printed start command failed: " + done.stderr + done.stdout)

@@ -381,7 +381,12 @@ is the one reader of that.
   release-verify record (by `created_at`) with its `where`, `kind` and **its own `passed`**: the engine records what it
   observed before it decides, so `where` alone is not a pass. The older regex reader `metrics.verifications` stays what
   baselines use; the block compares the two on the live folder (`unmeasured["validation.readers"]` names both values when
-  they differ) and a test pins that both agree on the saved runs;
+  they differ) and a test pins that both agree on the saved runs. `gates_not_exercised` lists the test stage's base-run
+  and mutation-check records (`tests/*-base*.md`, `tests/*-mutation*.md`) that say `skipped` (no item base, no focused
+  command, no mutants): the gate wrote a record and did nothing, so the run is no evidence about it. ShipLoop files such a
+  record as `disposition: skipped` with `passed: true` and the reason under `skipped` (before unit U14 it filed `passed`
+  beside the same reason); `metrics.skipped_reason` reads either marker. The validation line names them (`gates not exercised (a record that says skipped): base W1 (...)`) only when there
+  are some;
 - `edits`: **heuristic, a list to confirm**, listed as facts with the `event` (the 0-based line index of `events.jsonl`) of each:
   `script_owned` (the model's edit of a file ShipLoop's scripts own, by an edit tool or by a shell `>`, `>>`, `tee`, `cp`,
   `mv`, `rm`, `sed -i` or `perl -i`; the owned set is anchored to the run directory (`.shiploop-runs/<id>/run`), the
@@ -1399,9 +1404,27 @@ python3 test/shiploop_e2e/packets.py <output>
 python3 test/shiploop_e2e/packets.py <output after an edit> --compare <output before>
 ```
 
-**The cases** are in `step_cases.json`: `node-add-function`, `node-fix-bug`, `node-add-route` and `node-rename`.
-Each is a generic operation a step produces, on one fixture, `fixtures/node-base/`: a dependency-free Node project
-whose tests use `node --test`, with a deliberate `paginate()` bug. A case gives:
+**Fixed text and the render diff** (the offline tier for an edit to packet text or order, G-RENDER of the efficiency plan):
+
+```sh
+python3 test/shiploop_e2e/packets.py --offline node-fix-bug --text-dir <fresh dir> --run-dir-length 83 --cli-path-length 96
+python3 test/shiploop_e2e/render_diff.py <dir before the edit> <dir after it> --unit U8
+```
+
+`--text-dir` writes each packet as `<NN>-<stage>.printed.txt` (what the host prints: a head when the packet passes
+`PRINT_LIMIT`) and `.whole.txt` (the packet file) with a `manifest.json`. The text is fixed (ids from a counter, the run
+directory and the CLI path at the stated lengths, the checkout root and the interpreter as strings of a normal install's
+length), so two renders of one tree are byte-identical whatever the temporary directory and the checkout path; 83 is a normal install's run directory, 163 the live
+run's, 96 the CLI path of a plugin-cache install. `render_diff.py` lists every added and removed line with its size and
+exits 1 when an added line is not in the unit's entries of `packet_changes.json` (a line prefix and either the removed lines
+that pay for it or the decision that approves it) or a printed text passes its value in `packet_head_table.json`; it
+refuses two renders made with other options. `render_diff.py --emit-table <dir> --write` records a render's sizes as the new
+table values: do it in the commit that journals them. `packet_anatomy.py <dir> --glob '*.printed.txt'` gives the bytes
+per section of the same heads.
+
+**The cases** are in `step_cases.json`: `node-add-function`, `node-fix-bug`, `node-add-route` and `node-rename`, and
+three that plant a defect (below). Each is a generic operation a step produces, on one fixture, `fixtures/node-base/`: a
+dependency-free Node project whose tests use `node --test`, with a deliberate `paginate()` bug. A case gives:
 - the step's request;
 - the work item the seed records as the plan's only item;
 - the paths its commits must touch;
@@ -1410,6 +1433,20 @@ whose tests use `node --test`, with a deliberate `paginate()` bug. A case gives:
 **The seed** (`run.seed_run` with `fixture`, `work_item` and `delegation`) copies the fixture into a new git
 repository and commits it. It starts a run with that delegation (inline by default: one session, every packet in
 the main context). It then records every stage before step-plan without doing it, on the plugin's own navigator.
+So the gates the test stage and verify run on an item find what they read, the seed also records what the skipped
+stages would have left (X-2, TD-5, SP-7a):
+- **the item base.** When the plan's item enters its inner loop the seed writes `lint/items/<item>.md`, the snapshot
+  `shiploop_lint.on_transition` takes on a real run, in the same transaction as the state. The base run, the mutation
+  check, the change inventory and the item commit read it; without it each recorded `skipped: no item base was
+  recorded` and did nothing, so every earlier slice baseline covers fewer gates than it claims. `seeded.item_bases`
+  names the items recorded;
+- **a neutral knowledge home**, committed into the seed repository before the baseline commit (so the worktree starts
+  clean and the item base already holds it): `docs/shiploop/spec.md` with `R-1` = the request, and
+  `docs/shiploop/environment.md` with `## Commands` = the case's checks. A test case's requirement must have an entry in
+  the living spec, and the model otherwise writes one itself. A file the fixture already holds is kept. `seeded.home`
+  names the files written;
+- `--seed-without-home` (slice.py, and run.py with `--seed-at`) is the flagged variant that commits no home, to see which
+  refusals a run with no spec hits. The item base is recorded either way.
 
 **The stop.** `slice.py` polls every 2 s. Each poll archives every distinct packet ShipLoop has emitted, because
 `run/packets/<action>.md` is rewritten on each `next`. The poll ends the host once the item's inner loop is over:
@@ -1432,6 +1469,30 @@ else is committed only at the final return (`workspace plan-return`, at release)
 (Amended 2026-10-11 for the 8-stage inner loop: the first live slice, on the 17-stage loop, had its correct fix
 uncommitted because the inner `integrate` stage did not commit.)
 
+**The clear probe (S-6).** `--clear-at` ends the host at a position, continues in a fresh session (no `--resume`) and
+grades the work that session redid (`clear.py`, verdict `no_redo`). The flag repeats; the positions fire in the order
+given, one per session, and each is measured from its own stop, so a redo after the second clear fails that clear only:
+
+```sh
+python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --clear-at implement \
+  --clear-at implement:inside --clear-at test --clear-at verify --clear-at carry-forward --clear-at improve \
+  --resume-prompt withheld
+```
+
+- `<stage>`: the stage's packet has just printed. `<stage>:inside`: after the packet, a call that is not ShipLoop's has
+  its result (Claude's stream only: on Grok or Codex an `:inside` position is accepted and recorded as requested, never
+  fires, and is listed as unfired; run those hosts at boundaries). `improve` and `improve:inside`: an Improve stage,
+  the first one after the previous clear, a position of its own (the stage it reviews is not at its boundary then).
+- `--resume-prompt names-next` (default) continues with the resume prompt, which names `next` and the run directory.
+  `withheld` says only "Continue the ShipLoop work for the repository in this directory." (condition R0): no command,
+  path or stage. A Grok or Codex resume of a session that ended by itself keeps naming `next`.
+- Records: `clear.json` is a list, one record per clear (`n`, `stage`, `inside`, `stopped`). `slice-result.json`
+  holds `clear` (each with `redone` and `pass`), `clear_unfired` (positions asked for that never fired; a probe that
+  stopped less often than asked is not a pass, so read it) and the verdict `no_redo` (every clear passes; absent when no
+  clear fired). `invocation.json` holds `clear_at` and `resume_prompt`, and the `told` of each session in `sessions.jsonl`
+  is null when nothing was named. A position that cannot fire (out of the run's order, a stage the slice never reaches)
+  blocks the ones after it. An older run's single-record `clear.json` is refused, not read as empty.
+
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
 host is ended before it writes its `result` event; `--max-budget-usd` still caps the spend.
@@ -1450,6 +1511,9 @@ full run, only the last copy of each packet is available.
   - the share of its lines already sent in an earlier packet. This share is reported, not flagged: restating how a
     stage operates is the main tenet, and the number shows what it costs.
 - **Per stage:** `metrics.py`'s seconds, turns, tool calls and context peak.
+- **Gates not exercised:** one line under the verdicts, from `fidelity.gates_not_exercised`: the test stage's base-run and
+  mutation-check records that say `skipped` (the gate wrote a record and did nothing), `none` with the records read, or
+  `not measured` when the run never reached the test stage.
 
 **Isolation.** Everything a slice writes is under its output directory (default `$TMPDIR/shiploop-e2e/slice-<case>-…`):
 - the product repository;
@@ -1494,6 +1558,25 @@ A partial read (grep, sed) is shown but not counted.
 The no-model checks are `test/shiploop-step-packets.test.py` and `test/shiploop-e2e-slice.test.py`. The second uses
 a fake host that moves `state.md`, to prove the stop, the overrun report, the stop after queue growth, the
 committed-product rule and the packet archive.
+
+### Efficiency measurement: the reading path, arms and planted defects
+
+The ShipLoop efficiency plan (unit U5) added readers that take a finished run apart and one script that decides between two
+builds from them. None starts a host or a model, and all but `arms.py` decide nothing. Unknown is `None` (or
+`measured: false` with the reason), never 0.
+
+| Tool | What it answers |
+|---|---|
+| `metrics.reading_path(OUT)`, or `python3 test/shiploop_e2e/metrics.py reading-path OUT [--limit-events N]` | Where the characters the model took in came from: ShipLoop prints, files by class (entry card, packet file, Improve card, ADAPTER, references, knowledge, scripts), an Improve child's handoff, the Until Loop runtime. Cold (the first 12 calls after a break: the start, a compaction, a fresh session) against warm. How each ShipLoop command was typed (`piped_shiploop_calls`, `variable_built_shiploop_calls`, what the status display could read), prints a pipe cut (`shiploop_print_cut`, with N), packet files opened (`packet_file_opens`: whole, slice or none per producer stage), symbolic pointers followed, gates a run skipped (`skipped_gates`, including "no mutants"), `warm_next_calls`, the Improve skill invoked per Improve stage (Claude only), quoted knowledge that reached the model by file. `--limit-events N` reads the first N lines of the stream, which is how a snapshot taken while a run was live is read again. |
+| `metrics.stage_share(OUT)` | What a planning stage takes of the planning window: the stage's authoring time (accept to accept less its Improve child) and the span of its calls that name Backchain, as shares of the window on the engine clock. |
+| `clear.orientation(events, clear_line)` | What a fresh session read before its first state-changing call, by class, and how long that took. The S-6 verdict still counts only redone state-changing calls. Claude's stream only. |
+| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread, a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from. |
+| `seeded_defects.py verify` / `score OUT` | The three planted-defect cases (`node-seeded-*`): a request whose obvious implementation carries a defect the case's own checks do not exercise. `verify` proves each probe fails on the unreviewed tree and passes on the fixed one; `score` runs the probes on a slice's graded export (`OUT/export`). A record, never a verdict. |
+| `obligations.py` with `packet_obligations.json` | The packet obligation ledger: what every packet must carry, in the printed head or the packet file, checked on the 33-packet dry-run walk and the offline step slice on both routes. `--arm-checks DIR` writes the rows a checkout loses to `DIR/arm-checks.json` for `arms.py`. Its suite is `test/shiploop-packet-obligations.test.py`. |
+| `home_fixtures.py [long\|small\|empty]` | Generated, neutral knowledge homes (about 16/14/6 KB, and a few hundred characters) and the per-stage packet sizes over them, with `fingerprints` to show a change left a home's packets byte-identical. |
+| `audit_probes.py [--repo ROOT] [--root-length]` | The audit's three size probes (delivery packets, bound Improve handoffs, entry card) on any checkout, with path lengths adjusted to the audit's, which reproduces its 375,278 / 276,270 / 79,647 characters at 2686b427 exactly. |
+
+The two saved-run extracts the tests read are `test/fixtures/efficiency/` (`extract.py` there says how they were cut).
 
 ## Review one run
 

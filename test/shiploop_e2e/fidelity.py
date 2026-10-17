@@ -7,7 +7,8 @@ fails open: an input it cannot read, a stage table or packet layout of another S
 the part null with its reason in the block's ``unmeasured`` map, never 0 and never a pass.
 
   evidence       the class of evidence each accepted action rests on, against the check its stage declares
-  validation     ShipLoop's verify records read as JSON; a focused or regression row whose counts are null is unmeasured
+  validation     ShipLoop's verify records read as JSON; a focused or regression row whose counts are null is unmeasured; the test
+                 stage's base-run and mutation-check records that say skipped (the gate did nothing) are named
   edits          the model's edits of script-owned files, name-pattern kills and git commit/add commands, as listed facts
   refusals       each ShipLoop refusal, and whether the same first line came back in the same stage
   end_state      the engine's status and, for a blocked run, what it awaits
@@ -436,7 +437,8 @@ def validation(run_dir: Path | None) -> dict:
     a test and ran none, null for a suite with no counted row. ``accepted_ran`` is null when no row carries the key. ``release_verify``
     is the latest record (by created_at, then by record number) that observed a ``where``, with the record's own ``passed``: the
     engine writes ``observed`` before it decides ``passed``. ``unread`` is the records that are not shiploop-test-loop/v1 or not JSON:
-    their rows are in no count. The regex reader metrics.verifications stays what baselines use; build compares the two and a test
+    their rows are in no count. ``gates_not_exercised`` is the base-run and mutation-check records that say skipped
+    (``gates_not_exercised`` below). The regex reader metrics.verifications stays what baselines use; build compares the two and a test
     pins that both agree on the saved runs."""
     if run_dir is None or not Path(run_dir).is_dir():
         raise Unmeasured("no ShipLoop run directory, so its verify records cannot be read")
@@ -483,7 +485,7 @@ def validation(run_dir: Path | None) -> dict:
             "by_suite": dict(sorted(suites.items())),
             "tests_ran_unmeasured": sum(suites.get(name, {}).get("counts_null", 0) for name in TEST_SUITES),
             "accepted_ran": {"runs": accepted_rows, "stages": sorted(accepted_stages)} if accepted_rows else None,
-            "release_verify": release}
+            "release_verify": release, "gates_not_exercised": gates_not_exercised(run_dir)["skipped"]}
 
 
 def reader_disagreement(found: dict, regex: dict) -> str | None:
@@ -492,6 +494,50 @@ def reader_disagreement(found: dict, regex: dict) -> str | None:
     pairs = (("records", "records"), ("passed", "passed"), ("could_not_run", "could_not_run"), ("red", "red"), ("commands", "runs"))
     differ = [f"{name} {regex[name]} (metrics.verifications) vs {found[mine]} (JSON)" for name, mine in pairs if regex[name] != found[mine]]
     return ("the two verify-record readers disagree: " + "; ".join(differ)) if differ else None
+
+
+# --- the test stage's gates that did nothing -------------------------------------------------------------------------------
+
+# The two gates the test stage runs on a work item before it counts a candidate run: the base run (a new test must fail on the item's
+# base) and the mutation check (a test must kill a mutant of the changed lines). Each writes a record that says `skipped` when it did
+# nothing: no item base was recorded, no focused command, or no changed line matched an operator. The record says it as
+# `disposition: skipped` with `passed` true and the reason under `skipped` (metrics.skipped_reason reads both, and the reason of a
+# record from before the disposition existed).
+GATE_SCHEMAS = {"shiploop-test-base/v1": "base", "shiploop-test-mutation/v1": "mutation"}
+
+
+def gates_not_exercised(run_dir: Path | None) -> dict:
+    """The base-run and mutation-check records (tests/*-base*.md, tests/*-mutation*.md) of a run, and those that say `skipped`
+    (a disposition `skipped`, or the reason key a record of an older ShipLoop kept alone).
+
+    ``{"records": n, "skipped": [{"gate", "record", "work_item", "reason"}]}``, the records in file order. A record that says
+    skipped is evidence of nothing: the gate wrote it and did not run. A record that cannot be read is not counted. No run folder
+    is ``Unmeasured``; a run that never reached the test stage has ``records`` 0.
+    """
+    if run_dir is None or not Path(run_dir).is_dir():
+        raise Unmeasured("no ShipLoop run directory, so its base-run and mutation-check records cannot be read")
+    records, skipped = 0, []
+    for path in sorted(Path(run_dir).glob("tests/*.md")):
+        found = metrics.STATE_BLOCK.search(path.read_text(errors="replace"))
+        try:
+            record = json.loads(found.group("json")) if found else None
+        except ValueError:
+            record = None
+        gate = GATE_SCHEMAS.get(record.get("schema")) if isinstance(record, dict) else None
+        if gate is None:
+            continue
+        records += 1
+        reason = metrics.skipped_reason(record)
+        if reason:
+            skipped.append({"gate": gate, "record": f"tests/{path.name}", "work_item": record.get("work_item"),
+                            "reason": clip(reason, 160)})
+    return {"records": records, "skipped": skipped}
+
+
+def gates_phrase(skipped: list[dict]) -> str:
+    """The skipped gates in one clause: ``base W1 (no item base was recorded), mutation W1 (no mutants: ...)``. The reason is cut at
+    its first parenthesis, where the record explains the cause for a reader of the file."""
+    return ", ".join(f"{row['gate']} {row.get('work_item') or '?'} ({clip(str(row['reason']).split(' (')[0], 70)})" for row in skipped)
 
 
 # --- the model's edits, kills and commits ---------------------------------------------------------------------------------
@@ -702,7 +748,9 @@ def lines(block: dict) -> list[str]:
         result.append(f"validation {v['records']} records / {v['runs']} runs / {v['distinct_commands']} commands: test counts "
                       f"unmeasured {v['tests_ran_unmeasured']}, {zero}, red {v['red']}"
                       + (f", accepted_ran at {len(v['accepted_ran']['stages'])} stages" if v["accepted_ran"] else "")
-                      + (f"; release-verify record: {release['where']}, passed {passed}" if release else ""))
+                      + (f"; release-verify record: {release['where']}, passed {passed}" if release else "")
+                      + (f"; gates not exercised (a record that says skipped): {gates_phrase(v['gates_not_exercised'])}"
+                         if v.get("gates_not_exercised") else ""))
     else:
         result.append(f"validation unmeasured: {gone.get('validation')}")
     e = block.get("edits")

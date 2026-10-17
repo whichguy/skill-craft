@@ -220,6 +220,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("House-style guidance", "house-style.md#write-the-match-contract"),
+        ("Plan record guide", "plan-record.md#topics-the-item-touches"),
         ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
         ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -477,7 +478,7 @@ RULES (each one fixes a failure live runs showed; the long form is reference#rul
 """
 
 # Every INNER stage runs its work as one Until Loop that ShipLoop starts from a contract it wrote (shiploop_loops).  The
-# renderer prints the /until-loop block and this one rule beside it, once per packet (packet re-cut, 2026-10-11), so no
+# renderer prints the Until Loop block and this one rule beside it, once per packet (packet re-cut, 2026-10-11), so no
 # duty repeats it and a duty never names the loop's paths.
 
 # Non-producer packets (Improve parent, paused, blocked) print this instead of PROGRESS_REPORTING.
@@ -679,7 +680,8 @@ _IMPLEMENT_CHAIN = """\
      incomplete blocker.
 """
 _IMPLEMENT_INLINE = """\
-7. **Inline.** Do the one step on the packet's Step line in this conversation. Bind no chain and dispatch no worker.
+7. **Inline.** Do the one step on the packet's Step lines (task, paths, skills, check commands, lint command) in this
+   conversation. Bind no chain and dispatch no worker.
 """
 _VERIFY_ASSEMBLY = """\
 8. **Assembly.** If implement bound a chain, confirm its finish commit is an ancestor of the execution checkout HEAD,
@@ -687,10 +689,12 @@ _VERIFY_ASSEMBLY = """\
    guidance). Otherwise confirm the candidate is assembled in the execution checkout under workspace and repository
    policy. The original branch returns only at the final workspace return.
 """
-_VERIFY_ASSEMBLY_INLINE = """\
-8. **Assembly.** Confirm the item's candidate is assembled in the execution checkout under workspace and repository
-   policy (Workspace integration guidance). The original branch returns only at the final workspace return.
-"""
+# An inline run builds every step in the execution checkout and binds no chain, so there is nothing to assemble: item 8
+# is not printed for it, and the other items keep their numbers (the Work text of the verify loop cites them).
+_VERIFY_ASSEMBLY_INLINE = ""
+# The verify duty's opening says which items repeat each iteration and which are done once; the inline route has no item 8.
+_VERIFY_ONCE = "items 8-9 once, before you report the exit satisfied."
+_VERIFY_ONCE_INLINE = "item 9 once, before you report the exit satisfied."
 
 
 # The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
@@ -864,7 +868,7 @@ DUTIES = {
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Start from HOME/spec.md (quoted below), the research and discovery results and RUN/notes/current-system-baseline.md
+1. Start from HOME/spec.md (read it whole), the research and discovery results and RUN/notes/current-system-baseline.md
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
    its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
    or tests.
@@ -1119,8 +1123,7 @@ Change no product file in this stage.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`. None: `check_na` with the reason; no command at all: `test_commands_na`.
-   - Every criterion is named in some command's `criteria`, and a command names only listed criteria. A list too
-     large for the loop contract is refused: shorten IDs, drop duplicates or split the item.
+   - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
    - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every
@@ -1140,21 +1143,9 @@ Change no product file in this stage.
      conditions;
    - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
      sections;
-   - code or stored data added or moved: reopen the namespace and data entries in HOME/architecture.md ## Structure and
-     each touched environment's tree. Per file, module and public symbol: environment, home namespace, visibility,
-     collision check (import or load test, deploy validation, or name search). Per stored field, key, table or
-     payload: owning environment, migration (unneeded, earlier step, this step, deploy obligation), round-trip
-     check. Reason for a changed placement or schema (Namespace and placement guidance, Schema and storage guidance,
-     State and data assessment);
-   - each pinned value a check replays (fixed dice, seed data), labelled a source-check fixture apart from the runtime
-     control; confirm an external oracle (golden file, fixture, snapshot) agrees with the task;
-   - interactions, UI or service state changing: a Design basis paragraph or exact section links, rechecking the
-     Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
-     plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
-     component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     and the rich interactions planned (a human-facing UI defaults to ambitious and highly interactive: direct
-     manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any
-     scaled back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
+   - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
+     interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
+     topic, opening only its matching section.
    This record is supporting reference; each step's task and criteria stay its only directive.
 10. **Knowledge.** A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
@@ -1250,9 +1241,8 @@ preparatory commit); a mismatch there is a revise.
    owner, revalidation condition). Write no case due at a later stage.
 2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. Record a
    harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
-   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why;
-   locators and the step plan's in evidence_refs. A recorded completion does not prove a harness, fixture or target
-   still works.
+   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.
+   A recorded completion does not prove a harness, fixture or target still works.
 3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
    sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
    `<ID> (<letter>)`; none fits: report revise. Each new or changed public entry point gets rejection cases. Test a
@@ -1300,7 +1290,7 @@ preparatory commit); a mismatch there is a revise.
 """,
     "verify": """\
 This is item acceptance, not a claim that integration or release has happened. Each review iteration does items 1-7
-in order.
+in order; """ + _VERIFY_ONCE + """
 
 1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
@@ -2078,13 +2068,14 @@ def _require_planning_review(planning_review: str) -> None:
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
-    "step-plan": (_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),
-    "implement": (_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE),
-    "verify": (_VERIFY_ASSEMBLY, _VERIFY_ASSEMBLY_INLINE),
+    "step-plan": ((_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),),
+    "implement": ((_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE),),
+    "verify": ((_VERIFY_ASSEMBLY, _VERIFY_ASSEMBLY_INLINE), (_VERIFY_ONCE, _VERIFY_ONCE_INLINE)),
 }
-for _stage, (_delegated, _inline) in _INLINE_DUTY_PARAGRAPHS.items():
-    if DUTIES[_stage].count(_delegated) != 1:
-        raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
+for _stage, _pairs in _INLINE_DUTY_PARAGRAPHS.items():
+    for _delegated, _inline in _pairs:
+        if DUTIES[_stage].count(_delegated) != 1:
+            raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
 
 _PLANNING_HANDOFF = (
     "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
@@ -2132,8 +2123,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     if _ITEM_COMMIT in text:
         text = text.replace(_ITEM_COMMIT, _item_commit_rule(execution_mode))
     if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
-        delegated, inline = _INLINE_DUTY_PARAGRAPHS[stage]
-        text = text.replace(delegated, inline)
+        for delegated, inline in _INLINE_DUTY_PARAGRAPHS[stage]:
+            text = text.replace(delegated, inline)
     return _swapped(text, stage, planning_review)
 
 
@@ -2194,6 +2185,46 @@ def _swapped(text: str, stage: str, planning_review: str) -> str:
 _check_swaps(_NO_REVIEW_SWAPS)
 
 
+def common_text(planning_review: str = stage_spec.DEFAULT_PLANNING_REVIEW) -> str:
+    """COMMON as the run reference file prints it: its Improve schedule is the one the run's planning review option starts.
+
+    The producer packets print STAGE_RULES, not COMMON, so the swap row for ``*`` reached no text until the reference
+    file applied it here; before, a ``none`` run's reference listed the planning results the engine never reviews.
+    """
+    _require_planning_review(planning_review)
+    return _swapped(COMMON, "*", planning_review)
+
+
+# What stands in the duties where the Backchain route paragraph stood, in a packet that prints the paragraph after the
+# result template (the print-order unit: a lookup the packet file repeats whole goes behind the required text).
+BACKCHAIN_STUB = "Backchain: the route's paragraph follows the result template."
+
+
+def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, planning_review: str,
+                  execution_mode: str | None) -> list[tuple[str, str]]:
+    """The producer instruction as ``(kind, text)`` parts in print order; ``prompt`` joins them.
+
+    ``kind`` is ``duty``, ``audit`` (the inline route's short optional audit line), ``backchain`` (the route paragraph of a
+    stage that may call Backchain), ``craft`` or ``rules``.
+    """
+    parts = [("duty", duty(stage, delegation=delegation, planning_review=planning_review,
+                           backchain_passes=backchain_passes, execution_mode=execution_mode))]
+    # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
+    # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
+    # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
+    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
+        parts.append(("audit", INLINE_BACKCHAIN_AUDIT))
+    elif stage in BACKCHAIN_FOLDED_STAGES:
+        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
+    elif stage in BACKCHAIN_STAGES:
+        parts.append(("backchain", _swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage,
+                                            planning_review)))
+    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
+        parts.append(("craft", CODE_CRAFT))
+    parts.append(("rules", STAGE_RULES))
+    return parts
+
+
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
            backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
            planning_review: str = "stage", execution_mode: str | None = None) -> str:
@@ -2207,21 +2238,28 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     _require_delegation(delegation)
     _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
-    parts = [duty(stage, delegation=delegation, planning_review=planning_review,
-                  backchain_passes=backchain_passes, execution_mode=execution_mode)]
-    # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
-    # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
-    # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
-    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
-        parts.append(INLINE_BACKCHAIN_AUDIT)
-    elif stage in BACKCHAIN_FOLDED_STAGES:
-        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
-    elif stage in BACKCHAIN_STAGES:
-        parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
-    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
-        parts.append(CODE_CRAFT)
-    parts.append(STAGE_RULES)
-    return "\n\n".join(parts)
+    return "\n\n".join(text for _, text in _prompt_parts(
+        stage, delegation=delegation, backchain_passes=backchain_passes, planning_review=planning_review,
+        execution_mode=execution_mode))
+
+
+def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
+                 backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
+                 planning_review: str = "stage", execution_mode: str | None = None) -> tuple[str, str]:
+    """``(prompt text, Backchain route paragraph)`` for a packet that prints the paragraph behind its result template.
+
+    The first holds everything ``prompt`` returns, with ``BACKCHAIN_STUB`` where the paragraph stood; the second is the
+    paragraph, or "" for a stage without one (the inline route's short audit line stays in place).  Joined back in place
+    of the stub, the two are exactly ``prompt``.
+    """
+    _require_stage(stage)
+    _require_delegation(delegation)
+    _require_backchain_passes(backchain_passes)
+    _require_planning_review(planning_review)
+    parts = _prompt_parts(stage, delegation=delegation, backchain_passes=backchain_passes,
+                          planning_review=planning_review, execution_mode=execution_mode)
+    moved = next((text for kind, text in parts if kind == "backchain"), "")
+    return ("\n\n".join(BACKCHAIN_STUB if kind == "backchain" else text for kind, text in parts), moved)
 
 
 # Inline runs have no dispatcher steps, execution graph or worker packets; the
@@ -2292,6 +2330,58 @@ step's action (`shiploop lint --action`), and record their exit codes. Commit yo
 edits. A pass that finds none of these is trivial.
 
 """ + CODE_CRAFT
+
+
+# The ask-agent route issues one implement action for every step of the plan, so the review of a plan of several steps
+# names them: each pair swaps a per-step sentence for one worded for the steps ``{steps}`` and their ``{paths}``
+# (``for_steps``).  The inline route reviews one step per action and keeps the text above.  ``_check_for_steps`` fails at
+# import when an edit to that text leaves a pair matching nothing or twice.
+_STEPS_WORDING = (
+    ("Implementation step review focus. This result is one step of the item's step\n"
+     "plan, and its tests are written later from the test spec, so this review is the\n"
+     "only check of the code before them. Review the step's diff (the step's paths since\n"
+     "the step began) and fix, within those paths, any of these:\n"
+     "- the change does not do the step's task, misses a criterion as the spec's R-<n>\n"
+     "  states it, or does work no criterion asks for (a later step's work, a feature\n"
+     "  the item does not request);\n"
+     "- a file changed outside the step's paths, or unrelated work reverted or\n"
+     "  reformatted;\n",
+     "Implementation step review focus. This result is steps {steps} of the item's step\n"
+     "plan, built in one action, and their tests are written later from the test spec, so\n"
+     "this review is the only check of the code before them. Review the diff of the paths\n"
+     "of these steps ({paths}) since the first step began and fix, within those paths,\n"
+     "any of these:\n"
+     "- the change does not do a step's task, misses a criterion as the spec's R-<n>\n"
+     "  states it, or does work no criterion asks for (another item's work, a feature\n"
+     "  the item does not request);\n"
+     "- a file changed outside these paths, or unrelated work reverted or\n"
+     "  reformatted;\n"),
+    ("Do not write tests, start a later step, or edit a recorded command. After your\n"
+     "last edit, rerun the step's recorded check commands and ShipLoop's lint for the\n"
+     "step's action (`shiploop lint --action`), and record their exit codes. Commit your\n"
+     "edits.",
+     "Do not write tests or edit a recorded command. After your last edit, rerun the\n"
+     "steps' recorded check commands and ShipLoop's lint for this action (`shiploop\n"
+     "lint --action`), and record their exit codes. Commit your edits."),
+    ("one implementation step's diff: its task and criteria,",
+     "the diff of implementation steps {steps}: their tasks and criteria,"),
+)
+
+
+def for_steps(text: str, steps: str, paths: str) -> str:
+    """``text`` (the implement review focus, the implement Improve prompt) worded for the steps ``steps`` that one action
+    built, with their ``paths``; a sentence of ``_STEPS_WORDING`` that ``text`` does not hold is left out."""
+    for old, new in _STEPS_WORDING:
+        text = text.replace(old, new.format(steps=steps, paths=paths))
+    return text
+
+
+def _check_for_steps() -> None:
+    texts = [IMPLEMENT_STEP_REVIEW_FOCUS, _improve_prompt("implement")]
+    for old, _new in _STEPS_WORDING:
+        if sum(text.count(old) for text in texts) != 1:
+            raise RuntimeError("the several-steps wording no longer matches the implement review text once: "
+                               + repr(" ".join(old.split())[:70]))
 
 
 def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
@@ -2518,6 +2608,7 @@ if set(DUTIES) != set(STAGES) or set(IMPROVE_SCOPES) != set(STAGES):
 
 PROMPTS = {stage: prompt(stage) for stage in STAGES}
 IMPROVE_PROMPTS = {stage: improve_prompt(stage) for stage in STAGES}
+_check_for_steps()
 for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
     if not any(_delegated in text for text in IMPROVE_PROMPTS.values()):
         raise RuntimeError("navigator Improve prompts lost a delegated-route phrase")
@@ -2527,6 +2618,8 @@ __all__ = (
     "ASK_AGENT",
     "BACKCHAIN_PASSES_MODES",
     "COMMON",
+    "common_text",
+    "for_steps",
     "DEFAULT_BACKCHAIN_PASSES",
     "DELEGATIONS",
     "DUTIES",

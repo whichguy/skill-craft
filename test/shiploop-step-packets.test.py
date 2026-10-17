@@ -132,16 +132,21 @@ class StepPacketTests(unittest.TestCase):
                     if state.get("active_improve") is not None:
                         state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "x"})
                 store.write_record(run_dir / "state.md", state)
+                saved = store.read_record(run_dir / "state.md")
                 shown = io.StringIO()
                 with contextlib.redirect_stdout(shown):
-                    full = navigator.emit(None, run_dir, store.read_record(run_dir / "state.md"))
-        printed = shown.getvalue()
+                    full = navigator.emit(None, run_dir, saved)
+                # What emit printed, judged at the reference install (the head keeps the lookups that fit there, not the
+                # ones that fit under this checkout's paths).
+                printed = navigator.printed_text(None, run_dir, saved, navigator.packet_path(run_dir, saved), full,
+                                                 measure=budget.reference_measure(temp))
+        self.assertTrue(shown.getvalue().endswith("\n" + navigator.HEAD_END + "\n"))
         # The head leads with the stage's duties (2026-10-16).  step-plan's alone are 9,000 characters, so its head passes
-        # PRINT_LIMIT (which bounds a packet printed whole) and, at a plugin-cache install, the ~20,000-character cut some
-        # hosts apply to shell output: a recorded gap in head_table.json (over_the_cut), not a limit.  The head may not grow
-        # past its journaled value, measured at the reference install.
+        # PRINT_LIMIT (which bounds a packet printed whole) and fills the room up to the ~20,000-character cut some hosts
+        # apply to shell output with the lookups that fit (efficiency plan U7).  The head may not grow past its journaled
+        # value, measured at the reference install.
         self.assertGreater(len(full), navigator.PRINT_LIMIT)
-        self.assertEqual(budget.known_over_the_cut("inline"), ["step-plan"])
+        self.assertEqual(budget.known_over_the_cut("inline"), [])
         # The table was measured on the offline walk, whose "Full packet:" line names packet.md (30 characters shorter than
         # emit's nav-<id>.md): compare like with like.
         offline_form = re.sub(r"(?m)^(Full packet: \S*/packets/)[^/\s]+\.md$", r"\1packet.md", printed)

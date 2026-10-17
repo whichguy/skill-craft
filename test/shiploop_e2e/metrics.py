@@ -1866,3 +1866,643 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         lines.append("costliest stages: " + ", ".join(stage_text(s) for s in costly)
                      + ("" if by_turns else " (by minutes: this host reports no per-stage turns)"))
     return lines
+
+
+# ======================================================================================================================
+# The reading path (ShipLoop efficiency plan, unit U5): where the characters a model took in came from, how it ran each
+# ShipLoop command, and what it did after a break. Read from the host event stream and the run directory the runner kept.
+# A record, never a verdict: arms.py decides from these numbers. Unknown is None (or ``measured: false`` with a reason),
+# never 0. Every function reads files and calls nothing else; no host, model or ShipLoop command runs here.
+# ======================================================================================================================
+
+# The last line of a printed head (shiploop_navigator.HEAD_END; a test pins the two equal). A print that lacks it was cut.
+HEAD_END = "=== end ShipLoop head ==="
+COLD_CALLS = 12  # the calls after a break (a compaction, a fresh session, the run's start) that count as cold
+SCRIPTS = Path(__file__).resolve().parents[2] / "skills" / "shiploop" / "scripts"
+READ_TOOLS = ("Read", "read_file")
+SEARCH_TOOLS = ("Grep", "grep")
+# The classes of file a model opens, by path; the first pattern that matches names the file. `handoff` and `child_record`
+# are an Improve child's files (the bucket "child_handoffs"); the other classes are the bucket "files".
+FILE_CLASSES: tuple[tuple[str, re.Pattern], ...] = (
+    ("entry_card", re.compile(r"/skills/shiploop/SKILL\.md$")),
+    ("improve_card", re.compile(r"/skills/improve/SKILL\.md$")),
+    ("adapter", re.compile(r"/ADAPTER\.md$")),
+    ("packet_file", re.compile(r"/packets/nav-[0-9a-f]+(?:-[\w-]+)?\.md$")),
+    ("handoff", re.compile(r"/handoff\.md$")),
+    ("child_record", re.compile(r"/\.shiploop-improve/.+\.(?:json|md|txt)$")),
+    ("reference", re.compile(r"/skills/(?:shiploop|improve)/references/")),
+    ("run_file", re.compile(r"/run/(?:reference|context-index|status|state|start-here)\.md$")),
+    ("knowledge", re.compile(r"/docs/shiploop/")),
+    ("script", re.compile(r"/skills/shiploop/scripts/shiploop_\w+\.py$")),
+    ("result_record", re.compile(r"/run/(?:results|tests|lint|notes|loops|quality|expectations|inbox)/")),
+)
+CHILD_CLASSES = ("handoff", "child_record")
+BUCKETS = ("packet_output", "shiploop_messages", "files", "child_handoffs", "runtime_output", "other")
+# An absolute path in a shell command, the few files a command names without a directory (a model that has changed into an
+# Improve child's folder), and the Until Loop runtime's script (its output is the bucket "runtime_output").
+ABS_PATH = re.compile(r"""(?:(?<=[\s"'=(:,])|^)(/[\w.@+~%-][\w./@+~%-]*)""", re.M)
+BARE_FILES = ((re.compile(r"(?<![\w/.-])handoff\.md\b"), "handoff"),
+              (re.compile(r"(?<![\w/.-])(?:packet\.json|parent-return\.md|opening\.md)\b"), "child_record"),
+              (re.compile(r"(?<![\w/.-])ADAPTER\.md\b"), "adapter"))
+RUNTIME_SCRIPT = re.compile(r"until_loop_ephemeral\.py")
+SYMBOL_DEFINITION = re.compile(r"\b(HOME|RUN|WORKTREE|GUIDES|FEATURE) = (/\S+)")
+SYMBOL_PATH = re.compile(r"\b(HOME|RUN|WORKTREE|GUIDES|FEATURE)/([\w.@+~/<>-]*[\w@+~>-])")
+READER = re.compile(r"\b(?:cat|head|tail|sed|grep|egrep|awk|less|more|rg|nl|wc|jq)\b")
+SLICING_COMMAND = re.compile(r"\|\s*(?:head|tail|sed|grep|awk)\b|^\s*(?:head|tail|sed|grep|awk)\b|\b(?:sed -n|grep)\b")
+SHELL_VARIABLE_ANY = re.compile(r"\$[\w{(]")
+SKILL_TOOLS = ("Skill",)
+# Where the quoted knowledge of a packet sits (shiploop_navigator._consumer_lines): a header, then one block per file.
+QUOTE_START = re.compile(r"^Knowledge files this stage reads, each quoted whole and uncut", re.M)
+QUOTE_FILE = re.compile(r"^(?P<name>\S+) \(source: [^)\n]*\):[ \t]*$", re.M)
+QUOTE_HANDOFFS = re.compile(r"^Handed off by earlier stages, quoted by value", re.M)
+QUOTE_REQUEST = re.compile(r"^Original request \(", re.M)
+QUOTE_STOPS = re.compile(r"^(?:Recovery command|Original request \(|Last accepted transition|Work item:|Current stage guidance:|"
+                         r"Evidence references|Handed off by earlier stages)", re.M)
+
+
+def file_class(path: str) -> str | None:
+    """The class of file a path names (FILE_CLASSES), or None for any other file."""
+    for name, pattern in FILE_CLASSES:
+        if pattern.search(path):
+            return name
+    return None
+
+
+def result_text(event: dict) -> list[tuple]:
+    """(call id, text) of each final tool result in one event, for every host; the text is what the model was shown.
+
+    ``tool_results`` reads Claude's blocks and the flat Grok outputs; Grok's read_file keeps its text under
+    ``FileContent.content``, its grep under ``stdout`` and a directory listing under ``Content``. A running update and a
+    cancelled one are no result (the same rule ``ToolLog.feed`` applies)."""
+    kind = event.get("type")
+    if kind == "user":
+        return list(tool_results(event))
+    if kind != "tool_call_update" or not isinstance(event.get("rawOutput"), dict) or cancelled_update(event) \
+            or event.get("status") == "in_progress":
+        return []
+    raw = event["rawOutput"]
+    found = visible(raw)
+    if not found:
+        for key in ("FileContent", "Content"):
+            part = raw.get(key)
+            found = part.get("content", "") if isinstance(part, dict) else part if isinstance(part, str) else found
+            if found:
+                break
+    found = found or (raw.get("stdout") if isinstance(raw.get("stdout"), str) else "")
+    return [(event.get("toolCallId"), str(found or ""))]
+
+
+def _tokens(line: str) -> list[str] | None:
+    """The shell tokens of one command line (pipes, redirects and chains are their own tokens), None where it does not parse."""
+    import shlex
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    try:
+        return list(lexer)
+    except ValueError:
+        return None
+
+
+def pipe_of(line: str) -> dict | None:
+    """The pipe a command line sends its output through: ``{"into": "head", "lines": 20}`` (lines None when it names none), or
+    None for a line with no pipe. Only a single `|` counts (`||` is a chain). Read from the tokens, so a `|` inside quotes is not
+    a pipe; a line that does not tokenise is read by a plain match."""
+    tokens = _tokens(line)
+    if tokens is None:
+        found = re.search(r"(?<!\|)\|(?!\|)", line)
+        rest = line[found.end():].split() if found else None
+    else:
+        rest = next((tokens[i + 1:] for i, token in enumerate(tokens) if token == "|"), None)
+    if rest is None:
+        return None
+    into = os.path.basename(rest[0]) if rest else ""
+    lines = None
+    for number, token in enumerate(rest[1:], 1):
+        found = re.fullmatch(r"-(\d+)", token) or re.fullmatch(r"-n(\d+)", token)
+        if not found and token == "-n" and number < len(rest) - 1:
+            found = re.fullmatch(r"\+?(\d+)", rest[number + 1])
+        if not found and into == "sed":
+            found = re.fullmatch(r"\d+,(\d+)p", token)
+        if found:
+            lines = int(found.group(1))
+            break
+    return {"into": into, "lines": lines}
+
+
+def hook_verb(command: str):
+    """What the status display makes of a whole Bash command: ``shiploop_status_hook._verb`` (a verb and its wrapper for one
+    direct ShipLoop call, None for anything piped, chained, redirected or built through a variable). Imported on first use:
+    the plugin source is a sibling tree of this harness."""
+    import sys
+    if str(SCRIPTS) not in sys.path:
+        sys.path.insert(0, str(SCRIPTS))
+    import shiploop_status_hook
+    return shiploop_status_hook._verb(command)
+
+
+def shiploop_invocations(command: str) -> list[dict]:
+    """Each ShipLoop CLI verb a shell command runs, one entry per verb on a logical line (a backslash joins lines; heredoc
+    bodies are documents and are not read). Variables the command assigns are expanded first, so `python3 $SC complete` is
+    seen as the ShipLoop call it is.
+
+    Each entry: ``verb``, ``check_only``, ``piped`` (the line sends its output into a pipe), ``cut`` (the pipe keeps the first
+    or last lines: ``{"into", "lines"}``), ``variable_built`` (the run directory argument is a shell variable or substitution),
+    ``variable_any`` (any part of the command before its pipe is) and ``hook_visible`` (the whole command is one direct call
+    to the display: the status display cannot read a piped command or one built through a variable).
+    """
+    known = shell_variables(command)
+    visible_to_hook = hook_verb(command) is not None
+    found = []
+    for raw in re.sub(r"\\\n", " ", shell_text(command)).split("\n"):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        verbs = [m.group("verb") for m in SHIPLOOP_COMMAND.finditer(expand_variables(line, known))]
+        if not verbs:
+            continue
+        pipe = pipe_of(line)
+        before_pipe = line if pipe is None else re.split(r"(?<!\|)\|(?!\|)", line, maxsplit=1)[0]
+        run_dir = RUN_DIR_ARG.search(before_pipe)
+        for verb in verbs:
+            found.append({"verb": verb, "check_only": "--check-only" in line, "piped": pipe is not None,
+                          "cut": pipe if pipe is not None and pipe["into"] in ("head", "tail", "sed") else None,
+                          "variable_built": bool(run_dir and SHELL_VARIABLE_ANY.search(run_dir.group("dir"))),
+                          "variable_any": bool(SHELL_VARIABLE_ANY.search(before_pipe)), "hook_visible": visible_to_hook})
+    return found
+
+
+def quote_regions(text: str) -> dict[str, int]:
+    """Characters of quoted material in one tool result, by what is quoted: each knowledge file under its name, plus
+    ``handoffs`` (what earlier stages handed off) and ``request`` (the original request), as the packet file lays them out.
+    A print cut before the quote region holds none; the packet file read whole holds all of it."""
+    found: dict[str, int] = {}
+    start = QUOTE_START.search(text)
+    if start:
+        stop = QUOTE_STOPS.search(text, start.end())
+        block = text[start.end():stop.start() if stop else len(text)]
+        marks = list(QUOTE_FILE.finditer(block))
+        for index, mark in enumerate(marks):
+            end = marks[index + 1].start() if index + 1 < len(marks) else len(block)
+            name = os.path.basename(mark.group("name"))
+            found[name] = found.get(name, 0) + end - mark.start()
+    for label, pattern in (("handoffs", QUOTE_HANDOFFS), ("request", QUOTE_REQUEST)):
+        mark = pattern.search(text)
+        if mark:
+            stop = QUOTE_STOPS.search(text, mark.end())
+            found[label] = found.get(label, 0) + (stop.start() if stop else len(text)) - mark.start()
+    return found
+
+
+NUMBERED = re.compile(r"^\s*\d+→", re.M)
+
+
+def unnumbered(shown: str) -> str:
+    """A file read's text without the line numbers Claude's Read and Grok's read_file put before each line (`   12→text`)."""
+    return NUMBERED.sub("", shown) if NUMBERED.match(shown) else shown
+
+
+def classify_call(tool: str, arg: dict, shown: str) -> dict:
+    """What one tool call returned to the model, named once for every host: ``bucket`` (BUCKETS), ``cls`` (a FILE_CLASSES
+    name or None), ``mode`` (`whole`, `slice` or None), ``path`` (the file it names first) and ``read`` (a Read or read_file
+    tool call). Packets the model met are decided here: a shell command that names a packet file is a read of it
+    (``ToolLog.measure`` did the same), a ShipLoop verb whose output shows a packet header is a print, and a command that runs
+    the Until Loop runtime returned runtime output."""
+    command = str(arg.get("command") or "")
+    paths = target_paths(arg)
+    if not command:
+        if tool in SKILL_TOOLS:
+            skill = str(arg.get("skill") or "").lower()
+            cls = "improve_card" if "improve" in skill else "entry_card" if "shiploop" in skill else None
+            return {"bucket": "files" if cls else "other", "cls": cls, "mode": "whole" if cls else None, "path": skill, "read": False}
+        path = paths[0] if paths else ""
+        cls = file_class(path) if path and (tool in READ_TOOLS or tool in SEARCH_TOOLS) else None
+        mode = None if cls is None else ("whole" if tool in READ_TOOLS and "offset" not in arg and "limit" not in arg else "slice")
+        return {"bucket": ("child_handoffs" if cls in CHILD_CLASSES else "files") if cls else "other", "cls": cls, "mode": mode,
+                "path": path, "read": tool in READ_TOOLS}
+    expanded = expand_variables(command, shell_variables(command))
+    shell = shell_text(expanded)  # heredoc bodies are documents: a path or a verb inside one is not a command
+    named = [(file_class(p), p) for p in ABS_PATH.findall(shell)]
+    named += [(cls, found.group(0)) for bare, cls in BARE_FILES for found in [bare.search(shell)] if found]
+    named = [(cls, p) for cls, p in named if cls]
+    packet = next(((c, p) for c, p in named if c == "packet_file"), None)
+    mode = "slice" if SLICING_COMMAND.search(shell) else "whole"
+    if packet:
+        return {"bucket": "files", "cls": "packet_file", "mode": mode, "path": packet[1], "read": False}
+    if SHIPLOOP_COMMAND.search(shell):
+        return {"bucket": "packet_output" if PACKET_STAGE.search(shown) else "shiploop_messages", "cls": None, "mode": None,
+                "path": "", "read": False}
+    if RUNTIME_SCRIPT.search(shell):
+        return {"bucket": "runtime_output", "cls": None, "mode": None, "path": "", "read": False}
+    if named:
+        cls, path = named[0]
+        return {"bucket": "child_handoffs" if cls in CHILD_CLASSES else "files", "cls": cls, "mode": mode, "path": path,
+                "read": False}
+    return {"bucket": "other", "cls": None, "mode": None, "path": "", "read": False}
+
+
+def _median(values: list) -> float | None:
+    values = sorted(values)
+    if not values:
+        return None
+    middle = len(values) // 2
+    return float(values[middle]) if len(values) % 2 else (values[middle - 1] + values[middle]) / 2
+
+
+def _bucket_table() -> dict:
+    return {name: {"calls": 0, "chars": 0} for name in BUCKETS}
+
+
+def run_dir_of(out: Path) -> Path | None:
+    """The ShipLoop run directory a harness output folder recorded: a slice's invocation.json (`seeded.run_dir`) or a full
+    run's result.json (`shiploop.run_dir`), else the one `.shiploop-runs/*/run` under the folder; None where none is there."""
+    out = Path(out)
+    for name, keys in (("invocation.json", ("seeded", "run_dir")), ("result.json", ("shiploop", "run_dir"))):
+        try:
+            value: object = json.loads((out / name).read_text())
+            for key in keys:
+                value = value.get(key) if isinstance(value, dict) else None
+        except (OSError, ValueError):
+            continue
+        # A run moved after it was recorded keeps its folder name: prefer the copy beside the events file.
+        if isinstance(value, str) and value:
+            local = out / ".shiploop-runs" / Path(value).parent.name / "run"
+            for candidate in (local, Path(value)):
+                if (candidate / "state.md").is_file():
+                    return candidate
+    found = sorted((out / ".shiploop-runs").glob("*/run/state.md")) if (out / ".shiploop-runs").is_dir() else []
+    return found[0].parent if len(found) == 1 else None
+
+
+def _state_block(path: Path) -> dict | None:
+    try:
+        found = STATE_BLOCK.search(path.read_text(errors="replace"))
+        value = json.loads(found.group("json")) if found else None
+    except (OSError, ValueError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def skipped_reason(record: dict) -> str | None:
+    """Why a base-run or mutation-check record says its gate did nothing, or None for a gate that ran.
+
+    The engine writes ``disposition: "skipped"`` (with ``passed`` true, so every reader of ``passed`` is unchanged) and the
+    reason under ``skipped``; a record from before that kept the reason alone under ``disposition: "passed"``. Either marks the
+    gate as not exercised, and a disposition without a reason is still one."""
+    reason = record.get("skipped")
+    if reason:
+        return str(reason)
+    return "no reason recorded" if record.get("disposition") == "skipped" else None
+
+
+def skipped_gates(run_dir: Path | None) -> dict:
+    """The gates a run's records say did not run, from the run directory alone: the test stage's base run, its mutation check
+    (skipped, or run and found no mutants), the change inventory, and the item commit (which cannot read an item's changes
+    when no base snapshot was captured). Each gate is a row ``{gate, records, skipped, reason}``; ``count`` is the number of
+    gates with at least one skipped record. A run that never reached a gate has no row for it."""
+    if run_dir is None or not Path(run_dir).is_dir():
+        return {"measured": False, "reason": "no run directory", "count": None, "gates": []}
+    run_dir = Path(run_dir)
+    gates = []
+
+    def row(name: str, records: list[dict], reasons: list[str]) -> None:
+        if records:
+            gates.append({"gate": name, "records": len(records), "skipped": len(reasons), "reason": reasons[0] if reasons else None})
+
+    base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if (r := _state_block(p))]
+    row("base", base, [reason for r in base if (reason := skipped_reason(r))])
+    mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith("-check-only.md")
+                and (r := _state_block(p))]
+    row("mutation", mutation, [skipped_reason(r) or "no mutants" for r in mutation
+                               if skipped_reason(r) or not r.get("mutants")])
+    inventory = [r for p in sorted((run_dir / "lint").glob("*-inventory.md")) if (r := _state_block(p))]
+    row("inventory", inventory, [str(r.get("reason") or r.get("status")) for r in inventory if r.get("status") == "unavailable"])
+    state = engine_state(run_dir)
+    items = sorted({e.get("workitem") for e in state.get("history") or [] if isinstance(e, dict)
+                    and e.get("stage") == "verify" and e.get("outcome") == "done" and e.get("workitem")})
+    row("item_commit", [{"item": i} for i in items],
+        [f"no base snapshot for {i} (lint/items/{i}.md): the item's changes cannot be read, so nothing is committed"
+         for i in items if not (run_dir / "lint" / "items" / f"{i}.md").is_file()])
+    return {"measured": True, "count": sum(1 for g in gates if g["skipped"]), "gates": gates}
+
+
+def reading_path(out: Path, run_dir: Path | None = None, *, limit_events: int | None = None) -> dict:
+    """The reading path of one run, from its host event stream (events.jsonl, timeline.jsonl, sessions.jsonl) and its ShipLoop
+    run directory (``run_dir``; found beside the events by ``run_dir_of`` when not given). ``limit_events`` reads only the first
+    N lines of the stream, which is how a snapshot taken while a run was live is read again.
+
+    ``buckets`` partition the characters tool results returned to the model: ShipLoop's own prints, files opened, an Improve
+    child's handoff and records, the Until Loop runtime's output, and everything else (``files_by_class`` splits the files).
+    ``cold`` and ``warm`` split the same totals by whether a call is one of the first COLD_CALLS after a break (a compaction, a
+    fresh session, or the run's start). The counters the plan names follow, each a dict with a ``count``:
+    ``piped_shiploop_calls``, ``variable_built_shiploop_calls``, ``shiploop_print_cut``, ``packet_file_opens``,
+    ``listed_pointers_followed``, ``skipped_gates``, ``warm_next_calls``, ``improve_skill_invoked``, and ``quoted_chars``
+    (characters of quoted knowledge that reached the model, by file). A host that cannot show a signal gives None.
+    """
+    out = Path(out)
+    run_dir = Path(run_dir) if run_dir else run_dir_of(out)
+    stamps = timeline(out / "timeline.jsonl")
+    tools = ToolLog()
+    args: dict = {}
+    line_of: dict = {}
+    chars: dict = {}
+    seen_at: dict = {}
+    kept: dict = {}  # call -> text, kept for a print, a packet read or a quote region only
+    compaction_lines: list[int] = []
+    cancels = 0
+    grok = claude = False
+    skill_key = None
+    last_line = -1
+    for number, event in event_range(out / "events.jsonl", 0, limit_events):
+        last_line = number
+        kind = event.get("type")
+        if kind == "auto_compact_completed":
+            compaction_lines.append(number)
+        elif kind == "usage":
+            grok = True
+        elif kind == "assistant":
+            claude = True
+        elif cancelled_update(event):
+            cancels += 1
+        for call_id, tool, arg in tool_call_events(event):
+            args[call_id if call_id is not None else f"#{len(args)}"] = (tool, arg)
+        started = tools.feed(event, stamps.get(number), number)
+        for key in started:
+            line_of[key] = number
+        for block in ((event.get("message") or {}).get("content") or []) if kind == "user" else []:
+            # Claude puts a skill's own text into the conversation as a user message after the Skill call returned.
+            if isinstance(block, dict) and block.get("type") == "text" and str(block.get("text", "")).startswith(
+                    "Base directory for this skill:") and skill_key is not None:
+                chars[skill_key] = chars.get(skill_key, 0) + len(block["text"])
+        for key in started:
+            if tools.calls[key]["tool"] in SKILL_TOOLS:
+                skill_key = key
+        for call_id, shown in result_text(event):
+            if call_id in chars:
+                continue  # Grok repeats an update for one call; Codex's reused ids were discarded in ToolLog.call
+            chars[call_id] = len(shown)
+            seen_at[call_id] = number
+            if PACKET_STAGE.search(shown) or "quoted whole and uncut" in shown or "Original request (" in shown:
+                kept[call_id] = unnumbered(shown)
+    order = list(tools.calls)
+    classes = {key: classify_call(*args.get(key, ("", {})), kept.get(key, "")) for key in order}
+    host = "claude" if claude and not grok else "grok" if grok else None
+    # Breaks: the run's start, every compaction the stream marks (Grok), and every fresh host session the harness recorded.
+    breaks = [{"kind": "start", "line": 0}]
+    breaks += [{"kind": "compaction", "line": n} for n in compaction_lines]
+    sessions = sessionlog.read(out)
+    breaks += [{"kind": "fresh", "line": row["events_line"]} for row in sessions or []
+               if row.get("kind") == "fresh" and isinstance(row.get("events_line"), int)]
+    breaks.sort(key=lambda b: b["line"])
+    call_lines = [line_of.get(key, 0) for key in order]
+    cold: set[int] = set()
+    for brk in breaks:
+        first = bisect.bisect_right(call_lines, brk["line"]) if brk["kind"] != "start" else 0
+        brk["first_call"] = first
+        cold.update(range(first, min(first + COLD_CALLS, len(order))))
+    totals = {"all": _bucket_table(), "cold": _bucket_table(), "warm": _bucket_table()}
+    by_class: dict[str, dict] = {}
+    reads: dict[str, int] = {}
+    for position, key in enumerate(order):
+        info, size = classes[key], chars.get(key, 0)
+        for scope in ("all", "cold" if position in cold else "warm"):
+            totals[scope][info["bucket"]]["calls"] += 1
+            totals[scope][info["bucket"]]["chars"] += size
+        if info["cls"]:
+            row = by_class.setdefault(info["cls"], {"calls": 0, "chars": 0, "reads": 0, "whole": 0, "slice": 0})
+            row["calls"] += 1
+            row["chars"] += size
+            row["reads"] += info["read"]
+            row[info["mode"] or "slice"] += 1
+            reads[info["cls"]] = reads.get(info["cls"], 0) + int(info["read"])
+    # ShipLoop commands, one per verb a command line runs.
+    invocations, print_rows, latency = [], [], []
+    for position, key in enumerate(order):
+        call = tools.calls[key]
+        mine = shiploop_invocations(call["command"]) if call["command"] else []
+        for found in mine:
+            invocations.append({**found, "call": position, "cold": position in cold})
+        text = kept.get(key, "")
+        header = PACKET_STAGE.search(text) if mine else None
+        if header:
+            cut = mine[-1]["cut"]
+            ended = HEAD_END in text
+            print_rows.append({"call": position, "stage": header.group("stage"), "verb": mine[-1]["verb"], "chars": len(text),
+                               "lines": text.count("\n") + (not text.endswith("\n")), "ended": ended,
+                               "cut_by": None if cut is None else f"{cut['into']} -{cut['lines']}" if cut["lines"] else cut["into"],
+                               "n": None if cut is None else cut["lines"]})
+        if mine and call["t"] is not None and stamps.get(seen_at.get(key)) is not None:
+            latency.append(round(stamps[seen_at[key]] - call["t"], 3))
+    marker_seen = any(row["ended"] for row in print_rows)
+    for row in print_rows:  # a pipe that keeps lines cut the print; without one, only a head that lost its closing line is cut
+        row["cut"] = True if row["cut_by"] else (not row["ended"] if marker_seen else None)
+    by_verb: dict[str, dict] = {}
+    for found in invocations:
+        row = by_verb.setdefault(found["verb"], {"invocations": 0, "piped": 0, "variable_built": 0, "variable_any": 0,
+                                                 "hook_visible": 0, "check_only": 0})
+        row["invocations"] += 1
+        for name in ("piped", "variable_built", "variable_any", "hook_visible", "check_only"):
+            row[name] += bool(found[name])
+    nexts = [found for found in invocations if found["verb"] == "next"]
+    cut_rows = [r for r in print_rows if r["cut"]]
+    # Per break: what the first calls were, and whether `next` came within the cold window.
+    for brk in breaks:
+        window = order[brk["first_call"]:brk["first_call"] + COLD_CALLS]
+        first = classes[window[0]] if window else None
+        brk["first_call_kind"] = call_kind(tools.calls[window[0]]) if window else None
+        brk["first_call_class"] = first["cls"] if first else None
+        brk["next_within_12"] = any("next" in _verbs(tools.calls[k]) for k in window)
+        brk["cold_chars"] = sum(chars.get(k, 0) for k in window)
+    minutes = None
+    run_span = span(stamps)
+    if run_span.get("started") is not None and run_span.get("ended") is not None:
+        minutes = round((run_span["ended"] - run_span["started"]) / 60.0, 2)
+    quoted: dict[str, int] = {}
+    for key, text in kept.items():
+        for name, size in quote_regions(text).items():
+            quoted[name] = quoted.get(name, 0) + size
+    report = {
+        "measured": True, "host": host, "events": last_line + 1, "limit_events": limit_events, "calls": len(order),
+        "result_chars": sum(b["chars"] for b in totals["all"].values()),
+        "buckets": totals["all"], "cold": totals["cold"], "warm": totals["warm"],
+        "files_by_class": dict(sorted(by_class.items())), "reads_by_class": dict(sorted(reads.items())),
+        "breaks": breaks,
+        "compactions": len(compaction_lines) if grok else None,
+        "compactions_per_100_min": round(len(compaction_lines) * 100.0 / minutes, 2) if grok and minutes else None,
+        "run_minutes": minutes,
+        "shiploop_commands": {"invocations": len(invocations), "by_verb": by_verb,
+                              "hook_visible": sum(f["hook_visible"] for f in invocations)},
+        "piped_shiploop_calls": {"count": sum(f["piped"] for f in invocations), "of": len(invocations)},
+        "variable_built_shiploop_calls": {"count": sum(f["variable_built"] for f in invocations), "of": len(invocations),
+                                          "any_variable": sum(f["variable_any"] for f in invocations)},
+        "check_only_calls": {"count": sum(f["check_only"] for f in invocations), "of": len(invocations)},
+        "warm_next_calls": {"count": sum(1 for f in nexts if not f["cold"]), "of": len(nexts)},
+        "shiploop_print_cut": {"count": len(cut_rows), "of": len(print_rows), "marker_seen": marker_seen,
+                               "median_lines_seen": _median([r["n"] for r in cut_rows if r["n"]]), "prints": print_rows},
+        "quoted_chars": {"count": sum(quoted.values()), "by_class": dict(sorted(quoted.items()))},
+        "permission_cancels": cancels if grok else None,
+        "script_latency": {"calls": len(latency), "median_seconds": _median(latency)} if latency else None,
+    }
+    report.update(_run_dir_counters(run_dir, order, tools, classes, kept, print_rows, host))
+    report["skipped_gates"] = skipped_gates(run_dir)
+    return report
+
+
+def _run_dir_counters(run_dir: Path | None, order: list, tools: "ToolLog", classes: dict, kept: dict, print_rows: list,
+                      host: str | None) -> dict:
+    """The counters that need the run directory beside the stream: which packet files the model opened, which listed pointers it
+    followed, and whether each Improve stage invoked the improve skill.
+
+    A producer packet counts when the model was shown its stage: the stages it met are the stages of the prints in the stream
+    (consecutive prints of one stage are one visit), and a stage met n times is its n newest packet files in ledger order (the
+    header's revision), so a packet the harness seeded without the model is not counted."""
+    seen: list[str] = []
+    for row in print_rows:
+        if row["stage"] != "improve" and (not seen or seen[-1] != row["stage"]):
+            seen.append(row["stage"])
+    visits = {stage: seen.count(stage) for stage in set(seen)}
+    producers: dict[str, str] = {}  # action id -> stage, the packets the model met
+    packets: dict[str, Path] = {}
+    if run_dir is not None and (Path(run_dir) / "packets").is_dir():
+        files = []
+        for path in (Path(run_dir) / "packets").glob("nav-*.md"):
+            found = PACKET_STAGE.search(path.read_text(errors="replace")[:4000]) if re.fullmatch(r"nav-[0-9a-f]+\.md", path.name) else None
+            if found and found.group("stage") in visits:
+                files.append((int(found.group("revision") or 0), found.group("stage"), path))
+        for stage, count in visits.items():
+            for _revision, _stage, path in sorted(f for f in files if f[1] == stage)[-count:]:
+                producers[path.stem] = stage
+                packets[path.stem] = path
+    opens: dict[str, dict] = {action: {"stage": stage, "action": action, "mode": "none", "calls": 0}
+                              for action, stage in producers.items()}
+    for key in order:
+        info = classes[key]
+        if info["cls"] != "packet_file":
+            continue
+        action = re.search(r"nav-[0-9a-f]+", info["path"])
+        row = opens.get(action.group(0)) if action else None
+        if row is not None:
+            row["calls"] += 1
+            row["mode"] = "whole" if "whole" in (row["mode"], info["mode"]) else "slice"
+    if run_dir is None or not producers:
+        no_packets = {"measured": False, "reason": "no run directory with producer packets beside the stream", "count": None}
+        opened = pointers = no_packets
+    else:
+        opened = {"measured": True, "count": sum(1 for r in opens.values() if r["mode"] != "none"), "of": len(opens),
+                  "stages": sorted(opens.values(), key=lambda r: r["action"])}
+        # Pointers: the files a producer packet names through its path symbols (HOME/spec.md, RUN/results/<id>.md, GUIDES/...),
+        # each resolved against the symbol definitions in the packet's own References block.
+        listed: dict[str, str] = {}
+        for path in packets.values():
+            text = path.read_text(errors="replace")
+            roots = {m.group(1): m.group(2) for m in SYMBOL_DEFINITION.finditer(text)}
+            for symbol, rest in SYMBOL_PATH.findall(text):
+                if symbol not in roots or "<" in rest:
+                    continue
+                full = roots[symbol].rstrip("/") + "/" + rest
+                cls = file_class(full)
+                if cls in ("packet_file",) or "/inbox/" in full or "/loops/" in full or "/scratch/" in full:
+                    continue  # the packet itself, the result it asks for, the Until Loop's files and the model's scratch space
+                listed.setdefault(full, "result_record" if cls == "result_record" else "guide" if symbol == "GUIDES" or cls == "reference"
+                                  else "knowledge" if cls == "knowledge" or symbol == "HOME" else cls or "other")
+        # Opened: the target of a Read or read_file call, or named by a command that reads it (a redirect target is a write).
+        touched = " ".join(
+            tools.calls[k]["file"] if not tools.calls[k]["command"]
+            else re.sub(r">>?\s*\S+|<\s*\S+", "", shell_text(tools.calls[k]["expanded"]))
+            if READER.search(shell_text(tools.calls[k]["expanded"])) else "" for k in order)
+        followed = sorted(p for p in listed if p in touched)
+        pointers = {"measured": True, "count": len(followed), "of": len(listed), "followed": followed,
+                    "by_class": {c: sum(1 for v in listed.values() if v == c) for c in sorted(set(listed.values()))}}
+    # Improve stages: one window per run of Improve prints, ended by the next print of another stage.
+    windows, current = [], None
+    for position, key in enumerate(order):
+        header = PACKET_STAGE.search(kept.get(key, ""))
+        if header and header.group("stage") == "improve":
+            if current is None:
+                current = {"start": position, "invoked": 0}
+                windows.append(current)
+        elif header:
+            current = None
+    skill_calls = [p for p, key in enumerate(order) if tools.calls[key]["tool"] in SKILL_TOOLS and classes[key]["cls"] == "improve_card"]
+    card_reads = [p for p, key in enumerate(order) if classes[key]["cls"] == "improve_card" and classes[key]["read"]]
+    for window in windows:
+        later = [w["start"] for w in windows if w["start"] > window["start"]]
+        end = later[0] if later else len(order) + 1
+        window["invoked"] = sum(1 for p in skill_calls if window["start"] < p < end)
+        window["card_read"] = sum(1 for p in card_reads if window["start"] < p < end)
+    record = None
+    if run_dir is not None:
+        records = Path(run_dir) / "skill-calls.jsonl"
+        if records.is_file():
+            record = sum(1 for line in records.read_text(errors="replace").splitlines() if '"skill":"improve"' in line.replace(" ", ""))
+    improve = {"count": sum(1 for w in windows if w["invoked"]) if host == "claude" else None, "of": len(windows),
+               "record_calls": record, "card_reads": sum(1 for w in windows if w["card_read"]),
+               "stages": [{"call": w["start"], "invoked": bool(w["invoked"]), "card_read": bool(w["card_read"])} for w in windows]}
+    if host != "claude":
+        improve["reason"] = ("the Skill tool exists on Claude only; on this host the improve card is opened as a file, "
+                             "which `card_reads` counts per Improve stage")
+    return {"packet_file_opens": opened, "listed_pointers_followed": pointers, "improve_skill_invoked": improve}
+
+
+def stage_share(out: Path, run_dir: Path | None = None, stage: str = "plan", needle: str = "backchain") -> dict:
+    """What a planning stage takes of the planning window, offline (plan N5: the plan-stage Backchain child, which the 30-minute
+    bar does not price). The window and its stages are ``planning_window``'s; ``authoring_seconds`` is the stage's accept-to-accept
+    time less its Improve child's (the figure the Luna study called the plan-stage Backchain work, 64.1 of 375.9 minutes), and
+    ``named`` is the span of the stage's own tool calls whose input names ``needle`` (the Backchain guide, its artifacts), from
+    the stage's start to the end of its authoring. Shares are fractions of the window on the engine clock. Anything the records
+    cannot support is ``measured: false`` with the reason."""
+    out = Path(out)
+    run_dir = Path(run_dir) if run_dir else run_dir_of(out)
+    if run_dir is None:
+        return {"measured": False, "reason": "no run directory beside the stream"}
+    state = engine_state(run_dir)
+    accepted = stage_results(run_dir, state)
+    stamps = timeline(out / "timeline.jsonl")
+    block, _bounds, why = planning_window(run_dir, state, accepted, stamps)
+    window = block["window"]
+    row = next((r for r in block["stages"] if r["stage"] == stage), None)
+    if window["seconds"] is None or row is None or row["seconds"] is None or row["improve_seconds"] is None:
+        return {"measured": False, "reason": why or f"the {stage} stage is not in a measured planning window"}
+    index = next(i for i, r in enumerate(accepted) if r["action"] == row["action"])
+    started, ended = (accepted[index - 1]["t"] if index else run_started(run_dir)), accepted[index]["t"]
+    authoring_end = ended - row["improve_seconds"]
+    times = []
+    for number, event in events(out / "events.jsonl"):
+        for _call_id, _tool, arg in tool_call_events(event):
+            t = stamps.get(number)
+            if t is not None and started < t <= authoring_end and needle in json.dumps(arg).lower():
+                times.append(t)
+    authoring = round(row["seconds"] - row["improve_seconds"], 1)
+    span_seconds = round(max(times) - min(times), 1) if times else None
+    return {"measured": True, "stage": stage, "window_seconds": window["seconds"], "through": window["through"],
+            "stage_seconds": row["seconds"], "improve_seconds": row["improve_seconds"], "authoring_seconds": authoring,
+            "authoring_share": round(authoring / window["seconds"], 4),
+            "named": {"needle": needle, "calls": len(times), "span_seconds": span_seconds,
+                      "span_share": None if span_seconds is None else round(span_seconds / window["seconds"], 4)}}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`metrics.py reading-path OUT [--run-dir D] [--limit-events N]` and `metrics.py stage-share OUT [--stage S]`: the reading
+    path of a run folder, and the share of the planning window one stage takes, as JSON on stdout."""
+    import argparse
+    import sys
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("reading-path", "stage-share"):
+        one = sub.add_parser(name)
+        one.add_argument("out", type=Path)
+        one.add_argument("--run-dir", type=Path)
+        if name == "reading-path":
+            one.add_argument("--limit-events", type=int, help="read only the first N lines of the event stream")
+        else:
+            one.add_argument("--stage", default="plan")
+            one.add_argument("--needle", default="backchain")
+    args = parser.parse_args(argv)
+    result = (reading_path(args.out, args.run_dir, limit_events=args.limit_events) if args.command == "reading-path"
+              else stage_share(args.out, args.run_dir, args.stage, args.needle))
+    json.dump(result, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

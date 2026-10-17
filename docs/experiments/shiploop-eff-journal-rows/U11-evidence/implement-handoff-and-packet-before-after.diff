@@ -1,0 +1,113 @@
+# implement hand-off and packet, before (INT e4c675d5) and after (U11), two-step plan, normalised (temp dirs, ids, request tags)
+
+=== handoff, inline route
+
+=== handoff, ask-agent route
+23c23
+< Reviewing the returned implement result. Goal: Make this step's change on its paths in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`..
+---
+> Reviewing the returned implement result. Goal: Make the change of steps S1 to S2 on their paths (a.py, new_mod.py) in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`..
+25c25
+< - only the step's paths changed since the step began, and no later step's work is in them
+---
+> - only the paths of steps S1 to S2 (a.py, new_mod.py) changed since the first of them began, and no work outside those steps is in them
+27,28c27,28
+< - after the last edit, the lint gate reports no unwaived new finding on a line this step changed
+< - the result lists each behaviour the change added that no test-spec case covers (or none), and whether each of the step's skills was used
+---
+> - after the last edit, the lint gate reports no unwaived new finding on a line these steps changed
+> - the result lists each behaviour the changes added that no test-spec case covers (or none), and whether each step's skills were used
+174,179c174,180
+< Implementation step review focus. This result is one step of the item's step
+< plan, and its tests are written later from the test spec, so this review is the
+< only check of the code before them. Review the step's diff (the step's paths since
+< the step began) and fix, within those paths, any of these:
+< - the change does not do the step's task, misses a criterion as the spec's R-<n>
+<   states it, or does work no criterion asks for (a later step's work, a feature
+---
+> Implementation step review focus. This result is steps S1 to S2 of the item's step
+> plan, built in one action, and their tests are written later from the test spec, so
+> this review is the only check of the code before them. Review the diff of the paths
+> of these steps (a.py, new_mod.py) since the first step began and fix, within those paths,
+> any of these:
+> - the change does not do a step's task, misses a criterion as the spec's R-<n>
+>   states it, or does work no criterion asks for (another item's work, a feature
+181c182
+< - a file changed outside the step's paths, or unrelated work reverted or
+---
+> - a file changed outside these paths, or unrelated work reverted or
+202,205c203,205
+< Do not write tests, start a later step, or edit a recorded command. After your
+< last edit, rerun the step's recorded check commands and ShipLoop's lint for the
+< step's action (`shiploop lint --action`), and record their exit codes. Commit your
+< edits. A pass that finds none of these is trivial.
+---
+> Do not write tests or edit a recorded command. After your last edit, rerun the
+> steps' recorded check commands and ShipLoop's lint for this action (`shiploop
+> lint --action`), and record their exit codes. Commit your edits. A pass that finds none of these is trivial.
+258c258
+< Invoke the selected actual Improve skill for one implementation step's diff: its task and criteria, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use.  Read the
+---
+> Invoke the selected actual Improve skill for the diff of implementation steps S1 to S2: their tasks and criteria, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use.  Read the
+
+=== packet, inline route
+11c11
+< Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuses a loop still active or not reported satisfied; then lints the changes (unless lint is off), refusing once after an auto-fix and on any new finding 
+---
+> Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuses a loop still active or not reported satisfied; then lints the changes (unless lint is off), refusing once after an auto-fix and on any new finding 
+49c49
+< Done:      W1 validate-existing: ShipLoop ran every expectation check on the unchanged checkout and each matched its state; validate-existing was recorded without running i…
+---
+> Done:      W1 validate-existing: ShipLoop ran every expectation check on the unchanged checkout and each matched its state.
+61c61
+< - **W1 validate-existing** — ShipLoop ran every expectation check on the unchanged checkout and each matched its state; validate…
+---
+> - **W1 validate-existing** — ShipLoop ran every expectation check on the unchanged checkout and each matched its state.
+74c74
+< Work: Do duty items 1-4 of <TMP>/repo/runs/r1/packets/nav-ID.md for step S1's change. Write no tests and start no later step.
+---
+> Work: Do duty items 1-7 of <TMP>/repo/runs/r1/packets/nav-ID.md for step S1's change. Write no tests and start no later step.
+172,174c172
+< ----- BEGIN LAST ACCEPTED SUMMARY -----
+< ShipLoop ran every expectation check on the unchanged checkout and each matched its state; validate-existing was recorded without running it. Records: <TMP>/repo/runs/r1/expectations/nav-ID.md
+< ----- END LAST ACCEPTED SUMMARY -----
+---
+> Summary: as the status block's Done line shows.
+
+=== packet, ask-agent route
+29c29
+< Goal: Make this step's change on its paths in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`.
+---
+> Goal: Make the change of steps S1 to S2 on their paths (a.py, new_mod.py) in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`.
+31c31
+< Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuses a loop still active or not reported satisfied; then lints the changes (unless lint is off), refusing once after an auto-fix and on any new finding 
+---
+> Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuses a loop still active or not reported satisfied; then lints the changes (unless lint is off), refusing once after an auto-fix and on any new finding 
+67c67
+< Done:      W1 validate-existing: ShipLoop ran every expectation check on the unchanged checkout and each matched its state; validate-existing was recorded without running i…
+---
+> Done:      W1 validate-existing: ShipLoop ran every expectation check on the unchanged checkout and each matched its state.
+79c79
+< - **W1 validate-existing** — ShipLoop ran every expectation check on the unchanged checkout and each matched its state; validate…
+---
+> - **W1 validate-existing** — ShipLoop ran every expectation check on the unchanged checkout and each matched its state.
+92c92
+< Work: Do duty items 1-4 of <TMP>/repo/runs/r1/packets/nav-ID.md for the change of every step, S1 to S2, in order,. Write no tests and start no later step.
+---
+> Work: Do duty items 1-7 of <TMP>/repo/runs/r1/packets/nav-ID.md for the change of every step, S1 to S2, in order. Write no tests and start no later step.
+94c94
+< 1. only the step's paths changed since the step began, and no later step's work is in them
+---
+> 1. only the paths of steps S1 to S2 (a.py, new_mod.py) changed since the first of them began, and no work outside those steps is in them
+96,97c96,97
+< 3. after the last edit, the lint gate reports no unwaived new finding on a line this step changed
+< 4. the result lists each behaviour the change added that no test-spec case covers (or none), and whether each of the step's skills was used
+---
+> 3. after the last edit, the lint gate reports no unwaived new finding on a line these steps changed
+> 4. the result lists each behaviour the changes added that no test-spec case covers (or none), and whether each step's skills were used
+192,194c192
+< ----- BEGIN LAST ACCEPTED SUMMARY -----
+< ShipLoop ran every expectation check on the unchanged checkout and each matched its state; validate-existing was recorded without running it. Records: <TMP>/repo/runs/r1/expectations/nav-ID.md
+< ----- END LAST ACCEPTED SUMMARY -----
+---
+> Summary: as the status block's Done line shows.

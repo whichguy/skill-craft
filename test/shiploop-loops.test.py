@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Hermetic tests for ``shiploop_loops``: the Until Loop every inner stage runs (owner decision 2026-10-10).
 
-ShipLoop writes each inner action's loop contract on entry, prints the loop block in the packet (RUN the skill with
-the argument between two marker lines, the literal start command, the result) and, before it accepts the result,
-checks the runtime's receipt against the contract rebuilt from state.
+ShipLoop writes each inner action's loop contract on entry, prints the loop block in the packet (RUN the Until Loop
+with the literal start command first, then the argument between two marker lines, then the result) and, before it
+accepts the result, checks the runtime's receipt against the contract rebuilt from state.
 The contract tests feed the contract to the real bundled runtime (its own schema validator and its ``start``); the
 terminal tests run the real runtime to the state they need; the navigator tests submit through the real gate.
 """
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -28,12 +29,18 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_store as store  # noqa: E402
 
 TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
            "evidence": "Synthetic iteration; no semantic claim.", "handoff": "Synthetic fixture; nothing remains."}
 MATERIAL = dict(TRIVIAL, classification="non-trivial", exit_assessment="unsatisfied")
 BLOCKED = dict(MATERIAL, continuation_assessment="blocked")
 CANCELLED = dict(MATERIAL, continuation_assessment="cancelled")
+
+
+# The slash command for the loop, as a regular expression: "/until-loop" that is not the start of a path segment
+# (the runtime the start command runs lives in `.../runtime/until-loop/scripts/`).
+SLASH_FORM = r"/until-loop(?![\w/.-])"
 
 
 def _runtime_module():
@@ -61,7 +68,7 @@ class Synthetic(unittest.TestCase):
     def state_for(self, stage: str, title: str = "Add parser") -> dict:
         return {
             "repo": str(self.repo), "prompt": "Build a parser for the thing", "run_id": "run-abc123",
-            "stage": "inner-loop", "work_index": 0, "improve_skill": "",
+            "stage": "inner-loop", "work_index": 0, "improve_skill": "", "delegation": "inline",
             "work_items": [{"id": "W1", "title": title}],
             "inner_loops": {"W1": {"stage": stage, "action": {"id": "A-" + stage}}},
             "history": [{"stage": "step-plan", "workitem": "W1", "action": "A-sp", "outcome": "done"}],
@@ -162,6 +169,31 @@ class ContractTests(Synthetic):
                                   value["context"]))
                 self.assertEqual(json.loads(receipt.read_text())["status"], "active")
 
+    def test_the_ask_agent_implement_contract_names_every_step_and_the_runtime_starts_from_it(self):
+        """One implement action builds both steps of the plan on the ask-agent route: the exit conditions, the work and the
+        scope all say so, in the runtime's own schema (U11); a one-step plan and the inline route keep the per-step words."""
+        validate = _runtime_module()._validate_contract
+        state = dict(self.state_for("implement"), delegation="ask-agent")
+        writes = self.write(state)
+        value = loops.contract(self.root, state, "A-implement")
+        # The runtime normalises the two optional lists a stage loop does not write (exit_checks, and since the stop rule
+        # candidate_paths, which only an Improve child lists): both come back empty.
+        self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True),
+                         {**value, "exit_checks": [], "candidate_paths": []})
+        lines = value["exit_condition"].splitlines()
+        self.assertEqual(len(lines), len(stage_spec.stage("implement").done_when))
+        self.assertEqual(lines[0], "1. only the paths of steps S1 to S2 (src/a.py, src/b.py, src/c.py) changed since the "
+                                   "first of them began, and no work outside those steps is in them")
+        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", value["work"])
+        self.assertIn("src/a.py, src/b.py, src/c.py", value["context"]["scope"])
+        receipt = loops.receipt_path(self.root, "A-implement")
+        packet = self.runtime(["start", "--receipt", str(receipt)], writes[loops.contract_path("A-implement")])
+        self.assertEqual((packet["status"], packet["conditions"]["exit"]), ("active", value["exit_condition"]))
+        one = dict(state)
+        one["accepted"] = {"A-sp": dict(state["accepted"]["A-sp"], steps=state["accepted"]["A-sp"]["steps"][:1])}
+        self.assertEqual(loops.contract(self.root, one, "A-implement")["exit_condition"].splitlines()[0],
+                         "1. " + stage_spec.stage("implement").done_when[0])
+
     def test_verify_writes_the_code_craft_rubric_its_contract_names(self):
         writes = self.write(self.state_for("verify"))
         self.assertEqual(writes[quality.RUBRIC_PATH], prompts.CODE_CRAFT)
@@ -210,13 +242,13 @@ class ContractTests(Synthetic):
 
 
 class InvokeLinesTests(Synthetic):
-    """The block says what to run, with what argument, and what the result is (owner, 2026-10-16): a cleared model acts
-    on it without opening any card."""
+    """The block says what to run, with what argument, and what the result is (owner, 2026-10-16; one start route on
+    every host, plan 6.3): a cleared model acts on it without opening any card or naming any tool."""
 
     def block(self, state: dict, stage: str | None = None) -> support.LoopBlock:
         return support.LoopBlock("\n".join(loops.invoke_lines(self.root, state)))
 
-    def test_the_block_says_run_the_skill_with_the_argument_between_two_markers(self):
+    def test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers(self):
         for stage in stage_spec.INNER:
             state = self.state_for(stage)
             if stage == "implement":
@@ -227,12 +259,14 @@ class InvokeLinesTests(Synthetic):
                 value = loops.contract(self.root, state, "A-" + stage)
                 contract_file = self.root / loops.contract_path("A-" + stage)
                 receipt = loops.receipt_path(self.root, "A-" + stage)
-                self.assertEqual(lines[:3], ["", "Until Loop (no iteration limit):", loops.INVOKE_LINE])
-                self.assertTrue(loops.INVOKE_LINE.startswith("RUN the until-loop skill now, once, with exactly the "))
-                self.assertIn("nothing outside them is part of the argument", loops.INVOKE_LINE)
-                # (a) Both marker lines, once, and between them exactly the five fields, nothing else.
+                command = loops.start_command(loops.runtime(state), receipt, contract_file)
+                # (a) The RUN line, the literal start command and the follow line come first, in that order.
+                self.assertEqual(lines[:5], ["", loops.BLOCK_HEADING, loops.INVOKE_LINE, command, loops.FOLLOW_LINE])
+                self.assertTrue(loops.INVOKE_LINE.startswith("RUN the Until Loop now, once, before any work"))
+                # (b) Both marker lines, once, after the command, and between them exactly the five fields.
                 self.assertEqual((lines.count(loops.ARGUMENT_BEGIN), lines.count(loops.ARGUMENT_END)), (1, 1))
                 begin, end = lines.index(loops.ARGUMENT_BEGIN), lines.index(loops.ARGUMENT_END)
+                self.assertEqual(begin, 5, "the argument follows the follow line directly")
                 self.assertLess(begin, end)
                 self.assertEqual(lines[begin + 1:end], [
                     *("Work: " + value["work"]).splitlines(), "Exit when ALL of these hold:",
@@ -241,15 +275,34 @@ class InvokeLinesTests(Synthetic):
                 labelled = [line for line in lines[begin + 1:end] if line.startswith(support.ARGUMENT_FIELDS)]
                 self.assertEqual([next(label for label in support.ARGUMENT_FIELDS if line.startswith(label))
                                   for line in labelled], list(support.ARGUMENT_FIELDS))
-                # The argument is nothing but those fields; the prose that follows is outside the markers.
-                self.assertEqual(lines[end + 1], loops.HOST_LINE)
+                # (c) The result and the exit-evidence rule close the block, each once.
+                self.assertEqual(lines[end + 1:], [loops.RESULT_LINE, " ".join(loops.LOOP_RULE.split())])
                 self.assertNotIn("Argument:", lines)
                 self.assertFalse([line for line in lines if line.startswith("    ")], "an indented argument line")
-                # The card is not what the packet sends a host to.
                 self.assertFalse([line for line in lines if "ADAPTER.md" in line or line.startswith("How to invoke")])
 
+    def test_the_block_names_one_start_route_and_no_tool(self):
+        """The command is the only route: no line names the Skill tool, a skill of that name or the slash form, and
+        the active-receipt clause and the exit-evidence sentence each appear once."""
+        self.assertFalse(hasattr(loops, "HOST_LINE"), "the per-host line was removed")
+        for stage in stage_spec.INNER:
+            with self.subTest(stage=stage):
+                state = self.state_for(stage)
+                self.write(state)
+                text = "\n".join(loops.invoke_lines(self.root, state))
+                for forbidden in ("Skill tool", "skill until-loop", "Claude Code", "Any other host"):
+                    self.assertNotIn(forbidden, text)
+                # The slash form, not the runtime directory the start command runs (`.../until-loop/scripts/...`).
+                self.assertIsNone(re.search(SLASH_FORM, text))
+                self.assertEqual(text.count("a second start resets the loop"), 1)
+                self.assertEqual(text.count("Call an exit condition satisfied only when a command or file shows it "
+                                            "after your last edit."), 1)
+                self.assertEqual(text.count(" start --receipt "), 1, "one start command")
+        for needed in ("Receipt below already exists and is active", "run its next_argv instead"):
+            self.assertIn(needed, loops.INVOKE_LINE)
+
     def test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop(self):
-        """(b), (c): the printed command is the one that starts the loop, on this action's own contract and receipt."""
+        """The printed command is the one that starts the loop, on this action's own contract and receipt."""
         for stage in ("step-plan", "test", "document", "verify"):
             with self.subTest(stage=stage):
                 state = self.state_for(stage)
@@ -259,6 +312,7 @@ class InvokeLinesTests(Synthetic):
                 contract_file, receipt = self.root / loops.contract_path(action), loops.receipt_path(self.root, action)
                 expected = loops.start_command(loops.runtime(state), receipt, contract_file)
                 self.assertEqual(block.command, expected)
+                self.assertEqual(block.lines[1:3], [loops.INVOKE_LINE, expected], "the command is the RUN line's next line")
                 words = shlex.split(block.command)
                 self.assertEqual(words[:2][0], "python3")
                 self.assertTrue(words[1].endswith("until-loop/scripts/until_loop_ephemeral.py"))
@@ -275,44 +329,75 @@ class InvokeLinesTests(Synthetic):
                 self.assertEqual(started["work"], json.loads(contract_file.read_text())["work"])
                 self.assertEqual([started["done_argv"][2], started["next_argv"][2]], ["done", "next"])
 
-    def test_the_result_line_names_the_receipt_and_the_next_command(self):
-        """(d): what the finished loop leaves, and what to do with it."""
+    def test_the_result_line_names_the_receipt_the_next_command_and_the_runtimes_five_report_fields(self):
+        """What the finished loop leaves, what to do with it, and the report the runtime requires (SP-4)."""
         state = self.state_for("document")
         self.write(state)
         block = self.block(state)
         self.assertEqual(block.result, loops.RESULT_LINE)
-        for needed in ("the Receipt above", "status complete", "stopped: report it", "evidence_refs",
-                       "the Callback command above", "the start command above again", "an active receipt: its next_argv",
-                       "complete again"):
+        for needed in ("the Receipt says status complete", "stopped: report it", "evidence_refs",
+                       "the Callback command above", "run the start command above again",
+                       "an active receipt: its next_argv instead", "then run the Callback again"):
             self.assertIn(needed, block.result)
-        # The Receipt it points at is the argument's, one line up, with the path the command writes.
+        # The Receipt it points at is the argument's, with the path the command writes.
         self.assertEqual(block.field("Receipt: "), str(loops.receipt_path(self.root, "A-document")))
-        # The closing rule keeps the obligations the old rule carried, and no longer repeats the result line.
+        # The closing rule is the exit-evidence sentence and nothing else; the receipt and contract rule is said once,
+        # where the argument is introduced.
         self.assertEqual(block.lines[-1], " ".join(loops.LOOP_RULE.split()))
-        for kept in ("do not edit it or the receipt", "only when a command or file shows it after your last edit"):
-            self.assertIn(kept, block.lines[-1])
-        self.assertNotIn("start the loop again", block.lines[-1])
+        self.assertEqual(block.lines[-1], "Call an exit condition satisfied only when a command or file shows it after "
+                                          "your last edit.")
+        self.assertIn("do not edit that file or the receipt", loops.FOLLOW_LINE)
         self.assertIn("Never write or edit the receipt", loops.RECEIPT_RULE)
 
-    def test_the_host_line_names_the_skill_tool_and_the_command_for_every_other_host(self):
-        self.assertIn('Claude Code: the Skill tool, skill "until-loop", with that argument.', loops.HOST_LINE)
-        self.assertIn("Any other host: run this in the foreground", loops.HOST_LINE)
-        for named in ("done_argv", "until the receipt says complete or stopped"):
-            self.assertIn(named, loops.HOST_LINE)
+    def test_the_printed_report_fields_are_the_runtimes_required_fields_and_enums(self):
+        """The text names the fields and values of the schema the real runtime hands out, not a copy that can drift."""
+        state, receipt = self.start("document")
+        schema = json.loads(receipt.read_text())["report_schema"]
+        self.assertEqual(len(schema["required"]), 5)
+        text = loops.REPORT_FIELDS
+        for field in schema["required"]:
+            self.assertIn(field, text)
+        for field, spec in schema["properties"].items():
+            if "enum" in spec:
+                self.assertIn(field + " " + "|".join(spec["enum"]), text)
+        self.assertEqual(text.count("nonblank text"), 1)
+        for line in (loops.RESULT_LINE, loops.RESUME_RESULT_LINE):
+            self.assertTrue(line.endswith(text))
 
-    def test_a_started_loop_leads_with_resume_not_run_and_keeps_the_rest(self):
-        """The runtime does not refuse a second start for one receipt, so a packet read after the start says so first."""
+    def test_a_started_loop_leads_with_resume_not_run_and_prints_no_start_command(self):
+        """The runtime does not refuse a second start for one receipt, so a packet read after the start prints no
+        start command (plan 6.3, LP-3): the resume line takes the RUN line's place and the result line names next_argv."""
         state = self.state_for("test")
         self.write(state)
         fresh = loops.invoke_lines(self.root, state)
-        self.assertEqual(fresh[:3], ["", "Until Loop (no iteration limit):", loops.INVOKE_LINE])
+        command = self.block(state).command
+        self.assertEqual(fresh[:4], ["", loops.BLOCK_HEADING, loops.INVOKE_LINE, command])
         self.assertEqual(self.block(state).run(self.root)["status"], "active")
         started = loops.invoke_lines(self.root, state)
-        self.assertEqual(started[:3], ["", "Until Loop (no iteration limit):", loops.RESUME_LINE])
+        self.assertEqual(started[:4], ["", loops.BLOCK_HEADING, loops.RESUME_LINE, loops.ARGUMENT_LEAD])
         self.assertNotIn(loops.INVOKE_LINE, started)
-        self.assertIn("do not invoke it again", loops.RESUME_LINE)
-        # Only the first line differs: the argument, the command and the result stay for a reader who lost context.
-        self.assertEqual(started[3:], fresh[3:])
+        self.assertNotIn(loops.FOLLOW_LINE, started)
+        self.assertFalse([line for line in started if " start --receipt " in line], "no start command to run twice")
+        self.assertIsNone(self.block(state).command)
+        self.assertIn("do not start it again", loops.RESUME_LINE)
+        self.assertIn("a second start resets it", loops.RESUME_LINE)
+        # The argument and the closing rule stay for a reader who lost context; the result line has no start command.
+        self.assertEqual(started[4:-2], fresh[5:-2])
+        self.assertEqual(started[-2:], [loops.RESUME_RESULT_LINE, fresh[-1]])
+        self.assertNotIn("start command", loops.RESUME_RESULT_LINE)
+        self.assertIn("next_argv", loops.RESUME_RESULT_LINE)
+
+    def test_the_ask_agent_implement_block_has_the_same_shape_and_one_command(self):
+        """The whole-plan implement action of the ask-agent route prints the same block: command first, argument after."""
+        state = dict(self.state_for("implement"), delegation="ask-agent")
+        state["inner_loops"]["W1"]["action"]["id"] = "A-implement"
+        self.write(state)
+        lines = loops.invoke_lines(self.root, state)
+        receipt, contract_file = loops.receipt_path(self.root, "A-implement"), self.root / loops.contract_path("A-implement")
+        self.assertEqual(lines[:5], ["", loops.BLOCK_HEADING, loops.INVOKE_LINE,
+                                     loops.start_command(loops.runtime(state), receipt, contract_file), loops.FOLLOW_LINE])
+        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", "\n".join(lines))
+        self.assertEqual(lines.count(loops.ARGUMENT_BEGIN), 1)
 
     def test_a_missing_contract_says_blocked(self):
         state, _receipt = self.start("test")
@@ -329,6 +414,56 @@ class InvokeLinesTests(Synthetic):
 
     def test_outside_an_inner_stage_nothing_is_printed(self):
         self.assertEqual(loops.invoke_lines(self.root, {"stage": "spec"}), [])
+
+
+class RenderedPacketsTests(unittest.TestCase):
+    """One start route in every looped stage's printed text (plan U9): the packet file's text and the head a long packet
+    prints, inline and ask-agent, name the literal command and no tool.  The offline step slice drives the navigator
+    through a neutral case with synthetic results, so every inner stage's packet is the one a run prints.  (Its
+    implement packet, on either route, says the loop is unavailable: the synthetic step plan has no steps; the Synthetic
+    tests above cover both routes' implement block.)"""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
+        import packets as offline
+        case = json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text())["node-fix-bug"]
+        cls.renders = {(route, printed): offline.offline_packets(case, route, printed)
+                       for route in ("inline", "ask-agent") for printed in (False, True)}
+
+    def looped(self):
+        """(label, stage, text) of every looped stage's packet; an Improve stage's packet has its own Skill-tool line."""
+        for (route, printed), packets in self.renders.items():
+            for key, text in packets.items():
+                if not key.endswith("-improve"):
+                    yield f"{route} {'head' if printed else 'file'} {key}", key.split("-", 1)[1], text
+
+    def test_every_looped_stage_prints_the_run_line_then_the_command_and_names_no_tool(self):
+        seen, unavailable = set(), []
+        for label, stage, text in self.looped():
+            with self.subTest(packet=label):
+                for forbidden in ("Skill tool", "skill until-loop"):
+                    self.assertNotIn(forbidden, text)
+                self.assertIsNone(re.search(SLASH_FORM, text), "the slash form of the loop")
+                block = support.LoopBlock(text)
+                if block.lines[1].startswith("Unavailable: "):
+                    unavailable.append(stage)
+                    continue
+                seen.add(stage)
+                self.assertEqual(block.lines[1], loops.INVOKE_LINE)
+                self.assertTrue(block.command and block.command == block.lines[2], "the command follows the RUN line")
+                self.assertEqual(block.lines[3], loops.FOLLOW_LINE)
+                self.assertEqual(block.begins, [4], "the argument follows the command")
+                self.assertEqual(len([line for line in block.lines if " start --receipt " in line]), 1)
+        self.assertEqual(seen, set(stage_spec.INNER) - {"implement"}, "every other inner stage was rendered with its block")
+        self.assertEqual(set(unavailable), {"implement"})
+
+    def test_the_head_and_the_test_stage_name_the_argument_by_its_name_not_the_slash_form(self):
+        texts = [text for _label, _stage, text in self.looped()]
+        self.assertTrue(any(nav.DONE_WHEN_LOOP in text for text in texts))
+        self.assertIn("the Until Loop argument below", nav.DONE_WHEN_LOOP)
+        floors = [text for _label, stage, text in self.looped() if stage == "test"]
+        self.assertTrue(floors and all("recorded command in the Until Loop argument above from " in text for text in floors))
 
 
 class CheckTerminalTests(Synthetic):
@@ -386,6 +521,12 @@ class CheckTerminalTests(Synthetic):
         for outcome in ("done", "blocked"):
             self.refused(state, {"outcome": outcome, "evidence_refs": [str(receipt)]},
                          "the step-plan loop was cancelled after 1 iterations; it has no iteration limit")
+        # A packet read after the start prints no start command (a second start resets the loop), so the refusal that
+        # tells the model to start again carries it.
+        command = loops.start_command(loops.runtime(state), receipt, self.root / loops.contract_path("A-step-plan"))
+        with self.assertRaises(loops.LoopError) as caught:
+            loops.check_terminal(self.root, state, {"outcome": "done", "evidence_refs": [str(receipt)]})
+        self.assertIn("start the loop again with " + command + " and run it", str(caught.exception))
 
     def test_a_receipt_the_runtime_did_not_write_is_refused(self):
         state, receipt = self.start("document")
@@ -414,10 +555,12 @@ class NavigatorLoopTests(fx.RunDriver):
     def run_loop(self, reports: list, *, contract_edit=None) -> dict:
         """Start the packet's printed command, submit ``reports`` in order; the runtime writes the receipt."""
         # The command is the one the packet prints (owner, 2026-10-16), split into words so a test can edit the contract.
+        # A packet read after the start prints none (a second start resets the loop): a test that starts again on
+        # purpose builds the same command the gate names.
         block = support.LoopBlock(self.packet())
-        words = shlex.split(block.command)
-        self.assertEqual(block.command, loops.start_command(loops.runtime(self.state()), self.receipt(),
-                                                            Path(block.field("Contract: "))))
+        command = loops.start_command(loops.runtime(self.state()), self.receipt(), Path(block.field("Contract: ")))
+        self.assertIn(block.command, (command, None))
+        words = shlex.split(command)
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:
@@ -458,7 +601,7 @@ class NavigatorLoopTests(fx.RunDriver):
         # The packet names the bundled runtime's script in the command it prints, not a card to read.
         self.assertIn(" " + str(fx.ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py") + " start ",
                       packet)
-        self.assertNotIn("ADAPTER.md", packet.split("Until Loop (no iteration limit)")[1])
+        self.assertNotIn("ADAPTER.md", packet.split("Until Loop (no iteration limit")[1])
         self.assertNotIn("Unavailable:", packet)
 
     def test_a_completed_loop_is_accepted_as_done(self):
@@ -655,6 +798,130 @@ class MissingContractTests(unittest.TestCase):
             real = subprocess.run(cli, capture_output=True, text=True, env=env)
             self.assertEqual(real.returncode, 2, real.stdout + real.stderr)
             self.assertIn("has not run", real.stdout + real.stderr)
+
+
+class WorkTextTests(Synthetic):
+    """The Work and Repeat text of each contract cites the packet's duty items and the one command that tests a draft
+    result; both were false in the artifact run (U11, SP-5, TD-6, SPEC-7, VR-6)."""
+
+    # The pin: how many numbered duty items each inner stage's duty prints (the highest number; verify's item 8, the
+    # assembly check, prints on the ask-agent route only).  A duty edit that adds, drops or renumbers an item fails here,
+    # and the range its Work cites (counted from the same text) moves with it.
+    DUTY_ITEMS = {"step-plan": 12, "test-spec": 7, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
+                  "verify": 12, "carry-forward": 4}
+    # The items each Work cites.  A stage's loop does its whole duty but verify's: items 10 to 12 (commit nothing, the
+    # summary, the revise route) follow the review loop, and its duty says items 1-7 repeat and 8-9 are done once.
+    LOOP_LAST = {"verify": 9}
+
+    def numbers(self, stage: str, route: str) -> list:
+        return [int(n) for n in re.findall(r"(?m)^(\d+)\. ", prompts.duty(stage, delegation=route))]
+
+    def work(self, stage: str, route: str = "inline") -> str:
+        state = dict(self.state_for(stage), delegation=route)
+        return loops.contract(self.root, state, "A-" + stage)["work"]
+
+    def cited(self, work: str) -> list:
+        """The duty items a Work line cites, from "duty items 1-7 and 9 of ..." """
+        found = re.search(r"duty items ([\d, and-]+) of ", work)
+        self.assertTrue(found, work)
+        items = []
+        for part in re.split(r", | and ", found.group(1).strip()):
+            first, _, last = part.partition("-")
+            items += list(range(int(first), int(last or first) + 1))
+        return items
+
+    def test_the_pinned_duty_counts_are_the_counts_the_packet_prints(self):
+        for stage in stage_spec.INNER:
+            for route in prompts.DELEGATIONS:
+                with self.subTest(stage=stage, route=route):
+                    found = self.numbers(stage, route)
+                    self.assertEqual(max(found), self.DUTY_ITEMS[stage])
+                    self.assertEqual(found, sorted(found))
+
+    def test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other(self):
+        for stage in stage_spec.INNER:
+            for route in prompts.DELEGATIONS:
+                with self.subTest(stage=stage, route=route):
+                    printed = [n for n in self.numbers(stage, route) if n <= self.LOOP_LAST.get(stage, 99)]
+                    self.assertEqual(self.cited(self.work(stage, route)), printed)
+
+    def test_the_ranges_read_as_ranges_and_verify_skips_the_assembly_item_inline(self):
+        self.assertIn("duty items 1-12 of ", self.work("step-plan"))
+        self.assertIn("duty items 1-4 of ", self.work("carry-forward", "ask-agent"))
+        self.assertIn("duty items 1-9 of ", self.work("verify", "ask-agent"))
+        self.assertIn("duty items 1-7 and 9 of ", self.work("verify", "inline"))
+
+    def test_the_cited_range_follows_the_duty_text_it_is_generated_from(self):
+        """A renumbering cannot leave a stale range: add an item to a duty and the Work moves with it."""
+        original = prompts.DUTIES["document"]
+        try:
+            prompts.DUTIES["document"] = original + "8. **Extra.** An eighth item.\n"
+            self.assertIn("duty items 1-8 of ", self.work("document"))
+        finally:
+            prompts.DUTIES["document"] = original
+        self.assertIn("duty items 1-7 of ", self.work("document"))
+
+    def test_verify_says_which_items_repeat_and_which_are_done_once(self):
+        text = {route: " ".join(prompts.duty("verify", delegation=route).split()) for route in prompts.DELEGATIONS}
+        self.assertIn("Each review iteration does items 1-7 in order; items 8-9 once, before you report the exit "
+                      "satisfied.", text["ask-agent"])
+        self.assertIn("Each review iteration does items 1-7 in order; item 9 once, before you report the exit "
+                      "satisfied.", text["inline"])
+        # the exit condition that item 9 serves
+        self.assertIn("later-phase checks are marked pending with their owner", stage_spec.stage("verify").done_when[3])
+        for route in prompts.DELEGATIONS:
+            self.assertIn("9. **Later checks.**", prompts.duty("verify", delegation=route))
+
+    def test_the_assembly_item_prints_on_the_ask_agent_route_only(self):
+        self.assertIn("8. **Assembly.**", prompts.duty("verify", delegation="ask-agent"))
+        self.assertNotIn("Assembly", prompts.duty("verify", delegation="inline"))
+
+    def test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command(self):
+        for stage in ("step-plan", "test-spec", "test"):
+            with self.subTest(stage=stage):
+                work = " ".join(self.work(stage).split())
+                self.assertIn("then run the Callback command with `--check-only` added and fix each refusal", work)
+                self.assertNotIn("printed there", work)
+        self.assertIn("(it runs the base run, the candidate run and the mutation check without counting)",
+                      " ".join(self.work("test").split()))
+        self.assertIn("a lint finding or a check-only refusal", loops.REPEAT["test"])
+        for stage in ("document", "implement", "verify", "carry-forward", "validate-existing"):
+            self.assertNotIn("check-only", self.work(stage), stage)
+
+    def test_the_printed_callback_with_the_flag_added_is_a_check_only_run(self):
+        """Paired with the behaviour the sentence describes: the packet prints the Callback, and the same command plus
+        --check-only runs the stage's gates without completing the action."""
+        with tempfile.TemporaryDirectory(prefix="shiploop-check-only-callback-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            run = Path(temp).resolve() / "run"
+            run.mkdir()
+            state = nav.new_state(str(repo), "Build a thing.", delegation="inline")
+            while nav.current_stage(state) != "document":
+                here, action = nav.current_stage(state), nav.current_action(state)["id"]
+                extra = ({"work_items": [{"id": "W1", "title": "one", "context": "c"}]} if here == "plan" else
+                         {"steps": [{"id": "S1", "task": "Make it."}]} if here == "step-plan" else {})
+                state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, action, {"summary": "Synthetic review"})
+            nav.save(run, state)
+            action = nav.current_action(state)["id"]
+            printed = subprocess.run([sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "next",
+                                      "--run-dir", str(run)], capture_output=True, text=True,
+                                     env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
+            label = next(line for line in printed.stdout.splitlines() if line.startswith("Callback for this stage"))
+            command = shlex.split(label.split("): ", 1)[1])
+            result = Path(next(part for part in command if part.startswith("--result=")).split("=", 1)[1])
+            result.parent.mkdir(parents=True, exist_ok=True)
+            result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
+                              "headline": "Docs updated.", "evidence_refs": [str(loops.receipt_path(run, action))]})
+                              + "\n```\n")
+            checked = subprocess.run([*command, "--check-only"], capture_output=True, text=True,
+                                     env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+            self.assertIn("ShipLoop check-only: every script gate for document accepts this result", checked.stdout)
+            self.assertEqual(nav.current_action(store.read_record(run / "state.md"))["id"], action)  # not completed
 
 
 if __name__ == "__main__":

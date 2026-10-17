@@ -2,11 +2,11 @@
 
 Every INNER stage does its work inside one bound Until Loop run.  ShipLoop
 writes the loop contract on entry to the stage's action (``contract_writes``),
-prints the loop block in the packet (``invoke_lines``: RUN the until-loop skill
-with the argument between two marker lines, the literal start command for a host
-with no Skill tool, and the result to report) and, before it accepts the result,
-compares the runtime's terminal packet with the contract rebuilt from state
-(``check_terminal``), so editing the contract file cannot reshape the loop.
+prints the loop block in the packet (``invoke_lines``: the one literal start
+command, the argument between two marker lines, and the result to report) and,
+before it accepts the result, compares the runtime's terminal packet with the
+contract rebuilt from state (``check_terminal``), so editing the contract file
+cannot reshape the loop.
 
 The contract is rebuilt deterministically from state: the same state gives
 the same bytes at entry and at complete.  It therefore names no install path
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import stat
 from pathlib import Path
@@ -28,6 +29,7 @@ from typing import Any, Mapping, Optional, Sequence
 import shiploop_knowledge_home as knowledge_home
 import shiploop_lint as lint
 import shiploop_loop_contract as loop_contract
+import shiploop_prompts as prompts
 import shiploop_stage_spec as stage_spec
 import shiploop_standalone_improve as standalone
 
@@ -57,29 +59,34 @@ def _need(condition: bool, message: str) -> None:
 _NEVER_CANCEL = "Never stop cancelled: a user's stop is the ShipLoop packet's pause command."
 _NO_LIMIT = "there is no iteration limit."
 
+# ``{items}`` is the duty items the loop does, counted from the duty text the route prints (``_duty_items``), so a duty
+# edit moves the range the Work cites and the Work never cites an item the packet does not print.  The check-only clause
+# is the Callback command with the flag added, which no packet prints as a command of its own.
+_CHECK_ONLY = "run the Callback command with `--check-only` added and fix each refusal"
+
 WORK: Mapping[str, str] = {
     "step-plan": (
-        "Do duty items 1-12 of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then run "
-        "the `complete --check-only` command printed there and fix each refusal."),
+        "Do duty items {items} of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then "
+        + _CHECK_ONLY + "."),
     "test-spec": (
-        "Do duty items 1-6 of {run}/packets/{action}.md, one `test_cases` row per case; then run the `complete "
-        "--check-only` command printed there and fix each refusal."),
+        "Do duty items {items} of {run}/packets/{action}.md, one `test_cases` row per case; then " + _CHECK_ONLY + "."),
     "validate-existing": (
-        "Take the first expectation whose check does not match its state and do duty items 1-2 of "
+        "Take the first expectation whose check does not match its state and do duty items {items} of "
         "{run}/packets/{action}.md for it; then rerun every expectation's check."),
     "implement": (
-        "Do duty items 1-4 of {run}/packets/{action}.md for {step_change}. Write no tests and start no later step."),
+        "Do duty items {items} of {run}/packets/{action}.md for {step_change}. Write no tests and start no later step."),
     "test": (
-        "Do duty items 1-4 of {run}/packets/{action}.md for every test case quoted in the packet until every case "
+        "Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet until every case "
         "is a passing test the focused command runs; write each test change's independent reason in "
-        "{run}/notes/{action}.md."),
+        "{run}/notes/{action}.md; then " + _CHECK_ONLY + " (it runs the base run, the candidate run and the mutation "
+        "check without counting)."),
     "document": (
-        "Do duty items 1-5 of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
+        "Do duty items {items} of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
     "verify": (
-        "Do duty items 1-7 of {run}/packets/{action}.md in order; the review gate needs one complete iteration that "
+        "Do duty items {items} of {run}/packets/{action}.md in order; the review gate needs one complete iteration that "
         "finds only trivial issues."),
     "carry-forward": (
-        "Do duty items 1-3 of {run}/packets/{action}.md; write the skill trial to "
+        "Do duty items {items} of {run}/packets/{action}.md; write the skill trial to "
         "{run}/notes/{action}-skill-trial.md."),
 }
 
@@ -104,7 +111,8 @@ REPEAT: Mapping[str, str] = {
         "revise). " + _NEVER_CANCEL),
     "test": (
         "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
-        "below the floor, a new ID passing on the base, or a lint finding, and changed code or tests to fix it; "
+        "below the floor, a new ID passing on the base, a lint finding or a check-only refusal, and changed code or "
+        "tests to fix it; "
         + _NO_LIMIT + " Stop blocked when a failure is proven unachievable (it contradicts the specification or "
         "another requirement, needs a tool, access or authority that is absent, or would exceed the item), or "
         "when a recorded command cannot run here. " + _NEVER_CANCEL),
@@ -128,10 +136,47 @@ REPEAT: Mapping[str, str] = {
 TRIVIAL_REVIEWS: Mapping[str, int] = {name: (1 if name == "verify" else 0) for name in STAGES}
 
 
-def exit_condition(stage: str) -> str:
+def several_steps(scope: Optional[Mapping[str, Any]]) -> Optional[tuple[str, str]]:
+    """(the steps' name, their paths) when ``scope`` (``implement_scope``) is one action that builds several steps, as the
+    ask-agent route issues it; None for one step."""
+    if scope is None or scope.get("count", 1) <= 1:
+        return None
+    return str(scope["id"]), _paths_text(scope.get("paths") or ())
+
+
+def worded_stage(stage: str, scope: Optional[Mapping[str, Any]] = None) -> stage_spec.Stage:
+    """The stage row as the packet and the loop contract word it.  Implement on a route that builds several steps in one
+    action names those steps and their paths; every other case is the row itself."""
+    row = stage_spec.stage(stage)
+    named = several_steps(scope) if stage == "implement" else None
+    return stage_spec.for_steps(row, *named) if named else row
+
+
+# The last duty item a stage's loop does.  Every stage's loop does its whole duty but verify's: its last three items
+# (commit nothing, the summary, the revise route) follow the review loop.
+_LOOP_LAST: Mapping[str, int] = {"verify": 9}
+
+
+def _duty_items(stage: str, route: str) -> str:
+    """The numbered items of the stage's duty that its loop does, as the packet of ``route`` prints them, written as ranges
+    ("1-12"; "1-7 and 9" where the route omits an item)."""
+    numbers = sorted(int(number) for number in re.findall(r"(?m)^(\d+)\. ", prompts.duty(stage, delegation=route))
+                     if int(number) <= _LOOP_LAST.get(stage, 10 ** 6))
+    ranges: list[str] = []
+    start = previous = numbers[0]
+    for number in [*numbers[1:], None]:
+        if number is not None and number == previous + 1:
+            previous = number
+            continue
+        ranges.append(f"{start}-{previous}" if previous > start else str(start))
+        start = previous = number
+    return ", ".join(ranges[:-1]) + (" and " if len(ranges) > 1 else "") + ranges[-1]
+
+
+def exit_condition(stage: str, scope: Optional[Mapping[str, Any]] = None) -> str:
     """The stage's done_when criteria, numbered one per line: the loop's exit and the packet's DONE WHEN are one text."""
     return "\n".join(f"{number}. {criterion}" for number, criterion
-                     in enumerate(stage_spec.stage(stage).done_when, 1))
+                     in enumerate(worded_stage(stage, scope).done_when, 1))
 
 
 def _check_table() -> None:
@@ -245,9 +290,10 @@ COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; t
 
 def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
-           commands: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
-    """One stage's contract from plain values; ``contract`` supplies them from state."""
-    values = {"run": str(root), "action": action_id, "repo": repo}
+           commands: Sequence[Mapping[str, Any]] = (), route: str = prompts.INLINE) -> dict[str, Any]:
+    """One stage's contract from plain values; ``contract`` supplies them from state (``route``: the delegation the
+    action was issued with, which decides which duty items its packet prints)."""
+    values = {"run": str(root), "action": action_id, "repo": repo, "items": _duty_items(stage, route)}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
@@ -255,7 +301,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
         values["step"] = str(step.get("id"))
         if step.get("all_steps"):
             # The ask-agent route issues one implement action for the whole plan (its chain runs the steps).
-            values["step_change"] = "the change of every step, " + str(step.get("id")) + ", in order,"
+            values["step_change"] = "the change of every step, " + str(step.get("id")) + ", in order"
             scope = (f"Workspace {repo}. Every step of work item {item} ({step.get('id')}): only their paths: "
                      f"{_paths_text(step.get('paths') or ())}. Preserve every other change.")
         else:
@@ -300,7 +346,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
     return loop_contract.contract(
         workspace=repo,
         work=work,
-        exit_condition=exit_condition(stage),
+        exit_condition=exit_condition(stage, step),
         repeat_condition=REPEAT[stage],
         required_trivial_reviews=TRIVIAL_REVIEWS[stage],
         request=(f"ShipLoop {stage} for work item {item} ({title}). The run's request is "
@@ -329,7 +375,8 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
 
         commands = test_loop.stage_commands(state, stage, item)[0]
     return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
-                  step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)
+                  step=implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands,
+                  route=_route(state, action_id))
 
 
 def _route(state: Mapping[str, Any], action_id: str) -> str:
@@ -340,9 +387,10 @@ def _route(state: Mapping[str, Any], action_id: str) -> str:
     return str(state.get("delegation"))
 
 
-def _implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Optional[Mapping[str, Any]]:
+def implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Optional[Mapping[str, Any]]:
     """implement's scope: the current step on the inline route (one action per step), or every step of the plan on the
-    ask-agent route, which issues one implement action whose chain runs them all."""
+    ask-agent route, which issues one implement action whose chain runs them all (``all_steps``; ``count`` is how many,
+    ``id`` names them, "S1 to S2")."""
     if _route(state, action_id) != "ask-agent":
         return current_step(state, item)
     _action, plan = _step_plan(state, item)
@@ -351,7 +399,8 @@ def _implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Opt
         return None
     paths = list(dict.fromkeys(str(path) for row in steps for path in (row.get("paths") or ())))
     ids = [str(row.get("id")) for row in steps]
-    return {"id": ids[0] if len(ids) == 1 else ids[0] + " to " + ids[-1], "paths": paths, "all_steps": True}
+    return {"id": ids[0] if len(ids) == 1 else ids[0] + " to " + ids[-1], "paths": paths, "all_steps": True,
+            "count": len(ids)}
 
 
 def contract_writes(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
@@ -393,22 +442,24 @@ def start_command(bound: Mapping[str, str], receipt: Path, contract_file: Path) 
             + " < " + shlex.quote(str(contract_file)))
 
 
-# The Until Loop block, as a model with no other context reads it (owner, 2026-10-16: say "RUN this skill" with the
-# explicit argument and command, not in generalities).  The argument sits between two marker lines; the commands are
-# literal, absolute and copy-ready, because the hooks and the runtime read command text.
-INVOKE_LINE = ("RUN the until-loop skill now, once, with exactly the lines between the two markers (nothing outside "
-               "them is part of the argument). Do this stage's work only inside the loop.")
+# The Until Loop block, as a model with no other context reads it (owner, 2026-10-16: say "RUN" with the explicit
+# argument and command, not in generalities; plan 6.3, 2026-10-17: one start route on every host).  The literal start
+# command comes first; the argument sits between two marker lines after it and holds what the runtime reads from the
+# Contract file, so it is shown, not passed.  The commands are literal, absolute and copy-ready, because the hooks and
+# the runtime read command text.  No line names a tool: the same command starts the loop on every host.
+BLOCK_HEADING = "Until Loop (no iteration limit; the loop script counts the iterations):"
+INVOKE_LINE = ("RUN the Until Loop now, once, before any work, and do this stage's work only inside it. Start it with "
+               "this command, in the foreground, exactly as printed (if the Receipt below already exists and is active, "
+               "run its next_argv instead: a second start resets the loop):")
+ARGUMENT_LEAD = "Its argument is already in the Contract file; do not edit that file or the receipt:"
+FOLLOW_LINE = ("Then follow each packet it prints (run its done_argv as printed) until the receipt says complete or "
+               "stopped. " + ARGUMENT_LEAD)
 ARGUMENT_BEGIN = "----- BEGIN until-loop ARGUMENT -----"
 ARGUMENT_END = "----- END until-loop ARGUMENT -----"
-# Claude Code has the Skill tool; any other host runs the start command itself and follows each packet the runtime
-# prints (its done_argv takes the JSON report, whose fields the packet's report_schema lists).
-HOST_LINE = ('Claude Code: the Skill tool, skill "until-loop", with that argument. Any other host: run this in the '
-             "foreground, then follow each packet it prints (run its done_argv as printed) until the receipt says "
-             "complete or stopped:")
-# How an inner stage works inside its loop: printed once, in the invoke block (packet re-cut, 2026-10-11).
+# How an inner stage works inside its loop: the exit-evidence rule, printed once, last in the block (packet re-cut,
+# 2026-10-11).  Where the loop's files may not be edited is said where the argument is introduced.
 LOOP_RULE = """\
-ShipLoop wrote the loop contract; do not edit it or the receipt. Call an exit condition satisfied only when a command
-or file shows it after your last edit.
+Call an exit condition satisfied only when a command or file shows it after your last edit.
 """
 
 RECEIPT_RULE = ("Never write or edit the receipt. If it exists and is active, run its next_argv instead of starting "
@@ -417,11 +468,21 @@ RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one
                 "do not write or edit it): ")
 RECEIPT_REF_LINE = ("The result template's evidence_refs already lists the receipt: keep it when you report done. "
                     "ShipLoop refuses done without it.")
-RESUME_LINE = ("The loop already started: do not invoke it again. While the receipt's status is active, run its "
-               "next_argv once and follow the packet it prints; when complete or stopped, submit this stage's result.")
-RESULT_LINE = ("Result: when the Receipt above says status complete (stopped: report it), keep it in evidence_refs "
-               "and run the Callback command above. If that refuses for the loop, run the start command above again "
-               "(an active receipt: its next_argv instead), then complete again.")
+RESUME_LINE = ("The loop already started: do not start it again (a second start resets it). While the receipt's status "
+               "is active, run its next_argv once and follow the packet it prints; when complete or stopped, submit this "
+               "stage's result.")
+# The runtime's report schema requires all five fields; its enums are printed here so the done report is written once.
+REPORT_FIELDS = ("Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment "
+                 "satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled, plus evidence and "
+                 "handoff (nonblank text).")
+_RESULT_HEAD = ("Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run "
+                "the Callback command above. If that refuses for the loop, ")
+RESULT_LINE = (_RESULT_HEAD + "run the start command above again (an active receipt: its next_argv instead), then run "
+               "the Callback again. " + REPORT_FIELDS)
+# A packet read after the start prints no start command (a second start resets the loop), so its result line names the
+# receipt's next_argv alone.
+RESUME_RESULT_LINE = (_RESULT_HEAD + "run the receipt's next_argv once and follow the packet it prints, then run the "
+                      "Callback again. " + REPORT_FIELDS)
 
 
 def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
@@ -431,7 +492,7 @@ def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
 
 
 def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
-    """Whether ``invoke_lines`` prints the /until-loop argument (and so the numbered exit conditions) for this state."""
+    """Whether ``invoke_lines`` prints the Until Loop argument (and so the numbered exit conditions) for this state."""
     found = cursor(state)
     if found is None:
         return False
@@ -444,13 +505,18 @@ def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
 
 
 def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
-    """Read-only packet lines: the strong /until-loop invoke block for the current inner action ([] outside one)."""
+    """Read-only packet lines: the Until Loop block for the current inner action ([] outside one).
+
+    Fresh: the RUN line, the literal start command, the follow line, the argument and the result.  Once the receipt
+    exists (the loop started) the RUN line and the start command give way to ``RESUME_LINE``: the runtime does not
+    refuse a second start for one receipt, it writes a new run over it.
+    """
     found = cursor(state)
     if found is None:
         return []
     root = Path(root)
     stage, action_id, _ = found
-    lines = ["", "Until Loop (no iteration limit):"]
+    lines = ["", BLOCK_HEADING]
     try:
         bound = runtime(state)
         value = contract(root, state, action_id)
@@ -458,9 +524,10 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         lines.append("Unavailable: " + str(exc) + ". Report outcome blocked with this reason.")
         return lines
     contract_file, receipt = root / contract_path(action_id), receipt_path(root, action_id)
+    started = os.path.lexists(receipt)
+    lines += [RESUME_LINE, ARGUMENT_LEAD] if started else [
+        INVOKE_LINE, start_command(bound, receipt, contract_file), FOLLOW_LINE]
     lines += [
-        # A started loop is continued, never restarted: the runtime does not refuse a second start for one receipt.
-        RESUME_LINE if os.path.lexists(receipt) else INVOKE_LINE,
         ARGUMENT_BEGIN,
         *("Work: " + value["work"]).splitlines(),  # the test stage lists its commands
         "Exit when ALL of these hold:",
@@ -469,9 +536,7 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         "Contract: " + str(contract_file),
         "Receipt: " + str(receipt),
         ARGUMENT_END,
-        HOST_LINE,
-        start_command(bound, receipt, contract_file),
-        RESULT_LINE,
+        RESUME_RESULT_LINE if started else RESULT_LINE,
         " ".join(LOOP_RULE.split()),
     ]
     if not contract_file.is_file():
@@ -570,8 +635,8 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
         return
     _need(report.get("continuation_assessment") != "cancelled",
           "the " + label + " was cancelled after " + str(iterations) + " iterations; it has no iteration "
-          "limit. A user's stop is the packet's pause command, not a cancelled loop: start the loop again "
-          "and run it until its exit condition holds")
+          "limit. A user's stop is the packet's pause command, not a cancelled loop: start the loop again"
+          + (" with " + start if start else "") + " and run it until its exit condition holds")
     _need(outcome in ("blocked", "revise"),
           "a " + label + " stopped as blocked reports outcome blocked, with blocked_by, or revise when the "
           "work proved wrong as planned")
@@ -629,9 +694,11 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
 __all__ = (
     "ARGUMENT_BEGIN",
     "ARGUMENT_END",
+    "ARGUMENT_LEAD",
+    "BLOCK_HEADING",
     "BUNDLED_IMPROVE_CARD",
     "COMMANDS_HEAD",
-    "HOST_LINE",
+    "FOLLOW_LINE",
     "INVOKE_LINE",
     "LOOP_DIR",
     "LoopError",
@@ -639,8 +706,10 @@ __all__ = (
     "RECEIPT_REF_LINE",
     "RECEIPT_RULE",
     "REPEAT",
+    "REPORT_FIELDS",
     "RESULT_LINE",
     "RESUME_LINE",
+    "RESUME_RESULT_LINE",
     "RUBRIC_PATH",
     "STAGES",
     "TRIVIAL_REVIEWS",

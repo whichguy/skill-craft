@@ -1,0 +1,15 @@
+Until Loop (no iteration limit):
+RUN the until-loop skill now, once, with exactly the lines between the two markers (nothing outside them is part of the argument). Do this stage's work only inside the loop.
+----- BEGIN until-loop ARGUMENT -----
+Work: Do duty items 1-6 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/packets/nav-3c2bb784832841eda77ca7ffd78fc6fb.md, one `test_cases` row per case; then run the `complete --check-only` command printed there and fix each refusal.
+Exit when ALL of these hold:
+1. every completion criterion has at least one test case, or a justified not-applicable
+2. each case has an independent oracle, a RED and a GREEN definition, and an ID a focused command lists
+Repeat while a criterion has no entry, an entry lacks a field, or the complete command with --check-only refuses an id; there is no iteration limit. Stop blocked when a criterion cannot be tested as written (the stage then reports revise). Never stop cancelled: a user's stop is the ShipLoop packet's pause command.
+Contract: /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-contract.json
+Receipt: /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-terminal.json
+----- END until-loop ARGUMENT -----
+Claude Code: the Skill tool, skill "until-loop", with that argument. Any other host: run this in the foreground, then follow each packet it prints (run its done_argv as printed) until the receipt says complete or stopped:
+python3 /home/install/iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii/iiiiiiii/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-terminal.json < /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-contract.json
+Result: when the Receipt above says status complete (stopped: report it), keep it in evidence_refs and run the Callback command above. If that refuses for the loop, run the start command above again (an active receipt: its next_argv instead), then complete again.
+ShipLoop wrote the loop contract; do not edit it or the receipt. Call an exit condition satisfied only when a command or file shows it after your last edit.

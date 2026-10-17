@@ -82,12 +82,14 @@ the whole Improve loop in the existing Child workspace, and the parent verifies
 its return and completes delivery. Follow [Improve context ownership](references/improve-context.md)
 before starting, dispatching or recovering either route. An existing invocation
 keeps its recorded owner. A worktree isolates files, not the model session.
-ShipLoop does not launch Grok, Claude, Codex, or any other model process. Do not
-background the workflow. For INNER assignments, follow the packet context
-boundary and the durable handoff below; do not treat returned `/clear` text as a
-host reset. An external E2E harness may start a model before invoking
-this skill; that launcher remains outside ShipLoop. Environment settings do not
-change this boundary.
+The skill and its navigator commands launch no Grok, Claude, Codex, or other model
+process; only the optional outer driver `scripts/shiploop-drive`
+([keepalive](references/keepalive.md)), a separate script you start yourself, starts
+and resumes host sessions. Do not background the workflow. For INNER assignments,
+follow the packet context boundary and the durable handoff below; do not treat
+returned `/clear` text as a host reset. An external E2E harness may start a model
+before invoking this skill; that launcher remains outside ShipLoop. Environment
+settings do not change this boundary.
 
 Before doing any ShipLoop-managed stage work, bind this package's `CLI` from
 the **selected, loaded** `SKILL.md`. Obtain its absolute location from the
@@ -541,26 +543,28 @@ step plan ([Revise](#revise-back-to-the-step-plan)).
 
 ### Stage Until Loops
 
-Every inner stage does its work inside one Until Loop, invoked by name. On
-entry to the stage's action ShipLoop writes the loop contract
-`loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the stage's
-work, its exit condition (the stage's Done-when lines, numbered, the same
-words the packet prints) and its repeat condition. The packet's loop block
-says `RUN the until-loop skill now, once`, with exactly the lines between its
-two marker lines (`----- BEGIN until-loop ARGUMENT -----` and `----- END
-until-loop ARGUMENT -----`: the Work, Exit when, Repeat, Contract and Receipt
-lines, nothing else). It then says how: on Claude Code the Skill tool, skill
-`until-loop`; on any other host the literal start command, `python3 <runtime
-script> start --receipt <receipt> < <contract>`, and each packet it prints
-until the receipt's status is complete or stopped. It ends with the result:
+Every inner stage does its work inside one Until Loop, started with one literal
+command on every host. On entry to the stage's action ShipLoop writes the loop
+contract `loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the
+stage's work, its exit condition (the stage's Done-when lines, numbered, the
+same words the packet prints) and its repeat condition. The packet's loop block
+says `RUN the Until Loop now, once, before any work`, then prints the start
+command, `python3 <runtime script> start --receipt <receipt> < <contract>`, and
+says to follow each packet it prints until the receipt's status is complete or
+stopped. The argument sits after it between two marker lines (`----- BEGIN
+until-loop ARGUMENT -----` and `----- END until-loop ARGUMENT -----`: the Work,
+Exit when, Repeat, Contract and Receipt lines, nothing else); it is already in
+the Contract file, so it is shown, not passed. The block ends with the result:
 list the receipt in `evidence_refs`, run the callback, and if that refuses for
-the loop, run the start command again. The `--receipt` makes the runtime write
-every packet, the terminal one last, to `loops/<action>-terminal.json`. Never
-write or edit the receipt. Once it exists the block leads with the resume line
-instead of the RUN line: while the receipt is active, run its `next_argv`
-instead of starting again (the runtime does not refuse a second start). The
-runtime is the selected Improve card's `runtime/until-loop`, or else that of
-the Improve skill bundled beside ShipLoop.
+the loop, run the start command again; it also lists the five fields of the
+runtime's done report. The `--receipt` makes the runtime write every packet,
+the terminal one last, to `loops/<action>-terminal.json`. Never write or edit
+the receipt. A second start on one receipt resets the loop (the runtime does not
+refuse it), so the RUN line says to run an active receipt's `next_argv`
+instead, and once the receipt exists the block leads with the resume line in
+place of the RUN line and the start command. The runtime is the selected
+Improve card's `runtime/until-loop`, or else that of the Improve skill bundled
+beside ShipLoop.
 
 At `complete` ShipLoop reads the receipt that the result names in `evidence_refs`
 and compares it with the contract rebuilt from run state, never the file on disk
@@ -779,7 +783,7 @@ not a command, and the host's own compaction manages context. See
 
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
-continuing. ShipLoop does not launch a fresh model, reset a host context, retain
+continuing. The navigator does not launch a fresh model, reset a host context, retain
 the host handoff, or force any host tool call.
 
 ## Follow the current packet
@@ -798,7 +802,7 @@ references directory). Its heading reads "symbols expand to these absolute paths
 commands stay literal": the prose of the packet names files by these symbols
 (`RUN/notes/x.md`, `GUIDES/navigator.md#anchor`), while the callback and every
 command line, the Keepalive marker, the "Full packet:" line, the Progress view
-link, the `evidence_refs` example and the `/until-loop` argument keep absolute
+link, the `evidence_refs` example and the Until Loop argument keep absolute
 paths, because hooks and the loop runtime read them. An inner stage's
 block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
@@ -817,13 +821,16 @@ Every packet is complete, and it lives in a file: ShipLoop writes the full
 packet to `<run>/packets/<action>.md` (the Improve stage is its own action, so its packet goes to
 `<improve id>.md`, and the packet asking for `improve-bind` to `<improve id>-bind.md`; the producer packet that
 was sent stays on disk) and prints it whole when it is at most 16,000 characters.
-A longer packet prints a head: the callback, the goal and done-when, the status
-block, the stage's duties and rules, the result path, template and allowed
-outcomes, the packet file's path, the recovery and pause commands and the loop
-command. The quoted knowledge files and hand-offs stay in the file when the head
-would pass the limit. Read the packet file with a file-reading tool for what the
-head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps about 20 KB) and every
-byte stays in context. References a packet names are for lookup: open only the
+A longer packet prints a head, built from the same ordered blocks as the file: the callback, the goal and
+done-when, the Until Loop block, the status block, the stage's duties and rules, the stage's own input (the work item,
+the step with its paths, skills and check commands, the test floors, the rerun list, the queue rule), the result
+template and allowed outcomes, the packet file's path and the recovery command; then, while the head fits 20,000
+characters, the References block, the pass log, the progress view and the pause command; and the quoted knowledge
+files and hand-offs when the head stays within 16,000. Every print, whole or head, ends with the line
+`=== end ShipLoop head ===`: a print without it was cut (by the host, or by a pipe such as `head -N`), so run the
+command again with no pipe or read the packet file. Read the packet file with a file-reading tool for what the
+head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps the first and last 10 KB of
+a print over 20 KB) and every byte stays in context. References a packet names are for lookup: open only the
 section a step needs, never a whole reference file, and do not re-read this card.
 (The improve skill is different: an Improve stage's packet says to invoke it at every
 Improve stage.) `next` is the recovery command: it rewrites the file and

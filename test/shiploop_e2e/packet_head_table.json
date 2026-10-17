@@ -1,0 +1,61 @@
+{
+  "_doc": "The per-stage head table of the packets (G-RENDER, test/shiploop_e2e/render_diff.py): the longest printed text each stage may have, in characters, by case, route, run-directory length and CLI path length (the key 'inline/83/96' is route/run directory/CLI path). render_diff exits non-zero when a stage prints more than its value here or has none. A value changes in the commit that journals the new value (the plan's U1 re-baselines it for the merged branches, U7 sets the allocation); no other unit raises it. The first values are main da9e2e75 (skill-craft 2.5.0 / ShipLoop 1.5.0) rendered by packets.py --offline --text-dir and written by render_diff.py --emit-table DIR --write; they are ceilings, not targets, and a stage over the 20,000-character host cut is journaled as such, not hidden here.",
+  "node-fix-bug": {
+    "inline/83/96": {
+      "step-plan": 19988,
+      "step-plan-improve": 2713,
+      "test-spec": 14759,
+      "test-spec-improve": 1945,
+      "validate-existing": 15283,
+      "implement": 15763,
+      "implement-improve": 2654,
+      "test": 18239,
+      "document": 14116,
+      "verify": 18188,
+      "carry-forward": 18028,
+      "carry-forward-improve": 2642
+    },
+    "inline/163/96": {
+      "step-plan": 19817,
+      "step-plan-improve": 3033,
+      "test-spec": 15909,
+      "test-spec-improve": 2265,
+      "validate-existing": 13629,
+      "implement": 16637,
+      "implement-improve": 2974,
+      "test": 19370,
+      "document": 15263,
+      "verify": 19430,
+      "carry-forward": 19175,
+      "carry-forward-improve": 2962
+    },
+    "ask-agent/83/96": {
+      "step-plan": 19449,
+      "step-plan-improve": 2713,
+      "test-spec": 12856,
+      "test-spec-improve": 1945,
+      "validate-existing": 12562,
+      "implement": 17217,
+      "implement-improve": 2654,
+      "test": 18239,
+      "document": 15684,
+      "verify": 18608,
+      "carry-forward": 19294,
+      "carry-forward-improve": 2642
+    },
+    "ask-agent/163/96": {
+      "step-plan": 19892,
+      "step-plan-improve": 3033,
+      "test-spec": 14006,
+      "test-spec-improve": 2265,
+      "validate-existing": 13629,
+      "implement": 18091,
+      "implement-improve": 2974,
+      "test": 19370,
+      "document": 13056,
+      "verify": 19629,
+      "carry-forward": 19858,
+      "carry-forward-improve": 2962
+    }
+  }
+}

@@ -29,6 +29,9 @@ import shiploop_quality as quality  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 
 CORE = fx.CORE
+# The step plan's conditional record topics (code or stored data, pinned values, interactions) live in this guide since the
+# print-order unit (U7); the step-plan duty names their triggers and the guide.
+PLAN_RECORD = " ".join((PACKAGE / "references/plan-record.md").read_text(encoding="utf-8").split())
 
 
 class QualityLoopTests(fx.RunDriver):
@@ -173,12 +176,14 @@ class PromptTests(unittest.TestCase):
         self.assertIn("data storage per environment (Schema and storage guidance): existing and destination schema",
                       plan)
         step = " ".join(prompts.prompt("step-plan").split())
-        self.assertIn("reopen the namespace and data entries in HOME/architecture.md ## Structure and each touched "
-                      "environment's tree", step)
+        self.assertIn("when the item adds or moves code or stored data", step)
+        self.assertIn("GUIDES/plan-record.md", step)
+        self.assertIn("Reopen the namespace and data entries in HOME/architecture.md ## Structure and each touched "
+                      "environment's tree", PLAN_RECORD)
         self.assertIn("Stored data follows the planned schema", rubric)
-        self.assertIn("Per stored field, key, table or payload: owning environment, migration", step)
-        self.assertIn("round-trip check", step)
-        self.assertIn("Reason for a changed placement or schema", step)
+        self.assertIn("Per stored field, key, table or payload: owning environment, migration", PLAN_RECORD)
+        self.assertIn("round-trip check", PLAN_RECORD)
+        self.assertIn("Reason for a changed placement or schema", PLAN_RECORD)
         routes = (
             ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
             ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
@@ -191,10 +196,11 @@ class PromptTests(unittest.TestCase):
     def test_ui_work_defaults_to_a_rich_interactive_interface(self):
         self.assertIn("or the rich UI interaction the plan calls for", " ".join(prompts.CODE_CRAFT.split()))
         self.assertIn("a plain interaction where the plan called for a rich one", VERIFY_REVIEW)
-        for stage, phrase in (("plan", "A human-facing UI defaults to an ambitious, highly interactive design"),
-                              ("step-plan", "a human-facing UI defaults to ambitious and highly interactive")):
-            with self.subTest(stage=stage):
-                self.assertIn(phrase, " ".join(prompts.prompt(stage).split()))
+        self.assertIn("A human-facing UI defaults to an ambitious, highly interactive design",
+                      " ".join(prompts.prompt("plan").split()))
+        # step-plan: the interactions topic moved to the Plan record guide (U7); the duty names its trigger
+        self.assertIn("changes interactions, UI or service state", " ".join(prompts.prompt("step-plan").split()))
+        self.assertIn("a human-facing UI defaults to ambitious and highly interactive", PLAN_RECORD)
 
     def test_supporting_stages_carry_their_code_quality_duties(self):
         expected = {

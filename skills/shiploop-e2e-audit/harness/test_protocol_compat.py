@@ -250,9 +250,12 @@ class ProtocolCompatibilityTests(unittest.TestCase):
             4, ("step-plan", "validate-existing", "implement", "test", "document"), current_stage="inner-loop"
         )
         step_plan, validate, implement, test, document = (entry["action"] for entry in state["history"])
+        # the engine's sentence now ends at "state." (the record is in evidence_refs); an earlier ShipLoop's went on
+        # with "; validate-existing was recorded without running it. Records: <path>", and both are script-recorded
+        earlier = ("ShipLoop ran every expectation check on the unchanged checkout and each matched its state; "
+                   "validate-existing was recorded without running it. Records: /run/expectations/x.json")
         state["history"][1]["summary"] = (
-            "ShipLoop ran every expectation check on the unchanged checkout and each matched its state; "
-            "validate-existing was recorded without running it. Records: /run/expectations/x.json")
+            "ShipLoop ran every expectation check on the unchanged checkout and each matched its state.")
         for row in state["history"][3:]:
             row["summary"] = ("Not applicable to this item: the step plan declares only docs paths. "
                               "ShipLoop recorded this stage without running it.")
@@ -263,6 +266,8 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         observed = self.lifecycle(navigation, events)
         self.assertTrue(observed["complete"], observed)
         self.assertEqual(sorted((step_plan, implement)), sorted(observed["action_callback_commands"]))
+        state["history"][1]["summary"] = earlier
+        self.assertTrue(self.lifecycle(navigation, events)["complete"])
         # The same stage with a model-written summary is still owed its callback.
         state["history"][3]["summary"] = "Wrote the tests; every command passed."
         observed = self.lifecycle(navigation, events)

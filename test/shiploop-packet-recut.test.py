@@ -243,12 +243,13 @@ class PrintedHeadTests(unittest.TestCase):
 
     Length is checked against the journaled value of each stage (``test/shiploop_e2e/head_table.json``), at a reference
     install, so a head cannot grow unnoticed and the result does not move with the machine's paths
-    (``shiploop_head_budget``).  A head above the ~20,000-character cut some hosts apply is a recorded gap in that table
-    (``over_the_cut``); no other head may cross it."""
+    (``shiploop_head_budget``: the head's own budget decisions are made at that install too).  A head above the
+    ~20,000-character cut some hosts apply is a recorded gap in that table (``over_the_cut``); none is, since the print
+    order of the efficiency plan (U7): every head fits."""
 
     def check_length(self, route: str, key: str, printed: str, whole: str) -> None:
         stage = key.split("-", 1)[1]
-        mode = budget.mode_of(whole, navigator.PRINT_LIMIT)
+        mode = "whole" if budget.at_reference_install(whole) <= navigator.PRINT_LIMIT else "head"
         length = budget.at_reference_install(printed)
         self.assertLessEqual(length, budget.ceiling(route, stage, mode),
                              f"{route} {stage} printed as a {mode} is {length} characters at the reference install: above its "
@@ -258,7 +259,7 @@ class PrintedHeadTests(unittest.TestCase):
 
     def test_the_printed_text_of_every_producer_packet_holds_its_duties(self) -> None:
         with budget.reference_tmpdir():
-            printed = packets.offline_packets(CASES["node-fix-bug"], printed=True)
+            printed = packets.offline_packets(CASES["node-fix-bug"], printed=True, measure_for=budget.reference_measure)
             full = _offline()
         over = [key for key, text in full.items() if len(text) > navigator.PRINT_LIMIT and not key.endswith("-improve")]
         self.assertGreaterEqual(len(over), 4, "the case no longer has packets over the limit: pick a larger one")
@@ -280,17 +281,17 @@ class PrintedHeadTests(unittest.TestCase):
                 self.assertLess(end + len("=== end ShipLoop status ==="), hook.WINDOW)
                 self.assertLess(end, text.index("Current stage guidance:"))
 
-    def test_the_ask_agent_route_keeps_the_duties_and_the_status_window_and_its_step_plan_head_is_the_one_over_the_cut(self) -> None:
-        """Known and recorded: on the opt-in ask-agent route step-plan's duties are 10.6k, so its head is about 22,300
-        characters at the reference install, above the ~20,000 some hosts cut at (inline: 20,600, also recorded).  Above the
-        cut Grok shows only the first and last ~10,000 characters, so the middle of these two heads is not read (journal,
-        LP-1; the print-order unit makes the required text fit).  Every other stage and route stays under the cut and under
-        its journaled value."""
+    def test_the_ask_agent_route_keeps_the_duties_and_the_status_window_and_no_head_is_over_the_cut(self) -> None:
+        """Before the print-order unit (efficiency plan U7) the opt-in ask-agent route's step-plan head was about 22,300
+        characters at the reference install, above the ~20,000 some hosts cut at (inline: 20,600), and Grok showed only the
+        first and last ~10,000 of it (journal, LP-1).  One ordered list now puts the lookups last and leaves out what does
+        not fit, so every head of both routes fits."""
         import shiploop_status_hook as hook
         with budget.reference_tmpdir():
-            printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True)
+            printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True,
+                                              measure_for=budget.reference_measure)
             whole = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent")
-        self.assertEqual(budget.known_over_the_cut("ask-agent"), ["step-plan"])
+        self.assertEqual(budget.known_over_the_cut("ask-agent"), [])
         for key, text in printed.items():
             if key.endswith("-improve"):
                 continue
@@ -299,13 +300,20 @@ class PrintedHeadTests(unittest.TestCase):
                 self.assertLess(text.index("=== end ShipLoop status ==="), hook.WINDOW)
                 self.check_length("ask-agent", key, text, whole[key])
 
-    def test_a_head_that_would_pass_the_limit_drops_the_quoted_knowledge_not_the_duties(self) -> None:
-        for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():
+    def test_a_head_that_would_pass_the_host_cut_drops_the_quoted_knowledge_not_the_duties(self) -> None:
+        """The quoted knowledge files and hand-offs are the last thing a head carries, and only while the head stays within
+        the host's cut (efficiency plan U7; before it, while the head stayed within PRINT_LIMIT): else one line says they
+        are in the packet file.  The duties and the rules are never dropped."""
+        with budget.reference_tmpdir():
+            heads = packets.offline_packets(CASES["node-fix-bug"], printed=True, measure_for=budget.reference_measure)
+        for key, text in heads.items():
             if "Full packet:" not in text:
                 continue
             with self.subTest(packet=key):
-                if len(text) > navigator.PRINT_LIMIT:  # step-plan: duties alone are 9k; still no knowledge quotes
-                    self.assertIn("in the full packet, each quoted whole", text)
+                quoted = ("Knowledge files this stage reads, each quoted whole" in text
+                          or "Handed off by earlier stages, quoted by value" in text)
+                stub = "in the full packet, each quoted whole" in text
+                self.assertNotEqual(quoted, stub, "a head quotes the files or says where they are, not both and not neither")
                 self.assertIn("Current stage guidance:", text)
                 self.assertIn("Never end the turn while a ShipLoop command is still running.", text)
 

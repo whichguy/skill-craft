@@ -1,0 +1,19 @@
+{
+ "host": "claude",
+ "redone": 0,
+ "refusals": 2,
+ "warm_next_calls": 1,
+ "improve_skill": {
+  "invoked": 4,
+  "of": 4
+ },
+ "obligations_lost": [],
+ "spec_flipped": [],
+ "seeded_defect_caught": true,
+ "turns": 205,
+ "cost_usd": 4.8,
+ "seconds": 1460.0,
+ "slice": "step-slice-claude",
+ "ingest_chars": 985000,
+ "orientation_bytes": 101000
+}

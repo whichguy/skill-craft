@@ -139,38 +139,36 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertIn("Original request (preserve user scope", full)
         self.assertIn("Recovery command (reprints the current packet from saved state", full)
 
-    def test_the_result_contract_is_printed_under_the_callback(self) -> None:
-        # Only the short stage-goal block sits between the callback and the
-        # contract, in the head ShipLoop prints for this active, non-checkpoint
-        # stage (an intake packet has no active_improve, so the head IS this
-        # whole callback/goal/contract section).
+    def test_the_result_contract_ends_the_required_text_after_the_duties(self) -> None:
+        # The printed text of this active, non-checkpoint stage (an intake packet has no active_improve, so the print is
+        # the whole packet): the callback leads, then the goal; the result template follows the status and the duties
+        # and rules and ends the required text (the print order of the efficiency plan, section 6.1).
         lines = self.packet.splitlines()
         callback = next(i for i, line in enumerate(lines) if line.startswith("Callback for this stage"))
         # The "Write the structured result to:" line is gone (2026-10-11 dedupe): the callback line names the result
-        # file, and the result template follows the stage-goal block directly.
+        # file, and the result template follows the stage's duties.
         self.assertFalse(any(line.startswith("Write the structured result to: ") for line in lines))
         self.assertIn("with the result written to the file it names", lines[callback])
-        contract = next(i for i, line in enumerate(lines) if line == "Result template:")
         self.assertTrue(lines[callback + 1].startswith("Goal: "))
-        for line in lines[callback + 2:contract]:
-            self.assertTrue(line.startswith(("Done when", "Checked by: ", "Considerations for this stage:", "- ",
-                                             # the References block (owner, 2026-10-11), one item per line
-                                             nav.REFERENCES_HEAD, "HOME = ", "RUN = ", "WORKTREE = ",
-                                             "Read at this stage", "Results this stage builds on",
-                                             "Knowledge files: ")), line)
+        contract = next(i for i, line in enumerate(lines) if line == "Result template:")
+        guidance = lines.index("Current stage guidance:")
+        self.assertLess(callback, guidance)
+        self.assertLess(guidance, contract)
         self.assertEqual(lines[contract + 1], "# ShipLoop navigator result")
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
         self.assertEqual(sum(line == "Result template:" for line in lines), 1)
         self.assertEqual(sum(line.startswith("Allowed outcomes: ") for line in lines), 1)
-        self.assertGreater(outcomes, callback)
+        self.assertGreater(outcomes, contract)
+        # One Keepalive marker, beside the status block, before the duties.
+        markers = [i for i, line in enumerate(lines) if line.startswith("Keepalive marker: ")]
+        self.assertEqual(len(markers), 1)
+        self.assertLess(callback, markers[0])
+        self.assertLess(markers[0], guidance)
 
-        # The full packet file (what the head's "Full packet:" line points at)
-        # still carries the stage guidance after the outcomes, even though the
-        # printed head stops at the result contract.
+        # The packet file is the same text without the end line a print carries.
         full_lines = _packet_file_text(self.packet).splitlines()
-        guidance = full_lines.index("Current stage guidance:")
-        full_outcomes = next(i for i, line in enumerate(full_lines) if line.startswith("Allowed outcomes: "))
-        self.assertLess(full_outcomes, guidance)
+        self.assertLess(full_lines.index("Current stage guidance:"), next(
+            i for i, line in enumerate(full_lines) if line.startswith("Allowed outcomes: ")))
 
     def test_every_next_is_the_full_packet_and_writes_no_display_records(self) -> None:
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")

@@ -336,8 +336,9 @@ def rule_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str
 
 def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str = "",
                cli: Optional[str] = None) -> List[str]:
-    """What the test packet adds to the /until-loop argument's command list: where the commands run, each floor by
-    the argument's numbering, the red-check command and the refused-run tally.
+    """What the test packet adds to the Until Loop argument's command list: where the commands run, each floor by
+    the argument's numbering, the red-check command and, once a run was refused, the count of refused runs (never
+    the cap).
 
     The command text, IDs and minimums are printed once, in the argument (``shiploop_loops.command_listing``).  The
     floor shown is what ShipLoop knows when the packet renders: the latest passed base run and any earlier run of
@@ -359,7 +360,7 @@ def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str
         return lines
     known = floors(root, state, work_item, action, None)
     based = _latest_base(root, action, passed=True) is not None
-    head = ("Where and floors: ShipLoop runs each recorded command in the /until-loop argument above from "
+    head = ("Where and floors: ShipLoop runs each recorded command in the Until Loop argument above from "
             + str(state["repo"]) + " before accepting done; ")
     shown = [(number, row["suite"] in COUNTED_SUITES, known.get(row["command"]))
              for number, row in enumerate(commands, 1)]
@@ -376,9 +377,9 @@ def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str
         lines.append("  red-check: " + cli + " red-check --run-dir=" + str(root) + " --action=" + action
                      + " (runs the base check now; it does not count toward the refused runs)")
     refused = refused_runs(root, action)
-    lines.append("Refused runs for this action so far: " + str(refused) + " of " + str(MAX_REFUSED_RUNS)
-                 + " (base and candidate runs together); after that " + _remedy_sentence(stage)
-                 + ". A run that times out, cannot start or is skipped on budget refuses without counting.")
+    if refused:
+        lines.append(refused_note(refused, stage) + " A run that times out, cannot start or is skipped on budget "
+                     "refuses without counting.")
     return lines
 
 
@@ -440,11 +441,10 @@ def _copy_refusal(observed: Mapping[str, Any]) -> str:
 def _place_reply(stage: str, refused: int) -> str:
     """The reply when the place the commands were to run in could not be made or read: no command started."""
     remedy = _remedy(stage)
-    return ("No command started, so nothing here says anything about the product: this attempt does not count toward "
-            "the " + str(MAX_REFUSED_RUNS) + " refused runs (still at " + str(refused) + "). Nothing is accepted on "
-            "unrun tests. The cause is the return state or the copy path named above, not this item's code, test or "
-            "fixture: repair what it names (a lock another ShipLoop command holds, a path ShipLoop asks you to "
-            "remove) and submit done again"
+    return ("No command started, so nothing here says anything about the product: this attempt "
+            + _not_counted(refused) + ". Nothing is accepted on unrun tests. The cause is the return state or the copy "
+            "path named above, not this item's code, test or fixture: repair what it names (a lock another ShipLoop "
+            "command holds, a path ShipLoop asks you to remove) and submit done again"
             + ("; if it cannot be repaired, report " + remedy + " with the corrective work_items the outer loop must "
                "run (ShipLoop's own record of this attempt is the evidence)" if remedy else "")
             + ". Report blocked only for what the user, an access grant or an outside dependency must supply.")
@@ -473,9 +473,9 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
                    "can be; retry done then, or report replan if it cannot be repaired.",
     }
     return (["", "Test rerun: on done, ShipLoop runs every test command " + recorded_by + " recorded from "
-             + _where(observed, state["repo"]) + " and refuses unless each passes (at most " + str(MAX_REFUSED_RUNS)
-             + " refused runs, then " + _remedy_sentence(stage) + "; a command that times out, cannot "
-             "start or is skipped on budget refuses the stage without counting):"]
+             + _where(observed, state["repo"]) + " and refuses unless each passes (if it keeps refusing, "
+             + _remedy_sentence(stage) + "; a command that times out, cannot start or is skipped on budget refuses "
+             "the stage without counting):"]
             + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
             + [COUNT_RULE] + _floor_lines(stage) + ([notes[where]] if where in notes else []))
 
@@ -812,7 +812,8 @@ def floors(root: Path, state: Mapping[str, Any], work_item: str, action: str,
 
 
 def _disposition(runs: List[Dict[str, Any]], good: Tuple[str, ...]) -> str:
-    """One attempt's verdict: ``passed``, ``failed`` or ``could-not-run``.
+    """One attempt's verdict: ``passed``, ``failed`` or ``could-not-run`` (a gate that did nothing is ``skipped``,
+    which ``_base_run`` and the mutation check set themselves).
 
     A real failing check beside a timeout is still ``failed``: an unavailable command never erases a verdict another
     command did reach.  ``/bin/sh -c`` reports a command it cannot find or execute as exit 127 or 126, which is judged
@@ -856,6 +857,27 @@ def _remedy_sentence(stage: str) -> str:
     return "done is no longer accepted for this action"
 
 
+# What the model reads about the tally of refused runs: the count so far, never the cap (owner rule 7: stop rules are
+# script-measured, not a model-facing limit).  ``_cap_refusal`` is the one text that names the count at which the script
+# stops accepting done, and it is printed only when that stop has happened.
+REFUSED_TALLY = "base, candidate and mutation runs together"
+
+
+def refused_note(refused: int, stage: str) -> str:
+    """The refused-run tally a refusal or the test packet prints: the count, what it counts, the stage's route out.
+
+    ``refused`` is the number of runs the product has failed so far, this refusal included.  The cap itself stays in
+    ``MAX_REFUSED_RUNS`` and in ``_cap_refusal``, which names the route out when the script stops accepting done.
+    """
+    return ("Refused runs for this action so far: " + str(refused) + " (" + REFUSED_TALLY + "); if they keep coming, "
+            + _remedy_sentence(stage) + ".")
+
+
+def _not_counted(refused: int) -> str:
+    """The clause for an attempt that does not count as a refused run, with the count so far when there is one."""
+    return "does not count as a refused run" + (" (refused so far: " + str(refused) + ")" if refused else "")
+
+
 def _cap_refusal(root: Path, stage: str, refused: int, last: str) -> str:
     """The reply once this action has used every refused run."""
     remedy = _remedy(stage)
@@ -873,9 +895,8 @@ def _unavailable_sentence(stage: str, refused: int, runs: Sequence[Mapping[str, 
     """The reply to an attempt in which no command reached a verdict: it does not count, so name the routes out."""
     remedy = _remedy(stage)
     skipped = any(run["status"] == "skipped" for run in runs)
-    return ("No command reached a verdict about the product, so this attempt does not count toward the "
-            + str(MAX_REFUSED_RUNS) + " refused runs (still at " + str(refused) + "). Nothing is accepted on unrun "
-            "tests. "
+    return ("No command reached a verdict about the product, so this attempt " + _not_counted(refused)
+            + ". Nothing is accepted on unrun tests. "
             + ("A skipped command never started: the commands before it used up the " + str(int(budget))
                + "-second budget this run shares, and they run in the same order every time, so a retry skips it "
                "again. " if skipped else "")
@@ -1078,8 +1099,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     elif disposition == "could-not-run":
         attempts = _unavailable_sentence(stage, refused, runs, command_timeout, budget)
     else:
-        attempts = ("Refused runs for this action: " + str(refused + 1) + " of " + str(MAX_REFUSED_RUNS)
-                    + "; after that " + _remedy_sentence(stage) + ".")
+        attempts = refused_note(refused + 1, stage)
     if stage in STAGES:
         lines.append("Fix the code (or a test, for an independent reason you record), start the Until Loop again with "
                      "the packet's start command (its receipt is replaced), then submit done again. " + attempts
@@ -1088,9 +1108,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         # Nothing here is a product failure: the recorded command itself cannot be counted, and only a replan
         # reaches the stage that records it, so a "fix the code" line would send the model the wrong way.
         lines.append("Report replan as named above, not done: no change to the code makes a recorded command "
-                     "countable. Refused runs for this action: " + str(refused + 1) + " of "
-                     + str(MAX_REFUSED_RUNS) + "; replan does not wait for them. Full output: "
-                     + str(root / relative) + ".")
+                     "countable. Refused runs for this action so far: " + str(refused + 1) + " (" + REFUSED_TALLY
+                     + "); replan does not wait for them. Full output: " + str(root / relative) + ".")
     elif observed is not None and observed["where"] == "returned-result" and disposition == "failed":
         # The generic reply ("fix the code") has no way out here: this stage cannot edit the commands or return.
         lines.append(_copy_refusal(observed) + " " + attempts + " Full output: " + str(root / relative) + ".")
@@ -1387,7 +1406,9 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
     if base is not None and base_commit:
         base = _at_commit(base, base_commit)
     if not commands or base is None:
-        record.update(passed=True, disposition="passed",
+        # The gate did nothing: say so in the record's disposition (``passed`` stays true, so every reader of ``passed``
+        # behaves as before) rather than file the same word a real proof files.
+        record.update(passed=True, disposition="skipped",
                       skipped=("no focused or regression command" if not commands
                                else "no item base was recorded (not a Git checkout, or the base was not captured)"))
         return record, ""
@@ -1482,8 +1503,7 @@ def base_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: 
             tail = _unavailable_sentence(STAGES[0], refused, record["runs"], options.get("command_timeout",
                                          COMMAND_TIMEOUT_SECONDS), options.get("budget", STAGE_BUDGET_SECONDS))
         else:
-            tail = ("Refused runs for this action: " + str(refused + 1) + " of " + str(MAX_REFUSED_RUNS)
-                    + " (base and candidate runs together); after that " + _remedy_sentence(STAGES[0]) + ".")
+            tail = refused_note(refused + 1, STAGES[0])
         raise TestLoopError(refusal + "\nFix the tests (or red_na / retired_tests), start the Until Loop again, then "
                             "submit done again. " + tail + " Full output: " + str(root / relative) + ".")
     return _base_summary(record)
@@ -1542,6 +1562,7 @@ __all__ = (
     "MAX_REFUSED_RUNS",
     "PASSING",
     "RATCHET_RULE",
+    "REFUSED_TALLY",
     "RERUN_STAGES",
     "STAGES",
     "UNAVAILABLE",
@@ -1571,6 +1592,7 @@ __all__ = (
     "observed_lines",
     "red_check",
     "red_check_path",
+    "refused_note",
     "refused_runs",
     "remedy_open",
     "rerun_lines",

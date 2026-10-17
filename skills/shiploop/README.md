@@ -71,6 +71,7 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
 - [Delivery-authority readiness](references/delivery-authority.md)
 - [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
 - [House style: evidenced conventions and per-item exemplar match contracts](references/house-style.md)
+- [Plan record: what a step plan records when the item touches code or stored data, a pinned value, or interactions, UI or service state](references/plan-record.md)
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — on
   a `delegation: ask-agent` run, bind the selected Plan Dispatcher/Ask-Agent
   packages to one current implementation action; `chain bind` refuses a fresh
@@ -171,11 +172,11 @@ existing (`validate-existing`), Build (`implement` once per step, `test`,
 `system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
-Every inner stage runs its work inside one Until Loop, invoked by name: the
-packet says to `RUN` the until-loop skill with an argument between two marker
-lines (the contract ShipLoop wrote to `loops/<action>-contract.json` is one of
-its lines), prints the literal start command for a host with no Skill tool and
-what to do with the loop's result, and ShipLoop accepts the result only with a
+Every inner stage runs its work inside one Until Loop, started with one literal
+command on every host: the packet says to `RUN` the Until Loop, prints the start
+command, then the argument between two marker lines (it is already in the
+contract file ShipLoop wrote to `loops/<action>-contract.json`) and what to do
+with the loop's result, and ShipLoop accepts the result only with a
 terminal receipt that matches the contract rebuilt from state (see "Stage Until
 Loops" in the [skill guide](SKILL.md)). `complete --check-only` runs a stage's
 script gates on a draft result without completing it.

@@ -18,8 +18,10 @@ sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -207,8 +209,8 @@ class DelegationStateTests(unittest.TestCase):
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
-        self.assertIn("**Inline.** Do the one step on the packet's Step line in this conversation. "
-                      "Bind no chain and dispatch no worker.", inline)
+        self.assertIn("**Inline.** Do the one step on the packet's Step lines (task, paths, skills, check commands, "
+                      "lint command) in this conversation. Bind no chain and dispatch no worker.", " ".join(inline.split()))
         step_plan = self.render(advance(self.state(), "step-plan"))
         flat_plan = " ".join(step_plan.split())
         self.assertIn("steps lists every implementation step in the order to do them", flat_plan)
@@ -426,15 +428,17 @@ class PacketContractTests(DelegationStateTests):
 
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
         entry = self.render(advance(self.state(), "verify"))
-        # The result contract sits under the callback, which is printed once (the "Write the structured result to:"
-        # line and the tail's "Call this when done:" callback are gone, 2026-10-11 dedupe).
+        # The callback leads and is printed once (the "Write the structured result to:" line and the tail's "Call this when
+        # done:" callback are gone, 2026-10-11 dedupe); the result contract follows the duties and rules and ends the
+        # required text (the print order of the efficiency plan, section 6.1).
         head = entry.split("Current stage guidance:", 1)[0]
         self.assertIn("\nCallback for this stage (run once after its work, with the result written to the file it "
                       "names): ", head)
         self.assertIn("--result=", head.split("\nCallback for this stage", 1)[1].split("\n", 1)[0])
         self.assertNotIn("Write the structured result to: ", entry)
         # repeat is no longer an inner outcome (8-stage loop, 2026-10-10).
-        self.assertIn("\nAllowed outcomes: done | blocked | revise", head)
+        self.assertIn("\nAllowed outcomes: done | blocked | revise", entry)
+        self.assertLess(entry.index("Current stage guidance:"), entry.index("\nAllowed outcomes: "))
         self.assertNotIn("Call this when done:", entry)
         self.assertEqual(entry.count("Callback for this stage"), 1)
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
@@ -497,10 +501,13 @@ class PacketContractTests(DelegationStateTests):
             with self.subTest(route=route):
                 text = " ".join(nav.guidance.prompt("verify", delegation=route).split())
                 # ShipLoop commits the declared files when verify is accepted; no route tells the model to commit.
-                # Duty 8 (Assembly, re-cut 2026-10-11): the inline wording says "the item's candidate", the ask-agent
-                # fallback sentence "the candidate"; both name the execution checkout.
-                self.assertIn("candidate is assembled in the execution checkout", text.lower())
+                # Duty 8 (Assembly) prints on the ask-agent route only (U11, VR-6): an inline run builds every step in
+                # the execution checkout and binds no chain, so there is nothing to assemble; the other items keep
+                # their numbers.  Its fallback sentence still names the execution checkout where a chain is not bound.
                 self.assertNotIn("assemble or commit", text)
+                self.assertEqual("candidate is assembled in the execution checkout" in text.lower(), route == "ask-agent")
+                self.assertEqual("8. **assembly.**" in text.lower(), route == "ask-agent")
+                self.assertIn("9. **later checks.**", text.lower())
                 # A chain exists only when delegation is ask-agent, so only that route confirms its finish commit.
                 self.assertEqual("confirm its finish commit is an ancestor of the execution checkout HEAD" in text,
                                  route == "ask-agent")
@@ -742,6 +749,109 @@ class PacketContractTests(DelegationStateTests):
             self.assertIn(stage, planning)
             self.assertIn("Planning review focus.", packet)
             self.assertNotIn("End-of-work review", packet)
+
+
+class AggregateImplementWordingTests(unittest.TestCase):
+    """The ask-agent route issues one implement action for every step of the plan (its chain runs them), so the Goal,
+    the Done-when, the loop's exit conditions and the Improve review focus name those steps and their paths instead of
+    "this step" (U11, rev 4 Step 0.2).  The inline route issues one action per step and keeps the per-step wording."""
+
+    STEPS = [{"id": "S1", "task": "Make change one.", "paths": ["a.py"]},
+             {"id": "S2", "task": "Make change two.", "paths": ["pkg/b.py"]}]
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-aggregate-")
+        self.addCleanup(self.temp.cleanup)
+        self.run = Path(self.temp.name) / "run"
+        self.run.mkdir()
+        self.repo = Path(self.temp.name) / "repo"
+        self.repo.mkdir()
+
+    def state(self, delegation="inline"):
+        return nav.new_state(str(self.repo), "Synthetic delegation request.", delegation=delegation)
+
+    def render(self, state):
+        return nav.render(None, self.run, state)
+
+    def at_implement(self, delegation, steps=None):
+        state = self.state(delegation)
+        while nav.current_stage(state) != "implement":
+            stage, action = nav.current_stage(state), nav.current_action(state)["id"]
+            result = {"outcome": "done", "summary": "Synthetic " + stage + " declaration."}
+            if stage == "plan":
+                result["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+            if stage == "step-plan":
+                result.update(steps=steps or self.STEPS, paths=["a.py", "pkg/b.py"])
+            state = nav.apply(state, action, result)
+            if state.get("active_improve") is not None:
+                state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        return state
+
+    def handoff(self, state):
+        action = nav.current_action(state)["id"]
+        state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic implement declaration."})
+        child = state["active_improve"]
+        selected = standalone.resolve_skill(str(CARD))
+        state["active_improve"] = standalone.binding(state, action, child["stage"], child["seed_result"], selected,
+                                                     improve_action=child["improve_action"])
+        receipt = standalone.receipt_path(state["active_improve"])
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        receipt.write_text("{}", encoding="utf-8")
+        return nav.improve_handoff_text(None, self.run, state)
+
+    def flat(self, text):
+        return " ".join(text.split())
+
+    def test_a_two_step_ask_agent_handoff_names_the_steps_and_both_paths(self):
+        text = self.flat(self.handoff(self.at_implement("ask-agent")))
+        self.assertIn("steps S1 to S2", text)
+        self.assertIn("(a.py, pkg/b.py)", text)
+        for stale in ("one step", "the step's paths", "this step's change", "since the step began"):
+            self.assertNotIn(stale, text)
+        self.assertIn("Implementation step review focus.", text)
+        # the Code craft rubric that ends the focus is verbatim, and the shared bullets are untouched
+        self.assertIn(self.flat(prompts.CODE_CRAFT), text)
+        self.assertIn("a recorded check command that fails, or a new lint finding on a changed line with no waiver", text)
+
+    def test_the_inline_handoff_keeps_the_per_step_wording_byte_for_byte(self):
+        text = self.handoff(self.at_implement("inline"))
+        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), text)
+        row = stage_spec.stage("implement")
+        self.assertIn("Goal: " + row.goal[0].upper() + row.goal[1:], text)
+        for condition in row.done_when:
+            self.assertIn("- " + condition + "\n", text)
+        self.assertNotIn("S1 to S2", text)
+
+    def test_a_one_step_ask_agent_plan_keeps_the_per_step_wording(self):
+        text = self.handoff(self.at_implement("ask-agent", self.STEPS[:1]))
+        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), text)
+        self.assertNotIn(" to S1", text)
+
+    def test_the_packet_goal_and_the_loop_contract_say_the_same_steps(self):
+        state = self.at_implement("ask-agent")
+        action = nav.current_action(state)["id"]
+        packet = self.flat(self.render(state))
+        self.assertIn("Goal: Make the change of steps S1 to S2 on their paths (a.py, pkg/b.py) in WORKTREE", packet)
+        contract = loops.contract(self.run, state, action)
+        first = contract["exit_condition"].splitlines()[0]
+        self.assertEqual(first, "1. only the paths of steps S1 to S2 (a.py, pkg/b.py) changed since the first of them "
+                                "began, and no work outside those steps is in them")
+        self.assertIn("1. only the paths of steps S1 to S2", packet)    # the packet prints the contract's own text
+        self.assertNotIn("the step's paths", packet.split("Current stage guidance:", 1)[0])
+        # the loop's work says it once, as a list, with no stray comma before the sentence stop
+        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", contract["work"])
+        cold = self.at_implement("inline")
+        inline = loops.contract(self.run, cold, nav.current_action(cold)["id"])
+        self.assertEqual(inline["exit_condition"].splitlines()[0],
+                         "1. " + stage_spec.stage("implement").done_when[0])
+
+    def test_the_stage_row_words_itself_only_where_it_has_aggregate_wording(self):
+        for name in stage_spec.STAGES:
+            row = stage_spec.stage(name)
+            self.assertIs(stage_spec.for_steps(row, "S1 to S2", "a.py") is row, row.steps_goal is None, name)
+        worded = stage_spec.for_steps(stage_spec.stage("implement"), "S1 to S2", "a.py, b.py")
+        self.assertEqual(len(worded.done_when), len(stage_spec.stage("implement").done_when))
+        self.assertEqual(worded.name, "implement")
 
 
 class DelegationCliTests(unittest.TestCase):

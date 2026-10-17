@@ -951,7 +951,7 @@ class RefusalRouteTests(RealCliCase):
         # Every expectation matches, so ShipLoop records validate-existing and issues implement.
         self.assertIn("ShipLoop navigator | implement | ", implement)
         # An inner stage's head points at the /until-loop argument, whose exit conditions are its one Done-when list.
-        self.assertIn("Done when: every exit condition in the /until-loop argument below holds", implement)
+        self.assertIn("Done when: every exit condition in the Until Loop argument below holds", implement)
         done_when = implement.split("Exit when ALL of these hold:", 1)[1].split("Repeat while", 1)[0]
         done_when = " ".join(done_when.split())
         # The 8-stage implement row confirms the step by its paths, the check commands and the lint gate, not by the
@@ -1019,10 +1019,50 @@ class StepSizingRouteTests(RealCliCase):
         for label, block, fragment in cases:
             with self.subTest(label):
                 write_block(path, block)
-                self.assertIn(fragment, self.refused(command, run))
+                refusal = self.refused(command, run)
+                self.assertIn(fragment, refusal)
+                # No stage by that name exists any more; the refusal names the one that writes the tests.
+                self.assertNotIn("test-author", refusal)
         write_block(path, good)
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["steps"][0]["paths"], ["built.txt"])
+
+    def test_a_refusal_names_the_first_fault_only_so_check_only_is_repeated_until_it_accepts(self) -> None:
+        """The Checked-by line says `complete --check-only` prints the first refusal and to repeat it (U11, SPEC-7): a
+        gate raises at the first fault, so a result with two faults is refused twice, one fault per run."""
+        run, head = self.new_run("step-plan")
+        command, path, _ = printed_callback(head)
+        good = self.fill_done(head)
+        step = good["steps"][0]
+        bare = {key: value for key, value in step.items() if key not in ("paths", "criteria")}
+        two_faults = {**good, "steps": [dict(bare, criteria=["C1", "C9"])]}   # no paths, and a criterion nobody lists
+        write_block(path, two_faults)
+        first = self.refused(command + " --check-only", run)
+        self.assertIn("step S1 must list paths", first)
+        self.assertNotIn("C9", first)                       # the second fault is not reported yet
+        write_block(path, {**good, "steps": [dict(bare, paths=["built.txt"], criteria=["C1", "C9"])]})
+        second = self.refused(command + " --check-only", run)
+        self.assertIn("step S1 names criteria the result does not list: C9", second)
+        self.assertNotIn("must list paths", second)
+        write_block(path, good)
+        self.assertIn("ShipLoop check-only: every script gate for step-plan accepts this result",
+                      self.accepted(command + " --check-only"))
+
+    def test_a_long_list_of_test_ids_is_not_refused_for_its_size(self) -> None:
+        """The step-plan duty once said "a list too large for the loop contract is refused: shorten IDs, drop duplicates
+        or split the item".  No gate refuses a size (the loop contract grows with its content; shiploop-loops pins
+        1000 cases through the runtime), so the sentence is gone and a long list is accepted (U11, rev 4 Step 8.1)."""
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        good = self.fill_done(head)
+        ids = ["TC-" + str(number) for number in range(1, 601)]
+        rows = [dict(row, ids=ids) if row.get("suite") == "focused" else row for row in good["test_commands"]]
+        write_block(path, {**good, "test_commands": rows})
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["test_commands"][0]["ids"], ids)
+        for route in ("inline", "ask-agent"):
+            self.assertNotIn("too large for the loop contract",
+                             " ".join(nav.guidance.duty("step-plan", delegation=route).split()))
 
     def test_an_item_that_is_only_tests_may_have_a_test_only_step(self) -> None:
         run, head = self.new_run("step-plan")
@@ -1385,7 +1425,8 @@ class UncountedCommandRouteTests(RealCliCase):
         # The two lines that sent the model the wrong way: edit the command, or fix the code.
         self.assertNotIn("Give the command ids", reply)
         self.assertNotIn("Fix the code so every command passes", reply)
-        self.assertIn(f"Refused runs for this action: 1 of {test_loop.MAX_REFUSED_RUNS}; replan does not wait for them.", reply)
+        self.assertIn("Refused runs for this action so far: 1 (base, candidate and mutation runs together); replan does not "
+                      "wait for them.", reply)
 
     def test_the_replan_the_refusal_names_is_accepted_with_one_corrective_item(self) -> None:
         run, head, callback, path = self.at_system_test(PIPELINE)
@@ -1405,7 +1446,7 @@ class UncountedCommandRouteTests(RealCliCase):
         self.named_exit(self.refused(callback, run))  # the refusal names its exit before the gate is tried again
         again = self.refused(callback, run)
         self.assertIn("could not read how many tests it ran", again)
-        self.assertIn(f"Refused runs for this action: 2 of {test_loop.MAX_REFUSED_RUNS}", again)
+        self.assertIn("Refused runs for this action so far: 2 (base, candidate and mutation runs together)", again)
         # Recording it as a check here is not an exit: system-test reruns what was recorded, so the gate holds.
         write_block(path, {**self.done_fields(), "assumptions": [],
                            "system_commands": [{"command": PIPELINE, "suite": "check"}]})

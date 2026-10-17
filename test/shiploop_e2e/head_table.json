@@ -1,5 +1,5 @@
 {
- "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), measured at the merge of main da9e2e75 with feat/shiploop-eff-packets-6afcbc and feat/shiploop-eff-loop-6afcbc (unit U1). A printed text above its value fails its test; a change that grows a packet raises the value in the same commit and says why in docs/shiploop-efficiency-journal-2026-10-16.md. over_the_cut names the heads above the 20,000-character host cut today: a recorded gap that the print-order unit (U7) closes, not a goal.",
+ "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), re-measured 2026-10-17 on the merge of wave 2 (U2 not yet merged) into the integration branch: every head fits the 20,000-character host cut (inline step-plan 19,988 is the tightest)",
  "reference": {
   "run_dir_length": 83,
   "root_length": 63,
@@ -8,79 +8,75 @@
  "heads": {
   "inline": {
    "step-plan": {
-    "head": 20638,
-    "whole": 24448
+    "head": 19988,
+    "whole": 23263
    },
    "test-spec": {
-    "head": 12268,
-    "whole": 14419
+    "head": 12646,
+    "whole": 14645
    },
    "validate-existing": {
-    "head": 11891,
-    "whole": 14860
+    "head": 12269,
+    "whole": 15169
    },
    "implement": {
-    "head": 15436,
-    "whole": 18057
+    "head": 15763,
+    "whole": 18198
    },
    "test": {
-    "head": 15798,
-    "whole": 20005
+    "head": 18267,
+    "whole": 20410
    },
    "document": {
-    "head": 11400,
-    "whole": 13710
+    "head": 11616,
+    "whole": 14002
    },
    "verify": {
-    "head": 15973,
-    "whole": 20203
+    "head": 18188,
+    "whole": 20320
    },
    "carry-forward": {
-    "head": 16877,
-    "whole": 21799
+    "head": 18028,
+    "whole": 22091
    }
   },
   "ask-agent": {
    "step-plan": {
-    "head": 22320,
-    "whole": 27776
+    "head": 19449,
+    "whole": 26654
    },
    "test-spec": {
-    "head": 12268,
-    "whole": 15987
+    "head": 12856,
+    "whole": 16213
    },
    "validate-existing": {
-    "head": 11891,
-    "whole": 16428
+    "head": 12562,
+    "whole": 16737
    },
    "implement": {
-    "head": 16550,
-    "whole": 21213
+    "head": 17217,
+    "whole": 21298
    },
    "test": {
-    "head": 15798,
-    "whole": 21573
+    "head": 18267,
+    "whole": 21978
    },
    "document": {
-    "head": 11400,
-    "whole": 15278
+    "head": 11616,
+    "whole": 15570
    },
    "verify": {
-    "head": 16172,
-    "whole": 21970
+    "head": 18608,
+    "whole": 22308
    },
    "carry-forward": {
-    "head": 18080,
-    "whole": 24570
+    "head": 19294,
+    "whole": 24925
    }
   }
  },
  "over_the_cut": {
-  "inline": [
-   "step-plan"
-  ],
-  "ask-agent": [
-   "step-plan"
-  ]
+  "inline": [],
+  "ask-agent": []
  }
 }

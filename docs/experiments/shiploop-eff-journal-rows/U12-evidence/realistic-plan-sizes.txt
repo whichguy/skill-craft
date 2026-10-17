@@ -1,0 +1,12 @@
+# U12 size of the test-spec packet on a realistic plan, before (main-equivalent export of the base) and after, characters
+# scratch script real_plan.py: the node-fix-bug step case with N focused ids on one criterion that names R-3, a regression row for the second criterion, and a spec of S entries (66 characters each); macOS temp dir (48 characters), no reference-install rewrite; head = packet_head, whole = render
+spec_entries focused_ids | before whole head | after whole head | head delta
+  8   1 |  14852  12789 |  15363  13300 | +511
+  8  12 |  14921  12858 |  17855  15792 | +2934
+  8  30 |  15047  12984 |  18181  14774 | +1790
+ 40   1 |  17378  15315 |  17617  15554 | +239
+ 40  12 |  17447  15384 |  20109  14302 | -1082
+ 40  30 |  17573  15510 |  20435  14502 | -1008
+100   1 |  22120  11640 |  22720  12240 | +600
+100  12 |  22189  11640 |  25212  14663 | +3023
+100  30 |  22315  11640 |  25538  14863 | +3223

@@ -130,8 +130,9 @@ class PacketBoundsTests(unittest.TestCase):
                 printed = io.StringIO()
                 with contextlib.redirect_stdout(printed):
                     navigator.emit(None, self.run, state)
+                self.assertTrue(printed.getvalue().endswith("\n" + navigator.HEAD_END + "\n"))
                 if whole:
-                    self.assertEqual(printed.getvalue(), text)
+                    self.assertEqual(printed.getvalue(), text + navigator.HEAD_END + "\n")
                 else:
                     self.assertLessEqual(len(printed.getvalue()), navigator.PRINT_LIMIT)
                     self.assertIn("Full packet: " + str(navigator.packet_path(self.run, state)), printed.getvalue())

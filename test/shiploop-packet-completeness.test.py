@@ -230,11 +230,13 @@ class PacketCompletenessTests(unittest.TestCase):
                 line = lines[0]
                 self.assertNotIn("nothing automatic", line)
                 # Aggressive re-cut: one line, "at done ShipLoop refuses <stage gates>; the usual faults (...)", and the
-                # command that prints every refusal.  (The old "refusal does not advance the run / run the same complete
-                # command again" sentences are gone from the packet; the refusal reply says so.)
+                # command that prints the first refusal (a gate raises at the first fault it finds, so the sentence says
+                # to repeat it until it accepts).
                 self.assertIn("at done ShipLoop refuses ", line)
                 self.assertIn("the usual faults (", line)
-                self.assertIn("`complete --check-only` prints every refusal", line)
+                self.assertIn("`complete --check-only` prints the first refusal without accepting, so repeat it until it "
+                              "accepts", line)
+                self.assertNotIn("every refusal", line)
                 self.assertIn("does not judge the work", line)
                 # Claims no wider than the gates: relative evidence paths are not checked.  No credential pattern is
                 # refused (owner decision 2026-10-16), so the line names none.
@@ -658,8 +660,10 @@ class ProseLineGuardTests(unittest.TestCase):
         "HOME = /r/docs/shiploop (knowledge home) · RUN = /r/run (run records) · GUIDES = /g (the skill's guides)",
         "WORKTREE = /r (all product work; a working directory, never a --result value)",
         "Knowledge files: HOME/spec.md: living spec",
-        "Until Loop (no iteration limit):",
+        loops.BLOCK_HEADING,
         loops.INVOKE_LINE,
+        "python3 /s/until_loop_ephemeral.py start --receipt /r/run/loops/a-terminal.json < /r/run/loops/a-contract.json",
+        loops.FOLLOW_LINE,
         loops.ARGUMENT_BEGIN,
         "Work: Do duty items 1-4 of /r/run/packets/a.md, writing the result at /r/run/inbox/a.md",
         "Exit when ALL of these hold:",
@@ -667,8 +671,6 @@ class ProseLineGuardTests(unittest.TestCase):
         "Contract: /r/run/loops/a-contract.json",
         "Receipt: /r/run/loops/a-terminal.json",
         loops.ARGUMENT_END,
-        loops.HOST_LINE,
-        "python3 /s/until_loop_ephemeral.py start --receipt /r/run/loops/a-terminal.json < /r/run/loops/a-contract.json",
         "Prose that names /r/run/state.md outside every exemption.",
     ])
 
@@ -677,8 +679,8 @@ class ProseLineGuardTests(unittest.TestCase):
         self.assertEqual([line for line in found if "/r/run/" in line],
                          ["Prose that names /r/run/state.md outside every exemption."])
 
-    def test_a_line_between_the_block_and_the_start_command_is_not_exempt(self) -> None:
-        packet = self.PACKET.replace(loops.HOST_LINE, "See /r/run/notes/x.md first.")
+    def test_a_line_between_the_run_line_and_the_argument_is_not_exempt(self) -> None:
+        packet = self.PACKET.replace(loops.FOLLOW_LINE, "See /r/run/notes/x.md first.")
         self.assertIn("See /r/run/notes/x.md first.", prose_lines(packet))
 
 

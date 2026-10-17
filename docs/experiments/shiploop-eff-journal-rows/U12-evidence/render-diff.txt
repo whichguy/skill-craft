@@ -1,0 +1,45 @@
+# U12 render classification (G-RENDER), 2026-10-17
+# render_diff.py (U5a) is not in this branch's base (merging it conflicts with INT in packets.py/packet_anatomy.py), so this is a normalised difflib diff
+# of fv_heads.py renders; volatile ids (temp dir, action ids, request tags) are replaced. Only test-spec changed at either run-dir length, both routes.
+
+## offline node-fix-bug, run dir 83, route inline, 03-test-spec (whole print)
+-   18 |   "test_cases": [
+-  219 |     {"criterion": "C1", "green": "<what the case shows once the change works>", "id": "TC-1", "oracle": "<what observes the behaviour, and where>", "red": "<how the case fails before the change>", "requirement": "R-1"}
+-    4 |   ]
++   19 |   "test_cases": []
++  142 | HOME/spec.md lists no R-<n> entry: report revise naming the missing requirement. A case's requirement names an R-<n> that has an entry there.
+removed 241, added 161, net -80
+
+## offline node-fix-bug, run dir 83, route ask-agent, 03-test-spec (whole print)
+-   18 |   "test_cases": [
+-  219 |     {"criterion": "C1", "green": "<what the case shows once the change works>", "id": "TC-1", "oracle": "<what observes the behaviour, and where>", "red": "<how the case fails before the change>", "requirement": "R-1"}
+-    4 |   ]
++   19 |   "test_cases": []
++  142 | HOME/spec.md lists no R-<n> entry: report revise naming the missing requirement. A case's requirement names an R-<n> that has an entry there.
+removed 241, added 161, net -80
+
+## offline node-fix-bug, run dir 163, route inline, 03-test-spec (whole print)
+-   18 |   "test_cases": [
+-  219 |     {"criterion": "C1", "green": "<what the case shows once the change works>", "id": "TC-1", "oracle": "<what observes the behaviour, and where>", "red": "<how the case fails before the change>", "requirement": "R-1"}
+-    4 |   ]
++   19 |   "test_cases": []
++  142 | HOME/spec.md lists no R-<n> entry: report revise naming the missing requirement. A case's requirement names an R-<n> that has an entry there.
+removed 241, added 161, net -80
+
+## offline node-fix-bug, run dir 163, route ask-agent, 03-test-spec (whole print)
+-   18 |   "test_cases": [
+-  219 |     {"criterion": "C1", "green": "<what the case shows once the change works>", "id": "TC-1", "oracle": "<what observes the behaviour, and where>", "red": "<how the case fails before the change>", "requirement": "R-1"}
+-    4 |   ]
++   19 |   "test_cases": []
++  142 | HOME/spec.md lists no R-<n> entry: report revise naming the missing requirement. A case's requirement names an R-<n> that has an entry there.
+removed 241, added 161, net -80
+
+## every other offline packet (whole and printed texts, both routes, both run-dir lengths) after normalisation:
+compared 88 files, 0 differ
+
+## head table at the reference install (root 63, CLI path 96), test-spec, before -> after (head_table.json values: inline head 12268 whole 14419; ask-agent head 12268 whole 15987)
+run dir 83 inline: head 12268 -> 12188, whole 14419 -> 14339 (whole)
+run dir 83 ask-agent: head 12268 -> 12188, whole 15987 -> 15907 (whole)
+run dir 163 inline: head 13628 -> 13548, whole 15779 -> 15699 (whole)
+run dir 163 ask-agent: head 13628 -> 13548, whole 17347 -> 17267 (head)
+stages whose head or whole changed: ['test-spec']

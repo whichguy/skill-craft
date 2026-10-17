@@ -1155,8 +1155,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     lines.append(result_line)
     if stage in GATE_STAGES:
         lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
-                     "remains. For implement, only the item's last step is gated: an earlier step's findings "
-                     "are reported without auto-fix, since a later step may resolve them. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
+                     "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
                      "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
                      "errors and timeouts never block. This pass does not replace the checks you run for this step.")
     else:
@@ -2244,17 +2243,28 @@ def pending_lines(run_dir: Path) -> List[str]:
     return lines
 
 
-def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional[str], repo: str,
-                 command: str) -> List[str]:
-    """Read-only packet lines for the current action: never lints."""
+def command_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional[str], command: str) -> List[str]:
+    """The lint command the stage runs (implement) and the line that says lint is off (verify): the stage's input."""
     run_dir = Path(run_dir)
-    lines = pending_lines(run_dir)
+    lines: List[str] = []
     if stage == GATE_STAGE and run_option in ("fix", "report"):
         lines.append("Lint each implementation step (report-only): "
                      + _command_line(command, "lint", run_dir=run_dir, action=action))
     if run_option == "off" and stage == "verify":
         lines.append("ShipLoop lint: off (run option lint=off). ShipLoop ran no linters; choose and run this "
                      "step's static checks yourself.")
+    return lines
+
+
+def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional[str], repo: str,
+                 command: str, commands: bool = True) -> List[str]:
+    """Read-only packet lines for the current action: never lints.
+
+    ``commands`` False leaves out ``command_lines`` (a producer packet prints them as the stage's input)."""
+    run_dir = Path(run_dir)
+    lines = pending_lines(run_dir)
+    if commands:
+        lines.extend(command_lines(run_dir, action, stage=stage, run_option=run_option, command=command))
     record = _record_path(run_dir, action)
     gate_number = 0
     if stage in GATE_STAGES:

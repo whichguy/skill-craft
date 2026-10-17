@@ -171,6 +171,18 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
         self.assertIn("invalid choice: 'drive'", rejected.stderr)
         self.assert_no_model_launch()
 
+    def test_the_skill_card_scopes_the_no_launch_rule_to_the_skill_and_names_the_optional_driver(self) -> None:
+        """The card said ShipLoop launches no model process, while its optional outer driver starts and resumes host
+        sessions.  The rule is about the skill and the navigator commands; the driver sits beside it, by name (U11)."""
+        text = " ".join((self.package / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertNotIn("ShipLoop does not launch Grok, Claude, Codex, or any other model process", text)
+        rule = text.index("launch no Grok, Claude, Codex")
+        self.assertIn("The skill and its navigator commands launch no Grok, Claude, Codex", text)
+        self.assertIn("`scripts/shiploop-drive`", text[rule:rule + 400])
+        self.assertIn("references/keepalive.md", text[rule:rule + 400])
+        self.assertTrue((self.package / "scripts" / "shiploop-drive").is_file())
+        self.assertIn("scripts/shiploop-drive", (self.package / "references" / "keepalive.md").read_text(encoding="utf-8"))
+
     def test_package_contains_only_the_current_runtime(self) -> None:
         self.assertEqual(len(REMOVED_SCRIPTS), 30)
         for folder, names in (("scripts", REMOVED_SCRIPTS), ("references", REMOVED_REFERENCES),

@@ -1,0 +1,33 @@
+=== a proof (real base run, candidate run, mutation check), complete
+first line: Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i
+... (196 lines, 15199 characters) ...
+Gates: base: [focused] python3 -m unittest -v test_calc -> red (0 ran)
+Gates: base: [regression] test -f retained.txt -> counted
+Gates: candidate: [focused] python3 -m unittest -v test_calc -> passed (1 ran)
+Gates: candidate: [regression] test -f retained.txt -> passed-uncounted
+Gates: mutation: 3 of 3 mutants of the changed product lines killed by the focused tests
+
+=== the same item, complete --check-only
+first line: ShipLoop check-only: every script gate for test accepts this result (the Until Loop receipt is check
+... (6 lines, 594 characters) ...
+ShipLoop check-only: every script gate for test accepts this result (the Until Loop receipt is checked only on the real complete). The action is not completed; run the same complete command without --check-only to submit it.
+Gates: base: [focused] python3 -m unittest -v test_calc -> red (0 ran)
+Gates: base: [regression] test -f retained.txt -> counted
+Gates: candidate: [focused] python3 -m unittest -v test_calc -> passed (1 ran)
+Gates: candidate: [regression] test -f retained.txt -> passed-uncounted
+Gates: mutation: 3 of 3 mutants of the changed product lines killed by the focused tests
+
+=== no item base recorded (the seeded slices of 1.3.0), complete
+first line: Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i
+... (195 lines, 15185 characters) ...
+Gates: base: skipped (no item base was recorded (not a Git checkout, or the base was not captured))
+Gates: candidate: [focused] python3 -m unittest -v test_calc -> passed (1 ran)
+Gates: candidate: [regression] test -f retained.txt -> passed-uncounted
+Gates: mutation: skipped (no item base was recorded (not a Git checkout, or the base was not captured))
+
+=== no test command (a docs-only item), complete
+first line: Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i
+... (192 lines, 14792 characters) ...
+Gates: base: skipped (no focused or regression command)
+Gates: mutation: skipped (no focused command)
+
