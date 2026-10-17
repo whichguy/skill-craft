@@ -15,4 +15,7 @@ the 2.4.0 live slice the skill was invoked for 1 of 4 stages; changing the packe
 - Where no record can exist (Grok, Codex, Cursor, OpenCode, no hooks, hooks turned off with `SHIPLOOP_KEEPALIVE=off`,
   hooks installed before this one, or `delegation: ask-agent`, where a fresh worker runs the review) nothing is enforced,
   and `complete` says so once per run when it accepts the import.
+- Codex and Cursor started from a Claude shell inherit its session variables but have no Skill tool, so their own
+  markers (`CODEX_THREAD_ID`, `CODEX_SANDBOX`, `CURSOR_PLUGIN_ROOT`) exempt them. A hook reading closed or non-text stdin
+  exits 0 with nothing recorded. The refusal reminds the model to keep its `--final-result`, `--notes` and `--no-commit`.
 - The hook generator accepts the new `after-skill` event (Claude only) and refuses it for any other host.

@@ -52,3 +52,18 @@ script, not by prompt)?
   subagent handling, not measured.
 - Not enforced anywhere but Claude Code inline runs (Grok, Codex, Cursor, OpenCode have no Skill-tool hook; `ask-agent` runs the
   review elsewhere). The note says so once per run.
+
+## Adversarial review before release (2026-10-16)
+
+A read-only reviewer ran the merged branch (release worktree, probes kept under the session scratchpad `review/`). No P0.
+
+| Finding | Status | Evidence |
+|---|---|---|
+| P1: a Codex or Cursor process started from a Claude shell inherits `CLAUDECODE` and `CLAUDE_CODE_SESSION_ID`, so a Claude session bound to the same run gated it, and it has no Skill tool to satisfy the gate. | **Fixed:** `NESTED_NON_CLAUDE` (`CODEX_SANDBOX`, `CODEX_THREAD_ID`, `CURSOR_PLUGIN_ROOT`) is checked in `skill_gate`; an OpenCode marker is not known, so an OpenCode started from a bound Claude shell is still gated (open). | `test_codex_or_cursor_started_from_a_bound_claude_shell_is_not_gated` (fails on the old source). |
+| P3: the refusal's named command was the bare `complete`, so a model following it literally dropped its `--final-result`, `--notes` or `--no-commit`. | **Fixed:** the refusal says those flags belong on the command too (`then run: ` still ends the first line). | `test_without_a_record_the_import_is_refused_and_the_named_fix_accepts_it` (fails on the old source). |
+| P3: closed stdin or strict-UTF-8 bytes made the hook entry exit 1 with a traceback. | **Fixed** in `hook_main` (shared with observe and stop): an unreadable stdin is an empty payload. | `test_the_entry_script_survives_a_closed_stdin_and_bytes_that_are_not_text` (fails on the old source). |
+| P2: `skill_hook` is judged from the configuration on disk, not from what the live session registered; a mid-session `shiploop-hook install` or a changed tool name leaves an unsatisfiable gate. | Known limit, not changed (the `SHIPLOOP_KEEPALIVE=off` exit and a fresh session exist). | Code reading only. |
+| P2: a Skill call before the session was bound, a subagent with its own session id, and a user-typed `/improve` leave no record. | Known limits; the exit is a repeat call in the main session. | Probes `skill-then-bind-then-complete`, `subagent-own-session-id`. |
+| P3: `start.json` rewritten after the call voids it; an argument past 2000 characters is cut; `evilplugin:improve` counts as improve; clearing `CLAUDECODE` in the `complete` environment skips the gate; a FIFO at `skill-calls.jsonl` blocks. | Known, adversarial only; not changed. | Probes. |
+
+Open for the live round: whether a Claude model refused here follows the named exit; the invocation rate against 1 of 4.

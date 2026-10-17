@@ -398,7 +398,8 @@ def _skill_call_gate(core: Any, root: Path, state: Mapping[str, Any], child: Map
     raise NavigatorError(
         "Run the improve skill on this " + child["stage"] + " result first: no call to it has been recorded since this "
         "Improve stage started (" + str(root / skill_calls.RECORD_FILE) + "). Invoke the Skill tool with skill \"improve\" "
-        "and args \"" + argument + "\", let the skill finish, then run: "
+        "and args \"" + argument + "\", let the skill finish. Any --final-result, --notes or --no-commit you meant to submit "
+        "belong on this command too; then run: "
         + _callback(core, root, "complete", action=child["improve_action"]))
 
 

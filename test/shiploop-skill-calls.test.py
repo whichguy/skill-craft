@@ -154,6 +154,17 @@ class SkillCallHookTests(keepalive_tests.KeepaliveTestCase):
         # a non-string argument is kept as JSON text, not dropped or crashed on
         self.assertEqual(records(self.run_dir)[-1]["args"], "7")
 
+    def test_the_entry_script_survives_a_closed_stdin_and_bytes_that_are_not_text(self) -> None:
+        self.bind()
+        entry = SCRIPTS / "shiploop-skill-call"
+        closed = subprocess.run(f"{shlex.quote(sys.executable)} {shlex.quote(str(entry))} <&-", shell=True,
+                                capture_output=True, text=True, check=False)
+        self.assertEqual((closed.returncode, closed.stdout, closed.stderr), (0, "", ""))
+        strict = subprocess.run([sys.executable, str(entry)], input=b"\xff\xfe{", capture_output=True, check=False,
+                                env={**os.environ, "PYTHONIOENCODING": "utf-8:strict"})
+        self.assertEqual((strict.returncode, strict.stdout, strict.stderr), (0, b"", b""))
+        self.assertEqual(records(self.run_dir), [])
+
     def test_a_record_line_stays_bounded(self) -> None:
         self.bind()
         self.skill("session-1", "improve", "a" * 50_000)
@@ -338,6 +349,9 @@ class SkillCallGateTests(GateFixture):
         named_args = re.search(r'args "([^"]+)"', first)[1]
         self.assertEqual(named_args, self.argument())
         self.assertIn('skill "improve"', first)
+        # A decision flag the model already chose is not lost by following the named command literally.
+        self.assertIn("--final-result", first)
+        self.assertIn("--no-commit", first)
         named = shlex.split(first.rsplit("then run: ", 1)[1])
         self.assertEqual(named[2:], ["complete", "--run-dir=" + str(self.run), "--action=" + self.improve])
         # Submit that fix through the same gate: invoke the skill as named, then run the named command.
@@ -420,6 +434,23 @@ class SkillCallGateTests(GateFixture):
         self.environment.update({"GROK_AGENT": "1", "GROK_SESSION_ID": "grok-1", "HOME": str(self.claude_home)})
         done = self.complete()
         self.assertIn("only Claude Code's hooks record Skill calls", done.stderr)
+
+    def test_codex_or_cursor_started_from_a_bound_claude_shell_is_not_gated(self) -> None:
+        # Such a host inherits Claude's session variables, has no Skill tool or Skill-call hook, and so could never
+        # satisfy the gate: its own marker wins over the inherited Claude session.
+        self.bind()
+        inherited = {**self.environment}
+        with self.hook_environment():
+            self.assertEqual(keepalive.skill_gate(str(self.run), inherited), (True, ""))
+            for marker in ("CODEX_THREAD_ID", "CODEX_SANDBOX", "CURSOR_PLUGIN_ROOT"):
+                with self.subTest(marker=marker):
+                    enforce, why = keepalive.skill_gate(str(self.run), {**inherited, marker: "1"})
+                    self.assertFalse(enforce)
+                    self.assertIn("only Claude Code's hooks record Skill calls", why)
+        self.environment["CODEX_THREAD_ID"] = "codex-thread-1"
+        done = self.complete()
+        self.assertIn("only Claude Code's hooks record Skill calls", done.stderr)
+        self.assertNotIn("Run the improve skill on this", done.stderr)
 
     def test_a_session_bound_to_another_run_does_not_gate_this_one(self) -> None:
         binding = self.bind()

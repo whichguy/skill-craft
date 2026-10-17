@@ -385,6 +385,11 @@ def skill_call(host: str, payload: Mapping[str, Any]) -> bool:
         agent_id=payload.get("agent_id"))
 
 
+# A host started from a Claude shell inherits Claude's variables and has no Skill-call hook: Codex and Cursor set
+# their own, which win over the inherited Claude session (shiploop_grants.detect_host reads the same Codex ones).
+NESTED_NON_CLAUDE = ("CODEX_SANDBOX", "CODEX_THREAD_ID", "CURSOR_PLUGIN_ROOT")
+
+
 def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool, str]:
     """(enforce, why not): whether the Improve stage's ``complete`` holds this run to a recorded improve-skill call.
 
@@ -396,7 +401,7 @@ def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool
     if disabled():
         return False, "SHIPLOOP_KEEPALIVE turns ShipLoop's hooks off"
     found = _host_session(env)
-    if found is None or found[0] != "claude":
+    if found is None or found[0] != "claude" or any(env.get(name) for name in NESTED_NON_CLAUDE):
         return False, "only Claude Code's hooks record Skill calls, and this is not a Claude Code session"
     binding = load_binding(*found)
     if binding is None or os.path.realpath(str(binding.get("run_dir"))) != os.path.realpath(run_dir):
@@ -1023,7 +1028,11 @@ def hook_main(argv: list[str] | None = None) -> int:
             action.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.command in ("observe", "stop", "skill"):
-        reply = run_hook(args.command, args.host, sys.stdin.read())
+        try:
+            payload = sys.stdin.read()
+        except (AttributeError, OSError, ValueError):  # no stdin, or bytes that are not text: nothing to read, never a failure
+            payload = ""
+        reply = run_hook(args.command, args.host, payload)
         if reply:
             print(reply)
         return 0
