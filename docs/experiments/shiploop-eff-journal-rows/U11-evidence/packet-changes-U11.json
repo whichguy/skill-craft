@@ -1,5 +1,5 @@
 {
-  "_doc": "The U11 entries of test/shiploop_e2e/packet_changes.json that classify every line this unit adds to node-fix-bug packets (G-RENDER). The integrator copies the list into the file's U11 key; render_diff.py OLD NEW --unit U11 --no-head-table then exits 0 on the four renders (inline and ask-agent, run dir 83 and 163, CLI path 96).",
+  "_doc": "The U11 entries now in test/shiploop_e2e/packet_changes.json (key U11): they classify every line this unit adds to the node-fix-bug packets (G-RENDER). render_diff.py OLD NEW --unit U11 --no-head-table exits 0 on the four renders of the merged tree (inline and ask-agent, run dir 83 and 163, CLI path 96); the head table itself (seeded from main) fails every stage on the integration branch before any unit's change.",
   "U11": [
     {
       "prefix": "- Every criterion is named in some command's `criteria`",
@@ -35,11 +35,11 @@
       "approval": "efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11): 'a lint finding or a check-only refusal'"
     },
     {
-      "prefix": "in order; items 8-9 once, before you report the exit satisfied.",
+      "prefix": "in order; item",
       "stages": [
         "verify"
       ],
-      "approval": "efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11) (VR-6): verify's duty says which items repeat"
+      "approval": "efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11) (VR-6): verify's duty says which items repeat (items 8-9 once on ask-agent, item 9 once inline)"
     },
     {
       "prefix": "Knowledge files this stage reads and the hand-offs",

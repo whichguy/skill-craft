@@ -1,22 +1,22 @@
 # Render diff: node-fix-bug / inline/83/96, unit U11
 
-- old <render>/before-inline-83 (commit e4c675d522e2)
-- new <render>/after-inline-83 (commit e4c675d522e2)
+- old <render>/before-inline-83 (commit unknown)
+- new <render>/after-inline-83 (commit 253e49d68c36)
 - the head table is NOT checked (--no-head-table)
 
 | stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|---|
-| step-plan | 20709 | 20649 | -60 | – | -649 | 24607 | 24547 | 0 | ok |
+| step-plan | 20638 | 20578 | -60 | – | -578 | 24536 | 24476 | 0 | ok |
 | step-plan-improve | 2687 | 2687 | +0 | – | 17313 | 2687 | 2687 | 0 | ok |
-| test-spec | 14578 | 14622 | +44 | – | 5378 | 14578 | 14622 | 0 | ok |
+| test-spec | 14507 | 14551 | +44 | – | 5449 | 14507 | 14551 | 0 | ok |
 | test-spec-improve | 1919 | 1919 | +0 | – | 18081 | 1919 | 1919 | 0 | ok |
-| validate-existing | 15019 | 15066 | +47 | – | 4934 | 15019 | 15066 | 0 | ok |
+| validate-existing | 14948 | 14995 | +47 | – | 5005 | 14948 | 14995 | 0 | ok |
 | implement | 15436 | 15483 | +47 | – | 4517 | 18145 | 18192 | 0 | ok |
 | implement-improve | 2628 | 2628 | +0 | – | 17372 | 2628 | 2628 | 0 | ok |
-| test | 15841 | 15670 | -171 | – | 4330 | 20136 | 20364 | 0 | ok |
-| document | 13869 | 13916 | +47 | – | 6084 | 13869 | 13916 | 0 | ok |
-| verify | 16044 | 15921 | -123 | – | 4079 | 20362 | 20239 | 0 | ok |
-| carry-forward | 16948 | 16995 | +47 | – | 3005 | 21958 | 22005 | 0 | ok |
+| test | 15770 | 15599 | -171 | – | 4401 | 20065 | 20293 | 0 | ok |
+| document | 13798 | 13845 | +47 | – | 6155 | 13798 | 13845 | 0 | ok |
+| verify | 15973 | 15853 | -120 | – | 4147 | 20291 | 20171 | 0 | ok |
+| carry-forward | 16877 | 16924 | +47 | – | 3076 | 21887 | 21934 | 0 | ok |
 | carry-forward-improve | 2616 | 2616 | +0 | – | 17384 | 2616 | 2616 | 0 | ok |
 
 ## step-plan
@@ -73,8 +73,8 @@
   -   246  [PW] Work: Do duty items 1-7 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/ru…
   -    10  [PW] in order.
   +  1089  [PW] Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuse…   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11): the false tail 'prints every refusal first' becomes 'prints the first refusal without accepting, so repeat it until it accepts' (+47 per producer packet)
-  +   246  [PW] Work: Do duty items 1-9 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/ru…   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11): the duty range is generated from the parsed duty count (test-spec 1-7, implement 1-7, test 1-8, document 1-7, carry-forward 1-4, verify 1-9); the check-only clause is the Callback command with the flag added
-  +    64  [PW] in order; items 8-9 once, before you report the exit satisfied.   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11) (VR-6): verify's duty says which items repeat
+  +   252  [PW] Work: Do duty items 1-7 and 9 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwww…   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11): the duty range is generated from the parsed duty count (test-spec 1-7, implement 1-7, test 1-8, document 1-7, carry-forward 1-4, verify 1-9); the check-only clause is the Callback command with the flag added
+  +    61  [PW] in order; item 9 once, before you report the exit satisfied.   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11) (VR-6): verify's duty says which items repeat (items 8-9 once on ask-agent, item 9 once inline)
 
 ## carry-forward
   -   769  [PW] Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuse…

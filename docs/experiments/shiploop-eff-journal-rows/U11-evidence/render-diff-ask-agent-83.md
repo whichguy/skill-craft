@@ -1,22 +1,22 @@
 # Render diff: node-fix-bug / ask-agent/83/96, unit U11
 
-- old <render>/before-ask-agent-83 (commit e4c675d522e2)
-- new <render>/after-ask-agent-83 (commit e4c675d522e2)
+- old <render>/before-ask-agent-83 (commit unknown)
+- new <render>/after-ask-agent-83 (commit 253e49d68c36)
 - the head table is NOT checked (--no-head-table)
 
 | stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|---|
-| step-plan | 22391 | 22331 | -60 | – | -2331 | 27935 | 27875 | 0 | ok |
+| step-plan | 22320 | 22260 | -60 | – | -2260 | 27864 | 27804 | 0 | ok |
 | step-plan-improve | 2687 | 2687 | +0 | – | 17313 | 2687 | 2687 | 0 | ok |
-| test-spec | 12339 | 12383 | +44 | – | 7617 | 16146 | 16190 | 0 | ok |
+| test-spec | 12268 | 12312 | +44 | – | 7688 | 16075 | 16119 | 0 | ok |
 | test-spec-improve | 1919 | 1919 | +0 | – | 18081 | 1919 | 1919 | 0 | ok |
-| validate-existing | 11962 | 12009 | +47 | – | 7991 | 16587 | 16634 | 0 | ok |
+| validate-existing | 11891 | 11938 | +47 | – | 8062 | 16516 | 16563 | 0 | ok |
 | implement | 16550 | 16597 | +47 | – | 3403 | 21301 | 21348 | 0 | ok |
 | implement-improve | 2628 | 2628 | +0 | – | 17372 | 2628 | 2628 | 0 | ok |
-| test | 15841 | 15670 | -171 | – | 4330 | 21704 | 21932 | 0 | ok |
-| document | 15437 | 15484 | +47 | – | 4516 | 15437 | 15484 | 0 | ok |
-| verify | 16243 | 16344 | +101 | – | 3656 | 22129 | 22230 | 0 | ok |
-| carry-forward | 18151 | 18198 | +47 | – | 1802 | 24729 | 24776 | 0 | ok |
+| test | 15770 | 15599 | -171 | – | 4401 | 21633 | 21861 | 0 | ok |
+| document | 15366 | 15413 | +47 | – | 4587 | 15366 | 15413 | 0 | ok |
+| verify | 16172 | 16273 | +101 | – | 3727 | 22058 | 22159 | 0 | ok |
+| carry-forward | 18080 | 18127 | +47 | – | 1873 | 24658 | 24705 | 0 | ok |
 | carry-forward-improve | 2616 | 2616 | +0 | – | 17384 | 2616 | 2616 | 0 | ok |
 
 ## step-plan
@@ -72,7 +72,7 @@
   -    10  [PW] in order.
   +  1089  [PW] Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuse…   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11): the false tail 'prints every refusal first' becomes 'prints the first refusal without accepting, so repeat it until it accepts' (+47 per producer packet)
   +   246  [PW] Work: Do duty items 1-9 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/ru…   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11): the duty range is generated from the parsed duty count (test-spec 1-7, implement 1-7, test 1-8, document 1-7, carry-forward 1-4, verify 1-9); the check-only clause is the Callback command with the flag added
-  +    64  [PW] in order; items 8-9 once, before you report the exit satisfied.   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11) (VR-6): verify's duty says which items repeat
+  +    64  [PW] in order; items 8-9 once, before you report the exit satisfied.   <- U11 approval: efficiency plan 3.2 rows SP-5, TD-6, SPEC-7, VR-6 and rev 4 Step 8.1 (U11) (VR-6): verify's duty says which items repeat (items 8-9 once on ask-agent, item 9 once inline)
 
 ## carry-forward
   -   769  [PW] Checked by: at done ShipLoop checks the Until Loop receipt (in evidence_refs) against the contract and refuse…
