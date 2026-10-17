@@ -6,16 +6,25 @@ before changing it, so every later cut shows its saving.  Stdlib only.  No model
 
     python3 test/shiploop_e2e/packet_anatomy.py <run>/run/packets [<more dirs>] [--out DIR] [--label NAME]
     python3 test/shiploop_e2e/packet_anatomy.py --walk DIR [--case ID]  # no-model walk of the current engine (a cases.json prompt), then measure it
+    python3 test/shiploop_e2e/packet_anatomy.py <text-dir> --glob '*.printed.txt'   # the heads of a packets.py --offline --text-dir render
+    ... --max-unclassified 0.05    # exit 1 when more than that share of the bytes is unclassified (the tool no longer follows the engine)
 
 A directory holds `nav-<id>.md` (a producer packet or, when its head line names the stage `improve`, the Improve stage's
 packet: the Improve stage is an action of its own) and `nav-<id>-bind.md` (the Improve stage's packet that asks for
 improve-bind).  A run of the older layout has `nav-<id>-improve.md` and `nav-<id>-improve-bind.md` beside the producer's.
 The stage comes from the head line `ShipLoop navigator | <stage> | revision N`.
 
-The classifier follows render() / _render_improve() in skills/shiploop/scripts/shiploop_navigator.py.  A line is given to
-the section whose anchor it matches; a block section keeps the lines after its anchor up to its end rule.  A blank line
-belongs to the section before it.  What no anchor claims is reported as `unclassified`, with the largest such lines, and
-is never folded into another section: sections plus unclassified always sum to the file's bytes.
+The classifier follows render(), packet_head() and _render_improve() in skills/shiploop/scripts/shiploop_navigator.py.  A
+line is given to the section whose anchor it matches; a block section keeps the lines after its anchor up to its end rule.
+A blank line belongs to the section before it.  What no anchor claims is reported as `unclassified`, with the largest such
+lines, and is never folded into another section: sections plus unclassified always sum to the file's bytes.
+
+It reads every layout a saved run can hold: the older packets (a context-index line, a progress snapshot), the 8-stage
+packets with their quoted knowledge files, hand-offs and consumer-delivery block (the quoted body is the "  | " lines under
+its label), the printed head (guidance, then References, the result template and the pointer lines, then the chrome) and
+the layout of the efficiency plan (the pointer lines and the owner or style line before the callback, the loop block that
+starts with the RUN line, the closing HEAD_END line).  A change to render() that adds a line shape fails
+test/shiploop-e2e-packet-anatomy.test.py until a rule here claims it.
 """
 
 from __future__ import annotations
@@ -44,6 +53,7 @@ class Rule:
     para:    up to and including the next blank line
     bullets: the anchor line and the "- " lines under it
     indent:  the anchor line and the lines indented by two spaces under it
+    listing: the anchor line and the lines under it that are "- " bullets or indented by two spaces (a hand-off value)
     until:   up to and including the first line that matches `end`
     before:  up to the line before the first line that matches `end` (to the end of the file when none does)
     rest:    to the end of the file
@@ -60,14 +70,24 @@ def _r(section: str, start: str, kind: str = "line", end: str | None = None, n: 
     return Rule(section, re.compile(start), kind, re.compile(end) if end else None, n)
 
 
+# Where a result-contract block ends: the next block that follows it in any layout.  The older layouts continue with the
+# run context index or the step lines; the packets branch drops the index line, so the pass log, the progress view, the
+# status block and the pointer lines end it too.
+RESULT_END = (r"^(Run context index|This action's pass log|Step \S+ \(\d+ of \d+\)|Progress snapshot|Progress view:|Item plan:|"
+              r"Considerations for this stage|Host-recorded labels|=== ShipLoop (status|narrative) ===|Full packet: |"
+              r"Lost context, or unsure|Until Loop \()")
+
 # Order matters: the first rule whose anchor matches a free line wins.  Section names are the report's columns.
 RULES: tuple[Rule, ...] = (
     # --- head: stage line, callback, goal, done-when, checked-by, considerations (render(): _first_callback_lines, _goal_lines)
     _r("head", r"^ShipLoop navigator \|"),
-    # The two lines under every packet's head line (2026-10-16): the owner rule, then the pointer to the run's master index.
-    _r("head", r"^Owner rule:"),
-    _r("context-index", r"^Lost context, or unsure of anything about this run\? Read "),
     _r("head", r"^Delegation change:"),
+    # The top block between the stage line and the callback (plan 6.1 orders 3 to 6): the recovery and packet-file pointer
+    # lines (the packets branch's "Lost context, or unsure of anything about this run? Read ..." and the final layout's
+    # "Lost context, or unsure? Run ..."), then the owner rule or the one-line style slot.  `Full packet:` stands before the
+    # generic reading-list rule below, which would otherwise take its path.
+    _r("pointer-lines", r"^(Lost context, or unsure|Full packet: |The duties and rules above are this stage's)"),
+    _r("owner-rule", r"^(Owner rule:|Write concise but technically accurate language)"),
     _r("callback", r"^(Callback for this stage|Next command \(|Callback for this Improve child)"),
     _r("callback", r"^The opening file holds exactly these headings"),
     # The Improve packet's numbered instructions (round 2): run the improve skill, then the Improve stage's complete; an unbound
@@ -87,17 +107,25 @@ RULES: tuple[Rule, ...] = (
     # the resume line), the argument between its two marker lines, the Claude Code line, the literal start command, the
     # result line and the loop rule, which ends it (2026-10-16: the explicit RUN-this-skill layout).
     _r("until-loop", r"^Until Loop \(this stage's work runs inside it", "para"),
-    _r("until-loop", r"^Until Loop \(no iteration limit", "until", r"^(ShipLoop wrote the loop contract|Unavailable: )"),
-    _r("until-loop", r"^The loop contract is missing"),
+    # Round 2: heading, invoke line, argument (indented), one How-to-invoke line, then the loop rule (shiploop_loops.invoke_lines).
+    # The block ends at its last line: the older layouts' "ShipLoop wrote the loop contract ..." sentence, or the final
+    # layout's (plan 6.3) closing "Call an exit condition satisfied only when ...".
+    _r("until-loop", r"^Until Loop \(no iteration limit", "until",
+       r"^(ShipLoop wrote the loop contract|Unavailable: |Call an exit condition satisfied only when)"),
+    _r("until-loop", r"^(The loop already started|The loop contract is missing)"),
+    # The test stage's loop text after the block (shiploop_test_loop.loop_lines): where the recorded commands run, the
+    # red-check command (indented under it) and the refused-run count.
+    _r("until-loop", r"^Where and floors:", "indent"),
+    _r("until-loop", r"^Refused runs for this action"),
     # --- result contract and template (_result_contract_lines)
     _r("result-contract", r"^Write the structured result to:", "before",
-       r"^(Run context index|This action's pass log|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+       RESULT_END),
     # The 2026-10-11 dedupe dropped that line (the callback line names the result file), so a packet now opens its
     # contract at "Result template:" (the old rule above still wins on a saved run, which has both).  The compact
     # template is laid out one top-level key per line and one list element per line (_compact_record), so its rows
     # (two-space keys, four-space `{"` elements) stay inside this block; "Fill the template" follows the narrative.
     _r("result-contract", r"^Result template:$", "before",
-       r"^(Run context index|This action's pass log|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+       RESULT_END),
     _r("result-contract", r"^Fill the template:"),
     _r("result-contract", r"^Optional at \S+:"),
     # --- context index and pass log (_context_index_lines; before 2026-10-16 one "Run context index ... pass log" line)
@@ -121,6 +149,11 @@ RULES: tuple[Rule, ...] = (
     _r("recovery", r"^Recovery command:$", "count", n=2),
     # One line since the 2026-10-11 dedupe ("Recovery command (it only reads ...):"), followed by the command line.
     _r("recovery", r"^Recovery command \(", "count", n=2),
+    # A printed head's footer (packet_head): the one recovery line, then the progress view and the pause line (tail-callbacks).
+    _r("recovery", r"^Recovery \(reprints this head"),
+    _r("stage-rules", r"^Never end the turn while a ShipLoop command is still running\."),
+    _r("progress-view", r"^Progress view: "),
+    _r("head-end", r"^=== end ShipLoop head ===$"),
     _r("recovery", r"^(Retain these locators and recovery command|After interruption, check the paths|"
        r"Recovery only reads the saved state|Execute this packet in this conversation|"
        r"Give the executing agent only the current action packet)"),
@@ -147,6 +180,11 @@ RULES: tuple[Rule, ...] = (
        r"Keep detailed experiment prompts)"),
     _r("planning-sources", r"^Current accepted root actions below are the planning basis"),
     _r("planning-sources", r"^- \S+: (.*; full summary and evidence_refs|no current accepted result)"),
+    # --- the consumer-delivery declarations (shiploop_consumer_delivery.packet_lines): a heading, the contract's "Delivery ..."
+    # rows, one instruction line and the obligation rows ("- <id> [required; ...]"); it ends at the first line of another shape.
+    _r("consumer-delivery", r"^Consumer-delivery declarations ", "before",
+       r"^(?!(Consumer-delivery declarations |Delivery |For an observation, copy|- \S+ \[(required|optional);|"
+       r"During the renewed planning suffix|Use the accepted outer replan edge|This action cannot positively repair))"),
     # --- last accepted transition and Improve lessons
     # The block ends at its END marker; its Evidence references lines (printed only when there are any) and, in a saved
     # run, the trailing "If this action depends on earlier accepted context" sentence are claimed by the rules after it.
@@ -161,14 +199,19 @@ RULES: tuple[Rule, ...] = (
        r"evidence references", "bullets"),
     _r("carried-sources", r"^(Run-wide test strategy|Current item test-decision|Current item step-plan) source"),
     _r("carried-sources", r"^Consume relevant current work-item context with these sources"),
-    # --- quoted knowledge files and hand-offs (QUOTE blocks): the heads, the unwritten-file rows and the hand-off rows
+    # --- quoted knowledge files and hand-offs (QUOTE blocks): the heads, the unwritten-file rows and the hand-off rows.
+    # A quoted body is every line under its label that starts with the two-space quote prefix (navigator.QUOTE "  | ").
     _r("carried-sources", r"^(Knowledge files this stage reads|Handed off by earlier stages)"),
     _r("carried-sources", r"^HOME/\S+: not written yet"),
-    _r("carried-sources", r"^(open items( for \S+)?: none open|[a-z_]+ \([^)]*\):( not recorded.*)?$)"),
-    _r("carried-sources", r"^Spec and architecture changes since the run began"),
+    _r("carried-sources", r"^HOME/\S+ \(source: HOME/\S+, whole file\):$", "indent"),
+    _r("carried-sources", r"^open items for \S+:$", "listing"),
+    _r("carried-sources", r"^(open items( for \S+)?: none open|[a-z_]+ \([^)]*\):( not recorded.*)?$)", "listing"),
+    _r("carried-sources", r"^If a carried decision is missing"),
+    _r("carried-sources", r"^Spec and architecture changes since the run began", "indent"),
     _r("work-item", r"^(Unavailable: work item|The accepted step plan recorded no)"),
     # --- work item lines
     _r("work-item", r"^(Work item:|Work item context:|Work items planned:|Completed work items:|Current work item)"),
+    _r("work-item", r"^\[Excerpt only\. Full value: "),
     _r("step-context", r"^(Step \S+ \(\d+ of \d+\), the only work|Accepted step |Later steps \(ShipLoop issues|Item plan:)"),
     # --- repository knowledge home (knowledge.stage_lines)
     _r("knowledge-home", r"^Inherited learnings:", "indent"),
@@ -183,8 +226,10 @@ RULES: tuple[Rule, ...] = (
     # --- the stage guidance block is split by blank-line gaps (see _split_guidance)
     # It ends at the tail callbacks: the old "Call this when done:" line, or (2026-10-11 dedupe, the second callback is
     # gone) the "Improve:" line that now opens the tail.
+    # A printed head puts the References block, the result template and the pointer lines after the guidance, so those end it too.
     _r("stage-guidance", r"^Current stage guidance:$", "before",
-       r"^(Call this when done:$|Improve: |Pause without consuming the action|Halt \(terminal)"),
+       r"^(Call this when done:$|Improve: |Pause without consuming the action|Halt \(terminal|References \(|Result template:$|"
+       r"Full packet: |Lost context, or unsure)"),
     # The five rules every stage prints (STAGE_RULES), when they stand outside the guidance block.
     _r("stage-rules", r"^RULES \(", "bullets"),
     # --- tail callbacks
@@ -208,8 +253,7 @@ RULES: tuple[Rule, ...] = (
     _r("lint", r"^ShipLoop lint \(", "until", r"^END lint data"),
     # --- reading list: a "Label: /absolute/path[#anchor]" line (_run_rules policies and guides, STAGE_REFERENCES)
     _r("reading-list", r"^Repository knowledge index "),
-    _r("reading-list", r"^[^:\n]{3,140}: /[^ \n]+$"),
-    _r("reading-list", r"^[^:\n]{3,140}: GUIDES/[^ \n]+$"),   # a guide, since 2026-10-16 written as the GUIDES symbol
+    _r("reading-list", r"^[^:\n]{3,140}: (/|GUIDES/|HOME/|RUN/)[^ \n]+$"),
     _r("reading-list", r"^[^:\n]{3,140}: [A-Za-z0-9_.-]+\.md$"),
     # One pointer line replaces every locator the packet's stage text does not name (2026-10-11 dedupe).
     _r("reading-list", r"^Every other policy and guide"),
@@ -237,7 +281,8 @@ ID = re.compile(r"nav-[0-9a-f]{32}")
 REV = re.compile(r"\b(revision|rev=)\s?\d+")
 
 SECTION_ORDER = (
-    PREAMBLE, "head", "callback", "goal", "done-when", "checked-by", "considerations", "references", "until-loop", "result-contract",
+    PREAMBLE, "head", "pointer-lines", "owner-rule", "callback", "goal", "done-when", "checked-by", "considerations", "references",
+    "until-loop", "result-contract",
     "step-context",
     "context-index", "progress-snapshot", "status-block", "narrative", "unverified-and-deltas", "state-locators", "reading-list",
     "recovery", "original-request", "workspace-return", "backchain", "work-queue-rules", "planning-sources", "last-accepted",
@@ -245,7 +290,7 @@ SECTION_ORDER = (
     "interaction-lifecycle", "work-item-context", "planning-handoff", "guidance-backchain", "guidance-test-facility",
     "code-craft-rubric", "progress-rules", "stage-rules", "tail-callbacks", "lint", POST_HALT_LOOP, "improve-contract", "improve-step-result",
     "improve-binding", "improve-planning", "improve-review-focus", "improve-ownership", "improve-stage-requirements",
-    "improve-return", UNCLASSIFIED,
+    "improve-return", "consumer-delivery", "progress-view", "head-end", UNCLASSIFIED,
 )
 
 
@@ -271,6 +316,12 @@ def _split_guidance(lines: list[str]) -> list[tuple[str, str]]:
             # common guidance, the rest of the part is the stage's duty.
             labelled.extend((name if line.strip() == first else GUIDANCE_DUTY, line) for line in part)
             continue
+        numbered = next((k for k, line in enumerate(part) if re.match(r"\d+\. ", line)), None) \
+            if first == "Current stage guidance:" else None
+        if numbered is not None:
+            # A one-sentence opening under the heading, a blank line, then the numbered duties: the duties are the stage's.
+            labelled.extend((name if k < numbered else GUIDANCE_DUTY, line) for k, line in enumerate(part))
+            continue
         labelled.extend((name, line) for line in part)
     return labelled
 
@@ -290,8 +341,8 @@ def _block_end(rule: Rule, lines: list[str], i: int) -> int:
         while j < n and lines[j].strip():
             j += 1
         return min(n, j + 1)
-    if kind in ("bullets", "indent"):
-        prefix = "- " if kind == "bullets" else "  "
+    if kind in ("bullets", "indent", "listing"):
+        prefix = ("- ", "  ") if kind == "listing" else ("- ",) if kind == "bullets" else ("  ",)
         j = i + 1
         while j < n and lines[j].startswith(prefix):
             j += 1
@@ -463,10 +514,10 @@ def packet_kind(name: str, stage: str | None = None) -> str:
     return "improve" if stem.endswith("-improve") or stage == "improve" else "producer"
 
 
-def read_packets(directories: list[Path]) -> list[dict]:
+def read_packets(directories: list[Path], pattern: str = "*.md") -> list[dict]:
     packets = []
     for directory in directories:
-        for path in sorted(Path(directory).glob("*.md")):
+        for path in sorted(Path(directory).glob(pattern)):
             text = path.read_text(encoding="utf-8", errors="replace")
             head = next((HEAD_LINE.match(line) for line in text.splitlines() if HEAD_LINE.match(line)), None)
             stage = head.group("stage") if head else "unknown"
@@ -709,6 +760,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--walk", type=Path, metavar="DIR",
                     help="first run a no-model walk of the current engine under DIR, then measure its packets")
     ap.add_argument("--case", default="hello", help="the cases.json case whose prompt the walk submits (default: hello)")
+    ap.add_argument("--glob", default="*.md", help="which files of a directory are packets (default: *.md; a packets.py --text-dir render: '*.printed.txt')")
+    ap.add_argument("--max-unclassified", type=float, metavar="SHARE",
+                    help="exit 1 when more than this share of the bytes (0.05 is 5%%) is unclassified")
     args = ap.parse_args(argv)
     directories = list(args.packets)
     label = args.label
@@ -717,9 +771,9 @@ def main(argv: list[str] | None = None) -> int:
         label = label or "no-model-walk-current-engine"
     if not directories:
         ap.error("give a packet directory or --walk DIR")
-    packets = read_packets(directories)
+    packets = read_packets(directories, args.glob)
     if not packets:
-        ap.error("no packet .md files found")
+        ap.error(f"no packet files ({args.glob}) found")
     report = measure(packets, label or directories[0].name)
     markdown = render_markdown(report)
     if args.out:
@@ -730,6 +784,10 @@ def main(argv: list[str] | None = None) -> int:
               f"{report['totalBytes']:,} bytes, unclassified {report['unclassifiedShare']:.1%}")
     else:
         print(markdown)
+    if args.max_unclassified is not None and report["unclassifiedShare"] > args.max_unclassified:
+        print(f"unclassified {report['unclassifiedShare']:.1%} is over {args.max_unclassified:.1%}: extend RULES in packet_anatomy.py",
+              file=sys.stderr)
+        return 1
     return 0
 
 

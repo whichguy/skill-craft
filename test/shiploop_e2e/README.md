@@ -1403,6 +1403,24 @@ python3 test/shiploop_e2e/packets.py <output>
 python3 test/shiploop_e2e/packets.py <output after an edit> --compare <output before>
 ```
 
+**Fixed text and the render diff** (the offline tier for an edit to packet text or order, G-RENDER of the efficiency plan):
+
+```sh
+python3 test/shiploop_e2e/packets.py --offline node-fix-bug --text-dir <fresh dir> --run-dir-length 83 --cli-path-length 96
+python3 test/shiploop_e2e/render_diff.py <dir before the edit> <dir after it> --unit U8
+```
+
+`--text-dir` writes each packet as `<NN>-<stage>.printed.txt` (what the host prints: a head when the packet passes
+`PRINT_LIMIT`) and `.whole.txt` (the packet file) with a `manifest.json`. The text is fixed (ids from a counter, the run
+directory and the CLI path at the stated lengths, the checkout root and the interpreter as strings of a normal install's
+length), so two renders of one tree are byte-identical whatever the temporary directory and the checkout path; 83 is a normal install's run directory, 163 the live
+run's, 96 the CLI path of a plugin-cache install. `render_diff.py` lists every added and removed line with its size and
+exits 1 when an added line is not in the unit's entries of `packet_changes.json` (a line prefix and either the removed lines
+that pay for it or the decision that approves it) or a printed text passes its value in `packet_head_table.json`; it
+refuses two renders made with other options. `render_diff.py --emit-table <dir> --write` records a render's sizes as the new
+table values: do it in the commit that journals them. `packet_anatomy.py <dir> --glob '*.printed.txt'` gives the bytes
+per section of the same heads.
+
 **The cases** are in `step_cases.json`: `node-add-function`, `node-fix-bug`, `node-add-route` and `node-rename`.
 Each is a generic operation a step produces, on one fixture, `fixtures/node-base/`: a dependency-free Node project
 whose tests use `node --test`, with a deliberate `paginate()` bug. A case gives:
