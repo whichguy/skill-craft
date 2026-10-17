@@ -8,7 +8,7 @@ description: >-
   unresolved risks, then directly calls the selected Until Loop to repeat dependency
   review, by default until two consecutive trivial/no-change reviews, or for one cycle
   when the caller states `Backchain passes: one`.
-version: 0.6.3
+version: 0.6.4
 author: Backchain
 license: MIT
 platforms:
@@ -234,7 +234,10 @@ hand/harness-supplied) is the goal-closure check.
    `packagePlan` / `run-prompt.sh --package-only`), then validate with `validateStructure`
    before using the plan. Do not leave `parallel_groups` as `[]` if multi-member waves exist.
 4. For a complete Backchain planning invocation, run `references/convergence.md` over
-   the candidate and preserve its companion report. Repackage after any graph revision.
+   the candidate and preserve its companion report. Every review/fix/check cycle rechecks
+   implementable chunk boundaries, splitting authorized oversized work into serial,
+   parallel, or mixed dependencies while preserving outcomes and verification. Repackage
+   after any graph revision.
    `prompts/rubric-judge.md` and `prompts/compare-judge.md` assess benchmark candidates;
    neither substitutes for the planning reviews the gate requires (by default two
    consecutive; one cycle with `Backchain passes: one`).
