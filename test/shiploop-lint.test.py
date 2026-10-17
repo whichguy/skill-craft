@@ -1362,6 +1362,13 @@ class GateTests(Fixture):
             with self.assertRaises(nav.NavigatorError) as refused:
                 complete(self.run_dir, state)  # S1 is gated although it is not the last step
             self.assertIn("implement is not done while 1 new lint finding", str(refused.exception))
+            # The gate sentence the lint pass prints says so too (it said "only the item's last step is gated: an
+            # earlier step's findings are reported without auto-fix": false since this decision, U11).
+            block = store.read_record(self.run_dir / "lint" / (nav.current_action(state)["id"] + ".gate1.md"))["block"]
+            self.assertIn("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
+                          "remains.", block)
+            self.assertNotIn("last step is gated", block)
+            self.assertNotIn("without auto-fix", block)
             found = re.findall(r"^- (L[0-9a-f]{10}) ", str(refused.exception), re.M)
             complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "S2 resolves it."}]))
             state = settle(self.run_dir)

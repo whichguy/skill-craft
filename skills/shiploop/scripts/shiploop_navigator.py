@@ -1994,7 +1994,7 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
 
     Every step names the criteria it satisfies and the paths it changes (a subset of the item's paths); every
     criterion is satisfied by some step; and no step only changes test files, unless the whole item is tests
-    (test-author writes the tests before implement, so a test-only step was a no-op in every live run).
+    (the test stage writes the tests after the last implement step, so a test-only step would be a no-op).
     """
     steps = result.get("steps") or []
     known = [str(row.get("id")) for row in result.get("criteria") or () if isinstance(row, Mapping)]
@@ -2026,7 +2026,7 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
                      and all(item_scope.classify(path) == "test" for path in step["paths"])]
         _need(not test_only, "step " + ", ".join(test_only) + " only changes test files. Tests are not a step: "
               "the test stage writes them after the last implement step. Merge that work into the step whose behaviour the test "
-              "proves, or drop it if test-author already covers it.")
+              "proves, or drop it if a test-spec case already covers it.")
 
 
 # Fields a stage's revise must carry (its gate refuses a revise without them).
@@ -3043,9 +3043,7 @@ def _validate_existing_entry(root: Path, before: Mapping[str, Any],
     advanced = deepcopy(after)
     _record_acceptance(advanced, action["id"], stage, {
         "outcome": "done",
-        "summary": "ShipLoop ran every expectation check on the unchanged checkout and each matched its state; "
-                   "validate-existing was recorded without running it. Records: "
-                   + str(root / expectations.record_path(action["id"])),
+        "summary": "ShipLoop ran every expectation check on the unchanged checkout and each matched its state.",
         "evidence_refs": [str(root / expectations.record_path(action["id"]))],
     })
     nxt = _record_not_applicable(advanced, _next_stage(stage, advanced))
@@ -4412,7 +4410,8 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
         return []
     lines = loops.invoke_lines(root, state)
     if stage in test_loop.STAGES:
-        # With the CLI, the list ends with the red-check command the test loop's work runs before done.
+        # With the CLI, the list ends with the red-check command (a base check that does not count); the loop's work
+        # reaches it through the Callback command's --check-only, which also runs the candidate and mutation checks.
         cli = shlex.join([sys.executable, str(Path(__file__).resolve().parent / "shiploop")])
         lines += test_loop.loop_lines(root, state, work_item or "", action_id, stage, cli=cli)
     return lines
@@ -5106,14 +5105,16 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work.
 
     One line (aggressive re-cut, 2026-10-11): what ShipLoop runs at done, then only the refusals that go beyond the
-    exit conditions; `complete --check-only` prints each refusal's fix.
+    exit conditions; `complete --check-only` runs the same gates on a draft and prints the first refusal's fix (a gate
+    raises at the first fault it finds, so a result with two faults needs two runs).
     """
     extra = _stage_gates(row.name, state)
     runs = "; then ".join(_check_text(run, row.name) for run in row.complete_runs)
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
             + "; ".join([*extra, "the usual faults (" + _COMMON_GATES + ")"])
             + ". It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause "
-            "and run the same command again; `complete --check-only` prints every refusal first.")
+            "and run the same command again; `complete --check-only` prints the first refusal without accepting, so "
+            "repeat it until it accepts.")
 
 
 # An inner stage's done-when: its conditions are the numbered exit conditions of the /until-loop argument.
@@ -5121,11 +5122,20 @@ DONE_WHEN_LOOP = ("Done when: every exit condition in the /until-loop argument b
                   "the same list.")
 
 
+def _implement_scope(state: Mapping[str, Any], stage: str) -> Mapping[str, Any] | None:
+    """The steps one implement action builds (``loops.implement_scope``): the current step inline, every step on the
+    ask-agent route.  None for any other stage, or when the item has no step left."""
+    if stage != "implement":
+        return None
+    work_item = _current_work_item(state)
+    return loops.implement_scope(state, work_item, current_action(state)["id"]) if work_item is not None else None
+
+
 def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
     """Lead an active packet with the stage's goal and done-when; a producer also gets its checks and considerations."""
     if state["status"] != "active":
         return []
-    row = stage_spec.stage(stage)
+    row = loops.worded_stage(stage, _implement_scope(state, stage))
     if state.get("active_improve"):
         # The parent packet a cleared model re-reads while the child runs: what the review judges the result against.
         # The result is returned, not accepted (the parent step stays pending), and may be blocked or repeat, so the
@@ -5404,6 +5414,12 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
     return "\n".join(lines) + "\n"
 
 
+def _several_steps(text: str, state: Mapping[str, Any], stage: str) -> str:
+    """``text`` worded for the steps one implement action built, when it built several (the ask-agent route); else as is."""
+    named = loops.several_steps(_implement_scope(state, stage))
+    return guidance.for_steps(text, *named) if named else text
+
+
 def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list[str]) -> str:
     """One call-and-return instruction; the selected skill supplies the review algorithm."""
     child = state["active_improve"]
@@ -5665,8 +5681,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *([guidance.PLANNING_REVIEW_FOCUS.rstrip()]
           if child["stage"] in guidance.PLANNING_REVIEW_STAGES else []),
         *([guidance.END_REVIEW_FOCUS.rstrip()] if child["stage"] == "carry-forward" else []),
-        *([guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip()] if child["stage"] in stage_spec.with_improve("step") else []),
-        guidance.improve_prompt(child["stage"], delegation=delegation(state)),
+        *([_several_steps(guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), state, child["stage"])]
+          if child["stage"] in stage_spec.with_improve("step") else []),
+        _several_steps(guidance.improve_prompt(child["stage"], delegation=delegation(state)), state, child["stage"]),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
         "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. When the first pass is trivial and leaves the workspace unchanged, the runtime checks that from Git and completes after that one pass.",

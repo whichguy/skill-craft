@@ -85,6 +85,8 @@ class Stage:
     outcomes: tuple[str, ...] = ("done", "repeat", "blocked")
     short_goal: str = ""                   # what a status line shows ("specify this item's tests"); default: goal up to its first colon
     cases: bool = False                    # the test text ends with case_end_states (added once outcomes are final)
+    steps_goal: str | None = None          # the goal for an action that builds several steps at once ({steps}, {paths})
+    steps_done_when: tuple[str, ...] = ()  # the done-when conditions for that action, one per condition above
 
     def __post_init__(self) -> None:
         if self.phase not in PHASES:
@@ -101,6 +103,9 @@ class Stage:
                 raise ValueError(f"{self.name}: unknown {label} {sorted(unknown)}")
         if self.improve not in (None, *IMPROVE_RULES):
             raise ValueError(f"{self.name}: unknown improve rule {self.improve!r}")
+        if (self.steps_goal is None) != (not self.steps_done_when) or (
+                self.steps_goal is not None and len(self.steps_done_when) != len(self.done_when)):
+            raise ValueError(f"{self.name}: the several-steps wording needs a goal and one condition per done-when")
         if not set(self.outcomes) <= OUTCOMES or "done" not in self.outcomes:
             raise ValueError(f"{self.name}: outcomes must include done and use known outcomes")
 
@@ -173,6 +178,15 @@ def develop(name: str, execution_mode: str) -> str | None:
     return text + " " + rule if text else rule
 
 
+def for_steps(row: Stage, steps: str, paths: str) -> Stage:
+    """``row`` worded for an action that builds several steps of the plan at once, named ``steps`` (for example "S1 to
+    S2") with their ``paths``; a row without that wording is returned as it is."""
+    if row.steps_goal is None:
+        return row
+    return replace(row, goal=row.steps_goal.format(steps=steps, paths=paths),
+                   done_when=tuple(text.format(steps=steps, paths=paths) for text in row.steps_done_when))
+
+
 _ROWS = (
     # ------------------------------------------------------------------ prelude
     Stage(
@@ -219,7 +233,7 @@ _ROWS = (
     ),
     Stage(
         "spec", "prelude",
-        goal="Define each requirement and its acceptance criteria as R-<n> in HOME/spec.md; this run's ID changes in FEATURE/spec.md.",
+        goal="Define each requirement and its acceptance criteria as R-<n> in HOME/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
         short_goal='specify the requirements',
         done_when=(
             "every request outcome maps to at least one acceptance criterion",
@@ -364,6 +378,18 @@ _ROWS = (
             "after the last edit, the lint gate reports no unwaived new finding on a line this step changed",
             "the result lists each behaviour the change added that no test-spec case covers (or none), and whether "
             "each of the step's skills was used",
+        ),
+        # The ask-agent route issues one implement action for every step of the plan, so a plan of several steps is
+        # worded for those steps and their paths (``for_steps``); the inline route keeps the per-step wording above.
+        steps_goal="Make the change of steps {steps} on their paths ({paths}) in WORKTREE; exit codes go to "
+                   "RUN/notes/<action>.md, uncovered behaviour to `not_covered`.",
+        steps_done_when=(
+            "only the paths of steps {steps} ({paths}) changed since the first of them began, and no work outside "
+            "those steps is in them",
+            "after the last edit, every recorded check command exited 0",
+            "after the last edit, the lint gate reports no unwaived new finding on a line these steps changed",
+            "the result lists each behaviour the changes added that no test-spec case covers (or none), and whether "
+            "each step's skills were used",
         ),
         develop="Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",
         test="After each edit, rerun the check commands; change the work, never the check. Tests are written in the "

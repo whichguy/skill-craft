@@ -1,0 +1,114 @@
+# Fail-first record (U11)
+
+The new and changed tests of the unit, run against the source of the base `e4c675d5` (the unit's `skills/` diff reverted; a
+`git archive` of the base tree with only the unit's test files copied over it), one suite at a time:
+`SHIPLOOP_PROGRESS=off python3 -B test/shiploop-<suite>.test.py`. Each line is a test that FAILS (or ERRORS, for a symbol the
+base lacks) on the base and passes with the change. Not listed, and passing on the base by design, are the guards that pin
+behaviour the sentence describes: `shiploop-reference` mode `stage`, the inline and one-step hand-off tests, the pinned duty
+counts, the printed-Callback-plus-`--check-only` run, and `test_a_refusal_names_the_first_fault_only_so_check_only_is_repeated_until_it_accepts`.
+The four ERRORs of `shiploop-no-model-launch` other than the new test come from the archive having no `scripts/` (the suite
+builds packages with them); the new test's own failure is the FAIL line ("ShipLoop does not launch ... any other model
+process" is still in SKILL.md), reproduced in the working tree before the SKILL.md edit.
+
+The delegation test `test_verify_assembles_direct_or_chain_work` and the navigator-contract tests with `{items}` are existing
+pins that the plan changes on purpose (verify item 8 on ask-agent only, VR-6; the Work range generated from the duty), so they
+fail on the base only because the pin text moved.
+
+reference exit 1
+FAIL: test_none_lists_the_two_planning_results_it_still_reviews_and_stage_lists_seven
+FAIL: test_the_listed_planning_results_are_the_stages_the_mode_reviews_in_graph_order (mode='none', delegation='ask-agent')
+FAIL: test_the_listed_planning_results_are_the_stages_the_mode_reviews_in_graph_order (mode='none', delegation='inline')
+FAIL: test_the_rest_of_the_rules_text_is_the_same_in_both_modes
+FAIL: test_the_sentence_matches_the_children_a_run_of_that_mode_starts (mode='none')
+delegation exit 1
+ERROR: test_the_stage_row_words_itself_only_where_it_has_aggregate_wording
+FAIL: test_a_two_step_ask_agent_handoff_names_the_steps_and_both_paths
+FAIL: test_the_packet_goal_and_the_loop_contract_say_the_same_steps
+FAIL: test_verify_assembles_direct_or_chain_work (route='inline')
+loops exit 1
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='carry-forward', route='ask-agent')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='carry-forward', route='inline')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='document', route='ask-agent')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='document', route='inline')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='implement', route='ask-agent')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='implement', route='inline')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='test', route='ask-agent')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='test', route='inline')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='test-spec', route='ask-agent')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='test-spec', route='inline')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='validate-existing', route='ask-agent')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='validate-existing', route='inline')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='verify', route='ask-agent')
+FAIL: test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other (stage='verify', route='inline')
+FAIL: test_the_ask_agent_implement_contract_names_every_step_and_the_runtime_starts_from_it
+FAIL: test_the_assembly_item_prints_on_the_ask_agent_route_only
+FAIL: test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command
+FAIL: test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command (stage='step-plan')
+FAIL: test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command (stage='test')
+FAIL: test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command (stage='test-spec')
+FAIL: test_the_cited_range_follows_the_duty_text_it_is_generated_from
+FAIL: test_the_ranges_read_as_ranges_and_verify_skips_the_assembly_item_inline
+FAIL: test_verify_says_which_items_repeat_and_which_are_done_once
+handoff exit 1
+FAIL: test_a_duty_names_a_file_as_quoted_below_only_when_its_stage_reads_that_file_whole
+FAIL: test_the_spec_stage_quotes_nothing_so_its_duty_tells_it_to_read_the_file
+lint exit 1
+FAIL: test_every_implement_step_is_gated
+no-model-launch exit 1
+ERROR: test_next_ignores_a_stopped_historical_context_host_receipt
+ERROR: test_normal_init_and_next_keep_the_same_run_and_action_without_model_launches
+ERROR: test_package_contains_only_the_current_runtime
+ERROR: test_package_has_no_model_transports_and_rejects_drive
+ERROR: test_the_skill_card_scopes_the_no_launch_rule_to_the_skill_and_names_the_optional_driver
+FAIL: test_the_skill_card_scopes_the_no_launch_rule_to_the_skill_and_names_the_optional_driver
+stage-spec exit 1
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='carry-forward')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='discovery')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='document')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='handoff')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='implement')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='intake')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='operations')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='plan')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='prepare')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='product-acceptance')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='release')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='release-check')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='release-plan')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='release-verify')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='research')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='spec')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='step-plan')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='system-test')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='system-test-author')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='test')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='test-spec')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='test-strategy')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='validate-existing')
+ERROR: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed (stage='verify')
+ERROR: test_the_several_steps_wording_is_a_pair_of_the_goal_and_each_condition_of_one_row
+FAIL: test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed
+navigator-contract exit 1
+FAIL: test_step_duties_carry_exit_criteria_authoring_loop_and_parent_check (work='implement', phrase='changing the work, never the check, its expected result or the command')
+FAIL: test_step_duties_carry_exit_criteria_authoring_loop_and_parent_check (work='implement', phrase='edit its paths to meet its criteria')
+FAIL: test_step_duties_carry_exit_criteria_authoring_loop_and_parent_check (work='verify', phrase='Per criterion name the passing command or inspection that confirms it now')
+FAIL: test_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries
+FAIL: test_validate_existing_is_recorded_by_script_when_every_expectation_matches
+packet-completeness exit 1
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [discovery]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [handoff]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [intake]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [operations]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [plan]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [prepare]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [product-acceptance]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [release-check]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [release-plan]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [release]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [research]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [spec]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [system-test-author]
+FAIL: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses [test-strategy]
+callback-contract exit 1
+FAIL: test_a_long_list_of_test_ids_is_not_refused_for_its_size
+FAIL: test_each_unsized_step_plan_is_refused_by_name_and_the_sized_plan_is_accepted [a step that only changes test files]

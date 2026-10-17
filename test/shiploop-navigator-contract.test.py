@@ -194,7 +194,7 @@ class NavigatorContractTests(unittest.TestCase):
 
     def _reference_text(self, root: Path) -> str:
         """The run reference file's text (what a packet's reference#<anchor> pointers open)."""
-        return run_reference.render({"run_id": "r", "repo": str(self.repo)}, root)
+        return run_reference.render({"run_id": "r", "repo": str(self.repo), "planning_review": "stage"}, root)
 
     def _assert_policy_locator(self, packet: str, label: str, locator: str) -> None:
         """A policy or guide is routed, never duplicated (2026-10-11 dedupe): a packet prints its locator line once
@@ -202,7 +202,7 @@ class NavigatorContractTests(unittest.TestCase):
         file's #policies section, which lists every label with the same locator."""
         line = label + ": " + locator
         packet = symbols.expanded(packet, ("GUIDES", "RUN"))  # a packet prints guides and run files as symbols (2026-10-16)
-        reference = run_reference.render({"run_id": "r", "repo": str(self.repo)}, Path("/run"))
+        reference = run_reference.render({"run_id": "r", "repo": str(self.repo), "planning_review": "stage"}, Path("/run"))
         self.assertIn("- " + line, reference.splitlines(), label)
         self.assertLessEqual(packet.count(line), 1, packet)
         if not packet.count(line):
@@ -398,7 +398,7 @@ class NavigatorContractTests(unittest.TestCase):
         # holds the whole boundary (probes, sanitized evidence, tool-managed authentication) unchanged.
         self.assertIn("Never read, keep or report credential-store or session contents.", " ".join(producer_packet.split()))
         self.assertIn("reference#rules", producer_packet)
-        reference = run_reference.render({"run_id": "r", "repo": str(self.repo)}, root)
+        reference = run_reference.render({"run_id": "r", "repo": str(self.repo), "planning_review": "stage"}, root)
         self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(reference.split()))
 
         waiting = self._pending(self._at_spec(state))
@@ -1222,14 +1222,15 @@ class NavigatorContractTests(unittest.TestCase):
                     with self.subTest(delegation=delegation, stage=stage, phrase=phrase):
                         self.assertEqual(text.count(phrase), 1)
         # Packet re-cut (2026-10-11): the duty states the work once, and the loop's Work only points at the duty's
-        # items; the exit-condition rule is the loop rule, printed once in the until-loop invoke block.
+        # items ({items}: the range counted from the duty text, pinned in shiploop-loops); the exit-condition rule is the
+        # loop rule, printed once in the until-loop invoke block.
         import shiploop_loops as loops
         for stage, work_pointer, duty_phrase in (
-                ("implement", "Do duty items 1-4 of {run}/packets/{action}.md for {step_change}",
+                ("implement", "Do duty items {items} of {run}/packets/{action}.md for {step_change}",
                  "edit its paths to meet its criteria"),
-                ("implement", "Do duty items 1-4 of {run}/packets/{action}.md",
+                ("implement", "Do duty items {items} of {run}/packets/{action}.md",
                  "changing the work, never the check, its expected result or the command"),
-                ("verify", "Do duty items 1-7 of {run}/packets/{action}.md in order",
+                ("verify", "Do duty items {items} of {run}/packets/{action}.md in order",
                  "Per criterion name the passing command or inspection that confirms it now")):
             with self.subTest(work=stage, phrase=duty_phrase):
                 self.assertIn(work_pointer, " ".join(loops.WORK[stage].split()))
@@ -1384,7 +1385,7 @@ class NavigatorContractTests(unittest.TestCase):
         import shiploop_loops as loops
         # Re-cut (2026-10-11): the duty states it once; the loop's Work points at the duty's items.
         self.assertIn("a test titled with its ID as its own word, in the suite and command its case names", tester)
-        self.assertIn("Do duty items 1-4 of {run}/packets/{action}.md for every test case quoted in the packet",
+        self.assertIn("Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet",
                       " ".join(loops.WORK["test"].split()))
         self.assertIn("Reuse existing harness, helpers and fixtures first", tester)
         # What ShipLoop's run refuses is the Checked-by line's, its one home (owner, 2026-10-11), not the duty's.
@@ -2009,7 +2010,7 @@ class NavigatorContractTests(unittest.TestCase):
         short STAGE_RULES list, and the long text lives whole in the run reference file (#rules, #blocked,
         #progress); the Improve schedule sentence is gone from every stage text (the packet's Improve line is the
         only Improve directive, pinned by the Improve-line tests)."""
-        reference = " ".join(run_reference.render({"run_id": "r", "repo": "/repo"}, Path("/run")).split())
+        reference = " ".join(run_reference.render({"run_id": "r", "repo": "/repo", "planning_review": "stage"}, Path("/run")).split())
         in_reference = (
             "Blocked means work this stage cannot do",
             "is a documentation fix made in this stage, then rerun, not a blocker",
@@ -4079,7 +4080,13 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         entry = next(row for row in state["history"] if row["stage"] == "validate-existing")
         record = state["accepted"][entry["action"]]
         self.assertEqual(record["outcome"], "done")
-        self.assertIn("each matched its state; validate-existing was recorded without running it", record["summary"])
+        # One short sentence (U11, SPEC-12): the record is in evidence_refs only, the old tail "recorded without running it"
+        # read as if the checks were skipped, and the status line cut the old 143-character sentence mid-word.
+        self.assertEqual(record["summary"],
+                         "ShipLoop ran every expectation check on the unchanged checkout and each matched its state.")
+        self.assertLess(len(record["summary"]), 100)
+        self.assertNotIn("without running it", record["summary"])
+        self.assertIn(record["summary"], navigator.status_block(state))
         self.assertTrue(Path(record["evidence_refs"][0]).is_file())
         self.assertFalse((self.run_dir / "loops" / (entry["action"] + "-terminal.json")).exists())  # no loop ran
         # No preparatory commit: every commit since the base is the knowledge home's.
