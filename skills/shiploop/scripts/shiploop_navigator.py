@@ -3497,7 +3497,8 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any, root: Path | N
     final = getattr(args, "final_result", None)
     if final is not None:
         record = store.read_record(Path(str(final)))
-        receipt["final_result"] = record if state is None else expand_result_roots(record, root, state, core)
+        receipt["final_result"] = record if state is None else expand_result_roots(
+            record, root, state, core, improve_opening_path(child).parent if child.get("skill") is not None else None)
     no_commit = getattr(args, "no_commit", None)
     if no_commit:
         receipt["no_commit"] = str(no_commit)
@@ -6483,8 +6484,9 @@ def _expand_root(ref: Any, paths: Mapping[str, str], where: str) -> Any:
     return paths[name] + ref[len(name):]
 
 
-def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core: Any = None) -> Any:
-    """``result`` with a leading HOME, RUN, WORKTREE or GUIDES of each evidence path written as its absolute path.
+def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core: Any = None,
+                        child: Path | None = None) -> Any:
+    """``result`` with a leading HOME, RUN, WORKTREE, GUIDES (or ``child``'s CHILD) of each evidence path written as its absolute path.
 
     The lists read are ``evidence_refs`` and each ``assumptions[].evidence`` (the only evidence fields a result has: an
     ``unverified`` row holds exactly its five text fields); anything else, and a result that is not a mapping, is
@@ -6493,7 +6495,7 @@ def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core:
     """
     if not isinstance(result, Mapping):
         return result
-    paths = reference_paths(Path(root), state, core)
+    paths = reference_paths(Path(root), state, core, child)
 
     def listed(value: Any, where: str) -> Any:
         if not isinstance(value, list):

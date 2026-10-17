@@ -9,7 +9,7 @@ A model no longer types, and ShipLoop no longer prints, paths the script already
 - A path in `evidence_refs`, or in an assumption's `evidence`, may lead with `RUN/`, `HOME/`, `WORKTREE/` or `GUIDES/` (the
   packet's symbols). ShipLoop expands it before any check, checks that the file exists and stores the absolute path; a leading
   all-capital word and a slash that is none of those roots is refused by name. The same expansion reads an Improve stage's
-  `--final-result`.
+  `--final-result`, where `CHILD/` (the review's directory) expands too.
 - An inner stage's Until Loop receipt is listed in `evidence_refs` by ShipLoop when the result leaves it out, once the loop's
   terminal packet has passed its checks. A result that lists it still keeps one entry. The refusal for a loop that never ran no
   longer asks the model to list the receipt.

@@ -1366,8 +1366,8 @@ class RequirementLinesTests(inner.RunDriver):
 
 
 class ImproveRouteTests(_improve_cli.ImproveCliFixture):
-    def test_a_seed_refusal_on_the_improve_stage_complete_names_an_exit_the_real_cli_accepts(self) -> None:
-        run = self.base / "parent-seed"
+    def _at_bound_step_plan_review(self, name: str):
+        run = self.base / name
         self.invoke(_improve_cli.CLI, "init", "--repo", self.repo, "--run-dir", run, "--prompt",
                     "Synthetic predecessor navigation for the hand-off route.", "--improve-skill", _improve_cli.CARD)
         state = store.read_record(run / "state.md")
@@ -1393,6 +1393,10 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         navigator.save(run, state, writes)
         self.run, self.state, self.parent_evidence_refs = run, state, []
         self.bind_current()
+        return run, seed
+
+    def test_a_seed_refusal_on_the_improve_stage_complete_names_an_exit_the_real_cli_accepts(self) -> None:
+        run, seed = self._at_bound_step_plan_review("parent-seed")
         packet = self.invoke(_improve_cli.CLI, "next", "--run-dir", run).stdout
         self.assertIn("revise at the INNER stages test-spec to verify", packet)   # X4: revise is a final outcome
         self.finish_ephemeral()
@@ -1409,6 +1413,19 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         after = store.read_record(run / "state.md")
         self.assertIsNone(after["active_improve"])
         self.assertEqual(after["accepted"][self.action]["follows"], [])
+
+    def test_a_final_result_may_cite_the_child_files_by_the_child_symbol_the_handoff_teaches(self) -> None:
+        run, seed = self._at_bound_step_plan_review("parent-child-symbol")
+        self.invoke(_improve_cli.CLI, "next", "--run-dir", run)
+        self.finish_ephemeral()
+        flags, _receipt = self.completion_receipt()
+        child = navigator.improve_opening_path(store.read_record(run / "state.md")["active_improve"]).parent
+        final = run / "inbox" / (self.action + "-final-result.md")
+        store.write_record(final, dict(seed, follows=[], evidence_refs=["CHILD/reviews/review-1.md"]), "final result")
+        self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
+                    "--final-result", final)
+        after = store.read_record(run / "state.md")
+        self.assertEqual(after["accepted"][self.action]["evidence_refs"], [str(child / "reviews" / "review-1.md")])
 
 
 class ReportTests(RepoCase):
