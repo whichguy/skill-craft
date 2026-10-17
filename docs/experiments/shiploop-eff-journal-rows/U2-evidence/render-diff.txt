@@ -39,3 +39,13 @@ packets.py --offline node-fix-bug, before (stop branch merged, d07a3219) vs afte
 ---
 >   "exit_condition": "A full review pass finds nothing material to change and leaves the content (the worktree and the stage result file) exactly as the previous pass left it, the first pass as it was at the start, which the runtime measures; no material defect remains in the candidate; the applicable checks are recorded. The spec result meets its own done-when criteria: every request outcome maps to at least one acceptance criterion; each criterion is independently verifiable and says how it will be confirmed; non-functional requirements are assessed, or excluded with a reason; unaffected existing requirements are preserved.",
 
+
+## Addendum, review fix U2-R1 (2026-10-17): the frozen exit_condition names no pass count
+
+The contract diff above shows a clause added to `exit_condition` of the implement and carry-forward contracts. It is removed again:
+the 76-character clause "; once any pass has changed the content, two such passes in a row are needed" no longer appears in any
+contract, so a literal reader of the exit is not told a pass count to assess. After the fix the gate-specific parts of a gate-3
+contract (beside the stage's own text) are `required_trivial_reviews` (3) and the clause of `repeat_condition` ", and after any pass has changed it
+until two passes in a row leave it unchanged"; the handoff keeps its 95-character sentence. No packet, head or printed text
+changed (the contract is a file the Improve child reads, not a printed packet); `test/shiploop_e2e/packet_changes.json` "U2" stays empty.
+Classification of the removed clause: the pass count belongs to the runtime gate, not to the exit the model assesses (D-6, U2-R1).

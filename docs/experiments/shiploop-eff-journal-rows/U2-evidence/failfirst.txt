@@ -53,3 +53,26 @@ Ran 1 test in 0.373s FAILED (failures=2)
 subtest kind=plain fails: two measurements of an unchanged workspace differ
 subtest kind=worktree fails: two measurements of an unchanged workspace differ
 FAILED (failures=2)
+
+## review fixes (second review of U2, 2026-10-17): each new assertion was run on the unfixed tree first, then the source was changed
+
+### U2-R1 shiploop-quality (new assertion that the frozen exit names no pass count; ShipLoop source unchanged)
+Ran 11 tests in 9.475s
+FAILED (failures=2)
+test_each_implement_step_improve_carries_the_step_focus_with_the_full_rubric
+test_end_of_work_improve_carries_the_full_rubric
+AssertionError: 'in a row' unexpectedly found in "A full review pass finds ... which the runtime measures; once any pass has changed the content, two such passes in a row are needed; no material defect remains ..."
+After the change in improve_start_contract: Ran 11 tests, OK. improve-runtime: two new TwoPassGateTests.SEQUENCES rows (EUN gate 2 -> 3, gate 3 -> open; EUNN 3 / 4), 46 tests OK (the rows pin the runtime as it already behaved; the contract no longer invites the report that reaches them).
+The reviewer's probe on the unfixed tree: gate 3 ENN ends at pass 3, EUNN at pass 4, EUN still open, EUUNN at pass 5.
+
+### U2-R2 shiploop-loops on the merge of integration tip df8fef57 (conflict in test/shiploop-stage-spec.test.py imports resolved, U11 expectation untouched)
+Ran 46 tests in 22.685s
+FAILED (failures=1)
+test_the_ask_agent_implement_contract_names_every_step_and_the_runtime_starts_from_it
+AssertionError: ... 'candidate_paths': [] ... (only on the runtime side)
+After the expectation lists "candidate_paths": []: Ran 46 tests in 24.678s, OK.
+
+### U2-R3 shiploop-stage-spec -k s10 (new test; SPEC.md S-10 proposal untouched)
+FAIL: test_the_s10_proposal_says_which_always_stages_the_study_did_not_measure
+AssertionError: 'seven document stages' unexpectedly found in "**S-10 carve-out, scope of the 2026-10-16 rule: PROPOSED 2026-10-17 ..."
+After the text names the five measured and the two unmeasured stages and carries the open question: Ran 1 test, OK.
