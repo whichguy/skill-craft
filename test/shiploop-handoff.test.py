@@ -1642,5 +1642,226 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
             self.assertEqual((self.repo / relative).read_text(encoding="utf-8"), text)
 
 
+# ------------------------------------------------------------------------- scope of quoted inputs (efficiency plan U17)
+
+STEP_CRITERIA = 20
+
+
+def scoped_plan(steps: list, follows: list | None = None) -> dict:
+    """A step plan for W1 with ``STEP_CRITERIA`` long criteria, one R-<n> each, split over ``steps``."""
+    return {"outcome": "done", "summary": "planned", "steps": steps,
+            "follows": follows if follows is not None else
+            ["R-" + str(n) for n in range(1, STEP_CRITERIA + 1)] + ["AD-1"],
+            "criteria": [{"id": "C" + str(n), "text": "Criterion " + str(n) + " holds for R-" + str(n) + ": "
+                          + "the listed behaviour is observable on the real surface. " * 2}
+                         for n in range(1, STEP_CRITERIA + 1)],
+            "test_commands": [{"command": "node --test", "suite": "focused",
+                               "ids": ["TC-" + str(n) for n in range(1, STEP_CRITERIA + 1)]}]}
+
+
+def scoped_cases() -> dict:
+    return {"outcome": "done", "summary": "cases", "assumptions": [], "test_cases": [
+        {"id": "TC-" + str(n), "criterion": "C" + str(n), "requirement": "R-" + str(n),
+         "oracle": "assert the returned value of case " + str(n) + " " + "equals the request's example " * 4,
+         "red": "fails on the base because case " + str(n) + " " + "is not handled yet " * 4,
+         "green": "passes once case " + str(n) + " " + "returns the expected value " * 4}
+        for n in range(1, STEP_CRITERIA + 1)]}
+
+
+TWO_STEPS = [{"id": "S1", "task": "Round the page count up.", "deps": [], "criteria": ["C1"], "paths": ["src/a.js"]},
+             {"id": "S2", "task": "Serve the rest.", "deps": ["S1"],
+              "criteria": ["C" + str(n) for n in range(2, STEP_CRITERIA + 1)], "paths": ["src/b.js"]}]
+
+
+def drop_entries(lines: list, idents: set) -> list:
+    """``lines`` without each ``- <id>...`` line whose id is in ``idents`` and the quoted ``  | `` lines under it."""
+    kept, skipping = [], False
+    for line in lines:
+        if line.startswith("- "):
+            skipping = line[2:].split(" ", 1)[0].split(":", 1)[0] in idents
+        elif not line.startswith(navigator.QUOTE):
+            skipping = False
+        if not skipping:
+            kept.append(line)
+    return kept
+
+
+class StepScopeTests(RepoCase):
+    """An inline implement step quotes its own criteria, their cases and the R-<n> they name (rev 4 W5, Step 5.1)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.home("spec.md", "## Requirements\n\n" + "".join(
+            "- R-" + str(n) + ": Requirement " + str(n) + ". " + "It must hold on every supported surface. " * 9 + "\n"
+            for n in range(1, STEP_CRITERIA + 1)))
+        self.home("architecture.md", "## Decisions\n\n- AD-1: Plain modules.\n")
+
+    def step_state(self, steps: list, done_steps: int = 0, route: str = "inline", follows: list | None = None) -> dict:
+        rows = [row("sp1", "step-plan", "W1", scoped_plan(steps, follows)), row("ts1", "test-spec", "W1", scoped_cases())]
+        rows += [row("im" + str(n), "implement", "W1", {"not_covered": []}) for n in range(1, done_steps + 1)]
+        state = item_state(self.repo, "W1", [(history, result) for history, result in rows], "implement")
+        state["delegation"] = route
+        state["completed_work_items"] = []
+        return state
+
+    def block(self, state: dict) -> list:
+        return navigator.handoff_lines(self.root, state, "implement",
+                                       {"architecture.md": (self.repo / knowledge.HOME / "architecture.md").read_text()})
+
+    def item_set(self, state: dict) -> list:
+        with mock.patch.object(navigator, "step_scope", return_value=None):
+            return self.block(state)
+
+    def test_step_one_quotes_its_own_slice_in_at_most_two_kilobytes(self) -> None:
+        state = self.step_state(TWO_STEPS)
+        whole, cut = "\n".join(self.item_set(state)), "\n".join(self.block(state))
+        self.assertGreater(len(whole.encode("utf-8")), 20_000, len(whole))          # the item set, as before
+        self.assertLessEqual(len(cut.encode("utf-8")), 2_048, cut)
+        self.assertIn("- C1: Criterion 1", cut)
+        self.assertNotIn("- C2:", cut)
+        self.assertIn("- TC-1 (criterion C1, requirement R-1)", cut)
+        self.assertNotIn("TC-2 ", cut)
+        self.assertIn("- R-1:", cut)
+        self.assertNotIn("- R-2:", cut)
+        self.assertIn("AD-1", cut)                                                    # every AD-<n> stays
+        self.assertIn("Cut to step S1: its criteria (C1),", cut)
+        self.assertIn("RUN/results/sp1.md holds every step's", cut)
+
+    def test_step_two_keeps_every_line_that_serves_its_criteria(self) -> None:
+        state = self.step_state(TWO_STEPS, done_steps=1)
+        whole, cut = self.item_set(state), self.block(state)
+        self.assertEqual(cut[1], "Cut to step S2: its criteria (" + ", ".join("C" + str(n) for n in range(2, STEP_CRITERIA + 1))
+                         + "), their test cases and the R-<n> entries they or its task name, with every AD-<n>; "
+                           "RUN/results/sp1.md holds every step's.")
+        self.assertEqual([cut[0]] + cut[2:], drop_entries(whole, {"C1", "TC-1", "R-1"}))
+
+    def test_the_item_set_when_nothing_resolves_or_the_step_is_the_whole_item(self) -> None:
+        unknown = [dict(TWO_STEPS[0], criteria=["C99"]), TWO_STEPS[1]]
+        every = [dict(TWO_STEPS[0], criteria=["C" + str(n) for n in range(1, STEP_CRITERIA + 1)])]
+        bare = [dict(TWO_STEPS[0], criteria=[]), TWO_STEPS[1]]
+        for name, state in (("unknown criterion", self.step_state(unknown)), ("one step serves all", self.step_state(every)),
+                            ("no criteria", self.step_state(bare)), ("ask-agent", self.step_state(TWO_STEPS, route="ask-agent"))):
+            with self.subTest(name):
+                self.assertIsNone(navigator.step_scope(state, "implement"))
+                self.assertEqual(self.block(state), self.item_set(state))
+                self.assertFalse([line for line in self.block(state) if line.startswith("Cut to step")])
+        # The follows cut alone falls back when the step's scope names none of the item's R-<n>.
+        state = self.step_state(TWO_STEPS, follows=["R-30", "AD-1"])
+        scope = navigator.step_scope(state, "implement")
+        self.assertEqual((scope.criteria, scope.follows), (("C1",), frozenset({"R-30", "AD-1"})))
+        # Other stages are never cut.
+        self.assertIsNone(navigator.step_scope(dict(state, inner_loops={"W1": {"stage": "test", "action": {
+            "id": "nav-current", "stage": "test"}}}), "test"))
+
+    def test_the_implement_improve_handoff_inherits_the_cut_block(self) -> None:
+        state = self.step_state(TWO_STEPS)
+        producer = navigator._consumer_lines(self.root, state, "implement")
+        state["active_improve"] = {"stage": "implement", "improve_action": "nav-review", "skill": "improve"}
+        reviewed = navigator._consumer_lines(self.root, state, "implement")
+        self.assertEqual(reviewed, producer)
+        self.assertIn("Cut to step S1: its criteria (C1),", "\n".join(reviewed))
+        source = Path(navigator.__file__).read_text(encoding="utf-8")
+        handoff = source[source.index("def improve_handoff_text"):source.index("def ", source.index("def improve_handoff_text") + 4)]
+        self.assertIn("*_consumer_lines(root, state, stage),", handoff)   # the Improve handoff quotes the same block
+
+
+class ItemRecordsTests(RepoCase):
+    """system-test-author lists each completed item's test-decision records (row VR-4); its duty points at that block."""
+
+    def test_each_completed_item_lists_its_records_in_force_and_its_candidate_run(self) -> None:
+        rows = []
+        for item in ("W1", "W2"):
+            rows += [row(item + "-sp", "step-plan", item, {}), row(item + "-sp2", "step-plan", item, {}),
+                     row(item + "-ts", "test-spec", item, {}), row(item + "-te", "test", item, {})]
+        state = {**self.state, "status": "active", "stage": "system-test-author", "work_items": [
+            {"id": "W1", "title": "one"}, {"id": "W2", "title": "two"}], "completed_work_items": ["W1", "W2"],
+            "history": [history for history, _ in rows], "accepted": {history["action"]: r for history, r in rows}}
+        (self.root / "tests").mkdir()
+        for number in (1, 2):
+            (self.root / "tests" / ("W1-te-verify" + str(number) + ".md")).write_text("run\n")
+        lines = navigator._builds_on_lines(self.root, state, "system-test-author", None)
+        self.assertEqual(lines[0], navigator.BUILDS_ON_HEAD)
+        self.assertEqual([line for line in lines if line.startswith("- W")], [
+            "- W1 step-plan result: RUN/results/W1-sp2.md",                     # the latest done step plan only
+            "- W1 test-spec result: RUN/results/W1-ts.md",
+            "- W1 test result: RUN/results/W1-te.md",
+            "- W1 test candidate run: RUN/tests/W1-te-verify2.md (each command's result and count)",
+            "- W2 step-plan result: RUN/results/W2-sp2.md",
+            "- W2 test-spec result: RUN/results/W2-ts.md",
+            "- W2 test result: RUN/results/W2-te.md"])                             # no candidate run recorded
+        self.assertFalse([line for line in navigator._builds_on_lines(self.root, dict(state, stage="system-test"),
+                                                                      "system-test", None) if line.startswith("- W")])
+        duty = " ".join(stage_spec_duty("system-test-author").split())
+        self.assertIn('The records in force are the ones listed under "Results this stage builds on"', duty)
+        self.assertNotIn("from state.md's accepted history with the locators it kept", duty)
+
+
+def stage_spec_duty(stage: str) -> str:
+    import shiploop_prompts as prompts
+    return prompts.prompt(stage)
+
+
+class RequestIndexTests(unittest.TestCase):
+    """RUN/request.md: the request verbatim and its sentence index S1..Sn; intake's notice never refuses (Step 4.2a)."""
+
+    import shiploop_request as request  # noqa: E402
+
+    PROMPT = ("In this project, paginate() loses the last page. It should return { page: 3 }!\n\n"
+              "Requirements:\n1. Add a regression test.\n2. Keep the API, e.g. the signature, unchanged?\n"
+              "- Do not touch docs.")
+
+    def test_the_sentence_ids_equal_the_split_of_the_stored_request(self) -> None:
+        sentences = self.request.sentences(self.PROMPT)
+        self.assertEqual(sentences, ["In this project, paginate() loses the last page.", "It should return { page: 3 }!",
+                                     "Requirements:", "1. Add a regression test.",
+                                     "2. Keep the API, e.g. the signature, unchanged?", "- Do not touch docs."])
+        self.assertEqual("".join(sentences).replace(" ", ""), "".join(self.PROMPT.split()))   # lossless
+        text = self.request.render(self.PROMPT)
+        self.assertEqual(self.request.index(text), sentences)
+        self.assertIn("\n~~~text\n" + self.PROMPT + "\n~~~\n", text)                           # verbatim
+        self.assertIn("- S6: - Do not touch docs.", text)
+        fenced = self.request.render("Keep ~~~ fences.")
+        self.assertIn("\n~~~~text\nKeep ~~~ fences.\n~~~~\n", fenced)
+
+    def test_the_notice_names_each_uncited_sentence_and_ranges_count(self) -> None:
+        self.assertEqual(self.request.notices(self.PROMPT, "S1 maps to R-1; S2-S4 to the test; S5 to S6 are kept."), [])
+        notice, = self.request.notices(self.PROMPT, "S1 is the bug; S3..S4 the test.")
+        self.assertTrue(notice.startswith(self.request.NOTICE_PREFIX + "the summary cites no S2, S5, S6 of the request's "
+                                          "sentences S1..S6 (RUN/request.md)"), notice)
+        self.assertIn("the result is still accepted", notice)
+
+    def test_init_writes_the_file_intake_points_at_it_and_complete_prints_the_notice_without_refusing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary).resolve()
+            repo, run = base / "repo", base / "run"
+            repo.mkdir()
+            env = {**os.environ, "SHIPLOOP_PROGRESS": "off", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
+            started = subprocess.run([sys.executable, "-B", str(CLI), "init", "--repo", str(repo), "--prompt",
+                                      self.PROMPT, "--run-dir", str(run)], env=env, text=True, capture_output=True,
+                                     timeout=120)
+            self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+            text = (run / self.request.REQUEST_FILE).read_text(encoding="utf-8")
+            self.assertEqual(self.request.index(text), self.request.sentences(self.PROMPT))
+            state = store.read_record(run / "state.md")
+            action = navigator.current_action(state)["id"]
+            self.assertEqual(navigator.current_stage(state), "intake")
+            packet = (run / "packets" / (action + ".md")).read_text(encoding="utf-8")
+            self.assertIn(self.request.POINTER, packet)
+            result = run / "inbox" / (action + ".md")
+            result.write_text('```shiploop-state\n{"outcome": "done", "summary": "S1 is the bug; S3..S4 the test.", '
+                              '"evidence_refs": []}\n```\n', encoding="utf-8")
+            command = [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run), "--action", action,
+                       "--result", str(result)]
+            for extra in (["--check-only"], []):
+                with self.subTest(extra=extra):
+                    done = subprocess.run(command + extra, env=env, text=True, capture_output=True, timeout=120)
+                    self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+                    self.assertIn(self.request.NOTICE_PREFIX + "the summary cites no S2, S5, S6 ", done.stdout)
+            later = store.read_record(run / "state.md")
+            self.assertIn(action, later["accepted"])                                    # a notice never refuses
+            later_packet = navigator.packet_path(run, later).read_text(encoding="utf-8")
+            self.assertNotIn(self.request.POINTER, later_packet)                         # intake only
+
+
 if __name__ == "__main__":
     unittest.main()

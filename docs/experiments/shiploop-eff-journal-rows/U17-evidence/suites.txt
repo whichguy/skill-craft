@@ -1,0 +1,18 @@
+shiploop-handoff rc=0 262s Ran 82 tests in 260.995s OK
+shiploop-guidance rc=1 19s Ran 63 tests in 18.116s FAILED (failures=1)
+shiploop-rehydration rc=1 7s Ran 17 tests in 6.875s FAILED (failures=1)
+shiploop-delegation rc=0 75s Ran 57 tests in 73.543s OK
+shiploop-navigator-contract rc=1 493s Ran 110 tests in 490.250s FAILED (failures=2)
+shiploop-packet-completeness rc=0 55s Ran 43 tests in 54.350s OK
+shiploop-packet-recut rc=0 21s Ran 28 tests in 19.790s OK
+shiploop-planning-handoff rc=0 9s Ran 7 tests in 8.321s OK
+shiploop-step-packets rc=0 5s Ran 9 tests in 3.784s OK
+shiploop-reference rc=0 2s Ran 8 tests in 0.652s OK
+shiploop-loops rc=0 212s Ran 46 tests in 210.673s OK
+shiploop-package-integrity rc=0 1s Ran 7 tests in 1.149s OK
+shiploop-e2e-packet-anatomy rc=0 4s Ran 29 tests in 2.731s OK
+shiploop-e2e-efficiency rc=0 48s Ran 75 tests in 47.578s OK
+shiploop-run-review rc=0 331s Ran 658 tests in 330.250s OK
+rerun after test fixes: shiploop-guidance rc=0 OK Ran 63 tests in 17.073s
+rerun after test fixes: shiploop-rehydration rc=0 OK Ran 17 tests in 6.190s
+rerun after test fixes: shiploop-navigator-contract -k test_save_is_transactional rc=0 OK (the 108 other tests passed in the full run above)

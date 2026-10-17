@@ -68,6 +68,7 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/backchain/", "Backchain graph checks, per action", "planning"),
     ("RUN/chains/", "a parallel chain's ledger and attempts, per action", "a chain is bound"),
     ("RUN/decisions/", "the user's replies to a blocked question", "after a resume"),
+    ("RUN/request.md", "the request, then its sentences S1..Sn", "you cite one (S<n>)"),
     ("RUN/run-baseline.txt", "the commit the run began from; spec diffs run against it", "a diff since the run began"),
     ("RUN/skill-calls.jsonl", "the Skill-tool calls the session made in this run (the Improve stage's gate reads it)",
      "an Improve stage refuses for a missing skill call"),
