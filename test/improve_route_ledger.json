@@ -4,10 +4,10 @@
  "snapshot": "5e0ef0d0 (the integration base the split started from)",
  "bounds": {
   "router_bytes": 10000,
-  "router_measured": 9995,
-  "route_bytes": 46000,
-  "route_measured": 45933,
-  "why": "Plan U18: the router bound is the plan's 10,000 bytes, which held (the base card's kept sections are 9,475 characters; the route choice and two links bring it to 9,995 bytes). The route bound is set from the measured text, never by trimming an obligation: it holds the policy of four sources (the base card, review-policy.md, callback-evidence.md, ADAPTER.md: 72 KB in all) once each, the handoff's ownership, recovery and return text moved word for word, and the fixed review inputs of improve_prompt (8.3 KB). The plan's first guess for the route was 8,192 bytes."
+  "router_measured": 9977,
+  "route_bytes": 48000,
+  "route_measured": 47513,
+  "why": "Plan U18: the router bound is the plan's 10,000 bytes, which held (the base card's kept sections are 9,475 characters; the route choice and two links bring it to 9,995 bytes). The route bound is set from the measured text, never by trimming an obligation: it holds the policy of four sources (the base card, review-policy.md, callback-evidence.md, ADAPTER.md: 72 KB in all) once each, the handoff's ownership, recovery and return text moved word for word, and the fixed review inputs of improve_prompt (8.3 KB). The plan's first guess for the route was 8,192 bytes. Merged onto INT (U2, U19, U21): the router is 9,977 bytes (U2's shorter description); the route grew to 47,513 bytes because a ShipLoop child now ends each pass with improve-pass, which writes the runtime report from the review file, and reads the lean runtime returns, and the route says both (rows A30, A37, A52, C33, S34); the bound was raised from 46,000 to 48,000, no obligation trimmed."
  },
  "rows": [
   {
@@ -195,7 +195,7 @@
    "id": "S34",
    "file": "skills/improve/references/standalone-route.md",
    "head": "Use compact Markdown inside the",
-   "route": "Use compact Markdown strings inside the JSON"
+   "route": "Write it as the review file's `## Handoff` section"
   },
   {
    "id": "S35",
@@ -615,7 +615,7 @@
    "id": "C33",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "After `done`, consume the returned",
-   "route": "**Consume every `done` return in full.**"
+   "route": "**Consume every `done` return** (the lean return; its receipt holds the rest)"
   },
   {
    "id": "A01",
@@ -782,6 +782,12 @@
    "route": "**The latest return owns the next action.**"
   },
   {
+   "id": "A52",
+   "file": "skills/improve/runtime/until-loop/ADAPTER.md",
+   "head": "**Lean returns with a receipt.**",
+   "route": "so a `done` prints a lean return"
+  },
+  {
    "id": "A28",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "For each active return, **execute",
@@ -797,7 +803,7 @@
    "id": "A30",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Only after that execution (or",
-   "route": "**The report** goes as JSON on stdin"
+   "route": "**The report** reaches the packet's exact `done_argv` as JSON on stdin"
   },
   {
    "id": "A31",
@@ -838,8 +844,8 @@
   {
    "id": "A37",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
-   "head": "Consume the full return value",
-   "route": "**Consume every `done` return in full.**"
+   "head": "Consume the return value of",
+   "route": "**Consume every `done` return** (the lean return; its receipt holds the rest)"
   },
   {
    "id": "A38",

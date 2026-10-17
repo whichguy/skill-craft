@@ -5946,12 +5946,11 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
         IMPROVE_READ_SENTENCE,
         CHILD_SYMBOL + " = " + str(standalone.receipt_path(child).parent) + " · ROUTE = " + str(improve_route_path(child))
         + " · Route: " + delegation(state),
-        # Each pass ends with improve-pass (unit U19), whose command is under Commit: the 4,500-character bound leaves no
-        # room for it here.
+        # Each pass ends with improve-pass (unit U19); its line follows the commit command under Commit, because the
+        # improve-commit line must end inside the first 4,500 characters of the longest implement handoff.
         "Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime "
-        "returns complete (ShipLoop started it: start nothing); end each pass with improve-pass (under Commit). You "
-        "write CHILD/commit-message.md, CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit "
-        "CHILD/packet.json.",
+        "returns complete (ShipLoop started it: start nothing). You write CHILD/commit-message.md, "
+        "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json.",
         ("When the runtime returns complete (its terminal packet saved at CHILD/packet.json), run: " if inline else
          "Parent only, after the worker's result is collected and CHILD/packet.json verified (the worker never runs it): ")
         + done,
@@ -5982,11 +5981,13 @@ def _improve_commit_lines(core: Any, root: Path, state: Mapping[str, Any], child
         return ["To commit a review iteration's changes, run the improve-commit command in CHILD/parent-return.md; its "
                 "message rules are there. ShipLoop commits exactly the files this review changed. Do not run git "
                 "commit yourself.", _improve_pass_line(core, root, state)]
-    # The message rules are under "The commit message" (in the facts below the review), so this line, the command at its
-    # end, still ends inside the first 4,500 characters of the longest implement handoff (U18 with U19's focus bullet).
-    # improve-pass follows it: each pass ends with it, and it commits what the pass left uncommitted (unit U19).
+    # The full message rules are under "The commit message" (in the facts below the review); this line keeps the
+    # Key learnings format improve-commit enforces (P-improve-1) and ends with its command inside the first 4,500
+    # characters of the longest implement handoff (U18, with U19's focus bullet: 6 characters to spare at install
+    # lengths). improve-pass follows it: each pass ends with it, and it commits what the pass left uncommitted (U19).
     return ["To commit a review iteration's changes, write the commit message to CHILD/commit-message.md with a "
-            "file-writing tool (a subject and a `Key learnings:` line, as below). Then run: "
+            "file-writing tool (a subject, then `Key learnings: <lesson>` or `Key learnings: none` in column 1; rules "
+            "below). Then run: "
             + _callback(core, root, "improve-commit", action=improve_id(state),
                         message=str(improve_commit_message_path(child))),
             _improve_pass_line(core, root, state)]
@@ -6246,8 +6247,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "or start the runtime yourself.",
         *([] if planning_reconcile else [
             "The commit message (each line starts in column 1, on a line of its own, not inside one paragraph): a line "
-            "`Key learnings: <what this iteration taught that a later iteration or run should reuse>` (`Key learnings: "
-            "none` if it taught nothing new; a review that changed no file makes no commit); optional "
+            "`Key learnings: <what this iteration taught that a later iteration or run should reuse>` starting in column 1 "
+            "(`Key learnings: none` if it taught nothing new; a review that changed no file makes no commit); optional "
             "`Learned-from: <commit id> <what it contributed>` credits a commit that helped (ShipLoop checks the ID and "
             "writes the full one). For a change to a remote system that left no file change, add `Remote change: <system "
             "alias>, <what changed>, <where its evidence is>` and append `--remote-change` to the command. Do not write "
