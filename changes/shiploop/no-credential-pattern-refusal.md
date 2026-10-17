@@ -13,5 +13,8 @@ reword it before the run could go on.
   refuses; the knowledge-home line no longer says ShipLoop "screens them for credentials".
 - The architecture duty keeps one positive instruction: name a credential by its alias or mechanism, never its value.
 - `workspace start` and `init` take a prompt that mentions a token or a key.
-- The progress page, the status views and the lint output still redact credential-like text. They are display only and
-  refuse nothing.
+- The progress page and the lint output still redact credential-like text; they are display only and refuse nothing. The
+  terminal status block, the narrative and the run files (`state.md`, `status.md`, `timeline.json`) print what was
+  submitted as written, as they did for text the old screen let through.
+- `commit_paths` commits every path it is given, including a file named like `.env`. What keeps secrets out of the product
+  commit is the `review-return` keep/exclude choice and the duty to keep credentials out of the product commit.

@@ -155,7 +155,7 @@ each loop that runs. In `none` a planning result is accepted without a review
 loop. What stands in for the loop is what S-9 can name: ShipLoop's gates at
 `complete` (cited files exist; the plan's assumption list; the step plan's
 commands, criteria, paths and dependency order; the knowledge home's required
-files, credential screen and requirement-ID and decision-ID retention); the structural,
+files and requirement-ID and decision-ID retention); the structural,
 record-only `backchain-check`; `test-spec`'s ID match (a case ID that no focused command lists is refused);
 `validate-existing`'s expectation checks; the `test` stage's base run (no new test ID passes without the change,
 unless `red_na` names it) and candidate run (every command passes, every listed ID ran, the count holds the
