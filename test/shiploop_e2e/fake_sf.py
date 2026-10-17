@@ -37,6 +37,8 @@ points the fake at its state with environment variables:
                   A marker with no canned value answers `MISSING`. A whole-game script has one marker (`game_opera`), so one
                   canned value (`ok`, or the text of the first thing that went wrong) stands for the game.
   FAKE_SF_FAIL    comma list of operations that fail with exit 1: any of query, deploy, destructive, test, apex.
+  FAKE_SF_DEPLOY_PROBLEM  "Type|Name|problem": a deploy is rejected with that component failure, as the real CLI reports it (status 1,
+                  result.details.componentFailures); nothing is deployed.
   FAKE_SF_NOOP_DESTRUCTIVE   "1": a destructive deploy reports success but removes nothing (to test the verify step).
 
 A deploy of a source directory creates what it holds: Apex classes, Lightning web component bundles, and the tabs, applications
@@ -273,6 +275,11 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
                                              "numberComponentErrors": 0}})
     if "deploy" in fail_ops():
         return fail("fake sf: deploy failed on request", "DeployFailed")
+    problem = os.environ.get("FAKE_SF_DEPLOY_PROBLEM", "")  # "Type|Name|problem": the real CLI's shape for a rejected component
+    if problem:
+        kind, name, why = (problem.split("|", 2) + ["", ""])[:3]
+        return emit({"status": 1, "result": {"status": "Failed", "success": False, "numberComponentErrors": 1,
+                                             "details": {"componentFailures": [{"componentType": kind, "fullName": name, "problem": why}]}}}, 1)
     dirs = flags.get("--source-dir", []) + flags.get("-d", [])
     if not dirs:
         return fail("fake sf: deploy needs --source-dir or --post-destructive-changes")
@@ -360,7 +367,7 @@ def run_apex(flags: dict, entry: dict) -> int:
                 return emit({"status": 0, "result": {"success": False, "compiled": True, "compileProblem": "",
                                                      "exceptionMessage": value["error"], "exceptionStackTrace": "AnonymousBlock: line 1",
                                                      "line": 1, "column": 1, "logs": "\n".join(lines) + "\n"}})
-        lines.append("12:00:00.0 (%d)|USER_DEBUG|[%d]|DEBUG|RESULT|%s|%s" % (2000 + index, index + 2, name, value))
+        lines.append("12:00:00.0 (%d)|USER_DEBUG|[%d]|DEBUG|%s" % (2000 + index, index + 2, ("RESULT|%s|%s" % (name, value)).replace("|", "&#124;")))  # the real CLI escapes the pipes
     lines += ["12:00:00.0 (8000)|CODE_UNIT_FINISHED|execute_anonymous_apex", "12:00:00.0 (9000)|EXECUTION_FINISHED"]
     return emit({"status": 0, "result": {"success": True, "compiled": True, "compileProblem": "", "exceptionMessage": "",
                                          "exceptionStackTrace": "", "line": -1, "column": -1, "logs": "\n".join(lines) + "\n"}})

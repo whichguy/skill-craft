@@ -38,6 +38,7 @@ Safety (the owner's rules for this case):
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -153,7 +154,9 @@ def records(org: str, soql: str, tooling: bool = True) -> list[dict]:
 
 
 def query(org: str, soql: str, field: str, tooling: bool = True) -> list[str]:
-    return [r[field] for r in records(org, soql, tooling)]
+    """The ``field`` of every record that has one. A record without it cannot be ours: the real org holds a CustomTab whose
+    DeveloperName is null (first seen by the 2026-10-16 rehearsal), and the fake never produced one."""
+    return [r[field] for r in records(org, soql, tooling) if r.get(field)]
 
 
 def lwc_prefix(prefix: str) -> str:
@@ -695,8 +698,10 @@ GAMES = [
 
 def game_script(name: str, moves: list[str], special: dict[int, str], refusal: tuple[int, str]) -> str:
     """One anonymous Apex that plays a whole game through SLChessController: each ply must be among legalMoves, applyMove advances
-    the position and status matches. After one ply an illegal move must be refused by the engine (IllegalMoveException) and by the
-    controller (any exception). The RESULT value is `ok` or the first thing that went wrong."""
+    the position and status matches. After one ply an illegal move must be refused by the engine (IllegalMoveException). The controller is
+    only ever called with legal moves: an AuraHandledException (what a board's controller idiomatically throws) cannot be thrown or caught in
+    anonymous Apex, where it becomes an uncatchable System.LimitException (seen on the real org, 2026-10-16). The RESULT value is `ok` or
+    the first thing that went wrong."""
     after, bad = refusal
     quote = lambda items: ", ".join("'%s'" % item for item in items)
     return "\n".join([
@@ -723,18 +728,8 @@ def game_script(name: str, moves: list[str], special: dict[int, str], refusal: t
         "        } catch (SLChessEngine.IllegalMoveException e1) {",
         "            engineThrew = true;",
         "        }",
-        "        Boolean controllerThrew = false;",
-        "        try {",
-        "            SLChessController.applyMove(fen, '%s');" % bad,
-        "        } catch (Exception e2) {",
-        "            controllerThrew = true;",
-        "        }",
         "        if (!engineThrew) {",
         "            outcome = 'after ply %d SLChessEngine.applyMove accepted the illegal move %s';" % (after, bad),
-        "            break;",
-        "        }",
-        "        if (!controllerThrew) {",
-        "            outcome = 'after ply %d SLChessController.applyMove accepted the illegal move %s';" % (after, bad),
         "            break;",
         "        }",
         "    }",
@@ -808,7 +803,8 @@ def run_apex(org: str, work: Path, name: str, script: str) -> tuple[str, dict[st
         err = "Apex error: " + tail(str(result.get("exceptionMessage")))
     seen = {}
     if not err:
-        for marker, value in RESULT_LINE.findall(result.get("logs") or ""):
+        # The real CLI HTML-escapes the debug text (RESULT&#124;probe&#124;1): found by the 2026-10-16 rehearsal, the fake had written plain pipes.
+        for marker, value in RESULT_LINE.findall(html.unescape(result.get("logs") or "")):
             seen.setdefault(marker, value.strip())
     return err, seen, result.get("logs") or ""
 
@@ -903,7 +899,7 @@ def write_probe(root: Path, prefix: str) -> dict[str, str]:
     (base / "flexipages" / (names["page"] + ".flexipage-meta.xml")).write_text(
         head + '<FlexiPage xmlns="%s">\n    <flexiPageRegions>\n        <itemInstances>\n            <componentInstance>\n'
         "                <componentName>c:%s</componentName>\n                <identifier>c_%s</identifier>\n"
-        "            </componentInstance>\n        </itemInstances>\n        <mode>Replace</mode>\n        <name>main</name>\n"
+        "            </componentInstance>\n        </itemInstances>\n        <name>main</name>\n"
         "        <type>Region</type>\n    </flexiPageRegions>\n    <masterLabel>%s probe</masterLabel>\n    <template>\n"
         "        <name>flexipage:defaultAppHomeTemplate</name>\n    </template>\n    <type>AppPage</type>\n</FlexiPage>\n"
         % (META_NS, bundle, bundle, prefix))
@@ -959,8 +955,10 @@ def do_selftest(org: str, prefix: str, reference: Path | None = None, keep: bool
             want = expected_names(prefix)
         doc = sf(["project", "deploy", "start", "--source-dir", "force-app", "--wait", "10"], org, timeout=900, cwd=str(project))
         result = doc.get("result") or {}
+        failures = "; ".join("%s %s: %s" % (f.get("componentType"), f.get("fullName"), tail(str(f.get("problem") or ""), 200))
+                             for f in ((result.get("details") or {}).get("componentFailures") or [])[:5])
         deployed = step("deploy", doc.get("status") == 0 and result.get("success") is not False,
-                        "status=%s %s" % (result.get("status"), tail(str(doc.get("message") or "")) if doc.get("status") != 0 else ""))
+                        "status=%s %s" % (result.get("status"), failures or (tail(str(doc.get("message") or "")) if doc.get("status") != 0 else "")))
         if not deployed:
             return False
         (ok, msg), took = timed(do_deployed, org, prefix, want["classes"], want["lwc"], 1, want["tabs"], want["apps"], want["pages"])

@@ -13,6 +13,7 @@ the REFERENCE, so a script that computes something other than the answer the che
 
 from __future__ import annotations
 
+import html
 import importlib.util
 import json
 import os
@@ -470,9 +471,9 @@ class TestFakeMirrorsTheRealCli(FakeOrg):
         self.assertIn("Execute Anonymous: System.debug('RESULT|probe|' + x);", log)
         debug = [line for line in log if "|USER_DEBUG|" in line]
         self.assertEqual(len(debug), 1)
-        self.assertRegex(debug[0], r"^\d\d:\d\d:\d\d\.\d \(\d+\)\|USER_DEBUG\|\[\d+\]\|DEBUG\|RESULT\|probe\|1$")
+        self.assertRegex(debug[0], r"^\d\d:\d\d:\d\d\.\d \(\d+\)\|USER_DEBUG\|\[\d+\]\|DEBUG\|RESULT&#124;probe&#124;1$")  # the real CLI escapes pipes
         self.assertTrue(any("|CODE_UNIT_STARTED|" in line for line in log))
-        self.assertEqual(cs.RESULT_LINE.findall(result["logs"]), [("probe", "1")])  # the echo line also says RESULT|probe|
+        self.assertEqual(cs.RESULT_LINE.findall(html.unescape(result["logs"])), [("probe", "1")])  # the echo line also says RESULT|probe|
 
     def test_a_type_can_be_made_to_fail_like_an_edition_without_the_object(self) -> None:
         self.edit(query_errors={"ExternalString": "sObject type 'ExternalString' is not supported."})
@@ -1644,23 +1645,28 @@ class TestScriptsAgainstTheReference(unittest.TestCase):
         accepting = SimpleNamespace(**dict(vars(engine), applyMove=lambda fen, move: AStr(ref_apply(fen, move) if move in ref_legal(fen) else fen)))
         self.assertEqual(self.run_case("game_opera", accepting)["game_opera"], "after ply 21 SLChessEngine.applyMove accepted the illegal move h7h6")
 
-    def test_a_controller_that_swallows_the_refusal_is_found_but_one_that_wraps_it_is_not(self) -> None:
+    def test_the_game_scripts_never_ask_the_controller_to_throw(self) -> None:
+        # An AuraHandledException cannot be thrown or caught in anonymous Apex (an uncatchable System.LimitException on the real org,
+        # 2026-10-16), so a controller built the idiomatic way must still pass: whatever the controller does with an illegal move is not graded.
         engine = reference_engine()
-        swallowing = SimpleNamespace(**dict(vars(engine), applyMove=lambda fen, move: AStr(ref_apply(fen, move) if move in ref_legal(fen) else fen)))
 
         def run(controller) -> str:
             script = next(s for n, s, _marks in cs.rule_cases() if n == "game_second")
             return run_apex_script(script, SLChessEngine=engine, SLChessController=controller)["game_second"]
 
-        self.assertEqual(run(swallowing), "after ply 11 SLChessController.applyMove accepted the illegal move h7h5")
-
         def wrapping(fen: str, move: str) -> AStr:
             try:
                 return engine.applyMove(fen, move)
             except IllegalMoveException as exc:
-                raise RuntimeError("AuraHandledException: %s" % exc)  # what a controller that reports the message to the component throws
+                raise RuntimeError("AuraHandledException: %s" % exc)
 
+        swallowing = SimpleNamespace(**dict(vars(engine), applyMove=lambda fen, move: AStr(ref_apply(fen, move) if move in ref_legal(fen) else fen)))
         self.assertEqual(run(SimpleNamespace(**dict(vars(engine), applyMove=wrapping))), "ok")
+        self.assertEqual(run(swallowing), "ok")
+        for name, script, _marks in cs.rule_cases():
+            if name.startswith("game_"):
+                self.assertNotIn("controllerThrew", script)
+                self.assertNotRegex(script, r"SLChessController\.applyMove\(fen, '(?!\s*\+)[a-h][1-8][a-h][1-8]'\)")
 
     def test_the_game_scripts_stop_at_the_first_problem_and_check_nothing_is_left_to_play(self) -> None:
         engine = reference_engine()
@@ -1680,6 +1686,15 @@ class TestSelftest(FakeOrg):
         canned.write_text(json.dumps({"probe": probe}))
         env.setdefault("FAKE_SF_APEX", str(canned))
         return self.run_check("selftest", "--org", "de", "--prefix", "SLChess", env=env)
+
+    def test_a_rejected_deploy_prints_the_component_failure_and_leaves_the_org_as_it_was(self) -> None:
+        # The real org rejected the first probe app page ("a parent region enabling that mode doesn't exist") and the rehearsal printed an empty reason.
+        proc = self.run_selftest(FAKE_SF_DEPLOY_PROBLEM="FlexiPage|SLChess_Probe|The 'main' region specifies mode 'REPLACE' but no parent region enables it")
+        self.assertNotEqual(proc.returncode, 0, self.out(proc))
+        self.assertRegex(proc.stdout, r"(?m)^FAIL deploy: status=Failed FlexiPage SLChess_Probe: The 'main' region specifies mode")
+        self.assertRegex(proc.stdout, step_line("cleanup"))
+        state = self.state()
+        self.assertEqual((sorted(state["apex_classes"]), sorted(state["lwc"])), (sorted(BASE_APEX), sorted(BASE_LWC)))
 
     def test_rehearsal_deploys_tests_runs_anonymous_apex_and_removes_the_probe(self) -> None:
         proc = self.run_selftest()
@@ -2124,8 +2139,8 @@ class TestCaseDefinition(unittest.TestCase):
                 "a game two people can play by turns on one screen", "whose turn it is and the game status (check, checkmate, stalemate)",
                 "refuses an illegal destination", "lets a pawn promote (queen is acceptable as the default)", "has a New game button",
                 "`status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them",
-                "`applyMove` lets an illegal move throw (any exception, for example an `AuraHandledException` wrapping the engine's) instead of "
-                "returning a value",
+                "The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one",
+                "so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`)",
                 "graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`)",
                 "a whole game of about 35 plies played through `SLChessController`"):
             self.assertIn(sentence, self.prompt)
@@ -2224,6 +2239,33 @@ class TestNoCredentialsAnywhere(FakeOrg):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertNotIn(token, proc.stdout)
         self.assertIn("[redacted]", proc.stdout)
+
+
+class RealOrgQuirkTest(unittest.TestCase):
+    """Shapes the real org returned that the fake did not (the 2026-10-16 rehearsal)."""
+
+    def test_the_real_cli_escapes_the_pipes_of_a_debug_line_and_the_parser_still_finds_the_result(self) -> None:
+        # Captured from `sf apex run --file` on the real org: USER_DEBUG text comes back as RESULT&#124;probe&#124;1.
+        real = ("68.0 APEX_CODE,DEBUG;APEX_PROFILING,INFO\nExecute Anonymous: System.debug('RESULT|probe|1');\n"
+                "17:40:58.23 (24461311)|USER_DEBUG|[1]|DEBUG|RESULT&#124;probe&#124;1\n17:40:58.23 (24461999)|CODE_UNIT_FINISHED|execute_anonymous_apex\n")
+        original = cs.sf
+        cs.sf = lambda args, org, **kw: {"status": 0, "result": {"success": True, "compiled": True, "logs": real}}
+        try:
+            err, seen, _log = cs.run_apex("de", Path(tempfile.mkdtemp()), "probe", "System.debug('RESULT|probe|1');")
+        finally:
+            cs.sf = original
+        self.assertEqual((err, seen), ("", {"probe": "1"}))
+
+    def test_a_record_with_a_null_name_is_skipped_instead_of_breaking_the_sort(self) -> None:
+        # The real org has a CustomTab whose DeveloperName is null; sorted() over None raised a TypeError in the snapshot.
+        rows = [{"DeveloperName": "Get_Started_SFDX"}, {"DeveloperName": None}, {"DeveloperName": ""}, {"DeveloperName": "Chess"}]
+        original = cs.records
+        cs.records = lambda org, soql, tooling=True: rows
+        try:
+            self.assertEqual(cs.query("de", "SELECT DeveloperName FROM CustomTab", "DeveloperName"), ["Get_Started_SFDX", "Chess"])
+            self.assertEqual(cs.watched_names("de", ("CustomTab", "DeveloperName", True, "")), ["Chess", "Get_Started_SFDX"])
+        finally:
+            cs.records = original
 
 
 if __name__ == "__main__":
