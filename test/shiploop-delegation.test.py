@@ -1009,5 +1009,107 @@ class DelegationCliTests(unittest.TestCase):
         self.assertIn("Prefer a native fresh worker", delegated.stdout)
 
 
+# The obligations the static implement guidance and Code craft must keep (owner D13, 2026-10-17: compact, but no
+# obligation lost). Each row: an obligation and the words a text keeps for it. A rewording that drops one fails here;
+# reword the probe only together with an equivalence review (the 2026-10-17 one is in
+# docs/shiploop-implement-prompt-audit-evidence/sol-compaction-review-2026-10-17.md).
+IMPLEMENT_OBLIGATIONS = [
+    ("complete the step's criteria", ["criteria"]), ("connections they need", ["connections"]),
+    ("works at its boundary", ["boundary"]), ("R-n and AD-n constrain", ["R-n", "AD-n"]),
+    ("nothing a later step owns", ["later step"]), ("no claim of a whole R-n", ["whole R-n"]),
+    ("domain-neutral scope", ["configuration", "data", "documents"]),
+    ("read criteria, R-n, AD-n, anchored-in sections, cards", ["Anchored in", "cards"]),
+    ("reason for a card set aside", ["reason for any card"]), ("use each step skill", ["skill", "SKILL.md"]),
+    ("constraint checklist in notes", ["checklist", "RUN/notes/<action>.md"]),
+    ("refresh on anchor change, rebuild after context loss", ["refresh", "context loss"]),
+    ("inspect what exists and dependents", ["depends on"]), ("environment services", ["services"]),
+    ("settle scope, authority, design before building", ["scope", "authority", "design"]),
+    ("silent anchors: decide and write back", ["write it back"]),
+    ("conflict or outside the step: revise", ["revise"]),
+    ("checks after meaningful batches", ["meaningful batch"]), ("Proof on final work", ["Proof on the final work"]),
+    ("final comparison", ["checklist and each consideration"]),
+    ("record considerations, evidence, write-backs", ["`considerations`", "`evidence`", "write-backs"]),
+    ("answer each consideration with handling and anchor", ["concrete handling", "anchor"]),
+    ("banned lazy answers", ["Handled", "reviewed", "N/A"]),
+    ("whole step wiring", ["entry points", "registration", "permissions", "content"]),
+    ("documentation a criterion requires", ["documentation a criterion requires"]),
+    ("note usage changes for document stage", ["document stage"]),
+    ("people side of interactions", ["waiting", "error", "empty", "accessib"]),
+    ("system side of interactions", ["contracts", "untrusted input", "validation", "sensitive output",
+                                     "slow", "failed", "repeated", "compatibility with existing consumers"]),
+    ("who may do what", ["who may do what"]),
+    ("valid artifact, project's way", ["valid artifact"]), ("no new tool or dependency", ["dependency"]),
+    ("record added dependency", ["record any"]),
+    ("deploy: target, order, settings, staged, check, undo", ["target", "order", "staged or reversible", "undo"]),
+    ("only authorized effects", ["recorded authority"]), ("preparing is not authorizing", ["does not authorize"]),
+    ("state owner and shape", ["owner", "shape before and after"]), ("stored-state compatibility", ["stored state"]),
+    ("ordering, atomicity, concurrency", ["ordering", "atomicity", "concurrent updates"]),
+    ("transition prepared, authorized, rerunnable, recoverable", ["prepared", "safe to rerun", "partial failure"]),
+    ("no invented storage", ["Invent no storage"]),
+    ("operations visibility", ["diagnose"]), ("cost, limits, capacity", ["cost", "limits", "capacity"]),
+    ("parallel where it pays", ["parallel"]), ("secrets and permissions over time", ["secrets", "over time"]),
+    ("retention, cleanup, owner", ["retention", "cleanup"]),
+    ("reuse, combine, extend before creating", ["reuse", "combine", "extend"]),
+    ("environment service list", ["identity", "queues", "scheduling", "caching", "logging", "search", "notification"]),
+    ("duplicate none", ["duplicate none"]), ("keep current behaviour", ["current behaviour"]),
+    ("follow the example", ["follow the example"]), ("proof per criterion now", ["each assigned criterion now"]),
+    ("evidence fields", ["ran or inspected", "where the output is", "does not"]),
+    ("description is not evidence", ["not evidence"]), ("documents: passage + consistency check", ["consistency check"]),
+    ("unconfirmed criterion blocks done", ["blocks done"]), ("deferred check keeps owner", ["deferred"]),
+    ("never weaken the Proof", ["Proof"]), ("Proof cannot assess: revise", ["mismatch"]),
+    ("Proof does not replace evidence", ["never replaces criterion evidence"]),
+    ("no permanent tests; probes allowed", ["permanent tests", "RUN/scratch"]),
+    ("new AD-n with basis", ["AD-<n>", "## Decisions", "basis"]),
+    ("departure is revise, AD-n not authorization", ["departing from", "authorize"]),
+    ("write back commands, facts, structure", ["## Commands", "## Platform facts", "## Structure"]),
+    ("never edit spec.md", ["Never edit spec.md"]), ("Code craft under the considerations", ["Code craft"]),
+]
+CODE_CRAFT_OBLIGATIONS = [
+    ("next maintainer reader", ["next maintainer"]), ("house first", ["error types", "validation", "docstring", "logging"]),
+    ("record justified departure", ["justified departure"]), ("no needless dependency/option/fallback", ["fallback"]),
+    ("argument to reuse is a present need", ["existing unit"]),
+    ("entry points check arguments before effects", ["before any effect", "type and shape", "range", "consistency"]),
+    ("house error naming argument, constraint, value", ["naming the argument", "redacted"]),
+    ("trusted internal callers stated once", ["trust its caller"]),
+    ("never swallow errors or success defaults; keep cause", ["swallow", "success default", "original cause"]),
+    ("file purpose line, public docstring contents", ["purpose", "side effects"]),
+    ("body comments only for why/invariant/workaround", ["invariant", "workaround"]),
+    ("tombstone on complex units", ["Tombstone:", "reintroduced"]),
+    ("token-efficient comments read by models", ["models", "fewest tokens"]),
+    ("no restating, banners, history, dead code", ["banners", "commented-out code"]),
+    ("precise name over comment", ["precise name"]),
+    ("KISS/YAGNI never remove checks", ["KISS", "YAGNI", "rich UI interaction"]),
+    ("check response contract", ["transport success"]), ("keep failure context", ["expected versus observed"]),
+    ("debug switch, no work when off", ["debug switch"]), ("no secrets or stack traces to users", ["stack traces"]),
+    ("release resources on every path", ["handles", "connections", "temporary files", "listeners", "locks"]),
+    ("i18n catalog, whole sentences, locale formats", ["catalog", "named placeholders", "locale-aware"]),
+    ("stable untranslated logs and codes", ["untranslated"]),
+    ("planned namespace, narrow visibility", ["namespace", "narrowest visibility"]),
+    ("no collisions in shared spaces", ["collide", "shadow"]), ("no utils bucket", ["`utils`"]),
+    ("planned schema and storage", ["schema"]),
+    ("reuse/compose/augment with callers working", ["augment", "callers"]),
+    ("near-copy and fused parameter are defects", ["near-copy", "two"]),
+    ("one job, narrow interface, effects at edges, pure core", ["one job", "narrow interface", "pure core"]),
+    ("state the choice in one line", ["one line"]),
+    ("concurrency where it pays, gain first", ["concurrent", "gain"]),
+    ("runtime concurrency facilities", ["threads", "async I/O", "worker processes"]),
+    ("concurrency correctness", ["guard", "at once", "order", "error surfaced"]),
+    ("platform forbids: batch/async", ["single-threaded", "governor limits"]),
+    ("platform first for infrastructure", ["authentication", "queues", "write only the glue"]),
+    ("bounded remote calls", ["timeout", "idempotent", "backoff", "paged"]),
+    ("configuration not constants", ["URLs", "credentials", "secret store"]),
+    ("determinism seams", ["clock", "randomness", "replayed"]),
+]
+
+
+class StaticObligationTests(unittest.TestCase):
+    def test_the_static_texts_keep_every_obligation(self):
+        for name, rows in (("implement-guidance.md", IMPLEMENT_OBLIGATIONS), ("code-craft.md", CODE_CRAFT_OBLIGATIONS)):
+            text = " ".join(static.static_text(name).lower().split())
+            for obligation, terms in rows:
+                with self.subTest(file=name, obligation=obligation):
+                    self.assertEqual([term for term in terms if term.lower() not in text], [])
+
+
 if __name__ == "__main__":
     unittest.main()

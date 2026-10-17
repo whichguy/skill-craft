@@ -2554,8 +2554,8 @@ def _implement_record_fault(state: Mapping[str, Any], result: Mapping[str, Any])
                       ['"Handled", "reviewed" and a bare "N/A" are not answers: write the concrete handling and its '
                        "anchor, or why this step does not affect it.", "No real answer: " + ", ".join(empty) + "."])
     item = _current_work_item(state)
-    step = loops.current_step(state, item) if item else None
-    assigned = [str(ident) for ident in (step or {}).get("criteria") or ()]
+    steps = _implement_steps(state, item) if item else []
+    assigned = list(dict.fromkeys(str(ident) for step in steps for ident in step.get("criteria") or ()))
     if "evidence" not in result:
         return _Fault("Add evidence to {result}", "adds evidence",
                       ['Shape: "evidence": [{' + ", ".join('"' + key + '": "..."' for key in EVIDENCE_FIELDS)
@@ -3260,10 +3260,26 @@ def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
     return writes, payload
 
 
+def _implement_steps(state: Mapping[str, Any], work_item: str) -> list[Mapping[str, Any]]:
+    """The steps the current implement action covers: the current one inline, every step on the ask-agent route,
+    whose one implement action runs the whole plan through its chain (owner D5, 2026-10-17)."""
+    if delegation(state) == guidance.INLINE:
+        step = loops.current_step(state, work_item)
+        return [step] if step is not None else []
+    _action, plan = test_loop._step_plan(state, work_item)
+    return [row for row in plan.get("steps") or () if isinstance(row, Mapping)]
+
+
 def _step_proof_gate(root: Path, state: Mapping[str, Any], action_id: str, work_item: str) -> None:
-    """step-proof: run the current step's Proof in the execution checkout and refuse done unless it exits 0."""
-    step = loops.current_step(state, work_item)
-    _need(step is not None, "work item " + work_item + " has no implement step left in its accepted step plan")
+    """step-proof: run the Proof of each step this implement action covers in the execution checkout, and refuse done
+    unless each exits 0."""
+    steps = _implement_steps(state, work_item)
+    _need(bool(steps), "work item " + work_item + " has no implement step left in its accepted step plan")
+    for step in steps:
+        _one_step_proof(root, state, action_id, step)
+
+
+def _one_step_proof(root: Path, state: Mapping[str, Any], action_id: str, step: Mapping[str, Any]) -> None:
     _need(bool(step.get("check")),
           "step " + str(step["id"]) + " has no Proof: its step plan predates step checks. Report revise naming this, "
           "so step-plan gives each step a check; then run the same complete command again.")

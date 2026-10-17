@@ -80,7 +80,16 @@ def with_packet_file(stdout: str) -> str:
 class ChainFixture(unittest.TestCase):
     # implement works one accepted step at a time; the chain's A/B/C/J graph runs inside this one step.
     STEP_PLAN_STEPS = ({"id": "S1", "task": "Implement the A/B/C/J chain", "deps": [], "criteria": ["C1"], "skills": [],
-                        "paths": ["context_alpha.py", "context_beta.py", "context_join.py", "context_report.py"]},)
+                        "paths": ["context_alpha.py", "context_beta.py", "context_join.py", "context_report.py"],
+                        "check": "true", "cards": [], "cards_na": "Synthetic chain fixture."},)
+    # implement's record (owner, 2026-10-17): the eight considerations and one observation per criterion of the plan.
+    IMPLEMENT_RECORD = {
+        "considerations": {key: "Synthetic chain fixture: the A/B/C/J graph covers " + key.replace("_", " ")
+                           + " (anchor: the step plan)." for key in nav.CONSIDERATIONS},
+        "evidence": [{"criterion": "C1", "ran_or_inspected": "the chain's combined verification",
+                      "observed": "passed", "output": "combined.json", "establishes": "the chain's change exists",
+                      "limits": "behaviour is proven by the test stage"}],
+    }
 
     def setUp(self):
         self.assert_fixture(FIXTURE)
@@ -442,6 +451,8 @@ class ChainFixture(unittest.TestCase):
     def parent_complete(self, outcome="done", *, ok=False):
         p = self.run / "inbox" / (self.action + ".md")
         result = {"outcome": outcome, "summary": "Synthetic chain integration complete"}
+        if outcome == "done":
+            result.update(self.IMPLEMENT_RECORD)
         if outcome == "blocked":
             result["blocked_by"] = "external"  # every blocked result names who can unblock it
         if outcome in ("done", "revise"):

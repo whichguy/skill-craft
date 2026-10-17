@@ -634,3 +634,58 @@ Tests run, all green on the branch (the change footprint):
 On origin/main c9d46249 (the base), the new tests are red at import: `ModuleNotFoundError: shiploop_static`, and
 `shiploop_navigator` has no `CONSIDERATIONS`. The two `installed-skill-invocation` failures in the quick run are fixed
 upstream by 936632bf ("isolate installed Improve invocation…"); the branch is rebased onto it.
+
+## 12. Compaction study (owner D13, 2026-10-17)
+
+Question: can more concise language, or symbols, make the implement prompt more compact without dropping an
+obligation? The full prompt is still sent.
+
+**Method.**
+- Write two variants:
+  - **concise**: the same structure in tighter prose, applied to the implement guidance and Code craft;
+  - **symbolic**: a legend (S/A/E for the three knowledge files, §, →, ✗, ≠, ⊆), applied to the Considerations only.
+- Measure characters, which is what Grok's print cut counts. Also take a rough token proxy, because no tokenizer is
+  installed: words × 1.3, plus 1 per ASCII mark and 2 per non-ASCII symbol.
+- Check a 104-row obligation inventory: 65 rows for the guidance, 39 for Code craft.
+- Ask Sol (gpt-6.1-sol, medium) for an adversarial equivalence review:
+  [question](shiploop-implement-prompt-audit-evidence/sol-compaction-question-2026-10-17.md),
+  [answer](shiploop-implement-prompt-audit-evidence/sol-compaction-review-2026-10-17.md).
+
+| Text | Current | Concise | Symbolic |
+|---|--:|--:|--:|
+| implement guidance file | 5,994 chars | 5,454 (−9%) | — |
+| Code craft file | 5,756 chars | 5,093 (−12%) | — |
+| Considerations only | 2,757 chars, ≈699 tokens | 2,471, ≈641 tokens | 1,788 (−35%), ≈587 tokens (−16%) |
+| Real Battleship S1 printed head | 28,119 chars | **26,916 (−4.3%)** | — |
+| Offline implement head (node-fix-bug, no step block) | 21,421 | 20,218 | — |
+
+**Findings.**
+1. **Concise prose is adopted.** It saves 9–12% of each file and about 1.2 KB of the real head. Sol found 13 places
+   where the first draft dropped or weakened an obligation, for example:
+   - "validly assess";
+   - "independent work";
+   - "substitute a success default";
+   - a tombstone for an approach "considered or tried, then rejected";
+   - "the run's recorded authority".
+
+   All 13 were restored before adoption. The inventory is now `StaticObligationTests` in
+   `test/shiploop-delegation.test.py`. **Firm** for presence of terms; **interim** for meaning: one semantic review,
+   no behaviour run.
+2. **The symbolic rendering is rejected.**
+   - It saves 35% of characters but only about 16% of tokens, because each symbol costs tokens, and the legend must be
+     decoded.
+   - Sol found contract changes:
+     - an undefined `C`;
+     - `>` inventing a ranking among reuse, combine and extend;
+     - `→` used with four meanings;
+     - lost conditions ("independent", "assigned").
+   - A few universal marks (`·` as a separator, `=` in a legend) are low risk. They are already used where they help.
+3. **Wording is not where the head's size comes from.** In the real S1 head, the static guidance plus Code craft is
+   about 10.5 KB of 26.9 KB. The rest:
+   - the step's own criterion texts (about 1.4 KB; each carries its `Confirm by` oracle);
+   - the loop argument (about 3 KB, needed verbatim by /until-loop);
+   - absolute paths in the callbacks (needed for copy-paste);
+   - the engine text every stage prints: Checked by, the result template, allowed outcomes, status, narrative and
+     recovery (about 8 KB).
+
+   Further compaction would come from that engine text, a separate change across every stage.

@@ -1291,7 +1291,7 @@ class NavigatorContractTests(unittest.TestCase):
                 ("implement", "Implement all of {step_change}, anchored in the requirements that have been stated",
                  "Complete this step's assigned criteria (Serves)"),
                 ("implement", "Follow the Method in {run}/packets/{action}.md",
-                 "Do not weaken or replace the Proof to get accepted"),
+                 "Never weaken or replace the Proof to pass"),
                 ("verify", "Do duty items 1-7 of {run}/packets/{action}.md in order",
                  "Per criterion name the passing command or inspection that confirms it now")):
             with self.subTest(work=stage, phrase=duty_phrase):
