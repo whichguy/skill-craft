@@ -2328,7 +2328,17 @@ Each fix has a fail-first regression built from the audit's control. It ran red 
    - Same verdicts on real deliveries: 7 saved runs (3 Battleship, 2 Checkers, 2 Battleship scoring) gave identical
      per-check results under the old and new catalogs (`fixes/http-check-equivalence.json`).
    - Not fixed: the audit's broken Battleship fixture still passes 4 of 4. That is item 3 of the audit, deferred below.
-4. **Make the breadth selection match its claim.** Pending.
+4. **Make the breadth selection match its claim** (`suites.json`, SPEC, README).
+   - Control: SPEC said "one case of every style", but breadth held 3 of the 5 catalog styles. `smoke` is covered
+     only by hello in its focused suite and as the batch gate. The four `parallel-graph` cases are in no named suite
+     (`coverage-inventory.json`).
+   - Decision: the claim was narrowed, and no graph case was added, because none has a qualified passing baseline. The
+     SPEC wording is its own commit. Every suite in `suites.json` now carries `styles`, and breadth also carries
+     `not_covered` with a reason for each style it leaves out.
+   - Regression: `SuiteTest.test_each_named_suite_selects_exactly_the_styles_its_claim_names`. It checks that each
+     suite's cases cover exactly its `styles`, that breadth plus `not_covered` equals the catalog's styles, and that
+     SPEC's breadth clause and the README name every style. It needs no model. Red on 2686b427: there was no `styles`
+     claim, and with one added, the old SPEC clause did not name `stateful-service`. Green after the fix.
 5. **Review the source that actually ran** (`review.py`). Pending.
 
 **Out of scope.** The Battleship behavioural verifier (audit item 3), the timing evidence and the pilots. The deferred

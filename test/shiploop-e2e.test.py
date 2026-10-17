@@ -1507,6 +1507,31 @@ class SuiteTest(HarnessCase):
         breadth = {cases[c]["style"] for c in suites["breadth"]["cases"]}
         self.assertEqual(breadth, focused)
 
+    def test_each_named_suite_selects_exactly_the_styles_its_claim_names(self):
+        """The 2026-10-16 E2E audit (item 5): SPEC called breadth "one case of every style", but it held three of the five
+        styles. Every named suite now states the styles it covers, the breadth suite also names each style it leaves out
+        and why, and SPEC and README name the same styles, so a claim and its selection cannot drift apart."""
+        cases = json.loads(run.CASES.read_text())
+        suites = {k: v for k, v in json.loads(run.SUITES.read_text()).items() if not k.startswith("_")}
+        styles_in_catalog = {case["style"] for name, case in cases.items() if not name.startswith("_")}
+        for name, suite in suites.items():
+            with self.subTest(suite=name):
+                selected = {cases[case]["style"] for case in suite.get("gate", []) + suite["cases"]}
+                self.assertEqual(selected, set(suite["styles"]), "the suite's cases must cover exactly the styles it claims")
+        breadth = suites["breadth"]
+        self.assertEqual(len(breadth["cases"]), len(breadth["styles"]), "breadth runs one case per style it claims")
+        self.assertEqual(set(breadth["styles"]) | set(breadth["not_covered"]), styles_in_catalog,
+                         "every catalog style is either covered by breadth or named as left out")
+        self.assertFalse(set(breadth["styles"]) & set(breadth["not_covered"]))
+        self.assertTrue(all(reason.strip() for reason in breadth["not_covered"].values()))
+        spec = (run.HERE / "SPEC.md").read_text()
+        claim = spec[spec.index("- **Breadth suite**"):spec.index("- **Promotion**")]
+        readme = (run.HERE / "README.md").read_text()
+        for style in styles_in_catalog:
+            self.assertIn(f"`{style}`", claim, f"SPEC's breadth claim names {style}")
+            self.assertIn(f"`{style}`", readme, f"README names {style}")
+        self.assertNotIn("one case of every style", claim)
+
     def test_case_checks_name_existing_helper_scripts_and_subcommands(self):
         cases = json.loads(run.CASES.read_text())
         for name, case in cases.items():

@@ -1,8 +1,11 @@
 {
-  "_doc": "Focused suites iterate one style in depth; breadth runs one case per style; a batch suite verifies one release's batch of changes: its gate cases run first and alone, and the rest run only if the gate passed (SPEC: E2E suites, Batch changes, then verify the batch).",
+  "_doc": "Focused suites iterate one style in depth; breadth runs one case of each style it names in `styles` and names every other catalog style in `not_covered` with the reason; a batch suite verifies one release's batch of changes: its gate cases run first and alone, and the rest run only if the gate passed (SPEC: E2E suites, Batch changes, then verify the batch). Every suite's `styles` is exactly the styles of its cases (test: SuiteTest.test_each_named_suite_selects_exactly_the_styles_its_claim_names).",
   "web-service": {
     "kind": "focused",
     "style": "web-service",
+    "styles": [
+      "web-service"
+    ],
     "cases": [
       "battleship",
       "battleship-scoring"
@@ -11,21 +14,36 @@
   "smoke": {
     "kind": "focused",
     "style": "smoke",
+    "styles": [
+      "smoke"
+    ],
     "cases": [
       "hello"
     ]
   },
   "breadth": {
     "kind": "breadth",
+    "styles": [
+      "web-service",
+      "cli-files",
+      "stateful-service"
+    ],
     "cases": [
       "battleship",
       "csv-report",
       "seat-reservations"
-    ]
+    ],
+    "not_covered": {
+      "smoke": "hello covers it in the smoke suite and as the batch gate; breadth is the generality gate for product styles",
+      "parallel-graph": "no parallel-graph case has a qualified passing baseline (SPEC Promotion: a style whose focused suite has never passed is not used to judge other changes); the four cases stay opt-in with --case"
+    }
   },
   "cli-files": {
     "kind": "focused",
     "style": "cli-files",
+    "styles": [
+      "cli-files"
+    ],
     "cases": [
       "csv-report"
     ]
@@ -33,12 +51,20 @@
   "stateful-service": {
     "kind": "focused",
     "style": "stateful-service",
+    "styles": [
+      "stateful-service"
+    ],
     "cases": [
       "seat-reservations"
     ]
   },
   "batch": {
     "kind": "batch",
+    "styles": [
+      "smoke",
+      "stateful-service",
+      "web-service"
+    ],
     "gate": [
       "hello"
     ],

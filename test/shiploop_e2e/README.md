@@ -624,11 +624,16 @@ record appears twice in `result.json` by design (the copy in `start` is this inv
 
 ```sh
 bash test/run-integration.sh shiploop-e2e --suite web-service   # focused: one style, in depth
-bash test/run-integration.sh shiploop-e2e --suite breadth       # one case per style: the generality gate
+bash test/run-integration.sh shiploop-e2e --suite breadth       # one case per named style: the generality gate
 ```
 
 Each case in `cases.json` has a `style`; `suites.json` groups them into focused
-suites (one style) and the `breadth` suite (one case per style). `--suite`
+suites (one style) and the `breadth` suite (one case of each style in its `styles`:
+`web-service`, `cli-files` and `stateful-service`). Breadth names the styles it
+leaves out in `not_covered`: `smoke` (hello covers it in the smoke suite and as the
+batch gate) and `parallel-graph` (no qualified passing baseline; its cases run only
+with `--case`). Every suite's `styles` must equal the styles of its cases, and SPEC
+and this README must name the same styles; `SuiteTest` pins all three. `--suite`
 runs the cases into one directory, each in its own folder; independent chains
 (a case with its follow-ons) run concurrently, up to `--max-parallel` (default
 3), quietly; `--serial` runs one at a time. A follow-on case starts from its
