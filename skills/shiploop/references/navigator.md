@@ -292,7 +292,7 @@ ordered `steps` rather than a dispatcher execution graph.
 
 Under the opt-in `delegation: ask-agent` route, every active INNER producer
 packet begins with
-**Clear and then execute the prompt.**
+**Execute the prompt in a fresh context.**
 This is the serial execution instruction for the producer only.
 For an `implement` producer, select the chain route first. During that producer,
 its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;

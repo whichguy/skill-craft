@@ -64,6 +64,7 @@ SCRIPT_DEF = re.compile(r"cat\s+>\s*(\S+\.sh)\s+<<|(\w+)\(\)\s*\{")
 TRIVIAL = re.compile(r'\\?"classification\\?"\s*:\s*\\?"trivial')
 REVIEW_FILE = re.compile(r"cat\s+>\s*\S*reviews/review-\d+\.md\s+<<")
 STATUS_END = "=== end ShipLoop status ==="
+HEAD_END = "=== end ShipLoop head ==="  # the closing line of a printed head from 2026-10-16; older heads end at the status block
 CALL_LIMIT, RESULT_LIMIT, TEXT_LIMIT = 6000, 6000, 4000
 
 
@@ -164,7 +165,9 @@ def claude_items(out: Path, short: Shortener, first_action: str | None) -> tuple
                     improve = match.group("stage") != navigator.IMPROVE_STAGE and bool(OLD_IMPROVE_HEAD.search(tail[:400]))
                     key = found.group(1) + ("-improve" if improve else "")
                     end = content.find(STATUS_END, match.start())
-                    heads.setdefault(key, short(content[match.start(): end + len(STATUS_END) if end > 0 else len(content)]))
+                    closing = content.find(HEAD_END, match.start())
+                    stop = closing + len(HEAD_END) if closing > 0 else end + len(STATUS_END) if end > 0 else len(content)
+                    heads.setdefault(key, short(content[match.start(): stop]))
                     current = {"action": found.group(1), "improve": improve}
     return items, heads, reads, (t0 if stamps else None)
 

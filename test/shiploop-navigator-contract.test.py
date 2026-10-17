@@ -417,7 +417,7 @@ class NavigatorContractTests(unittest.TestCase):
     def test_serial_inner_context_prefix_covers_each_item_and_owner(self) -> None:
         state = self.state()
         root = self.repo / ".shiploop"
-        prefix = "Clear and then execute the prompt.\n"
+        prefix = "Execute the prompt in a fresh context.\n"
         observed = []
         while state["status"] != "done":
             stage = navigator.current_stage(state)
@@ -486,7 +486,7 @@ class NavigatorContractTests(unittest.TestCase):
         action = self._action(state)
         waiting = self._bind_synthetic_child(self._pending(state))
         self.assertEqual(navigator.current_stage(waiting), "step-plan")
-        prefix = "Clear and then execute the prompt.\n"
+        prefix = "Execute the prompt in a fresh context.\n"
         for current in (state, waiting):
             navigator.save(root, current)
             expected_prefix = (prompts.IMPROVE_INNER_CONTEXT if current.get("active_improve")
@@ -2273,7 +2273,9 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual((root / "state.md").read_bytes(), state_bytes)
         self.assertNotIn("Progress snapshot", cold)
         self.assertIn("=== ShipLoop status ===", cold)
-        self.assertEqual(cold.count("Current stage guidance:"), 1)
+        # Once in a packet printed whole; twice when a head was printed and the file was appended (the head carries the
+        # duties since 2026-10-16, so a reader of the printed text alone sees them).
+        self.assertEqual(cold.count("Current stage guidance:"), 2 if "Full packet:" in cold else 1)
         self.assertNotIn("Call this when done:", cold)
         self.assertIn("Callback for this stage ", cold)
 
@@ -2501,11 +2503,11 @@ class SkillCardContextBoundaryTests(unittest.TestCase):
         card = " ".join((ROOT / "skills/shiploop/SKILL.md").read_text().split())
         producer_prefix = prompts.SERIAL_INNER_CONTEXT.splitlines()[0]
         improve_prefix = prompts.IMPROVE_INNER_CONTEXT.splitlines()[0]
-        self.assertEqual(producer_prefix, "Clear and then execute the prompt.")
+        self.assertEqual(producer_prefix, "Execute the prompt in a fresh context.")
         self.assertFalse(improve_prefix.startswith("Clear"))
         self.assertIn("Do not clear, replace or wrap the live parent",
                       " ".join(prompts.IMPROVE_INNER_CONTEXT.split()))
-        self.assertIn('INNER **producer** packets begin with "Clear and then execute the prompt."',
+        self.assertIn('INNER **producer** packets begin with "Execute the prompt in a fresh context."',
                       card)
         # The Improve stage's packet is two lines; the prefix is the first line of its handoff file (2026-10-12).
         self.assertIn('Improve handoffs instead begin "Keep the invoking parent alive"', card)

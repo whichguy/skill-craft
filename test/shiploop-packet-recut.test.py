@@ -228,5 +228,81 @@ class OneHomeTests(unittest.TestCase):
                 self.assertLess(len(text), ceiling)
 
 
+class PrintedHeadTests(unittest.TestCase):
+    """What a reader of the printed text alone sees (owner, 2026-10-16).
+
+    A packet longer than PRINT_LIMIT prints a head and keeps the rest in its file.  Measured on node-fix-bug at 2686b427,
+    the head of all five such packets left out the stage's duties and rules, which began at 10,400 to 15,000 characters
+    of the file, so a model that read only what was printed never saw what to do."""
+
+    # Printed output stays under the ~20,000-character cut some hosts apply to shell output; step-plan is the largest.
+    HOST_CUT = 20_000
+
+    def test_the_printed_text_of_every_producer_packet_holds_its_duties(self) -> None:
+        printed = packets.offline_packets(CASES["node-fix-bug"], printed=True)
+        full = _offline()
+        over = [key for key, text in full.items() if len(text) > navigator.PRINT_LIMIT and not key.endswith("-improve")]
+        self.assertGreaterEqual(len(over), 4, "the case no longer has packets over the limit: pick a larger one")
+        for key, text in printed.items():
+            if key.endswith("-improve"):
+                continue
+            with self.subTest(packet=key):
+                self.assertIn("Current stage guidance:", text)
+                self.assertIn("\nRULES ", text)  # the duties' own closing rules came with them
+                self.assertLess(len(text), self.HOST_CUT)
+
+    def test_the_status_block_ends_inside_the_status_hooks_window_and_leads_the_duties(self) -> None:
+        import shiploop_status_hook as hook
+        for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():
+            if key.endswith("-improve"):
+                continue
+            with self.subTest(packet=key):
+                end = text.index("=== end ShipLoop status ===")
+                self.assertLess(end + len("=== end ShipLoop status ==="), hook.WINDOW)
+                self.assertLess(end, text.index("Current stage guidance:"))
+
+    def test_the_ask_agent_route_keeps_the_duties_and_the_status_window_and_its_step_plan_head_is_the_one_over_the_cut(self) -> None:
+        """Known and recorded: on the opt-in ask-agent route step-plan's duties are 10.6k, so its head is about 21,200
+        characters, above the ~20,000 some hosts cut at (inline: 19,500).  Only the tail is cut: the Recovery and Pause
+        lines, which the packet file repeats.  Every other stage and route stays under the cut."""
+        import shiploop_status_hook as hook
+        printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True)
+        over = [key for key, text in printed.items() if len(text) > self.HOST_CUT]
+        self.assertEqual(over, ["01-step-plan"])
+        for key, text in printed.items():
+            if key.endswith("-improve"):
+                continue
+            with self.subTest(packet=key):
+                self.assertIn("Current stage guidance:", text)
+                self.assertLess(text.index("=== end ShipLoop status ==="), hook.WINDOW)
+                self.assertLess(len(text), 22_000)
+
+    def test_a_head_that_would_pass_the_limit_drops_the_quoted_knowledge_not_the_duties(self) -> None:
+        for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():
+            if "Full packet:" not in text:
+                continue
+            with self.subTest(packet=key):
+                if len(text) > navigator.PRINT_LIMIT:  # step-plan: duties alone are 9k; still no knowledge quotes
+                    self.assertIn("in the full packet, each quoted whole", text)
+                self.assertIn("Current stage guidance:", text)
+                self.assertIn("Never end the turn while a ShipLoop command is still running.", text)
+
+
+class ImproveInvocationTests(unittest.TestCase):
+    _started_state = ImprovePacketTests._started_state
+    """Owner, 2026-10-16: the last live run invoked the improve skill for 1 of 4 Improve stages, because the handoff said to
+    read the skill once per context.  The packet now says to invoke it at every Improve stage."""
+
+    def test_the_improve_packet_says_to_invoke_the_skill_at_every_improve_stage(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="recut-improve-") as temp:
+            run, state = self._started_state(temp)
+            packet = navigator.render(CORE, run, state)
+        self.assertIn("at every Improve stage and not from memory of an earlier one", packet)
+        # the lines the readers match on are unchanged
+        self.assertRegex(packet, r"(?m)^1\. Run the improve skill on the .+ result\. For example, on Claude Code:$")
+        self.assertRegex(packet, r"(?m)^\s+/improve ShipLoop Improve: .+/handoff\.md$")
+        self.assertRegex(packet, r"(?m)^2\. When the improve skill has completed, run: ")
+
+
 if __name__ == "__main__":
     unittest.main()
