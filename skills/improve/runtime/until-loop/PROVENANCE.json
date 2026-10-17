@@ -2,15 +2,15 @@
   "format": "skill-craft-until-loop-runtime-provenance/v1",
   "upstream": {
     "repository": "https://github.com/whichguy/until-loop.git",
-    "commit": "30c19ffa5c23edc9af7ac4f2b54b5c42ccec9444",
-    "version": "0.9.0"
+    "commit": "6e7ab0d280071fe32e40cec88fce4710ec39f7fd",
+    "version": "0.10.0"
   },
   "default_ephemeral_runtime": [
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "b9348bf1898e946fc1afbf5a1205be2fef8622b5a4a83b43fcf50b0cac60be19",
-      "upstream_sha256": "c90ce25208fefda32d39220d1d87813d97dfb62980a1062331761e135b7b7856",
+      "sha256": "f63be1138ff16b0e558f8061a1ac327cdf2a854da2c4024071ffbe7238a0e90e",
+      "upstream_sha256": "6cbfd79dde08ce258dc49b4d21d471afb081d55d5548e4ef7f0736f2837b3dce",
       "adaptation_reason": "Retain Improve’s owner-bound authority-update clarification and preserve its consumer-owned temporary callback state by requiring ordinary standalone starts to use --isolated; upstream session/recovery helpers are vendored for release parity, but this consumer does not enable automatic host-session mode."
     },
     {
@@ -26,7 +26,7 @@
     {
       "bundled_path": "scripts/until_loop_session.py",
       "upstream_path": "scripts/until_loop_session.py",
-      "sha256": "38dc39ccf4a0b506e758a164326f2605f5ffdd0876c27f2652f2396c8ee04b89"
+      "sha256": "c79c030b79bf34373a265969eadf6a5dbf3dc286a5e5ec4b17746b1a0c91c430"
     },
     {
       "bundled_path": "scripts/until_loop_recover.py",
@@ -36,7 +36,7 @@
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "3515de11e04e728b3dc25b9a5e5f38f67ef094c15b8233688e4f85675ba23d38"
+      "sha256": "0cb7abdf7d618925e2d478574e608cc96269e290fcb6e54f77ca6f2c765b7b22"
     }
   ]
 }
