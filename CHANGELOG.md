@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-10-17
 
+### skill-craft 2.5.4
+
+- Skills: improve 0.4.4
+
+### improve 0.4.4
+
+- Clarify how Until Loop composes separate work, success and continuation conditions from a request and accepted clarifications, while retaining literal stop and check obligations. Refresh the vendored Until Loop runtime to 0.10.0; Improve keeps its existing isolated callback mode.
+
 ### skill-craft 2.5.3
 
 - Skills: backchain 0.6.5
