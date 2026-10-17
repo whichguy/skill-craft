@@ -924,5 +924,35 @@ class WorkTextTests(Synthetic):
             self.assertEqual(nav.current_action(store.read_record(run / "state.md"))["id"], action)  # not completed
 
 
+class OneStepRunTests(unittest.TestCase):
+    """loops.one_step_run (efficiency plan U16, row VR-2): the one-step one-item fact carry-forward's short duties rest on,
+    proved from state alone."""
+
+    @staticmethod
+    def state(items: int, steps, implements: int = 1, plan_done: bool = True) -> dict:
+        history = [{"action": "sp", "stage": "step-plan", "workitem": "W1", "outcome": "done"}]
+        history += [{"action": "i" + str(n), "stage": "implement", "workitem": "W1", "outcome": "done"}
+                    for n in range(implements)]
+        plan = {"outcome": "done" if plan_done else "revise"}
+        if steps is not None:
+            plan["steps"] = [{"id": "S" + str(n + 1)} for n in range(steps)]
+        return {"work_items": [{"id": "W" + str(n + 1)} for n in range(items)], "history": history,
+                "accepted": {"sp": plan}}
+
+    def test_one_item_with_one_step_is_the_fact(self) -> None:
+        self.assertEqual(loops.one_step_run(self.state(1, 1)), "W1")
+
+    def test_several_items_several_steps_or_no_accepted_plan_are_not(self) -> None:
+        self.assertIsNone(loops.one_step_run(self.state(2, 1)))   # a pending or completed second item
+        self.assertIsNone(loops.one_step_run(self.state(1, 2)))
+        self.assertIsNone(loops.one_step_run(self.state(1, 2, implements=1)))  # ask-agent builds both steps in one action
+        self.assertIsNone(loops.one_step_run(self.state(1, 1, plan_done=False)))
+        self.assertIsNone(loops.one_step_run({"work_items": [], "history": [], "accepted": {}}))
+
+    def test_a_plan_without_steps_counts_its_implement_actions(self) -> None:
+        self.assertEqual(loops.one_step_run(self.state(1, None, implements=1)), "W1")
+        self.assertIsNone(loops.one_step_run(self.state(1, None, implements=2)))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,24 @@
+shiploop-backchain-check exit=0 secs=44 Ran 21 tests in 43.474s OK 
+shiploop-callback-contract exit=0 secs=889 Ran 63 tests in 885.212s OK 
+shiploop-delegation exit=0 secs=118 Ran 57 tests in 115.991s OK 
+shiploop-discovery exit=1 secs=2 Ran 8 tests in 0.773s FAILED (failures=9) 
+shiploop-e2e-commit-counters exit=0 secs=224 Ran 105 tests in 223.011s OK 
+shiploop-e2e-fidelity exit=0 secs=69 Ran 136 tests in 67.811s OK 
+shiploop-e2e-render-diff exit=0 secs=21 Ran 43 tests in 18.624s OK 
+shiploop-e2e-slice exit=0 secs=439 Ran 58 tests in 437.477s OK 
+shiploop-guidance exit=0 secs=42 Ran 63 tests in 39.702s OK 
+shiploop-handoff exit=0 secs=310 Ran 74 tests in 308.862s OK 
+shiploop-head-order exit=0 secs=21 Ran 29 tests in 19.752s OK 
+shiploop-knowledge exit=0 secs=171 Ran 135 tests in 169.396s OK 
+shiploop-lint exit=0 secs=410 Ran 82 tests in 409.341s OK 
+shiploop-loops exit=0 secs=250 Ran 49 tests in 248.291s OK 
+shiploop-navigator-contract exit=1 secs=498 Ran 110 tests in 496.449s FAILED (failures=1) 
+shiploop-navigator-dry-run exit=1 secs=125 Ran 34 tests in 123.054s FAILED (failures=1) 
+shiploop-packet-recut exit=1 secs=20 Ran 28 tests in 19.169s FAILED (failures=2) 
+shiploop-planning-handoff exit=0 secs=9 Ran 7 tests in 8.162s OK 
+shiploop-quality exit=0 secs=76 Ran 11 tests in 74.297s OK 
+shiploop-revise exit=0 secs=2 Ran 14 tests in 0.781s OK 
+shiploop-run-review exit=0 secs=334 Ran 658 tests in 332.870s OK 
+shiploop-test-loop exit=0 secs=1929 Ran 142 tests in 1927.494s OK 
+after fixes (rerun once): shiploop-navigator-contract -k test_queue_packet_contracts_are_durable_and_serial OK; shiploop-packet-recut OK (28); shiploop-navigator-dry-run OK (34); shiploop-test-loop -k item_commit_locator -k commit_item_raises OK; shiploop-navigator-contract -k carry -k item_commit -k queue OK
+shiploop-discovery: 9 failures also on the base 9f949689 (step-plan Interaction design guide cues; not U16)

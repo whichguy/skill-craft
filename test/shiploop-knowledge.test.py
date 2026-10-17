@@ -1736,5 +1736,40 @@ class SubjectTests(HomeCase):
         self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "spec"))
 
 
+class UnnamedCommandTests(HomeFixture):
+    """knowledge.unnamed_commands and command_notices (efficiency plan U16, row VR-3): the commands that passed at verify and
+    environment.md's '## Commands' does not name, as a carry-forward line and one counted notice that never refuses."""
+
+    PASSED = ["npm test", "node   --test test/unit"]
+
+    def put(self, text: str) -> Path:
+        path = self.repo / "docs/shiploop/environment.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_an_absent_file_names_no_command(self) -> None:
+        self.assertEqual(knowledge.unnamed_commands(self.state, self.PASSED), self.PASSED)
+
+    def test_a_command_counts_as_named_only_under_commands_with_whitespace_collapsed(self) -> None:
+        self.put("# Environment\n\n## Commands (working)\n\n- `node --test test/unit`\n\n## Platform facts\n\nnpm test\n")
+        self.assertEqual(knowledge.unnamed_commands(self.state, self.PASSED), ["npm test"])
+        self.put("# Environment\n\n```\n## Commands\nnpm test\n```\n")  # a heading inside a fence is no section
+        self.assertEqual(knowledge.unnamed_commands(self.state, self.PASSED), self.PASSED)
+
+    def test_the_notice_is_one_counted_line_with_one_quoted_heading_and_none_when_all_are_named(self) -> None:
+        path = self.put("# Environment\n\n## Commands\n\nnpm test\n")
+        lines = knowledge.command_notices(self.state, self.PASSED)
+        self.assertEqual(len(lines), 1)
+        line = lines[0]
+        self.assertTrue(line.startswith(knowledge.NOTICE_PREFIX + str(path) + " does not name 1 command that passed"))
+        # references/project-knowledge.md counts headings as the quoted names before the first semicolon: one here.
+        self.assertEqual(re.findall(r"'[^']*'", line.split(";", 1)[0]), ["'Commands'"])
+        self.assertTrue(line.endswith("`node   --test test/unit`"))
+        self.put("# Environment\n\n## Commands\n\nnpm test\nnode --test test/unit\n")
+        self.assertEqual(knowledge.command_notices(self.state, self.PASSED), [])
+        self.assertEqual(knowledge.command_notices(self.state, []), [])
+
+
 if __name__ == "__main__":
     unittest.main()

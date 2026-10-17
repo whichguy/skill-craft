@@ -578,6 +578,119 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("plan-return", packet)
         self.assertNotIn("working branch", packet)
 
+    # -- efficiency plan U16: document, verify and carry-forward (rows TD-8, VR-2, VR-3, VR-5, VR-7) -------------------
+
+    def drive_with_change(self, stage: str) -> dict:
+        """``drive_to`` with a code change made at implement, so the item's diff touches code and document is issued."""
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")  # code, with no token a mutant could change
+        return self.drive_to(stage, each=change)
+
+    def test_the_document_packet_lists_the_script_derived_changed_paths_its_duty_names(self):
+        """TD-8: the inventory document's duty 1 lists behaviours from exists at document, derived by the script."""
+        self.start()
+        self.drive_with_change("document")
+        packet = self.packet()
+        line = next(row for row in packet.splitlines() if row.startswith(nav.CHANGED_SINCE_BASE))
+        self.assertIn("a.py", line[len(nav.CHANGED_SINCE_BASE):].split(", "))
+        self.assertIn("1. **List** the changed public behaviours from the changed paths below,", packet)
+        self.assertLess(packet.index("1. **List**"), packet.index(nav.CHANGED_SINCE_BASE))  # "below" holds
+        with mock.patch.object(item_scope.lint, "read_base", return_value=None):
+            self.assertIn(nav.CHANGED_SINCE_BASE + "not computed: " + item_scope.NO_BASE, self.packet())
+
+    def test_commit_item_raises_when_the_items_changes_cannot_be_read(self):
+        """VR-7: an unknown change is no 'nothing to commit'; verify's notice names why."""
+        self.start()
+        state = self.drive_to("verify")
+        with mock.patch.object(item_scope.lint, "read_base", return_value=None):
+            with self.assertRaisesRegex(item_scope.ItemScopeError, r"^the item's changes cannot be read "
+                                        r"\(no base snapshot was captured when it started\)$"):
+                item_scope.commit_item(self.run_dir, state, "W1", "feat: W1")
+        with mock.patch.object(item_scope, "changed_since", return_value=None):
+            with self.assertRaisesRegex(item_scope.ItemScopeError, item_scope.UNREADABLE):
+                item_scope.commit_item(self.run_dir, state, "W1", "feat: W1")
+
+    def test_the_item_commit_locator_names_the_commit_only_when_the_log_has_its_subject(self):
+        """VR-7: the carry-forward reference 'W1 verify item commit' printed even when verify committed nothing."""
+        self.start()
+        state = self.drive_to("verify")
+        verify = self.action()
+        self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W1", verify))
+        (self.repo / "a.py").write_text("x = 2\n")
+        self.complete(DONE)
+        state = self.drive_to("carry-forward")
+        self.assertEqual(nav._item_commit_product(self.run_dir, state, "W1", verify),
+                         "the WORKTREE commit whose subject starts 'feat: W1 '")
+        self.assertIn("- W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 '", self.packet())
+        self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W", verify))  # 'feat: W1' is not item W's
+
+    def test_a_one_step_one_item_carry_forward_prints_the_short_queue_and_skill_duties(self):
+        """VR-2: one step in one item and no pending item, proved from state: the short duties, the path-only queue
+        line and a Work line without the trial clause (the short duty 3 names the trial file)."""
+        self.start()
+        state = self.drive_to("carry-forward")
+        self.assertEqual(loops.one_step_run(state), "W1")
+        packet = self.packet()
+        flat = " ".join(packet.split())
+        self.assertIn("2. **Queue** (Carry-forward mapping guidance). No item follows W1: omit `work_items`.", flat)
+        self.assertIn("this run has 1 step in 1 item and no pending item, so no procedure repeated.", flat)
+        self.assertIn("write the trial to RUN/notes/<action>-skill-trial.md.", flat)
+        self.assertIn("(and a created or updated skill, item 3)", flat)
+        for gone in ("Read every pending item's full title/context", "Omit work_items to retain the future queue",
+                     "*Write it deterministic.*", "item 3.7"):
+            self.assertNotIn(gone, flat)
+        self.assertIn("Full ordered work queue: RUN/state.md; field work_items.", packet)
+        work = loops.contract(self.run_dir, state, self.action())["work"]
+        self.assertEqual(work, loops.WORK_ONE_STEP.replace("{items}", "1-4").replace("{run}", str(self.run_dir))
+                         .replace("{action}", self.action()))
+
+    def test_carry_forward_names_the_verify_commands_environment_md_lacks_and_its_notice_never_refuses(self):
+        """VR-3: the commands that passed at verify and HOME/environment.md does not name, in the packet, and one counted
+        notice when carry-forward is accepted."""
+        self.start()
+        state = self.drive_to("carry-forward")
+        environment = self.repo / "docs/shiploop/environment.md"
+        environment.parent.mkdir(parents=True, exist_ok=True)
+        environment.write_text("# Environment\n\n## Commands\n\n- `sh check.sh fixed.txt`\n")
+        self.assertEqual(nav._verify_passed_commands(self.run_dir, state, "W1"),
+                         ["sh check.sh fixed.txt", "test -f retained.txt"])
+        line = next(row for row in self.packet().splitlines() if row.startswith("Commands that passed at verify"))
+        self.assertEqual(line, "Commands that passed at verify and are not named in HOME/environment.md: "
+                               "`test -f retained.txt`. Write each under ## Commands, or say in the summary why one "
+                               "does not belong.")
+        self.complete(DONE)
+        after = self.settle()  # the carry-forward row is recorded when its Improve child finishes
+        self.assertNotEqual(nav.current_stage(after), "carry-forward")  # accepted: a notice, not a refusal
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):  # what the CLI's Improve-stage complete prints after it saves
+            nav._knowledge_close(state, after, self.run_dir)
+        notices = [row for row in buffer.getvalue().splitlines()
+                   if row.startswith(knowledge_support.knowledge.NOTICE_PREFIX) and "passed at verify" in row]
+        self.assertEqual(len(notices), 1)
+        self.assertTrue(notices[0].endswith("`test -f retained.txt`"))
+
+    def test_the_verify_duty_runs_check_only_and_keeps_the_assembly_item_on_the_ask_agent_route(self):
+        """VR-5: duty 1 points at the check-only record ShipLoop writes, duty 11 asks for no exit codes; item 8 stays
+        on the ask-agent route only."""
+        for route in prompts.DELEGATIONS:
+            duty = prompts.duty("verify", delegation=route)
+            self.assertIn("1. **Run** the Callback command with `--check-only` after your last edit", duty)
+            self.assertIn("RUN/" + test_loop.check_only_path("<action>"), duty)
+            summary = next(row for row in duty.splitlines() if row.startswith("11. **Summary:**"))
+            self.assertNotIn("exit code", summary)
+            self.assertEqual("8. **Assembly.**" in duty, route == prompts.ASK_AGENT)
+
+    def test_the_carry_forward_duty_is_unchanged_without_the_one_step_item(self):
+        """VR-2: multi-step, multi-item and pending-item runs keep today's text byte for byte."""
+        for route in prompts.DELEGATIONS:
+            self.assertEqual(prompts.duty("carry-forward", delegation=route),
+                             prompts.duty("carry-forward", delegation=route, one_step_item=None))
+            self.assertIn("2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items`",
+                          prompts.duty("carry-forward", delegation=route))
+            self.assertIn("item 3.7", prompts.duty("carry-forward", delegation=route))
+        self.assertEqual(prompts.duty("verify", one_step_item="W1"), prompts.duty("verify"))
+
     def test_the_commit_lists_are_absent_when_the_changes_are_unknown_and_say_nothing_changed_when_none(self):
         self.start()
         self.drive_to("verify")

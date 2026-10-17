@@ -1978,7 +1978,12 @@ class NavigatorContractTests(unittest.TestCase):
         state = self._advance_to_carry_forward(state)
         carry_packet = navigator.render(None, root, state)
         self.assertIn(queue_locator, carry_packet)
-        self.assertIn(replacement_rule, carry_packet)
+        # One item with one step and none pending (loops.one_step_run, efficiency plan U16 row VR-2): the queue rule prints
+        # only its path line and the short duty 2 says how to add a corrective item; any other run prints the rule.
+        import shiploop_loops as loops
+        self.assertEqual(loops.one_step_run(state), "DRAFT")
+        self.assertNotIn(replacement_rule, carry_packet)
+        self.assertIn("No item follows DRAFT: omit `work_items`.", " ".join(carry_packet.split()))
 
         carry_action = self._action(state)
         # Only a carry-forward that leaves no work pending starts a child.
@@ -1993,7 +1998,7 @@ class NavigatorContractTests(unittest.TestCase):
             self.assertIn(proposed_queue_locator, self._improve_view(root, carry_child))
             self.assertIn(queue_locator, cold_child_packet)
             self.assertIn(proposed_queue_locator, cold_child_packet)
-            self.assertIn(replacement_rule, cold_child_packet)
+            self.assertNotIn(replacement_rule, cold_child_packet)  # the one-step run above (VR-2)
 
     def test_malformed_bound_skill_fails_with_controlled_recovery_error(self) -> None:
         waiting = self._pending(self._at_spec())

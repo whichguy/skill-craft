@@ -90,6 +90,9 @@ WORK: Mapping[str, str] = {
         "{run}/notes/{action}-skill-trial.md."),
 }
 
+# The carry-forward Work of a one-step one-item run (``one_step_run``): its duty item 3 names the trial file itself.
+WORK_ONE_STEP = "Do duty items {items} of {run}/packets/{action}.md."
+
 REPEAT: Mapping[str, str] = {
     "step-plan": (
         "Repeat while a check-only refusal remains or an exit condition above does not hold; " + _NO_LIMIT
@@ -252,6 +255,34 @@ def _step_plan(state: Mapping[str, Any], work_item: str) -> tuple[Optional[str],
     return None, {}
 
 
+def one_step_run(state: Mapping[str, Any]) -> Optional[str]:
+    """The item's ID when the run holds one work item, with no pending item, whose latest accepted step plan has exactly one
+    step; None otherwise (several items, several steps, or no accepted step plan).
+
+    Proved from state alone: ``work_items`` is the whole ordered queue, completed and current items included, so one row
+    means no item is pending and no other ran.  A plan that lists no steps (only a synthetic walk: the CLI gate requires
+    them) is one step when exactly one implement action was accepted done after it.  Carry-forward then prints its short
+    queue and skill duties.
+    """
+    items = [row for row in state.get("work_items") or () if isinstance(row, Mapping)]
+    if len(items) != 1 or not isinstance(items[0].get("id"), str):
+        return None
+    item = items[0]["id"]
+    action, plan = _step_plan(state, item)
+    if action is None:
+        return None
+    steps = plan.get("steps") or []
+    if not isinstance(steps, list) or len(steps) > 1:
+        return None
+    if steps:
+        return item
+    history = list(state.get("history", ()))
+    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
+    built = sum(1 for row in history[start + 1:]
+                if row.get("stage") == "implement" and row.get("workitem") == item and row.get("outcome") == "done")
+    return item if built == 1 else None
+
+
 def current_step(state: Mapping[str, Any], work_item: str) -> Optional[Mapping[str, Any]]:
     """The implement step the item is on: the first step of its latest step plan without an accepted implement done."""
     action, plan = _step_plan(state, work_item)
@@ -290,9 +321,11 @@ COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; t
 
 def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
-           commands: Sequence[Mapping[str, Any]] = (), route: str = prompts.INLINE) -> dict[str, Any]:
+           commands: Sequence[Mapping[str, Any]] = (), route: str = prompts.INLINE,
+           one_step: bool = False) -> dict[str, Any]:
     """One stage's contract from plain values; ``contract`` supplies them from state (``route``: the delegation the
-    action was issued with, which decides which duty items its packet prints)."""
+    action was issued with, which decides which duty items its packet prints; ``one_step``: the run is ``one_step_run``,
+    so carry-forward's Work is ``WORK_ONE_STEP``)."""
     values = {"run": str(root), "action": action_id, "repo": repo, "items": _duty_items(stage, route)}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
@@ -311,7 +344,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
     elif stage == "step-plan":
         scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft and "
                  "docs/shiploop/. Change no product file.")
-    work = _fill(WORK[stage], values)
+    work = _fill(WORK_ONE_STEP if one_step and stage == "carry-forward" else WORK[stage], values)
     if stage == "test" and commands:
         work += "\n" + COMMANDS_HEAD + "\n" + command_listing(commands)
     authority = ("Edit only in scope. Do not push, install or download anything, edit a recorded command or "
@@ -376,7 +409,7 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         commands = test_loop.stage_commands(state, stage, item)[0]
     return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands,
-                  route=_route(state, action_id))
+                  route=_route(state, action_id), one_step=one_step_run(state) is not None)
 
 
 def _route(state: Mapping[str, Any], action_id: str) -> str:
@@ -714,6 +747,7 @@ __all__ = (
     "STAGES",
     "TRIVIAL_REVIEWS",
     "WORK",
+    "WORK_ONE_STEP",
     "check_loop_packet",
     "check_terminal",
     "command_listing",
@@ -725,6 +759,7 @@ __all__ = (
     "cursor",
     "exit_condition",
     "invoke_lines",
+    "one_step_run",
     "receipt_path",
     "runtime",
     "start_command",

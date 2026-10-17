@@ -420,6 +420,45 @@ def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
     return notices
 
 
+def unnamed_commands(state: Mapping[str, Any], commands: Sequence[str]) -> List[str]:
+    """The entries of ``commands`` that HOME/environment.md's '## Commands' section does not name, in their order.
+
+    A command is named when its text, whitespace collapsed, appears in the section's text, whitespace collapsed; the section is
+    every heading that starts with 'Commands' (the ``section_notices`` rule).  An absent or unreadable file names none.  Reads
+    files only and never raises.
+    """
+    path = Path(str(state["repo"])) / HOME / "environment.md"
+    try:
+        lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+    except OSError:
+        lines = []
+    outline = _outline(lines)
+    named = []
+    for position, (index, level, title) in enumerate(outline):
+        if title.lower().startswith("commands"):
+            end = next((later for later, deeper, _ in outline[position + 1:] if deeper <= level), len(lines))
+            named.append(" ".join(" ".join(lines[index + 1:end]).split()))
+    text = " ".join(named)
+    return [command for command in commands if " ".join(str(command).split()) not in text]
+
+
+def command_notices(state: Mapping[str, Any], commands: Sequence[str]) -> List[str]:
+    """One counted notice line when commands that passed at verify are not named in environment.md (plan row VR-3); else [].
+
+    Printed when carry-forward is accepted, which it never refuses: ``NOTICE_PREFIX``, the file's absolute path, the count and
+    the one heading quoted before the first semicolon (so the heading count of references/project-knowledge.md counts it once),
+    then the commands.
+    """
+    unnamed = unnamed_commands(state, commands)
+    if not unnamed:
+        return []
+    path = Path(str(state["repo"])) / HOME / "environment.md"
+    return [NOTICE_PREFIX + str(path) + " does not name " + str(len(unnamed)) + " command"
+            + ("" if len(unnamed) == 1 else "s") + " that passed at verify under 'Commands' (this carry-forward is "
+            "accepted); a later stage that keeps environment.md writes each there, or records why it does not belong: "
+            + "; ".join("`" + command + "`" for command in unnamed)]
+
+
 # --- entries: one requirement or decision, as the living file holds it (contract 2.3) ----------------------------------
 
 _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
@@ -750,6 +789,7 @@ __all__ = ("ARCHITECTURE",
            "SECTIONS",
            "STAGE_FILES",
            "check",
+           "command_notices",
            "commit",
            "entries",
            "entry_text",
@@ -767,4 +807,5 @@ __all__ = ("ARCHITECTURE",
            "run_label",
            "section_notices",
            "spec_diff",
-           "stage_lines")
+           "stage_lines",
+           "unnamed_commands")
