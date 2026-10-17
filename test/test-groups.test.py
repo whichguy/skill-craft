@@ -484,5 +484,74 @@ class E2EFamilySelectionTest(unittest.TestCase):
         self.assertNotIn("shiploop-e2e-apparatus", suite_catalog.targeted(["test/shiploop_e2e/run.py"]))
 
 
+class SelectionByReaderTest(unittest.TestCase):
+    """Three files are selected by the suites that read them, not by a rule wider than their readers (test-economy review
+    of 2026-10-17, section 3 rows 1, 3 and 4; each row is one assertion group here, and each fails without its row).
+
+    Row 1: the E2E journal and the baseline data are read by named suites, yet the `test/shiploop_e2e/` prefix ran the whole
+    15-suite family for them (102 of 378 harness commits in 30 days touched only such data; the family is about 578 s of
+    catalog estimate, its readers of the journal 100 s and of the baseline data 200 s).  Row 3: `shiploop_workspace.py` is
+    named by nine suites, one more than HUB_REFERENCE_LIMIT, so the hub set ran in their place and none of the suites that
+    drive the module.  Row 4: four guidance documents were named by the 118 s chain-planning-context suite, which the 0.7 s
+    anchor test of shiploop-reference-routing makes redundant for them (the chain suites and the release tier still check
+    that a worker packet carries the routes).
+    """
+
+    LEARNINGS = "test/shiploop_e2e/LEARNINGS.md"
+    BASELINES = "test/shiploop_e2e/baselines.jsonl"
+    WORKSPACE = "skills/shiploop/scripts/shiploop_workspace.py"
+    GUIDANCE_DOCS = ("coding-guidance.md", "house-style.md", "service-discovery.md", "repeatable-test-suites.md")
+    CHAIN_CARRIAGE = "shiploop-chain-planning-context"
+
+    def test_the_e2e_journal_selects_the_two_suites_that_read_it(self) -> None:
+        self.assertEqual(suite_catalog.targeted([self.LEARNINGS]), {"shiploop-e2e", "release-preflight"})
+        baseline = {suite.id for suite in suite_catalog.quick()}
+        self.assertEqual({suite.id for suite in suite_catalog.quick([self.LEARNINGS])} - baseline,
+                         {"shiploop-e2e", "release-preflight"})
+
+    def test_the_baseline_data_selects_the_three_suites_that_read_it(self) -> None:
+        self.assertEqual(suite_catalog.targeted([self.BASELINES]),
+                         {"shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e"})
+
+    def test_a_suite_that_names_either_data_file_is_listed_for_it(self) -> None:
+        # The row is the whole selection, so a new reader that only names the file would be missed: it must be added to
+        # the row.  This file names both paths (the quick baseline already runs it), so it is not counted as a reader.
+        for path in (self.LEARNINGS, self.BASELINES):
+            with self.subTest(path=path):
+                self.assertLessEqual(suite_catalog._referencing(path) - {"test-groups"}, suite_catalog.targeted([path]))
+
+    def test_the_other_harness_files_stay_on_the_family_prefix(self) -> None:
+        # README.md is read through a path helper by shiploop-e2e-baseline, run.py and render_diff.py read cases.json,
+        # suites.json and packet_changes.json: no file-name search sees these readers, so the whole family stays selected.
+        for name in ("README.md", "cases.json", "suites.json", "packet_changes.json", "run.py", "render_diff.py"):
+            with self.subTest(name=name):
+                self.assertGreaterEqual(suite_catalog.targeted(["test/shiploop_e2e/" + name]), E2EFamilySelectionTest.FAMILY)
+
+    def test_the_workspace_module_selects_its_domain_suites_and_not_the_hub(self) -> None:
+        selected = suite_catalog.targeted([self.WORKSPACE])
+        self.assertGreaterEqual(selected, {"shiploop-return-review", "shiploop-handoff", "shiploop-knowledge", "shiploop-workspace"})
+        self.assertFalse(selected & set(suite_catalog._HUB_SUITE_IDS), selected & set(suite_catalog._HUB_SUITE_IDS))
+        baseline = {suite.id for suite in suite_catalog.quick()}
+        self.assertEqual({suite.id for suite in suite_catalog.quick([self.WORKSPACE])} - baseline,
+                         {"shiploop-return-review", "shiploop-handoff", "shiploop-knowledge"})
+
+    def test_the_other_hub_modules_keep_the_hub(self) -> None:
+        for path in ("skills/shiploop/scripts/shiploop_navigator.py", "skills/shiploop/scripts/shiploop_store.py"):
+            with self.subTest(path=path):
+                self.assertGreaterEqual(suite_catalog.targeted([path]), set(suite_catalog._HUB_SUITE_IDS))
+
+    def test_a_guidance_document_selects_the_anchor_test_and_not_the_chain_carriage_suite(self) -> None:
+        for name in self.GUIDANCE_DOCS:
+            path = "skills/shiploop/references/" + name
+            with self.subTest(path=path):
+                selected = suite_catalog.targeted([path])
+                self.assertNotIn(self.CHAIN_CARRIAGE, selected)
+                self.assertGreaterEqual(selected, {"shiploop-reference-routing", "shiploop-guidance"})
+
+    def test_the_chain_carriage_suite_is_still_selected_by_the_chain_it_checks(self) -> None:
+        self.assertIn(self.CHAIN_CARRIAGE, suite_catalog.targeted(["skills/shiploop/scripts/shiploop_chain.py"]))
+        self.assertIn(self.CHAIN_CARRIAGE, suite_catalog.targeted(["test/shiploop-chain-planning-context.test.py"]))
+
+
 if __name__ == "__main__":
     unittest.main()
