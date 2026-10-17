@@ -1,0 +1,29 @@
+[
+  {
+    "case": "node-seeded-case-compare",
+    "defect": "case-insensitive-compare",
+    "naive_survives_its_checks": true,
+    "naive_defect_present": true,
+    "fixed_checks_pass": true,
+    "fixed_defect_present": false,
+    "ok": true
+  },
+  {
+    "case": "node-seeded-numeric-sort",
+    "defect": "numbers-sorted-as-text",
+    "naive_survives_its_checks": true,
+    "naive_defect_present": true,
+    "fixed_checks_pass": true,
+    "fixed_defect_present": false,
+    "ok": true
+  },
+  {
+    "case": "node-seeded-empty-guard",
+    "defect": "missing-empty-guard",
+    "naive_survives_its_checks": true,
+    "naive_defect_present": true,
+    "fixed_checks_pass": true,
+    "fixed_defect_present": false,
+    "ok": true
+  }
+]
