@@ -1,0 +1,229 @@
+{
+ "source": "Improve-value study of the live Salesforce-chess ShipLoop run, 2026-10-16 (workflow output wu2yl4iro; analysts read the run's events, commits and result diffs). Compact export: the verdict tables and the per-pass facts the replay test encodes.",
+ "table": [
+  {
+   "stage": "spec Improve (nav-f4801a29)",
+   "minutes": 17.6,
+   "passes": 8,
+   "material_passes": 5,
+   "useful_fraction": "81% of time (14.3 of 17.6 min) in passes 1-5 that changed what a builder builds or a grader asserts (3 firm: P1, P2, P5; 2 weaker: P3, P4). 15% (2.7 min) in P6-P8 (one-word label fix, then two empty passes). 4% closing. Up to 4.6 min went to repairing a false check oracle and a wrong square name that P1 itself wrote."
+  },
+  {
+   "stage": "test-strategy Improve (nav-10230caa)",
+   "minutes": 8.9,
+   "passes": 5,
+   "material_passes": 1,
+   "useful_fraction": "25% of time (131 of 532 s) in the one material pass (P1: R-12 and NFR-3 unmapped, loose TC_6 row). 66% in passes with no material change; about 30% was context compaction plus recovery (161 s, in P5)."
+  },
+  {
+   "stage": "plan Improve (nav-faabbb60)",
+   "minutes": 6.9,
+   "passes": 4,
+   "material_passes": 1,
+   "useful_fraction": "14% strict (61 s of 422 s, P1 only); 35% if P2 is generously counted. P2 restated spec text and weakened two checks. P3 and P4 found nothing (15%). About 22% was a harness permission stall."
+  },
+  {
+   "stage": "step-plan Improve, W1 (nav-1878dd43)",
+   "minutes": 2.85,
+   "passes": 1,
+   "material_passes": 0,
+   "useful_fraction": "0%. One pass, no edit; the unchanged-first-pass exit ended it. Third review of the same W1 checks."
+  },
+  {
+   "stage": "test-spec Improve, W1 (nav-8508011e)",
+   "minutes": 4.9,
+   "passes": 3,
+   "material_passes": 1,
+   "useful_fraction": "61% of time (179 of 293 s) in P1, which found the untested R-6 en-passant-target-dash refusal. 39% (114 s) was two confirmation passes plus hand-off with zero yield."
+  },
+  {
+   "stage": "TOTAL, five finished stages",
+   "minutes": 41.2,
+   "passes": 21,
+   "material_passes": 8,
+   "useful_fraction": "Cost analyst's strict count: 6 warranted, 4 marginal, 1 cosmetic, 10 no-change passes. By minutes about 40% warranted, 31% marginal or cosmetic, 29% no-change. The two-clean-pass tail costs about 7 min; material passes about 28 min. Counting spec P3 and P4 as material gives 8 material passes and about 50% of minutes."
+  }
+ ],
+ "answer": "Improve is providing material value, but only in the first pass of each stage that creates new content, plus the first five passes of the spec stage. It is mostly polish after that. In 21 passes over five stages, 6 were clearly warranted: spec P1, P2 and P5, test-strategy P1, plan P1, test-spec P1. Another 2 (spec P3 and P4) were material by one analyst and marginal by another.\n\nWhat those passes changed:\n- Spec: black-side castling was untested anywhere. A four-field Kiwipete FEN would have broken a strict parser. A check oracle was false.\n- Test-strategy: R-12 and NFR-3 had no check mapped.\n- Plan: the W2 gate could pass with no board built.\n- Test-spec: the spec's R-6 refusal (en passant refused when the target is \"-\") had no test.\n\nLater stages quote these fixtures verbatim, so the edits are used downstream, not ceremonial.\n\nWhere it is polish:\n- Everything after pass 1 in test-strategy (5.9 min), plan (2.5 min) and test-spec (1.9 min).\n- Spec passes 6-8 (2.7 min).\n- The whole step-plan stage (2.85 min, no edit, the third review of the same W1 checks).\n- 10 of 21 passes made no change.\n- Three polish edits (spec P6, test-strategy P3, plan P2) were classed non-trivial. Each reset the two-clean-pass streak and forced two more passes.\n\nTwo more points:\n- Same-model, same-context confirmation passes are weak detectors. Spec P7 and P8 missed a pin FEN with no black king. Test-strategy P2 and P5 and plan P3 say \"reread\" but made no reads. A grep alternation that can pass on a half-built board survived four test-strategy passes.\n- Some passes made things worse. Spec P1 wrote a false check oracle that took P5 and P6 (up to 4.6 min) to repair. Plan P2 weakened two checks.\n\nHalf the run is not waste. About 28 of the 40 Improve minutes are material passes that earned their time. The avoidable part is the confirmation tail (about 7 min) and the compaction that landed inside Improve windows (about 3 min).",
+ "recommendation": "Keep Improve unbounded. Add no count cap and no per-stage exception, and make one change to the stop rule.\n\nWhy no cap: a cap of 1 would have shipped spec P1's false check oracle. A cap of 3 would have lost spec P4 and P5, including that correction. Every loop in this run ended by itself, the longest after 8 passes, and none spun. Material findings in the spec stage arrived as late as pass 5, so a count would have cut value.\n\nStop rule, stated exactly. Complete the Improve loop when the model reports a pass as trivial and satisfied, and the content tree after that pass equals the content tree after the previous pass. For the first pass the comparison is against the tree at start. This is one such pass at any position, replacing \"two consecutive trivial passes\".\n- The content tree is the worktree Git tree plus the bytes of the stage's candidate files that live outside it (run/inbox/<id>.md for plan, step-plan and test-spec).\n- A pass that changed the tree never ends the loop, however it is labeled. A material pass is therefore always followed by at least one more pass.\n- It is script-measured, as the 2026-09-26 unchanged-first-pass decision requires, and it generalises that rule from \"first pass only\" to \"any pass\".\n\nReplay on this run's 21 passes:\n- Stop points: spec after P7, test-strategy after P2, plan after P3, step-plan after P1 (as it did), test-spec after P2.\n- All 8 material passes come before their stop point.\n- The only pass lost is test-strategy P3, a wrong class name in a sentence, which was not material.\n\nOptional text-only add-on: define polish mechanically in the contract. An edit counts as polish if it changes no oracle, command, id, path, expected value or criterion and only restates text already stated elsewhere. Also require a script-run check of any oracle a pass adds, recorded in checks.md. Do not let a model-labelled polish edit end the loop on its own.\n\nNeeds your decision: the 2026-10-05 carve-out says \"same two-review or unchanged-first-pass exit\", so this needs a new dated carve-out in test/shiploop_e2e/SPEC.md S-10.",
+ "minutes_saved_estimate": "About 6.7 min gross. That is 37 s (spec P8), 284 s (test-strategy P3-P5), 32 s (plan P4) and 51 s (test-spec P3). About 4 min net, because test-strategy P5's 161 s of compaction would move into the next stage instead of disappearing. That is roughly 10 to 17% of the ~40 Improve minutes, or 5 to 9% of wall time at the 19:17 read. It is small because material passes are most of the cost. Bigger levers are outside the stop rule: script-checking added fixtures at write time (up to 4.6 min of self-repair in spec) and avoiding compaction in Improve windows (about 3 min). A model-labelled \"polish-only pass ends the loop\" variant would save about 1.3 min more (spec P7, plan P3), but it rests on the model's word, so I did not include it.",
+ "must_not_reintroduce": "- No count and no timer. The per-stage loop_limit that b7653edc removed (quality 3, tests 4) must not come back, and neither must a wall-clock or dollar ceiling that the model reads or enforces.\n- No stage ending cancelled or stopped with its exit unmet, which turns a converging loop into a replan or interruption. The new rule only ever completes a loop. `settle_incomplete` stays plan-only.\n- No stop on the model's word alone. \"Trivial\" and \"polish\" labels stay necessary but not sufficient; the script-measured tree fact is what ends the loop. A model-classified polish edit must not end the loop by itself.\n- A pass that changed the tree must never count toward a stop, so no loop ends on the pass that made the last edit.\n- No loss of the per-pass receipts and gates: `review-<n>.md`, `checks.md`, `_duplicate_review_gate`, and the uncommitted-edit gate `_improve_change_gate`. Shorter loops raise the incentive to template reviews.\n- No extension to implement-step loops (code reviews), which were not measured. The five planning stages are the only evidence.\n- No old-key alias or fallback in the packet validators (one-supported-version rule).",
+ "limits_of_evidence": "- One run, one case (Grok 4.7 medium building an Apex/LWC chess game), five planning-document stages, and a retrospective replay. A different stop rule changes what the model does in later passes, so the saved minutes are an estimate, not a measurement.\n- Materiality is judged by analyst models from diffs and downstream quotation. The analysts disagree: the spec analyst rates passes 1-5 material, the cost analyst only 1, 2 and 5. Downstream adoption shows an edit was used, not that it was needed.\n- A pass can be material without showing in a diff. A clean pass gives confidence, and a confirmation can catch nothing this time yet catch something next time. The no-change passes cannot be shown to have zero value.\n- Same-model, same-context passes are weak signals either way. Test-strategy P2 was 36 s with no reads, and the new rule would stop on a pass like it. Test-strategy P3 found a real, non-material provenance error only by luck, and that is the one fix the rule loses.\n- Step-plan has n=1 and test-spec n=1. Plan, step-plan and test-spec results sit outside git, so git log shows nothing for them and their value comes from result diffs.\n- Nothing has been built, so the checks added in plan P1 and test-spec P1 have never had a chance to fail.\n- Timing is accurate to about 5 s, and the analysts' stage windows differ by about a minute (39.8 vs 41.2 min total). Files were still growing when read. Compaction cost partly moves between stages.\n- The 2026-10-05 experiments (Luna 22 passes: 4 warranted, 5 marginal, 3 churn, 10 none; Grok 26 passes: 4/6/4/12) point the same way. They are the only corroboration.\n- I did not re-measure anything. I synthesized the analysts' results and only checked that the cited symbols exist in the repo tree.",
+ "passes": [
+  {
+   "stage": "spec Improve (reviewed action nav-f4801a29...), commits df5edfb..82bed0c; record",
+   "minutes": 17.6,
+   "tool_calls": 99,
+   "passes": [
+    {
+     "n": 1,
+     "category": "closes-a-requirement-or-test-gap",
+     "material": true,
+     "lines_changed": 12,
+     "edits": "Six spec bullets replaced, about +174/-92 words (the 203-line commit is only because spec.md was untracked until then; I diffed against the spec write at event 1813). Material hunks: Kiwipete `... w KQkq -` became `... w KQkq - 0 1`. Added "
+    },
+    {
+     "n": 2,
+     "category": "closes-a-requirement-or-test-gap",
+     "material": true,
+     "lines_changed": 3,
+     "edits": "R-8 gained `from r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1, legalMoves contains e8g8 and e8c8. From r3k2r/8/8/8/8/8/5R2/4K3 b kq - 0 1, e8g8 is absent because the white rook on f2 attacks f8, and e8c8 is present`. R-3 gained `From 4r3/8/8/8/8/8/4R3/"
+    },
+    {
+     "n": 3,
+     "category": "closes-a-requirement-or-test-gap",
+     "material": true,
+     "lines_changed": 4,
+     "edits": "R-4 gained `applyMove(startFen(), 'g1f3') returns rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1`. R-8 gained `4k3/8/8/8/8/8/4r3/4K2R w K - 0 1` (rook on e2 checks the king, so e1g1 is absent) and `4k3/8/8/8/6r1/8/8/4K2R w K - 0"
+    },
+    {
+     "n": 4,
+     "category": "closes-a-requirement-or-test-gap",
+     "material": true,
+     "lines_changed": 13,
+     "edits": "Exact applyMove results added. Examples: `applyMove('4k3/8/8/8/8/8/8/4K2R w K - 0 1', 'e1g1') returns 4k3/8/8/8/8/8/8/5RK1 b - - 1 1`. `applyMove('4k3/8/8/8/8/8/r7/R3K3 b Q - 0 1', 'a2a1') returns 4k3/8/8/8/8/8/8/r3K3 w - - 0 2 (capturing t"
+    },
+    {
+     "n": 5,
+     "category": "corrects-an-error",
+     "material": true,
+     "lines_changed": 10,
+     "edits": "Check became `after e2e4, f7f6, d1h5 ... status is check ... This is not the sequence e2e4 e7e5 d1h5: the pawn on f7 still blocks that diagonal`. Fool's mate now ends at `rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3`, and s"
+    },
+    {
+     "n": 6,
+     "category": "corrects-an-error",
+     "material": false,
+     "lines_changed": 2,
+     "edits": "One word in the R-8 sentence: `black rook on f5 attacks f1` became `black rook on f3 attacks f1`. +1/-1 word. Time 1.27 min, 11 calls."
+    },
+    {
+     "n": 7,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. Streak was 0, so one more clean pass was required. Time 0.80 min, 5 calls."
+    },
+    {
+     "n": 8,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. Time 0.62 min, 5 calls. After it, the closing receipt and `shiploop complete` took 0.65 min and 3 calls, a fixed overhead."
+    }
+   ]
+  },
+  {
+   "stage": "test-strategy (reviewed action nav-10230caa244540cca25e257485b63f16; Improve bin",
+   "minutes": 8.9,
+   "tool_calls": 57,
+   "passes": [
+    {
+     "n": 1,
+     "category": "closes-a-requirement-or-test-gap",
+     "material": true,
+     "lines_changed": 20,
+     "edits": "Quoted changes, all in docs/shiploop/environment.md, 17 lines added and 3 removed against the producer's draft (the commit shows +71/-4 only because it also carries the producer's draft): (1) 'TC_6 | R-4 exact transitions, including clocks,"
+    },
+    {
+     "n": 2,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. 0 lines."
+    },
+    {
+     "n": 3,
+     "category": "corrects-an-error",
+     "material": false,
+     "lines_changed": 4,
+     "edits": "Two sentences in environment.md, 2 lines added and 2 removed (commit 20bcb40): 'The missing-class probe of the rules class exited 1' became 'A probe of the absent class `SLChessEngineTest` exited 1 (...). `SLChessRulesTest` and `SLChessGame"
+    },
+    {
+     "n": 4,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. 0 lines."
+    },
+    {
+     "n": 5,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. 0 lines."
+    }
+   ]
+  },
+  {
+   "stage": "plan (Improve of reviewed action nav-faabbb60..., read 19:17-19:20 PDT; stage fi",
+   "minutes": 6.9,
+   "tool_calls": 48,
+   "passes": [
+    {
+     "n": 1,
+     "category": "closes-a-requirement-or-test-gap",
+     "material": true,
+     "lines_changed": 3,
+     "edits": "3 search_replace edits to the unversioned plan result run/inbox/nav-faabbb60....md (events 6791, 6793, 6806). W2 before: 'pass when exit 0 and the human output shows TC_12, TC_13, and TC_14. That covers R-9, R-11, ... and the source strings"
+    },
+    {
+     "n": 2,
+     "category": "clarification",
+     "material": false,
+     "lines_changed": 2,
+     "edits": "2 JSON-string lines (events 7030, 7050), +59/-16 words, +300 chars. (a) W1 file check: wrote a python3 assertion with len(d)==1 and path=='force-app' at 18:48:40, then replaced it 16 s later with rg -q 'path.: .force-app' sfdx-project.json "
+    },
+    {
+     "n": 3,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. Wrote review-3.md, checks.md, done JSON, then the done call. 32 s, 5 tool calls."
+    },
+    {
+     "n": 4,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. One python print of the summary and assumptions A1-A7, then review-4.md, checks.md, done JSON. 32 s, 5 tool calls."
+    }
+   ]
+  },
+  {
+   "stage": "W1 step-plan Improve (nav-1878dd43, 19:02:23-19:05:15) plus W1 test-spec Improve",
+   "minutes": 7.7,
+   "tool_calls": 49,
+   "passes": [
+    {
+     "n": 1,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None. No result edit, no commit, worktree tree unchanged, so the runtime's unchanged-first-pass exit fired after one pass."
+    },
+    {
+     "n": 2,
+     "category": "closes-a-requirement-or-test-gap",
+     "material": true,
+     "lines_changed": 5,
+     "edits": "Five search_replace edits to the result RUN/inbox/nav-8508011e... (outside the worktree, never committed). Material: TC_7 oracle gained 'The same piece placement with the target changed to -, rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w"
+    },
+    {
+     "n": 3,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None."
+    },
+    {
+     "n": 4,
+     "category": "no-change",
+     "material": false,
+     "lines_changed": 0,
+     "edits": "None."
+    }
+   ]
+  }
+ ]
+}

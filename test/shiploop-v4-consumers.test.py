@@ -60,6 +60,7 @@ class V4ConsumersTests(unittest.TestCase):
         }
         receipt = bridge.receipt_path(binding)
         receipt.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(['git', '-C', binding['workspace'], 'init', '-q'], check=True)  # gate 2 measures a Git worktree
         started = subprocess.run([sys.executable, '-B', skill['runtime_cli'], 'start', '--receipt', str(receipt)],
                                  input=json.dumps(contract), text=True, capture_output=True, check=True)
         packet = json.loads(started.stdout)
@@ -102,7 +103,7 @@ class V4ConsumersTests(unittest.TestCase):
         contract = {
             'workspace': binding['workspace'],
             'work': 'Review the frozen plan and its registered experiment decision.',
-            'exit_condition': 'Two synthetic trivial reviews preserve the plan decision.',
+            'exit_condition': 'A synthetic trivial review that leaves the content unchanged preserves the plan decision.',
             'repeat_condition': 'Continue while the fixture has a remaining synthetic review.',
             'required_trivial_reviews': 2,
             'context': {
@@ -115,6 +116,7 @@ class V4ConsumersTests(unittest.TestCase):
         }
         receipt = bridge.receipt_path(binding)
         receipt.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(['git', '-C', binding['workspace'], 'init', '-q'], check=True)  # gate 2 measures a Git worktree
         started = subprocess.run(
             [sys.executable, '-B', skill['runtime_cli'], 'start', '--receipt', str(receipt)],
             input=json.dumps(contract), text=True, capture_output=True, check=True, timeout=30,
@@ -153,7 +155,7 @@ class V4ConsumersTests(unittest.TestCase):
         final_result['evidence_refs'].append(str(note.resolve()))
         receipt = {
             'summary': 'Synthetic runtime mechanics completed; no semantic review claim.',
-            'review_refs': [str(path.resolve()) for path in reviews],
+            'review_refs': [str(reviews[-1].resolve())],  # the one pass the runtime ended on
             'check_refs': [str(check.resolve())],
             'lessons': 'The note is registered only through the accepted final result.',
             'final_result': final_result,

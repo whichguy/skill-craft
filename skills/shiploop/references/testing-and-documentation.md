@@ -696,8 +696,8 @@ in the existing plan and review notes. The rules below and the
    and a discriminating failure, including conflicting signals when relevant.
 6. **One convergence owner.** A bound Improve child uses the selected Improve
    card and its bound Until Loop for review, plan, apply, check and
-   two-trivial assessment within the parent-supplied scope and commit policy.
-   Those two passes are self-passes by one executor, not independent reviews.
+   unchanged-content assessment within the parent-supplied scope and commit policy.
+   Its passes are self-passes by one executor, not independent reviews.
    ShipLoop owns the parent action, the graph and the child's import. Do not
    wrap the child's work in another converging loop or count its passes in the
    parent. A material change reopens affected evidence.

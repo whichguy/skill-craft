@@ -37,6 +37,12 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-stopped-improve-")
         self.workspace = Path(self.temp.name) / "workspace"
         self.workspace.mkdir()
+        # The unchanged-content gate measures a Git worktree; the runtime refuses to start without one.
+        for args in (("init", "-q"), ("config", "user.email", "s@example.invalid"), ("config", "user.name", "S")):
+            subprocess.run(["git", "-C", str(self.workspace), *args], check=True, capture_output=True)
+        (self.workspace / "provisional-plan.md").write_text("Provisional plan.\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.workspace), "add", "-A"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(self.workspace), "commit", "-qm", "base"], check=True, capture_output=True)
         self.state = {"run_id": "run01", "repo": str(self.workspace)}
         self.skill = bridge.resolve_skill(str(IMPROVE))
         self.seed_result = {
@@ -56,7 +62,7 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
         contract = {
             "workspace": str(self.workspace),
             "work": "Review the provisional plan and retain any reconciliation evidence.",
-            "exit_condition": "Two qualifying trivial reviews and current evidence establish completion.",
+            "exit_condition": "A trivial review that leaves the content unchanged and current evidence establish completion.",
             "repeat_condition": "Continue while an authorized improvement or evidence gap remains.",
             "required_trivial_reviews": 2,
             "context": {
@@ -111,14 +117,13 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
 
     def completed(self) -> tuple[dict[str, object], str]:
         packet, _raw = self.start()
-        for index in range(2):
-            packet, raw = self.done(packet, {
-                "classification": "trivial",
-                "exit_assessment": "satisfied" if index == 1 else "unsatisfied",
-                "continuation_assessment": "allowed",
-                "evidence": f"qualifying review {index + 1} found no material issue",
-                "handoff": "No material findings; retain the current planning scope and evidence.",
-            })
+        packet, raw = self.done(packet, {
+            "classification": "trivial",
+            "exit_assessment": "satisfied",
+            "continuation_assessment": "allowed",
+            "evidence": "the qualifying review found no material issue and changed nothing",
+            "handoff": "No material findings; retain the current planning scope and evidence.",
+        })
         self.assertEqual(packet["status"], "complete")
         return packet, raw
 
@@ -205,6 +210,16 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
         self.assertEqual(evidence.read_text(encoding="utf-8"), "mutated after snapshot\n")
         self.assertEqual(archive["sha256"], hashlib.sha256(archived.encode("utf-8")).hexdigest())
         self.assertEqual(record["identities"]["evidence_sha256"][archive["source"]], archive["sha256"])
+
+    def test_a_stopped_packet_from_the_older_runtime_is_refused_by_name(self) -> None:
+        packet, raw = self.stopped()
+        self.assertEqual(set(packet["progress"]), {"action_number", "required_trivial_reviews", "last_pass_changed_tree"})
+        evidence = self.write_evidence()
+        older = json.loads(raw)
+        older["progress"] = {"action_number": 1, "trivial_streak": 0, "required_trivial_reviews": 2}
+        self.save_packet(json.dumps(older))
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "written by an older Until Loop"):
+            bridge.settle_incomplete(self.binding, self.receipt(evidence))
 
     def test_rejects_malformed_active_complete_and_missing_packets(self) -> None:
         evidence = self.write_evidence()

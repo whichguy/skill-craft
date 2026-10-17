@@ -380,6 +380,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
     def _start_direct(self, label: str, shiploop: Path, improve: Path) -> tuple[Path, Path]:
         repo = self.base / label / "ordinary repository"
         repo.mkdir(parents=True)
+        self._git(repo, "init", "-q")  # the Improve review's unchanged-content gate measures a Git worktree
         run = self.base / label / "run"
         self._run(
             self._script(shiploop),
@@ -471,7 +472,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(packet["status"], "active")
         binding = context["binding"]
         contract = json.loads((packet_path.parent / "start.json").read_text(encoding="utf-8"))
-        # The frozen contract is ShipLoop's: the binding line, workspace, two required reviews and its locators.
+        # The frozen contract is ShipLoop's: the binding line, workspace, the unchanged-content gate (2) and its locators.
         self.assertEqual(packet["context"], contract["context"])
         self.assertEqual(packet["context"]["request"].splitlines()[0], binding["contract_marker"])
         self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
@@ -501,8 +502,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         _raw, packet = self._run_child_argv(
             [sys.executable, "-B", str(self._until(context["improve_skill"])), "start", "--directory",
              str(scratch / "state"), "--receipt", str(scratch / "packet.json")], contract)
-        for classification, exit_assessment in (("non-trivial", "unsatisfied"), ("trivial", "unsatisfied"),
-                                                ("trivial", "satisfied")):
+        for classification, exit_assessment in (("non-trivial", "unsatisfied"), ("trivial", "satisfied")):
             raw, packet = self._run_child_argv(packet["done_argv"], {
                 "classification": classification, "exit_assessment": exit_assessment,
                 "continuation_assessment": "allowed", "evidence": "Synthetic foreign child; no review claim.",
@@ -548,16 +548,15 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         packet = child["packet"]
         for classification, exit_assessment, label in (
             ("non-trivial", "unsatisfied", "material finding"),
-            ("trivial", "unsatisfied", "first qualifying review"),
-            ("trivial", "satisfied", "second qualifying review"),
+            ("trivial", "satisfied", "qualifying review that changed nothing"),
         ):
             raw, packet = self._run_child_argv(
                 packet["done_argv"], report(classification, exit_assessment, label)
             )
             context["packet_path"].write_bytes(raw)
         self.assertEqual(packet["status"], "complete")
-        self.assertEqual(packet["progress"]["trivial_streak"], 2)
-        self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
+        self.assertEqual(packet["progress"], {"action_number": 2, "required_trivial_reviews": 2,
+                                              "last_pass_changed_tree": False})
         self.assertIsNone(packet["next_argv"])
         self.assertIsNone(packet["done_argv"])
         self.assertFalse(child["state_file"].exists())

@@ -134,8 +134,12 @@ class ContractTests(Synthetic):
                 writes = self.write(state)
                 value = loops.contract(self.root, state, action)
                 # The runtime's own validator returns the contract unchanged: no field added, dropped or normalised.
-                # The 0.8.0 runtime normalizes a contract without exit checks to an empty list; nothing else changes.
-                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
+                # The 0.8.0 runtime normalizes a contract without exit checks to an empty list, and the bundled runtime
+                # one without candidate paths (the stop rule's optional list) to an empty list; nothing else changes.
+                # The stage loops never write candidate_paths: the published until-loop plugin refuses an unknown field.
+                self.assertNotIn("candidate_paths", value)
+                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True),
+                                 {**value, "exit_checks": [], "candidate_paths": []})
                 self.assertEqual(json.loads(writes[loops.contract_path(action)]), value)
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
                 self.assertEqual(value["required_trivial_reviews"], 1 if stage == "verify" else 0)

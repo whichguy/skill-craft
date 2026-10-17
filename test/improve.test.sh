@@ -145,11 +145,13 @@ assert manifest["upstream"]["repository"] == "https://github.com/whichguy/until-
 assert re.fullmatch(r"[0-9a-f]{40}", manifest["upstream"]["commit"]), manifest["upstream"]
 entries = {entry["bundled_path"]: entry for entry in manifest["default_ephemeral_runtime"]}
 script = root / "runtime/until-loop/scripts/until_loop_ephemeral.py"
-# The runtime is byte-for-byte upstream: no adaptation, and the hash check below ties it to the manifest.
-assert "adaptation_reason" not in entries["scripts/until_loop_ephemeral.py"]
-assert hashlib.sha256(script.read_bytes()).hexdigest() == entries[
-    "scripts/until_loop_ephemeral.py"
-]["sha256"]
+# The runtime script is a recorded adaptation of upstream (the stop rule, owner 2026-10-16): the manifest keeps the
+# upstream hash and the reason, and the hash check below ties the shipped bytes to the manifest.
+script_entry = entries["scripts/until_loop_ephemeral.py"]
+assert script_entry["adaptation_reason"].strip()
+assert re.fullmatch(r"[0-9a-f]{64}", script_entry["upstream_sha256"])
+assert script_entry["sha256"] != script_entry["upstream_sha256"]
+assert hashlib.sha256(script.read_bytes()).hexdigest() == script_entry["sha256"]
 assert hashlib.sha256((root / "runtime/until-loop/ADAPTER.md").read_bytes()).hexdigest() == entries[
     "ADAPTER.md"
 ]["sha256"]
@@ -178,7 +180,7 @@ assert (
 for retired in ("legacy-skill.md", "runtime-v2.md", "references/runtime.md", ".pending-v2.json"):
     assert retired not in adapter, retired
 PY
-pass ephemeral_runtime_provenance_matches_v0_8_1
+pass ephemeral_runtime_provenance_matches_v0_8_3_with_recorded_adaptation
 
 ephemeral_runtime="$bundle/runtime/until-loop/scripts/until_loop_ephemeral.py"
 ephemeral_contract="$tmpdir/ephemeral contract.json"
@@ -198,12 +200,12 @@ contract = {
         "run applicable checks, and retain one completed review record."
     ),
     "exit_condition": (
-        "Two distinct qualifying clean reviews and current evidence establish the scoped result."
+        "A review that finds nothing to change and leaves the content as the previous pass left it, with current evidence, establishes the scoped result."
     ),
-    "repeat_condition": "A distinct required review remains unless an actual blocker or stop applies.",
+    "repeat_condition": "A pass that changed the content is followed by another review unless an actual blocker or stop applies.",
     "required_trivial_reviews": 2,
     "context": {
-        "request": "Relocated Improve callback test with two distinct clean reviews.",
+        "request": "Relocated Improve callback test with an unchanged-content review gate.",
         "scope": "Frozen initial candidate: tracked.txt only; preserve all other files.",
         "authority": "Do not commit, push or publish for this protocol test.",
         "environment": "Use the relocated bundled runtime and the initialized test workspace.",
@@ -227,8 +229,8 @@ packet = json.load(open(sys.argv[1], encoding="utf-8"))
 assert packet["status"] == "active"
 assert packet["progress"] == {
     "action_number": 1,
-    "trivial_streak": 0,
     "required_trivial_reviews": 2,
+    "last_pass_changed_tree": None,
 }
 assert packet["context"]["request"].startswith("Relocated Improve callback")
 assert packet["next_argv"]
@@ -264,16 +266,16 @@ Path(sys.argv[1]).write_text(
             "classification": "trivial",
             "exit_assessment": "satisfied",
             "continuation_assessment": "allowed",
-            "evidence": "First distinct clean review completed with current scoped evidence.",
-            "handoff": "First clean review complete; preserve the frozen scope and perform one more distinct review.",
+            "evidence": "First review completed with current scoped evidence and edited the candidate.",
+            "handoff": "First review complete and the candidate edited; preserve the frozen scope and perform one more distinct review.",
         }
     )
     + "\n",
     encoding="utf-8",
 )
 PY
-# The first review edits the candidate, so a second distinct review is required.
-# (A first trivial review that leaves the workspace unchanged completes at once;
+# The first review edits the candidate, so even a trivial label cannot end the loop and a second review is required.
+# (A trivial review that leaves the content as the previous pass left it completes at once;
 # test/improve-runtime.test.py covers that path.)
 printf 'reviewed\n' >>"$workspace/tracked.txt"
 ephemeral_second="$tmpdir/ephemeral second packet.json"
@@ -300,7 +302,7 @@ packet = json.load(open(sys.argv[1], encoding="utf-8"))
 report = json.load(open(sys.argv[2], encoding="utf-8"))
 assert packet["status"] == "active"
 assert packet["progress"]["action_number"] == 2
-assert packet["progress"]["trivial_streak"] == 1
+assert packet["progress"]["last_pass_changed_tree"] is True
 assert packet["last_report"] == report
 assert packet["state_file"] == sys.argv[3]
 assert Path(sys.argv[3]).is_file()
@@ -318,8 +320,8 @@ Path(sys.argv[1]).write_text(
             "classification": "trivial",
             "exit_assessment": "satisfied",
             "continuation_assessment": "allowed",
-            "evidence": "Second distinct clean review completed with current scoped evidence.",
-            "handoff": "Two qualifying reviews complete; terminal response carries the final receipt.",
+            "evidence": "Second review completed with current scoped evidence and changed nothing.",
+            "handoff": "The qualifying unchanged review is complete; terminal response carries the final receipt.",
         }
     )
     + "\n",
@@ -348,7 +350,7 @@ import sys
 packet = json.load(open(sys.argv[1], encoding="utf-8"))
 report = json.load(open(sys.argv[2], encoding="utf-8"))
 assert packet["status"] == "complete"
-assert packet["progress"]["trivial_streak"] == 2
+assert packet["progress"] == {"action_number": 2, "required_trivial_reviews": 2, "last_pass_changed_tree": False}
 assert packet["last_report"] == report
 assert packet["next_argv"] is None
 assert packet["done_argv"] is None
@@ -357,6 +359,6 @@ PY
 [[ -z "$(find "$ephemeral_state_dir" -mindepth 1 -maxdepth 1 -print -quit)" ]] \
   || fail 'ephemeral terminal transition left a state artifact'
 [[ ! -e "$workspace/.until-loop" ]] || fail 'ephemeral runtime created durable workspace state'
-pass relocated_ephemeral_start_next_done_two_trivial_gate_and_terminal_deletion
+pass relocated_ephemeral_start_next_done_unchanged_gate_and_terminal_deletion
 
 printf 'improve.test.sh: PASS package=%s\n' "$package"

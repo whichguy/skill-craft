@@ -9,9 +9,9 @@
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "c71931fc5b3981490ba967a87dbcfea0e1d24a79247f259809004e8100101e19",
+      "sha256": "91e31471a7b2b08440a67dccc5e230c5387b442ed1ab22c45fd071bf96da0710",
       "upstream_sha256": "93f1e97d1442c1219f56f6bf26d498e26c5d6ae21feb7cdb6063312cdaaf231f",
-      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run."
+      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run. Also documents the script's stop rule (gate 2, candidate_paths); see scripts/until_loop_ephemeral.py."
     },
     {
       "bundled_path": "LICENSE",
@@ -21,12 +21,16 @@
     {
       "bundled_path": "scripts/until_loop_ephemeral.py",
       "upstream_path": "scripts/until_loop_ephemeral.py",
-      "sha256": "dd8b3513f5795391fd9ef13afa0f9487557547d950836b306b53b8760f663488"
+      "sha256": "9d03483369dcd8d6b95963aab8a0d9028c9ecca12548465728b51abdeb4211e8",
+      "upstream_sha256": "dd8b3513f5795391fd9ef13afa0f9487557547d950836b306b53b8760f663488",
+      "adaptation_reason": "Stop rule (owner 2026-10-16, Improve-value study): required_trivial_reviews 2 is the unchanged-content gate instead of two consecutive trivial passes plus an unchanged-first-pass shortcut. It completes on one trivial, satisfied pass whose measured content tree (Git tree plus optional candidate_paths file bytes) equals the previous pass's tree (the first pass: the tree at start); state last_tree replaces start_tree and gate-2 packets report progress.last_pass_changed_tree instead of the streak. Gates 0 and 1 and their packet shape are unchanged, so contracts written for the published until-loop plugin stay valid. Not yet upstreamed to whichguy/until-loop; a re-vendor must carry it."
     },
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "d742a78a079312a890d83014be8219d75b97c326962cdb90adf28ec12fe633d2"
+      "sha256": "1255d340a46f534d3c9e43e4902196b794e22a851f271c8fee76185f3a591031",
+      "upstream_sha256": "d742a78a079312a890d83014be8219d75b97c326962cdb90adf28ec12fe633d2",
+      "adaptation_reason": "Documents the script's stop rule (gate 2, candidate_paths, progress.last_pass_changed_tree); see scripts/until_loop_ephemeral.py."
     }
   ]
 }

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import subprocess
 import tempfile
 import types
 import unittest
@@ -72,6 +73,7 @@ class ImprovePacketTests(unittest.TestCase):
             self.skipTest("no installed Improve card beside this ShipLoop package: " + str(card))
         run = Path(temp) / "run"
         run.mkdir()
+        subprocess.run(["git", "-C", temp, "init", "-q"], check=True, capture_output=True)  # the gate measures Git
         state = navigator.new_state(temp, "Add a greeting.", delegation="inline", improve_skill=str(card))
         navigator.save(run, state)
         while navigator.current_stage(state) != "spec":

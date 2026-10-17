@@ -189,10 +189,14 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("- every request outcome maps to at least one acceptance criterion", handoff)
         self.assertNotIn("Capture separate durable review files", handoff)
         text = " ".join(handoff.split())
-        # P12: the child writes review-<n>.md per pass; the complete command picks the passes itself.
-        self.assertIn("The complete command imports the last two passes", text)
+        # P12: the child writes review-<n>.md per pass; the complete command picks the final pass itself (stop rule,
+        # 2026-10-16: the runtime ends the review on one trivial pass that left the content unchanged).
+        self.assertIn("The complete command imports the final pass (the last review file)", text)
         self.assertIn("review-<n>.md", text)
         self.assertNotIn("review_refs length is exactly 2", text)
+        self.assertNotIn("two consecutive trivial passes", text)
+        self.assertNotIn("last two passes", text)
+        self.assertIn("a pass that changed content never ends it, however you label it", text)
 
     def test_unsuccessful_last_carry_forward_advances_without_improve(self):
         state = advance_to(self.new(), "carry-forward")
@@ -790,7 +794,7 @@ class NoInstalledCardCliTests(CliRunCase):
 
 
 class ReceiptCountTests(unittest.TestCase):
-    def test_three_review_refs_are_refused_with_the_fix(self):
+    def test_two_or_three_review_refs_are_refused_with_the_fix(self):
         with tempfile.TemporaryDirectory() as temp:
             workspace = Path(temp).resolve()
             refs = []
@@ -798,10 +802,14 @@ class ReceiptCountTests(unittest.TestCase):
                 path = workspace / (name + ".md")
                 path.write_text(name)
                 refs.append(str(path))
-            with self.assertRaisesRegex(standalone.StandaloneImproveError,
-                                        "got 3; leave earlier material reviews on disk"):
-                standalone._receipt({"summary": "s", "review_refs": refs, "check_refs": [refs[0]]},
-                                    workspace, "receipt")
+            for count in (2, 3):  # the runtime ends on one pass, so only that pass's review is imported
+                with self.subTest(count=count), self.assertRaisesRegex(
+                        standalone.StandaloneImproveError,
+                        "one review reference of the final pass.*got %d; leave earlier reviews on disk" % count):
+                    standalone._receipt({"summary": "s", "review_refs": refs[:count], "check_refs": [refs[0]]},
+                                        workspace, "receipt")
+            self.assertEqual(standalone._receipt({"summary": "s", "review_refs": refs[:1], "check_refs": [refs[0]]},
+                                                 workspace, "receipt")["review_refs"], ["material.md"])
 
 
 if __name__ == "__main__":
