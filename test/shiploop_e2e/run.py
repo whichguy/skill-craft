@@ -24,7 +24,9 @@ recorded without doing them (the case prompt is the specification), so a host
 reaches the implementation chain in minutes instead of hours of planning. The
 host then follows ShipLoop's own packets from step-plan. A seeded run is also
 graded on `chain` (every step accepted and at least two workers in flight
-together) and writes no baseline row, since it does not start from intake.
+together) and writes no baseline row, since it does not start from intake. The seed also records the item's base snapshot
+and commits a neutral knowledge home (spec R-1 = the request, environment ## Commands = the case's checks), so the gates that
+read them run; --seed-without-home leaves the home out (run.seed_run, test/shiploop_e2e/README.md "The seed").
 
 A follow-on case (`follows` in cases.json) runs a second feature in a copy of an
 earlier run's source checkout (--continue-from <earlier output>), to see whether
@@ -1097,43 +1099,86 @@ def grade_shiploop(out: Path) -> dict:
 SEED_STAGES = ("step-plan",)
 # Runs in a separate interpreter on the installed plugin's own navigator, so the
 # seeded state is exactly what that version's CLI reads back.
+# When an item enters its inner loop it records the item's base snapshot, as shiploop_lint.on_transition does on a real run
+# (the record lint/items/<item>.md, saved in the same transaction as the state). The base run, the mutation check, the change
+# inventory and the item commit read it and, without it, record "skipped: no item base was recorded" and do nothing.
 SEED_SCRIPT = """
 import json, sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
-import shiploop_navigator as nav, shiploop_store as store
+import shiploop_lint as lint, shiploop_navigator as nav, shiploop_store as store
 run_dir, stop = Path(sys.argv[2]), sys.argv[3]
 item = json.loads(sys.argv[4]) if len(sys.argv) > 4 else {"id": "seeded-request", "title": "The whole request"}
 state = store.read_record(run_dir / "state.md")
-skipped = []
+skipped, bases = [], []
 while nav.current_stage(state) != stop:
     stage, action = nav.current_stage(state), str(nav.current_action(state)["id"])
     result = {"outcome": "done", "summary": "Synthetic: recorded by the E2E seed without doing it; "
               "the request is the specification."}
     if stage == "plan":
         result["work_items"] = [item]
+    entering = set(state.get("inner_loops") or {})
     state = nav.apply(state, action, result)
     if state["active_improve"] is not None:
         state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt from the E2E seed."})
+    writes = {}
+    for ident in sorted(set(state.get("inner_loops") or {}) - entering):
+        if lint.read_base(run_dir, ident) is None:
+            writes.update(lint.capture_base(run_dir, Path(state["repo"]), ident))
+            bases.append(ident)
     skipped.append(stage)
-    nav.save(run_dir, state)
+    nav.save(run_dir, state, writes)
 print(json.dumps({"skipped": skipped, "stage": nav.current_stage(state),
-                  "action": str(nav.current_action(state)["id"]), "delegation": state.get("delegation")}))
+                  "action": str(nav.current_action(state)["id"]), "delegation": state.get("delegation"),
+                  "item_bases": bases}))
 """
+
+# The knowledge home a run that had run its spec and discovery stages would have left (docs/shiploop/): the request as the only
+# requirement and the case's own commands. The seed records those stages without doing them, so a later gate that reads the home
+# (a test case's requirement must have an entry in the living spec) would otherwise send the model off to write one.
+SEED_HOME = "docs/shiploop"
+
+
+def seed_home(work: Path, prompt: str, checks: list[str] | None = None) -> list[str]:
+    """Write a neutral spec (R-1 = the request) and environment (## Commands = the case's checks) into the seed repository.
+
+    Returns the paths written, relative to `work`; a file the fixture already holds is kept. The files are written before the
+    seed's baseline commit, so they are part of the checkout the run starts from and of every item's base snapshot.
+    """
+    request = " ".join(prompt.split())
+    commands = [check.strip() for check in checks or [] if check.strip()]
+    files = {
+        "spec.md": ("# Living spec\n\nSeeded by the E2E harness: the stages before step-plan are recorded without doing them, so the "
+                    f"request is the specification.\n\n## Requirements\n\nR-1: {request}\n"),
+        "environment.md": ("# Environment\n\nSeeded by the E2E harness from the case's own checks; discovery did not run.\n\n"
+                           "## Commands\n\n" + ("```sh\n" + "\n".join(commands) + "\n```\n" if commands else "none recorded\n")),
+    }
+    written = []
+    for name, text in files.items():
+        path = work / SEED_HOME / name
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+            written.append(f"{SEED_HOME}/{name}")
+    return written
 
 
 def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixture: Path | None = None,
-             work_item: dict | None = None, delegation: str = "ask-agent") -> dict:
+             work_item: dict | None = None, delegation: str = "ask-agent", checks: list[str] | None = None,
+             home: bool = True) -> dict:
     """Start a run and record its stages before `stop` as synthetic.
 
     ShipLoop refuses a repository without a commit, so the seed commits a README first, or the whole `fixture`
     directory when one is given (a step slice starts on an existing product). `work_item` is the plan's only item
     (default: the whole request); `delegation` is the run's route (default Ask-Agent, which the chain cases need).
+    The seed records the item's base snapshot (SEED_SCRIPT) and, unless `home` is false (the flagged no-home variant:
+    `--seed-without-home`), commits a neutral knowledge home built from `prompt` and `checks` (seed_home).
     """
     if fixture is not None:
         shutil.copytree(fixture, work, dirs_exist_ok=True)
     else:
         (work / "README.md").write_text("# Seeded ShipLoop E2E case\n")
+    written = seed_home(work, prompt, checks) if home else []
     # The seed must not depend on the machine's Git config: a global or system filter (for example git-lfs on a
     # CI runner) would make ShipLoop's workspace refuse the repository.
     git_env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -1154,7 +1199,7 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
                               capture_output=True, text=True, env=git_env)
     if advanced.returncode:
         raise SystemExit(f"seed: could not advance the run to {stop}: {advanced.stderr[-2000:]}")
-    return {"stage": stop, "run_dir": str(run_dir), "start_head": head, **json.loads(advanced.stdout)}
+    return {"stage": stop, "run_dir": str(run_dir), "start_head": head, "home": written, **json.loads(advanced.stdout)}
 
 
 def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent") -> str:
@@ -2374,6 +2419,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--seed-at", choices=SEED_STAGES,
                    help="start an Ask-Agent run at this stage, with the earlier stages recorded without doing "
                         "them, to reach the implementation chain without hours of planning; also grades the chain")
+    p.add_argument("--seed-without-home", action="store_true",
+                   help="with --seed-at: do not commit the neutral knowledge home (docs/shiploop/spec.md with R-1, "
+                        "environment.md with the case's checks) into the seed repository. The item base is recorded either way. "
+                        "The flagged variant, to see which refusals a run with no spec hits")
     p.add_argument("--interrupt-at", choices=("chain-launched",),
                    help="kill the host (and its workers) as soon as a chain worker is in flight, then resume the "
                         "run with a fresh session; graded as `recovery`")
@@ -3551,6 +3600,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         raise SystemExit("--grade-only needs --resume-run <output directory>: it grades a run that already exists")
     if args.host == "all":
         raise SystemExit("--host all is only for --preflight-only; a run needs one host")
+    if args.seed_without_home and not args.seed_at:
+        raise SystemExit("--seed-without-home needs --seed-at: it changes what the harness seeds")
     if args.planning_review and args.seed_at:
         raise SystemExit("--planning-review with --seed-at: the harness starts a seeded run itself and records its stages "
                          "without doing them, so the option would change nothing")
@@ -3810,7 +3861,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
             start_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
     if args.seed_at and not resumed:
-        seeded = seed_run(the_cli, work, out, prompt, args.seed_at)
+        seeded = seed_run(the_cli, work, out, prompt, args.seed_at, checks=checks, home=not args.seed_without_home)
         record_run_identity(out, run_dir=str(Path(seeded["run_dir"]).resolve()), basis="seeded by the harness")
         if not args.quiet:
             print(f"seeded: {', '.join(seeded['skipped'])} recorded without doing them; host starts at "
@@ -4261,7 +4312,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
           f"{committed['head_files']} files in HEAD, {len(knowledge['uncommitted'])} uncommitted product paths")
     print(f"  knowledge docs/shiploop/spec.md {'present' if knowledge['spec'] else 'missing'}"
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
-          f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files")
+          f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files"
+          + ("; the seed committed the spec and environment (R-1 is the request)" if (seeded or {}).get("home") else ""))
     if chain is not None:
         want = chain["expect"]
         print(f"            expected  >= {want['min_steps']} steps all accepted, >= {want['min_in_flight']} in flight, "

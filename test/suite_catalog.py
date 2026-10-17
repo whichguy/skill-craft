@@ -153,10 +153,14 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-baseline.test.py",
     "test/shiploop-e2e-quality.test.py",
     "test/shiploop-e2e-packet-anatomy.test.py",
+    "test/shiploop-e2e-render-diff.test.py",
     "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-e2e-chess-salesforce.test.py",
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-sf-guard.test.py",
+    "test/shiploop-e2e-efficiency.test.py",
+    "test/shiploop-packet-obligations.test.py",
+    "test/shiploop-efficiency-journal.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -185,7 +189,9 @@ _DURATION_SECONDS = {
     # moved in from the retired shiploop-retire suite (consumer contract 4c): 38 tests, 17.1 s at load average 4.8; with
     # the report tests and the working-tree return (4d) and main's settlement tests: 45 tests, 23.9 s.
     "test/shiploop-handoff.test.py": 24.0,
-    "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
+    # 33.0 was measured 2026-10-10 (three fake-host sessions).  2026-10-17 (several clears per slice): 45 tests, 81 s, one serial
+    # run on a busy machine; the two slice.main tests run four and two fake-host sessions.  Under QUICK_MAX_SECONDS (120).
+    "test/shiploop-e2e-slice.test.py": 81.0,
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
     # 19.448 was written at 59 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average 4.7 to
@@ -301,6 +307,9 @@ _DURATION_SECONDS = {
     # The packet-anatomy measurement tool (packet-compaction Phase 0): 13 tests, 0.2 s locally on 2026-10-10, most of it the
     # class that renders every stage of the current engine.
     "test/shiploop-e2e-packet-anatomy.test.py": 1.0,
+    # The fixed-text offline render (packets.py --text-dir, G-RENDER) and render_diff.py: 43 tests, most of them on small synthetic render
+    # directories; the offline walks (six renders at 83 and 163 characters, both routes) are the rest.  1.3 s locally on 2026-10-17.
+    "test/shiploop-e2e-render-diff.test.py": 3.0,
     # The packets and commits counters (batch 1012 task h): 99 tests on fixtures cut from saved runs, real git in temporary
     # repositories (the lessons and citation tests commit one message at a time), the regrade's, tallies' and reader-change evidence
     # and the fake hosts of the harness's through-main tests. Local wall seconds, 2026-10-10: 24.1 s (the faster of two serial runs at
@@ -320,6 +329,15 @@ _DURATION_SECONDS = {
     # The guarded `sf` on the model's PATH (checks/sf_guard.py behind the wrapper run.write_model_bin writes), 91 tests, each rule
     # run as a subprocess against the fake `sf`. Local wall seconds, 2026-10-16: 16 to 24 s at load average about 5. Under QUICK_MAX_SECONDS.
     "test/shiploop-e2e-sf-guard.test.py": 20.0,
+    # The efficiency measurement (unit U5): 70 tests on two compact extracts of saved runs (test/fixtures/efficiency), the harness's
+    # arms.py, the planted-defect cases (real node, six short probes) and the audit probes (one child process each). Local wall
+    # seconds, 2026-10-17: 8.1 s at load average about 6, one serial run. Far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-efficiency.test.py": 9.0,
+    # The packet obligation ledger (test/shiploop_e2e/packet_obligations.json): it renders the 33-packet dry-run walk and the offline
+    # step slice on both routes and mutates every anchor; 12 tests, 2.1 s locally on 2026-10-17.
+    "test/shiploop-packet-obligations.test.py": 3.0,
+    # The efficiency journal's rows (synthetic and the checkout's own): 11 tests, a few milliseconds.
+    "test/shiploop-efficiency-journal.test.py": 0.1,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
@@ -565,6 +583,13 @@ _PATH_SUITE_IDS = {
     "catalog/skill-craft-plugin.json": ("marketplace-package", "native-marketplace-adapters", "release-flow"),
     # The E2E spec is read by three suites, found by its path now that its file name is generic.
     "test/shiploop_e2e/SPEC.md": ("shiploop-e2e", "shiploop-navigator-contract", "shiploop-run-review"),
+    # The packet obligation ledger and its checker, and the code that writes the text the ledger's anchors live in.
+    "test/shiploop_e2e/packet_obligations.json": ("shiploop-packet-obligations",),
+    "test/shiploop_e2e/obligations.py": ("shiploop-packet-obligations",),
+    "skills/shiploop/scripts/shiploop_navigator.py": ("shiploop-packet-obligations",),
+    "skills/shiploop/scripts/shiploop_prompts.py": ("shiploop-packet-obligations",),
+    "skills/shiploop/scripts/shiploop_loops.py": ("shiploop-packet-obligations",),
+    "skills/shiploop/scripts/shiploop_narrative.py": ("shiploop-packet-obligations",),
 }
 
 # Every suite of the E2E harness family that the catalog holds (shiploop-e2e and its shiploop-e2e-<topic> files; the
@@ -600,6 +625,10 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
     "test/fixtures/quality/": ("shiploop-e2e-quality",),
     "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
+    # The two saved-run extracts the efficiency measurement reads, and the journal rows its test checks.
+    "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),
+    "docs/experiments/shiploop-eff-journal-rows/": ("shiploop-efficiency-journal",),
+    "docs/shiploop-efficiency-journal-": ("shiploop-efficiency-journal",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 

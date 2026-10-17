@@ -1,0 +1,117 @@
+{
+  "root": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-u5b-8d7974",
+  "root_length": 72,
+  "adjusted_to_root_length": 30,
+  "figures": {
+    "delivery_packet_chars": 374231,
+    "bound_handoff_chars": 276036,
+    "entry_card_chars": 80433
+  },
+  "audited_at_2686b427": {
+    "delivery_packet_chars": 375278,
+    "bound_handoff_chars": 276270,
+    "entry_card_chars": 79647
+  },
+  "ratio_to_audit": {
+    "delivery_packet_chars": 0.9972,
+    "bound_handoff_chars": 0.9992,
+    "entry_card_chars": 1.0099
+  },
+  "delivery": {
+    "packets": 33,
+    "characters": 387797,
+    "max": 28463,
+    "over_16000": 8,
+    "root_mentions": 323
+  },
+  "handoffs": {
+    "handoffs": 9,
+    "characters": 290430,
+    "root_mentions": 200,
+    "run_excess": 3429,
+    "repo_excess": 2565,
+    "per_stage": [
+      {
+        "stage": "spec",
+        "characters": 28574,
+        "root_mentions": 22,
+        "run_mentions": 13,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "test-strategy",
+        "characters": 29808,
+        "root_mentions": 21,
+        "run_mentions": 13,
+        "repo_mentions": 11,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "plan",
+        "characters": 35718,
+        "root_mentions": 28,
+        "run_mentions": 16,
+        "repo_mentions": 13,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "step-plan",
+        "characters": 33442,
+        "root_mentions": 25,
+        "run_mentions": 14,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "test-spec",
+        "characters": 29943,
+        "root_mentions": 19,
+        "run_mentions": 13,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "implement",
+        "characters": 35181,
+        "root_mentions": 20,
+        "run_mentions": 14,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "carry-forward",
+        "characters": 36073,
+        "root_mentions": 23,
+        "run_mentions": 17,
+        "repo_mentions": 11,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "system-test-author",
+        "characters": 29463,
+        "root_mentions": 19,
+        "run_mentions": 13,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      },
+      {
+        "stage": "release-plan",
+        "characters": 32228,
+        "root_mentions": 23,
+        "run_mentions": 14,
+        "repo_mentions": 10,
+        "run_length": 76,
+        "repo_length": 77
+      }
+    ]
+  }
+}

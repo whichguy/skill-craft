@@ -1,0 +1,1190 @@
+{
+  "measured": true,
+  "host": "grok",
+  "events": 33833,
+  "limit_events": null,
+  "calls": 1503,
+  "result_chars": 5983006,
+  "buckets": {
+    "packet_output": {
+      "calls": 46,
+      "chars": 549810
+    },
+    "shiploop_messages": {
+      "calls": 66,
+      "chars": 61408
+    },
+    "files": {
+      "calls": 541,
+      "chars": 3355311
+    },
+    "child_handoffs": {
+      "calls": 91,
+      "chars": 791596
+    },
+    "runtime_output": {
+      "calls": 106,
+      "chars": 662581
+    },
+    "other": {
+      "calls": 653,
+      "chars": 562300
+    }
+  },
+  "cold": {
+    "packet_output": {
+      "calls": 11,
+      "chars": 158642
+    },
+    "shiploop_messages": {
+      "calls": 2,
+      "chars": 2139
+    },
+    "files": {
+      "calls": 98,
+      "chars": 1570070
+    },
+    "child_handoffs": {
+      "calls": 21,
+      "chars": 210682
+    },
+    "runtime_output": {
+      "calls": 15,
+      "chars": 214303
+    },
+    "other": {
+      "calls": 45,
+      "chars": 176739
+    }
+  },
+  "warm": {
+    "packet_output": {
+      "calls": 35,
+      "chars": 391168
+    },
+    "shiploop_messages": {
+      "calls": 64,
+      "chars": 59269
+    },
+    "files": {
+      "calls": 443,
+      "chars": 1785241
+    },
+    "child_handoffs": {
+      "calls": 70,
+      "chars": 580914
+    },
+    "runtime_output": {
+      "calls": 91,
+      "chars": 448278
+    },
+    "other": {
+      "calls": 608,
+      "chars": 385561
+    }
+  },
+  "files_by_class": {
+    "adapter": {
+      "calls": 23,
+      "chars": 337092,
+      "reads": 14,
+      "whole": 0,
+      "slice": 23
+    },
+    "child_record": {
+      "calls": 59,
+      "chars": 252574,
+      "reads": 38,
+      "whole": 29,
+      "slice": 30
+    },
+    "entry_card": {
+      "calls": 10,
+      "chars": 801360,
+      "reads": 10,
+      "whole": 1,
+      "slice": 9
+    },
+    "handoff": {
+      "calls": 32,
+      "chars": 539022,
+      "reads": 21,
+      "whole": 3,
+      "slice": 29
+    },
+    "improve_card": {
+      "calls": 24,
+      "chars": 456160,
+      "reads": 16,
+      "whole": 0,
+      "slice": 24
+    },
+    "knowledge": {
+      "calls": 61,
+      "chars": 188946,
+      "reads": 38,
+      "whole": 6,
+      "slice": 55
+    },
+    "packet_file": {
+      "calls": 93,
+      "chars": 523604,
+      "reads": 46,
+      "whole": 1,
+      "slice": 92
+    },
+    "reference": {
+      "calls": 32,
+      "chars": 218362,
+      "reads": 21,
+      "whole": 1,
+      "slice": 31
+    },
+    "result_record": {
+      "calls": 95,
+      "chars": 263008,
+      "reads": 53,
+      "whole": 25,
+      "slice": 70
+    },
+    "run_file": {
+      "calls": 16,
+      "chars": 42479,
+      "reads": 8,
+      "whole": 0,
+      "slice": 16
+    },
+    "script": {
+      "calls": 187,
+      "chars": 524300,
+      "reads": 105,
+      "whole": 0,
+      "slice": 187
+    }
+  },
+  "reads_by_class": {
+    "adapter": 14,
+    "child_record": 38,
+    "entry_card": 10,
+    "handoff": 21,
+    "improve_card": 16,
+    "knowledge": 38,
+    "packet_file": 46,
+    "reference": 21,
+    "result_record": 53,
+    "run_file": 8,
+    "script": 105
+  },
+  "breaks": [
+    {
+      "kind": "start",
+      "line": 0,
+      "first_call": 0,
+      "first_call_kind": "plain",
+      "first_call_class": null,
+      "next_within_12": false,
+      "cold_chars": 64634
+    },
+    {
+      "kind": "compaction",
+      "line": 2599,
+      "first_call": 105,
+      "first_call_kind": "improve-next",
+      "first_call_class": null,
+      "next_within_12": false,
+      "cold_chars": 77746
+    },
+    {
+      "kind": "compaction",
+      "line": 5185,
+      "first_call": 244,
+      "first_call_kind": "plain",
+      "first_call_class": null,
+      "next_within_12": false,
+      "cold_chars": 74403
+    },
+    {
+      "kind": "compaction",
+      "line": 7388,
+      "first_call": 340,
+      "first_call_kind": "next",
+      "first_call_class": null,
+      "next_within_12": true,
+      "cold_chars": 116353
+    },
+    {
+      "kind": "compaction",
+      "line": 10057,
+      "first_call": 422,
+      "first_call_kind": "next",
+      "first_call_class": null,
+      "next_within_12": true,
+      "cold_chars": 74116
+    },
+    {
+      "kind": "compaction",
+      "line": 11670,
+      "first_call": 500,
+      "first_call_kind": "plain",
+      "first_call_class": null,
+      "next_within_12": false,
+      "cold_chars": 70493
+    },
+    {
+      "kind": "compaction",
+      "line": 14359,
+      "first_call": 575,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 157537
+    },
+    {
+      "kind": "fresh",
+      "line": 16901,
+      "first_call": 659,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 178624
+    },
+    {
+      "kind": "compaction",
+      "line": 19544,
+      "first_call": 750,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 186126
+    },
+    {
+      "kind": "compaction",
+      "line": 21768,
+      "first_call": 828,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 212797
+    },
+    {
+      "kind": "compaction",
+      "line": 23224,
+      "first_call": 914,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 188107
+    },
+    {
+      "kind": "compaction",
+      "line": 24864,
+      "first_call": 1005,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 167479
+    },
+    {
+      "kind": "compaction",
+      "line": 26353,
+      "first_call": 1095,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 150841
+    },
+    {
+      "kind": "compaction",
+      "line": 27895,
+      "first_call": 1187,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": true,
+      "cold_chars": 194523
+    },
+    {
+      "kind": "compaction",
+      "line": 29668,
+      "first_call": 1279,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": false,
+      "cold_chars": 266094
+    },
+    {
+      "kind": "compaction",
+      "line": 31672,
+      "first_call": 1377,
+      "first_call_kind": "skill-card",
+      "first_call_class": "entry_card",
+      "next_within_12": false,
+      "cold_chars": 152702
+    }
+  ],
+  "compactions": 14,
+  "compactions_per_100_min": 5.79,
+  "run_minutes": 242.0,
+  "shiploop_commands": {
+    "invocations": 113,
+    "by_verb": {
+      "workspace": {
+        "invocations": 3,
+        "piped": 0,
+        "variable_built": 0,
+        "variable_any": 3,
+        "hook_visible": 0,
+        "check_only": 0
+      },
+      "complete": {
+        "invocations": 65,
+        "piped": 0,
+        "variable_built": 7,
+        "variable_any": 7,
+        "hook_visible": 28,
+        "check_only": 22
+      },
+      "improve-commit": {
+        "invocations": 13,
+        "piped": 0,
+        "variable_built": 0,
+        "variable_any": 0,
+        "hook_visible": 0,
+        "check_only": 0
+      },
+      "next": {
+        "invocations": 14,
+        "piped": 0,
+        "variable_built": 0,
+        "variable_any": 0,
+        "hook_visible": 12,
+        "check_only": 0
+      },
+      "lint": {
+        "invocations": 18,
+        "piped": 1,
+        "variable_built": 4,
+        "variable_any": 4,
+        "hook_visible": 0,
+        "check_only": 0
+      }
+    },
+    "hook_visible": 40
+  },
+  "piped_shiploop_calls": {
+    "count": 1,
+    "of": 113
+  },
+  "variable_built_shiploop_calls": {
+    "count": 11,
+    "of": 113,
+    "any_variable": 14
+  },
+  "check_only_calls": {
+    "count": 22,
+    "of": 113
+  },
+  "warm_next_calls": {
+    "count": 4,
+    "of": 14
+  },
+  "shiploop_print_cut": {
+    "count": 0,
+    "of": 46,
+    "marker_seen": false,
+    "median_lines_seen": null,
+    "prints": [
+      {
+        "call": 3,
+        "stage": "intake",
+        "verb": "workspace",
+        "chars": 7543,
+        "lines": 68,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 16,
+        "stage": "discovery",
+        "verb": "complete",
+        "chars": 7131,
+        "lines": 66,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 33,
+        "stage": "research",
+        "verb": "complete",
+        "chars": 6929,
+        "lines": 67,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 57,
+        "stage": "spec",
+        "verb": "complete",
+        "chars": 7250,
+        "lines": 71,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 67,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2801,
+        "lines": 38,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 166,
+        "stage": "test-strategy",
+        "verb": "complete",
+        "chars": 8540,
+        "lines": 82,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 197,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2997,
+        "lines": 42,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 340,
+        "stage": "step-plan",
+        "verb": "next",
+        "chars": 20478,
+        "lines": 178,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 398,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 3054,
+        "lines": 34,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 415,
+        "stage": "test-spec",
+        "verb": "complete",
+        "chars": 20479,
+        "lines": 156,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 422,
+        "stage": "test-spec",
+        "verb": "next",
+        "chars": 20478,
+        "lines": 155,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 466,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2365,
+        "lines": 19,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 498,
+        "stage": "implement",
+        "verb": "complete",
+        "chars": 20479,
+        "lines": 128,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 524,
+        "stage": "implement",
+        "verb": "next",
+        "chars": 20479,
+        "lines": 127,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 525,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 3256,
+        "lines": 39,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 536,
+        "stage": "implement",
+        "verb": "complete",
+        "chars": 20495,
+        "lines": 113,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 558,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2287,
+        "lines": 19,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 577,
+        "stage": "improve",
+        "verb": "next",
+        "chars": 2271,
+        "lines": 18,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 618,
+        "stage": "improve",
+        "verb": "next",
+        "chars": 2271,
+        "lines": 18,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 642,
+        "stage": "test",
+        "verb": "next",
+        "chars": 20479,
+        "lines": 110,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 655,
+        "stage": "test",
+        "verb": "complete",
+        "chars": 15993,
+        "lines": 76,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 661,
+        "stage": "test",
+        "verb": "next",
+        "chars": 20478,
+        "lines": 110,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 745,
+        "stage": "step-plan",
+        "verb": "complete",
+        "chars": 20479,
+        "lines": 168,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 752,
+        "stage": "step-plan",
+        "verb": "next",
+        "chars": 20478,
+        "lines": 168,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 802,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2302,
+        "lines": 19,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 830,
+        "stage": "improve",
+        "verb": "next",
+        "chars": 2283,
+        "lines": 18,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 880,
+        "stage": "test-spec",
+        "verb": "complete",
+        "chars": 20479,
+        "lines": 155,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 904,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2292,
+        "lines": 19,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 912,
+        "stage": "implement",
+        "verb": "complete",
+        "chars": 20477,
+        "lines": 119,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 923,
+        "stage": "implement",
+        "verb": "next",
+        "chars": 20477,
+        "lines": 118,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 941,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 3075,
+        "lines": 37,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 960,
+        "stage": "implement",
+        "verb": "complete",
+        "chars": 20478,
+        "lines": 103,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 976,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2259,
+        "lines": 18,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 983,
+        "stage": "test",
+        "verb": "complete",
+        "chars": 20478,
+        "lines": 104,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 999,
+        "stage": "document",
+        "verb": "complete",
+        "chars": 20478,
+        "lines": 190,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1014,
+        "stage": "document",
+        "verb": "next",
+        "chars": 20478,
+        "lines": 191,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1059,
+        "stage": "verify",
+        "verb": "complete",
+        "chars": 20478,
+        "lines": 206,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1079,
+        "stage": "carry-forward",
+        "verb": "complete",
+        "chars": 20479,
+        "lines": 195,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1097,
+        "stage": "carry-forward",
+        "verb": "next",
+        "chars": 20477,
+        "lines": 196,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1133,
+        "stage": "step-plan",
+        "verb": "complete",
+        "chars": 20479,
+        "lines": 180,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1177,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 3201,
+        "lines": 37,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1190,
+        "stage": "improve",
+        "verb": "next",
+        "chars": 3201,
+        "lines": 37,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1254,
+        "stage": "test-spec",
+        "verb": "complete",
+        "chars": 20479,
+        "lines": 182,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1276,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2334,
+        "lines": 19,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1478,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 432,
+        "lines": 8,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 1486,
+        "stage": "test",
+        "verb": "complete",
+        "chars": 3204,
+        "lines": 14,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      }
+    ]
+  },
+  "quoted_chars": {
+    "count": 539779,
+    "by_class": {
+      "architecture.md": 21948,
+      "environment.md": 132990,
+      "handoffs": 78353,
+      "request": 206484,
+      "spec.md": 100004
+    }
+  },
+  "permission_cancels": 3,
+  "script_latency": {
+    "calls": 111,
+    "median_seconds": 1.048
+  },
+  "packet_file_opens": {
+    "measured": true,
+    "count": 19,
+    "of": 19,
+    "stages": [
+      {
+        "stage": "test-strategy",
+        "action": "nav-10230caa244540cca25e257485b63f16",
+        "mode": "slice",
+        "calls": 3
+      },
+      {
+        "stage": "step-plan",
+        "action": "nav-1878dd4381fe457aa943620ee9da93e4",
+        "mode": "slice",
+        "calls": 4
+      },
+      {
+        "stage": "intake",
+        "action": "nav-1e8ea208dd504b4d9cd8472c86ed2854",
+        "mode": "slice",
+        "calls": 1
+      },
+      {
+        "stage": "step-plan",
+        "action": "nav-3384b1a64cb949599a8a9ad120daf35c",
+        "mode": "slice",
+        "calls": 4
+      },
+      {
+        "stage": "test-spec",
+        "action": "nav-7ac9d12652994d809c474b38f7d651da",
+        "mode": "slice",
+        "calls": 4
+      },
+      {
+        "stage": "test-spec",
+        "action": "nav-8508011e13784a22ae8b166eb827be01",
+        "mode": "slice",
+        "calls": 4
+      },
+      {
+        "stage": "test",
+        "action": "nav-8f28237b199b458eb61a199c8bc25607",
+        "mode": "slice",
+        "calls": 1
+      },
+      {
+        "stage": "test",
+        "action": "nav-980388ee63dc456b89616537916ec923",
+        "mode": "slice",
+        "calls": 7
+      },
+      {
+        "stage": "carry-forward",
+        "action": "nav-981865a4a4d84b7a87f0c71cb139c52a",
+        "mode": "slice",
+        "calls": 5
+      },
+      {
+        "stage": "document",
+        "action": "nav-b41a7fff866a456f9ff1c3d621703a25",
+        "mode": "slice",
+        "calls": 8
+      },
+      {
+        "stage": "verify",
+        "action": "nav-b55476c199344782b7a9cd655495fe8b",
+        "mode": "slice",
+        "calls": 3
+      },
+      {
+        "stage": "test-spec",
+        "action": "nav-bbbf0a391cce425dbd052d8f924f54bc",
+        "mode": "slice",
+        "calls": 3
+      },
+      {
+        "stage": "research",
+        "action": "nav-c167b47fbf774b7dbdc979dbfe0ccf4b",
+        "mode": "slice",
+        "calls": 1
+      },
+      {
+        "stage": "discovery",
+        "action": "nav-c4ee6bee043945349633a800aaffd109",
+        "mode": "slice",
+        "calls": 1
+      },
+      {
+        "stage": "implement",
+        "action": "nav-cab5e8d4df21448084639af25f42b3ef",
+        "mode": "slice",
+        "calls": 2
+      },
+      {
+        "stage": "step-plan",
+        "action": "nav-cc2cdf1439ab4852a6475dbff3060794",
+        "mode": "slice",
+        "calls": 3
+      },
+      {
+        "stage": "test",
+        "action": "nav-e4e3ddca33eb4132bff0d408da9cc0e2",
+        "mode": "slice",
+        "calls": 3
+      },
+      {
+        "stage": "implement",
+        "action": "nav-ed863ab3fb2646339dca82f1435d58e9",
+        "mode": "slice",
+        "calls": 4
+      },
+      {
+        "stage": "spec",
+        "action": "nav-f4801a2952494b76a386530ab8f91183",
+        "mode": "slice",
+        "calls": 3
+      }
+    ]
+  },
+  "listed_pointers_followed": {
+    "measured": true,
+    "count": 18,
+    "of": 51,
+    "followed": [
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/lint/nav-b55476c199344782b7a9cd655495fe8b-inventory.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/notes/current-system-baseline.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/notes/discovery.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/notes/research.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-1878dd4381fe457aa943620ee9da93e4.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-3384b1a64cb949599a8a9ad120daf35c.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-8508011e13784a22ae8b166eb827be01.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-adfd6e3be3d74960b0bd5d10c30ad3b9.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-b55476c199344782b7a9cd655495fe8b.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-bbbf0a391cce425dbd052d8f924f54bc.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-cc2cdf1439ab4852a6475dbff3060794.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/results/nav-faabbb605cbf4fdeb357c071e47c1177.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/scratch",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/state.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/run/tests/nav-8f28237b199b458eb61a199c8bc25607-verify1.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/worktree/docs/shiploop/architecture.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/worktree/docs/shiploop/environment.md",
+      "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/worktree/docs/shiploop/spec.md"
+    ],
+    "by_class": {
+      "knowledge": 3,
+      "other": 8,
+      "result_record": 39,
+      "run_file": 1
+    }
+  },
+  "improve_skill_invoked": {
+    "count": null,
+    "of": 16,
+    "record_calls": null,
+    "card_reads": 11,
+    "stages": [
+      {
+        "call": 67,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 197,
+        "invoked": false,
+        "card_read": false
+      },
+      {
+        "call": 278,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 398,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 466,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 525,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 558,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 802,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 904,
+        "invoked": false,
+        "card_read": false
+      },
+      {
+        "call": 941,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 976,
+        "invoked": false,
+        "card_read": false
+      },
+      {
+        "call": 1177,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 1276,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 1369,
+        "invoked": false,
+        "card_read": true
+      },
+      {
+        "call": 1425,
+        "invoked": false,
+        "card_read": false
+      },
+      {
+        "call": 1478,
+        "invoked": false,
+        "card_read": false
+      }
+    ],
+    "reason": "the Skill tool exists on Claude only; on this host the improve card is opened as a file, which `card_reads` counts per Improve stage"
+  },
+  "skipped_gates": {
+    "measured": true,
+    "count": 0,
+    "gates": [
+      {
+        "gate": "base",
+        "records": 1,
+        "skipped": 0,
+        "reason": null
+      },
+      {
+        "gate": "mutation",
+        "records": 1,
+        "skipped": 0,
+        "reason": null
+      },
+      {
+        "gate": "inventory",
+        "records": 1,
+        "skipped": 0,
+        "reason": null
+      },
+      {
+        "gate": "item_commit",
+        "records": 1,
+        "skipped": 0,
+        "reason": null
+      }
+    ]
+  }
+}

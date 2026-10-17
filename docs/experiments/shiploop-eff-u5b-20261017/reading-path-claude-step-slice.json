@@ -1,0 +1,459 @@
+{
+  "measured": true,
+  "host": "claude",
+  "events": 139,
+  "limit_events": null,
+  "calls": 41,
+  "result_chars": 162675,
+  "buckets": {
+    "packet_output": {
+      "calls": 12,
+      "chars": 54709
+    },
+    "shiploop_messages": {
+      "calls": 7,
+      "chars": 2952
+    },
+    "files": {
+      "calls": 5,
+      "chars": 68440
+    },
+    "child_handoffs": {
+      "calls": 2,
+      "chars": 7479
+    },
+    "runtime_output": {
+      "calls": 8,
+      "chars": 23360
+    },
+    "other": {
+      "calls": 7,
+      "chars": 5735
+    }
+  },
+  "cold": {
+    "packet_output": {
+      "calls": 2,
+      "chars": 15162
+    },
+    "shiploop_messages": {
+      "calls": 1,
+      "chars": 229
+    },
+    "files": {
+      "calls": 3,
+      "chars": 60171
+    },
+    "child_handoffs": {
+      "calls": 2,
+      "chars": 7479
+    },
+    "runtime_output": {
+      "calls": 2,
+      "chars": 20082
+    },
+    "other": {
+      "calls": 2,
+      "chars": 2685
+    }
+  },
+  "warm": {
+    "packet_output": {
+      "calls": 10,
+      "chars": 39547
+    },
+    "shiploop_messages": {
+      "calls": 6,
+      "chars": 2723
+    },
+    "files": {
+      "calls": 2,
+      "chars": 8269
+    },
+    "child_handoffs": {
+      "calls": 0,
+      "chars": 0
+    },
+    "runtime_output": {
+      "calls": 6,
+      "chars": 3278
+    },
+    "other": {
+      "calls": 5,
+      "chars": 3050
+    }
+  },
+  "files_by_class": {
+    "adapter": {
+      "calls": 1,
+      "chars": 2550,
+      "reads": 0,
+      "whole": 0,
+      "slice": 1
+    },
+    "child_record": {
+      "calls": 1,
+      "chars": 5176,
+      "reads": 0,
+      "whole": 0,
+      "slice": 1
+    },
+    "handoff": {
+      "calls": 1,
+      "chars": 2303,
+      "reads": 0,
+      "whole": 0,
+      "slice": 1
+    },
+    "improve_card": {
+      "calls": 1,
+      "chars": 28446,
+      "reads": 0,
+      "whole": 1,
+      "slice": 0
+    },
+    "packet_file": {
+      "calls": 3,
+      "chars": 37444,
+      "reads": 1,
+      "whole": 1,
+      "slice": 2
+    }
+  },
+  "reads_by_class": {
+    "adapter": 0,
+    "child_record": 0,
+    "handoff": 0,
+    "improve_card": 0,
+    "packet_file": 1
+  },
+  "breaks": [
+    {
+      "kind": "start",
+      "line": 0,
+      "first_call": 0,
+      "first_call_kind": "next",
+      "first_call_class": null,
+      "next_within_12": true,
+      "cold_chars": 105808
+    }
+  ],
+  "compactions": null,
+  "compactions_per_100_min": null,
+  "run_minutes": 3.7,
+  "shiploop_commands": {
+    "invocations": 21,
+    "by_verb": {
+      "next": {
+        "invocations": 1,
+        "piped": 0,
+        "variable_built": 0,
+        "variable_any": 0,
+        "hook_visible": 1,
+        "check_only": 0
+      },
+      "complete": {
+        "invocations": 20,
+        "piped": 20,
+        "variable_built": 19,
+        "variable_any": 20,
+        "hook_visible": 0,
+        "check_only": 9
+      }
+    },
+    "hook_visible": 1
+  },
+  "piped_shiploop_calls": {
+    "count": 20,
+    "of": 21
+  },
+  "variable_built_shiploop_calls": {
+    "count": 19,
+    "of": 21,
+    "any_variable": 20
+  },
+  "check_only_calls": {
+    "count": 9,
+    "of": 21
+  },
+  "warm_next_calls": {
+    "count": 0,
+    "of": 1
+  },
+  "shiploop_print_cut": {
+    "count": 11,
+    "of": 12,
+    "marker_seen": false,
+    "median_lines_seen": 30.0,
+    "prints": [
+      {
+        "call": 0,
+        "stage": "step-plan",
+        "verb": "next",
+        "chars": 12417,
+        "lines": 105,
+        "ended": false,
+        "cut_by": null,
+        "n": null,
+        "cut": null
+      },
+      {
+        "call": 8,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2745,
+        "lines": 31,
+        "ended": false,
+        "cut_by": "head -60",
+        "n": 60,
+        "cut": true
+      },
+      {
+        "call": 14,
+        "stage": "test-spec",
+        "verb": "complete",
+        "chars": 7361,
+        "lines": 50,
+        "ended": false,
+        "cut_by": "head -50",
+        "n": 50,
+        "cut": true
+      },
+      {
+        "call": 22,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 2059,
+        "lines": 17,
+        "ended": false,
+        "cut_by": "head -40",
+        "n": 40,
+        "cut": true
+      },
+      {
+        "call": 24,
+        "stage": "implement",
+        "verb": "complete",
+        "chars": 4556,
+        "lines": 31,
+        "ended": false,
+        "cut_by": "head -30",
+        "n": 30,
+        "cut": true
+      },
+      {
+        "call": 27,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 1748,
+        "lines": 13,
+        "ended": false,
+        "cut_by": "head -12",
+        "n": 12,
+        "cut": true
+      },
+      {
+        "call": 29,
+        "stage": "test",
+        "verb": "complete",
+        "chars": 4872,
+        "lines": 31,
+        "ended": false,
+        "cut_by": "head -30",
+        "n": 30,
+        "cut": true
+      },
+      {
+        "call": 32,
+        "stage": "document",
+        "verb": "complete",
+        "chars": 5656,
+        "lines": 41,
+        "ended": false,
+        "cut_by": "head -40",
+        "n": 40,
+        "cut": true
+      },
+      {
+        "call": 34,
+        "stage": "verify",
+        "verb": "complete",
+        "chars": 3463,
+        "lines": 15,
+        "ended": false,
+        "cut_by": "head -14",
+        "n": 14,
+        "cut": true
+      },
+      {
+        "call": 36,
+        "stage": "carry-forward",
+        "verb": "complete",
+        "chars": 4670,
+        "lines": 32,
+        "ended": false,
+        "cut_by": "head -30",
+        "n": 30,
+        "cut": true
+      },
+      {
+        "call": 38,
+        "stage": "improve",
+        "verb": "complete",
+        "chars": 1768,
+        "lines": 13,
+        "ended": false,
+        "cut_by": "head -12",
+        "n": 12,
+        "cut": true
+      },
+      {
+        "call": 40,
+        "stage": "system-test-author",
+        "verb": "complete",
+        "chars": 3394,
+        "lines": 27,
+        "ended": false,
+        "cut_by": "head -25",
+        "n": 25,
+        "cut": true
+      }
+    ]
+  },
+  "quoted_chars": {
+    "count": 150,
+    "by_class": {
+      "handoffs": 150
+    }
+  },
+  "permission_cancels": null,
+  "script_latency": {
+    "calls": 20,
+    "median_seconds": 0.8654999999999999
+  },
+  "packet_file_opens": {
+    "measured": true,
+    "count": 3,
+    "of": 8,
+    "stages": [
+      {
+        "stage": "document",
+        "action": "nav-07a6da3f65874c2191ae946fb8e773bd",
+        "mode": "none",
+        "calls": 0
+      },
+      {
+        "stage": "verify",
+        "action": "nav-23316944c2e14a1599963329ac7295d3",
+        "mode": "none",
+        "calls": 0
+      },
+      {
+        "stage": "step-plan",
+        "action": "nav-3a28fd23340c4d02b25b75858c852abc",
+        "mode": "whole",
+        "calls": 1
+      },
+      {
+        "stage": "test-spec",
+        "action": "nav-5abc7f7e0a1645a4aa3f1a682045235b",
+        "mode": "slice",
+        "calls": 1
+      },
+      {
+        "stage": "implement",
+        "action": "nav-60214ef934314757bef02fff25cf64ab",
+        "mode": "none",
+        "calls": 0
+      },
+      {
+        "stage": "test",
+        "action": "nav-79bce5991df24327b04976482c8782e8",
+        "mode": "none",
+        "calls": 0
+      },
+      {
+        "stage": "carry-forward",
+        "action": "nav-a4fd6cda001649a996a9599bc78e4d41",
+        "mode": "slice",
+        "calls": 1
+      },
+      {
+        "stage": "system-test-author",
+        "action": "nav-cdb53dcef2b34fcba947baee875859e7",
+        "mode": "none",
+        "calls": 0
+      }
+    ]
+  },
+  "listed_pointers_followed": {
+    "measured": true,
+    "count": 0,
+    "of": 23,
+    "followed": [],
+    "by_class": {
+      "knowledge": 3,
+      "other": 2,
+      "result_record": 17,
+      "run_file": 1
+    }
+  },
+  "improve_skill_invoked": {
+    "count": 1,
+    "of": 4,
+    "record_calls": null,
+    "card_reads": 0,
+    "stages": [
+      {
+        "call": 8,
+        "invoked": true,
+        "card_read": false
+      },
+      {
+        "call": 22,
+        "invoked": false,
+        "card_read": false
+      },
+      {
+        "call": 27,
+        "invoked": false,
+        "card_read": false
+      },
+      {
+        "call": 38,
+        "invoked": false,
+        "card_read": false
+      }
+    ]
+  },
+  "skipped_gates": {
+    "measured": true,
+    "count": 4,
+    "gates": [
+      {
+        "gate": "base",
+        "records": 1,
+        "skipped": 1,
+        "reason": "no item base was recorded (not a Git checkout, or the base was not captured)"
+      },
+      {
+        "gate": "mutation",
+        "records": 1,
+        "skipped": 1,
+        "reason": "no item base was recorded (not a Git checkout, or the base was not captured)"
+      },
+      {
+        "gate": "inventory",
+        "records": 1,
+        "skipped": 1,
+        "reason": "no base snapshot was captured when W1 started"
+      },
+      {
+        "gate": "item_commit",
+        "records": 1,
+        "skipped": 1,
+        "reason": "no base snapshot for W1 (lint/items/W1.md): the item's changes cannot be read, so nothing is committed"
+      }
+    ]
+  }
+}

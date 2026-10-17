@@ -1,0 +1,24 @@
+# Synthetic item (a.py, check.sh), a harness seed, driven through the real complete to carry-forward (probe; the permanent test is SeededRunsRunTheGatesTests)
+
+## WITH the item base (this unit)
+RECORDS ['nav-696fd375555642219c31c2932238d1e6-verify1.md', 'nav-c764ec11ed31478ca3086d2691098ebf-base1.md', 'nav-c764ec11ed31478ca3086d2691098ebf-mutation1.md', 'nav-c764ec11ed31478ca3086d2691098ebf-verify1.md']
+nav-696fd375555642219c31c2932238d1e6-verify1.md | schema shiploop-test-loop/v1 | skipped: None | disposition passed
+nav-c764ec11ed31478ca3086d2691098ebf-base1.md | schema shiploop-test-base/v1 | skipped: None | disposition passed
+nav-c764ec11ed31478ca3086d2691098ebf-mutation1.md | schema shiploop-test-mutation/v1 | skipped: None | disposition passed
+nav-c764ec11ed31478ca3086d2691098ebf-verify1.md | schema shiploop-test-loop/v1 | skipped: None | disposition passed
+LINT FILES ['lint/items/W1.md', 'lint/nav-696fd375555642219c31c2932238d1e6-inventory.md', 'lint/nav-696fd375555642219c31c2932238d1e6.gate1.md', 'lint/nav-696fd375555642219c31c2932238d1e6.md', 'lint/nav-764c381f4fa54ef2bb1c63a1c5706831.gate1.md', 'lint/nav-c764ec11ed31478ca3086d2691098ebf.gate1.md']
+GIT LOG feat: W1 Make fixed.txt exist.
+seed: baseline
+
+## WITHOUT the item base (what main's seed left)
+RECORDS ['nav-62a6628b9c364096962763882ef2ce73-base1.md', 'nav-62a6628b9c364096962763882ef2ce73-mutation1.md', 'nav-62a6628b9c364096962763882ef2ce73-verify1.md', 'nav-7f52ac0bf4f64d96b9eba4d302429e92-verify1.md']
+nav-62a6628b9c364096962763882ef2ce73-base1.md | schema shiploop-test-base/v1 | skipped: no item base was recorded (not a Git checkout, or the base was not captured) | disposition passed
+nav-62a6628b9c364096962763882ef2ce73-mutation1.md | schema shiploop-test-mutation/v1 | skipped: no item base was recorded (not a Git checkout, or the base was not captured) | disposition passed
+nav-62a6628b9c364096962763882ef2ce73-verify1.md | schema shiploop-test-loop/v1 | skipped: None | disposition passed
+nav-7f52ac0bf4f64d96b9eba4d302429e92-verify1.md | schema shiploop-test-loop/v1 | skipped: None | disposition passed
+LINT FILES ['lint/nav-62a6628b9c364096962763882ef2ce73.gate1.md', 'lint/nav-673b4f8b6d664f6e8e1ceeaa70acfd71.gate1.md', 'lint/nav-7f52ac0bf4f64d96b9eba4d302429e92-inventory.md', 'lint/nav-7f52ac0bf4f64d96b9eba4d302429e92.gate1.md', 'lint/nav-7f52ac0bf4f64d96b9eba4d302429e92.md']
+GIT LOG seed: baseline
+
+## The change inventory (lint/<action>-inventory.md at verify) in the same two drives
+WITH the item base:    "status": "ok", the changed files listed (M a.py, A fixed.txt, A retained.txt)
+WITHOUT the item base: "status": "unavailable", "reason": "no base snapshot was captured when W1 started"

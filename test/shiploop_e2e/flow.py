@@ -50,7 +50,9 @@ import packets  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
-FLOW_VERSION = 2  # 2: the Improve stage is an action row of its own (`reviewed`, `reviewed_stage`); version 1 files still open
+FLOW_VERSION = 2  # 2: the Improve stage is an action row of its own (`reviewed`, `reviewed_stage`); version 1 files still open.
+# `clear` is a list, one entry per clear of the run (several clears per slice); a flow written before that holds an object or null there,
+# which the viewer shows as no clear.
 TEMPLATE = HERE / "flow_viewer.html"
 DATA_MARK = "<!--FLOW-RUNS-->"
 HEAD = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \| revision (?P<rev>\d+)")
@@ -310,9 +312,11 @@ def build(out: Path) -> dict:
             "item_history": result.get("item_history") or [],
             "overshoot": result.get("overshoot"), "queue_growth": result.get("queue_growth"),
         },
-        "clear": ({**{k: result["clear"].get(k) for k in ("stage", "inside")},
-                   "stopped": result["clear"].get("stopped"), "redone": result["clear"].get("redone"),
-                   "pass": result["clear"].get("pass")} if result.get("clear") else None),
+        # One entry per clear, in the order they fired (slice.py writes a list; a slice-result from before it holds one
+        # object, which this does not read: the viewer shows no clear for it rather than a wrong one).
+        "clear": [{**{k: c.get(k) for k in ("n", "stage", "inside")}, "stopped": c.get("stopped"),
+                   "redone": c.get("redone"), "pass": c.get("pass")}
+                  for c in (result.get("clear") if isinstance(result.get("clear"), list) else []) if isinstance(c, dict)],
         "unattributed": [i for i in items if not i["action"]],
     }
 
