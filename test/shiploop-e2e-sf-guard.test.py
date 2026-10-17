@@ -7,14 +7,15 @@ stub), and no real org, real `sf` or model is ever reached. What these prove, on
   deny    a command that shows credentials, changes the CLI or the org destructively, or is unknown never reaches sf (exit 2);
           --flags-dir is denied on every command (the CLI reads flag values from it after the policy ran)
   pin     an org-talking command must name the case's org on every --target-org / -o; none or another is refused, whatever boolean
-          short flag is fused in front of -o, and the old spellings (-u, --targetusername, --fromorg) are refused; the real sf runs
+          short flag is fused in front of -o, and the old spellings (-u, --u, --targetusername, --fromorg) are refused; the real sf runs
           with SF_TARGET_ORG set to the case's org and no other default-org variable; `project deploy quick|cancel|resume` (they
           take the org from the CLI's global deploy cache) are not allowed, and `deploy report` needs a --job-id and no --use-most-recent
   scope   a deploy may carry only ApexClass, CustomTab, CustomApplication and FlexiPage named SLChess* and LightningComponentBundle
           named slChess*: every --source-dir tree, --metadata entry and --manifest (or the package directories of the
           sfdx-project.json at or above the working dir) is checked, with paths kept inside the project, however a flag is spelled
-          (-rd, a value that starts with `-`, `link/../x`, a class file named like another type's meta file); a manifest with a
-          DOCTYPE or ENTITY declaration is refused; a deploy that would not wait (--async, --wait under 5) is refused
+          (-rd, a value that starts with `-`, `link/../x`, a class file named like another type's meta file), and `-t` is the tests
+          flag there, not a boolean; a manifest with a DOCTYPE or ENTITY declaration is refused; a deploy that would not wait
+          (--async, --wait under 5 or not plain digits) is refused
   pass    the build's own commands (deploy --source-dir, apex run test --synchronous, data query, --version, org list), --help
           anywhere on an allowed command, and the local generate families reach sf
   log     a decision line before the call and an end line after it (same call id) in $E2E_PLATFORM_DIR/sf-calls.jsonl, no stdout, no
@@ -283,12 +284,15 @@ class PinTest(GuardCase):
         decoy = ["--loglevel", f"--target-org={ORG}"]
         commands = (("apex", "run", "--file", "x.apex"), ("apex", "run", "test", "--synchronous"), ("apex", "get", "test"), ("apex", "get", "log"),
                     ("apex", "list", "log"), ("data", "query", "-q", "SELECT Name FROM ApexClass"), ("data", "get", "record"),
-                    ("sobject", "describe"), ("sobject", "list"), ("org", "list", "metadata"), ("project", "retrieve", "start"),
-                    ("project", "deploy", "start"), ("org", "list"), ("project", "generate", "manifest"))
+                    ("sobject", "describe"), ("sobject", "list"), ("org", "list", "metadata"), ("org", "list", "metadata-types"),
+                    ("project", "retrieve", "start"), ("project", "deploy", "start"), ("org", "list"), ("project", "generate", "manifest"))
         for command in commands:
+            # `--u` is the alias `u` written as a long flag (oclif looks a long flag up among the aliases too); `-ku` is -k (a boolean of
+            # `org list metadata-types`) in front of -u.
             for flags in (["-u", "other"], ["-uother"], ["-u=other"], ["--targetusername", "other"], ["--targetusername=other"],
                           ["-u", ORG], ["--targetusername", ORG], ["--fromorg", "other"], ["--fromorg=other"], ["--fromorg", ORG],
-                          ["-tu", "other"], ["-cyu", "other"]):
+                          ["-tu", "other"], ["-cyu", "other"], ["--u", "other"], ["--u=other"], ["--u", ORG], ["--u=" + ORG],
+                          ["-ku", "other"], ["-ku", ORG]):
                 for tail in ([], decoy, ["--target-org", ORG]):
                     allowed, reason = sf_guard.decide([*command, *flags, *tail], ORG, prefix="SLChess", cwd=str(self.work))
                     self.assertFalse(allowed, (command, flags, tail))
@@ -297,9 +301,12 @@ class PinTest(GuardCase):
         self.assert_denied("project", "generate", "manifest", "--fromorg", "other", reason="old spellings")
         self.assert_denied("apex", "run", "test", "-u", "other", *decoy, reason="old spellings")
         self.assert_denied("data", "query", "-q", "SELECT Name FROM ApexClass", "--targetusername", "other", *decoy, reason="old spellings")
+        self.assert_denied("apex", "run", "--file", "evil.apex", "--u", "other", *decoy, reason="old spellings")
+        self.assert_denied("data", "query", "-q", "SELECT Name FROM ApexClass", "--u=other", *decoy, reason="old spellings")
+        self.assert_denied("org", "list", "metadata-types", "-ku", "other", *decoy, reason="old spellings")
         self.assertEqual(self.reached(), [])
-        # Flags that only start like them are not confused with them.
-        for flags in (["--use-tooling-api"], ["--user-x"], ["--from-org", ORG], ["-q", "SELECT Name FROM ApexClass"]):
+        # Flags that only start like them are not confused with them (`--u` is matched whole, never as a prefix).
+        for flags in (["--use-tooling-api"], ["--user-x"], ["--u-x", "y"], ["--from-org", ORG], ["-q", "SELECT Name FROM ApexClass"]):
             allowed, reason = sf_guard.decide(["project", "generate", "manifest", *flags], ORG)
             self.assertTrue(allowed, (flags, reason))
 
@@ -310,7 +317,8 @@ class PinTest(GuardCase):
         cases = ((read, "-to"), (read, "-bo"), (read, "-tbo"), (("apex", "run", "test"), "-yo"), (("apex", "run", "test"), "-co"),
                  (("apex", "run", "test"), "-vo"), (("apex", "run", "test"), "-cvyo"), (("project", "retrieve", "start"), "-co"),
                  (("project", "retrieve", "start"), "-zo"), (("sobject", "describe"), "-to"), (("data", "get", "record"), "-to"),
-                 (("apex", "get", "log"), "-co"), (("apex", "get", "test"), "-co"), (("project", "deploy", "start"), "-co"))
+                 (("apex", "get", "log"), "-co"), (("apex", "get", "test"), "-co"), (("project", "deploy", "start"), "-co"),
+                 (("org", "list", "metadata-types"), "-ko"), (("org", "list", "metadata-types"), "-kto"))
         for command, fused in cases:
             with self.subTest(command=command[:2], fused=fused):
                 allowed, reason = sf_guard.decide([*command, fused, "other", *decoy], ORG, prefix="SLChess", cwd=str(self.work))
@@ -323,6 +331,7 @@ class PinTest(GuardCase):
                     allowed, reason = sf_guard.decide([*command, fused, ORG], ORG, prefix="SLChess", cwd=str(self.work))
                     self.assertTrue(allowed, reason)
         self.assert_denied(*read, "-to", "other", *decoy, "--json", reason="--target-org must be")
+        self.assert_denied("org", "list", "metadata-types", "-ko", "other", *decoy, reason="--target-org must be")
         self.assertEqual(self.reached(), [])
 
 
@@ -980,6 +989,29 @@ class ScopeTest(GuardCase):
         self.assert_scope_ok("-rd", "force-app", "-gw", "10")
         self.assert_denied("project", "deploy", "start", "-rd", "evil", "--target-org", ORG, reason="approved scope")
 
+    def test_t_on_a_deploy_is_the_tests_flag_and_does_not_hide_the_scope_flag_after_it(self):
+        # `-t` is --tests (a value flag, repeatable and greedy) on `project deploy start|validate`, so `-td <path>` is tests ['d', <path>]
+        # and NO source flag: the CLI then deploys the packageDirectories, whatever <path> is. Peeling `t` as a boolean would make the
+        # guard check only that narrow path.
+        base = self.layout(self.GOOD | {"permissionsets/Evil.permissionset-meta.xml": "<PermissionSet/>"})
+        (base / "m.xml").write_text("<Package><types><members>SLChessEngine</members><name>ApexClass</name></types></Package>")
+        engine = self.D + "classes/SLChessEngine.cls"
+        for command in (("project", "deploy", "start"), ("project", "deploy", "validate")):
+            self.assert_scope_denied(reason="Evil.permissionset-meta.xml", command=command)  # the plain deploy of the whole tree
+            for flags in (["-td", engine], ["-td" + engine], ["-tm", "ApexClass:SLChessEngine"], ["-tx", "m.xml"], ["-tm=ApexClass:SLChessEngine"],
+                          ["-ctd", engine], ["-tgd", engine]):
+                with self.subTest(command=command[2], flags=flags):
+                    self.assert_scope_denied(*flags, reason="Evil.permissionset-meta.xml", command=command)
+            # The tests flag with its own value, then a real source flag: judged by that flag.
+            for flags in (["-t", "SLChessEngineTest", "-l", "RunSpecifiedTests", "-d", self.D + "classes"],
+                          ["-ct", "SLChessEngineTest", "-d", self.D + "classes"], ["--tests", "SLChessEngineTest", "-d", engine]):
+                with self.subTest(command=command[2], flags=flags, allowed=True):
+                    self.assert_scope_ok(*flags, command=command)
+            self.assert_scope_denied("-t", "SLChessEngineTest", "-l", "RunSpecifiedTests", "-d", "force-app", reason="Evil.permissionset-meta.xml",
+                                     command=command)
+        self.assert_denied("project", "deploy", "start", "-td", engine, "--target-org", ORG, reason="approved scope")
+        self.assertEqual(self.reached(), [])
+
     def test_a_boolean_short_flag_fused_in_front_of_the_org_flag_is_still_the_org_pin(self):
         self.layout()
         for flags in (["-co", ORG], ["-go", ORG], ["-cro", ORG], ["-co" + ORG]):
@@ -1113,13 +1145,21 @@ class ScopeTest(GuardCase):
         for command in (("project", "deploy", "start"), ("project", "deploy", "validate")):
             for flags in (["--async"], ["--wait", "0"], ["-w", "0"], ["--wait=0"], ["-w0"], ["-gw", "0"], ["--wait", "00"], ["--wait", "0.0"],
                           ["--async", "--wait", "10"], ["--wait", "10", "--async"], ["--wait", "-1"],
-                          ["--wait", "1"], ["-w", "1"], ["--wait=4"], ["-w4"], ["-gw", "2"], ["--wait", "4.9"], ["--wait", "10", "--wait", "3"]):
+                          ["--wait", "1"], ["-w", "1"], ["--wait=4"], ["-w4"], ["-gw", "2"], ["--wait", "4.9"], ["--wait", "10", "--wait", "3"],
+                          # The CLI reads the value with parseInt(value, 10): `1e1` is 1, `1_0` is 1, `4.9e1` is 4, `1x` is 1, `1,5` is 1,
+                          # `9abc` is 9 minutes. Python's float() reads three of them as 10, 10, 49 and raises on the rest; only ASCII digits pass.
+                          ["--wait", "1e1"], ["--wait", "1_0"], ["--wait", "4.9e1"], ["--wait", "1x"], ["--wait", "1,5"],
+                          ["--wait", "9abc"], ["-w", "10x"], ["--wait=1e1"], ["--wait", "\uff11\uff10"], ["--wait", "+10"],
+                          ["--wait", " 10"], ["--wait", "10\n"], ["--wait", ""], ["--wait="], ["--wait", "1000000"]):
                 with self.subTest(command=command[2], flags=flags):
                     allowed, reason = sf_guard.decide([*command, *flags, "--source-dir", "force-app", "--target-org", ORG], ORG, prefix="SLChess",
                                                       cwd=str(self.work))
                     self.assertFalse(allowed)
                     self.assertIn("wait for the deploy to finish", reason)
-            for flags in ([], ["--wait", "10"], ["-w", "33"], ["--wait=10"], ["-w10"], ["-gw", "10"], ["--wait", "5"], ["-w5"]):
+            for flags in ([], ["--wait", "10"], ["-w", "33"], ["--wait=10"], ["-w10"], ["-gw", "10"], ["--wait", "5"], ["-w5"],
+                          ["--wait", "010"], ["--wait", "999999"],
+                          # `-t` is --tests here, a value flag: `-tw 1` is tests ['w', '1'] and no --wait, so the default wait applies.
+                          ["-tw", "1"], ["-t", "SLChessEngineTest", "-l", "RunSpecifiedTests"]):
                 with self.subTest(command=command[2], flags=flags, allowed=True):
                     allowed, reason = sf_guard.decide([*command, *flags, "--source-dir", "force-app", "--target-org", ORG], ORG, prefix="SLChess",
                                                       cwd=str(self.work))

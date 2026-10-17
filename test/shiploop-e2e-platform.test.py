@@ -1457,6 +1457,30 @@ class KeepPlatformTest(PlatformCase):
             self.assertIn("--keep-platform", str(raised.exception))
             self.assertIn(flag[0], str(raised.exception))
 
+    def test_a_new_run_needs_a_durable_output_folder_and_a_resume_needs_none(self):
+        """CASE3-2: the snapshot a later cleanup needs lives in <output>/platform, and the default output is under $TMPDIR, which macOS
+        purges after days. The refusal comes before any folder is made; a resume reuses its run's folder (--output is ignored there)."""
+        self.use_case(self.platform())
+        sys_tmp = self.tmp / "sys-tmp"
+        no_output = ["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--case", "plat", "--plugin-dir", str(self.plugin),
+                     "--baseline", str(self.baselines)]
+        with mock.patch.object(run.tempfile, "gettempdir", return_value=str(sys_tmp)):
+            with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
+                run.main([*no_output, "--keep-platform"])
+            self.assertIn("--keep-platform needs --output", str(raised.exception))
+            self.assertIn("$TMPDIR", str(raised.exception))
+            self.assertFalse(sys_tmp.exists(), "refused before the output folder was made")
+            self.assertEqual(self.verbs(), [])
+            self.assertFalse(self.model_started())
+            os.environ["FAKE_MODE"] = "done"
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(run.main(no_output), 0, "without the flag the default output is as it was")
+            self.assertEqual(len(list((sys_tmp / "shiploop-e2e").glob("plat-*"))), 1)
+        # a resume of a run that was started with a folder of its own keeps the platform without --output (the existing resume test)
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform", tag="resumed")
+        result, _ = self.resume("grok", Path(first["output"]), "done", "--keep-platform")
+        self.assertEqual(result["platform"]["cleanup"], self.KEPT)
+
     def test_a_resume_of_a_run_without_a_platform_is_refused_too(self):
         self.use_case(None)
         _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
@@ -1960,6 +1984,115 @@ class RegradeLockTest(PlatformCase):
         result, _ = self.resume("grok", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "cleanup"], "once the trial's harness is gone it is cleaned")
         self.assertTrue(result["platform"]["cleanup"]["ok"])
+
+
+class HardKillTest(PlatformCase):
+    """R3-H-1: a harness killed hard (a task limit, SIGKILL) after the model may have deployed, before its own cleanup. Simulated by
+    an invocation whose finish() never runs and whose result is never built; the pending record it armed is all it leaves."""
+
+    CLEANED = ["preflight", "before", "cleanup"]
+    KEPT = {"ran": False, "ok": True, "kept": True, "reason": "--keep-platform"}
+    NOTE = "The platform was reset when the last session ended: deploy again what you still need."
+
+    def killed(self, call) -> None:
+        with mock.patch.object(run.PlatformGuard, "finish", return_value=None), \
+                mock.patch.object(environment, "result_block", side_effect=RuntimeError("killed")), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
+            call()
+
+    def record(self, out: Path) -> dict:
+        return json.loads((out / "platform" / "cleanup-record.json").read_text())
+
+    def test_a_resumed_segment_killed_before_its_cleanup_is_not_read_as_cleaned_by_the_regrade(self):
+        self.use_case(self.platform())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertTrue(self.record(out)["ok"], "segment 1 ended with an ok cleanup record")
+        segment_one = (out / "result.json").read_text()
+        self.killed(lambda: self.resume("grok", out, "done"))
+        self.assertEqual(self.verbs(), self.CLEANED + ["preflight"], "segment 2 began and never cleaned")
+        self.assertEqual((out / "result.json").read_text(), segment_one, "no result of segment 2: result.json is still segment 1's")
+        self.assertEqual(self.record(out), run.PENDING_CLEANUP, "segment 1's ok record no longer stands for the run")
+        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), self.CLEANED + ["preflight", "cleanup"], "the regrade cleans what segment 2 may have deployed")
+        self.assertTrue(regraded["platform"]["cleanup"]["ran"] and regraded["platform"]["cleanup"]["ok"])
+        self.assertNotIn("checks_restated", regraded["platform"], "the platform was deployed when the regrade began: its checks are asked")
+        self.assertTrue(self.record(out)["ran"] and self.record(out)["ok"])
+        self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), self.CLEANED + ["preflight", "cleanup"], "cleaned once: the next regrade has nothing to clean")
+
+    def test_a_killed_first_segment_is_cleaned_by_the_regrade_too(self):
+        self.use_case(self.platform())
+        self.killed(lambda: self.invoke("grok", "stuck", "--max-resumes", "0"))
+        out = self.tmp / "out-grok-a"
+        self.assertEqual(self.record(out), run.PENDING_CLEANUP)
+        self.assertFalse((out / "result.json").exists())
+        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertTrue(regraded["platform"]["cleanup"]["ok"])
+
+    def test_the_resume_after_such_a_kill_is_still_told_the_platform_was_reset(self):
+        """The note reads segment 1's cleanup in result.json, which wins over a record that says only 'pending'."""
+        self.use_case(self.platform(resume_note=self.NOTE))
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        self.killed(lambda: self.resume("grok", out, "stuck"))
+        self.assertEqual(self.record(out), run.PENDING_CLEANUP)
+        self.resume("grok", out, "done")
+        latest = sorted(out.glob("resume-grok-*.txt"))[-1]
+        self.assertTrue(latest.read_text().endswith(self.NOTE), latest.read_text()[-200:])
+
+    def test_a_pending_record_is_no_failed_cleanup_so_a_killed_harness_can_still_keep_a_finished_delivery(self):
+        """R2-H-3: only a cleanup that was attempted and failed refuses the keep; a harness killed after the delivery finished may keep."""
+        self.use_case(self.platform())
+        self.killed(lambda: self.invoke("grok", "done"))
+        out = self.tmp / "out-grok-a"
+        self.assertEqual(self.record(out), run.PENDING_CLEANUP)
+        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        self.assertEqual(self.verbs(), ["preflight", "before"], "kept: the regrade cleaned nothing")
+        self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
+        self.assertNotIn("keep_not_honoured", regraded["platform"])
+        self.assertEqual(printed.count("PLATFORM KEPT (--keep-platform)"), 1)
+        self.assertEqual(self.record(out), self.KEPT)
+        failed = {"ran": True, "ok": False, "returncode": 3, "output": "boom"}
+        self.assertIn("earlier cleanup", run.keep_refusal(**self.finished(), earlier_cleanup=failed))
+        self.assertIsNone(run.keep_refusal(**self.finished(), earlier_cleanup=run.PENDING_CLEANUP))
+
+    def finished(self) -> dict:
+        return dict(shiploop={"pass": True}, engine={"status": "done"}, process={"status": "exited", "pass": True},
+                    stop_seen=False, stop_file=self.tmp / "no-stop", checks=[{"command": "c", "pass": True}], invalid=False)
+
+    def test_arming_writes_the_pending_record_and_keeping_or_finishing_replaces_it(self):
+        spec = {"kind": "test", "cleanup": "true"}
+        out = self.tmp / "armed"
+        (out / "platform").mkdir(parents=True)
+        (out / "platform" / "cleanup-record.json").write_text(json.dumps({"ran": True, "ok": True}))
+        guard = run.PlatformGuard()
+        guard.arm(spec, out)
+        self.assertEqual(self.record(out), run.PENDING_CLEANUP, "an earlier invocation's ok record is replaced")
+        self.assertFalse(run.PENDING_CLEANUP["ok"] or run.PENDING_CLEANUP["ran"])
+        self.assertTrue(guard.finish()["ok"])
+        self.assertTrue(self.record(out)["ran"] and self.record(out)["ok"] and "pending" not in self.record(out))
+        kept = run.PlatformGuard()
+        kept.arm(spec, out)
+        self.assertEqual(self.record(out), run.PENDING_CLEANUP)
+        kept.keep("--keep-platform")
+        self.assertEqual(self.record(out), self.KEPT)
+        # a case with no cleanup command writes no record at arming or at its end: nothing is there to be pending
+        bare_out = self.tmp / "bare"
+        bare_out.mkdir()
+        bare = run.PlatformGuard()
+        bare.arm({"kind": "test"}, bare_out)
+        bare.finish()
+        self.assertFalse((bare_out / "platform").exists())
+        # a record that cannot be written never raises: the cleanup still runs
+        blocked = self.tmp / "blocked"
+        blocked.mkdir()
+        (blocked / "platform").write_text("a file where the folder should be")
+        guard = run.PlatformGuard()
+        guard.arm(spec, blocked)
+        self.assertTrue(guard.finish()["ok"])
 
 
 class ResumeNoteTest(PlatformCase):

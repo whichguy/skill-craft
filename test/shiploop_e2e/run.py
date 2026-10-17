@@ -2039,6 +2039,18 @@ def manual_cleanup_command(out: Path, spec: dict) -> str:
             f"sh -c {shlex.quote(spec['cleanup'])}")
 
 
+# What an armed guard writes to the cleanup record until its own cleanup or keep replaces it. A harness killed hard in between (a
+# task limit, SIGKILL) then leaves a record that shows no successful cleanup, not the ok record an earlier segment of the run wrote.
+PENDING_CLEANUP = {"ran": False, "ok": False, "pending": True, "reason": "this invocation has not cleaned yet"}
+
+
+def write_cleanup_record(out: Path, record: dict) -> None:
+    """Write <output>/platform/cleanup-record.json, the file earlier_cleanup_record reads; a write that fails leaves what the file held."""
+    with contextlib.suppress(OSError):
+        (out / "platform").mkdir(exist_ok=True)
+        (out / "platform" / "cleanup-record.json").write_text(json.dumps(record, indent=2) + "\n")
+
+
 def earlier_cleanup_record(out: Path) -> dict | None:
     """The cleanup record the run's last cleanup wrote (<output>/platform/cleanup-record.json); None where there is none. A
     Ctrl-C or a crash runs the cleanup but never reaches result.json, so this is where a resume learns that the platform was reset."""
@@ -2087,8 +2099,9 @@ def keep_refusal(*, shiploop: dict, engine: dict, process: dict, stop_seen: bool
     its report written, the host ended by itself, every case check passed, and no stop, no timeout and no invalid trial. Every
     other ending cleans the platform as it always did, so a half-built trial is never left behind. ``earlier_cleanup`` is the
     cleanup record of the run being graded again (a regrade): one that was attempted and failed left the platform dirty, so what
-    is there is not a finished delivery; no record at all (a harness that was killed) does not refuse."""
-    if earlier_cleanup and not earlier_cleanup.get("ok"):
+    is there is not a finished delivery; no record at all, or only the pending one an armed guard leaves (a harness that was
+    killed), does not refuse."""
+    if earlier_cleanup and not earlier_cleanup.get("ok") and not earlier_cleanup.get("pending"):
         return "an earlier cleanup of this run failed: run the printed command first"
     if TERMINATION.is_set() or stop_seen or stop_file.exists() or process.get("status") == "stopped":
         return f"the run was stopped ({stop_cause(stop_file)})"
@@ -2113,7 +2126,8 @@ class PlatformGuard:
     KeyboardInterrupt and a SystemExit. Before it acts on the platform it ends this thread's own host and waits for it to be
     gone (HOST_END_WAIT), so a cleanup never runs beside a model that can still deploy. ``keep`` instead leaves a finished
     delivery in the platform (--keep-platform): a later ``finish`` then does nothing, and ``print_kept`` shows the block that says
-    how to remove it by hand. A guard that was never armed does nothing."""
+    how to remove it by hand. A guard that was never armed does nothing. Arming also replaces the cleanup record an earlier
+    invocation left with a pending one (PENDING_CLEANUP), so a harness killed before its own cleanup is not read as already cleaned."""
 
     def __init__(self):
         self.spec: dict | None = None
@@ -2124,6 +2138,8 @@ class PlatformGuard:
 
     def arm(self, spec: dict, out: Path) -> None:
         self.spec, self.out, self.done, self.record, self.banner = spec, out, False, None, None
+        if spec.get("cleanup"):  # a case with no cleanup command writes no record at its end either (finish)
+            write_cleanup_record(out, PENDING_CLEANUP)
 
     def armed(self) -> bool:
         """Whether a cleanup is still pending: armed, and neither run nor kept yet."""
@@ -2140,9 +2156,7 @@ class PlatformGuard:
             end_live_hosts(thread=threading.get_ident(), wait=HOST_END_WAIT)
         self.record = {"ran": False, "ok": True, "kept": True, "reason": reason}
         self.banner = kept_banner(self.out, self.spec)
-        with contextlib.suppress(OSError):
-            (self.out / "platform").mkdir(exist_ok=True)
-            (self.out / "platform" / "cleanup-record.json").write_text(json.dumps(self.record, indent=2) + "\n")
+        write_cleanup_record(self.out, self.record)
         return self.record
 
     def print_kept(self) -> None:
@@ -2171,9 +2185,7 @@ class PlatformGuard:
                            "output": scrub(f"cleanup could not run: {type(exc).__name__}: {exc}")[-PLATFORM_TAIL:]}
         if not self.record["ok"]:
             print(cleanup_banner(self.out, self.spec, self.record), flush=True)
-        with contextlib.suppress(OSError):
-            (self.out / "platform").mkdir(exist_ok=True)
-            (self.out / "platform" / "cleanup-record.json").write_text(json.dumps(self.record, indent=2) + "\n")
+        write_cleanup_record(self.out, self.record)
         return self.record
 
 
@@ -2205,8 +2217,9 @@ def parser() -> argparse.ArgumentParser:
                         "case check passed), do not run the platform cleanup; keep what the run made there for a person to "
                         "use, and print the command that removes it later by hand. Any other ending (a crash, Ctrl-C, "
                         "timeout, stop, blocked or unfinished ShipLoop, a failed check) cleans as usual and says the keep "
-                        "was not honoured. A resumed run keeps it only if the resume command passes it again. Not with "
-                        "--suite")
+                        "was not honoured. A resumed run keeps it only if the resume command passes it again. A new run "
+                        "needs --output <a durable folder> (the snapshot the later cleanup needs must not live in $TMPDIR). "
+                        "Not with --suite")
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
@@ -3356,6 +3369,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.keep_platform and (args.suite or args.preflight_only or args.baseline_report):
         raise SystemExit("--keep-platform keeps what one run of a case with a platform made there: it does not go with --suite, "
                          "--preflight-only or --baseline-report")
+    if args.keep_platform and not args.output and not args.resume_run:  # a resume reuses its run's folder; --output is ignored there
+        raise SystemExit("--keep-platform needs --output <a durable folder>: the snapshot the later cleanup needs must not live in "
+                         "$TMPDIR, which macOS purges after days")
     if args.baseline_report:
         return baseline_report_main(args)
     if args.runs or args.json:

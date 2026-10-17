@@ -13,13 +13,14 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
     `org open`, `sfdxAuthUrl`, `--sfdx-url-file`), data writes (`data delete|create|update|upsert|import|export|bulk`), `project
     delete`, any deploy with `--post-destructive-changes`, `--pre-destructive-changes`, `--metadata-dir` or a manifest holding
     `<members>*</members>` or a DOCTYPE/ENTITY declaration (the CLI's XML parser and this check's could read it differently), a
-    deploy that does not wait (`--async`, or `--wait` below 5 minutes: the deploy can keep running in the org after the command
-    returned), `--flags-dir` on any command (the CLI reads flag values from that directory after this check, so the call could not
-    be judged), the old spellings of the org flags (`-u`, `--targetusername`, `--fromorg`: they select an org without being read as
-    `--target-org` / `--from-org`), a bare `--`, and every command not in ALLOW (the refusal lists what is allowed). `project deploy
-    quick|cancel|resume` are not in ALLOW: they take the org from the CLI's global deploy cache (~/.sf/deploy-cache.json, shared
-    with the owner's own deploys), so `--target-org` does not pin them. `project deploy report` is allowed only with `--job-id` and
-    never with `--use-most-recent` / `-r`, for the same reason.
+    deploy that does not wait (`--async`, or a `--wait` below 5 minutes or not written as plain digits: the deploy can keep running
+    in the org after the command returned), `--flags-dir` on any command (the CLI reads flag values from that directory after this
+    check, so the call could not be judged), the old spellings of the org flags (`-u`, `--u`, `--targetusername`, `--fromorg`: they
+    select an org without being read as `--target-org` / `--from-org`), a bare `--`, and every command not in ALLOW (the refusal
+    lists what is allowed). `project deploy quick|cancel|resume` are not in ALLOW: they take the org from the CLI's global deploy cache (~/.sf/deploy-cache.json,
+    shared with the owner's own deploys), so `--target-org` does not pin them. `project deploy report` is allowed only with
+    `--job-id` and never with `--use-most-recent` / `-r`, for the same reason; it is pinned only for a job id that is not in that
+    cache, because a cached id reports on the org of the deploy that left it, whatever `--target-org` says (read-only).
   * PINNED: a command that talks to an org must carry `--target-org <org>` (or `-o <org>`), every occurrence equal to the case's
     org; a missing or different one is refused, so no command falls back to the default org. The real sf is also run with
     `SF_TARGET_ORG=<org>` and every other default-org variable (`SFDX_DEFAULTUSERNAME`, `SF_TARGET_DEV_HUB` ...) removed from its
@@ -47,9 +48,14 @@ The real sf is the first `sf` on PATH outside the wrapper's own directory ($E2E_
 wrapper never calls itself; in hermetic tests that `sf` is test/shiploop_e2e/fake_sf.py.
 
 Known limits (adversarial only; the harness's cleanup and its comparison with the recorded baseline are the backstop, not this file):
+the guard is a lexical allow list over oclif's spellings, and each review round found new adversarial-only spellings of a flag (a
+short flag fused in front of another, an alias written as a long flag, a number the CLI reads differently from Python); the org
+comparison after cleanup is the backstop, and the follow-up is a canonical-form parser generated from the CLI's own command manifest;
 a deploy can outlive its command: a host's tool timeout kills the local sf with SIGTERM but not the deploy running server side, and
-even a wait of 5 minutes can end before a large deploy does, so the CASE's cleanup must check for deploys still in progress before it
-removes anything (the guard cannot see the org's deploy queue);
+even a wait of 5 minutes can end before a large deploy does. The case's cleanup does not poll for deploys in flight: its comparison
+of the org with the recorded baseline after cleanup is the only backstop, and it does not see a deploy that lands after it, so after
+any run that ended by timeout or stop the person running the case checks Setup > Deployment Status in the org (the guard cannot see
+the org's deploy queue);
 the deploy scope does not bound what else runs in the org, because `apex run --file` and `apex run test` execute arbitrary Apex there
 (including the DML the `data` denials stop); sfdx-project.json is writable by the model, and its packageDirectories (the default
 scope), registryCustomizations and replacements change what the CLI deploys; `project retrieve start` accepts `--output-dir`,
@@ -144,14 +150,21 @@ DEPLOY_OPTIONS = {
 }
 DEPLOY_SHORT = {short: name for name, short in DEPLOY_OPTIONS.items() if short}
 DEPLOY_GREEDY = ("--source-dir", "--metadata", "--tests", "--coverage-formatters")
+# The boolean short flags of `project deploy start|validate`: -c -g -r. oclif reads `-rd evil` as -r and then -d, so they are peeled
+# off the front of a short-flag token before it is looked up. The deploy's scope and wait checks peel only these: `-t` there is
+# --tests (a value flag), so peeling it would make the guard judge `-d <path>` where the CLI reads tests and deploys the default
+# package directories.
+DEPLOY_BOOLEAN_SHORTS = "cgr"
 # The boolean short flags of the allowed commands, all together: -c -r -g (deploy start), -r (deploy report), -c -z (retrieve start),
-# -y -c -v (apex run test), -c (apex get test|log), -b -t (data query), -t (data get record, sobject describe). oclif reads `-rd evil`
-# as -r and then -d, so they are peeled off the front of a short-flag token before it is looked up. A letter that takes a value in
-# another command (-r, -t) is only over-peeled there: the guard then reads a flag the CLI does not, which blocks a call or checks a
-# path the CLI would not deploy, and a pin that exists only for the guard falls back to the case's org (child_env).
-BOOLEAN_SHORTS = "bcgrtvyz"
-# The old spellings of --target-org (-u, --targetusername) and --from-org (--fromorg) that the CLI still accepts on some commands.
+# -y -c -v (apex run test), -c (apex get test|log), -b -t (data query), -t (data get record, sobject describe), -k (org list
+# metadata-types). Used where an over-peeled letter fails closed or harmlessly: the org pin and the old spellings of the org flags (a
+# pin that exists only for the guard falls back to the case's org, child_env), and the checks that deny a flag they find.
+BOOLEAN_SHORTS = "bcgkrtvyz"
+# The old spellings of --target-org (-u, --u, --targetusername) and --from-org (--fromorg) that the CLI still accepts on some commands.
+# `--u` is the one-letter alias written as a long flag (oclif looks a long flag up among the aliases too); only `--u` and `--u=...` are
+# it, so `--use-tooling-api` is not matched by a prefix test.
 LEGACY_ORG_FLAGS = ("--targetusername", "--fromorg")
+LEGACY_ORG_EXACT = ("--u",)
 # The environment variables that set a default org or dev hub for the CLI (SF_TARGET_ORG, SFDX_DEFAULTUSERNAME ...).
 DEFAULT_ORG_ENV_RE = re.compile(r"(?:SF|SFDX)_(?:DEFAULT\w*|TARGET_\w+)")
 
@@ -233,9 +246,9 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
         return False, "--flags-dir is denied: the CLI would read flag values from files after this check; pass the flags on the command line"
     for token in argv:
         peeled = peel(token, BOOLEAN_SHORTS)  # `-tu other`: a boolean short flag in front of -u hides it
-        if token.startswith(LEGACY_ORG_FLAGS) or peeled.startswith("-u"):
-            return False, (f"{clip(token, 40)!r} is denied: -u, --targetusername and --fromorg are old spellings of the org flags that this "
-                           f"check does not read; use --target-org {org} (or --from-org {org})")
+        if token.startswith(LEGACY_ORG_FLAGS) or peeled.startswith("-u") or token.partition("=")[0] in LEGACY_ORG_EXACT:
+            return False, (f"{clip(token, 40)!r} is denied: -u, --u, --targetusername and --fromorg are old spellings of the org flags that "
+                           f"this check does not read; use --target-org {org} (or --from-org {org})")
     if len(argv) == 1 and (argv[0],) in HELP_ONLY:
         return True, "local flag"
     if argv[0].startswith("-"):
@@ -288,16 +301,14 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
 
 def deploy_no_wait(rest: list[str]) -> tuple[str, str] | None:
     """(the flag as written, what to do instead) for `--async` or a `--wait` under MIN_DEPLOY_WAIT minutes, the ways a deploy command
-    returns while the deploy keeps running. The default wait (33 minutes) is fine, so leaving the flag out passes."""
+    returns while the deploy keeps running. The default wait (33 minutes) is fine, so leaving the flag out passes. The CLI reads the
+    value with parseInt(value, 10), which takes `1e1` as 1 and `9abc` as 9, so only plain ASCII digits are accepted."""
     if has_flag(rest, "--async"):
         return "--async", "leave it out and wait for the deploy to finish"
-    for value in flag_values(rest, "--wait", "-w", BOOLEAN_SHORTS):
-        try:
-            if float(value) < MIN_DEPLOY_WAIT:
-                return (f"--wait {clip(value)}", f"use --wait {MIN_DEPLOY_WAIT} or a larger value (or leave it out) and wait for the deploy "
-                                                  "to finish")
-        except ValueError:  # no value or not a number: the CLI refuses it
-            pass
+    for value in flag_values(rest, "--wait", "-w", DEPLOY_BOOLEAN_SHORTS):
+        if not re.fullmatch(r"[0-9]{1,6}", value) or int(value) < MIN_DEPLOY_WAIT:
+            return (f"--wait {clip(value)}", f"use --wait {MIN_DEPLOY_WAIT} or a larger value (or leave it out) and wait for the deploy "
+                                              "to finish")
     return None
 
 
@@ -368,7 +379,7 @@ def deploy_inputs(rest: list[str]) -> dict[str, list[str]]:
                 name, eq, inline = token.partition("=")
                 attached = inline if eq else None
             else:
-                token = peel(token, BOOLEAN_SHORTS)
+                token = peel(token, DEPLOY_BOOLEAN_SHORTS)
                 name = DEPLOY_SHORT.get(token[:2], token)
                 attached = token[2:].removeprefix("=") if len(token) > 2 else None
             if name not in DEPLOY_OPTIONS:
