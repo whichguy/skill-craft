@@ -2617,6 +2617,34 @@ class ImprovePassTests(ImproveCliFixture):
                       "(comparison and case rules, null and empty values, visibility,\n  ordering): run a one-line "
                       "probe or read its primary documentation;", prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
 
+    def test_focus_ids_are_off_by_default_and_when_on_a_review_must_answer_each_one(self):
+        """IMP-6 (its own commit, default off): with FOCUS_IDS on, the handoff numbers the focus conditions F1..Fn and
+        improve-pass refuses a review that leaves an id out; the named exit is accepted once each id is answered."""
+        self.assertFalse(navigator.FOCUS_IDS)
+        self.begin("test-strategy")
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.focus_ids(state, self.bound), [])
+        with mock.patch.object(navigator, "FOCUS_IDS", True):
+            ids = navigator.focus_ids(state, self.bound)
+            lines = navigator._focus_lines(state, self.bound)
+        self.assertGreater(len(ids), 2)
+        self.assertIn("- F1: ", lines[0])
+        self.assertIn("- " + ids[-1] + ": ", lines[0])
+        self.assertIn("improve-pass refuses a review that leaves one out", lines[1])
+        scripts = str(ROOT / "skills/shiploop/scripts")
+        wrapper = [sys.executable, "-B", "-c",
+                   "import runpy, sys; sys.path.insert(0, sys.argv[1]); import shiploop_navigator; "
+                   "shiploop_navigator.FOCUS_IDS = True; cli = sys.argv[2]; sys.argv = [cli] + sys.argv[3:]; "
+                   "runpy.run_path(cli, run_name='__main__')", scripts, str(CLI), "improve-pass",
+                   "--run-dir", str(self.run), "--action", self.improve]
+        review = self.write_review()
+        refused = self.run_argv(wrapper, status=2).stderr
+        self.assertIn(", ".join(ident + ":" for ident in ids), self.line_one(refused))
+        review.write_text(review.read_text(encoding="utf-8") + "".join(ident + ": none\n" for ident in ids),
+                          encoding="utf-8")
+        self.run_argv(wrapper)
+        self.assertTrue((self.reviews() / "report-1.json").is_file())
+
     def test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output(self):
         """6.3 exit 2 (projected, offline): what the model writes for one pass is the review file and the two printed
         commands it copies (improve-pass, then the runtime's done; complete runs once per stage, not per pass).  The

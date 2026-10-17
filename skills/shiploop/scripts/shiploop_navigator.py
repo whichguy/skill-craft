@@ -5680,6 +5680,44 @@ def _several_steps(text: str, state: Mapping[str, Any], stage: str) -> str:
     return guidance.for_steps(text, *named) if named else text
 
 
+# IMP-6, behind a measured line (plan rev 6 U19, default off): number the review focus conditions F1..Fn and make
+# improve-pass refuse a review that does not answer each id. It adds about 350 characters of model output per pass and
+# is kept only if the seeded-defect catch at pass 1 rises in the live round (U31) with the bytes under target.
+FOCUS_IDS = False
+_FOCUS_BULLET = re.compile(r"^- ", re.M)
+
+
+def _focus_text(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
+    """The review focus conditions of the child's stage (planning, end-of-work or implement step), or ''."""
+    stage = child["stage"]
+    if stage in guidance.PLANNING_REVIEW_STAGES:
+        return guidance.PLANNING_REVIEW_FOCUS.rstrip()
+    if stage == "carry-forward":
+        return guidance.END_REVIEW_FOCUS.rstrip()
+    if stage in stage_spec.with_improve("step"):
+        return _several_steps(guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), state, stage)
+    return ""
+
+
+def focus_ids(state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """F1..Fn, one per focus condition, when FOCUS_IDS is on; else []."""
+    return ["F" + str(n) for n in range(1, len(_FOCUS_BULLET.findall(_focus_text(state, child))) + 1)] \
+        if FOCUS_IDS else []
+
+
+def _focus_lines(state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    text = _focus_text(state, child)
+    if not text:
+        return []
+    if not FOCUS_IDS:
+        return [text]
+    counter = iter(range(1, 10_000))
+    numbered = _FOCUS_BULLET.sub(lambda _match: "- F" + str(next(counter)) + ": ", text)
+    ids = focus_ids(state, child)
+    return [numbered, "Answer every focus id in each review-<n>.md, one line each: `" + ids[0] + ": none` or `"
+            + ids[0] + ": <finding>` (" + ", ".join(ids) + "); improve-pass refuses a review that leaves one out."]
+
+
 def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list[str]) -> str:
     """One call-and-return instruction; the selected skill supplies the review algorithm."""
     child = state["active_improve"]
@@ -5938,11 +5976,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
          "other sections only when a step needs them. The skill owns all internal improvement iterations."),
         *planning_lines,
         *runtime_lines,
-        *([guidance.PLANNING_REVIEW_FOCUS.rstrip()]
-          if child["stage"] in guidance.PLANNING_REVIEW_STAGES else []),
-        *([guidance.END_REVIEW_FOCUS.rstrip()] if child["stage"] == "carry-forward" else []),
-        *([_several_steps(guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), state, child["stage"])]
-          if child["stage"] in stage_spec.with_improve("step") else []),
+        *_focus_lines(state, child),
         _several_steps(guidance.improve_prompt(child["stage"], delegation=delegation(state)), state, child["stage"]),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
@@ -6797,7 +6831,10 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     _need(review.is_file() and not review.is_symlink(),
           "Write this pass's review to " + str(review) + " with a file-writing tool (pass " + str(number) + "), then "
           "run: " + command_again + "\nIts form: " + REVIEW_FORM + ".")
-    front, labels, handoff, missing = _review_form(review.read_text(encoding="utf-8", errors="replace"))
+    text = review.read_text(encoding="utf-8", errors="replace")
+    front, labels, handoff, missing = _review_form(text)
+    missing += [ident + ":" for ident in focus_ids(state, child)
+                if not re.search(r"(?m)^\W*" + ident + r"\s*:\s*\S", text)]
     _need(not missing, "Complete " + str(review) + " (missing or invalid: " + ", ".join(missing) + "), then run: "
           + command_again + "\nIts form: " + REVIEW_FORM + ".")
     repo = Path(state["repo"])
