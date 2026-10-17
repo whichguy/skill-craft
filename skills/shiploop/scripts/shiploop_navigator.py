@@ -5796,7 +5796,7 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
     child = state.get("active_improve")
     if child is None:
         # The label names the absolute result path; `complete` reads that one path by default, so the command has no
-        # --result flag for the model to type.  The reason (no pipe, redirect, ";" or variable) is guidance.CALLBACK_LABEL's.
+        # --result flag for the model to type.  The reason (no pipe, redirect, ";" or variable) is guidance.callback_label's.
         return [guidance.callback_label(_result_input_path(root, action_id))
                 + _callback(core, root, "complete", action=action_id)]
     if child["skill"] is None:

@@ -1359,6 +1359,9 @@ class SameBlockDuplicateTests(LongHomeCase):
 
 # The hand-off block of each producer packet of the walk below, as a hash.  Taken from the tree before efficiency unit U13, apart
 # from 20-test, whose item has two implement steps and prints one not_covered label for them (U13): 32 of 33 blocks unchanged.
+# 16-implement re-pinned on the merge of U8 into the integration branch: U17's step-scoped hand-off cuts the first step's block
+# to its criteria and test cases and names the step plan's result file (its action id written as nav-<id>, see walked_blocks),
+# with the later wording units on top; the other 32 blocks are unchanged.
 SMALL_HOME_FINGERPRINTS: dict = {
     "01-intake": "dadd1187dc7e",
     "02-discovery": "e3b0c44298fc",
@@ -1370,7 +1373,7 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "11-step-plan": "a028962a6013",
     "13-test-spec": "89da8b67a083",
     "15-validate-existing": "d4f557cb9a0a",
-    "16-implement": "53df10c7d197",
+    "16-implement": "2448172f1603",
     "18-implement": "d96c63124ef4",
     "20-test": "4a7114e9c49d",
     "23-document": "e027ac97cef7",
@@ -1403,6 +1406,9 @@ SMALL_HOME = {
 }
 
 
+ACTION_ID = re.compile(r"nav-[0-9a-f]{32}")
+
+
 def walked_blocks(route: str, home: dict, *, git_baseline: bool) -> dict:
     """``{key: the packet's hand-off block lines}`` for every producer packet of the two-item run of
     test/shiploop_head_plans.py (both items follow R-1) over a repository holding ``home``.  With ``git_baseline`` the
@@ -1431,7 +1437,10 @@ def walked_blocks(route: str, home: dict, *, git_baseline: bool) -> dict:
             git(work, "commit", "-qm", "home")
         for key, state in plans.full_walk(plans.CASE, route, str(work), run):
             if plans.is_producer(key, state):
-                blocks[key] = [line.replace(str(work), "REPO") for line in navigator._consumer_lines(run, state, plans.stage_of(key))]
+                # The action ids are random per walk (uuid4); a block that names one (the step-scoped cut line of unit U17
+                # names the step plan's result file) is fingerprinted with the id written as nav-<id>.
+                blocks[key] = [ACTION_ID.sub("nav-<id>", line.replace(str(work), "REPO"))
+                               for line in navigator._consumer_lines(run, state, plans.stage_of(key))]
     return blocks
 
 

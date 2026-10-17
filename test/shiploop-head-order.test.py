@@ -284,7 +284,11 @@ class OrderTests(unittest.TestCase):
                 with self.subTest(route=delegation, packet=key):
                     text = row["whole"]
                     view = packet_view.top_block(text)
-                    callback = view["callback"][len(prompts.CALLBACK_LABEL):]
+                    # The label names the result path (complete reads it by default) and the reason; the command follows it.
+                    label_end = view["callback"].index("): python3 ") + len("): ")
+                    self.assertEqual(view["callback"][:label_end],
+                                     prompts.callback_label(packet_view.callback_result_path(text)))
+                    callback = view["callback"][label_end:]
                     following = view["pointer"][len(prompts.RECOVERY_POINTER_PREFIX):-len(prompts.RECOVERY_POINTER_SUFFIX)]
                     pause = next(line for line in text.splitlines() if line.startswith("Pause without consuming the action: "))
                     pause = pause.split(": ", 1)[1].split(" (only when", 1)[0]

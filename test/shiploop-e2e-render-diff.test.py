@@ -145,7 +145,7 @@ class TextRenderTests(unittest.TestCase):
         test_packet = self.text["a83"]["08-test.whole.txt"]
         red = re.search(r"red-check: (\S+) (\S+) red-check", test_packet)
         callback = re.search(r"python3 (\S+) complete", test_packet)
-        self.assertEqual(red.group(1), "/usr/bin/python3")
+        self.assertEqual(red.group(1), "python3")  # plan U10: the red-check line prints python3, not sys.executable
         self.assertEqual(red.group(2), callback.group(1))
 
     def test_two_renders_of_one_tree_are_the_same_text(self):
