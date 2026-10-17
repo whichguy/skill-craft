@@ -1,5 +1,5 @@
 {
-  "_about": "Step-slice cases (slice.py): one work item, run from step-plan to the end of its inner loop on a fixture repository. The prompt is the step's request; work_item is what the seed records as the plan's only item; checks run in a clean export of the product worktree's HEAD; expect_paths are fnmatch patterns the item's commits must touch.",
+  "_about": "Step-slice cases (slice.py): one work item, run from step-plan to the end of its inner loop on a fixture repository. The prompt is the step's request; work_item is what the seed records as the plan's only item; checks run in a clean export of the product worktree's HEAD; expect_paths are fnmatch patterns the item's commits must touch. A case with a seeded_defect plants a latent defect its own checks do not exercise: probe commands (run by seeded_defects.py on the final tree, never part of the verdicts) fail when the defect survived, and tree names the reference trees under fixtures/ (naive: what a run with no review leaves; fixed: the corrected tree) that prove the probe tells them apart.",
   "node-add-function": {
     "fixture": "node-base",
     "prompt": "In this Node.js project, add a function slugify(text) to src/strings.js and export it. It lower-cases the text, turns every run of characters that are not a-z or 0-9 into one hyphen, and trims hyphens from both ends: slugify('  Hello, World! ') returns 'hello-world' and slugify('') returns ''. A non-string argument throws a TypeError, like the other helpers. Cover it with node:test tests; npm test must pass.",
@@ -44,5 +44,80 @@
       "! grep -rn getUser src test",
       "node -e \"const {findUser}=require('./src/users');require('assert').equal(findUser(3).name,'Alan Turing')\""
     ]
+  },
+  "node-seeded-case-compare": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, add a function sortNames(names) in a new module src/names.js and export it. It returns a new array with the names in ascending code-point order, which is case-sensitive: every upper-case letter sorts before every lower-case one, so sortNames(['bob', 'Zed', 'alice']) returns ['Zed', 'alice', 'bob']. The argument is not changed, and a non-array argument throws a TypeError. Cover it with node:test tests; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add sortNames(names) to src/names.js",
+      "context": "Ascending code-point order, case-sensitive (upper-case before lower-case); new array; TypeError for a non-array; node:test tests."
+    },
+    "expect_paths": [
+      "src/names.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node --test",
+      "node -e \"const {sortNames}=require('./src/names');const a=require('assert');a.deepEqual(sortNames(['b','a','c']),['a','b','c']);a.throws(()=>sortNames('x'),TypeError)\""
+    ],
+    "seeded_defect": {
+      "id": "case-insensitive-compare",
+      "what": "an ordering that ignores letter case where the request says it must not (a locale-aware comparator)",
+      "tree": "seeded/case-compare",
+      "probe": [
+        "node -e \"const {sortNames}=require('./src/names');const a=require('assert');a.deepEqual(sortNames(['bob','Zed','alice']),['Zed','alice','bob']);a.deepEqual(sortNames(['b','B','a','A']),['A','B','a','b'])\""
+      ]
+    }
+  },
+  "node-seeded-numeric-sort": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, add a function topScores(scores, n) in a new module src/scores.js and export it. It returns the n largest numbers of scores, largest first, as a new array; an n larger than the length returns all of them, and scores is not changed. A non-array scores throws a TypeError. Cover it with node:test tests; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add topScores(scores, n) to src/scores.js",
+      "context": "The n largest numbers, largest first; new array; n above the length returns all; TypeError for a non-array; node:test tests."
+    },
+    "expect_paths": [
+      "src/scores.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node --test",
+      "node -e \"const {topScores}=require('./src/scores');const a=require('assert');a.deepEqual(topScores([3,1,2],2),[3,2]);a.throws(()=>topScores('1',1),TypeError)\""
+    ],
+    "seeded_defect": {
+      "id": "numbers-sorted-as-text",
+      "what": "a comparator-less sort, which orders numbers as text ('100' before '9')",
+      "tree": "seeded/numeric-sort",
+      "probe": [
+        "node -e \"const {topScores}=require('./src/scores');const a=require('assert');a.deepEqual(topScores([10,9,100,2],2),[100,10]);a.deepEqual(topScores([5,25,125],3),[125,25,5])\""
+      ]
+    }
+  },
+  "node-seeded-empty-guard": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, add a function mean(values) in a new module src/mean.js and export it. It returns the arithmetic mean of an array of numbers; the mean of an empty array is 0, not NaN. A non-array argument throws a TypeError. Cover it with node:test tests; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add mean(values) to src/mean.js",
+      "context": "Arithmetic mean; an empty array gives 0, not NaN; TypeError for a non-array; node:test tests."
+    },
+    "expect_paths": [
+      "src/mean.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node --test",
+      "node -e \"const {mean}=require('./src/mean');const a=require('assert');a.equal(mean([2,4]),3);a.throws(()=>mean('1'),TypeError)\""
+    ],
+    "seeded_defect": {
+      "id": "missing-empty-guard",
+      "what": "a division by the length with no guard for an empty input (NaN where the request names 0)",
+      "tree": "seeded/empty-guard",
+      "probe": [
+        "node -e \"const {mean}=require('./src/mean');const a=require('assert');a.equal(mean([]),0);a.equal(mean([4]),4)\""
+      ]
+    }
   }
 }

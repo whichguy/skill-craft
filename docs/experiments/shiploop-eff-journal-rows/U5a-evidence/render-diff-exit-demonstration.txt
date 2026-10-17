@@ -1,0 +1,34 @@
+$ render_diff.py <83 render> <83 render with one planted line in the implement packet> --unit U5   (shipped allowlist is empty)
+## implement
+  FAIL head table: printed 15103 passes the table value 15053
+  +    50  [PW] PLANTED: one extra line for the implement packet.   <- NOT ALLOWLISTED (no entry of the unit matches this line)
+
+1 of 12 stages fail.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit code 1
+
+$ ... --changes <U5: approval entry>   (the head table still fails: the approved line passes the implement table value)
+## implement
+  FAIL head table: printed 15103 passes the table value 15053
+  +    50  [PW] PLANTED: one extra line for the implement packet.   <- U5 approval: exit item 5 demonstration
+
+1 of 12 stages fail.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit code 1
+
+$ ... --changes <U5: approval entry> --no-head-table
+## implement
+  +    50  [PW] PLANTED: one extra line for the implement packet.   <- U5 approval: exit item 5 demonstration
+
+All 12 stages pass.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit code 0
+
+$ render_diff.py <83 render> <83 render, one printed line shortened> --changes <U5: offset entry>   (shipped head table active)
+## implement
+  -    62  [P] Never end the turn while a ShipLoop command is still running.
+  +    41  [P] Never end the turn while a command runs.   <- U5 offset: Never end the turn while a ShipLoop command
+
+All 12 stages pass.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit code 0
