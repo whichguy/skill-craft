@@ -2388,3 +2388,19 @@ Each item carries the audit's condition for adopting it. None is implemented.
     context-reset case.
   - Adopt when: completion obligations are kept and no extra rework appears, before any efficiency win is claimed.
     Shorter saved files do not mean fewer billed tokens.
+
+### Live check of the audit fixes (2026-10-16, branch work/e2eaudit-56682d at 4dd3b4b4) — status: interim (n=1)
+
+`run.py --case battleship --source checkout --host claude` (Claude Sonnet 5.5) passed:
+- All four product checks passed. The three HTTP checks went through `checks/serve.py`, on a per-run port, owner-verified.
+- `shiploop-run.json` recorded the graded run with the basis "the only run that was not there before the invocation".
+- End state: done, unverified 0, script verifications 4/4.
+
+Evidence: `/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/`.
+
+Cost compared with the 2026-10-11 baseline in the same cell (ShipLoop 0.59.0, Claude Code 2.1.296):
+- turns 192 → 274 and cost $3.62 → $5.46;
+- implement 26 → 45 turns, test-strategy 8 → 31 turns;
+- 11 Improve children, with 18 review passes.
+
+The plugin tree and the host build both differ from the baseline, so this is descriptive, not a controlled comparison. It is worth a look at the Improve schedule and test-strategy turns on the current build.
