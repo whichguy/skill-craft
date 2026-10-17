@@ -4,13 +4,16 @@ A host ends its turn whenever the model decides to.  These hooks ask ShipLoop
 (``shiploop hook-status``) whether the run bound to the session can still move
 and, while it can, refuse the stop and hand back the run's next command.
 
-Two hook events per host:
+Hook events per host:
 
 * observe -- after a shell command.  When a ShipLoop command that drives the
   run prints the packet's ``SHIPLOOP-RUN`` marker, bind this host session to
   that run (a marker another command merely displays never binds).
 * stop    -- when the host is about to end the turn.  Continue while the bound
   run is active and its revision moved since the last refusal; otherwise allow.
+* skill   -- after a Skill-tool call (Claude Code only).  Append the call to the
+  bound run's ``skill-calls.jsonl`` (shiploop_skill_calls), which the Improve
+  stage's ``complete`` reads; it never blocks the call.
 
 Several agents can touch one run: a parallel-chain worker, a second terminal,
 consecutive driver sessions.  Only one session, the run's owner, is ever kept
@@ -40,6 +43,8 @@ import sys
 import time
 from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping
+
+import shiploop_skill_calls as skill_calls
 
 SCRIPTS = Path(__file__).resolve().parent
 SHIPLOOP = SCRIPTS / "shiploop"
@@ -332,10 +337,73 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             "bound_at": time.time(),
             "last_block_rev": (previous.get("last_block_rev")
                                if previous.get("run_id") == status["run_id"] else None),
+            # Whether the hooks that bound this session also record its Skill calls (see skill_gate).
+            "skill_hook": host == "claude" and skill_hook_registered(),
         }
         _write_json(path, binding)
     claim_owner(status["run_dir"], host, session)
     return binding
+
+
+# ---------------------------------------------------------------- Skill calls (Claude Code)
+
+# The plugin hook script that records Skill calls; the generated hooks.json and the settings entry both run it.
+SKILL_HOOK_SCRIPT = "shiploop-skill-call"
+
+
+def skill_hook_registered() -> bool:
+    """True when the hook configuration this hook was loaded from also registers the Skill-call hook.
+
+    Judged from where this script runs, so a stale install can never bind a session the gate would then hold to a
+    record nothing writes: a plugin package lists it in its own ``hooks/hooks.json``; a skill-directory install lists it
+    in ``~/.claude/settings.json`` (``status`` is ``installed`` only when every wanted entry is there).  Never raises.
+    """
+    try:
+        package = SCRIPTS.parents[2]
+        listed = package / "hooks" / "hooks.json"
+        if SCRIPTS.parents[1].name == "skills" and listed.is_file():
+            return SKILL_HOOK_SCRIPT in listed.read_text(encoding="utf-8")
+        return status("claude") == "installed"
+    except Exception:  # noqa: BLE001 - a diagnostic must never block binding
+        return False
+
+
+def skill_call(host: str, payload: Mapping[str, Any]) -> bool:
+    """Record a Skill-tool call of a bound Claude Code session in its run; True when a line was written.
+
+    Never blocks the call and reads no run state: the binding names the run, and the record is appended inside it.
+    """
+    if host != "claude" or payload.get("tool_name") != "Skill":
+        return False
+    session = session_of(payload)
+    binding = load_binding(host, session) if session else None
+    if binding is None or not isinstance(binding.get("run_dir"), str):
+        return False
+    tool_input = payload.get("tool_input")
+    return skill_calls.record_call(
+        binding["run_dir"], tool_input, session=session, tool_use_id=payload.get("tool_use_id"),
+        agent_id=payload.get("agent_id"))
+
+
+def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool, str]:
+    """(enforce, why not): whether the Improve stage's ``complete`` holds this run to a recorded improve-skill call.
+
+    It does only when this command runs in a Claude Code session whose hooks bound this very run and whose hooks include
+    the Skill-call hook; anywhere else (Grok, Codex, no hooks, hooks off) no record can exist, so nothing is enforced and
+    ``why`` says so.
+    """
+    env = os.environ if env is None else env
+    if disabled():
+        return False, "SHIPLOOP_KEEPALIVE turns ShipLoop's hooks off"
+    found = _host_session(env)
+    if found is None or found[0] != "claude":
+        return False, "only Claude Code's hooks record Skill calls, and this is not a Claude Code session"
+    binding = load_binding(*found)
+    if binding is None or os.path.realpath(str(binding.get("run_dir"))) != os.path.realpath(run_dir):
+        return False, "ShipLoop's hooks have not bound this Claude Code session to this run"
+    if not binding.get("skill_hook"):
+        return False, "the hooks that bound this session do not include the Skill-call hook"
+    return True, ""
 
 
 # Hosts that force a turn to end after this many stop-hook continuations.
@@ -513,6 +581,9 @@ def run_hook(event: str, host: str, raw: str) -> str:
         if event == "observe":
             observe(host, payload)
             return ""
+        if event == "skill":
+            skill_call(host, payload)
+            return ""
         decision = stop(host, payload)
         _log_decision(host, payload, decision)
         reply = host_reply(host, decision)
@@ -548,18 +619,23 @@ def _is_owned_command(command: Any, host: str) -> bool:
 
 
 def _claude_style_entries(host: str) -> dict:
+    """Each event's entries: Claude Code also records Skill-tool calls, the only host with that hook."""
     matcher = {"matcher": "Bash"} if host == "claude" else {}
+    post = [{**matcher, "hooks": [{"type": "command", "command": hook_command("observe", host), "timeout": 30}]}]
+    if host == "claude":
+        post.append({"matcher": "Skill",
+                     "hooks": [{"type": "command", "command": hook_command("skill", host), "timeout": 10}]})
     return {
-        "PostToolUse": {**matcher, "hooks": [{"type": "command", "command": hook_command("observe", host), "timeout": 30}]},
-        "Stop": {"hooks": [{"type": "command", "command": hook_command("stop", host), "timeout": 30}]},
+        "PostToolUse": post,
+        "Stop": [{"hooks": [{"type": "command", "command": hook_command("stop", host), "timeout": 30}]}],
     }
 
 
 def _cursor_entries() -> dict:
     return {
-        "afterShellExecution": {"command": hook_command("observe", "cursor"), "timeout": 30},
+        "afterShellExecution": [{"command": hook_command("observe", "cursor"), "timeout": 30}],
         # ShipLoop's own no-progress rule ends loops; the host limit is a backstop.
-        "stop": {"command": hook_command("stop", "cursor"), "timeout": 30, "loop_limit": 50},
+        "stop": [{"command": hook_command("stop", "cursor"), "timeout": 30, "loop_limit": 50}],
     }
 
 
@@ -588,7 +664,7 @@ def _entry_commands(entry: Any) -> list:
     return [entry.get("command")]
 
 
-def _merge(data: dict, host: str, wanted: Mapping[str, dict] | None) -> dict:
+def _merge(data: dict, host: str, wanted: Mapping[str, list] | None) -> dict:
     """Remove this host's owned entries, then add ``wanted`` (None = uninstall)."""
     hooks = data.setdefault("hooks", {})
     for event in list(hooks):
@@ -601,8 +677,8 @@ def _merge(data: dict, host: str, wanted: Mapping[str, dict] | None) -> dict:
             hooks[event] = kept
         else:
             del hooks[event]
-    for event, entry in (wanted or {}).items():
-        hooks.setdefault(event, []).append(entry)
+    for event, entries in (wanted or {}).items():
+        hooks.setdefault(event, []).extend(entries)
     if not hooks:
         del data["hooks"]
     return data
@@ -628,8 +704,13 @@ def _opencode_plugin() -> str:
     return OWNED_JS_HEADER + "\n" + template.replace("__SHIPLOOP_HOOK__", json.dumps(str(HOOK)))
 
 
-def _desired(host: str) -> Mapping[str, dict]:
+def _desired(host: str) -> Mapping[str, list]:
     return _cursor_entries() if host == "cursor" else _claude_style_entries(host)
+
+
+def _desired_commands(host: str) -> list:
+    """Every command the wanted entries run."""
+    return [command for entries in _desired(host).values() for entry in entries for command in _entry_commands(entry)]
 
 
 def status(host: str) -> str:
@@ -651,8 +732,7 @@ def status(host: str) -> str:
              if _is_owned_command(command, host)]
     if not owned:
         return "absent"
-    wanted = {command for entry in _desired(host).values() for command in _entry_commands(entry)}
-    return "installed" if set(owned) == wanted else "stale"
+    return "installed" if set(owned) == set(_desired_commands(host)) else "stale"
 
 
 def install(host: str, *, remove: bool = False, dry_run: bool = False) -> str:
@@ -771,8 +851,7 @@ def _working_copy(host: str) -> bool:
     owned = [command for entries in data.get("hooks", {}).values() if isinstance(entries, list)
              for entry in entries for command in _entry_commands(entry)
              if _is_owned_command(command, host)]
-    wanted = {_script_free(command) for entry in _desired(host).values()
-              for command in _entry_commands(entry)}
+    wanted = {_script_free(command) for command in _desired_commands(host)}
     return ({_script_free(command) for command in owned} == wanted
             and all(Path(shlex.split(command)[1]).is_file() for command in owned))
 
@@ -934,7 +1013,7 @@ def hook_main(argv: list[str] | None = None) -> int:
         prog="shiploop-hook",
         description="Keep a ShipLoop run moving across host turns (see references/keepalive.md).")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("observe", "stop"):
+    for name in ("observe", "stop", "skill"):
         event = sub.add_parser(name, help=f"host hook event: {name} (reads the payload on stdin)")
         event.add_argument("--host", choices=(*HOSTS, AUTO), required=True)
     for name in ("install", "uninstall", "status"):
@@ -943,7 +1022,7 @@ def hook_main(argv: list[str] | None = None) -> int:
         if name != "status":
             action.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    if args.command in ("observe", "stop"):
+    if args.command in ("observe", "stop", "skill"):
         reply = run_hook(args.command, args.host, sys.stdin.read())
         if reply:
             print(reply)

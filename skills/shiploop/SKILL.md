@@ -335,6 +335,12 @@ or starts the runtime. The Improve packet has two lines: run the improve skill o
 id, never the reviewed action's id. (Before 2026-10-11 the model wrote the opening, ran
 `improve-start --opening` and finished with `improve-complete`; that verb is gone.)
 
+On Claude Code with ShipLoop's hooks bound to the run, a hook records every Skill call in the run's
+`skill-calls.jsonl`, and the Improve stage's `complete` refuses until it holds a call to the improve skill made after
+the stage started with that stage's handoff in its argument; the refusal's first line names the call to make. Anywhere
+the hooks cannot record (another host, no hooks, `delegation: ask-agent`), nothing is enforced and `complete` says so once. See
+[Skill calls](references/keepalive.md#skill-calls-claude-code-only).
+
 Every other producer result, and a planning result the option does not review, is
 accepted on its own checks and the graph advances directly. The stage names stay in
 the graph, so an auditor still sees

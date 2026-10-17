@@ -264,8 +264,10 @@ function readSkillFrontmatter(leaf) {
 // root variable, and may only run an executable in the skill's own scripts/.
 const HOOK_HOSTS = ["claude", "codex", "cursor", "grok"];
 // after-shell: after a shell command. turn-end: when the host is about to end
-// the agent's turn (Claude-format Stop; Cursor stop).
-const HOOK_EVENTS = new Set(["after-shell", "turn-end"]);
+// the agent's turn (Claude-format Stop; Cursor stop). after-skill: after a Skill-tool
+// call (Claude-format PostToolUse matching Skill); only Claude Code has that tool event.
+const HOOK_EVENTS = new Set(["after-shell", "turn-end", "after-skill"]);
+const AFTER_SKILL_HOSTS = ["claude"];
 // Cursor stops re-prompting after loop_limit follow-ups (default 5); a turn-end
 // hook owns its own loop limits, so the host limit is only a backstop.
 const CURSOR_TURN_END_LOOP_LIMIT = 50;
@@ -300,6 +302,10 @@ function readHostHooks(leaf) {
     if (!HOOK_ID_RE.test(hook.id) || ids.has(hook.id)) fail(`${label}: invalid or duplicate id ${hook.id}`);
     ids.add(hook.id);
     if (!HOOK_EVENTS.has(hook.event)) fail(`${label}: ${hook.id}: unsupported event ${hook.event}`);
+    if (hook.event === "after-skill" && Array.isArray(hook.hosts) &&
+        !hook.hosts.every((h) => AFTER_SKILL_HOSTS.includes(h))) {
+      fail(`${label}: ${hook.id}: after-skill hooks name only ${AFTER_SKILL_HOSTS.join(", ")}`);
+    }
     if (!HOOK_SCRIPT_RE.test(hook.script)) fail(`${label}: ${hook.id}: script must be scripts/<file>`);
     const script = path.join(root, "skills", leaf, hook.script);
     let stat;
@@ -338,9 +344,13 @@ function buildHostHooks(leaves) {
   const entry = (variable, hook) => ({ type: "command", command: command(variable, hook), timeout: hook.timeout });
   const claudeShaped = (variable, hooks) => {
     const shell = hooks.filter((hook) => hook.event === "after-shell");
+    const skill = hooks.filter((hook) => hook.event === "after-skill");
     const turnEnd = hooks.filter((hook) => hook.event === "turn-end");
     const events = {};
-    if (shell.length) events.PostToolUse = [{ matcher: "Bash", hooks: shell.map((hook) => entry(variable, hook)) }];
+    const afterTool = [];
+    if (shell.length) afterTool.push({ matcher: "Bash", hooks: shell.map((hook) => entry(variable, hook)) });
+    if (skill.length) afterTool.push({ matcher: "Skill", hooks: skill.map((hook) => entry(variable, hook)) });
+    if (afterTool.length) events.PostToolUse = afterTool;
     if (turnEnd.length) events.Stop = [{ hooks: turnEnd.map((hook) => entry(variable, hook)) }];
     return { hooks: events };
   };

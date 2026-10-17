@@ -141,6 +141,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-privacy.test.py",
     "test/shiploop-reference-routing.test.py",
     "test/shiploop-keepalive.test.py",
+    "test/shiploop-skill-calls.test.py",
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
@@ -260,6 +261,10 @@ _DURATION_SECONDS = {
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
     "test/shiploop-planning-handoff.test.py": 0.2,
+    # New 2026-10-16 (the Skill-call hook and the Improve stage's gate): 25 tests, 27 s locally, one serial run at load average
+    # about 5; the gate classes walk two runs to their first Improve stage through the real CLI, and the package tests build
+    # the plugin bundle once.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-skill-calls.test.py": 27.0,
     "test/shiploop-package-integrity.test.py": 0.2,
     # 0.7 was written at 14 tests; it has 228 and ran 303 s on GitHub (322 s idle locally) until ebc2d25d replaced the
     # 2 s poll sleep in run.launch() with a wait.  Estimate, not a GitHub reading: 64.5 s idle locally after the fix,

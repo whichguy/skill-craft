@@ -97,7 +97,12 @@ class ImproveCliFixture(unittest.TestCase):
         self.repo = self.base / "repo"
         self.run = self.base / "run"
         self.environment = {
-            **os.environ,
+            # No host session markers and a keepalive home of its own: the Improve stage's complete asks the hooks'
+            # record about the host session it runs in, and a suite run inside a Claude Code or Grok session must not
+            # meet that session's real bindings.
+            **{name: value for name, value in os.environ.items()
+               if name not in ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID")},
+            "SHIPLOOP_KEEPALIVE_HOME": str(self.base / "keepalive"),
             "PATH": "/Library/Developer/CommandLineTools/usr/bin:" + os.environ.get("PATH", ""),
             "PYTHONDONTWRITEBYTECODE": "1",
             "PYTHONNOUSERSITE": "1",
