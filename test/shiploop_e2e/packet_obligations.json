@@ -39,6 +39,12 @@
      "when": {"file_has": "Exit when ALL of these hold"},
      "anchors": [{"any": ["Until Loop (no iteration limit"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
                  {"any": ["Exit when ALL of these hold"], "source": "skills/shiploop/scripts/shiploop_loops.py"}]},
+    {"id": "test-summary", "obligation": "the test stage's duty 2 asks the summary for the test decisions retained, refined or superseded, and its result template asks the summary for what no ShipLoop record holds: the tests added and what each asserts, and any test changed to pass a run with its independent reason (unit U14, TD-12)", "kinds": ["producer"], "surface": "head",
+     "when": {"file_has": "ShipLoop navigator | test |"},
+     "anchors": [{"any": ["Summary: which decisions you retain, refine or supersede and why"], "source": "skills/shiploop/scripts/shiploop_prompts.py"},
+                 {"any": ["tests added by ID and what each asserts"], "source": "skills/shiploop/scripts/shiploop_navigator.py"},
+                 {"any": ["test decisions retained, refined or superseded"], "source": "skills/shiploop/scripts/shiploop_navigator.py"},
+                 {"any": ["any test changed to pass a run and its independent reason"], "source": "skills/shiploop/scripts/shiploop_navigator.py"}]},
     {"id": "improve-instruction", "obligation": "the Improve parent packet's one instruction and the recovery command that reprints it", "kinds": ["improve"], "surface": "head",
      "anchors": [{"any": ["Next command (", "1. Run the improve skill on the"], "source": "skills/shiploop/scripts/shiploop_navigator.py"},
                  {"any": ["recovery command", "Recovery command"], "source": "skills/shiploop/scripts/shiploop_navigator.py"}]}

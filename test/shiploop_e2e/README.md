@@ -383,8 +383,9 @@ is the one reader of that.
   baselines use; the block compares the two on the live folder (`unmeasured["validation.readers"]` names both values when
   they differ) and a test pins that both agree on the saved runs. `gates_not_exercised` lists the test stage's base-run
   and mutation-check records (`tests/*-base*.md`, `tests/*-mutation*.md`) that say `skipped` (no item base, no focused
-  command, no mutants): the gate wrote a record with `disposition` passed and did nothing, so the run is no evidence about
-  it. The validation line names them (`gates not exercised (a record that says skipped): base W1 (...)`) only when there
+  command, no mutants): the gate wrote a record and did nothing, so the run is no evidence about it. ShipLoop files such a
+  record as `disposition: skipped` with `passed: true` and the reason under `skipped` (before unit U14 it filed `passed`
+  beside the same reason); `metrics.skipped_reason` reads either marker. The validation line names them (`gates not exercised (a record that says skipped): base W1 (...)`) only when there
   are some;
 - `edits`: **heuristic, a list to confirm**, listed as facts with the `event` (the 0-based line index of `events.jsonl`) of each:
   `script_owned` (the model's edit of a file ShipLoop's scripts own, by an edit tool or by a shell `>`, `>>`, `tee`, `cp`,

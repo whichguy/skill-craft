@@ -407,6 +407,27 @@ class SkippedGateTests(unittest.TestCase):
         (mutation,) = [g for g in found["gates"] if g["gate"] == "mutation"]
         self.assertEqual((mutation["skipped"], mutation["reason"]), (1, "no mutants"))
 
+    def test_a_gate_record_whose_disposition_says_skipped_counts_with_or_without_its_reason(self) -> None:
+        """TD-3: the engine writes `disposition: skipped` beside `passed: true` and the reason under `skipped`; a record that
+        keeps only the disposition is still a gate that did not run, and a record with a reason alone (an older ShipLoop,
+        disposition `passed`) still is."""
+        self.assertEqual(metrics.skipped_reason({"disposition": "skipped", "passed": True, "skipped": "no focused command"}),
+                         "no focused command")
+        self.assertEqual(metrics.skipped_reason({"disposition": "skipped", "passed": True}), "no reason recorded")
+        self.assertEqual(metrics.skipped_reason({"disposition": "passed", "skipped": "no item base was recorded"}),
+                         "no item base was recorded")
+        self.assertIsNone(metrics.skipped_reason({"disposition": "passed", "passed": True, "runs": [{"command": "c"}]}))
+        self.assertIsNone(metrics.skipped_reason({"disposition": "failed", "passed": False}))
+        with tempfile.TemporaryDirectory() as temp:
+            run = self.run_dir(temp, base=True, items=True, mutation={"schema": "x", "disposition": "skipped", "passed": True,
+                                                                      "mutants": [{"id": 1}]})
+            fence = lambda record: "```shiploop-state\n" + json.dumps(record) + "\n```\n"  # noqa: E731
+            (run / "tests" / "nav-a-base1.md").write_text(fence({"schema": "shiploop-test-base/v1", "disposition": "skipped",
+                                                                 "passed": True}))
+            found = metrics.skipped_gates(run)
+        self.assertEqual([(g["gate"], g["skipped"], g["reason"]) for g in found["gates"] if g["skipped"]],
+                         [("base", 1, "no reason recorded"), ("mutation", 1, "no reason recorded")])
+
     def test_no_run_directory_is_not_measured(self) -> None:
         self.assertEqual(metrics.skipped_gates(None)["count"], None)
         self.assertFalse(metrics.skipped_gates(Path("/nonexistent/run"))["measured"])

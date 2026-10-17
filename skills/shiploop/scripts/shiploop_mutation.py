@@ -345,7 +345,10 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
     record["action"] = action_id
     record["seconds"] = round(time.monotonic() - started, 3)
     refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0
-    record.update(passed=not refuse, disposition="failed" if refuse else "passed")
+    # A check that could not judge anything (no focused command, no item base, no mutant, a copy that was not green)
+    # passes, and says ``skipped`` so no reader takes it for a proof; one that refused is ``failed`` as before.
+    record.update(passed=not refuse,
+                  disposition="failed" if refuse else "skipped" if record.get("skipped") else "passed")
     if count:
         record["attempt"] = test_loop._next_attempt(root, action_id)
         relative = mutation_path(action_id, test_loop._mutation_count(root, action_id) + 1)
@@ -367,9 +370,7 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
              "tests catch none of these changes:"]
     lines += ["- " + _describe(row) for row in record["mutants"] if row["status"] == "survived"]
     if count:
-        tail = ("Refused runs for this action: " + str(refused + 1) + " of " + str(test_loop.MAX_REFUSED_RUNS)
-                + " (base, candidate and mutation runs together); after that "
-                + test_loop._remedy_sentence(test_loop.STAGES[0]) + ".")
+        tail = test_loop.refused_note(refused + 1, test_loop.STAGES[0])
     else:
         tail = "This check-only run does not count toward the refused runs."
     lines.append("Add or strengthen assertions that check the behaviour the test spec's oracle states, so a change "

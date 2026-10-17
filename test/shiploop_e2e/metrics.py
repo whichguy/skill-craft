@@ -2142,6 +2142,18 @@ def _state_block(path: Path) -> dict | None:
     return value if isinstance(value, dict) else None
 
 
+def skipped_reason(record: dict) -> str | None:
+    """Why a base-run or mutation-check record says its gate did nothing, or None for a gate that ran.
+
+    The engine writes ``disposition: "skipped"`` (with ``passed`` true, so every reader of ``passed`` is unchanged) and the
+    reason under ``skipped``; a record from before that kept the reason alone under ``disposition: "passed"``. Either marks the
+    gate as not exercised, and a disposition without a reason is still one."""
+    reason = record.get("skipped")
+    if reason:
+        return str(reason)
+    return "no reason recorded" if record.get("disposition") == "skipped" else None
+
+
 def skipped_gates(run_dir: Path | None) -> dict:
     """The gates a run's records say did not run, from the run directory alone: the test stage's base run, its mutation check
     (skipped, or run and found no mutants), the change inventory, and the item commit (which cannot read an item's changes
@@ -2157,11 +2169,11 @@ def skipped_gates(run_dir: Path | None) -> dict:
             gates.append({"gate": name, "records": len(records), "skipped": len(reasons), "reason": reasons[0] if reasons else None})
 
     base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if (r := _state_block(p))]
-    row("base", base, [str(r["skipped"]) for r in base if r.get("skipped")])
+    row("base", base, [reason for r in base if (reason := skipped_reason(r))])
     mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith("-check-only.md")
                 and (r := _state_block(p))]
-    row("mutation", mutation, [str(r["skipped"]) if r.get("skipped") else "no mutants" for r in mutation
-                               if r.get("skipped") or not r.get("mutants")])
+    row("mutation", mutation, [skipped_reason(r) or "no mutants" for r in mutation
+                               if skipped_reason(r) or not r.get("mutants")])
     inventory = [r for p in sorted((run_dir / "lint").glob("*-inventory.md")) if (r := _state_block(p))]
     row("inventory", inventory, [str(r.get("reason") or r.get("status")) for r in inventory if r.get("status") == "unavailable"])
     state = engine_state(run_dir)

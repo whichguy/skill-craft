@@ -1251,9 +1251,8 @@ preparatory commit); a mismatch there is a revise.
    owner, revalidation condition). Write no case due at a later stage.
 2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. Record a
    harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
-   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why;
-   locators and the step plan's in evidence_refs. A recorded completion does not prove a harness, fixture or target
-   still works.
+   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.
+   A recorded completion does not prove a harness, fixture or target still works.
 3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
    sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
    `<ID> (<letter>)`; none fits: report revise. Each new or changed public entry point gets rejection cases. Test a

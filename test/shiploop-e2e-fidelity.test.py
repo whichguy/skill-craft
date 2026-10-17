@@ -868,6 +868,34 @@ class ValidationTest(unittest.TestCase):
             self.assertIn("gates not exercised (a record that says skipped): mutation W1 (no mutants: no changed product "
                           "line matched an operator)", line)
 
+    def test_a_record_the_engine_wrote_with_disposition_skipped_is_counted_and_a_proof_is_not(self):
+        """TD-3 contract between the engine and this reader: shiploop_test_loop._base_run and shiploop_mutation.mutation_check
+        write `disposition: skipped` (passed true, reason under `skipped`) for a gate that did nothing, and the same word
+        `passed` a proof files stays `passed`.  The records here are the engine's own, not hand-written."""
+        with mock.patch.object(sys, "path", [str(ENGINE), *sys.path]):
+            import shiploop_mutation
+            import shiploop_test_loop
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "tests").mkdir(parents=True)
+            state = {"repo": tmp, "history": [{"stage": "step-plan", "workitem": "W1", "action": "S1", "outcome": "done"}],
+                     "accepted": {"S1": {"outcome": "done", "summary": "x", "test_commands": [], "test_commands_na": "docs"}}}
+            record, refusal = shiploop_test_loop._base_run(run_dir, state, "W1", "nav-t", None)
+            self.assertEqual((refusal, record["disposition"], record["passed"]), ("", "skipped", True))
+            shiploop_test_loop.store.atomic_write_text(run_dir / "tests" / "nav-t-base1.md",
+                                                       shiploop_test_loop.store.dumps(record, "test base"))
+            shiploop_mutation.mutation_check(run_dir, state, "W1", "nav-t")
+            self.assertEqual(shiploop_test_loop.store.read_record(run_dir / "tests" / "nav-t-mutation1.md")["disposition"],
+                             "skipped")
+            found = self.fidelity.gates_not_exercised(run_dir)
+            self.assertEqual([(row["gate"], row["work_item"]) for row in found["skipped"]], [("base", "W1"), ("mutation", "W1")])
+            self.gate_record(run_dir, "nav-u-base1.md", "shiploop-test-base/v1", disposition="passed", runs=[{"command": "c"}])
+            self.assertEqual(len(self.fidelity.gates_not_exercised(run_dir)["skipped"]), 2)
+            # A disposition with no reason is still a gate that did not run.
+            self.gate_record(run_dir, "nav-v-base1.md", "shiploop-test-base/v1", disposition="skipped", runs=[])
+            last = self.fidelity.gates_not_exercised(run_dir)["skipped"][-1]
+            self.assertEqual((last["record"], last["reason"]), ("tests/nav-v-base1.md", "no reason recorded"))
+
     def test_runs_that_exercised_every_gate_and_the_saved_runs_print_no_gates_clause(self):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "run"

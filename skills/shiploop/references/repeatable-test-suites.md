@@ -410,4 +410,5 @@ alone in a temporary copy of the candidate and runs the focused commands. A
 mutant is killed when a command fails. ShipLoop refuses done only when mutants
 ran and none was killed (no kill-rate threshold, since equivalent mutants
 survive any suite), and records every mutant in
-`tests/<action>-mutation<N>.md`; a docs-only change records "no mutants".
+`tests/<action>-mutation<N>.md`; a docs-only change records "no mutants" with
+`disposition: skipped`, and `complete` prints that as a `Gates:` line.

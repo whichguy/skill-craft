@@ -3164,9 +3164,9 @@ def _check_skill_decision(state: Mapping[str, Any], skill: Any) -> None:
 
 
 def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
-                    workitem: str | None, submitted: Any, *, check_only: bool = False) -> None:
+                    workitem: str | None, submitted: Any, *, check_only: bool = False) -> list[str]:
     """Accept the test stage's done only after ShipLoop's own two runs and its mutation check (owner decisions
-    2026-10-10 and 2026-10-11).
+    2026-10-10 and 2026-10-11); return what the three gates found, one ``Gates:`` line each.
 
     The loop's receipt was checked first (``loops.check_terminal``).  On the item's base (after any preparatory fix)
     no new test ID may pass; on the candidate every recorded command must pass, run every listed ID and reach the
@@ -3175,25 +3175,30 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
 
     ``check_only`` (``complete --check-only``) changes nothing the run counts: the base rule runs as ``red_check`` and
     the candidate run with ``count=False``; neither counts toward the refused-run cap nor sets a floor.
+
+    The lines are the gates' own summaries (``base: skipped (...)`` is a gate that did nothing, which the record says
+    too): ``complete`` prints them after what it accepted, so a green result never hides a gate that did not run.
     """
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
-        return
+        return []
     try:
         if check_only:
             ok, lines = test_loop.red_check(root, state, workitem or "", action_id, submitted,
                                             base_commit=preparatory_base(root, workitem or ""))
             _need(ok, "\n".join(["ShipLoop check-only: the base run would refuse this result:"] + lines))
-            test_loop.loop_run(root, state, workitem or "", action_id, submitted, count=False)
-            test_loop.mutation_check(root, state, workitem or "", action_id, submitted, count=False,
+            found = [line for line in lines if line.startswith("base: ")]
+            found += test_loop.loop_run(root, state, workitem or "", action_id, submitted, count=False)
+            found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted, count=False,
+                                              base_commit=preparatory_base(root, workitem or ""))
+            return ["Gates: " + line for line in found]
+        found = test_loop.base_check(root, state, workitem or "", action_id, submitted,
                                      base_commit=preparatory_base(root, workitem or ""))
-            return
-        test_loop.base_check(root, state, workitem or "", action_id, submitted,
-                             base_commit=preparatory_base(root, workitem or ""))
-        test_loop.loop_run(root, state, workitem or "", action_id, submitted)
+        found += test_loop.loop_run(root, state, workitem or "", action_id, submitted)
         # On new code the base run can only see a load failure (RED by rule); the mutation check is what proves the
         # tests assert real behaviour (owner decision 2026-10-11).
-        test_loop.mutation_check(root, state, workitem or "", action_id, submitted,
-                                 base_commit=preparatory_base(root, workitem or ""))
+        found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted,
+                                          base_commit=preparatory_base(root, workitem or ""))
+        return ["Gates: " + line for line in found]
     except test_loop.TestLoopError as exc:
         raise NavigatorError(str(exc)) from exc
 
@@ -3417,6 +3422,10 @@ IMPROVE_CARD_BLANK = "<absolute path of the selected Improve SKILL.md>"
 EVIDENCE_PLACEHOLDER = "<absolute path of each file this stage wrote, or of the check output it recorded>"
 # The user-facing line the run narrative shows for this step.
 HEADLINE_PLACEHOLDER = "<one line for the user, under 100 characters: what this step established>"
+# The test stage's summary says what no ShipLoop record holds: ShipLoop's records hold the counts and the exit codes.
+TEST_SUMMARY_PLACEHOLDER = ("<tests added by ID and what each asserts; test decisions retained, refined or superseded "
+                            "and why; any test changed to pass a run and its independent reason; ShipLoop's records "
+                            "hold the counts>")
 HEADLINE_LIMIT = 100
 # The template's placeholder text for the hand-off fields (contract rule 5): the gate refuses any hand-off string equal to
 # one of them, as the headline and evidence placeholders are refused.
@@ -3456,6 +3465,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         "summary": "...",
         "evidence_refs": [str(receipt)] if receipt is not None else [EVIDENCE_PLACEHOLDER],
     }
+    if stage in test_loop.STAGES:
+        result["summary"] = TEST_SUMMARY_PLACEHOLDER
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
@@ -6661,6 +6672,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     command = getattr(args, "command", None)
     _need(isinstance(command, str), "navigator command is missing")
     terminal_knowledge_closed = False
+    gate_lines: list[str] = []  # the test stage's gate outcomes, printed after what ``complete`` accepted
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
         "improve-bind", "improve-start", "improve-commit", "improve-reconcile", "delegation",
@@ -6862,7 +6874,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             if cursor_stage in lint.GATE_STAGES:
                 _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted, check_only=check_only)
             if cursor_stage in test_loop.STAGES:
-                _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted, check_only=check_only)
+                gate_lines = _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted,
+                                             check_only=check_only)
             elif cursor_stage in test_loop.RERUN_STAGES:
                 _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted,
                                  check_only=check_only)
@@ -6880,6 +6893,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.
                 for line in expectations.coverage_notices(state, submitted):
                     print(line)
+            for line in gate_lines:
+                print(line)
             return 0
         updated = apply(state, action_id, submitted)
         if updated != state:
@@ -6920,4 +6935,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         if not terminal_knowledge_closed:
             _knowledge_close(state, updated, root)
     emit(core, root, updated)
+    # After the packet, not before it: the status display reads a print that starts at the packet's header.
+    for line in gate_lines:
+        print(line)
     return 0
