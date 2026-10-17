@@ -32,7 +32,14 @@ coverage.
    produce, or an `unconfirmable` marker on a produce that an available check could in fact
    confirm or whose `by` does not name what would confirm it, is a material planning gap.
    On any other step the same finding is advisory; it is not a planning gap or a forbidden
-   necessary repair.
+   necessary repair. Apply the implementable-chunk review in `references/convergence.md`
+   to every scoped work step, including previously clean and newly enriched steps. Unrelated
+   non-provisional steps retained only as context remain advisory for chunk-boundary findings;
+   their presence in the dependency neighborhood does not put their delivery boundaries in
+   scope. Record why boundaries remain implementable or need a split, its serial/parallel relationships,
+   and whether the required repair is authorized. When assessing a repaired candidate,
+   inspect its resulting chunks and affected consumers under the same rules; the active
+   callback owns the post-repair check before submitting the cycle.
 3. Actually load `references/technical-lenses.md`, screen all categories, and load
    applicable or uncertain cards/interactions. Record the observed locator in checks.
 4. Revisit effects of prior repairs across shared prerequisites, independent tracks,

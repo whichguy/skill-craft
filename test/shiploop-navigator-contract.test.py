@@ -42,6 +42,14 @@ import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
 
+def _normalize_checkout_root_prefix(text: str, checkout_root: Path | str) -> str:
+    """Hide only this checkout's exact root prefix when it starts a path."""
+    root = os.fspath(checkout_root).rstrip(os.sep)
+    if not root:
+        return text
+    return re.sub(rf"(?<![\w./~+-]){re.escape(root)}(?={re.escape(os.sep)})", "<checkout-root>", text)
+
+
 # This is the public navigator contract.  Never derive it from the implementation:
 # otherwise a routing regression could silently change the test expectation.
 EXPECTED_PRELUDE = (
@@ -162,6 +170,62 @@ def receipt(stage: str) -> dict:
     }
 
 
+class ImproveCheckoutRootNormalizationTests(unittest.TestCase):
+    """The Improve Backchain scan ignores only the exact source checkout prefix."""
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-improve-checkout-")
+        self.addCleanup(self.temp.cleanup)
+
+    def test_acceptable_improve_path_is_invariant_to_checkout_name(self) -> None:
+        base = Path(self.temp.name)
+        checkouts = (base / "backchain-chunks", base / "neutral-checkout")
+        views = [f"Improve handoff skill: {checkout}/skills/improve/SKILL.md" for checkout in checkouts]
+        normalized = [_normalize_checkout_root_prefix(view, checkout)
+                      for view, checkout in zip(views, checkouts)]
+
+        self.assertEqual(normalized[0], normalized[1])
+        for view in normalized:
+            with self.subTest(view=view):
+                self.assertNotRegex(view, r"[Bb]ackchain")
+
+    def test_backchain_prose_remains_forbidden(self) -> None:
+        root = Path(self.temp.name) / "backchain-chunks"
+        normalized = _normalize_checkout_root_prefix("Improve must not mention Backchain.", root)
+
+        with self.assertRaises(AssertionError):
+            self.assertNotRegex(normalized, r"[Bb]ackchain")
+
+    def test_backchain_skill_reference_after_checkout_root_remains_forbidden(self) -> None:
+        root = Path(self.temp.name) / "backchain-chunks"
+        view = f"Improve handoff reference: {root}/skills/backchain/SKILL.md"
+        normalized = _normalize_checkout_root_prefix(view, root)
+
+        self.assertIn("<checkout-root>/skills/backchain/SKILL.md", normalized)
+        with self.assertRaises(AssertionError):
+            self.assertNotRegex(normalized, r"[Bb]ackchain")
+
+    def test_near_prefix_path_is_not_normalized_away(self) -> None:
+        root = Path(self.temp.name) / "backchain-chunks"
+        near_prefix = Path(str(root) + "-copy")
+        view = f"Improve handoff path: {near_prefix}/skills/improve/SKILL.md"
+
+        normalized = _normalize_checkout_root_prefix(view, root)
+
+        self.assertEqual(normalized, view)
+        with self.assertRaises(AssertionError):
+            self.assertNotRegex(normalized, r"[Bb]ackchain")
+
+    def test_root_embedded_in_another_path_is_not_normalized(self) -> None:
+        root = Path(self.temp.name) / "backchain-chunks"
+        for prefix in ("/else", "unrelated-prefix"):
+            view = f"Improve path: {prefix}{root}/skills/improve/SKILL.md"
+            with self.subTest(prefix=prefix):
+                self.assertEqual(_normalize_checkout_root_prefix(view, root), view)
+                with self.assertRaises(AssertionError):
+                    self.assertNotRegex(view, r"[Bb]ackchain")
+
+
 class NavigatorContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-navigator-contract-")
@@ -277,7 +341,7 @@ class NavigatorContractTests(unittest.TestCase):
         # Owner, 2026-10-11: "improve should not actually ever mention backchain". The producer packet routes the
         # Backchain guide; the Improve packet and its handoff never name it.
         with self.subTest(check="Improve view never mentions Backchain"):
-            self.assertNotRegex(view, r"[Bb]ackchain")
+            self.assertNotRegex(_normalize_checkout_root_prefix(view, ROOT), r"[Bb]ackchain")
 
     def _assert_two_instruction_improve_packet(self, packet: str) -> None:
         """The Improve stage's packet (owner, 2026-10-11): its own header, the improve skill, then the stage's complete.

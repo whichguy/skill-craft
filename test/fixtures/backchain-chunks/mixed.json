@@ -1,0 +1,130 @@
+{
+  "id": "mixed",
+  "eval_id": 17,
+  "route": "source-aware",
+  "source": "Implement CSV import with an ImportRecord type containing id:string and label:string. The file reader converts CSV rows to this type and rejects missing ids. The renderer takes ImportRecord values and displays ids and labels without reading files. Reader and renderer each need the type and can be built and checked independently using fixtures. The command connects the reader and renderer. A valid CSV must produce the expected preview and a missing-id row must be rejected. Help must describe both cases. The local repository, fixtures, and test runner are available. This is only a plan, no product execution is requested. The prior enrichment bundled all implementation work into S1; the latest edit was S3 help wording. npm test supports the named import-e2e and import-help suites. Targeted contract, reader, and renderer checks may be authored as planned work with their implementation. For this fixture invalid rows means missing-id rows only. All declared checks may use the available local fixtures and test runner; their availability is initial-world context, not an unplanned product task.",
+  "plan": {
+    "goal": "CSV import produces an accurate preview and rejects invalid rows.",
+    "initial_state": [
+      "The local repository, fixtures, and test runner are available."
+    ],
+    "goal_needs": [
+      "A valid CSV produces a preview with the expected rows and invalid rows are rejected.",
+      "The import help describes valid rows and missing-id errors."
+    ],
+    "steps": [
+      {
+        "id": "S1",
+        "statement": "The import implementation is complete.",
+        "produces": [
+          "The ImportRecord contract defines id:string and label:string.",
+          "The CSV reader returns ImportRecord values and rejects rows with missing ids.",
+          "The preview renderer displays ImportRecord ids and labels without reading files.",
+          "The import command connects the CSV reader to the preview renderer."
+        ],
+        "inputs": [
+          {
+            "from": null,
+            "need": "The local repository, fixtures, and test runner are available."
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The ImportRecord contract defines id:string and label:string.",
+            "by": "Run npm test -- import-e2e; pass when valid rows appear with the expected ids and labels and a missing-id row is rejected.",
+            "level": "execute"
+          },
+          {
+            "produces": "The CSV reader returns ImportRecord values and rejects rows with missing ids.",
+            "by": "Run npm test -- import-e2e; pass when valid rows appear with the expected ids and labels and a missing-id row is rejected.",
+            "level": "execute"
+          },
+          {
+            "produces": "The preview renderer displays ImportRecord ids and labels without reading files.",
+            "by": "Run npm test -- import-e2e; pass when valid rows appear with the expected ids and labels and a missing-id row is rejected.",
+            "level": "execute"
+          },
+          {
+            "produces": "The import command connects the CSV reader to the preview renderer.",
+            "by": "Run npm test -- import-e2e; pass when valid rows appear with the expected ids and labels and a missing-id row is rejected.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "statement": "A valid CSV produces a preview with the expected rows and invalid rows are rejected.",
+        "produces": [
+          "A valid CSV produces a preview with the expected rows and invalid rows are rejected."
+        ],
+        "inputs": [
+          {
+            "from": "S1",
+            "need": "The import command connects the CSV reader to the preview renderer."
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "A valid CSV produces a preview with the expected rows and invalid rows are rejected.",
+            "by": "Run npm test -- import-e2e; pass when valid rows appear with the expected ids and labels and a missing-id row is rejected.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "statement": "The import help describes valid rows and missing-id errors.",
+        "produces": [
+          "The import help describes valid rows and missing-id errors."
+        ],
+        "inputs": [
+          {
+            "from": null,
+            "need": "The local repository, fixtures, and test runner are available."
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The import help describes valid rows and missing-id errors.",
+            "by": "Run npm test -- import-help; pass when help text covers valid id/label rows and missing-id errors.",
+            "level": "execute"
+          }
+        ]
+      }
+    ],
+    "parallel_groups": [
+      [
+        "S1",
+        "S3"
+      ]
+    ],
+    "unresolved": []
+  },
+  "edit_bounds": {
+    "provisional_step_ids": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "provisional_edge_keys": [
+      "S1<-null",
+      "S2<-S1",
+      "S3<-null"
+    ],
+    "allow_new_steps": true,
+    "allow_new_edges": true,
+    "protected_step_ids": [],
+    "protected_edge_keys": [],
+    "protected_facts": [
+      "The local repository, fixtures, and test runner are available."
+    ],
+    "running_or_completed_step_ids": []
+  },
+  "expected": {
+    "behavior": "split",
+    "runtime_status": "complete"
+  }
+}

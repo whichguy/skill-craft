@@ -385,6 +385,7 @@ def _shiploop(path: str) -> Suite:
 
 
 _CORE_SUITES = (
+    _suite("backchain-chunks", "core", "test/backchain-chunks.test.py", "python3", "-B", "test/backchain-chunks.test.py"),
     _suite("test-groups", "core", "test/test-groups.test.py", "python3", "test/test-groups.test.py"),
     _suite("ci-policy", "core", "test/ci-policy.test.py", "python3", "test/ci-policy.test.py"),
     _suite("integration-boundaries", "core", "test/integration-boundaries.test.py", "python3", "test/integration-boundaries.test.py"),
@@ -581,6 +582,7 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 # suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: about 182 s
 # of the quick tier on 2026-10-09 (shiploop-e2e 100, -environment 65, -fidelity 9, -reorientation 7.7, -runrecord 0.2).
 _PREFIX_SUITE_IDS = {
+    "test/fixtures/backchain-chunks/": ("backchain-chunks",),
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
     "agents/in-parallel.md": (*_IN_PARALLEL_IDS, "marketplace-package"),

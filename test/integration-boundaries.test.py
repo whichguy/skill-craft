@@ -6,12 +6,15 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import selectors
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 import current_dispatcher
 
@@ -70,6 +73,7 @@ class IntegrationBoundaryTests(unittest.TestCase):
             self.assertIn("cursor-imports", result.stdout)
             self.assertIn("current-dispatcher", result.stdout)
             self.assertIn("marketplace-claude", result.stdout)
+            self.assertIn("backchain-chunks", result.stdout)
 
         result = invoke(["bash", str(RUNNER), "marketplace-codex", "extra"], empty_env)
         self.assertEqual(64, result.returncode, result.stdout + result.stderr)
@@ -78,6 +82,11 @@ class IntegrationBoundaryTests(unittest.TestCase):
         self.assertEqual(0, current_help.returncode, current_help.stdout + current_help.stderr)
         self.assertIn("--dispatcher-skill", current_help.stdout)
         self.assertIn("--output", current_help.stdout)
+
+        chunks_help = invoke(["bash", str(RUNNER), "backchain-chunks", "--help"], empty_env)
+        self.assertEqual(0, chunks_help.returncode, chunks_help.stdout + chunks_help.stderr)
+        self.assertIn("prepare", chunks_help.stdout)
+        self.assertIn("check", chunks_help.stdout)
 
         result = invoke(["bash", str(RUNNER), "not-a-command"], empty_env)
         self.assertEqual(64, result.returncode)
@@ -198,19 +207,41 @@ class IntegrationBoundaryTests(unittest.TestCase):
             "import os, signal, sys, time\n"
             "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
             "open(sys.argv[1], 'w', encoding='utf-8').write(str(os.getpid()))\n"
+            "print('child-ready', flush=True)\n"
             "while True: time.sleep(1)\n",
             encoding="utf-8",
         )
         leader.write_text(
             "import subprocess, sys, time\n"
             "child = subprocess.Popen([sys.executable, sys.argv[1], sys.argv[2]])\n"
-            "while not __import__('pathlib').Path(sys.argv[2]).exists(): time.sleep(.01)\n"
             "while True: time.sleep(1)\n",
             encoding="utf-8",
         )
-        exit_code, timed_out, _, _ = current_dispatcher.run_with_process_group(
-            [sys.executable, str(leader), str(child), str(marker)], self.environment(), timeout_seconds=0.2,
-        )
+        real_popen = subprocess.Popen
+
+        def ready_popen(*args, **kwargs):
+            process = real_popen(*args, **kwargs)
+            try:
+                # Interpreter startup is not the behavior under test. Begin the
+                # short execution deadline only after the real descendant has
+                # installed its TERM handler and published its PID.
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stdout, selectors.EVENT_READ)
+                    self.assertTrue(selector.select(15), "descendant did not become ready")
+                self.assertEqual(process.stdout.readline(), "child-ready\n")
+                return process
+            except BaseException:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.communicate()
+                raise
+
+        with mock.patch.object(current_dispatcher.subprocess, "Popen", side_effect=ready_popen):
+            exit_code, timed_out, _, _ = current_dispatcher.run_with_process_group(
+                [sys.executable, str(leader), str(child), str(marker)], self.environment(), timeout_seconds=0.2,
+            )
         self.assertEqual(124, exit_code)
         self.assertTrue(timed_out)
         child_pid = int(marker.read_text(encoding="utf-8"))
