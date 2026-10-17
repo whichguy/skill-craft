@@ -26,7 +26,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+sys.path.insert(0, str(ROOT / "test"))
 import obligations  # noqa: E402
+import shiploop_packet_view as packet_view  # noqa: E402
 
 # The obligations the plan says hold at every stage, as ledger row ids (the narrative and the home commit are conditional rows).
 PLAN_SEVEN = {"callback": "callback", "result shape": "result-shape", "Checked by": "checked-by", "RULES": "rules",
@@ -87,6 +89,21 @@ class LedgerHoldsTests(unittest.TestCase):
 
     def test_every_row_holds_in_every_packet_it_covers(self) -> None:
         self.assertEqual(obligations.check(self.ledger, self.packets), [])
+
+    def test_every_outcome_a_packet_tells_the_model_to_report_is_one_its_stage_accepts(self) -> None:
+        """The route behind the result-shape row (test-economy review, 2026-10-17, row 5; memory
+        test-the-route-not-the-wording): a packet that tells the model to report an outcome its stage's gate does not take
+        sends it to a refusal.  Derived from the stage table over every producer packet of the walk on both routes, so a
+        reworded duty or a new stage is checked without a new pin; the refusals' own exits are submitted through the gate
+        in shiploop-test-loop."""
+        named = 0
+        for packet in self.packets:
+            if packet["kind"] != "producer":
+                continue
+            with self.subTest(packet=packet["where"]):
+                self.assertEqual(packet_view.unaccepted_outcomes(packet["stage"], packet["file"]), [])
+                named += len(packet_view.named_outcomes(packet["file"]))
+        self.assertGreaterEqual(named, 40, "the extraction found the instructions it checks (62 on 2026-10-17)")
 
     def test_the_walk_covers_all_24_stages_and_the_improve_parent_on_both_routes(self) -> None:
         import shiploop_stage_spec as stage_spec

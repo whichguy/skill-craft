@@ -10,7 +10,9 @@ The wording pins in other suites show where each sentence went; these tests chec
 - no packet states a long sentence twice;
 - producer and Improve packets stay under the ceilings measured when the re-cut landed;
 - the owner rule and the pointer to the run's master index are the two lines under every packet's first line
-  (owner, 2026-10-16).
+  (owner, 2026-10-16);
+- the helper that finds those lines by label (test/shiploop_packet_view.py) fails on a packet whose callback sits below
+  its goal and on a lookup that finds nothing.
 """
 from __future__ import annotations
 
@@ -32,6 +34,8 @@ import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_packet_view as packet_view  # noqa: E402
+from shiploop_packet_view import assert_top_block  # noqa: E402
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=ROOT / "skills/shiploop", REF_DIR=ROOT / "skills/shiploop/references")
 CASES = {name: case for name, case in json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text()).items()
@@ -327,10 +331,9 @@ class OwnerLinesTests(unittest.TestCase):
                          r"it maps every file of this run and what it holds; open the file you need from there\.$")
 
     def check(self, text: str, label: str) -> None:
-        lines = text.splitlines()
-        header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
-        self.assertEqual(lines[header + 1], prompts.OWNER_RULE, label)
-        self.assertRegex(lines[header + 2], self.POINTER, label)
+        # Both lines under the header, in order (found by constant and label, not by line number: shiploop_packet_view).
+        view = assert_top_block(self, text, require=("owner", "pointer"), label=label)
+        self.assertRegex(view["pointer"], self.POINTER, label)
         # Once each, and the old mid-packet line is gone (nothing says the pointer twice).
         self.assertEqual(text.count("Owner rule:"), 1, label)
         self.assertEqual(text.count("Lost context, or unsure"), 1, label)
@@ -409,9 +412,8 @@ class OwnerLinesTests(unittest.TestCase):
                 with contextlib.redirect_stdout(out):
                     navigator.emit(CORE, run, state)
                 self.assertTrue(index.is_file())
-                lines = out.getvalue().splitlines()
-                header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
-                self.assertEqual(lines[header + 2], prompts.index_pointer(index))
+                view = assert_top_block(self, out.getvalue(), require=("owner", "pointer"))
+                self.assertEqual(view["pointer"], prompts.index_pointer(index))
                 self.assertIn(f"revision {state['revision']}", index.read_text(encoding="utf-8"))
 
 
@@ -429,6 +431,87 @@ class ImproveInvocationTests(unittest.TestCase):
         self.assertRegex(packet, r"(?m)^1\. Run the improve skill on the .+ result\. For example, on Claude Code:$")
         self.assertRegex(packet, r"(?m)^\s+/improve ShipLoop Improve: .+/handoff\.md$")
         self.assertRegex(packet, r"(?m)^2\. When the improve skill has completed, run: ")
+
+
+class TopBlockHelperTests(unittest.TestCase):
+    """NEGATIVE self-test of test/shiploop_packet_view.py (efficiency plan, test-economy review rows 2 and 5): the helper
+    that five suites use to find a packet's top block by label must fail on a wrong order and on a lookup that finds
+    nothing.  A helper whose label lookup silently finds nothing would pass all five vacuously."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        found = packets.offline_packets(CASES["node-fix-bug"])
+        cls.lines = found["08-test"].splitlines()
+
+    def fails(self, lines, expect: str, **kwargs):
+        """The helper raises on ``lines`` and its message names ``expect``."""
+        with self.assertRaises(AssertionError) as caught:
+            assert_top_block(self, lines, **kwargs)
+        self.assertIn(expect, str(caught.exception))
+
+    def test_a_real_packet_passes_and_the_view_names_each_part_in_order(self) -> None:
+        view = assert_top_block(self, self.lines, require=("owner", "pointer", "callback", "goal", "done_when"))
+        self.assertEqual(sorted(view.at, key=view.at.get), list(packet_view.TOP_ORDER))
+        self.assertEqual(view["owner"], prompts.OWNER_RULE)
+        self.assertTrue(view["callback"].startswith("Callback for this stage"))
+
+    def test_a_callback_moved_below_the_goal_fails(self) -> None:
+        view = packet_view.top_block(self.lines)
+        lines = list(self.lines)
+        callback = lines.pop(view.index("callback"))
+        lines.insert(view.index("goal"), callback)  # the goal's old index is now the line after it: callback below Goal
+        self.assertLess(packet_view.top_block(lines).index("goal"), packet_view.top_block(lines).index("callback"))
+        self.fails(lines, "callback", require=("callback", "goal"))
+
+    def test_an_owner_rule_or_pointer_out_of_order_fails(self) -> None:
+        view = packet_view.top_block(self.lines)
+        swapped = list(self.lines)
+        owner, pointer = view.index("owner"), view.index("pointer")
+        swapped[owner], swapped[pointer] = swapped[pointer], swapped[owner]
+        self.fails(swapped, "owner")
+        below = list(self.lines)
+        below.insert(view.index("callback") + 1, below.pop(view.index("pointer")))  # the pointer below the callback
+        self.fails(below, "pointer")
+
+    def test_a_part_that_is_required_and_not_found_fails_never_passes(self) -> None:
+        view = packet_view.top_block(self.lines)
+        for part in ("owner", "pointer", "callback", "goal", "done_when"):
+            with self.subTest(part=part):
+                lines = [line for number, line in enumerate(self.lines) if number != view.index(part)]
+                self.fails(lines, "has no " + part + " line", require=("owner", "pointer", "callback", "goal", "done_when"))
+        self.fails(self.lines[view.index("header") + 1:], "no line starts with")   # no header at all
+        self.fails(self.lines, "is not a part of the top block", require=("calback",))  # a misspelt part is refused
+        with self.assertRaises(AssertionError):
+            packet_view.top_block(self.lines).find("a line no packet prints")
+
+    def test_a_callback_that_sank_out_of_the_top_block_fails_even_without_a_goal(self) -> None:
+        view = packet_view.top_block(self.lines)
+        # A packet with no goal (the bound Improve packet is one): only the bound can say the callback left the top.
+        lines = [line for number, line in enumerate(self.lines) if number not in (view.index("goal"), view.index("done_when"))]
+        callback = lines.pop(view.index("callback"))
+        lines.insert(view.index("header") + packet_view.TOP_WINDOW + 5, callback)
+        self.fails(lines, "not within", require=("owner", "pointer", "callback"))
+        assert_top_block(self, lines, require=("owner", "pointer", "callback"), within=None)  # the bound is the only failure
+
+    def test_a_line_inserted_between_the_parts_is_tolerated(self) -> None:
+        """The later layouts add lines (a recovery pointer, a Full packet pointer, a style slot) between the parts: the
+        order holds and nothing addresses a line, so nothing fails."""
+        view = packet_view.top_block(self.lines)
+        lines = list(self.lines)
+        lines.insert(view.index("pointer") + 1, "A line a later layout adds under the pointer.")
+        lines.insert(view.index("header") + 1, "A line a later layout adds under the header.")
+        assert_top_block(self, lines, require=("owner", "pointer", "callback", "goal", "done_when"))
+
+    def test_a_reported_outcome_the_stage_does_not_accept_is_found(self) -> None:
+        """named_outcomes reads only 'report <outcome>' and 'Report outcome <outcome>'; unaccepted_outcomes compares them
+        with the stage table (no outcome word is listed in the helper)."""
+        self.assertEqual(packet_view.named_outcomes("Report outcome replan now; or report blocked; report it, reported."),
+                         ["replan", "blocked"])
+        self.assertTrue({"done", "blocked", "revise", "replan"} <= packet_view.OUTCOME_WORDS)
+        self.assertEqual(packet_view.unaccepted_outcomes("test", "Report outcome replan now."), ["replan"])
+        self.assertEqual(packet_view.unaccepted_outcomes("system-test", "report revise rather than retrying it"), ["revise"])
+        self.assertEqual(packet_view.unaccepted_outcomes("test", "report revise, or report blocked"), [])
+        self.assertEqual(packet_view.unaccepted_outcomes("system-test", "no instruction to report anything"), [])
 
 
 if __name__ == "__main__":

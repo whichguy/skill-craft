@@ -1,0 +1,20 @@
+Layout-insertion experiment of unit UP, 2026-10-17: does a line that a later layout adds under the header break the suites that
+address the top block?  Source mutation (shiploop_navigator._owner_lines; reverted after each run): `after-pointer` adds one line after
+the context-index pointer; `before-owner` adds one line between the header and the owner rule.  Base: INT df8fef57 in a detached worktree
+(removed after).  This branch: the unit's commit.  Cells are failing assertions (subtests) / tests run, python3 -B, SHIPLOOP_PROGRESS=off.
+packet-recut keeps 15 failures on this branch under both variants: the head-table size pins (8 x ask-agent head over the cut, 7 x
+printed text holds its duties), which fail for any added line and are not top-block addressing; the base has the same 15.
+
+variant        suite                selection                               base df8fef57  this branch
+after-pointer  delegation           whole                                           78/57         0/57
+after-pointer  improve-schedule     whole                                            0/33         0/33
+after-pointer  navigator-contract   -k test_public_cli_recovery_locator               1/1          0/1
+after-pointer  packet-recut         whole                                           15/21        15/28
+after-pointer  planning-handoff     whole                                             0/7          0/7
+after-pointer  rehydration          whole                                           25/17         0/17
+before-owner   delegation           whole                                           78/57         0/57
+before-owner   improve-schedule     whole                                            4/33         0/33
+before-owner   navigator-contract   -k test_public_cli_recovery_locator               1/1          0/1
+before-owner   packet-recut         whole                                           67/21        15/28
+before-owner   planning-handoff     whole                                            64/7          0/7
+before-owner   rehydration          whole                                           25/17         0/17

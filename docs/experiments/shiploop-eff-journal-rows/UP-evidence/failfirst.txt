@@ -1,0 +1,47 @@
+Fail-first record of unit UP (efficiency plan, test-economy review rows 2 and 5), 2026-10-17.
+Each row: one source or helper mutation applied to a clean copy of the tree, the command run once, the mutation reverted
+(git checkout of the source file, or restore of the helper). The new test or the re-pointed site must fail; a pass would be
+a vacuous test. Raw output tails are kept beside the exit items in the journal row; this file is the compact form.
+
+M1  gate refuses the remedy in the could-not-run state (shiploop_test_loop.remedy_open returns False)
+    command: python3 -B test/shiploop-test-loop.test.py -k test_every_exit_a_could_not_run_refusal
+    result: 4 x ERROR test_every_exit_a_could_not_run_refusal_names_is_accepted_by_the_gate_at_its_stage  [FAILED (errors=4)]
+
+M2  the could-not-run refusal names `replan` at the inner stages that only take `revise`
+    command: python3 -B test/shiploop-test-loop.test.py -k test_every_exit_a_could_not_run_refusal
+    result: 2 x FAIL test_every_exit_a_could_not_run_refusal_names_is_accepted_by_the_gate_at_its_stage  [FAILED (failures=2)]
+
+M3  implement's duty 6 says `report replan` (implement takes done, blocked, revise)
+    command: python3 -B test/shiploop-packet-obligations.test.py -k every_outcome_a_packet
+    result: 4 x FAIL test_every_outcome_a_packet_tells_the_model_to_report_is_one_its_stage_accepts  [FAILED (failures=4)]
+
+M4  the loop argument's BEGIN marker is renamed (shiploop_loops.ARGUMENT_BEGIN)
+    command: python3 -B test/shiploop_e2e/obligations.py
+    result: exit 1; first line: source: until-loop ['----- BEGIN until-loop ARGUMENT -----'] is not in skills/shiploop/scripts/shiploop_loops.py
+    last line: 16 obligations, 31 violations
+
+M5  the start command's verb is renamed (shiploop_loops.start_command)
+    command: python3 -B test/shiploop_e2e/obligations.py
+    result: exit 1; first line: until-loop (head) missing [' start --receipt '] in dry-run inline 11-step-plan
+    last line: 16 obligations, 30 violations
+
+M6  the exit conditions are numbered `1)` instead of `1.` (shiploop_loops.exit_condition)
+    command: python3 -B test/shiploop-step-packets.test.py -k test_each_exit; test/shiploop-rehydration.test.py -k GoalFirst; test/shiploop-packet-completeness.test.py -k ReferencesBlock -k ProseLine
+    result: 49 x FAIL test_each_exit_condition_and_recorded_command_appears_once; 8 x FAIL test_every_producer_packet_leads_with_its_goal_and_done_when  [FAILED (failures=49), FAILED (failures=8), OK]
+
+H1  helper: the order check is disabled (shiploop_packet_view.assert_top_block)
+    command: python3 -B test/shiploop-packet-recut.test.py -k TopBlockHelper
+    result: 1 x FAIL test_a_callback_moved_below_the_goal_fails; 1 x FAIL test_an_owner_rule_or_pointer_out_of_order_fails  [FAILED (failures=2)]
+
+H2  helper: a required part that is not found passes
+    command: python3 -B test/shiploop-packet-recut.test.py -k TopBlockHelper
+    result: 5 x FAIL test_a_part_that_is_required_and_not_found_fails_never_passes  [FAILED (failures=5)]
+
+H3  helper: the top-window bound is disabled
+    command: python3 -B test/shiploop-packet-recut.test.py -k TopBlockHelper
+    result: 1 x FAIL test_a_callback_that_sank_out_of_the_top_block_fails_even_without_a_goal  [FAILED (failures=1)]
+
+H4  LoopBlock.find finds no block (the stragglers lose the argument range)
+    command: python3 -B test/shiploop-packet-completeness.test.py -k ProseLine -k ReferencesBlock; test/shiploop-step-packets.test.py -k test_each_exit
+    result: 49 x FAIL test_each_exit_condition_and_recorded_command_appears_once; 68 x FAIL test_no_absolute_home_run_worktree_or_guides_path_appears_in_prose_outside_the_block; 1 x FAIL test_the_argument_block_and_the_start_command_are_exempt  [FAILED (failures=69), FAILED (failures=49)]
+
