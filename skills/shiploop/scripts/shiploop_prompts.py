@@ -687,10 +687,12 @@ _VERIFY_ASSEMBLY = """\
    guidance). Otherwise confirm the candidate is assembled in the execution checkout under workspace and repository
    policy. The original branch returns only at the final workspace return.
 """
-_VERIFY_ASSEMBLY_INLINE = """\
-8. **Assembly.** Confirm the item's candidate is assembled in the execution checkout under workspace and repository
-   policy (Workspace integration guidance). The original branch returns only at the final workspace return.
-"""
+# An inline run builds every step in the execution checkout and binds no chain, so there is nothing to assemble: item 8
+# is not printed for it, and the other items keep their numbers (the Work text of the verify loop cites them).
+_VERIFY_ASSEMBLY_INLINE = ""
+# The verify duty's opening says which items repeat each iteration and which are done once; the inline route has no item 8.
+_VERIFY_ONCE = "items 8-9 once, before you report the exit satisfied."
+_VERIFY_ONCE_INLINE = "item 9 once, before you report the exit satisfied."
 
 
 # The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
@@ -864,7 +866,7 @@ DUTIES = {
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Start from HOME/spec.md (quoted below), the research and discovery results and RUN/notes/current-system-baseline.md
+1. Start from HOME/spec.md (read it whole), the research and discovery results and RUN/notes/current-system-baseline.md
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
    its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
    or tests.
@@ -1119,8 +1121,7 @@ Change no product file in this stage.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`. None: `check_na` with the reason; no command at all: `test_commands_na`.
-   - Every criterion is named in some command's `criteria`, and a command names only listed criteria. A list too
-     large for the loop contract is refused: shorten IDs, drop duplicates or split the item.
+   - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
    - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every
@@ -1300,7 +1301,7 @@ preparatory commit); a mismatch there is a revise.
 """,
     "verify": """\
 This is item acceptance, not a claim that integration or release has happened. Each review iteration does items 1-7
-in order.
+in order; """ + _VERIFY_ONCE + """
 
 1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
@@ -2076,13 +2077,14 @@ def _require_planning_review(planning_review: str) -> None:
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
-    "step-plan": (_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),
-    "implement": (_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE),
-    "verify": (_VERIFY_ASSEMBLY, _VERIFY_ASSEMBLY_INLINE),
+    "step-plan": ((_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),),
+    "implement": ((_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE),),
+    "verify": ((_VERIFY_ASSEMBLY, _VERIFY_ASSEMBLY_INLINE), (_VERIFY_ONCE, _VERIFY_ONCE_INLINE)),
 }
-for _stage, (_delegated, _inline) in _INLINE_DUTY_PARAGRAPHS.items():
-    if DUTIES[_stage].count(_delegated) != 1:
-        raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
+for _stage, _pairs in _INLINE_DUTY_PARAGRAPHS.items():
+    for _delegated, _inline in _pairs:
+        if DUTIES[_stage].count(_delegated) != 1:
+            raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
 
 _PLANNING_HANDOFF = (
     "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
@@ -2130,8 +2132,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     if _ITEM_COMMIT in text:
         text = text.replace(_ITEM_COMMIT, _item_commit_rule(execution_mode))
     if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
-        delegated, inline = _INLINE_DUTY_PARAGRAPHS[stage]
-        text = text.replace(delegated, inline)
+        for delegated, inline in _INLINE_DUTY_PARAGRAPHS[stage]:
+            text = text.replace(delegated, inline)
     return _swapped(text, stage, planning_review)
 
 
@@ -2190,6 +2192,16 @@ def _swapped(text: str, stage: str, planning_review: str) -> str:
 
 
 _check_swaps(_NO_REVIEW_SWAPS)
+
+
+def common_text(planning_review: str = stage_spec.DEFAULT_PLANNING_REVIEW) -> str:
+    """COMMON as the run reference file prints it: its Improve schedule is the one the run's planning review option starts.
+
+    The producer packets print STAGE_RULES, not COMMON, so the swap row for ``*`` reached no text until the reference
+    file applied it here; before, a ``none`` run's reference listed the planning results the engine never reviews.
+    """
+    _require_planning_review(planning_review)
+    return _swapped(COMMON, "*", planning_review)
 
 
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
@@ -2290,6 +2302,58 @@ step's action (`shiploop lint --action`), and record their exit codes. Commit yo
 edits. A pass that finds none of these is trivial.
 
 """ + CODE_CRAFT
+
+
+# The ask-agent route issues one implement action for every step of the plan, so the review of a plan of several steps
+# names them: each pair swaps a per-step sentence for one worded for the steps ``{steps}`` and their ``{paths}``
+# (``for_steps``).  The inline route reviews one step per action and keeps the text above.  ``_check_for_steps`` fails at
+# import when an edit to that text leaves a pair matching nothing or twice.
+_STEPS_WORDING = (
+    ("Implementation step review focus. This result is one step of the item's step\n"
+     "plan, and its tests are written later from the test spec, so this review is the\n"
+     "only check of the code before them. Review the step's diff (the step's paths since\n"
+     "the step began) and fix, within those paths, any of these:\n"
+     "- the change does not do the step's task, misses a criterion as the spec's R-<n>\n"
+     "  states it, or does work no criterion asks for (a later step's work, a feature\n"
+     "  the item does not request);\n"
+     "- a file changed outside the step's paths, or unrelated work reverted or\n"
+     "  reformatted;\n",
+     "Implementation step review focus. This result is steps {steps} of the item's step\n"
+     "plan, built in one action, and their tests are written later from the test spec, so\n"
+     "this review is the only check of the code before them. Review the diff of the paths\n"
+     "of these steps ({paths}) since the first step began and fix, within those paths,\n"
+     "any of these:\n"
+     "- the change does not do a step's task, misses a criterion as the spec's R-<n>\n"
+     "  states it, or does work no criterion asks for (another item's work, a feature\n"
+     "  the item does not request);\n"
+     "- a file changed outside these paths, or unrelated work reverted or\n"
+     "  reformatted;\n"),
+    ("Do not write tests, start a later step, or edit a recorded command. After your\n"
+     "last edit, rerun the step's recorded check commands and ShipLoop's lint for the\n"
+     "step's action (`shiploop lint --action`), and record their exit codes. Commit your\n"
+     "edits.",
+     "Do not write tests or edit a recorded command. After your last edit, rerun the\n"
+     "steps' recorded check commands and ShipLoop's lint for this action (`shiploop\n"
+     "lint --action`), and record their exit codes. Commit your edits."),
+    ("one implementation step's diff: its task and criteria,",
+     "the diff of implementation steps {steps}: their tasks and criteria,"),
+)
+
+
+def for_steps(text: str, steps: str, paths: str) -> str:
+    """``text`` (the implement review focus, the implement Improve prompt) worded for the steps ``steps`` that one action
+    built, with their ``paths``; a sentence of ``_STEPS_WORDING`` that ``text`` does not hold is left out."""
+    for old, new in _STEPS_WORDING:
+        text = text.replace(old, new.format(steps=steps, paths=paths))
+    return text
+
+
+def _check_for_steps() -> None:
+    texts = [IMPLEMENT_STEP_REVIEW_FOCUS, _improve_prompt("implement")]
+    for old, _new in _STEPS_WORDING:
+        if sum(text.count(old) for text in texts) != 1:
+            raise RuntimeError("the several-steps wording no longer matches the implement review text once: "
+                               + repr(" ".join(old.split())[:70]))
 
 
 def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
@@ -2516,6 +2580,7 @@ if set(DUTIES) != set(STAGES) or set(IMPROVE_SCOPES) != set(STAGES):
 
 PROMPTS = {stage: prompt(stage) for stage in STAGES}
 IMPROVE_PROMPTS = {stage: improve_prompt(stage) for stage in STAGES}
+_check_for_steps()
 for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
     if not any(_delegated in text for text in IMPROVE_PROMPTS.values()):
         raise RuntimeError("navigator Improve prompts lost a delegated-route phrase")
@@ -2525,6 +2590,8 @@ __all__ = (
     "ASK_AGENT",
     "BACKCHAIN_PASSES_MODES",
     "COMMON",
+    "common_text",
+    "for_steps",
     "DEFAULT_BACKCHAIN_PASSES",
     "DELEGATIONS",
     "DUTIES",

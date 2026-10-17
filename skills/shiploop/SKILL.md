@@ -82,12 +82,14 @@ the whole Improve loop in the existing Child workspace, and the parent verifies
 its return and completes delivery. Follow [Improve context ownership](references/improve-context.md)
 before starting, dispatching or recovering either route. An existing invocation
 keeps its recorded owner. A worktree isolates files, not the model session.
-ShipLoop does not launch Grok, Claude, Codex, or any other model process. Do not
-background the workflow. For INNER assignments, follow the packet context
-boundary and the durable handoff below; do not treat returned `/clear` text as a
-host reset. An external E2E harness may start a model before invoking
-this skill; that launcher remains outside ShipLoop. Environment settings do not
-change this boundary.
+The skill and its navigator commands launch no Grok, Claude, Codex, or other model
+process; only the optional outer driver `scripts/shiploop-drive`
+([keepalive](references/keepalive.md)), a separate script you start yourself, starts
+and resumes host sessions. Do not background the workflow. For INNER assignments,
+follow the packet context boundary and the durable handoff below; do not treat
+returned `/clear` text as a host reset. An external E2E harness may start a model
+before invoking this skill; that launcher remains outside ShipLoop. Environment
+settings do not change this boundary.
 
 Before doing any ShipLoop-managed stage work, bind this package's `CLI` from
 the **selected, loaded** `SKILL.md`. Obtain its absolute location from the
@@ -773,7 +775,7 @@ not a command, and the host's own compaction manages context. See
 
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
-continuing. ShipLoop does not launch a fresh model, reset a host context, retain
+continuing. The navigator does not launch a fresh model, reset a host context, retain
 the host handoff, or force any host tool call.
 
 ## Follow the current packet

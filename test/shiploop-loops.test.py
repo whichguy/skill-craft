@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -28,6 +29,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_store as store  # noqa: E402
 
 TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
            "evidence": "Synthetic iteration; no semantic claim.", "handoff": "Synthetic fixture; nothing remains."}
@@ -61,7 +63,7 @@ class Synthetic(unittest.TestCase):
     def state_for(self, stage: str, title: str = "Add parser") -> dict:
         return {
             "repo": str(self.repo), "prompt": "Build a parser for the thing", "run_id": "run-abc123",
-            "stage": "inner-loop", "work_index": 0, "improve_skill": "",
+            "stage": "inner-loop", "work_index": 0, "improve_skill": "", "delegation": "inline",
             "work_items": [{"id": "W1", "title": title}],
             "inner_loops": {"W1": {"stage": stage, "action": {"id": "A-" + stage}}},
             "history": [{"stage": "step-plan", "workitem": "W1", "action": "A-sp", "outcome": "done"}],
@@ -157,6 +159,28 @@ class ContractTests(Synthetic):
                                  (value["work"], value["exit_condition"], value["repeat_condition"],
                                   value["context"]))
                 self.assertEqual(json.loads(receipt.read_text())["status"], "active")
+
+    def test_the_ask_agent_implement_contract_names_every_step_and_the_runtime_starts_from_it(self):
+        """One implement action builds both steps of the plan on the ask-agent route: the exit conditions, the work and the
+        scope all say so, in the runtime's own schema (U11); a one-step plan and the inline route keep the per-step words."""
+        validate = _runtime_module()._validate_contract
+        state = dict(self.state_for("implement"), delegation="ask-agent")
+        writes = self.write(state)
+        value = loops.contract(self.root, state, "A-implement")
+        self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
+        lines = value["exit_condition"].splitlines()
+        self.assertEqual(len(lines), len(stage_spec.stage("implement").done_when))
+        self.assertEqual(lines[0], "1. only the paths of steps S1 to S2 (src/a.py, src/b.py, src/c.py) changed since the "
+                                   "first of them began, and no work outside those steps is in them")
+        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", value["work"])
+        self.assertIn("src/a.py, src/b.py, src/c.py", value["context"]["scope"])
+        receipt = loops.receipt_path(self.root, "A-implement")
+        packet = self.runtime(["start", "--receipt", str(receipt)], writes[loops.contract_path("A-implement")])
+        self.assertEqual((packet["status"], packet["conditions"]["exit"]), ("active", value["exit_condition"]))
+        one = dict(state)
+        one["accepted"] = {"A-sp": dict(state["accepted"]["A-sp"], steps=state["accepted"]["A-sp"]["steps"][:1])}
+        self.assertEqual(loops.contract(self.root, one, "A-implement")["exit_condition"].splitlines()[0],
+                         "1. " + stage_spec.stage("implement").done_when[0])
 
     def test_verify_writes_the_code_craft_rubric_its_contract_names(self):
         writes = self.write(self.state_for("verify"))
@@ -651,6 +675,130 @@ class MissingContractTests(unittest.TestCase):
             real = subprocess.run(cli, capture_output=True, text=True, env=env)
             self.assertEqual(real.returncode, 2, real.stdout + real.stderr)
             self.assertIn("has not run", real.stdout + real.stderr)
+
+
+class WorkTextTests(Synthetic):
+    """The Work and Repeat text of each contract cites the packet's duty items and the one command that tests a draft
+    result; both were false in the artifact run (U11, SP-5, TD-6, SPEC-7, VR-6)."""
+
+    # The pin: how many numbered duty items each inner stage's duty prints (the highest number; verify's item 8, the
+    # assembly check, prints on the ask-agent route only).  A duty edit that adds, drops or renumbers an item fails here,
+    # and the range its Work cites (counted from the same text) moves with it.
+    DUTY_ITEMS = {"step-plan": 12, "test-spec": 7, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
+                  "verify": 12, "carry-forward": 4}
+    # The items each Work cites.  A stage's loop does its whole duty but verify's: items 10 to 12 (commit nothing, the
+    # summary, the revise route) follow the review loop, and its duty says items 1-7 repeat and 8-9 are done once.
+    LOOP_LAST = {"verify": 9}
+
+    def numbers(self, stage: str, route: str) -> list:
+        return [int(n) for n in re.findall(r"(?m)^(\d+)\. ", prompts.duty(stage, delegation=route))]
+
+    def work(self, stage: str, route: str = "inline") -> str:
+        state = dict(self.state_for(stage), delegation=route)
+        return loops.contract(self.root, state, "A-" + stage)["work"]
+
+    def cited(self, work: str) -> list:
+        """The duty items a Work line cites, from "duty items 1-7 and 9 of ..." """
+        found = re.search(r"duty items ([\d, and-]+) of ", work)
+        self.assertTrue(found, work)
+        items = []
+        for part in re.split(r", | and ", found.group(1).strip()):
+            first, _, last = part.partition("-")
+            items += list(range(int(first), int(last or first) + 1))
+        return items
+
+    def test_the_pinned_duty_counts_are_the_counts_the_packet_prints(self):
+        for stage in stage_spec.INNER:
+            for route in prompts.DELEGATIONS:
+                with self.subTest(stage=stage, route=route):
+                    found = self.numbers(stage, route)
+                    self.assertEqual(max(found), self.DUTY_ITEMS[stage])
+                    self.assertEqual(found, sorted(found))
+
+    def test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other(self):
+        for stage in stage_spec.INNER:
+            for route in prompts.DELEGATIONS:
+                with self.subTest(stage=stage, route=route):
+                    printed = [n for n in self.numbers(stage, route) if n <= self.LOOP_LAST.get(stage, 99)]
+                    self.assertEqual(self.cited(self.work(stage, route)), printed)
+
+    def test_the_ranges_read_as_ranges_and_verify_skips_the_assembly_item_inline(self):
+        self.assertIn("duty items 1-12 of ", self.work("step-plan"))
+        self.assertIn("duty items 1-4 of ", self.work("carry-forward", "ask-agent"))
+        self.assertIn("duty items 1-9 of ", self.work("verify", "ask-agent"))
+        self.assertIn("duty items 1-7 and 9 of ", self.work("verify", "inline"))
+
+    def test_the_cited_range_follows_the_duty_text_it_is_generated_from(self):
+        """A renumbering cannot leave a stale range: add an item to a duty and the Work moves with it."""
+        original = prompts.DUTIES["document"]
+        try:
+            prompts.DUTIES["document"] = original + "8. **Extra.** An eighth item.\n"
+            self.assertIn("duty items 1-8 of ", self.work("document"))
+        finally:
+            prompts.DUTIES["document"] = original
+        self.assertIn("duty items 1-7 of ", self.work("document"))
+
+    def test_verify_says_which_items_repeat_and_which_are_done_once(self):
+        text = {route: " ".join(prompts.duty("verify", delegation=route).split()) for route in prompts.DELEGATIONS}
+        self.assertIn("Each review iteration does items 1-7 in order; items 8-9 once, before you report the exit "
+                      "satisfied.", text["ask-agent"])
+        self.assertIn("Each review iteration does items 1-7 in order; item 9 once, before you report the exit "
+                      "satisfied.", text["inline"])
+        # the exit condition that item 9 serves
+        self.assertIn("later-phase checks are marked pending with their owner", stage_spec.stage("verify").done_when[3])
+        for route in prompts.DELEGATIONS:
+            self.assertIn("9. **Later checks.**", prompts.duty("verify", delegation=route))
+
+    def test_the_assembly_item_prints_on_the_ask_agent_route_only(self):
+        self.assertIn("8. **Assembly.**", prompts.duty("verify", delegation="ask-agent"))
+        self.assertNotIn("Assembly", prompts.duty("verify", delegation="inline"))
+
+    def test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command(self):
+        for stage in ("step-plan", "test-spec", "test"):
+            with self.subTest(stage=stage):
+                work = " ".join(self.work(stage).split())
+                self.assertIn("then run the Callback command with `--check-only` added and fix each refusal", work)
+                self.assertNotIn("printed there", work)
+        self.assertIn("(it runs the base run, the candidate run and the mutation check without counting)",
+                      " ".join(self.work("test").split()))
+        self.assertIn("a lint finding or a check-only refusal", loops.REPEAT["test"])
+        for stage in ("document", "implement", "verify", "carry-forward", "validate-existing"):
+            self.assertNotIn("check-only", self.work(stage), stage)
+
+    def test_the_printed_callback_with_the_flag_added_is_a_check_only_run(self):
+        """Paired with the behaviour the sentence describes: the packet prints the Callback, and the same command plus
+        --check-only runs the stage's gates without completing the action."""
+        with tempfile.TemporaryDirectory(prefix="shiploop-check-only-callback-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            run = Path(temp).resolve() / "run"
+            run.mkdir()
+            state = nav.new_state(str(repo), "Build a thing.", delegation="inline")
+            while nav.current_stage(state) != "document":
+                here, action = nav.current_stage(state), nav.current_action(state)["id"]
+                extra = ({"work_items": [{"id": "W1", "title": "one", "context": "c"}]} if here == "plan" else
+                         {"steps": [{"id": "S1", "task": "Make it."}]} if here == "step-plan" else {})
+                state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, action, {"summary": "Synthetic review"})
+            nav.save(run, state)
+            action = nav.current_action(state)["id"]
+            printed = subprocess.run([sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "next",
+                                      "--run-dir", str(run)], capture_output=True, text=True,
+                                     env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
+            label = next(line for line in printed.stdout.splitlines() if line.startswith("Callback for this stage"))
+            command = shlex.split(label.split("): ", 1)[1])
+            result = Path(next(part for part in command if part.startswith("--result=")).split("=", 1)[1])
+            result.parent.mkdir(parents=True, exist_ok=True)
+            result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
+                              "headline": "Docs updated.", "evidence_refs": [str(loops.receipt_path(run, action))]})
+                              + "\n```\n")
+            checked = subprocess.run([*command, "--check-only"], capture_output=True, text=True,
+                                     env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+            self.assertIn("ShipLoop check-only: every script gate for document accepts this result", checked.stdout)
+            self.assertEqual(nav.current_action(store.read_record(run / "state.md"))["id"], action)  # not completed
 
 
 if __name__ == "__main__":

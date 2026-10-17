@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import stat
 from pathlib import Path
@@ -28,6 +29,7 @@ from typing import Any, Mapping, Optional, Sequence
 import shiploop_knowledge_home as knowledge_home
 import shiploop_lint as lint
 import shiploop_loop_contract as loop_contract
+import shiploop_prompts as prompts
 import shiploop_stage_spec as stage_spec
 import shiploop_standalone_improve as standalone
 
@@ -57,29 +59,34 @@ def _need(condition: bool, message: str) -> None:
 _NEVER_CANCEL = "Never stop cancelled: a user's stop is the ShipLoop packet's pause command."
 _NO_LIMIT = "there is no iteration limit."
 
+# ``{items}`` is the duty items the loop does, counted from the duty text the route prints (``_duty_items``), so a duty
+# edit moves the range the Work cites and the Work never cites an item the packet does not print.  The check-only clause
+# is the Callback command with the flag added, which no packet prints as a command of its own.
+_CHECK_ONLY = "run the Callback command with `--check-only` added and fix each refusal"
+
 WORK: Mapping[str, str] = {
     "step-plan": (
-        "Do duty items 1-12 of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then run "
-        "the `complete --check-only` command printed there and fix each refusal."),
+        "Do duty items {items} of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then "
+        + _CHECK_ONLY + "."),
     "test-spec": (
-        "Do duty items 1-6 of {run}/packets/{action}.md, one `test_cases` row per case; then run the `complete "
-        "--check-only` command printed there and fix each refusal."),
+        "Do duty items {items} of {run}/packets/{action}.md, one `test_cases` row per case; then " + _CHECK_ONLY + "."),
     "validate-existing": (
-        "Take the first expectation whose check does not match its state and do duty items 1-2 of "
+        "Take the first expectation whose check does not match its state and do duty items {items} of "
         "{run}/packets/{action}.md for it; then rerun every expectation's check."),
     "implement": (
-        "Do duty items 1-4 of {run}/packets/{action}.md for {step_change}. Write no tests and start no later step."),
+        "Do duty items {items} of {run}/packets/{action}.md for {step_change}. Write no tests and start no later step."),
     "test": (
-        "Do duty items 1-4 of {run}/packets/{action}.md for every test case quoted in the packet until every case "
+        "Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet until every case "
         "is a passing test the focused command runs; write each test change's independent reason in "
-        "{run}/notes/{action}.md."),
+        "{run}/notes/{action}.md; then " + _CHECK_ONLY + " (it runs the base run, the candidate run and the mutation "
+        "check without counting)."),
     "document": (
-        "Do duty items 1-5 of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
+        "Do duty items {items} of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
     "verify": (
-        "Do duty items 1-7 of {run}/packets/{action}.md in order; the review gate needs one complete iteration that "
+        "Do duty items {items} of {run}/packets/{action}.md in order; the review gate needs one complete iteration that "
         "finds only trivial issues."),
     "carry-forward": (
-        "Do duty items 1-3 of {run}/packets/{action}.md; write the skill trial to "
+        "Do duty items {items} of {run}/packets/{action}.md; write the skill trial to "
         "{run}/notes/{action}-skill-trial.md."),
 }
 
@@ -104,7 +111,8 @@ REPEAT: Mapping[str, str] = {
         "revise). " + _NEVER_CANCEL),
     "test": (
         "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
-        "below the floor, a new ID passing on the base, or a lint finding, and changed code or tests to fix it; "
+        "below the floor, a new ID passing on the base, a lint finding or a check-only refusal, and changed code or "
+        "tests to fix it; "
         + _NO_LIMIT + " Stop blocked when a failure is proven unachievable (it contradicts the specification or "
         "another requirement, needs a tool, access or authority that is absent, or would exceed the item), or "
         "when a recorded command cannot run here. " + _NEVER_CANCEL),
@@ -128,10 +136,47 @@ REPEAT: Mapping[str, str] = {
 TRIVIAL_REVIEWS: Mapping[str, int] = {name: (1 if name == "verify" else 0) for name in STAGES}
 
 
-def exit_condition(stage: str) -> str:
+def several_steps(scope: Optional[Mapping[str, Any]]) -> Optional[tuple[str, str]]:
+    """(the steps' name, their paths) when ``scope`` (``implement_scope``) is one action that builds several steps, as the
+    ask-agent route issues it; None for one step."""
+    if scope is None or scope.get("count", 1) <= 1:
+        return None
+    return str(scope["id"]), _paths_text(scope.get("paths") or ())
+
+
+def worded_stage(stage: str, scope: Optional[Mapping[str, Any]] = None) -> stage_spec.Stage:
+    """The stage row as the packet and the loop contract word it.  Implement on a route that builds several steps in one
+    action names those steps and their paths; every other case is the row itself."""
+    row = stage_spec.stage(stage)
+    named = several_steps(scope) if stage == "implement" else None
+    return stage_spec.for_steps(row, *named) if named else row
+
+
+# The last duty item a stage's loop does.  Every stage's loop does its whole duty but verify's: its last three items
+# (commit nothing, the summary, the revise route) follow the review loop.
+_LOOP_LAST: Mapping[str, int] = {"verify": 9}
+
+
+def _duty_items(stage: str, route: str) -> str:
+    """The numbered items of the stage's duty that its loop does, as the packet of ``route`` prints them, written as ranges
+    ("1-12"; "1-7 and 9" where the route omits an item)."""
+    numbers = sorted(int(number) for number in re.findall(r"(?m)^(\d+)\. ", prompts.duty(stage, delegation=route))
+                     if int(number) <= _LOOP_LAST.get(stage, 10 ** 6))
+    ranges: list[str] = []
+    start = previous = numbers[0]
+    for number in [*numbers[1:], None]:
+        if number is not None and number == previous + 1:
+            previous = number
+            continue
+        ranges.append(f"{start}-{previous}" if previous > start else str(start))
+        start = previous = number
+    return ", ".join(ranges[:-1]) + (" and " if len(ranges) > 1 else "") + ranges[-1]
+
+
+def exit_condition(stage: str, scope: Optional[Mapping[str, Any]] = None) -> str:
     """The stage's done_when criteria, numbered one per line: the loop's exit and the packet's DONE WHEN are one text."""
     return "\n".join(f"{number}. {criterion}" for number, criterion
-                     in enumerate(stage_spec.stage(stage).done_when, 1))
+                     in enumerate(worded_stage(stage, scope).done_when, 1))
 
 
 def _check_table() -> None:
@@ -245,9 +290,10 @@ COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; t
 
 def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
-           commands: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
-    """One stage's contract from plain values; ``contract`` supplies them from state."""
-    values = {"run": str(root), "action": action_id, "repo": repo}
+           commands: Sequence[Mapping[str, Any]] = (), route: str = prompts.INLINE) -> dict[str, Any]:
+    """One stage's contract from plain values; ``contract`` supplies them from state (``route``: the delegation the
+    action was issued with, which decides which duty items its packet prints)."""
+    values = {"run": str(root), "action": action_id, "repo": repo, "items": _duty_items(stage, route)}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
@@ -255,7 +301,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
         values["step"] = str(step.get("id"))
         if step.get("all_steps"):
             # The ask-agent route issues one implement action for the whole plan (its chain runs the steps).
-            values["step_change"] = "the change of every step, " + str(step.get("id")) + ", in order,"
+            values["step_change"] = "the change of every step, " + str(step.get("id")) + ", in order"
             scope = (f"Workspace {repo}. Every step of work item {item} ({step.get('id')}): only their paths: "
                      f"{_paths_text(step.get('paths') or ())}. Preserve every other change.")
         else:
@@ -300,7 +346,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
     return loop_contract.contract(
         workspace=repo,
         work=work,
-        exit_condition=exit_condition(stage),
+        exit_condition=exit_condition(stage, step),
         repeat_condition=REPEAT[stage],
         required_trivial_reviews=TRIVIAL_REVIEWS[stage],
         request=(f"ShipLoop {stage} for work item {item} ({title}). The run's request is "
@@ -329,7 +375,8 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
 
         commands = test_loop.stage_commands(state, stage, item)[0]
     return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
-                  step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)
+                  step=implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands,
+                  route=_route(state, action_id))
 
 
 def _route(state: Mapping[str, Any], action_id: str) -> str:
@@ -340,9 +387,10 @@ def _route(state: Mapping[str, Any], action_id: str) -> str:
     return str(state.get("delegation"))
 
 
-def _implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Optional[Mapping[str, Any]]:
+def implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Optional[Mapping[str, Any]]:
     """implement's scope: the current step on the inline route (one action per step), or every step of the plan on the
-    ask-agent route, which issues one implement action whose chain runs them all."""
+    ask-agent route, which issues one implement action whose chain runs them all (``all_steps``; ``count`` is how many,
+    ``id`` names them, "S1 to S2")."""
     if _route(state, action_id) != "ask-agent":
         return current_step(state, item)
     _action, plan = _step_plan(state, item)
@@ -351,7 +399,8 @@ def _implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Opt
         return None
     paths = list(dict.fromkeys(str(path) for row in steps for path in (row.get("paths") or ())))
     ids = [str(row.get("id")) for row in steps]
-    return {"id": ids[0] if len(ids) == 1 else ids[0] + " to " + ids[-1], "paths": paths, "all_steps": True}
+    return {"id": ids[0] if len(ids) == 1 else ids[0] + " to " + ids[-1], "paths": paths, "all_steps": True,
+            "count": len(ids)}
 
 
 def contract_writes(root: Path, state: Mapping[str, Any]) -> dict[str, str]:

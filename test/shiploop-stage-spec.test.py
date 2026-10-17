@@ -7,6 +7,7 @@ change to a stage's behaviour has to change both the table and this suite.
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 import sys
 import unittest
@@ -55,6 +56,29 @@ class StageTableTest(unittest.TestCase):
                 # holds a "; " of its own would read there as two conditions.
                 self.assertTrue(all(";" not in item for item in row.done_when))
                 self.assertEqual(prompts.STAGE_PURPOSE[name], row.short_goal)
+
+    def test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed(self) -> None:
+        """The spec goal said this run's ID changes were in FEATURE/spec.md; there is no FEATURE folder since the
+        knowledge layout moved to HOME (consumer contract 4b), and ShipLoop derives the changes from the spec diff."""
+        for name, row in spec.STAGE_SPEC.items():
+            with self.subTest(stage=name):
+                for text in (row.goal, *row.done_when, row.steps_goal or "", *row.steps_done_when):
+                    self.assertNotIn("FEATURE", text)
+        self.assertIn("ShipLoop derives this run's ID changes from the spec diff", spec.stage("spec").goal)
+
+    def test_the_several_steps_wording_is_a_pair_of_the_goal_and_each_condition_of_one_row(self) -> None:
+        """Only implement words itself for the steps one ask-agent action builds; a condition keeps the row's rules."""
+        self.assertEqual([name for name, row in spec.STAGE_SPEC.items() if row.steps_goal is not None], ["implement"])
+        row = spec.stage("implement")
+        worded = spec.for_steps(row, "S1 to S2", "a.py, b.py")
+        self.assertEqual(len(worded.done_when), len(row.done_when))
+        self.assertTrue(worded.goal.rstrip().endswith("."))
+        self.assertTrue(all(";" not in item for item in worded.done_when))   # the Improve contract joins them with "; "
+        self.assertIn("S1 to S2", worded.goal)
+        self.assertIn("S1 to S2", worded.done_when[0])
+        self.assertEqual(worded.done_when[1], row.done_when[1])               # shared conditions are word for word
+        with self.assertRaises(ValueError):                                   # a goal without one condition per entry
+            dataclasses.replace(row, steps_done_when=row.steps_done_when[:2])
 
     def test_improve_rules(self) -> None:
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({

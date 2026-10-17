@@ -229,11 +229,13 @@ class PacketCompletenessTests(unittest.TestCase):
                 line = lines[0]
                 self.assertNotIn("nothing automatic", line)
                 # Aggressive re-cut: one line, "at done ShipLoop refuses <stage gates>; the usual faults (...)", and the
-                # command that prints every refusal.  (The old "refusal does not advance the run / run the same complete
-                # command again" sentences are gone from the packet; the refusal reply says so.)
+                # command that prints the first refusal (a gate raises at the first fault it finds, so the sentence says
+                # to repeat it until it accepts).
                 self.assertIn("at done ShipLoop refuses ", line)
                 self.assertIn("the usual faults (", line)
-                self.assertIn("`complete --check-only` prints every refusal", line)
+                self.assertIn("`complete --check-only` prints the first refusal without accepting, so repeat it until it "
+                              "accepts", line)
+                self.assertNotIn("every refusal", line)
                 self.assertIn("does not judge the work", line)
                 # Claims no wider than the gates: relative evidence paths are not checked.  No credential pattern is
                 # refused (owner decision 2026-10-16), so the line names none.

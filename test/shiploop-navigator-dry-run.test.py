@@ -116,7 +116,7 @@ class NavigatorDryRunTests(unittest.TestCase):
         # 2026-10-11 dedupe: a packet prints a policy locator once, only when its own text names the
         # label; every policy and guide, and the host-authored lifecycle note, is listed in the run
         # reference file (#policies), which each packet points at.
-        reference = run_reference.render({}, driver.RUN)
+        reference = run_reference.render({"planning_review": "stage"}, driver.RUN)
         policies = {
             'Access-readiness policy': f'{policy}#early-access-readiness',
             'Cross-run knowledge policy': str(policy.parent / 'project-knowledge.md'),

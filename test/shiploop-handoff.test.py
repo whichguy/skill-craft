@@ -14,6 +14,7 @@ import contextlib
 import html
 import io
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -119,6 +120,41 @@ class ReadsTests(RepoCase):
     def test_an_unknown_stage_raises(self) -> None:
         with self.assertRaises(ValueError):
             knowledge.reads_quotes(self.state, "select-work")
+
+class QuotedBelowTests(RepoCase):
+    """A duty says a file is "quoted below" only for a stage whose packet quotes it (U11, rev 4 Step 8.1): the spec duty
+    said so of HOME/spec.md while the spec stage reads nothing whole, so a cleared model looked for a quote that is not
+    in its packet."""
+
+    def duties(self):
+        import shiploop_prompts as prompts
+        for stage in prompts.STAGES:
+            for route in prompts.DELEGATIONS:
+                yield stage, prompts.duty(stage, delegation=route)
+
+    def test_a_duty_names_a_file_as_quoted_below_only_when_its_stage_reads_that_file_whole(self) -> None:
+        said = set()
+        for stage, text in self.duties():
+            for found in re.finditer(r"HOME/([\w.]+)[^\n]{0,80}\(quoted below\)", text):
+                said.add(stage)
+                self.assertIn(found.group(1), EXPECTED_READS[stage], stage + " says " + found.group(0))
+        self.assertEqual(said, {"test-strategy"})      # the one stage that quotes the spec and says so
+
+    def test_the_spec_stage_quotes_nothing_so_its_duty_tells_it_to_read_the_file(self) -> None:
+        import shiploop_prompts as prompts
+        self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
+        self.assertEqual(navigator.reads_lines(self.state, "spec"), [])
+        duty = " ".join(prompts.duty("spec", delegation="inline").split())
+        self.assertIn("Start from HOME/spec.md (read it whole)", duty)
+        self.assertNotIn("quoted below", duty)
+
+    def test_test_strategy_quotes_the_spec_whole_and_is_handed_the_spec_diff(self) -> None:
+        self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
+        lines = navigator.reads_lines(self.state, "test-strategy")
+        self.assertEqual(lines[0], navigator.READS_HEAD)
+        self.assertIn("HOME/spec.md (source: HOME/spec.md, whole file):", lines)
+        self.assertEqual(navigator.CONSUMES["test-strategy"], ("spec_diff",))
+
 
 
 # ------------------------------------------------------------------------------------------------ entries (2.3)

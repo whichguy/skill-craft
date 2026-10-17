@@ -8,70 +8,70 @@
  "heads": {
   "inline": {
    "step-plan": {
-    "head": 20638,
-    "whole": 24448
+    "head": 20578,
+    "whole": 24388
    },
    "test-spec": {
-    "head": 12268,
-    "whole": 14419
+    "head": 12312,
+    "whole": 14463
    },
    "validate-existing": {
-    "head": 11891,
-    "whole": 14860
+    "head": 11938,
+    "whole": 14907
    },
    "implement": {
-    "head": 15436,
-    "whole": 18057
+    "head": 15483,
+    "whole": 18104
    },
    "test": {
-    "head": 15798,
-    "whole": 20005
+    "head": 16026,
+    "whole": 20233
    },
    "document": {
-    "head": 11400,
-    "whole": 13710
+    "head": 11447,
+    "whole": 13757
    },
    "verify": {
-    "head": 15973,
-    "whole": 20203
+    "head": 15853,
+    "whole": 20083
    },
    "carry-forward": {
-    "head": 16877,
-    "whole": 21799
+    "head": 16924,
+    "whole": 21846
    }
   },
   "ask-agent": {
    "step-plan": {
-    "head": 22320,
-    "whole": 27776
+    "head": 22260,
+    "whole": 27716
    },
    "test-spec": {
-    "head": 12268,
-    "whole": 15987
+    "head": 12312,
+    "whole": 16031
    },
    "validate-existing": {
-    "head": 11891,
-    "whole": 16428
+    "head": 11938,
+    "whole": 16475
    },
    "implement": {
-    "head": 16550,
-    "whole": 21213
+    "head": 16597,
+    "whole": 21260
    },
    "test": {
-    "head": 15798,
-    "whole": 21573
+    "head": 16026,
+    "whole": 21801
    },
    "document": {
-    "head": 11400,
-    "whole": 15278
+    "head": 11447,
+    "whole": 15325
    },
    "verify": {
-    "head": 16172,
-    "whole": 21970
+    "head": 16273,
+    "whole": 22071
    },
    "carry-forward": {
-    "head": 18080,
-    "whole": 24570
+    "head": 18127,
+    "whole": 24617
    }
   }
  },

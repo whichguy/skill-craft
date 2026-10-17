@@ -106,7 +106,7 @@ def render(state: Mapping[str, Any], root: Path, version: str = "") -> str:
     root = Path(root)
     repo = Path(str(state.get("repo", "")))
     blocks = {
-        "rules": guidance.COMMON.strip(),
+        "rules": guidance.common_text(state["planning_review"]).strip(),
         "blocked": AWAITING_TEXT,
         "outcomes": OUTCOMES_TEXT,
         "recovery": RECOVERY_TEXT + "\nRecover: python3 " + str(SCRIPTS / "shiploop") + " next --run-dir=" + str(root),
