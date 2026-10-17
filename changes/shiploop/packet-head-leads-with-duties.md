@@ -15,3 +15,8 @@ knowledge files and hand-offs are dropped from the head first when it would pass
   layout to the status block.
 - The head's footer and SKILL.md no longer tell the model not to re-read "the Improve card"; the Improve stage's packet says
   to invoke the skill every time.
+
+Two smaller wording changes ship with it. The opener of every packet now reads "Execute the prompt in a fresh context."
+(it said "Clear and then execute the prompt.", which contradicted the packet's own rule never to pause for a context
+clear). The Improve packet now tells the model to invoke the improve skill at every Improve stage, not from memory of an
+earlier one. The E2E harness readers follow the new head to its closing line.
