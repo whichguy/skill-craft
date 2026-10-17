@@ -1964,8 +1964,8 @@ class TestLoopTests(unittest.TestCase):
                      "any test changed to pass a run and its independent reason", "ShipLoop's records hold the counts"):
             self.assertIn(need, summary)
         self.restart()
-        self.drive_to("verify")  # another looped stage keeps the generic placeholder
-        self.assertEqual(self.template_of(self.head())["summary"], "...")
+        self.drive_to("verify")  # another looped stage has its own placeholder (U25: what its duty 11 used to list)
+        self.assertEqual(self.template_of(self.head())["summary"], prompts.summary_placeholder("verify"))
 
 
 class ItemScopePathClassTests(unittest.TestCase):

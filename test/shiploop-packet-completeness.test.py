@@ -488,8 +488,10 @@ class ObservedHarmPacketTests(unittest.TestCase):
         # sections; duty 3 puts each planned check's runner output in `evidence_refs`.
         self.assertIn("Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands", text)
         self.assertIn("Record not-applicable only when this candidate needs no preparation", text)
-        self.assertIn("Start each planned check's runner, the linters and the fixtures; save the output and list "
-                      "each file in `evidence_refs`", text)
+        # U25: "start" means the no-op form, which proves the runner starts without running the suite.
+        self.assertIn("Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, "
+                      "dry run or help that proves it starts, not the suite); save the output and list each file in "
+                      "`evidence_refs`", text)
 
 
 class KnowledgeGroundingPacketTests(unittest.TestCase):
@@ -1140,6 +1142,62 @@ class ProseSymbolsTests(unittest.TestCase):
         self.assertEqual(navigator.symbolic("see " + str(self.GUIDES / "navigator.md#x") + " and " + str(self.RUN / "state.md"),
                                             self.RUN, self.state(), CORE), "see GUIDES/navigator.md#x and RUN/state.md")
         self.assertEqual(navigator.reference_paths(self.RUN, self.state(), CORE)["GUIDES"], str(self.GUIDES.resolve()))
+
+
+_TEMPLATE_SUMMARY = re.compile(r'(?m)^\s*"summary": ("(?:[^"\\]|\\.)*")')
+
+
+class SummaryPlaceholderTests(unittest.TestCase):
+    """U25 (rev 4 Step 8.2): every producer result template's `summary` says what only this result records, printed once
+    in the head, and the gate refuses a summary still equal to a placeholder (a copied template is not a result)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
+        import obligations
+        cls.packets = [p for p in obligations.all_packets() if p["kind"] == "producer"]
+
+    def test_every_producer_template_prints_its_stage_placeholder_once_in_the_head(self) -> None:
+        stages = set()
+        for packet in self.packets:
+            with self.subTest(where=packet["where"]):
+                stage, head = packet["stage"], packet["printed"]
+                expected = (navigator.TEST_SUMMARY_PLACEHOLDER if stage in test_loop.STAGES
+                            else prompts.summary_placeholder(stage))
+                found = _TEMPLATE_SUMMARY.search(head.split("Result template:", 1)[1])
+                self.assertIsNotNone(found, "no summary in the printed template")
+                self.assertEqual(json.loads(found.group(1)), expected)
+                self.assertEqual(head.count(expected), 1, "the placeholder is printed once in the head")
+                stages.add(stage)
+        self.assertEqual(stages, set(prompts.STAGES), "the walk reached every producer stage")
+
+    def test_the_stage_placeholders_carry_what_their_duties_used_to_say_and_the_duties_point_to_them(self) -> None:
+        self.assertIn("S<n>", prompts.summary_placeholder("intake"))
+        self.assertIn("cited S<n>", flat(prompts.DUTIES["intake"]))
+        self.assertIn("each value all cases share, once", prompts.summary_placeholder("test-spec"))
+        self.assertNotIn("Summary: which harness and suite decisions", flat(prompts.DUTIES["test-spec"]))
+        self.assertIn("entry points traced", prompts.summary_placeholder("verify"))
+        self.assertNotIn("entry points traced", prompts.DUTIES["verify"])
+        self.assertIn("key reference statements", prompts.summary_placeholder("plan"))
+        self.assertNotIn("key reference statements", prompts.DUTIES["plan"])
+        # SP-8: duty 9 opens with the record's status and its scope; the closing sentence that said it is gone.
+        step_plan = flat(prompts.DUTIES["step-plan"])
+        self.assertIn("9. **Plan record** in the item's `context` or the summary (supporting reference; each step's task "
+                      "and criteria stay its only directive), for the topics this item touches only:", step_plan)
+        self.assertEqual(step_plan.count("stay its only directive"), 1)
+
+    def test_a_summary_still_equal_to_a_placeholder_is_refused_and_a_written_one_is_accepted(self) -> None:
+        texts = (prompts.SUMMARY_PLACEHOLDER, *prompts.SUMMARY_PLACEHOLDERS.values(), navigator.TEST_SUMMARY_PLACEHOLDER)
+        for text in texts:
+            with self.subTest(text=text[:40]):
+                state = navigator.new_state("/simulation-only/repo", "Build a thing.", delegation="inline")
+                action = navigator.current_action(state)["id"]
+                with self.assertRaisesRegex(navigator.NavigatorError, "summary still holds the template placeholder"):
+                    navigator.apply(state, action, {"outcome": "done", "summary": "  " + text.replace(" ", "\n", 1)})
+        state = navigator.new_state("/simulation-only/repo", "Build a thing.", delegation="inline")
+        after = navigator.apply(state, navigator.current_action(state)["id"],
+                                {"outcome": "done", "summary": "S1: build the thing; no open question."})
+        self.assertNotEqual(navigator.current_stage(after), "intake")
 
 
 if __name__ == "__main__":

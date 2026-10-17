@@ -760,13 +760,35 @@ _CARRY_FORWARD_ONE_STEP = """\
 
 # Placeholders duty() fills from the run: the Backchain item of spec and plan (by the run's Backchain passes option)
 # and the item commit rule of document and verify (by the run's execution mode).
+# The result template's `summary` placeholder per producer stage (U25, rev 4 Step 8.2): it says what only this result
+# records, so a model fills the summary instead of restating the request, the spec or the files it wrote.  A stage whose
+# duty used to describe its summary carries that description here instead (printed once, in the template); the test
+# stage keeps the navigator's TEST_SUMMARY_PLACEHOLDER.  The gate refuses a summary still equal to one of these.
+SUMMARY_PLACEHOLDER = "<decisions, defaults, open questions and owners only this result records; no restatement>"
+SUMMARY_PLACEHOLDERS = {
+    "intake": "<one clause per request sentence S<n>: the outcome, boundary, default or open question it maps to>",
+    "plan": ("<this pass's key reference statements, decisions, constraints and acceptance context; not a replacement "
+             "assignment or a restatement of the request>"),
+    "test-spec": ("<which recorded harness and suite decisions this item keeps, refines or supersedes, and why; each "
+                  "value all cases share, once>"),
+    "verify": ("<entry points traced; each trace's issue and fix; each command's exit code; each required check not run "
+               "and why; known limitations>"),
+}
+
+
+def summary_placeholder(stage: str) -> str:
+    """The `summary` placeholder of ``stage``'s result template: its own, else the generic one."""
+    return SUMMARY_PLACEHOLDERS.get(stage, SUMMARY_PLACEHOLDER)
+
+
 _BACKCHAIN_ITEM = "<<backchain item>>"
 _ITEM_COMMIT = "<<item commit rule>>"
 
 DUTIES = {
     "intake": """\
-1. Map each sentence of the request to an outcome, boundary or open question in `summary`. Boundaries: repository and
-   run scope, user constraints, authority limits, consumers and entry points, risks. Mark each fact or assumption.
+1. Cover each request sentence in `summary`, do not copy it: one clause each, cited S<n> (S1 is the first), as the
+   template's summary says. Boundaries: repository and run scope, user constraints, authority limits, consumers and
+   entry points, risks. Mark each fact or assumption.
 2. Each open question: who answers it (discovery or a recorded default), what it blocks, what discovery must
    establish first.
 3. List discovery's source hints in `summary` (team or workspace, channels, internal sites and docs, private
@@ -889,8 +911,9 @@ DUTIES = {
    or tests.
 2. Write each requirement under HOME/spec.md ## Requirements as R-<n> with its acceptance criteria inside
    (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each criterion: positive,
-   failure and boundary expectations, the consumer surface where it is observed, how it is confirmed. Split
-   independently verifiable clauses; keep bundled behaviours visible under one ID.
+   failure and boundary expectations, each only where it says something the others do not, otherwise `n/a: <reason>`;
+   the consumer surface where it is observed; how it is confirmed. Split independently verifiable clauses; keep
+   bundled behaviours visible under one ID.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
    HOME/architecture.md ## Decisions, never in HOME/spec.md; a product decision never takes the AD- prefix.
 4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Mark
@@ -956,9 +979,10 @@ DUTIES = {
    Per command: inclusion rule, expected cost, environment and fixture prerequisites, the test IDs it may print.
    A passing command names the IDs or cases it ran. This section owns the suite commands; fix any stale copy. Plan
    durable regression tests, not one-off probes. Smoke is a bounded subset, never evidence for the full suite.
-10. Under HOME/environment.md ## ID convention declare each ID as tests will be titled. """ + ID_WORD_RULE + """
-11. A case needing a host tool (browser, device, account, service): name it and probe it now by doing the case's
-    first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
+10. Under HOME/environment.md ## ID convention declare each ID as tests will be titled; choose IDs legal in the
+    runner's test names (`TC_1` where a hyphen is not). """ + ID_WORD_RULE + """
+11. A case needing a host tool (browser, device, account, service): name it (the host's tool listing is the probe that
+    it exists) and probe it now by doing the case's first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
     opened by `file:` URL or a throwaway static server you stop, its title read back; for an account or service, a
     harmless read. Cite the output in `evidence_refs`. Record only a failed probe as an access gap under
     ## Real-boundary checks with the requirement left unobserved. Give the case its own opt-in command or flag so the
@@ -1073,10 +1097,9 @@ DUTIES = {
     open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it.
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
-18. `summary` keeps this pass's key reference statements, decisions, constraints and acceptance context, as
-    supporting references, not a replacement assignment or a restatement of the request; each item's ready and done
-    conditions stay its only execution directive. `evidence_refs`: HOME/architecture.md, any execution graph, every
-    source used. An unrecorded conversation is not a handoff.
+18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
+    `evidence_refs`: HOME/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
+    handoff.
 19. """ + _BACKCHAIN_ITEM + """
 """,
     "prepare": """\
@@ -1084,8 +1107,8 @@ DUTIES = {
    (Environment preparation guidance), using what the repository declares. Install nothing without authority.
 2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
    baseline identity (Workspace and return guidance).
-3. Start each planned check's runner, the linters and the fixtures; save the output and list each file in
-   `evidence_refs`.
+3. Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help
+   that proves it starts, not the suite); save the output and list each file in `evidence_refs`.
 4. Baseline blocked by setup or access (Initial repository baseline guide): prepare only the approved prerequisite,
    keep the original observation, and rerun the original initial check on the unchanged product and tests before any
    dependent feature edit. Never replace it with an easier route or call the blocked baseline passed.
@@ -1120,13 +1143,13 @@ Change no product file in this stage.
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable
      behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
-     "and", or too large for one review. Merge a step no check confirms alone (half a rename, unused scaffolding)
-     into the step it serves. A single bug fix or mechanical rename is one step.
+     "and", or too large for one review. Fold a step no check confirms alone (half a rename, scaffolding) into the
+     first step that uses it. A single bug fix or mechanical rename is one step.
    - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
      files is refused unless the whole item is tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
-     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`). Every criterion is satisfied by
-     some step.
+     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`); its `task` cites IDs, not their
+     text. Every criterion is satisfied by some step.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
      reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
@@ -1137,7 +1160,7 @@ Change no product file in this stage.
      where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
-     `ids` or `min_tests`. None: `check_na` with the reason; no command at all: `test_commands_na`.
+     `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
@@ -1150,7 +1173,8 @@ Change no product file in this stage.
    stage writes. The item commit takes these, the changed documentation and HOME/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in HOME/spec.md or HOME/architecture.md.
-9. **Plan record** in the item's `context` or the summary:
+9. **Plan record** in the item's `context` or the summary (supporting reference; each step's task and criteria stay
+   its only directive), for the topics this item touches only:
    - outcome and invariants kept; contracts and responsibilities that change;
    - target files, interfaces and conventions, matched to the house style (House-style guidance);
    - each step's failure cases and the diagnostics and errors it must produce;
@@ -1161,7 +1185,6 @@ Change no product file in this stage.
    - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
      interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
      topic, opening only its matching section.
-   This record is supporting reference; each step's task and criteria stay its only directive.
 10. **Knowledge.** A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
     in HOME/.
@@ -1188,8 +1211,7 @@ Write no test code in this stage.
 6. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
    `assumption`; `check`; `consumer` = that outer stage; owner). Confirmed only by a check command or inspection: no
    case; list it with its command in the summary. Untestable as written: report revise naming it.
-7. Summary: which harness and suite decisions in HOME/environment.md this item keeps, refines or supersedes, and
-   why. evidence_refs: their locators, the step plan's, the requirement sections used.
+7. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
 """,
     "validate-existing": """\
 1. ShipLoop ran each expectation's check, and each open plan assumption this item settles, on the unchanged item

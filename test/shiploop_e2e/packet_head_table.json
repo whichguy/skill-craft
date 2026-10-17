@@ -12,11 +12,11 @@
       "test": 17842,
       "document": 14068,
       "verify": 18188,
-      "carry-forward": 18028,
+      "carry-forward": 18114,
       "carry-forward-improve": 2642
     },
     "inline/163/96": {
-      "step-plan": 19817,
+      "step-plan": 19953,
       "step-plan-improve": 3033,
       "test-spec": 15909,
       "test-spec-improve": 2265,
@@ -30,17 +30,17 @@
       "carry-forward-improve": 2962
     },
     "ask-agent/83/96": {
-      "step-plan": 19449,
+      "step-plan": 19628,
       "step-plan-improve": 2713,
-      "test-spec": 12856,
+      "test-spec": 12886,
       "test-spec-improve": 1945,
-      "validate-existing": 12562,
-      "implement": 17217,
+      "validate-existing": 12648,
+      "implement": 17303,
       "implement-improve": 2654,
       "test": 17842,
       "document": 15636,
       "verify": 18608,
-      "carry-forward": 19294,
+      "carry-forward": 19380,
       "carry-forward-improve": 2642
     },
     "ask-agent/163/96": {

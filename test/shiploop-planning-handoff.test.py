@@ -91,7 +91,8 @@ class PlanningHandoffTests(unittest.TestCase):
         "prepare": "save the output and list each file in `evidence_refs`",
         "step-plan": "absolute paths of every planning file written, and the requirement sections and test locators "
                      "used",
-        "test-spec": "evidence_refs: their locators, the step plan's, the requirement sections used.",
+        "test-spec": "evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections "
+                     "used.",
         "system-test-author": "`evidence_refs`: the action, result and test-note locators used.",
         "release-plan": "Cite HOME/environment.md in `evidence_refs`",
     }

@@ -69,8 +69,9 @@ Use the packet's exact command and absolute selected-card path; never substitute
 
 ## Consumer-delivery pilot
 
-For a new run explicitly piloting consumer-delivery declaration checks, add
-`--delivery-contract` to `workspace start` (or direct `init`). Read
+Add `--delivery-contract` to `workspace start` (or direct `init`) only when the
+request or the host asks for consumer-delivery declaration checks; never add it
+unasked. Read
 [consumer delivery](consumer-delivery.md) before starting a
 deploy-and-interact pilot so its declared behavior obligations are enabled from
 initialization. That reference defines the result contract, source-only cases,

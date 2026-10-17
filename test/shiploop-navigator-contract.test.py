@@ -1321,8 +1321,11 @@ class NavigatorContractTests(unittest.TestCase):
             with self.subTest(stage=stage, check="current item decision carry-forward"):
                 instruction = " ".join(prompts.prompt(stage).split())
                 if stage == "test-spec":
-                    self.assertIn("which harness and suite decisions in HOME/environment.md this item keeps, "
-                                  "refines or supersedes, and why", instruction)
+                    # U25: the summary's content moved from duty 7 to the template's summary placeholder (printed
+                    # once, in the head; ledger row test-spec-summary).
+                    self.assertIn("which recorded harness and suite decisions this item keeps, refines or "
+                                  "supersedes, and why", prompts.summary_placeholder(stage))
+                    self.assertIn("the harness and suite decision locators", instruction)
                 else:
                     self.assertIn("Reopen the item's test decision and HOME/environment.md's harness and suite "
                                   "decisions", instruction)
@@ -3517,7 +3520,8 @@ class PlanningReviewNoneTest(unittest.TestCase):
         for mode in self.MODES:
             with self.subTest(mode=mode):
                 sp = self.flat(prompts.prompt("step-plan", delegation="inline", planning_review=mode))
-                self.assertIn("each step's task and criteria stay its only directive.", sp)
+                # U25 (SP-8): duty 9 opens with this sentence now, inside its parenthesis.
+                self.assertIn("(supporting reference; each step's task and criteria stay its only directive)", sp)
                 self.assertNotIn("Each reviewed step's", sp)
                 plan = self.flat(prompts.prompt("plan", delegation="inline", planning_review=mode))
                 self.assertIn("each item's ready and done conditions stay its only execution directive.", plan)
@@ -3597,7 +3601,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
             with self.subTest(delegation=delegation):
                 duty = self.flat(prompts.duty("step-plan", delegation=delegation, planning_review="none"))
                 self.assertNotIn("Improve", duty)
-                self.assertIn("each step's task and criteria stay its only directive.", duty)
+                self.assertIn("each step's task and criteria stay its only directive)", duty)
                 self.assertNotIn("Each reviewed step's", duty)
                 for mode in self.MODES:
                     packet = self.flat(self.packet("step-plan", mode, delegation))

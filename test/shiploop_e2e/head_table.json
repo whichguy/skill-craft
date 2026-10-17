@@ -1,5 +1,5 @@
 {
- "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), re-measured 2026-10-17 on the merge of wave 2 (U2 not yet merged) into the integration branch: every head fits the 20,000-character host cut (inline step-plan 19,988 is the tightest)",
+ "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), re-measured 2026-10-17 on the merge of wave 2 (U2 not yet merged) into the integration branch: every head fits the 20,000-character host cut (inline step-plan 19,988 is the tightest); raised 2026-10-17 by U25 (structure wording: each result template's summary placeholder, +86 per inner stage without its own placeholder, +30 test-spec, +179 ask-agent step-plan with the step-plan duty wording; verify -7): the 20,000 cut and the 19,500 required-text bound still hold (shiploop-head-order)",
  "reference": {
   "run_dir_length": 83,
   "root_length": 63,
