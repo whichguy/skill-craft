@@ -332,7 +332,10 @@ Improve is a stage of its own in the sequence (`improve`), with its own action i
 reviewed stage; the dry run lists an `improve` row after each. At the transition ShipLoop binds the
 recorded card, writes the child's opening itself and starts the child, so the model never writes an opening
 or starts the runtime. The Improve packet has two lines: run the improve skill on the handoff, then
-`complete --action=<improve id>`. Every improve-* command (`improve-bind`, `improve-commit`,
+`complete --action=<improve id>`; after each review pass the model writes `review-<n>.md` and runs `improve-pass`,
+which checks the recorded improve-skill call, commits the pass's edits, writes `checks.md` for an unchanged tree and
+the runtime report, and prints the runtime's `done` and the stage's `complete`, literal. Every improve-* command
+(`improve-bind`, `improve-commit`, `improve-pass`,
 `improve-reconcile`, `improve-start --restart-stopped`) and that `complete` name the Improve stage's
 id, never the reviewed action's id. (Before 2026-10-11 the model wrote the opening, ran
 `improve-start --opening` and finished with `improve-complete`; that verb is gone.)

@@ -994,6 +994,7 @@ shiploop complete --run-dir RUN --action IMPROVE_ID [--notes LESSONS.md] [--fina
 shiploop improve-bind --run-dir RUN --action IMPROVE_ID --skill-card ABSOLUTE_SKILL_CARD
 shiploop improve-start --run-dir RUN --action IMPROVE_ID --restart-stopped
 shiploop improve-commit --run-dir RUN --action IMPROVE_ID --message MESSAGE_FILE [--remote-change]
+shiploop improve-pass --run-dir RUN --action IMPROVE_ID [--no-commit=TEXT]   # one review pass: commit, checks.md, runtime report; prints done and complete
 shiploop improve-reconcile --run-dir RUN --action IMPROVE_ID --result RECONCILIATION.md
 # Run control
 shiploop pause    --run-dir RUN --reason=TEXT
@@ -1038,7 +1039,7 @@ never gates.
 [graph dry runs](references/graph-dry-run.md).
 
 The packet is authoritative for `complete`, `improve-bind`, `improve-start`,
-`improve-commit` and `improve-reconcile` arguments and for recovery; the improve-* verbs and the
+`improve-commit`, `improve-pass` and `improve-reconcile` arguments and for recovery; the improve-* verbs and the
 Improve stage's `complete` take the Improve stage's id, and a command given the reviewed action's id
 is refused. A parent imports only
 matching accepted child evidence and never replaces a blocked child with a

@@ -43,7 +43,7 @@ WRAPPER_LINES = {
     "next": "shiploop next — reprint stdout\n",
 }
 PACKET_VERBS = {
-    "init", "next", "context", "complete", "improve-bind", "improve-start",
+    "init", "next", "context", "complete", "improve-bind", "improve-start", "improve-pass",
     "improve-reconcile", "pause", "resume", "halt", "delegation", "lint-mode",
 }
 INTERPRETER = re.compile(r"python(\d+(\.\d+)*)?$")

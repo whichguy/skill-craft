@@ -378,6 +378,31 @@ def _skill_call_gate(core: Any, root: Path, state: Mapping[str, Any], child: Map
     is returned, and ``complete`` says it once when it accepts the import (a notice before a refusal would displace the
     refusal's first line, which is the fix).
     """
+    import shiploop_skill_calls as skill_calls
+    why, call = _skill_call_record(root, state, child)
+    if why is not None or call is not None:
+        return why
+    argument = IMPROVE_ARGUMENT_PREFIX + str(improve_handoff_path(child))
+    if _child_status(child) == "complete":
+        # The loop already ended (IMP-2: in 3 of 4 live reviews the runtime's done and complete ran in one shell call), so
+        # a Skill call now would find a finished loop and review nothing: the named exit starts the review again.
+        raise NavigatorError(
+            "Run the improve skill on this " + child["stage"] + " result first: no call to it has been recorded since "
+            "this Improve stage started (" + str(root / skill_calls.RECORD_FILE) + "), and its review loop has already "
+            "ended, so a call now would review nothing: start the review again with "
+            + _callback(core, root, "improve-start", action=child["improve_action"]) + " --restart-stopped"
+            + ", invoke the Skill tool with skill \"improve\" and args \"" + argument + "\" and let it finish its "
+            "review, then run: " + _callback(core, root, "complete", action=child["improve_action"]))
+    raise NavigatorError(
+        "Run the improve skill on this " + child["stage"] + " result first: no call to it has been recorded since this "
+        "Improve stage started (" + str(root / skill_calls.RECORD_FILE) + "). Invoke the Skill tool with skill \"improve\" "
+        "and args \"" + argument + "\", let the skill finish. Any --final-result, --notes or --no-commit you meant to submit "
+        "belong on this command too; then run: "
+        + _callback(core, root, "complete", action=child["improve_action"]))
+
+
+def _skill_call_record(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[str | None, dict | None]:
+    """(why the improve-skill call is not enforced here, or None; the recorded call for this Improve stage, or None)."""
     import shiploop_keepalive as keepalive
     import shiploop_skill_calls as skill_calls
     import shiploop_standalone_improve as standalone
@@ -385,22 +410,24 @@ def _skill_call_gate(core: Any, root: Path, state: Mapping[str, Any], child: Map
     if delegation(state) != guidance.INLINE:
         enforce, why = False, "this review runs in a fresh worker, not in this session (delegation ask-agent)"
     if not enforce:
-        return why
+        return why, None
     try:
         since = standalone.receipt_path(child).with_name("start.json").stat().st_mtime
     except OSError:
         since = 0.0
     handoff = improve_handoff_path(child)
     tokens = (str(handoff), os.path.realpath(handoff), child["improve_action"], child["action_id"])
-    if skill_calls.improve_call_since(root, since, tokens) is not None:
+    return None, skill_calls.improve_call_since(root, since, tokens)
+
+
+def _child_status(child: Mapping[str, Any]) -> str | None:
+    """The status of the child's saved runtime packet (active, complete, stopped), or None when none is readable."""
+    import shiploop_standalone_improve as standalone
+    try:
+        packet = json.loads(standalone.receipt_path(child).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
         return None
-    argument = IMPROVE_ARGUMENT_PREFIX + str(handoff)
-    raise NavigatorError(
-        "Run the improve skill on this " + child["stage"] + " result first: no call to it has been recorded since this "
-        "Improve stage started (" + str(root / skill_calls.RECORD_FILE) + "). Invoke the Skill tool with skill \"improve\" "
-        "and args \"" + argument + "\", let the skill finish. Any --final-result, --notes or --no-commit you meant to submit "
-        "belong on this command too; then run: "
-        + _callback(core, root, "complete", action=child["improve_action"]))
+    return packet.get("status") if isinstance(packet, dict) else None
 
 
 def _improve_child_for(state: Mapping[str, Any], action_id: Any) -> Mapping[str, Any] | None:
@@ -5631,6 +5658,8 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
                   "   (the Skill tool, skill \"improve\", with that argument, at every Improve stage and not from "
                   "memory of an earlier one; on another host, open "
                   + child["skill"]["skill_card"] + " and pass the same argument)",
+                  "   After each review pass, write its review-<n>.md (form: the handoff's Evidence line), then run: "
+                  + _callback(core, root, "improve-pass", action=improve_id(state)),
                   "2. When the improve skill has completed, run: "
                   + _callback(core, root, "complete", action=improve_id(state))]
     lines += [
@@ -5923,10 +5952,15 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         + _improve_rerun_clause(child["stage"])
         + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the complete command with --no-commit.",
         "Evidence: write each review pass to " + str(evidence_root / "review-<n>.md") + " (n = the pass "
-        "number: review-1.md, review-2.md, ...) and the current check output to "
-        + str(evidence_root / "checks.md") + ". The complete command imports the final pass (the last review file) "
-        "and checks.md; nothing else to list. A plan/RED "
-        "disposition is checked against its own criteria, not future product success.",
+        "number: review-1.md, review-2.md, ...) with a file-writing tool, in this form: " + REVIEW_FORM + ". improve-pass, not you, writes the runtime's "
+        "report for each pass: it refuses until the improve skill's call is recorded, commits this pass's edits with the message in " + str(improve_commit_message_path(child))
+        + " (a subject, `Key learnings:`, optional `Learned-from:`), writes " + str(evidence_root / "checks.md")
+        + " itself when the tree is unchanged since the bind (after an edit, write the output of the checks you ran "
+        "there first: one older than the last edit is refused), and prints the runtime's done command for this pass "
+        "and this stage's complete command, literal; run them as printed. The complete command imports the final "
+        "pass (the last review file) and checks.md; nothing else to list. A plan/RED "
+        "disposition is checked against its own criteria, not future product success. After each pass, run:",
+        _callback(core, root, "improve-pass", action=improve_id(state)),
         "Optional, for later steps: lessons in a plain-text file passed as --notes " + str(notes_path) + ".",
         "Temporary files, including each report you pass to the runtime on standard input, go in "
         + str(scratch_dir(root)) + " with names of your own: /tmp is shared with other runs, so a fixed "
@@ -6510,8 +6544,8 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
                  "policy with the task's explicit overrides above, but commit only with improve-commit, never git "
                  "commit; stage only intended paths, never runtime receipts or unrelated staging, no empty commit "
                  "except a recorded remote change. No push or merge. The child runs no ShipLoop callback except "
-                 "improve-commit; its command and rules, and the return the parent runs after the terminal packet, "
-                 "are in " + str(parent_return) + ".")
+                 "improve-pass and improve-commit; their commands and rules, and the return the parent runs after the "
+                 "terminal packet, are in " + str(parent_return) + ".")
     resources = [
         {"purpose": "selected Improve card", "locator": child["skill"]["skill_card"]},
         {"purpose": "bound Until Loop card", "locator": child["skill"]["runtime_card"]},
@@ -6584,7 +6618,7 @@ def _lessons_and_citations_refusal(repo: Path, message: str, message_path: Path,
     return "\n".join(lines), message
 
 
-def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
+def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, *, rerun: str | None = None) -> int:
     """Commit exactly the files the bound Improve review changed and has not committed yet.
 
     The checks run in this order: the message file; the bound child and its bind snapshot; nothing to commit (a
@@ -6601,8 +6635,9 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     action_id = child["action_id"]
     message_path = improve_commit_message_path(child)
     remote = bool(getattr(args, "remote_change", False))
-    command = (_callback(core, root, "improve-commit", action=improve_id(state), message=str(message_path))
-               + (" --remote-change" if remote else ""))
+    # ``rerun`` is the command a refusal names instead (improve-pass composes the pass's commit through this function).
+    command = rerun or (_callback(core, root, "improve-commit", action=improve_id(state), message=str(message_path))
+                        + (" --remote-change" if remote else ""))
     _need(getattr(args, "message", None) == str(message_path),
           "the commit message must be the printed file " + str(message_path) + "; run: " + command)
     _need(message_path.is_file() and not message_path.is_symlink(),
@@ -6649,6 +6684,226 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + "." if pending else
           "Committed this review's remote change as " + head[:12] + ": it changed no file.")
     return 0
+
+
+# --- improve-pass: the script-written pass tail (rev 4 Step 6.3; IMP-2, IMP-5, IMP-8, IMP-11) ---------------------------
+
+# The review file's front matter (key, the runtime report field it fills, the values the runtime accepts) and its labels.
+REVIEW_FRONT = (("classification", "classification", ("trivial", "non-trivial", "unresolved")),
+                ("exit", "exit_assessment", ("satisfied", "unsatisfied", "unknown")),
+                ("continuation", "continuation_assessment", ("allowed", "blocked", "cancelled")))
+REVIEW_LABELS = ("Read", "Found", "Changed", "Checked", "Class")
+REVIEW_FORM = ("front matter between two `---` lines with `classification:` trivial|non-trivial|unresolved, `exit:` "
+               "satisfied|unsatisfied|unknown and `continuation:` allowed|blocked|cancelled; then one line each for "
+               "`Read:`, `Found:`, `Changed:`, `Checked:` and `Class:` (what this pass read, found, changed, ran and why "
+               "its classification); then a `## Handoff` section (the compact handoff a fresh context continues from)")
+PASSES_FILE = "passes.md"
+_LABEL_LINE = re.compile(r"^(?:#{1,6}\s+)?\**(" + "|".join(REVIEW_LABELS) + r")\**\s*:?\**\s*(.*)$")
+
+
+def _review_form(text: str) -> tuple[dict[str, str], dict[str, str], str, list[str]]:
+    """(front matter, label texts, handoff, what is missing) of one review-<n>.md."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    front: dict[str, str] = {}
+    body = lines
+    if lines and lines[0].strip() == "---" and "---" in (line.strip() for line in lines[1:]):
+        end = next(index for index in range(1, len(lines)) if lines[index].strip() == "---")
+        for line in lines[1:end]:
+            key, sep, value = line.partition(":")
+            if sep:
+                front[key.strip().lower()] = value.strip().strip("`'\"").lower()
+        body = lines[end + 1:]
+    labels: dict[str, str] = {}
+    handoff: list[str] = []
+    current: str | None = None
+    for line in body:
+        if re.fullmatch(r"#{1,6}\s+Handoff\s*:?\s*", line.strip(), re.IGNORECASE):
+            current = "## Handoff"
+            continue
+        match = _LABEL_LINE.match(line.strip()) if current != "## Handoff" else None
+        if match is not None:
+            current = match.group(1)
+            labels[current] = match.group(2).strip()
+        elif current == "## Handoff":
+            handoff.append(line)
+        elif current is not None and line.strip():
+            labels[current] = (labels[current] + " " + line.strip()).strip()
+    missing = [key + " (" + "|".join(allowed) + ")" for key, _field, allowed in REVIEW_FRONT
+               if front.get(key) not in allowed]
+    missing += [label + ":" for label in REVIEW_LABELS if not labels.get(label)]
+    if not "\n".join(handoff).strip():
+        missing.append("## Handoff")
+    return front, labels, "\n".join(handoff).strip(), missing
+
+
+def _head_commit(repo: Path) -> str | None:
+    found = shiploop_git.git(repo, "rev-parse", "--verify", "-q", "HEAD")
+    return found.stdout.strip() if found.returncode == 0 and isinstance(found.stdout, str) else None
+
+
+def _producer_checks(root: Path, action_id: str) -> str:
+    """The reviewed action's latest ShipLoop test record, as checks.md names it."""
+    number = test_loop._verify_count(root, action_id)
+    if not number:
+        return "none recorded by ShipLoop for " + action_id
+    relative = test_loop.verify_path(action_id, number)
+    record = store.read_record(root / relative)
+    runs = list(record.get("runs") or ()) if isinstance(record, Mapping) else []
+    ran = sum(int((run.get("counts") or {}).get("ran") or 0) for run in runs if isinstance(run, Mapping))
+    codes = sorted({run.get("exit") for run in runs if isinstance(run, Mapping)}, key=str)
+    return (str(root / relative) + " (" + str(ran) + " ran, exit " + (", ".join(map(str, codes)) or "none")
+            + ("" if isinstance(record, Mapping) and record.get("passed") else ", not passed") + ")")
+
+
+def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
+    """improve-pass: check one review pass, commit its edits, write its evidence, print the runtime's done (IMP-2/5/8).
+
+    The model writes ``review-<n>.md`` (and a commit message when the pass changed files); ShipLoop composes the
+    runtime report from it and from what it measures, so the model types no report JSON, no checks claim and no
+    command through shell variables.  Gate order: the Improve stage and its active loop; the improve-skill call
+    (before any ``done`` exists); the review file's form; the pass's commit; checks.md.  It prints, literal and
+    absolute, the runtime's ``done`` for this pass and this stage's ``complete``; it runs neither (D-4).
+    """
+    import shiploop_standalone_improve as standalone
+    child = _improve_child_for(state, getattr(args, "action", None))
+    _need(state["status"] == "active" and child is not None and child["skill"] is not None,
+          "no bound current Improve stage with this action (it may already be imported); to read the current "
+          "packet run: " + _callback(core, root, "next"))
+    command = _callback(core, root, "improve-pass", action=improve_id(state))
+    no_commit = str(getattr(args, "no_commit", None) or "").strip()
+    command_again = command + (" --no-commit " + shlex.quote(no_commit) if no_commit else "")
+    complete = _callback(core, root, "complete", action=improve_id(state))
+    receipt = standalone.receipt_path(child)
+    try:
+        packet = json.loads(receipt.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        packet = None
+    status = packet.get("status") if isinstance(packet, dict) else None
+    _need(status != "complete", "This review loop has already ended (its receipt " + str(receipt) + " is complete), "
+          "so there is no pass to record: run: " + complete)
+    _need(status == "active" and isinstance(packet.get("done_argv"), list),
+          "No active review loop to record a pass for (receipt " + str(receipt) + ": " + str(status or "unreadable")
+          + "); start the review again with: " + _callback(core, root, "improve-start", action=improve_id(state))
+          + " --restart-stopped")
+    number = int((packet.get("progress") or {}).get("action_number") or 1)
+    why, call = _skill_call_record(root, state, child)
+    argument = IMPROVE_ARGUMENT_PREFIX + str(improve_handoff_path(child))
+    _need(why is not None or call is not None,
+          "Run the improve skill on this " + child["stage"] + " result first: no call to it has been recorded since "
+          "this Improve stage started. Invoke the Skill tool with skill \"improve\" and args \"" + argument + "\", let "
+          "it finish its review, then run improve-pass again: " + command_again)
+    reviews = improve_reviews_dir(child)
+    review = reviews / ("review-" + str(number) + ".md")
+    _need(review.is_file() and not review.is_symlink(),
+          "Write this pass's review to " + str(review) + " with a file-writing tool (pass " + str(number) + "), then "
+          "run: " + command_again + "\nIts form: " + REVIEW_FORM + ".")
+    front, labels, handoff, missing = _review_form(review.read_text(encoding="utf-8", errors="replace"))
+    _need(not missing, "Complete " + str(review) + " (missing or invalid: " + ", ".join(missing) + "), then run: "
+          + command_again + "\nIts form: " + REVIEW_FORM + ".")
+    repo = Path(state["repo"])
+    changes = improve_changes.review_changes(root, repo, child["action_id"])
+    committed = ""
+    if not no_commit and improve_changes.uncommitted(changes, {}):
+        message_path = improve_commit_message_path(child)
+        _need(message_path.is_file(),
+              "This pass left files uncommitted (" + ", ".join(improve_changes.uncommitted(changes, {}))
+              + "): write the commit message to " + str(message_path) + " with a file-writing tool (a subject line, "
+              "a `Key learnings: <what this pass taught a later pass or run, or none>` line and, optionally, "
+              "`Learned-from: <commit id> <what it contributed>`), then run: " + command
+              + "\nIf the user or repository said not to commit, pass their instruction instead: " + command
+              + " --no-commit \"<their instruction>\" (and the same flag to complete).")
+        head = _head_commit(repo)
+        _improve_commit(core, root, state, SimpleNamespace(action=improve_id(state), message=str(message_path),
+                                                            remote_change=False), rerun=command)
+        after = _head_commit(repo)
+        committed = after[:12] if after and after != head else ""
+        changes = improve_changes.review_changes(root, repo, child["action_id"])
+    checks = reviews / CHECK_FILE
+    changed = list(changes[0]) if changes is not None else None
+    bind = store.read_record(root / improve_changes.bind_path(child["action_id"])) if changes is not None else {}
+    if changed == []:
+        store.atomic_write_text(checks, "Tree unchanged since improve-bind (" + str(bind.get("tree", ""))[:12]
+                                + "); producer checks: " + _producer_checks(root, child["action_id"]) + "\n")
+        checks_fact = "written by ShipLoop (tree unchanged since the bind)"
+    else:
+        _need(checks.is_file() and not checks.is_symlink(),
+              "Run this stage's checks on the edited tree and write their output to " + str(checks)
+              + " with a file-writing tool, then run: " + command_again)
+        top = Path(str(bind.get("toplevel") or repo))
+        edits = [(top / path).stat().st_mtime for path in (changed or ()) if (top / path).is_file()]
+        last = max(edits, default=0.0)
+        _need(checks.stat().st_mtime >= last,
+              "Run this stage's checks again: " + str(checks) + " is older than the last edit this review made, so "
+              "its rows describe an earlier tree. Write the new output there, then run: " + command_again)
+        checks_fact = "written by the review after its last edit"
+    now = improve_changes._snapshot(root, repo)
+    tree = now["tree"] if now else None
+    previous = reviews / ("pass-" + str(number - 1) + ".json")
+    try:
+        before = json.loads(previous.read_text(encoding="utf-8")).get("tree") if number > 1 else bind.get("tree")
+    except (OSError, ValueError, AttributeError):
+        before = None
+    pass_changed = None if tree is None or before is None else tree != before
+    skill_fact = ("recorded " + str(call.get("at", "")) if call is not None else "not enforced (" + str(why) + ")")
+    facts = ("ShipLoop facts: files changed since the bind: " + (", ".join(changed) if changed else
+                                                                 "none" if changed == [] else "not measured")
+             + ("; committed as " + committed if committed else "")
+             + ("; not committed on the instruction: " + no_commit if no_commit else "")
+             + "; checks.md " + checks_fact + "; improve skill call " + skill_fact + ".")
+    report = {field: front[key] for key, field, _allowed in REVIEW_FRONT}
+    report["evidence"] = (review.name + ": " + "; ".join(label + ": " + labels[label] for label in REVIEW_LABELS)
+                          + "\n" + facts)
+    report["handoff"] = handoff
+    report_path = reviews / ("report-" + str(number) + ".json")
+    store.atomic_write_text(report_path, json.dumps(report, ensure_ascii=False, indent=1) + "\n")
+    store.atomic_write_text(reviews / ("pass-" + str(number) + ".json"), json.dumps({
+        "pass": number, "label": front["classification"], "tree": tree, "changed": pass_changed,
+        "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
+        "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, indent=1) + "\n")
+    inline = delegation(state) == guidance.INLINE
+    print("\n".join([
+        "Pass " + str(number) + " of the " + child["stage"] + " review is recorded. " + facts,
+        "Run the Until Loop runtime's done for this pass exactly as printed (its report is " + str(report_path)
+        + ", composed from " + review.name + "):",
+        shlex.join([str(part) for part in packet["done_argv"]]) + " < " + shlex.quote(str(report_path)),
+        ("When it returns status complete, run: " if inline else
+         "When it returns status complete, return to the parent, which runs: ") + complete,
+        "When it returns status active, do the next pass it names, write review-" + str(number + 1) + ".md beside "
+        + review.name + ", then run: " + command_again,
+    ]))
+    return 0
+
+
+def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any], not_enforced: str | None) -> str:
+    """``RUN/improve/<action>/passes.md`` at import (IMP-11): one row per review pass, from the files it left."""
+    import shiploop_standalone_improve as standalone
+    reviews = improve_reviews_dir(child)
+    found = sorted((int(match.group(1)), path) for path in (reviews.iterdir() if reviews.is_dir() else ())
+                   if (match := REVIEW_FILE.fullmatch(path.name)) and path.is_file())
+    try:
+        previous = standalone.receipt_path(child).with_name("start.json").stat().st_mtime
+    except OSError:
+        previous = None
+    rows = ["# Improve passes: the " + child["stage"] + " result (" + child["action_id"] + ")", "",
+            "Re-decide the Improve stop rule (IMP-4) at 10 step-stage reviews with at least 3 edits.", "",
+            "| stage | pass | label | tree changed | seconds | skill call recorded |",
+            "| --- | --- | --- | --- | --- | --- |"]
+    for number, path in found:
+        try:
+            facts = json.loads((reviews / ("pass-" + str(number) + ".json")).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            facts = {}
+        front, _labels, _handoff, _missing = _review_form(path.read_text(encoding="utf-8", errors="replace"))
+        stamp = path.stat().st_mtime
+        changed = facts.get("changed") if isinstance(facts, dict) else None
+        call = facts.get("skill_call") if isinstance(facts, dict) else None
+        rows.append("| " + " | ".join([
+            child["stage"], str(number), front.get("classification") or "not recorded",
+            "not measured" if changed is None else "y" if changed else "n",
+            "not measured" if previous is None else str(round(stamp - previous)),
+            call or ("not enforced" if not_enforced is not None else "y")]) + " |")
+        previous = stamp
+    return "\n".join(rows) + "\n"
 
 
 def planning_scratch_dir(state: Mapping[str, Any], child: Mapping[str, Any]) -> Path:
@@ -6757,7 +7012,12 @@ def _start_improve(core: Any, root: Path, state: Mapping[str, Any], *, restart: 
     message_path = improve_commit_message_path(child)
     store.atomic_write_text(receipt.with_name("parent-return.md"), "\n".join([
         "# Parent return for Improve child " + action_id, "",
-        "## The one ShipLoop command the child runs: improve-commit", "",
+        "## The ShipLoop commands the child runs: improve-pass and improve-commit", "",
+        "After each review pass, write its review-<n>.md in " + str(receipt.parent / "reviews") + " (form: "
+        + REVIEW_FORM + "), then run:",
+        _callback(core, root, "improve-pass", action=improve_id(state)),
+        "It commits the pass's edits with the message below, writes checks.md when the tree is unchanged and prints "
+        "the runtime's done command for the pass; run it as printed.", "",
         "To commit a review iteration's changes, write the commit message to " + str(message_path)
         + " with a file-writing tool (not a shell heredoc), then run:",
         _callback(core, root, "improve-commit", action=improve_id(state), message=str(message_path)),
@@ -6812,7 +7072,9 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
         saved_status = json.loads(receipt.read_text(encoding="utf-8")).get("status") if receipt.exists() else None
     except (OSError, ValueError, AttributeError):
         saved_status = None
-    _need(not receipt.exists() or saved_status == "stopped" or _ended_on_first_pass(child),
+    # A complete loop the improve skill never ran is restarted too: complete's skill-call refusal names this exit (IMP-2).
+    unreviewed = saved_status == "complete" and _skill_call_record(root, state, child) == (None, None)
+    _need(not receipt.exists() or saved_status == "stopped" or _ended_on_first_pass(child) or unreviewed,
           "this review is still running; continue it from its saved receipt " + str(receipt)
           + " (active: run its next_argv once; complete: run " + _callback(core, root, "complete",
                                                                          action=improve_id(state)) + ")")
@@ -6846,7 +7108,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     gate_lines: list[str] = []  # the test stage's gate outcomes, printed after what ``complete`` accepted
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
-        "improve-bind", "improve-start", "improve-commit", "improve-reconcile", "delegation",
+        "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile", "delegation",
         "lint-mode"
     }, f"navigator does not support command {command!r}")
     validate(state)
@@ -6888,6 +7150,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         return _improve_restart(core, root, state, args)
     if command == "improve-commit":
         return _improve_commit(core, root, state, args)
+    if command == "improve-pass":
+        return _improve_pass(core, root, state, args)
     if command in ("improve-bind", "improve-reconcile") or improve_import:
         import shiploop_standalone_improve as standalone
         stage_action = getattr(args, "action", None)
@@ -6957,6 +7221,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _improve_change_gate(core, root, state, action_id, child, receipt)
                     _duplicate_review_gate(core, root, state, child)
                     record, extra_writes = standalone.complete(child, receipt)
+                    extra_writes = {**extra_writes, "improve/" + action_id + "/" + PASSES_FILE:
+                                    _passes_text(root, state, child, not_enforced)}
                     record["submission"] = deepcopy(receipt)
                     record["improve_action"] = child["improve_action"]
                     updated = finish_improve(state, action_id, record, final_result)

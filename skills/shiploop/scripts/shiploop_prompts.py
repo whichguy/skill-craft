@@ -2307,6 +2307,9 @@ the step began) and fix, within those paths, any of these:
   reformatted;
 - a new or changed public entry point that does not check its arguments before
   any effect, swallows an error or returns a success default (Code craft 2);
+- a language or library behaviour the change relies on that no command has
+  exercised (comparison and case rules, null and empty values, visibility,
+  ordering): run a one-line probe or read its primary documentation;
 - a public function without its contract docstring, a comment that restates
   code, or dead code (rules 3-4);
 - code placed outside HOME/architecture.md's ## Structure or ## Conventions, or a
