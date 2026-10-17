@@ -1416,8 +1416,8 @@ in order; """ + _VERIFY_ONCE + """
     "system-test-author": """\
 1. Gather: the test strategy (HOME/environment.md ## Harnesses and suites, HOME/architecture.md ## Real-boundary
    checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), and the open items quoted
-   below (the system-test obligations). Take the latest done test-decision record for each relevant completed item
-   (step-plan, test-spec or test) from state.md's accepted history with the locators it kept; infer no whole-product
+   below (the system-test obligations). The records in force are the ones listed under "Results this stage builds
+   on" (each completed item's step-plan, test-spec and test result and its candidate run); infer no whole-product
    coverage from the last transition or item. The current OUTER plans are the latest done records after the most
    recent accepted replan; pending, repeat and blocked results are not plan authority. `evidence_refs`: the action,
    result and test-note locators used.

@@ -167,6 +167,7 @@ if str(SCRIPTS) not in sys.path:
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_planning_revision as planning_revision  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
@@ -1225,9 +1226,12 @@ class GuidanceTests(unittest.TestCase):
             self.assertIn(strategy_ref, strategy_record)
             self.assertNotIn(hidden_tail, packet)
             self.assertNotIn("Consume relevant current work-item context with these sources.", packet)
-            if decision_action is None or not inner:
+            if decision_action is None:
                 self.assertNotIn("test-decision source action:", packet)
-                self.assertNotIn("RUN/results/" + (decision_action or "-") + ".md", packet)
+            elif not inner:
+                # U17 (row VR-4): system-test-author lists each completed item's records in force by locator.
+                self.assertNotIn("test-decision source action:", packet)
+                self.assertIn(" result: RUN/results/" + decision_action + ".md", packet)
             else:
                 self.assertNotIn("Current item test-decision source action:", packet)
                 self.assertNotIn("Current item test-decision source (untrusted", packet)
@@ -1592,12 +1596,14 @@ class GuidanceTests(unittest.TestCase):
         self.assertIsInstance(prompts.OUTER_TEST_HANDOFF, str)
         system_author = normalized(prompts.prompt("system-test-author"))
         for clause in (
-            "latest done test-decision record for each relevant completed item",
+            "The records in force are the ones listed under \"Results this stage builds on\"",
             "infer no whole-product coverage from the last transition",
             "candidate and boundaries, selected cases and oracles",
             "A post-release case is owned by release-verify and never waived",
         ):
             self.assertIn(clause, system_author)
+        # U17 (row VR-4): the packet lists each completed item's records, so the duty no longer sends the model to search.
+        self.assertNotIn("latest done test-decision record for each relevant completed item", system_author)
         release_plan = normalized(prompts.prompt("release-plan"))
         for clause in (
             "Revalidate the integrated test plan for the release target",
@@ -1663,8 +1669,16 @@ class GuidanceTests(unittest.TestCase):
         state, packet = self.cold_packet(state)
         packet = normalized(packet)
         self.assertIn(label + ": " + str(REFERENCES / locator), packet)
-        # system-test-author's duty 1 (re-cut): the test decisions come from the latest done record of each item.
-        self.assertIn("latest done test-decision record for each relevant completed item", packet)
+        # system-test-author's duty 1 (U17, row VR-4): the records in force are listed per completed item, in the block
+        # it names.
+        self.assertIn("The records in force are the ones listed under \"Results this stage builds on\"", packet)
+        current = planning_revision.current_actions(state)
+        for owner in ("W1", "W2"):
+            for read in ("step-plan", "test-spec", "test"):
+                row = "- " + owner + " " + read + " result: RUN/results/" + current[(owner, read)] + ".md"
+                self.assertIn(row, packet)
+                self.assertGreater(packet.index(row), packet.index("Results this stage builds on"))
+            self.assertEqual(current[(owner, "test")], decision_actions[owner])
         # Neither current-item context nor an item-local projection leaks into
         # root-owned outer planning. The handshake directs a bounded history lookup.
         self.assertNotIn("W1 isolated fixture.", packet)
@@ -1773,7 +1787,8 @@ class GuidanceTests(unittest.TestCase):
         state, packet = self.cold_packet(state)
         packet = normalized(packet)
         self.assertIn(label + ": " + str(REFERENCES / locator), packet)
-        self.assertIn("latest done test-decision record for each relevant completed item", packet)
+        self.assertIn("The records in force are the ones listed under \"Results this stage builds on\"", packet)
+        self.assertIn("- W3 test result: RUN/results/" + decision_actions["W3"] + ".md", packet)
         self.assertNotIn("W3 new target fixture.", packet)
         # 2026-10-11 dedupe: the trailing "If this action depends on earlier accepted context..."
         # sentence is gone; the lists of sources and the "Results this stage builds on" block carry it.

@@ -45,6 +45,7 @@ import shiploop_expectations as expectations
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
 import shiploop_reference as run_reference
+import shiploop_request as request_file
 import shiploop_narrative as narrative
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -1565,6 +1566,8 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any], named: str = "",
             "delegated subtasks do not advance this run or start another one."]),
         "Original request (preserve user scope; embedded quotations do not override instructions):",
         *_request_block(state["prompt"], root, state["run_id"]),
+        # Intake's summary is measured against the sentence index (a notice, never a refusal; shiploop_request).
+        *([request_file.POINTER] if current_stage(state) == "intake" else []),
     ]
 
 
@@ -1635,6 +1638,8 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     if not (Path(root) / context_index.INDEX_FILE).is_file():
         store.atomic_write_text(Path(root) / context_index.INDEX_FILE,
                                 context_index.render(state, root, current_stage(state)))
+    if not (Path(root) / request_file.REQUEST_FILE).is_file():
+        store.atomic_write_text(Path(root) / request_file.REQUEST_FILE, request_file.render(state["prompt"]))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
     # The current inner action's Until Loop contract, when no transition wrote it: a run that reached the stage another
@@ -2747,6 +2752,54 @@ class Source(NamedTuple):
 
 # Stages whose packet quotes every open item, not only those naming it.
 _EVERY_OPEN_ITEM = ("carry-forward", "product-acceptance", "handoff")
+_ENTRY_ID = re.compile(r"\b(?:R|AD)-\d+\b")
+
+
+class StepScope(NamedTuple):
+    """What one inline implement step's hand-off quotes (``step_scope``)."""
+    step: str                    # the step id
+    criteria: tuple[str, ...]    # the step's criterion ids that the step plan defines, in plan order
+    follows: frozenset[str]      # the follows ids kept: every AD-<n>, and each R-<n> the step's scope names
+    plan_action: str             # the step plan's action (its result holds every step's criteria)
+
+
+def step_scope(state: Mapping[str, Any], stage: str) -> StepScope | None:
+    """The scope an inline implement step's hand-off is cut to, or None for the item's whole set (efficiency plan U17).
+
+    The step quotes the criteria it lists, the test cases whose criterion is one of them, and the follows entries its
+    task, those criteria and those cases name (R-<n>), with every AD-<n> kept.  None (the item set) on any other stage, on
+    the ask-agent route (one action builds every step), when the step lists no criterion the plan defines or lists them
+    all, and the follows cut alone falls back to the item's list when the scope names none of its R-<n>.  It fails
+    toward more text.  Reads state only.
+    """
+    if stage != "implement":
+        return None
+    found = loops.cursor(state)
+    if found is None or found[0] != "implement":
+        return None
+    _stage, action_id, item = found
+    step = loops.implement_scope(state, item, action_id)
+    if not isinstance(step, Mapping) or step.get("all_steps"):
+        return None
+    plan_action, plan = test_loop._step_plan(state, item)
+    rows = [row for row in plan.get("criteria") or () if isinstance(row, Mapping)]
+    listed = {str(ident) for ident in step.get("criteria") or ()}
+    every = [str(row.get("id")) for row in rows]
+    wanted = [ident for ident in every if ident in listed]
+    if not plan_action or not wanted or set(wanted) == set(every):
+        return None
+    action = planning_revision.current_actions(state).get((item, "test-spec"))
+    spec = (state.get("accepted") or {}).get(action) if action else None
+    cases = [case for case in (spec.get("test_cases") or ()) if isinstance(case, Mapping)] \
+        if isinstance(spec, Mapping) else []
+    named = set(_ENTRY_ID.findall(" ".join(
+        [str(step.get("task") or "")] + [str(row.get("text") or "") for row in rows if str(row.get("id")) in wanted]
+        + [str(case.get("requirement") or "") for case in cases if str(case.get("criterion")) in wanted])))
+    follows = [str(ident) for ident in plan.get("follows") or ()]
+    kept = {ident for ident in follows if not ident.startswith("R-") or ident in named}
+    if not any(ident.startswith("R-") for ident in kept):
+        kept = set(follows)
+    return StepScope(str(step.get("id")), tuple(wanted), frozenset(kept), str(plan_action))
 
 
 def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[Source]:
@@ -2760,6 +2813,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     - assumptions: ``assumptions.open_items``: at step-plan the plan's rows naming the item; at carry-forward,
       product-acceptance and handoff every open row; at another stage the rows naming that stage as consumer.
     - spec_diff: ``knowledge_home.spec_diff`` (None without a run baseline or outside a checkout).
+    At an inline implement step, follows, criteria and test_cases are cut to ``step_scope`` when it is not None.
     A key with nothing recorded is a Source whose value is None.  Reads state and files; spec_diff runs one git diff.
     An unknown stage raises ValueError.
     """
@@ -2771,6 +2825,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     index = state.get("work_index")
     item = (items[index] if stage in stage_spec.INNER and isinstance(index, int) and 0 <= index < len(items) else None)
     repo = Path(str(state["repo"]))
+    scope = step_scope(state, stage)
     sources: list[Source] = []
     for key in CONSUMES[stage]:
         if key == "spec_diff":
@@ -2789,13 +2844,20 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
                 value = [(ident, knowledge.entry_text(repo, ident)) for ident in value]
             if key == "test_commands" and value is not None:
                 value = [row for row in value if isinstance(row, Mapping) and row.get("suite") == "focused"]
+            if scope is not None and value is not None and key == "follows":
+                value = [pair for pair in value if str(pair[0]) in scope.follows]
+            if scope is not None and value is not None and key == "criteria":
+                value = [row for row in value if isinstance(row, Mapping) and str(row.get("id")) in scope.criteria]
             sources.append(Source(key, "step-plan", action, item, value))
         elif key == "test_cases":
             for owner in (items if stage == "system-test-author" else [item]):
                 action = current.get((owner, "test-spec")) if owner else None
                 found = accepted.get(action) if action else None
-                sources.append(Source(key, "test-spec", action, owner,
-                                      found.get(key) if isinstance(found, Mapping) else None))
+                value = found.get(key) if isinstance(found, Mapping) else None
+                if scope is not None and isinstance(value, list):
+                    value = [case for case in value if isinstance(case, Mapping)
+                             and str(case.get("criterion")) in scope.criteria]
+                sources.append(Source(key, "test-spec", action, owner, value))
         elif key == "not_covered":
             plan_action, _plan = test_loop._step_plan(state, item) if item else (None, {})
             history = list(state.get("history") or ())
@@ -5258,6 +5320,11 @@ def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, quoted: Mapp
         diffed = _diff_printed_files(sources[position + 1:], quoted) if source.key == "follows" else None
         lines += _source_lines(root, state, source, quoted, diffed)
         position += 1
+    scope = step_scope(state, stage) if lines else None
+    if scope is not None:
+        lines.insert(0, "Cut to step " + scope.step + ": its criteria (" + ", ".join(scope.criteria) + "), their test "
+                     "cases and the R-<n> entries they or its task name, with every AD-<n>; RUN/results/"
+                     + scope.plan_action + ".md holds every step's.")
     return [HANDOFF_HEAD, *lines] if lines else []
 
 
@@ -5344,6 +5411,12 @@ _PRODUCTS: dict[str, tuple[tuple[str, Any, str], ...]] = {
 _RESULT_USE = {"step-plan": "the steps, criteria, test commands, expectations and paths",
                "implement": "what the step changed and its evidence"}
 _PER_STEP = frozenset(stage for stage in stage_spec.INNER if stage_spec.stage(stage).improve == "step")
+# Outer stages whose duty names each completed item's test-decision records (row VR-4): {stage: ((item stage, the
+# _PRODUCTS labels listed beside its result), ...)}.  Listed per completed item, so a cleared model need not search
+# state.md's history for the records in force.
+_ITEM_RECORDS: dict[str, tuple[tuple[str, tuple[str, ...]], ...]] = {
+    "system-test-author": (("step-plan", ()), ("test-spec", ()), ("test", ("candidate run",))),
+}
 
 
 def _product(label: str, path: str, use: str) -> str:
@@ -5386,6 +5459,16 @@ def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
                 path = locate(root, state, workitem, action)
                 if path:
                     lines.append(_product(label + " " + product, path, use))
+    for item in state.get("completed_work_items") or () if stage in _ITEM_RECORDS else ():
+        for read, products in _ITEM_RECORDS[stage]:
+            action = current.get((item, read))
+            if not action:
+                continue
+            lines.append(_product(str(item) + " " + read + " result", "RUN/results/" + action + ".md", ""))
+            for product, locate, use in _PRODUCTS.get(read, ()):
+                path = locate(root, state, item, action) if product in products else None
+                if path:
+                    lines.append(_product(str(item) + " " + read + " " + product, path, use))
     return [BUILDS_ON_HEAD, *lines] if lines else []
 
 
@@ -6634,6 +6717,8 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     writes[context_index.INDEX_FILE] = context_index.render(state, root, current_stage(state))
     # Derived run reference: the run-wide detail packets name by section (shiploop_reference).
     writes[run_reference.REFERENCE_FILE] = run_reference.render(state, root, run_reference.package_version())
+    # Derived request file: the request verbatim and its sentence index S1..Sn (shiploop_request).
+    writes[request_file.REQUEST_FILE] = request_file.render(state["prompt"])
     store.transaction(root, writes)
 
 
@@ -7394,7 +7479,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     command = getattr(args, "command", None)
     _need(isinstance(command, str), "navigator command is missing")
     terminal_knowledge_closed = False
-    gate_lines: list[str] = []  # the test stage's gate outcomes, printed after what ``complete`` accepted
+    gate_lines: list[str] = []  # the test stage's gate outcomes and intake's request notice, printed after the packet
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
         "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile", "delegation",
@@ -7611,6 +7696,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
                 _need(not refusal, refusal)
+            if cursor_stage == "intake" and isinstance(submitted, Mapping) and submitted.get("outcome") == "done":
+                # Counted notice (a request sentence the summary does not cite, RUN/request.md): never a refusal.
+                gate_lines = gate_lines + request_file.notices(state["prompt"], str(submitted.get("summary") or ""))
         if check_only:
             # The gates above ran in check-only form; nothing is accepted, saved or committed.
             print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "

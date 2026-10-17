@@ -97,7 +97,7 @@ class MasterIndexTests(unittest.TestCase):
     """context-index.md is the run's master index (owner, 2026-10-16): every packet's second line points at it, so a model
     that lost its context finds every other file of the run from here.  It stays a derived view (the existing tests)."""
 
-    MAP_LIMIT = 3_500  # "about 3 KB" of map; the paths in its lines (run, repository, package) take the rest
+    MAP_LIMIT = 3_600  # "about 3 KB" of map (3,500 until U17 added the RUN/request.md row); paths take the rest
 
     @staticmethod
     def map_text(text: str) -> str:
