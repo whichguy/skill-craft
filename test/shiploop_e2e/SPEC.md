@@ -358,9 +358,17 @@ on quickly before the breadth of everything is checked.
 - **Focused suite** (depth): the cases of one style, run repeatedly while a
   change is developed for the behaviour that style exposes. It is the tight
   loop: run, measure, fix, rerun, one style at a time.
-- **Breadth suite**: one case of every style, run once each. It is the
-  generality gate: a change that improved a focused suite is not "general"
-  (S-13) until the breadth suite shows no regression in any other style.
+- **Breadth suite**: one case of each style it names, run once each: today
+  `web-service`, `cli-files` and `stateful-service` (`styles` in
+  `suites.json`). It is the generality gate for those styles: a change that
+  improved a focused suite is not "general" (S-13) until the breadth suite
+  shows no regression in any of them. It does not cover `smoke`, which
+  `hello` covers in its focused suite and as the batch gate, or
+  `parallel-graph`, whose cases have no qualified passing baseline and stay
+  opt-in (`--case`). A style joins breadth once its focused suite has passed
+  (Promotion); until then the breadth claim leaves it out by name
+  (amended 2026-10-16: the claim said every style while breadth held three
+  of five).
 - **Promotion**: work on a style stays in its focused suite until that suite's
   acceptance holds (every verdict passes, reliability and cost no worse than
   the style's baseline); then the breadth suite runs before a release is called
