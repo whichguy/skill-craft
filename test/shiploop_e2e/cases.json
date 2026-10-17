@@ -233,5 +233,36 @@
       ],
       "refuse_ports_source": "the request: 'server.js starts the server on the port in the PORT environment variable (default 3000)'. A product defaults to 3000, and a mutant of the line that reads PORT listens there whatever PORT says; the quality phase refuses it and counts the refusals"
     }
+  },
+  "chess-salesforce": {
+    "style": "hosted-platform",
+    "prompt": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLChess`, so that the board opens in the org and the work can still be removed afterwards: a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`). Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, profiles, labels or flows), and do not change profiles or permission sets. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: `e1g1`, `e1c1`, `e8g8`, `e8c8`), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination, the board shows whose turn it is and the game status (check, checkmate, stalemate), refuses an illegal destination, lets a pawn promote (queen is acceptable as the default) and has a New game button. It calls `SLChessController` and renders what comes back. `SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`, returning a `List<String>`, `applyMove(String fen, String move)`, returning the new FEN as a `String`, and `status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them. The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one, so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`). The work will be graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`), each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org, at least 8 Apex test methods in all: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit, and so that a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too. Do not stop until the tests pass in the org.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" project --org de",
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" deployed --org de --prefix SLChess",
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" tests --org de --prefix SLChess --min-tests 8",
+      "python3 \"$E2E_CHECKS/chess_salesforce.py\" rules --org de"
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt; rules uses published perft counts as the independent oracle",
+    "platform": {
+      "kind": "salesforce",
+      "org": "de",
+      "prefix": "SLChess",
+      "preflight": "python3 \"$E2E_CHECKS/chess_salesforce.py\" preflight --org de --prefix SLChess",
+      "before": "python3 \"$E2E_CHECKS/chess_salesforce.py\" snapshot  --org de --prefix SLChess",
+      "cleanup": "python3 \"$E2E_CHECKS/chess_salesforce.py\" cleanup   --org de --prefix SLChess",
+      "model_bin": {
+        "sf": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --",
+        "sfdx": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --"
+      },
+      "check_timeout": 900,
+      "host_allow": ["Bash(sf *)", "Bash(cd *)", "Bash(tail *)", "Bash(head *)", "Bash(tee *)", "Bash(grep *)"],
+      "resume_note": "The platform was reset to its baseline when your last session ended, so anything you deployed to the org was removed. Deploy again from your source before you rely on it or run tests in the org.",
+      "source": "owner go 2026-10-16: deploy to the Developer Edition org `de`, prefix SLChess, remove afterwards; Grok 4.7 medium"
+    },
+    "budget": {
+      "seeded_minutes": 90,
+      "source": "owner (2026-09-27): a small request should not take hours; a hosted-platform build gets 90"
+    }
   }
 }

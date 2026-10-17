@@ -2270,6 +2270,27 @@ Evidence: `/Users/dadleet/e2e-runs/20261011/slice-fixbug-8e1253de/` (slice-resul
 - A follow-on run across two runs (lessons quoted at the next intake, environment.md read as the cross-run home) is still to be repeated on this build.
 - A cleared-context run that hits a hand-off refusal on each route is still to be run.
 
+## Packet heads lead with duties; the Salesforce chess case on a hosted platform (2026-10-16, base 2686b427) — status: interim (n=1 per case; Claude on node-fix-bug, Grok 4.7 medium on chess-salesforce)
+
+**Question.** (1) Does the duties-first packet head keep a ShipLoop item passing? (2) What does a platform-heavy build in a real Salesforce Developer Edition org (alias `de`, everything prefixed and cleaned up) show about ShipLoop, the harness and the host?
+
+**Runs.**
+- node-fix-bug slice on Claude with the packet-head build: PASS in 162 s, 57 turns, 13 packets, 209k packet characters, 2 refusals, 0 duplicate reviews, 0 `improve-start` calls; the improve skill was invoked for 1 of 4 Improve stages (wording alone did not change that; see the hook below).
+- chess-salesforce run 1 (Grok): stopped by hand after 7 minutes in discovery, INVALID for a harness reason. The guard wrapper was first on the host's launch PATH but not in the model's login shell (macOS `path_helper` puts `/opt/homebrew/bin` first), so `sf` was the real CLI in an empty throwaway HOME; the model found the real home and used the owner's login. Nothing deployed; the org was verified identical to its baseline.
+- A four-lens adversarial review (42 findings, 27 confirmed) and four fix batches, then a rehearsal on the real org that found four shapes the fake CLI never showed, then a known-good reference app graded 28 of 28 markers on the real org (both complete games included), then a one-prompt Grok probe proving the wrapper resolves inside Grok's own shell.
+- chess-salesforce run 2 (Grok): 114 minutes of preparation and the first work item, then BLOCKED at W1 test: Grok's auto permission classifier refused `sf project deploy start --target-org de` three times ("not requested by the user"). Resumed in place with `--permission-mode bypassPermissions`; the first model-built deploy ran through the guard and 11 Apex tests passed in `de`; ShipLoop then sent W1 back to step-plan.
+
+**Measured (run 2, first 86 minutes).** Model generation 80% of wall time, tool and script time 11%; 5 context compactions at 80% of about 250k tokens (77 to 130 s each); Improve 49% of time and output (21 passes over five stages: 8 material, 10 made no change); the planning window closed at 77.7 minutes (owner rule: over 30 means rethink); packets 18 to 102 KB each, 65.5% of packet bytes already sent in an earlier packet, absolute paths 14% of packet bytes and 22% of the model's output tokens; the model read the run's `reference.md` and `context-index.md` 0 times. Evidence: `docs/e2e-salesforce-chess-journal.md`, `docs/e2e-salesforce-chess-evidence/`.
+
+**Lessons.**
+- **A guard that is first on the launch PATH is not the command the model runs.** Prove the resolution per shell (`command -v`, never the command) in the preflight and compare the transcript's `sf` commands with the guard's log after the run (both are in the harness now).
+- **A host permission classifier can end a run with a message that looks like ShipLoop's own block.** The block read "access, awaits a person"; only the host's events showed the classifier refused. `platform.host_allow` hands the host allow rules; the bypass flag is the owner's override.
+- **A fake CLI written from documentation passes what the real service rejects.** Four real-org shapes (a null tab name, an invalid region mode, HTML-escaped debug logs, `AuraHandledException` uncatchable in anonymous Apex) were found only by the rehearsal; a known-good reference graded on the real platform proves the grader before a model run is spent.
+- **ShipLoop assumes tests run locally.** The red-check and mutation gates cannot read Apex human-reporter output nor run a remote test against a base copy; W1 was sent back to planning. A platform-declared test adapter is the generic gap.
+- **Harness bugs found live:** the printed resume line omitted `--source checkout`, and a checkout-source resume was refused by the marketplace gate (fixed with tests).
+
+**Open.** A run to done (the board, tab, app and full-game check are W2); the Improve stop rule, the Skill-call hook for Improve, packet compaction (symbolic paths, an index in place of whole quotes), credential-screen removal and a concise-language line are implemented on branches and not yet released.
+
 ## E2E audit fixes: five grading paths that could report a pass nobody earned (2026-10-16, from origin/main 2686b427) — status: interim
 
 **Question.** Can the harness paths the 2026-10-16 E2E audit reproduced still give an unearned pass, once each is fixed

@@ -1,0 +1,13 @@
+<template>
+    <div class="game">
+        <div class="status" role="status">{statusText}</div>
+        <div class="board" aria-label="Chess board">
+            <template for:each={squares} for:item="square">
+                <button key={square.id} class={square.className} data-square={square.id} aria-label={square.label}
+                        onclick={handleSquareClick}>{square.glyph}</button>
+            </template>
+        </div>
+        <div class="message" role="alert">{message}</div>
+        <button class="new-game" disabled={busy} onclick={handleNewGame}>New game</button>
+    </div>
+</template>

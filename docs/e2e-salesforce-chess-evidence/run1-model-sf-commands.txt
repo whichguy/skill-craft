@@ -1,0 +1,389 @@
+# The model's own tool commands that invoke sf (scrubbed, deduplicated, in order). Run 1, Grok 4.7 medium, 2026-10-16.
+# None of these appears in the guard's call log (run1-sf-calls.jsonl): the real sf ran, not the wrapper.
+
+----- command 1 -----
+SKILL_ROOT="/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/home/.grok/installed-plugins/skill-craft-e56c8527/skills/shiploop"
+CLI="$SKILL_ROOT/scripts/shiploop"
+REPO="/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/work"
+python3 "$CLI" workspace start --repo "$REPO" --delivery-contract --prompt='Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`, and create no other metadata (no custom objects, fields, permission sets or flows), so the work can be removed afterwards. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (an exception class you define inside `SLChessEngine`) when the move is not legal. `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and lets a person pick a piece and then a destination; it calls an `@AuraEnabled` method in `SLChessController` that returns the legal moves for a FEN and applies a move. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org: include known games (fool'"'"'s mate, scholar'"'"'s mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit. Do not stop until the tests pass in the org.'
+
+----- command 2 -----
+python3 << 'PY'
+import json
+from pathlib import Path
+
+run = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run")
+notes = run / "notes"
+notes.mkdir(parents=True, exist_ok=True)
+lifecycle = notes / "environment-lifecycle.md"
+lifecycle.write_text("""# Environment lifecycle
+
+## Current assessment
+
+- Necessity: required. The request asks for a Salesforce DX chess project deployed to the Developer Edition org with CLI alias `de`, then tested there.
+- Consumer: a person using the `slChessBoard` Lightning web component, and the Apex test runner executing `SLChess...Test` classes.
+- Target: Salesforce Developer Edition org with CLI alias `de`. Account id is not resolved yet. Discovery must confirm exactly one alias `de` with a non-secret command (`sf org list`), never `sf org display`.
+- Operation: `sf project deploy start --target-org de` of this project's own metadata, then one synchronous `sf apex run test --target-org de --class-names <TestClass> --result-format human --code-coverage` per test class.
+- Exclusions: no custom objects, fields, permission sets, flows, or other metadata; no credential print, store, or prompt; never `sf org display`; no destructive changes to unrelated org metadata; no org other than alias `de`.
+- Authority: approved for this run only. The request names the target and the deploy-and-test operation. Kind `user-decision`. Scope `run`. Not standing.
+- Effect evidence due at release: deploy command succeeds.
+- Identity evidence due at release: deployed names are `SLChess...` Apex and `slChessBoard` only.
+- Behavior evidence due at release-verify: named chess cases pass in the org; board pick-and-destination is evidenced as far as a page host exists without extra metadata.
+- Sources: original request in the intake packet; empty baseline repository; consumer-delivery and delivery-authority references. No org call has been made yet.
+""", encoding="utf-8")
+
+intake_note = notes / "nav-e9fe8581c2aa4c5d8809a419eec7be97.md"
+intake_note.write_text("""# Intake pass
+
+Mapped each sentence of the original request to an outcome, a boundary, or an open question. Recorded the delivery contract as required, with authority approved for this run because the request names alias `de`. No product files written. No Salesforce command run.
+""", encoding="utf-8")
+
+target = "Salesforce Developer Edition org with CLI alias de"
+operation = "sf project deploy start --target-org de of this project's own metadata, then one synchronous sf apex run test --target-org de --class-names <TestClass> --result-format human --code-coverage per SLChess test class"
+
+summary = """Outcomes:
+1) Salesforce DX project in the execution worktree (the current directory was an empty Git baseline). Apex chess rules engine plus a simple Lightning web component board. Deploy that project to the Developer Edition org alias de and run its Apex tests there. Visible in the isolated worktree during the run; the source checkout stays at the empty baseline until the guarded workspace return at release or handoff. Org behavior exists only after the release deploy, and in-org test results only after release-verify.
+2) Public Apex class SLChessEngine with static methods only. A position is a FEN string.
+3) startFen() returns the standard start position. Assumption, chess fact: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1.
+4) legalMoves(String fen) retur
+
+----- command 3 -----
+WT="/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/worktree"
+SCRATCH="/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run/scratch"
+mkdir -p "$SCRATCH"
+cd "$WT"
+{
+  echo "cwd=$(pwd)"
+  echo "=== git status ==="
+  git status --short --branch
+  echo "=== git log ==="
+  git log --oneline -5
+  echo "=== files ==="
+  find . -type f -not -path './.git/*' | sort
+  echo "=== suite probe ==="
+  if find . -type f \( -name '*Test*' -o -name 'package.json' -o -name 'sfdx-project.json' -o -name 'pom.xml' -o -name 'Makefile' \) -not -path './.git/*' | grep -q .; then
+    echo "SUITE_CANDIDATE_FOUND"
+    find . -type f \( -name '*Test*' -o -name 'package.json' -o -name 'sfdx-project.json' \) -not -path './.git/*'
+  else
+    echo "NO_SUITE missing coverage: no test files, no package.json, no sfdx-project.json"
+  fi
+  echo "exit_of_find=$?"
+} > "$SCRATCH/baseline-suite.txt" 2>&1
+echo "BASELINE_EXIT=$?"
+# sf version without org
+{
+  echo "=== which sf ==="
+  command -v sf || echo "sf missing"
+  echo "=== sf version ==="
+  sf version --json 2>/dev/null || sf --version
+} > "$SCRATCH/sf-version.txt" 2>&1
+echo "SF_VERSION_EXIT=$?"
+# org list, redact before any print
+sf org list --json > "$SCRATCH/org-list-raw.json" 2>"$SCRATCH/org-list-err.txt"
+echo "ORG_LIST_EXIT=$?"
+python3 - << 'PY'
+import json
+from pathlib import Path
+scratch = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run/scratch")
+raw = json.loads((scratch/"org-list-raw.json").read_text())
+secret_keys = {"accessToken","refreshToken","clientSecret","sfdxAuthUrl","password","token","sessionId","headers"}
+def scrub(o):
+    if isinstance(o, dict):
+        return {k: ("REDACTED" if k in secret_keys or "token" in k.lower() or "secret" in k.lower() else scrub(v)) for k,v in o.items()}
+    if isinstance(o, list):
+        return [scrub(x) for x in o]
+    if isinstance(o, str) and (o.startswith("00D") is False) and len(o) > 80 and " " not in o:
+        return "REDACTED_LONG"
+    return o
+# Don't even keep long opaque strings. Extract only safe fields.
+orgs = []
+result = raw.get("result", raw)
+candidates = []
+if isinstance(result, dict):
+    for key in ("nonScratchOrgs","scratchOrgs","other","sandboxes","devHubs"):
+        val = result.get(key) or []
+        if isinstance(val, list):
+            for org in val:
+                if isinstance(org, dict):
+                    candidates.append((key, org))
+safe = []
+for bucket, org in candidates:
+    safe.append({
+        "bucket": bucket,
+        "alias": org.get("alias"),
+        "username": org.get("username"),
+        "orgId": org.get("orgId"),
+        "instanceUrl": org.get("instanceUrl"),
+        "connectedStatus": org.get("connectedStatus"),
+        "isDevHub": org.get("isDevHub"),
+        "isScratch": org.get("isScratch"),
+        "isDefaultDevHubUsername": org.get("isDefaultDevHubUsername"),
+        "isDefaultUsername": org.get("isDefaultUsername"),
+        "instanceApiVersion": org.get("instanceApiVersion") or org.get("instanceApiVersionLastRetrieved"),
+        "status": raw.get("status") if False else None,
+    })
+out = {"status": raw.get("status"), "orgCount": len(safe), "orgs": safe, "aliases_de": [o for o in safe 
+
+----- command 4 -----
+SCRATCH="/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run/scratch"
+echo "==== existing err ===="
+python3 - << 'PY'
+from pathlib import Path
+import re
+p = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run/scratch/org-list-err.txt")
+text = p.read_text(errors="replace")
+text = re.sub(r'(?i)(token|secret|password|authorization|bearer)[=: ]+\S+', r'\1=REDACTED', text)
+text = re.sub(r'\b[A-Za-z0-9+/]{40,}={0,2}\b', 'REDACTED_BLOB', text)
+print(text)
+PY
+echo "==== org list keys ===="
+sf org list --json > "$SCRATCH/org-list-raw.json" 2>"$SCRATCH/org-list-err.txt"
+echo EXIT:$?
+python3 - << 'PY'
+import json, re
+from pathlib import Path
+scratch = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run/scratch")
+raw_text = (scratch/"org-list-raw.json").read_text()
+print("RAW_LEN", len(raw_text))
+print("RAW_HEAD", raw_text[:200].replace("\n"," "))
+try:
+    raw = json.loads(raw_text)
+except Exception as e:
+    print("JSON_FAIL", type(e).__name__)
+    raw = None
+if isinstance(raw, dict):
+    print("TOP_KEYS", sorted(raw.keys()))
+    result = raw.get("result")
+    print("RESULT_TYPE", type(result).__name__)
+    if isinstance(result, dict):
+        print("RESULT_KEYS", sorted(result.keys()))
+        for k,v in result.items():
+            if isinstance(v, list):
+                print(f"LIST {k} count={len(v)}")
+                if v and isinstance(v[0], dict):
+                    print("  item keys", sorted(v[0].keys()))
+                    aliases = [item.get("alias") for item in v if isinstance(item, dict)]
+                    print("  aliases", aliases)
+            else:
+                print(f"FIELD {k} type={type(v).__name__}")
+    elif isinstance(result, list):
+        print("RESULT_LIST", len(result))
+err = (scratch/"org-list-err.txt").read_text(errors="replace")
+err = re.sub(r'(?i)(token|secret|password|authorization|bearer)[=: ]+\S+', r'\1=REDACTED', err)
+err = re.sub(r'\b[A-Za-z0-9+/]{40,}={0,2}\b', 'REDACTED_BLOB', err)
+print("STDERR:", err[:1500])
+(scratch/"org-list-raw.json").unlink(missing_ok=True)
+PY
+
+----- command 5 -----
+python3 - << 'PY'
+import json, subprocess, re
+proc = subprocess.run(["sf", "org", "list", "--json"], capture_output=True, text=True)
+print("exit", proc.returncode)
+print("stdout_len", len(proc.stdout))
+print("stderr_len", len(proc.stderr))
+err = proc.stderr or ""
+err = re.sub(r'(?i)(accessToken|refreshToken|token|secret|password|authorization|bearer)[=: ]+\S+', r'\1=REDACTED', err)
+err = re.sub(r'\b[A-Za-z0-9+/]{40,}={0,2}\b', 'REDACTED_BLOB', err)
+if err.strip():
+    print("stderr_redacted:")
+    print(err[:800])
+try:
+    raw = json.loads(proc.stdout) if proc.stdout.strip() else {}
+except json.JSONDecodeError:
+    print("stdout was not json")
+    raise SystemExit(0)
+result = raw.get("result", {})
+print("status", raw.get("status"))
+print("result_type", type(result).__name__)
+if isinstance(result, dict):
+    print("result_keys", sorted(result.keys()))
+    rows = []
+    for key, val in result.items():
+        if not isinstance(val, list):
+            print("nonlist", key, type(val).__name__)
+            continue
+        print("list", key, "count", len(val))
+        for org in val:
+            if not isinstance(org, dict):
+                continue
+            rows.append({
+                "bucket": key,
+                "alias": org.get("alias"),
+                "username": org.get("username"),
+                "orgId": org.get("orgId"),
+                "instanceUrl": org.get("instanceUrl"),
+                "connectedStatus": org.get("connectedStatus"),
+                "isDevHub": org.get("isDevHub"),
+                "isScratch": org.get("isScratch"),
+                "isDefaultUsername": org.get("isDefaultUsername"),
+                "instanceApiVersion": org.get("instanceApiVersion"),
+            })
+    print("SAFE_ROWS", len(rows))
+    de = [r for r in rows if r.get("alias") == "de"]
+    print("DE_COUNT", len(de))
+    for r in rows:
+        print("{bucket} alias={alias} orgId={orgId} status={connectedStatus} api={instanceApiVersion} default={isDefaultUsername} scratch={isScratch} hub={isDevHub} url={instanceUrl} user={username}".format(**r))
+PY
+
+----- command 6 -----
+python3 - << 'PY'
+import json, os, subprocess, re
+env = os.environ.copy()
+env["HOME"] = "/Users/dadleet"
+proc = subprocess.run(["sf", "org", "list", "--json"], capture_output=True, text=True, env=env)
+print("exit", proc.returncode)
+print("stdout_len", len(proc.stdout))
+err = proc.stderr or ""
+err = re.sub(r'(?i)(accessToken|refreshToken|token|secret|password|authorization|bearer)[=: ]+\S+', r'\1=REDACTED', err)
+err = re.sub(r'\b[A-Za-z0-9+/]{40,}={0,2}\b', 'REDACTED_BLOB', err)
+if err.strip():
+    print("stderr_redacted:")
+    print(err[:600])
+raw = json.loads(proc.stdout)
+result = raw.get("result", {})
+print("status", raw.get("status"))
+rows = []
+if isinstance(result, dict):
+    for key, val in result.items():
+        if not isinstance(val, list):
+            continue
+        print("list", key, "count", len(val))
+        for org in val:
+            if not isinstance(org, dict):
+                continue
+            rows.append({
+                "bucket": key,
+                "alias": org.get("alias"),
+                "username": org.get("username"),
+                "orgId": org.get("orgId"),
+                "instanceUrl": org.get("instanceUrl"),
+                "connectedStatus": org.get("connectedStatus"),
+                "isDevHub": org.get("isDevHub"),
+                "isScratch": org.get("isScratch"),
+                "isDefaultUsername": org.get("isDefaultUsername"),
+                "instanceApiVersion": org.get("instanceApiVersion"),
+            })
+print("DE_COUNT", sum(1 for r in rows if r.get("alias")=="de"))
+for r in rows:
+    print("{bucket} alias={alias} orgId={orgId} status={connectedStatus} api={instanceApiVersion} defaultUser={isDefaultUsername} scratch={isScratch} hub={isDevHub} url={instanceUrl} user={username}".format(**r))
+PY
+
+----- command 7 -----
+python3 - << 'PY'
+import json, os, subprocess, re
+env = os.environ.copy()
+env["HOME"] = "/Users/dadleet"
+queries = [
+    ("org", ["sf", "data", "query", "--target-org", "de", "--json", "--query", "SELECT Id, OrganizationType, IsSandbox FROM Organization"]),
+    ("apex", ["sf", "data", "query", "--target-org", "de", "--use-tooling-api", "--json", "--query", "SELECT Name FROM ApexClass WHERE Name LIKE 'SLChess%'"]),
+    ("lwc", ["sf", "data", "query", "--target-org", "de", "--use-tooling-api", "--json", "--query", "SELECT DeveloperName FROM LightningComponentBundle WHERE DeveloperName = 'slChessBoard'"]),
+]
+for name, cmd in queries:
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    print("==", name, "exit", proc.returncode, "out_len", len(proc.stdout), "err_len", len(proc.stderr))
+    err = re.sub(r'(?i)(accessToken|refreshToken|token|secret|password|authorization|bearer)[=: ]+\S+', r'\1=REDACTED', proc.stderr or "")
+    err = re.sub(r'\b[A-Za-z0-9+/]{40,}={0,2}\b', 'REDACTED_BLOB', err)
+    if err.strip():
+        print("stderr", err[:400])
+    try:
+        raw = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        print("not json")
+        continue
+    result = raw.get("result", {})
+    records = result.get("records") if isinstance(result, dict) else None
+    total = result.get("totalSize") if isinstance(result, dict) else None
+    print("status", raw.get("status"), "total", total)
+    if isinstance(records, list):
+        for rec in records:
+            if not isinstance(rec, dict):
+                continue
+            safe = {k: rec.get(k) for k in rec if k in {"Id","OrganizationType","IsSandbox","Name","DeveloperName"}}
+            print(safe)
+PY
+
+----- command 8 -----
+python3 << 'PY'
+from pathlib import Path
+wt = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/worktree")
+run = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run")
+home = wt / "docs" / "shiploop"
+home.mkdir(parents=True, exist_ok=True)
+(run / "notes").mkdir(parents=True, exist_ok=True)
+(run / "scratch").mkdir(parents=True, exist_ok=True)
+
+(home / "environment.md").write_text("""# Environment
+
+Observed 2026-10-16 during discovery. The product repository was an empty Git baseline. Facts below are marked observed, binding, or proposal.
+
+## Targets and runtimes
+
+- Edit and build location (observed): the isolated worktree for this run. The source checkout stays at the empty baseline until the guarded workspace return at release or handoff. That return copies files. It does not deploy and there is no CI. Locator: worktree git commit `060aa09` subject `Empty baseline for the first ShipLoop run`.
+- Delivery target (binding, from the request): Salesforce Developer Edition org, CLI alias `de`. Observed 2026-10-16 with `sf org list` and `SELECT Id, OrganizationType, IsSandbox FROM Organization`: one org, id `[orgid]`, OrganizationType `Developer Edition`, IsSandbox false, connected, instance API `68.0`, instance host `[host]`. The same org is listed once under non-scratch orgs and once under other. It is one org, not two.
+- Runtime (observed): Salesforce CLI `@salesforce/cli/2.154.4` at `/opt/homebrew/bin/sf`, Node `node-v25.9.0`, darwin-arm64. Apex and Lightning web components run in that org. There is no local Apex runtime.
+- CLI home (observed, revalidate before every `sf` command): the session `HOME` has an empty `.sfdx/alias.json`. Alias `de` resolves only when `sf` runs with `HOME=/Users/dadleet`. Do not copy auth files. Do not run `sf org display`. Every `sf` command also passes `--target-org de`.
+- Route to the consumer: source return does not publish. Deploy is `sf project deploy start --target-org de` at release. In-org tests run after that deploy. No scratch org, sandbox, or second target.
+- Cleanup (binding): only `SLChess` Apex and `slChessBoard` are added, so a later delete of those names can remove the work. This run does not delete them.
+
+## Commands
+
+- Baseline (observed, missing coverage): from the worktree, `find` over the checkout excluding `.git` found no files, no `package.json`, and no `sfdx-project.json`. Exit 0. Output: run scratch `baseline-suite.txt`. No suite exists to run.
+- Deploy (binding): `HOME=/Users/dadleet sf project deploy start --target-org de`
+- Org tests (binding): one class at a time, `HOME=/Users/dadleet sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage`
+- Safe identity read (observed): `HOME=/Users/dadleet sf data query --target-org de --query "SELECT Id, OrganizationType, IsSandbox FROM Organization"`
+- Collision read (observed): Tooling API queries for `ApexClass` names like `SLChess%` and `LightningComponentBundle` developer name `slChessBoard` both returned totalSize 0.
+
+## Skills
+
+none. The worktree has no README, no `AGENTS.md`, no `SHIPLOOP.md` before this discovery, and no local skill directory. No repository skill fits this work. Revalidate if a skill is added later.
+
+## Harnesses and suites
+
+none yet. M
+
+----- command 9 -----
+python3 << 'PY'
+import json
+from pathlib import Path
+run = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/run")
+wt = Path("/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/.shiploop-runs/work-20261016-202559-ac24ff/worktree")
+refs = [
+    str(wt/"docs/shiploop/environment.md"),
+    str(wt/"SHIPLOOP.md"),
+    str(run/"notes/discovery.md"),
+    str(run/"notes/current-system-baseline.md"),
+    str(run/"notes/environment-lifecycle.md"),
+    str(run/"scratch/baseline-suite.txt"),
+    str(run/"scratch/sf-version.txt"),
+    str(run/"scratch/org-probe.txt"),
+]
+for p in refs:
+    assert Path(p).is_file(), p
+summary = """Baseline: missing coverage. The unchanged worktree has one empty commit (060aa09) and no source, package, or test files. Command: find from the worktree excluding .git. Exit 0. Output: run scratch baseline-suite.txt. No suite was present to execute. Classification is missing coverage, not a pass.
+
+Q1 answered. Alias de is exactly one connected org, id [orgid], OrganizationType Developer Edition, IsSandbox false, instance API 68.0. sf org list shows that same org in two buckets. Source: run/scratch/org-probe.txt and docs/shiploop/environment.md section Access and accounts. Revalidate before deploy.
+
+Q2 answered with a recorded default. Tooling queries found no SLChess Apex class and no slChessBoard bundle. The repo has no Lightning page. This run will not add a flexipage, tab, or app. A person cannot click the board in the org until some existing page hosts it, and none was found. Owner: release-verify records the click-through as unverified. Apex tests in the org still prove the rules and the controller. Source: environment.md Platform facts.
+
+Q3 answered. Salesforce CLI 2.154.4 is at /opt/homebrew/bin/sf. Alias de resolves only when sf runs with HOME=/Users/dadleet, because the session HOME alias file is empty. No auth file was copied and sf org display was not run.
+
+Conventions: no existing code and no house-style exemplars. First conventions will be SFDX source format, API 68.0, SLChess class prefix, component slChessBoard. No reusable product code. No local skill (environment.md Skills). No CI. Workspace return does not deploy. Delivery is the authorized sf project deploy start to alias de, then one synchronous apex test class at a time.
+
+Non-functional: legalMoves on a middlegame must stay inside the synchronous Apex CPU governor (10,000 ms). No spec file exists yet. Spec stage writes it.
+
+Interaction baseline is in notes/current-system-baseline.md: no current actors or stored state. The incoming change adds one person, stateless Apex, and page-view FEN state.
+"""
+result = {
+    "evidence_refs": refs,
+    "headline": "Empty checkout; alias de is one Developer Edition org.",
+    "outcome": "done",
+    "summary": summary,
+}
+out = run/"inbox"/"nav-cdaf3cfe6bc44342a1afc36b69769fd1.md"
+out.write_text("# ShipLoop navigator result\n\n```shiploop-state\n"+json.dumps(result, indent=2)+"\n```\n", encoding="utf-8")
+print(len(result["headline"]))
+PY
+SKILL_ROOT="/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/sfchess/live1/home/.grok/installed-plugins/skill-craft-e56c8527/skills/shiploop"
+python3 "$SKILL_ROOT/scripts/shiploop" complete --run-dir=/private/tmp/claude-501/-Users-dadleet-src-skill-craft/
+

@@ -77,6 +77,9 @@ HEAD_START = re.compile(r"^ShipLoop navigator \| (?P<stage>[\w-]+) \|", re.M)
 HEADER = re.compile(r"^ShipLoop navigator \| (?P<stage>[\w-]+) \| revision (?P<revision>\d+)", re.M)
 FULL_PACKET = re.compile(r"^Full packet: (?P<path>\S[^\n]*\.md)$", re.M)
 STATUS_END = "=== end ShipLoop status ==="
+# The closing line of a printed head from 2026-10-16 (the status block is early, then the duties, then the pointer); a head
+# printed before that ends at the status block, with its `Full packet:` line ahead of it.
+HEAD_END = "=== end ShipLoop head ==="
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 # A line the head prints whole, which a cut by column shortens: its end is how the cut is told.
@@ -96,17 +99,26 @@ NOT_WHOLE_SHORTENED = "every line is there and a callback or keepalive line is s
 
 
 def head_or_why(reply: str) -> tuple[str | None, str | None]:
-    """(the head, None) at the start of ``reply`` (which starts at its ``ShipLoop navigator |`` line), up to its closing line (the
-    status block's end, then the narrative block when one follows it); or (None, why) with one of the NOT_WHOLE_* reasons."""
+    """(the head, None) at the start of ``reply`` (which starts at its ``ShipLoop navigator |`` line), up to its closing line (``HEAD_END``
+    from 2026-10-16; before that the status block's end, then the narrative block when one follows it); or (None, why) with one of
+    the NOT_WHOLE_* reasons."""
     end = reply.find(STATUS_END)
     if end < 0:
         return None, NOT_WHOLE_BEFORE_CLOSING
-    cut = end + len(STATUS_END)
-    if re.match(r"\n*" + re.escape(NARRATIVE_BEGIN), reply[cut:]):
-        close = reply.find(NARRATIVE_END, cut)
-        if close < 0:
-            return None, NOT_WHOLE_IN_NARRATIVE
-        cut = close + len(NARRATIVE_END)
+    closing = reply.find(HEAD_END)
+    pointer = FULL_PACKET.search(reply)
+    if closing >= 0:
+        cut = closing + len(HEAD_END)
+    elif pointer is not None and pointer.start() > end:
+        # The newer layout (pointer after the status block) cut before its closing line: not a whole print.
+        return None, NOT_WHOLE_BEFORE_CLOSING
+    else:
+        cut = end + len(STATUS_END)
+        if re.match(r"\n*" + re.escape(NARRATIVE_BEGIN), reply[cut:]):
+            close = reply.find(NARRATIVE_END, cut)
+            if close < 0:
+                return None, NOT_WHOLE_IN_NARRATIVE
+            cut = close + len(NARRATIVE_END)
     if reply[cut:cut + 1] == "\n":
         cut += 1
     head = reply[:cut]

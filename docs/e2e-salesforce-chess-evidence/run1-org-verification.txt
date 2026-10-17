@@ -1,0 +1,7 @@
+# Independent check after run 1 (main session, read-only tooling queries with the real login, 2026-10-16 13:35 PDT)
+ApexClass                  now 4   baseline 4   identical: True   extra: []  missing: []
+LightningComponentBundle   now 13  baseline 13  identical: True   extra: []  missing: []
+harness cleanup record     ran, ok, "cleanup verified: org matches the before snapshot (4 ApexClass, 13 LightningComponentBundle); removed nothing"
+strict secret scan of the run folder (session-token shape, force:// URL, long value after accessToken/refreshToken/clientSecret/sfdxAuthUrl): 0 real hits
+  (3 fixture files of the installed e2e-audit skill hold the word "synthetic" values; no stored file holds a credential)
+Org baseline is in baseline-ApexClass.txt and baseline-LightningComponentBundle.txt in this folder.

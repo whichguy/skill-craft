@@ -1,0 +1,13 @@
+backgammon
+battleship
+bgRace
+checkers
+chess
+getStartedAgentforce
+getStartedDataCloud
+getStartedMuleSoft
+getStartedSfdx
+sharedStyles
+ticTacToe
+utils
+welcome

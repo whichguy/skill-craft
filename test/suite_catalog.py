@@ -153,6 +153,9 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-quality.test.py",
     "test/shiploop-e2e-packet-anatomy.test.py",
     "test/shiploop-e2e-commit-counters.test.py",
+    "test/shiploop-e2e-chess-salesforce.test.py",
+    "test/shiploop-e2e-platform.test.py",
+    "test/shiploop-e2e-sf-guard.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -299,6 +302,18 @@ _DURATION_SECONDS = {
     # load average about 6; the 86 tests of task h took 14.8 s at load about 5). Far under QUICK_MAX_SECONDS.
     # 2026-10-10 (batch 1012 task R): the retire commit is a script commit and not a knowledge record (3 more tests on top of task I's reader tests).
     "test/shiploop-e2e-commit-counters.test.py": 24.5,
+    # The chess-salesforce case's checks against the fake `sf` (test/shiploop_e2e/fake_sf.py): 191 tests, each subcommand run as a
+    # subprocess against the fake, plus a pure-Python reference move generator that re-derives every perft count and game. Local wall
+    # seconds, 2026-10-16: 105 to 123 s at load average about 5 (the platform and guard suites ran beside it in some of those).
+    # Just under QUICK_MAX_SECONDS; the E2E apparatus runs in the full tier anyway.
+    "test/shiploop-e2e-chess-salesforce.test.py": 115.0,
+    # The case `platform` hooks (preflight, before, home_links, model_bin, always-run cleanup, scrub): 40 tests, most of them a whole
+    # run.main over a fake host and one tiny platform command. 135 tests since the model_bin pin, resolution, bypass-detector, keep-platform
+    # and resume additions. Local wall seconds, 2026-10-16: 43 to 59 s at load average about 5. Under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-platform.test.py": 55.0,
+    # The guarded `sf` on the model's PATH (checks/sf_guard.py behind the wrapper run.write_model_bin writes), 91 tests, each rule
+    # run as a subprocess against the fake `sf`. Local wall seconds, 2026-10-16: 16 to 24 s at load average about 5. Under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-sf-guard.test.py": 20.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.

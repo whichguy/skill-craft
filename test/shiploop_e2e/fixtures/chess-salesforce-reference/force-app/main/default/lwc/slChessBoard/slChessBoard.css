@@ -1,0 +1,77 @@
+:host {
+    display: block;
+}
+
+.game {
+    max-width: 30rem;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.status {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    aspect-ratio: 1 / 1;
+    border: 2px solid #444;
+}
+
+.square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.light {
+    background: #f0d9b5;
+}
+
+.dark {
+    background: #b58863;
+}
+
+.white-piece {
+    color: #fff;
+    text-shadow: 0 0 2px #000, 0 0 2px #000, 0 0 2px #000;
+}
+
+.black-piece {
+    color: #111;
+}
+
+.selected {
+    box-shadow: inset 0 0 0 4px #1b96ff;
+}
+
+.target {
+    box-shadow: inset 0 0 0 4px #2e844a;
+}
+
+.capture {
+    box-shadow: inset 0 0 0 4px #ba0517;
+}
+
+.message {
+    min-height: 1.5rem;
+    margin: 0.5rem 0;
+    color: #ba0517;
+}
+
+.new-game {
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+}

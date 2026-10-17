@@ -15,7 +15,7 @@ import shiploop_stage_spec as stage_spec
 
 
 SERIAL_INNER_CONTEXT = """\
-Clear and then execute the prompt.
+Execute the prompt in a fresh context.
 
 For an implement producer, select the chain route before choosing a context route.
 While executing that producer, its bound mode and executor take precedence: parallel
