@@ -389,7 +389,7 @@ class InvokeLinesTests(Synthetic):
         receipt, contract_file = loops.receipt_path(self.root, "A-implement"), self.root / loops.contract_path("A-implement")
         self.assertEqual(lines[:5], ["", loops.BLOCK_HEADING, loops.INVOKE_LINE,
                                      loops.start_command(loops.runtime(state), receipt, contract_file), loops.FOLLOW_LINE])
-        self.assertIn("the change of every step, S1 to S2, in order,", "\n".join(lines))
+        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", "\n".join(lines))
         self.assertEqual(lines.count(loops.ARGUMENT_BEGIN), 1)
 
     def test_a_missing_contract_says_blocked(self):

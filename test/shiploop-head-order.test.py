@@ -76,7 +76,9 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
     state = row["state"]
     stage = plans.stage_of(key)
     item = item_of(state)
-    spec = stage_spec.stage(stage)
+    # The exit conditions are worded as the packet words them: the ask-agent route issues one implement action for every
+    # step of a multi-step plan, so its conditions name those steps and their paths (``loops.worded_stage``).
+    spec = loops.worded_stage(stage, navigator._implement_scope(state, stage))
     head_only = ["Full packet: ", "Never end the turn while a ShipLoop command is still running.",
                  "Recovery (reprints this head and rewrites the full packet): "]
     p0 = ["ShipLoop navigator | " + stage + " | revision ", "Callback for this stage (", " complete --run-dir=",
