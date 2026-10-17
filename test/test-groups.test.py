@@ -147,7 +147,7 @@ class TestGroupTests(unittest.TestCase):
                          "shiploop-navigator-v4"} <= baseline)
         self.assertLess(len(baseline), 17)
         cases = {
-            "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls"},
+            "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls", "shiploop-actual-improve-cli"},
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls"},
             "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},
             "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime"},
