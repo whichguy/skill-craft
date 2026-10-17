@@ -55,15 +55,15 @@ Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
 Every inner stage does its work inside one bound Until Loop started by the
 packet's literal command, with a ShipLoop-authored contract and receipt under `loops/`
-([stage Until Loops](../SKILL.md#stage-until-loops)). ShipLoop accepts an inner
+([stage Until Loops](inner-loop.md#stage-until-loops)). ShipLoop accepts an inner
 `done` only with a terminal packet that matches the contract rebuilt from state,
 and only after the stage's script gates pass: the expectation checks at
-`validate-existing`, the [lint gate](../SKILL.md#script-owned-lint) at
+`validate-existing`, the [lint gate](run-options.md#script-owned-lint) at
 `implement`, `test` and `verify`, ShipLoop's base and candidate
-[test runs](../SKILL.md#test-loop) at `test`, and its rerun of every recorded
+[test runs](test-loop.md#test-loop) at `test`, and its rerun of every recorded
 command at `verify`. Each loop prints its own repeat condition; the
 `implement` and `test` loops carry the
-[pass-or-stop rule](../SKILL.md#tests-pass-or-the-step-stops).
+[pass-or-stop rule](test-loop.md#tests-pass-or-the-step-stops).
 No stage contains a copied Improve policy or independently counts review passes.
 
 ## Whole-run map
@@ -220,7 +220,7 @@ packets are rendered with. No verb changes it mid-run, a retry of `init` or
 fresh-run hint. `none` offers no whole `plan`/`draft` loop: the `plan` packet prints the
 audit resource and the loop-resource status line, as the other Backchain stages do, and
 not the six-file "Selected Backchain and Until Loop resources" block that `one` and
-`converge` print there. See [Backchain passes option](../SKILL.md#backchain-passes-option).
+`converge` print there. See [Backchain passes option](backchain-route.md#backchain-passes-option).
 
 Every run also records its `planning_review` option (`stage` or `none`; `stage` unless
 `--planning-review` says otherwise), which selects the planning results that start an
@@ -230,7 +230,7 @@ so the Improve line of those packets says none starts and no reconcile route or 
 experiment locator is printed. The children after each `implement` step, `system-test-author`,
 `release-plan` and the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
 it, and a saved run without it is refused with the fresh-run hint. See
-[Planning review option](../SKILL.md#planning-review-option).
+[Planning review option](run-options.md#planning-review-option).
 
 Every packet prints the shared
 [reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
@@ -440,7 +440,7 @@ Stage results add their own fields where the stage needs them: `step-plan` recor
 `steps`, `paths`, `criteria`, `test_commands` (or `test_commands_na`), `check_na`,
 `expectations` and each step's `skills`; `validate-existing`'s `revise` records
 `failed_expectations`; `test` may record `red_na` and `retired_tests`; and a done
-`carry-forward` records its `skill` decision (see [the skill guide](../SKILL.md#the-inner-loop)).
+`carry-forward` records its `skill` decision (see [the skill guide](inner-loop.md#the-inner-loop)).
 `test` and `document` are recorded as not applicable, with a history row and a
 result file, only on the script's proof; `validate-existing` is recorded done by
 script when every expectation check matches.

@@ -137,7 +137,7 @@ runs), `converge` or `none`. It is set once, by `--backchain-passes` on `init` o
 `workspace start`, and no verb changes it: an `init` or `workspace start` retry that
 names another value is refused, and a saved run without the key is refused with the
 fresh-run hint like any other missing key. See the
-[skill guide](../SKILL.md#backchain-passes-option).
+[skill guide](backchain-route.md#backchain-passes-option).
 
 ## Planning review
 
@@ -149,7 +149,7 @@ set once, by `--planning-review` on `init`
 or `workspace start`, and no verb changes it: an `init` or `workspace start` retry that
 names another value is refused, and a saved run without the key is refused with the
 fresh-run hint like any other missing key. See the
-[skill guide](../SKILL.md#planning-review-option).
+[skill guide](run-options.md#planning-review-option).
 
 ## Authority and safety rules
 

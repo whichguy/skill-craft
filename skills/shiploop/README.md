@@ -159,8 +159,8 @@ Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
 `system-test-author`, `release-plan`), every accepted `implement` step and the
 successful `carry-forward` that leaves no work item pending follow this
 sequence; every other producer result is accepted on its own checks and the
-script selects the next producer directly (see the skill card's "When Improve
-runs"). That is the default of the run option `--planning-review stage|none`;
+script selects the next producer directly (see "When Improve
+runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs)). That is the default of the run option `--planning-review stage|none`;
 with `none` the first five of those (`spec` through `test-spec`) are accepted on
 ShipLoop's checks at `complete` too, and only each `implement` step,
 `system-test-author`, `release-plan` and the last `carry-forward` follow this
@@ -178,7 +178,7 @@ command, then the argument between two marker lines (it is already in the
 contract file ShipLoop wrote to `loops/<action>-contract.json`) and what to do
 with the loop's result, and ShipLoop accepts the result only with a
 terminal receipt that matches the contract rebuilt from state (see "Stage Until
-Loops" in the [skill guide](SKILL.md)). `complete --check-only` runs a stage's
+Loops" in [the inner loop](references/inner-loop.md#stage-until-loops)). `complete --check-only` runs a stage's
 script gates on a draft result without completing it.
 
 - `step-plan` records the item's steps, paths, criteria, test and check commands
@@ -302,7 +302,7 @@ and submit the exact `done_argv`. It does not remember or choose the next state.
 Relevant resources still have to be available; a locator does not embed their
 contents or grant authority to change them.
 
-For example, with `required_trivial_reviews: 2` (Improve's unchanged-content gate for the stages with the Improve rule `always`; code reviews run at 3, see SKILL.md), a
+For example, with `required_trivial_reviews: 2` (Improve's unchanged-content gate for the stages with the Improve rule `always`; code reviews run at 3, see references/improve-stages.md), a
 material repair reported as `non-trivial` returns another active action, and so does a
 `trivial` report on a pass that changed the content: the runtime reports
 `last_pass_changed_tree: true`. A `trivial` self-pass that changes nothing since the
@@ -587,7 +587,7 @@ run; a Backchain call uses only the `source-aware-native` route.
 The plan packet's Backchain loop takes one review/fix/check pass by default
 (`--backchain-passes one`; `converge` takes two consecutive trivial reviews, `none` takes no whole loop), and
 `--planning-review stage|none` turns the per-stage planning reviews on or off; both are fixed for the run
-(SKILL.md, *Backchain passes option* and *Planning review option*).
+([Backchain route](references/backchain-route.md#backchain-passes-option) and [run options](references/run-options.md#planning-review-option)).
 Keep product-document links portable across worktree return; verify destination
 files and anchors, distinguish planned tests from evidence, and repair affected
 links together when an authorized change moves a destination. Improve/Until Loop
@@ -615,7 +615,7 @@ The navigator applies the actual-skill handoff to the planning stages (spec, tes
 strategy, plan, step plan, test spec, system-test authoring and release plan; with
 `--planning-review none`, only system-test authoring and release plan), to each
 accepted implement step, and to the last carry-forward, whose review covers all
-executed steps before OUTER work. See the skill card's "When Improve runs" section. The producer callback first saves its attempt. The next
+executed steps before OUTER work. See "When Improve runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs). The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual
 selected skill's instructions for its review, history, evidence and commit

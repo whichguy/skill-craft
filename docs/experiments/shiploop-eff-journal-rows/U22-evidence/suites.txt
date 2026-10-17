@@ -1,0 +1,12 @@
+efficiency-journal exit 0 Ran 12 tests in 0.167s OK 
+stage-spec exit 0 Ran 14 tests in 1.059s OK 
+reference exit 0 Ran 8 tests in 0.770s OK 
+package-integrity exit 0 Ran 11 tests in 2.640s OK 
+reference-routing exit 0 Ran 4 tests in 3.687s OK 
+v4-consumers exit 0 Ran 5 tests in 12.002s OK 
+literal-transport exit 0 Ran 1 test in 16.232s OK 
+guidance exit 0 Ran 63 tests in 23.285s OK 
+no-model-launch exit 0 Ran 10 tests in 56.865s OK 
+packet-obligations exit 0 Ran 15 tests OK (after the until-loop row's source moved to references/inner-loop.md)
+navigator-contract exit 1 Ran 110 tests, 1 failure (PlanningReviewDocumentsTest: the improve-stages.md trigger sentence did not name planning_review); after the rewording: -k subset (PlanningReviewDocumentsTest, planning_review, Backchain, SkillCard) Ran 22 tests OK
+skill-frontmatter (node) exit 0; marketplace-package exit 0; installed-skill-invocation exit 0
