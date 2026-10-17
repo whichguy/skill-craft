@@ -1491,6 +1491,9 @@ def validate_platform(name: str, spec) -> dict:
             problems.append(f"{key} must be a non-empty command string")
     if "resume_note" in spec and not (isinstance(spec["resume_note"], str) and spec["resume_note"].strip()):
         problems.append("resume_note must be a non-empty string")
+    if "host_allow" in spec and not (isinstance(spec["host_allow"], list)
+                                     and all(isinstance(rule, str) and rule.strip() for rule in spec["host_allow"])):
+        problems.append("host_allow must be a list of non-empty permission rules (for example \"Bash(sf *)\")")
     timeout = spec.get("check_timeout", CHECK_TIMEOUT)
     if not (isinstance(timeout, int) and 60 <= timeout <= 3600):
         problems.append("check_timeout must be an integer number of seconds from 60 to 3600")
@@ -3589,14 +3592,22 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # bound Improve child records paths inside them. Only the CI and checkout checks still apply. It also
         # keeps that launch's plugin verdict, since a Grok or Codex stream cannot show which plugin loaded.
         plugin_dir, plugin = Path(earlier["plugin_dir"]), earlier.get("plugin")
-        released = released_versions()
-        versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
-                    "released": released,
-                    "gate": [problem for problem in version_gate(released, None, None)
-                             if not problem.startswith("installed ")]}
+        if str((earlier.get("versions") or {}).get("source") or "").startswith("checkout"):
+            # Started on --source checkout: that build is the thing under test and was never published, so the marketplace
+            # gate (CI of origin/main, "publish your commits first") does not apply to its resume (found 2026-10-17: it refused
+            # the resume of a run whose local HEAD was, by design, ahead of origin/main).
+            released = None
+            versions = {"source": "checkout (resumed on its original build)", **installed_versions(plugin_dir),
+                        "local_head": git("rev-parse", "HEAD").strip(), "gate": []}
+        else:
+            released = released_versions()
+            versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
+                        "released": released,
+                        "gate": [problem for problem in version_gate(released, None, None)
+                                 if not problem.startswith("installed ")]}
         if versions["gate"]:
             raise SystemExit("version gate: " + "; ".join(versions["gate"]))
-        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
+        if released is not None and host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
             # Codex syncs installed plugins to its marketplace's current release when a session starts and
             # deletes the old version's files, which the run's CLI and any bound Improve child point to.
             raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
@@ -3648,6 +3659,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not args.quiet:
             print(f"seeded: {', '.join(seeded['skipped'])} recorded without doing them; host starts at "
                   f"{seeded['stage']} in {seeded['run_dir']}", flush=True)
+    # The permission rules the case's platform asks the host to pre-approve (the host's own classifier would otherwise judge them).
+    host_allow = tuple((platform_spec or {}).get("host_allow") or ())
     # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
     opening = (resume_prompt(resumed["run_dir"], the_cli, resume_platform_note(platform_spec, note_platform, regrade)) if resumed
                else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt)) if seeded
@@ -3658,7 +3671,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                     cwd=work, model=args.model, effort=args.effort,
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
-                    plugin_dir=None if host.marketplace else plugin_dir)
+                    plugin_dir=None if host.marketplace else plugin_dir, allow=host_allow)
     # The host CLI's build, probed once for this launch and written on this launch's record. A regrade starts no host: it
     # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
     # that ran). Claude's build is its init event's (read below), so it is never probed.
@@ -3786,7 +3799,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
                          prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
-                         max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
+                         max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
+                         allow=host_allow)
         process = session(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
                          kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
@@ -3823,7 +3837,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode,
-                         max_turns=args.max_turns, resume=session_id)
+                         max_turns=args.max_turns, resume=session_id, allow=host_allow)
         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
                          translate=host.translator(), stop_file=stop_file, kind="continued", reason="resume-loop",
                          told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)

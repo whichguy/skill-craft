@@ -256,6 +256,7 @@
         "sfdx": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --"
       },
       "check_timeout": 900,
+      "host_allow": ["Bash(sf *)", "Bash(cd *)", "Bash(tail *)", "Bash(head *)", "Bash(tee *)", "Bash(grep *)"],
       "resume_note": "The platform was reset to its baseline when your last session ended, so anything you deployed to the org was removed. Deploy again from your source before you rely on it or run tests in the org.",
       "source": "owner go 2026-10-16: deploy to the Developer Edition org `de`, prefix SLChess, remove afterwards; Grok 4.7 medium"
     },

@@ -47,7 +47,11 @@ run showed. Judge a run by ShipLoop's SDLC fidelity, not by the chess app (see t
 | 2026-10-16 13:22 | Platform preflight through the wrapper, real org, Grok's environment (`--preflight-only`) | passed: 3 guarded calls logged (`org list`, two read-only queries). **It proved less than it looked:** the harness ran the wrapper with a PATH the harness itself set, not through a shell the model uses (Finding F4) |
 | 2026-10-16 13:24-13:32 | **Live run 1**, Grok 4.7 medium, `--source checkout`, output `sfchess/live1` | **Invalid trial (harness reason), stopped by the main session at 7 min, nothing deployed.** The model's `sf` was the real one, not the wrapper; it found the real home and used the owner's login directly (Finding F4). Org verified identical to its baseline afterwards (4 ApexClass, 13 LightningComponentBundle); no credential in any stored file (strict scan). Evidence: `docs/e2e-salesforce-chess-evidence/` |
 | 2026-10-16 | Four-lens adversarial review of the whole case (89 agents): 42 findings, 27 confirmed, 12 contested, 3 refuted | one of them (G1) reproduced Finding F4 independently; the rest drive the fix batch (Finding F5) |
-| 2026-10-16 | Fix batch (workers H harness, G guard policy, K case and checks), review of the combined diff, rehearsal on the real org, a one-prompt Grok probe of the resolution, then a second live run | in progress |
+| 2026-10-16 | Fix batches 1-4 (commits 33f23b45, 4f9b8ab6, 7da9b0a9, 2d47ab82) with an adversarial review after each of 1-3 | batch 1: PATH pin, resolution preflight, bypass detector, scope and log contract; batch 2: tab and app, full-game check, `--keep-platform`, reference app, 4 P1/P2 guard holes found by its review; batch 3: deploy-cache pin, legacy org aliases; batch 4: the last spellings. Suites: sf-guard 91, platform 135, chess-salesforce 191, all green with no real sf reachable |
+| 2026-10-16 17:3x | **Rehearsal on the real org** (`selftest`), 3 attempts | found 3 real-org shapes the fake had not shown (F7), then PASS: probe class, test, component, tab, app and app page deployed in one deploy, tested, run through `apex run --file`, and removed in one destructive deploy; org equal to its snapshot on 13 types |
+| 2026-10-16 17:45 | **Reference app on the real org** (`selftest --reference`) | first run 26 of 28 markers (finding F7.4), after the fix **28 of 28**: 26 in-org tests pass, every perft count, the Opera Game and a 17-ply game to checkmate; rules 20 s of a 900 s ceiling; cleanup verified |
+| 2026-10-16 17:56 | **Grok probe** in the harness environment | PASS: inside Grok's own shell `command -v sf` is the wrapper; `sf org list` works through it with the real login; `config get` denied by the guard; a Python subprocess `sf` call resolves to the wrapper; 4 decision lines in the guard log |
+| 2026-10-16 17:57 | **Live run 2**, Grok 4.7 medium, `--source checkout`, output `sfchess/live2`, cleanup default | running |
 
 ## Unproven (update when a run shows it)
 
@@ -157,3 +161,30 @@ Grok's own shell tool and one guarded call in `sf-calls.jsonl`, then the live ru
   tree at call time.
 - Never run `--resume-run X --grade-only` against a trial another harness is running (fixed in the batch, but do not rely on it).
 - The run's stored files hold the org id, its instance host and the user name (identifiers, not credentials); keep them out of commits.
+
+### F7. What the real org showed that the fake did not (firm, 2026-10-16; evidence: the rehearsal logs and `docs/e2e-salesforce-chess-evidence/`)
+
+1. A custom tab in the org has a null `DeveloperName`; the snapshot's `sorted()` raised. Records without the name field are skipped.
+2. The probe app page was rejected: `The 'main' region (type Region) specifies mode 'REPLACE' but a parent region enabling that mode doesn't exist.`
+   Found with a `--dry-run` deploy (check-only, nothing saved); the rest of the probe (class, test, component with `lightning__Tab` and
+   `lightning__AppPage`, custom tab with `lwcComponent`, Lightning app) validated on the first try, the motif included. The deploy step printed an empty
+   reason, so it now prints the component failures.
+3. `sf apex run --file` returns the debug log HTML-escaped: `RESULT&#124;probe&#124;1`. The grader's regex matched nothing; the check unescapes the log.
+4. A controller that throws `AuraHandledException` (the idiomatic way for an `@AuraEnabled` method) cannot be called with an illegal move from anonymous
+   Apex: the platform raises an uncatchable `System.LimitException: Can only throw this exception type from VisualForce or Aura context`. The two
+   full-game scripts asked the controller to throw, so a well-built controller would have failed them. They call the controller only with legal moves;
+   the illegal move is tested on the engine; the prompt says so.
+5. Answered unknowns: a bundle that imports its class, a tab showing it, an app holding the tab and an app page holding the component are removed together by
+   one destructive deploy (the listed order is safe); the CLI that the model sees is `@salesforce/cli/2.154.4` on node 25.9.0.
+6. The real-org grading of a correct implementation takes 20 to 23 s for all 28 `rules` markers, so the 180 s default ceiling would have sufficed; the case
+   keeps `platform.check_timeout: 900` for slower models' engines.
+
+Still unproven (the first successful model run, or `selftest --reference --keep`, will say): whether the deployed tab is visible to the owner's profile
+without profile changes; the CPU time of a model's engine in the 10 s anonymous Apex limit (the reference passes with a wide margin).
+
+### F8. The Grok probe (firm, 2026-10-16 17:56 PDT; evidence in `sfchess/probe1`, summarised here)
+
+A one-prompt Grok session in the real harness environment (throwaway HOME, wrapper PATH, startup files pinned, resolution preflight passed for six shell forms):
+`command -v sf` printed the wrapper path and `type -a sf` listed the wrapper before `/opt/homebrew/bin/sf`; `sf --version` and `sf org list --json` were allowed and
+logged with end lines; `sf config get target-org` exited 2 with `sf_guard: denied: ...`; a Python `subprocess.run(['sf', ...])` call resolved to the wrapper. This is the
+check run 1 lacked: the guard now governs the shell the model actually uses.

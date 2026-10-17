@@ -1367,6 +1367,10 @@ class CoverageRunTest(PlatformCase):
         self.use_case(self.sf_case())
         _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")  # the fake model's transcript shows sf; it never calls the wrapper
         out = Path(first["output"])
+        # The marketplace gate applies to a run that started on the marketplace install (a checkout run is exempt: ResumeGateTest).
+        recorded = json.loads((out / "invocation.json").read_text())
+        recorded["versions"]["source"] = "marketplace"
+        (out / "invocation.json").write_text(json.dumps(recorded))
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
             self.resume("grok", out, "done", ci="failure")
         self.assertIn("origin/main's CI failed", str(refused.exception))
@@ -2226,6 +2230,89 @@ class UnchangedCaseTest(PlatformCase):
             self.assertFalse((out / name).exists() or (out / "home" / name).exists(), name)
         self.assertNotIn("guard saw", printed)
         self.assertEqual(self.verbs(), [])
+
+
+class HostAllowTest(unittest.TestCase):
+    """platform.host_allow: the permission rules a case asks the host to pre-approve. Found 2026-10-17: Grok's auto mode blocked a
+    real `sf project deploy start --target-org de` three times ("not requested by the user") once a session restart left it only
+    the generic resume prompt; the run ended blocked."""
+
+    RULES = ("Bash(sf *)", "Bash(cd *)")
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def argv(self, host: str, **extra) -> list[str]:
+        return hosts.host(host, host).argv(prompt="p", prompt_file=self.tmp / "p.txt", cwd=self.tmp, model="m", effort="medium",
+                                           permission_mode="auto", max_turns=5, **extra)
+
+    def test_grok_gets_one_allow_flag_per_rule_in_order(self):
+        argv = self.argv("grok", allow=self.RULES)
+        flags = [argv[i + 1] for i, token in enumerate(argv) if token == "--allow"]
+        self.assertEqual(flags, list(self.RULES))
+        self.assertEqual(argv.count("--allow"), 2)
+
+    def test_a_launch_without_rules_is_what_it_always_was(self):
+        for host in ("grok", "claude", "codex"):
+            with self.subTest(host=host):
+                self.assertEqual(self.argv(host), self.argv(host, allow=()))
+                self.assertNotIn("--allow", self.argv(host))
+                self.assertNotIn("--allowedTools", self.argv(host))
+
+    def test_claude_gets_one_allowed_tools_list(self):
+        argv = self.argv("claude", allow=self.RULES)
+        self.assertEqual(argv[argv.index("--allowedTools") + 1], "Bash(sf *),Bash(cd *)")
+
+    def test_codex_runs_with_approval_never_so_there_is_nothing_to_pre_approve(self):
+        self.assertEqual(self.argv("codex", allow=self.RULES)[:-1], self.argv("codex")[:-1])
+
+    def test_the_case_object_accepts_a_list_of_rules_and_refuses_anything_else(self):
+        self.assertEqual(run.validate_platform("c", {"cleanup": "c", "host_allow": list(self.RULES)})["host_allow"], list(self.RULES))
+        for bad in ("Bash(sf *)", [""], ["Bash(sf *)", 3], [None], {"a": 1}):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit) as raised:
+                run.validate_platform("c", {"cleanup": "c", "host_allow": bad})
+            self.assertIn("host_allow", str(raised.exception))
+
+    def test_the_chess_salesforce_case_allows_the_guarded_sf_and_the_cd_that_precedes_it(self):
+        rules = run.case_platform("chess-salesforce")["host_allow"]
+        self.assertIn("Bash(sf *)", rules)
+        self.assertIn("Bash(cd *)", rules)
+
+
+class ResumeGateTest(PlatformCase):
+    """A resume of a run started on --source checkout is not put through the marketplace gate. Found 2026-10-17: the gate refused
+    the resume of live run 2 because its local HEAD was, by design, ahead of origin/main ("publish them first")."""
+
+    AHEAD = {"origin_main": "a" * 40, "local_head": "b" * 40, "local_behind_main": False, "catalog_version": "9.9.9",
+             "shiploop_version": None, "unreleased": [], "ci": "success"}
+
+    def resume_ahead(self, out: Path) -> str:
+        os.environ["FAKE_MODE"] = "done"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(run, "released_versions", return_value=self.AHEAD):
+            run.main(["--host", "grok", f"--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
+        return printed.getvalue()
+
+    def first_run(self) -> Path:
+        self.use_case(self.platform())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        return Path(first["output"])
+
+    def test_a_checkout_run_resumes_although_its_local_head_is_ahead_of_origin_main(self):
+        out = self.first_run()
+        recorded = json.loads((out / "invocation.json").read_text())
+        self.assertEqual(recorded["versions"]["source"], "checkout")
+        self.resume_ahead(out)  # must not raise
+        self.assertTrue((out / "result.json").is_file())
+
+    def test_a_marketplace_run_is_still_gated(self):
+        out = self.first_run()
+        recorded = json.loads((out / "invocation.json").read_text())
+        recorded["versions"]["source"] = "marketplace"
+        (out / "invocation.json").write_text(json.dumps(recorded))
+        with self.assertRaisesRegex(SystemExit, "version gate: .*publish them first"):
+            self.resume_ahead(out)
 
 
 if __name__ == "__main__":
