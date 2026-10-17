@@ -1,0 +1,66 @@
+Suites selected by `bash test/run-all.sh --group quick --changed-from e4c675d5` for this unit's footprint (54), run once each from the worktree as `SHIPLOOP_PROGRESS=off python3 -B test/<name>.test.py` three at a time on a machine at load average 15 to 26.
+
+Batch result (before the last edits) and, for a suite touched by a later edit or a failure, the final run on the final tree.
+
+| suite | batch | final tree |
+|---|---|---|
+| ci-policy | 10 tests, exit 0 | (batch run stands) |
+| shiploop-actual-improve-cli | 70 tests, exit 0 | (batch run stands) |
+| shiploop-chain-async | 3 tests, exit 1 | 3 tests, exit 0 |
+| shiploop-delegation | 52 tests, exit 0 | 52 tests, exit 0 |
+| shiploop-e2e-baseline | 143 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-chess-salesforce | 192 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-commit-counters | 105 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-efficiency | 74 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-environment | 133 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-fidelity | 131 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-packet-anatomy | 29 tests, exit 0 | 29 tests, exit 0 |
+| shiploop-e2e-platform | 161 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-quality | 128 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-render-diff | 43 tests, exit 0 | 43 tests, exit 0 |
+| shiploop-e2e-reorientation | 120 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-runrecord | 6 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-sf-guard | 92 tests, exit 0 | (batch run stands) |
+| shiploop-e2e-slice | 28 tests, exit 0 | (batch run stands) |
+| shiploop-e2e | 428 tests, exit 0 | (batch run stands) |
+| shiploop-efficiency-journal | 11 tests, exit 1 | (batch run stands) |
+| shiploop-guidance | 63 tests, exit 0 | (batch run stands) |
+| shiploop-handoff | 55 tests, exit 0 | 55 tests, exit 0 |
+| shiploop-head-order | 25 tests, exit 0 | 29 tests, exit 0 |
+| shiploop-keepalive | 58 tests, exit 0 | 58 tests, exit 0 |
+| shiploop-knowledge | 132 tests, exit 0 | (batch run stands) |
+| shiploop-lint | 82 tests, exit 0 | (batch run stands) |
+| shiploop-loops | 33 tests, exit 0 | 33 tests, exit 0 |
+| shiploop-mock-replay | 39 tests, exit 0 | (batch run stands) |
+| shiploop-narrative | 11 tests, exit 0 | (batch run stands) |
+| shiploop-navigator-contract | 110 tests, exit 1 | 110 tests, exit 0 |
+| shiploop-navigator-dry-run | 34 tests, exit 0 | (batch run stands) |
+| shiploop-navigator-v4 | 18 tests, exit 0 | (batch run stands) |
+| shiploop-no-model-launch | 8 tests, exit 0 | (batch run stands) |
+| shiploop-package-integrity | 7 tests, exit 0 | (batch run stands) |
+| shiploop-packet-bounds | 10 tests, exit 1 | 10 tests, exit 0 |
+| shiploop-packet-completeness | 43 tests, exit 0 | 43 tests, exit 0 |
+| shiploop-packet-obligations | 14 tests, exit 0 | 14 tests, exit 0 |
+| shiploop-packet-recut | 21 tests, exit 1 | 21 tests, exit 0 |
+| shiploop-planning-handoff | 7 tests, exit 0 | (batch run stands) |
+| shiploop-privacy | 5 tests, exit 0 | (batch run stands) |
+| shiploop-quality | 11 tests, exit 1 | 11 tests, exit 0 |
+| shiploop-reference-routing | 4 tests, exit 0 | (batch run stands) |
+| shiploop-reference | 4 tests, exit 0 | 4 tests, exit 0 |
+| shiploop-rehydration | 17 tests, exit 0 | (batch run stands) |
+| shiploop-run-review | 657 tests, exit 0 | (batch run stands) |
+| shiploop-stage-spec | 10 tests, exit 0 | (batch run stands) |
+| shiploop-status-display | 15 tests, exit 0 | 15 tests, exit 0 |
+| shiploop-step-packets | 9 tests, exit 0 | 9 tests, exit 0 |
+| shiploop-stopped-improve | 8 tests, exit 0 | (batch run stands) |
+| shiploop-store | 8 tests, exit 0 | (batch run stands) |
+| shiploop-test-loop | 123 tests, exit 1 | (batch run stands) |
+| shiploop-v4-consumers | 5 tests, exit 0 | (batch run stands) |
+| skill-frontmatter | exit 0 | (batch run stands) |
+| test-groups | 29 tests, exit 0 | 29 tests, exit 0 |
+
+Notes on the table:
+- `shiploop-test-loop` ran 123 tests in the batch: 121 passed and 2 failed (the loop block now precedes the status block, which `test_a_loop_head_prefills_the_receipt_prints_the_exit_and_accepts_its_template` pinned the other way round); the pin was changed and that test run alone passes (1 test, exit 0). The rest of the file was not run a second time (18 minutes under this load).
+- `shiploop-chain-async` failed in the batch on the 30-second subprocess timeout of its CLI calls (load average 15 to 26); run alone it passes (3 tests, 260 s).
+- `shiploop-efficiency-journal` fails on the integration base before this unit's row too: five fragment files of other units (U1, U20, U27, U28, U5a) hold no dated row heading, which that suite requires; the integrator folds them into the journal. This unit's fragment passes the suite's own `problems()` check (below).
+- Not in this footprint and not run: the full tier, `bash test/run-all.sh` and the `shiploop-composition` group (G-QUICK is not an exit item of this unit); no `improve` or `skills/improve` file changed, so none of the improve suites; no Hermes suite (memory: no Hermes tests).

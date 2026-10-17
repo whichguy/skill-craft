@@ -40,6 +40,25 @@ OFFLINE_SUFFIX = "/shiploop-step-packets-xxxxxxxx/run"   # what the offline walk
 _WORKTREE = re.compile(r"(?m)^WORKTREE = (\S+) \(all product work")
 
 
+def reference_measure(workdir: str, root: Path | str = ROOT, run_dir_length: int = REFERENCE_RUN_DIR_LENGTH):
+    """The length function a head's budget decisions use in a test: a text's length as if the run directory, the skill's
+    root and the CLI path had their reference lengths (``at_reference_install`` for any part of a packet, not only a whole).
+
+    ``workdir`` is the offline walk's work directory (the run directory is ``<workdir>/run``).  Without it a head would
+    keep the lookups that fit under *this machine's* paths, and its length at the reference install would move with the
+    checkout it is measured in.
+    """
+    workdir_length = run_dir_length - len("/run")
+    root = str(root)
+
+    def measure(text: str) -> int:
+        return (len(text)
+                + text.count(workdir) * (workdir_length - len(workdir))
+                + text.count(root) * (REFERENCE_ROOT_LENGTH - len(root))
+                + text.count(BARE_CLI) * (REFERENCE_CLI_LENGTH - len("shiploop")))
+    return measure
+
+
 def at_reference_install(text: str, root: Path | str = ROOT, run_dir_length: int = REFERENCE_RUN_DIR_LENGTH) -> int:
     """``len(text)`` as if the run directory, the skill's root and the CLI path had their reference lengths.
 
@@ -50,12 +69,7 @@ def at_reference_install(text: str, root: Path | str = ROOT, run_dir_length: int
     found = _WORKTREE.search(text)
     if found is None:
         raise AssertionError("the packet defines no WORKTREE: it has no References block to read the work directory from")
-    workdir, root = found.group(1), str(root)
-    workdir_length = run_dir_length - len("/run")
-    return (len(text)
-            + text.count(workdir) * (workdir_length - len(workdir))
-            + text.count(root) * (REFERENCE_ROOT_LENGTH - len(root))
-            + text.count(BARE_CLI) * (REFERENCE_CLI_LENGTH - len("shiploop")))
+    return reference_measure(found.group(1), root, run_dir_length)(text)
 
 
 def mode_of(whole: str, print_limit: int) -> str:

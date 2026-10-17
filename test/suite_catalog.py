@@ -83,6 +83,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-packet-completeness.test.py",
     "test/shiploop-step-packets.test.py",
     "test/shiploop-packet-recut.test.py",
+    "test/shiploop-head-order.test.py",
     "test/shiploop-reference.test.py",
     "test/shiploop-guidance.test.py",
     "test/shiploop-local-skills.test.py",
@@ -184,6 +185,7 @@ _DURATION_SECONDS = {
     "test/shiploop-packet-completeness.test.py": 0.1,
     "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
     "test/shiploop-packet-recut.test.py": 0.5,  # estimate 2026-10-11: four offline step walks and two bound children
+    "test/shiploop-head-order.test.py": 0.2,  # measured locally 2026-10-17: 21 tests on cached two-item walks, 4 s
     "test/shiploop-reference.test.py": 0.5,  # measured locally 2026-10-10
     # measured locally 2026-10-11: 36 tests, two of them through the real CLI, 9.0 s; with the two isolated-run CLI tests
     # moved in from the retired shiploop-retire suite (consumer contract 4c): 38 tests, 17.1 s at load average 4.8; with
@@ -674,6 +676,7 @@ _SHIPLOOP_PROMPT_IDS = (
     "shiploop-packet-completeness",
     "shiploop-step-packets",
     "shiploop-packet-recut",
+    "shiploop-head-order",
     "shiploop-reference",
     "shiploop-navigator-dry-run",
 )
