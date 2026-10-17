@@ -29,6 +29,9 @@ import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
+sys.path.insert(0, str(ROOT / "test"))
+from shiploop_loop_support import LoopBlock  # noqa: E402
+from shiploop_packet_view import assert_top_block  # noqa: E402
 
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_KEEPALIVE": "off"}
 
@@ -284,25 +287,23 @@ class GoalFirstTests(unittest.TestCase):
                 seen.add(stage)
                 packet = nav.render(dry_run.CORE, dry_run.RUN, state)
                 row = spec.stage(stage)
-                lines = packet.splitlines()
-                header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator |"))
                 with self.subTest(stage=stage):
-                    # The owner rule and the index pointer sit directly under the header (2026-10-16); the callback,
-                    # goal and done-when follow them.
-                    self.assertEqual(lines[header + 1], prompts.OWNER_RULE)
-                    self.assertTrue(lines[header + 2].startswith(prompts.INDEX_POINTER_PREFIX))
-                    owner = 2
-                    self.assertTrue(lines[header + owner + 1].startswith("Callback for this stage"))
+                    # The owner rule, the index pointer, the callback, the goal and the done-when lead the packet in that
+                    # order (2026-10-16), found by constant and label, not by line number (shiploop_packet_view).
+                    view = assert_top_block(self, packet, require=("owner", "pointer", "callback", "goal", "done_when"),
+                                            label=stage)
+                    self.assertTrue(view["callback"].startswith("Callback for this stage"))
                     # A goal is one action sentence naming its output (packet re-cut, 2026-10-11) and may end in its own period.
-                    self.assertEqual(lines[header + owner + 2], "Goal: " + row.goal[0].upper() + row.goal[1:]
+                    self.assertEqual(view["goal"], "Goal: " + row.goal[0].upper() + row.goal[1:]
                                      + ("" if row.goal.endswith(".") else "."))
                     if stage in spec.INNER:
                         # Each thing once (owner, 2026-10-11): the head points at the /until-loop argument, which
                         # numbers the conditions; they are not listed a second time.
-                        self.assertEqual(lines[header + owner + 3], nav.DONE_WHEN_LOOP)
+                        self.assertEqual(view["done_when"], nav.DONE_WHEN_LOOP)
+                        exits = LoopBlock(packet).exits
                         for number, condition in enumerate(row.done_when, 1):
                             self.assertEqual(packet.count(condition), 1, condition)
-                            self.assertIn("\n" + str(number) + ". " + condition + "\n", packet)
+                            self.assertIn(str(number) + ". " + condition, exits)
                     else:
                         for condition in row.done_when:
                             self.assertIn("- " + condition, packet)

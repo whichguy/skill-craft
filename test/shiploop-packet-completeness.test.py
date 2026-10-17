@@ -19,6 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
+sys.path.insert(0, str(ROOT / "test"))
 import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_loop_contract as loop_contract  # noqa: E402
@@ -29,6 +30,7 @@ import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_counts as test_counts  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
+from shiploop_loop_support import LoopBlock  # noqa: E402
 
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=ROOT / "skills/shiploop", REF_DIR=ROOT / "skills/shiploop/references")
@@ -622,17 +624,14 @@ def prose_lines(packet: str) -> list:
     lines = packet.splitlines()
     start = lines.index(navigator.REFERENCES_HEAD)
     block = set(range(start, start + len(reference_block(packet))))
-    found, argument = [], False
-    for number, line in enumerate(lines):
-        if line == loops.ARGUMENT_BEGIN:
-            argument = True
-        if argument:
-            argument = line != loops.ARGUMENT_END
-            continue
-        if number in block or "--run-dir" in line or LITERAL_LINES.match(line):
-            continue
-        found.append(line)
-    return found
+    # The argument is the lines from the BEGIN marker to the END marker, read by the one loop-block parser
+    # (shiploop_loop_support.LoopBlock) so a change to the block's layout is made once.
+    loop = LoopBlock.find(packet)
+    argument = (set(range(loop.start + loop.begins[0], loop.start + loop.ends[0] + 1))
+                if loop is not None and loop.begins and loop.ends else set())
+    return [line for number, line in enumerate(lines)
+            if number not in argument and number not in block and "--run-dir" not in line
+            and not LITERAL_LINES.match(line)]
 
 
 def dry_run_packets() -> dict:

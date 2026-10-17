@@ -32,6 +32,7 @@ import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_mutation as mutation  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
+import shiploop_packet_view as packet_view  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -1005,6 +1006,58 @@ class TestLoopTests(unittest.TestCase):
                 self.refuse_unrunnable(DONE)
                 self.complete(dict(DONE, outcome="replan", work_items=corrective))
                 self.assertIn("W2", [row["id"] for row in self.state()["work_items"]])
+
+    def reach_could_not_run(self, stage: str) -> tuple:
+        """A fresh run at ``stage`` whose latest ShipLoop run never reached a verdict: ``(the done result the gate refused,
+        the refusal text)``.  An inner stage ends its Until Loop first; an outer one has none."""
+        self.restart()
+        self.drive_to(stage)
+        done = DONE
+        if loops.cursor(self.state()) is not None:
+            self.run_loop([TRIVIAL])
+            done = dict(DONE, evidence_refs=[str(self.terminal())])
+        with mock.patch.object(test_loop.lint, "run_argv", return_value=self.TIMED_OUT):
+            with self.assertRaises(nav.NavigatorError) as caught:
+                self.complete(done, loop=True)
+        self.assertTrue(test_loop.latest_attempt_could_not_run(self.run_dir, self.action()))
+        return done, str(caught.exception)
+
+    def checkpoint(self) -> Path:
+        """Copies of the run directory and the repository as they stand, so one state can take several submissions."""
+        base = Path(tempfile.mkdtemp(prefix="shiploop-checkpoint-", dir=self.run_dir.parent))
+        self.addCleanup(shutil.rmtree, base, ignore_errors=True)
+        shutil.copytree(self.run_dir, base / "run")
+        shutil.copytree(self.repo, base / "repo")
+        return base
+
+    def rollback(self, base: Path) -> None:
+        for live, saved in ((self.run_dir, base / "run"), (self.repo, base / "repo")):
+            shutil.rmtree(live)
+            shutil.copytree(saved, live)
+
+    def test_every_exit_a_could_not_run_refusal_names_is_accepted_by_the_gate_at_its_stage(self):
+        """ROUTE test (memory test-the-route-not-the-wording; test-economy review, 2026-10-17, row 5): a refusal names the
+        exits the model may take, and A1 shipped one the gate itself refused.  At every stage that reruns recorded
+        commands, the real refusal text is read for the outcomes it tells the model to report, each is submitted through
+        the real ``complete``, and each is accepted.  The tests above submit a hand-picked ``revise`` or ``replan``; this
+        one takes the outcome from the text, so a refusal that names an exit its stage does not take fails here."""
+        corrective = [{"id": "W2", "title": "Make the recorded command fit its budget"}]
+        shape = {"blocked": {"blocked_by": "external"}, "replan": {"work_items": corrective}}
+        for stage in test_loop.VERIFY_STAGES:
+            remedy = next(outcome for outcome in ("revise", "replan") if outcome in stage_spec.STAGE_SPEC[stage].outcomes)
+            with self.subTest(stage=stage):
+                done, refusal = self.reach_could_not_run(stage)
+                named = packet_view.named_outcomes(refusal)
+                self.assertIn(remedy, named, "the refusal must name the remedy its stage takes: " + refusal)
+                self.assertEqual(packet_view.unaccepted_outcomes(stage, refusal), [], refusal)
+                saved = self.checkpoint()
+                for outcome in named:
+                    with self.subTest(stage=stage, outcome=outcome):
+                        self.rollback(saved)
+                        self.complete(dict(done, outcome=outcome, **shape.get(outcome, {})))
+                        recorded = self.state()["history"][-1]
+                        self.assertEqual((recorded["stage"], recorded["outcome"]), (stage, outcome))
+                        self.assertEqual(self.state()["status"], "blocked" if outcome == "blocked" else "active")
 
     ID_CHECK = ('if test -f "$1"; then echo "\u2714 TC-1 makes a widget"; echo "Ran 1 test in 0.001s"; echo OK; '
                 'else echo "\u2716 TC-1 makes a widget"; echo "Ran 1 test in 0.001s"; echo "FAILED (failures=1)"; '

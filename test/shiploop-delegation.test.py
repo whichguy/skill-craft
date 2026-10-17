@@ -23,6 +23,8 @@ import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from shiploop_packet_view import assert_top_block  # noqa: E402
 
 
 def _with_packet_file(stdout: str) -> str:
@@ -43,14 +45,8 @@ def _with_packet_file(stdout: str) -> str:
 
 # Instructions that route work to a delegated executor.  Inline packets may
 # name Ask Agent only to forbid it, so these are the positive route phrases.
-OWNER = 2  # the owner rule and the index pointer sit directly under every header (2026-10-16)
-
-
-def owner_lines_follow(test: unittest.TestCase, lines: list, header: int = 0) -> None:
-    """The two lines under the header are the owner rule and the pointer to the run's context-index.md."""
-    test.assertEqual(lines[header + 1], prompts.OWNER_RULE)
-    test.assertTrue(lines[header + 2].startswith(prompts.INDEX_POINTER_PREFIX), lines[header + 2])
-    test.assertTrue(lines[header + 2].endswith(prompts.INDEX_POINTER_SUFFIX), lines[header + 2])
+# The header, the owner rule, the pointer to the run's context-index.md and the callback are found by constant and label and
+# asserted in order by shiploop_packet_view.assert_top_block (2026-10-17): no line of the top block is addressed by number.
 
 
 DELEGATED_ROUTE_TEXT = (
@@ -266,8 +262,7 @@ class DelegationStateTests(unittest.TestCase):
                         lines[0].endswith("| the step-plan result"), lines[0])
         for text in DELEGATED_ROUTE_TEXT:
             self.assertNotIn(text, held_child)
-        owner_lines_follow(self, lines)
-        callback = lines[1 + OWNER]
+        callback = assert_top_block(self, lines, label="parked child")["callback"]
         # The parked child is unbound, so its one legal callback is improve-bind, which names the Improve stage's id,
         # never the reviewed action's.
         self.assertTrue(callback.startswith("No Improve card is recorded for this run. Next command (bind the Improve "
@@ -621,10 +616,12 @@ class PacketContractTests(DelegationStateTests):
             with self.subTest(stage=stage):
                 lines = packet.splitlines()
                 self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision "), lines[0])
-                owner_lines_follow(self, lines)
-                self.assertTrue(lines[1 + OWNER].startswith("ShipLoop could not start this review; start it again first: "),
-                                lines[1 + OWNER])
-                argv = shlex.split(lines[1 + OWNER].split("first: ", 1)[1])
+                restart_label = "ShipLoop could not start this review; start it again first: "
+                view = assert_top_block(self, lines, callback_labels=(restart_label,), label=stage)
+                restart = view["callback"]
+                # The restart command is the first instruction, ahead of the usual two.
+                self.assertLess(view.index("callback"), view.find("1. Run the improve skill on the ")[0])
+                argv = shlex.split(restart.split("first: ", 1)[1])
                 self.assertEqual(argv[2], "improve-start")
                 self.assertEqual(argv[-1], "--restart-stopped")
                 self.assertFalse(any(arg.startswith("--opening") for arg in argv), argv)
@@ -675,12 +672,15 @@ class PacketContractTests(DelegationStateTests):
                                          + lines[header].split("revision ", 1)[1].split(" |")[0]
                                          + " | the " + stage + " result")
                         self.assertEqual(header, 0)
-                        owner_lines_follow(self, lines)
-                        self.assertTrue(lines[1 + OWNER].startswith("1. Run the improve skill on the " + stage + " result."),
-                                        lines[1 + OWNER])
-                        self.assertTrue(lines[2 + OWNER].lstrip().startswith("/improve ShipLoop Improve: "), lines[2 + OWNER])
-                        self.assertTrue(lines[2 + OWNER].rstrip().endswith("/handoff.md"), lines[2 + OWNER])
-                        callback = next(line for line in lines if line.startswith("2. When the improve skill"))
+                        view = assert_top_block(self, lines, label=route + " " + stage)
+                        first, _instruction = view.find("1. Run the improve skill on the " + stage + " result.")
+                        self.assertLess(view.index("pointer"), first)    # the two instructions follow the owner lines ...
+                        self.assertLess(first, view.index("callback"))   # ... and the callback is the second of them
+                        argument = view.text_after(first)               # the improve skill's one argument line
+                        self.assertTrue(argument.lstrip().startswith("/improve ShipLoop Improve: "), argument)
+                        self.assertTrue(argument.rstrip().endswith("/handoff.md"), argument)
+                        callback = view["callback"]
+                        self.assertTrue(callback.startswith("2. When the improve skill"), callback)
                         argv = shlex.split(callback.split("run: ", 1)[1])
                         self.assertEqual(argv[2], "complete")
                         # P12: no completion record; ShipLoop derives it from the review files.
@@ -691,8 +691,7 @@ class PacketContractTests(DelegationStateTests):
                         continue
                     self.assertRegex(lines[header],
                                      r"^ShipLoop navigator \| " + re.escape(stage) + r" \| revision \d+$")
-                    owner_lines_follow(self, lines, header)
-                    lead = lines[header + 1 + OWNER]
+                    lead = assert_top_block(self, lines, label=route + " " + stage)["callback"]
                     self.assertTrue(lead.startswith("Callback for this stage "), lead)
                     # The first callback line is the only one: "Call this when done:" is gone (2026-10-11 dedupe),
                     # so the lead carries the complete command and the result file it reads.

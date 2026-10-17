@@ -34,8 +34,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+sys.path.insert(0, str(ROOT / "test"))
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
+from shiploop_packet_view import assert_top_block  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -2768,13 +2770,12 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(started.stdout.count("Callback for this stage "), 1)
         self.assertNotIn("Call this when done:", initial)
         self.assertNotIn("Write the structured result to:", initial)
-        lines = initial.splitlines()
-        header = next(index for index, line in enumerate(lines)
-                      if line.startswith("ShipLoop navigator | intake | "))
-        # The owner rule and the index pointer sit directly under the header (2026-10-16); the callback leads after them.
-        self.assertEqual(lines[header + 1], prompts.OWNER_RULE)
-        self.assertEqual(lines[header + 2], prompts.index_pointer(run_dir.resolve() / "context-index.md"))
-        lead = lines[header + 3]
+        # The owner rule, the index pointer and the callback lead the packet, in that order (2026-10-16), found by constant
+        # and label (shiploop_packet_view), not by line number.
+        view = assert_top_block(self, initial)
+        self.assertTrue(view["header"].startswith("ShipLoop navigator | intake | "), view["header"])
+        self.assertEqual(view["pointer"], prompts.index_pointer(run_dir.resolve() / "context-index.md"))
+        lead = view["callback"]
         self.assertTrue(lead.startswith("Callback for this stage "), lead)
         completion_command = lead.split("): ", 1)[1]
 

@@ -32,15 +32,18 @@ MANAGED_WORKTREE_CAPABILITIES = [
     "fingerprint-bound-close",
     "ignored-output-report",
 ]
-GUIDANCE_ROUTES = {
-    "Coding decision guide": "coding-guidance.md#select-guidance",
-    "House-style guidance": "house-style.md#match-while-building",
-    "Service discovery guidance": "service-discovery.md#development-handoff",
-    "Target-native test selection": "repeatable-test-suites.md#select-target-native-tests",
-}
 
 from shiploop_chain_support import digest, missing_code_craft_headings
 import shiploop_chain_support as fixture
+import shiploop_prompts as prompts
+
+# The four guides a worker packet carries, by label.  Each locator is read from the navigator's implement-stage routes,
+# so no guide file name is written here: the quick tier selects a suite by the file names its source mentions, and four
+# guidance documents had pulled in this 118 s suite for an edit whose anchors shiploop-reference-routing already checks.
+GUIDANCE_LABELS = ("Coding decision guide", "House-style guidance", "Service discovery guidance", "Target-native test selection")
+_IMPLEMENT_ROUTES = dict(prompts.STAGE_REFERENCES["implement"])
+GUIDANCE_ROUTES = {label: _IMPLEMENT_ROUTES[label] for label in GUIDANCE_LABELS}
+SELECTOR_LOCATOR = GUIDANCE_ROUTES["Coding decision guide"]
 
 
 class PlanningContextChainTests(unittest.TestCase):
@@ -208,7 +211,7 @@ class PlanningContextChainTests(unittest.TestCase):
                 for line in body.splitlines() if line.startswith("#")
             }
             self.assertIn(anchor, headings, locator)
-        selector = (references / "coding-guidance.md").read_text()
+        selector = (references / SELECTOR_LOCATOR.split("#", 1)[0]).read_text()
         links = re.findall(r"\]\(([^)]+)\)", selector)
         for relative in links:
             path, _, anchor = relative.partition("#")
@@ -687,7 +690,7 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assert_worker_guidance(packet)
         prefix = "Coding decision guide: "
         packet["instructions"] = [
-            prefix + str(self.f.base / "unavailable" / "coding-guidance.md") + "#select-guidance"
+            prefix + str(self.f.base / "unavailable" / SELECTOR_LOCATOR.split("#", 1)[0]) + "#" + SELECTOR_LOCATOR.split("#", 1)[1]
             if text.startswith(prefix) else text for text in packet["instructions"]
         ]
         workspace = Path(packet["context"]["workspace"])

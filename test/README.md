@@ -162,6 +162,14 @@ drives an inner stage through the CLI finishes that stage's loop with
 ShipLoop's own contract file; never write a receipt by hand. The loop contracts
 and receipt checks themselves are covered by `test/shiploop-loops.test.py`.
 
+A test that reads a packet's first lines (header, owner rule, context-index pointer, callback, goal, done-when) finds
+them with `test/shiploop_packet_view.assert_top_block`, by the constant or label that defines each part, and asserts
+their order; never address one as `lines[header + 2]`. A test that reads the Until Loop block (its argument, exit
+conditions or start command) uses `test/shiploop_loop_support.LoopBlock`. When a unit moves a part of the top block
+it edits `TOP_ORDER` or a label in the helper once; the helper's negative self-test is
+`TopBlockHelperTests` in `test/shiploop-packet-recut.test.py`. `unaccepted_outcomes` checks that every outcome a
+packet or refusal tells the model to report is one its stage accepts.
+
 ## Qualify the current Dispatcher
 
 The default hermetic suites intentionally use recorded compatibility fixtures.
