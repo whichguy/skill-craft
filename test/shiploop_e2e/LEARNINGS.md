@@ -2269,3 +2269,60 @@ Evidence: `/Users/dadleet/e2e-runs/20261011/slice-fixbug-8e1253de/` (slice-resul
 **Open.**
 - A follow-on run across two runs (lessons quoted at the next intake, environment.md read as the cross-run home) is still to be repeated on this build.
 - A cleared-context run that hits a hand-off refusal on each route is still to be run.
+
+## E2E audit fixes: five grading paths that could report a pass nobody earned (2026-10-16, from origin/main 2686b427) — status: interim
+
+**Question.** Can the harness paths the 2026-10-16 E2E audit reproduced still give an unearned pass, once each is fixed
+against the audit's own control? Release gates read these verdicts.
+
+The audit is `docs/shiploop-e2e-audit-2026-10-16.html`. Its evidence is `docs/experiments/shiploop-e2e-audit-20261016/`:
+`grading/receipt.json` and `grading/audit_probes.py` for the review, state and Battleship probes, and `port-probe/` for
+the fixed-port probe. The audit ran offline at 2686b427 (1,561 regression tests passed) and changed no source.
+
+Each fix has a fail-first regression built from the audit's control. It ran red on the unchanged code, then green.
+
+1. **A review must be valid before it counts as clean** (`review.py`, `iterate.py`).
+   - Control: a reviewer that failed with no JSON, and one that exited with only `{"learnings": []}`. Both gave an empty
+     actionable list. `iterate.py` counted each as a clean review of a passing run, so the streak reached 2 and the loop
+     stopped as converged (`grading/receipt.json` `review_convergence`). The CLI gate exited 0 for the second one.
+   - Fix: `review.validity` returns `valid`, `failed`, `timed_out` or `invalid` with a reason, and it is stored in
+     `review.json`. An unusable review has no actionable findings, resets the clean streak and is journaled with its
+     outcome. `review.py` exits 1 for it.
+   - Regression: `ReviewValidityTest` and `IterateConvergenceTest` in `test/shiploop-e2e.test.py`. They drive
+     `iterate.main` with the build, the run and the reviewer host faked. Red on 2686b427: 2 failures and 6 errors,
+     including streak 2 from two unusable reviews. Green after the fix. A valid review with no findings still converges.
+2. **Grade the run this invocation created** (`run.grade_shiploop`). Pending.
+3. **Bind HTTP checks to their candidate process.** Pending.
+4. **Make the breadth selection match its claim.** Pending.
+5. **Review the source that actually ran** (`review.py`). Pending.
+
+**Out of scope.** The Battleship behavioural verifier (audit item 3), the timing evidence and the pilots. The deferred
+backlog below lists them.
+
+## Deferred from the 2026-10-16 E2E audit (backlog, not started) — status: exploratory
+
+Each item carries the audit's condition for adopting it. None is implemented.
+
+- **Battleship behavioural verifier.**
+  - Finding: all four Battleship checks exited 0 against a synthetic server with no fleet, `gameOver: true` from the
+    start and one placeholder test (`grading/receipt.json` `battleship_checks`).
+  - Proposal: a small independent verifier tied to the public request. It checks real game progression, hits and
+    sinks, and a valid terminal condition.
+  - Adopt when: it first rejects that broken control and accepts valid implementations. The mutation and quality
+    records stay records, not a new pass gate. Restoring the removed acceptance set unchanged is not a remedy, because it
+    did not tell deliveries apart.
+- **Review-prompt compaction pilot.**
+  - Finding: a rendered review prompt is 95,432 characters, and 92,012 of them (96.42%) are the standing specification
+    (`review-prompt-measurement.json`). These are character counts, not tokens, latency or cost.
+  - Proposal: a concise review brief that keeps the operative clauses, exceptions and finding format, with locators for
+    supporting history. Keep one authoritative specification.
+  - Adopt when: on frozen retained traces with known findings, using the same reviewer and settings, finding recall and
+    false-positive behaviour hold. Only then compare tokens and time. Never shorten the contract just to hit a size.
+- **Context-read measurement.**
+  - Finding: the counters measure printed heads and saved packet files. The richer packet-read report is Claude only. No
+    measure is a comparable cross-host total of what a packet caused the model to read.
+  - Proposal: extend the retained event analysis. Keep the source path or hash and the stage. Separate printed text,
+    packet reads, reference reads and unknown or truncated output. Compare a populated run, a multi-step chain and a
+    context-reset case.
+  - Adopt when: completion obligations are kept and no extra rework appears, before any efficiency win is claimed.
+    Shorter saved files do not mean fewer billed tokens.

@@ -862,6 +862,137 @@ class ReviewParsingTest(unittest.TestCase):
         self.assertIn("**Evaluation criteria:** not answered", rendered)
 
 
+# The 2026-10-16 E2E audit's review control (docs/experiments/shiploop-e2e-audit-20261016/grading/): a reviewer that failed with
+# no JSON and one that exited with only {"learnings": []} both gave an empty actionable list, and iterate.py counted each as a
+# clean review of a passing run, so two of them stopped the loop as converged.
+VALID_EMPTY_REVIEW = ('```json\n' + json.dumps({
+    "outcome": "Delivered the request.", "learnings": [], "missing_considerations": [], "optimizations": [],
+    "harness": {"learning_retention": {"answer": "keep", "proposals": []}}}) + '\n```')
+
+
+class FakeReviewer:
+    """The reviewer host of the audit control: every call returns the next (process status, final text) pair."""
+    model, effort = "offline-probe", "high"
+
+    def __init__(self, replies: list):
+        self.replies = list(replies)
+        self.text = ""
+
+    def env(self, home):
+        return {"HOME": str(home)}
+
+    def argv(self, **kwargs):
+        return ["offline-probe"]
+
+    def translator(self):
+        return None
+
+    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None):
+        status, self.text = self.replies.pop(0)
+        Path(events_path).write_text("")
+        Path(stderr_path).write_text("")
+        return {"status": status, "returncode": {"exited": 0, "failed": 1}.get(status), "elapsed_seconds": 0}
+
+    def patches(self):
+        return (mock.patch.object(review.hosts, "host", return_value=self),
+                mock.patch.object(review.hosts, "run_agent", side_effect=self.run_agent),
+                mock.patch.object(review.hosts, "final_text", side_effect=lambda path: self.text))
+
+
+class ReviewValidityTest(unittest.TestCase):
+    UNUSABLE = (("failed", "", "failed"),
+                ("exited", '```json\n{"learnings": []}\n```', "invalid"),
+                ("exited", "I looked at the run and it was fine.", "invalid"),
+                ("timeout", "", "timed_out"),
+                ("failed", VALID_EMPTY_REVIEW, "failed"))
+
+    def review(self, status: str, text: str) -> tuple[dict, int]:
+        fake = FakeReviewer([(status, text)])
+        with tempfile.TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            for patch in fake.patches():
+                stack.enter_context(patch)
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            run_dir = Path(tmp) / "run"
+            run_dir.mkdir()
+            code = review.main([str(run_dir), "--host", "grok", "--no-prior-learnings"])
+            return json.loads((run_dir / "review.json").read_text()), code
+
+    def test_an_unusable_review_is_never_clean_and_keeps_its_own_outcome(self):
+        for status, text, outcome in self.UNUSABLE:
+            with self.subTest(status=status, text=text[:30]):
+                verdict, code = self.review(status, text)
+                self.assertEqual(verdict["validity"]["status"], outcome)
+                self.assertTrue(verdict["validity"]["reason"])
+                self.assertFalse(review.counts_as_clean(verdict))
+                self.assertEqual(verdict["actionable"], [])
+                self.assertEqual(code, 1)
+
+    def test_a_valid_review_with_no_findings_counts_as_clean(self):
+        verdict, code = self.review("exited", VALID_EMPTY_REVIEW)
+        self.assertEqual(verdict["validity"], {"status": "valid", "reason": None})
+        self.assertTrue(review.counts_as_clean(verdict))
+        self.assertEqual(code, 0)
+
+
+class IterateConvergenceTest(unittest.TestCase):
+    """iterate.main end to end with the host, the build and the run faked: only the review's validity varies."""
+
+    def iterate(self, replies: list, iterations: int) -> str:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        repo = tmp / "repo"
+        (repo / "test" / "shiploop_e2e").mkdir(parents=True)
+        (repo / "test" / "shiploop_e2e" / "LEARNINGS.md").write_text("# ShipLoop E2E learnings\n")
+        for cmd in (["init", "-q", "-b", "main"], ["config", "user.name", "t"],
+                    ["config", "user.email", "t@example.invalid"], ["add", "test"], ["commit", "-q", "-m", "base"]):
+            subprocess.run(["git", "-C", str(repo), *cmd], check=True)
+        real_run = subprocess.run
+
+        def no_build(argv, *a, **kw):
+            if any(str(part).endswith("build-packages.py") for part in argv):
+                return subprocess.CompletedProcess(argv, 0)
+            return real_run(argv, *a, **kw)
+
+        def passing_run(argv):
+            out = Path(argv[argv.index("--output") + 1])
+            out.mkdir(parents=True)
+            (out / "result.json").write_text(json.dumps({
+                "pass": True, "host": "grok", "model": "m", "effort": "medium",
+                "process": {"status": "exited", "returncode": 0, "elapsed_seconds": 1},
+                "cli": {"num_turns": 1, "cost_usd": None}, "shiploop": {"status": "done", "stage": "done", "report_html": True},
+                "checks": [], "invoked": {"pass": True}, "plugin": {"pass": True}}))
+            return 0
+
+        fake = FakeReviewer(replies)
+        with contextlib.ExitStack() as stack:
+            for patch in fake.patches():
+                stack.enter_context(patch)
+            stack.enter_context(mock.patch.object(iterate, "new_worktree", return_value=(repo, "auto/test")))
+            stack.enter_context(mock.patch.object(iterate.subprocess, "run", side_effect=no_build))
+            stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            iterate.main(["--host", "grok", "--iterations", str(iterations), "--output", str(tmp / "out")])
+        return (tmp / "out" / "LEARNINGS.md").read_text()
+
+    def test_unusable_reviews_of_passing_runs_never_converge(self):
+        journal = self.iterate([("failed", ""), ("exited", '```json\n{"learnings": []}\n```'), ("timeout", "")], 3)
+        self.assertNotIn("clean review", journal)
+        self.assertNotIn("two consecutive clean reviews", journal)
+        self.assertIn("reached --iterations 3", journal)
+        for outcome in ("failed", "invalid", "timed_out"):
+            self.assertIn(f"- review {outcome}:", journal)
+
+    def test_two_valid_empty_reviews_of_passing_runs_converge(self):
+        journal = self.iterate([("exited", VALID_EMPTY_REVIEW)] * 2, 3)
+        self.assertIn("clean review (streak 2)", journal)
+        self.assertIn("two consecutive clean reviews of passing runs", journal)
+
+    def test_an_unusable_review_between_two_clean_ones_resets_the_streak(self):
+        journal = self.iterate([("exited", VALID_EMPTY_REVIEW), ("failed", ""), ("exited", VALID_EMPTY_REVIEW)], 3)
+        self.assertNotIn("clean review (streak 2)", journal)
+        self.assertIn("reached --iterations 3", journal)
+
+
 class LearningsTest(unittest.TestCase):
     RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
               "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},

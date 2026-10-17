@@ -1326,6 +1326,13 @@ a successor. Findings that would move navigation, successor choice or prompt
 selection into the model are recorded as rejected and never applied. The
 review is written to `review.md` and `review.json` in the run directory.
 
+A review counts only when it is valid (`validity` in `review.json`, added
+2026-10-16): the reviewer process exited, and its JSON carries the review's
+structure (`outcome`, the three finding lists and `harness`). Otherwise it is
+`failed`, `timed_out` or `invalid`, with the reason; it has no actionable
+findings, and `review.py` exits 1. A valid review with no findings is a clean
+review.
+
 ## Iterate
 
 ```sh
@@ -1346,7 +1353,8 @@ change only `skills/shiploop/`,
 then checks the commit's scope itself and runs the quick test tier.
 
 It stops at `--iterations` (at most 10), after two consecutive clean reviews of
-passing runs, when the improver commits nothing twice in a row, when a run never
+passing runs (an unusable review is journaled with its outcome, resets the streak
+and applies nothing), when the improver commits nothing twice in a row, when a run never
 reached the skill under test, when the improver strays outside its scope, or on
 a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
 every iteration: verdicts, cost, findings applied and rejected, commits and tests.

@@ -1,0 +1,27 @@
+{
+  "scope": "Source audit; recommendations unimplemented",
+  "reviewers": [
+    "focused grading review",
+    "focused coverage review",
+    "independent skeptical source/evidence review"
+  ],
+  "review_corrections": [
+    "Convergence receipt executes real parser but replays branch; not a whole iterate run.",
+    "State selection is synthetic and conditional, not a retained live failure.",
+    "Port receipt retains exit code and handlers; attribution/bind error inferred.",
+    "Breadth omits smoke and parallel-graph; smoke covered elsewhere.",
+    "Prompt sizes are characters, not measured tokens/cost.",
+    "Total planning clock unaffected by timing-copy probe."
+  ],
+  "research": [
+    {
+      "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+      "purpose": "Separate outcome and transcript; choose graders by what they establish; avoid adding metrics without a question."
+    },
+    {
+      "url": "https://www.anthropic.com/engineering/infrastructure-noise",
+      "purpose": "Control infrastructure conditions before attributing performance differences."
+    }
+  ],
+  "render_status": "Not visually inspected. Local-file browser access was refused in the companion audit; no alternative rendering route used."
+}

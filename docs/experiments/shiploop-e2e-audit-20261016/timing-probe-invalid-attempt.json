@@ -1,0 +1,36 @@
+{
+  "purpose": "Show metric portability with identical evidence bytes; synthetic, no host/model/workflow launch",
+  "sha256_equal": true,
+  "original": {
+    "window": {
+      "closed": true,
+      "through": "test-spec",
+      "seconds": null,
+      "host_seconds": null,
+      "before_engine_seconds": null
+    },
+    "stages": [],
+    "improve": null,
+    "producer_seconds": null,
+    "unmeasured": {
+      "window": "timeline.json records no start time (a run from before the pace line, or no timeline.json), so the engine clock cannot be read"
+    }
+  },
+  "copied_without_metadata": {
+    "window": {
+      "closed": true,
+      "through": "test-spec",
+      "seconds": null,
+      "host_seconds": null,
+      "before_engine_seconds": null
+    },
+    "stages": [],
+    "improve": null,
+    "producer_seconds": null,
+    "unmeasured": {
+      "window": "timeline.json records no start time (a run from before the pace line, or no timeline.json), so the engine clock cannot be read"
+    }
+  },
+  "conclusion": "Initial fixture used an unsupported UTC spelling, so it did not measure a window. Not evidence for the recommendation.",
+  "status": "invalid_fixture"
+}

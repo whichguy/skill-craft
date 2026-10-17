@@ -1,0 +1,14 @@
+{
+  "spec_chars": 92012,
+  "spec_bytes": 92012,
+  "spec_lines": 1026,
+  "reviewer_prompt_chars": 95432,
+  "spec_share_of_prompt": 0.9642,
+  "reviewer_prompt_words": 15469,
+  "prior_learnings_included": false,
+  "note": "Pure renderer measurement. Characters are not token counts and do not establish quality or cost.",
+  "sample_run_dir": "/AUDIT/RUN",
+  "skill_root": "/Users/dadleet/src/skill-craft/skills/shiploop",
+  "entry": "review.reviewer_prompt(Path(sample_run_dir), Path(skill_root))",
+  "source_head": "2686b427b20d80d86ac52cb397f522329b996055"
+}

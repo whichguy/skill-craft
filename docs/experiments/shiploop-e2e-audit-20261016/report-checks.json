@@ -1,0 +1,153 @@
+{
+  "status": "passed",
+  "report": "/Users/dadleet/src/skill-craft/docs/shiploop-e2e-audit-2026-10-16.html",
+  "sha256": "08edc6d28dbc400218866d5f92a63e60066e35bffcbf4fb8c6b3ba033df4f85a",
+  "html_structure": "balanced",
+  "local_links_checked": 43,
+  "external_links": 2,
+  "source_refs": [
+    {
+      "file": "test/shiploop_e2e/README.md",
+      "line": 1,
+      "text": "# ShipLoop E2E harness"
+    },
+    {
+      "file": "skills/shiploop-e2e-audit/harness/README.md",
+      "line": 16,
+      "text": "This is an **opt-in live test harness for ShipLoop itself**. It launches the"
+    },
+    {
+      "file": "test/shiploop_e2e/review.py",
+      "line": 174,
+      "text": "    parsed = hosts.last_json_object(hosts.final_text(stage / \"events.jsonl\"))"
+    },
+    {
+      "file": "test/shiploop_e2e/iterate.py",
+      "line": 322,
+      "text": "        if not findings:"
+    },
+    {
+      "file": "test/shiploop_e2e/review.py",
+      "line": 199,
+      "text": "    return 0 if result[\"process\"][\"status\"] == \"exited\" and \"learnings\" in result else 1"
+    },
+    {
+      "file": "test/shiploop_e2e/run.py",
+      "line": 972,
+      "text": "def grade_shiploop(out: Path) -> dict:"
+    },
+    {
+      "file": "test/shiploop_e2e/run.py",
+      "line": 2601,
+      "text": "        state = grade_shiploop(out)"
+    },
+    {
+      "file": "test/shiploop_e2e/cases.json",
+      "line": 13,
+      "text": "    \"prompt\": \"Build a small single-player Battleship game served by a Node.js HTTP server with no npm dependencies. server.js starts the server on the port in the PORT environment variable (default 3000). GET / serves a playable HTML page titled \\\"Battleship\\\" where the player fires at a computer-placed fleet on a 10x10 grid. GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\\\"game\\\": id, \\\"row\\\": r, \\\"col\\\": c} returns JSON with \\\"result\\\" set to \\\"miss\\\", \\\"hit\\\" or \\\"sunk\\\" and \\\"gameOver\\\" true once every ship is sunk. Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`.\","
+    },
+    {
+      "file": "test/shiploop_e2e/README.md",
+      "line": 317,
+      "text": "  names its own (`run.case_quality`). Battleship's acceptance set was dropped: it passed 5 of 5 deliveries and separated nothing."
+    },
+    {
+      "file": "test/shiploop_e2e/cases.json",
+      "line": 16,
+      "text": "      \"PORT=39171 node server.js > /dev/null 2>&1 & pid=$!; ok=1; for i in $(seq 1 20); do curl -fsS http://127.0.0.1:39171/ -o page.html 2>/dev/null && ok=0 && break; sleep 0.5; done; [ $ok -eq 0 ] && grep -qi battleship page.html; rc=$?; kill $pid 2>/dev/null; rm -f page.html; exit $rc\","
+    },
+    {
+      "file": "test/shiploop_e2e/SPEC.md",
+      "line": 421,
+      "text": "- Concurrency must not change a verdict. Concurrent runs are quiet (no"
+    },
+    {
+      "file": "test/shiploop_e2e/SPEC.md",
+      "line": 361,
+      "text": "- **Breadth suite**: one case of every style, run once each. It is the"
+    },
+    {
+      "file": "test/shiploop_e2e/suites.json",
+      "line": 18,
+      "text": "  \"breadth\": {"
+    },
+    {
+      "file": "test/shiploop_e2e/cases.json",
+      "line": 84,
+      "text": "  \"temperature-report\": {"
+    },
+    {
+      "file": "test/shiploop_e2e/review.py",
+      "line": 33,
+      "text": "SPEC = Path(__file__).resolve().parent / \"SPEC.md\""
+    },
+    {
+      "file": "test/shiploop_e2e/iterate.py",
+      "line": 75,
+      "text": "{reviewer.PREMISE}"
+    },
+    {
+      "file": "test/shiploop_e2e/counters.py",
+      "line": 163,
+      "text": "        rows.append((revision, stem, {\"action\": stem, \"stage\": stage, \"file_bytes\": path.stat().st_size,"
+    },
+    {
+      "file": "test/shiploop_e2e/packets.py",
+      "line": 259,
+      "text": "    # What reached the model (Claude's tool blocks only; None on other hosts): the printed heads, whole or partial packet"
+    },
+    {
+      "file": "test/shiploop_e2e/packet_anatomy.py",
+      "line": 490,
+      "text": "def measure(packets: list[dict], label: str) -> dict:"
+    },
+    {
+      "file": "test/shiploop_e2e/metrics.py",
+      "line": 738,
+      "text": "def _improve_seconds(run_dir: Path | None, results: object, row: dict) -> tuple[float | None, str | None]:"
+    },
+    {
+      "file": "test/shiploop_e2e/review.py",
+      "line": 190,
+      "text": "    p.add_argument(\"--skill-root\", type=Path, default=ROOT / \"skills\" / \"shiploop\")"
+    },
+    {
+      "file": "test/shiploop_e2e/iterate.py",
+      "line": 309,
+      "text": "        verdict = reviewer.review(stage / \"run\", host=args.host, model=args.model, effort=args.effort,"
+    },
+    {
+      "file": "skills/shiploop-e2e-audit/harness/test_oracle_games.py",
+      "line": 76,
+      "text": "    def test_known_good_synthetic_traces_cover_every_case(self) -> None:"
+    },
+    {
+      "file": "test/shiploop_e2e/metrics.py",
+      "line": 1357,
+      "text": "    # Grok's events mark no session start (its `available_commands` is announced again inside a session: 314 for 2 `end`"
+    },
+    {
+      "file": "test/shiploop_e2e/run.py",
+      "line": 1632,
+      "text": "def row_matches(row: dict, case: str, source: str | None, host: str | None = None, model: str | None = None,"
+    },
+    {
+      "file": "test/shiploop_e2e/run.py",
+      "line": 3261,
+      "text": "    # result.json and to nothing else (SPEC, Delivered quality). The report above is already printed."
+    },
+    {
+      "file": "test/README.md",
+      "line": 78,
+      "text": "The quick baseline is three core suites (`test-groups`, `ci-policy`,"
+    },
+    {
+      "file": "test/suite_catalog.py",
+      "line": 423,
+      "text": "_APPARATUS_SUITE = _suite("
+    }
+  ],
+  "errors": [],
+  "visual_render": "not inspected; local-file browser access was refused during the companion audit; no alternate route used",
+  "independent_review": "focused grading and coverage reviews plus an independent skeptical source/evidence review; corrections incorporated"
+}

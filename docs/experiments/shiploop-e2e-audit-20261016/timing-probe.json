@@ -1,0 +1,71 @@
+{
+  "status": "reproduced",
+  "purpose": "Same evidence bytes, different copy metadata; synthetic no-model observation",
+  "root": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-timing-probe-upybphb0",
+  "sha256_equal": true,
+  "original": {
+    "window": {
+      "closed": true,
+      "through": "test-spec",
+      "seconds": 600.0,
+      "host_seconds": 600,
+      "before_engine_seconds": 0.0
+    },
+    "stages": [
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "action": "a-spec",
+        "seconds": 300.0,
+        "improve_seconds": 100.0
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "action": "a-ts",
+        "seconds": 300,
+        "improve_seconds": 0.0
+      }
+    ],
+    "improve": {
+      "children": 1,
+      "seconds": 100.0
+    },
+    "producer_seconds": 500.0,
+    "unmeasured": {}
+  },
+  "copied_without_metadata": {
+    "window": {
+      "closed": true,
+      "through": "test-spec",
+      "seconds": 600.0,
+      "host_seconds": 600,
+      "before_engine_seconds": 0.0
+    },
+    "stages": [
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "action": "a-spec",
+        "seconds": 300.0,
+        "improve_seconds": null
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "action": "a-ts",
+        "seconds": 300,
+        "improve_seconds": 0.0
+      }
+    ],
+    "improve": {
+      "children": 1,
+      "seconds": null
+    },
+    "producer_seconds": null,
+    "unmeasured": {
+      "improve": "the spec accept stamp is more than a second before its Improve child's bind file"
+    }
+  },
+  "conclusion": "Window stays 600s; Improve/producer split changes from 100/500s to unknown after copy. Existing documented limitation, not a false passing verdict."
+}

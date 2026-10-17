@@ -74,6 +74,8 @@ FINDING = {
 }"""
 
 CATEGORIES = ("learnings", "missing_considerations", "optimizations")
+# The keys every usable review carries (SCHEMA); an object without them is not a review.
+REVIEW_KEYS = ("outcome", *CATEGORIES, "harness")
 # About the harness itself; recorded in the learnings, never handed to the ShipLoop improver.
 HARNESS_QUESTIONS = ("learning_retention", "further_learning", "evaluation_criteria")
 
@@ -157,6 +159,37 @@ def actionable(review: dict) -> list[dict]:
             and finding.get("preserves_premise") is True]
 
 
+def validity(parsed: dict | None, process: dict) -> dict:
+    """Whether a review can be used at all: ``valid``, or ``failed``, ``timed_out`` or ``invalid`` with the reason.
+
+    Only a valid review counts (its findings, or its having none): a reviewer that failed or timed out, returned no JSON,
+    or returned JSON without the review's structure (``{"learnings": []}`` alone, say) says nothing about the run, so it
+    must never read as a clean review (2026-10-16 E2E audit, docs/experiments/shiploop-e2e-audit-20261016/grading/).
+    """
+    status = process.get("status")
+    if status == "timeout":
+        return {"status": "timed_out", "reason": f"the reviewer timed out after {process.get('elapsed_seconds')} s"}
+    if status != "exited":
+        return {"status": "failed", "reason": f"the reviewer process {status} (rc {process.get('returncode')})"}
+    if parsed is None:
+        return {"status": "invalid", "reason": "the reviewer returned no JSON"}
+    problems = [key for key in REVIEW_KEYS if key not in parsed]
+    problems += [f"{key} is not a list" for key in CATEGORIES if key in parsed and not isinstance(parsed[key], list)]
+    if "outcome" in parsed and not isinstance(parsed["outcome"], str):
+        problems.append("outcome is not text")
+    if "harness" in parsed and not isinstance(parsed["harness"], dict):
+        problems.append("harness is not an object")
+    if problems:
+        return {"status": "invalid", "reason": "the review JSON lacks the review structure: " + ", ".join(
+            p if " " in p else f"no {p}" for p in problems)}
+    return {"status": "valid", "reason": None}
+
+
+def counts_as_clean(verdict: dict) -> bool:
+    """A valid review with no actionable finding: the only review that may count toward convergence."""
+    return (verdict.get("validity") or {}).get("status") == "valid" and not verdict.get("actionable")
+
+
 def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effort: str | None = None,
            skill_root: Path = ROOT / "skills" / "shiploop", max_turns: int = 60, timeout: int = 1200,
            prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude",
@@ -171,11 +204,15 @@ def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effor
                       effort=effort or agent.effort, permission_mode="auto", max_turns=max_turns)
     process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
                               translate=agent.translator())
-    parsed = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
-    if parsed is None:
-        parsed = {"outcome": f"reviewer produced no JSON ({process['status']})"}
+    found = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
+    checked = validity(found, process)
+    parsed = found if found is not None else {"outcome": f"reviewer produced no JSON ({process['status']})"}
+    if checked["status"] != "valid" and not isinstance(parsed.get("outcome"), str):
+        parsed["outcome"] = f"unusable review ({checked['status']}): {checked['reason']}"
     parsed["process"] = process
-    parsed["actionable"] = actionable(parsed)
+    parsed["validity"] = checked
+    # An unusable review hands nothing on: its findings, if any, are not evidence the improver may act on.
+    parsed["actionable"] = actionable(parsed) if checked["status"] == "valid" else []
     (run_dir / "review.json").write_text(json.dumps(parsed, indent=2) + "\n")
     (run_dir / "review.md").write_text(render_markdown(parsed))
     return parsed
@@ -195,8 +232,10 @@ def main(argv: list[str] | None = None) -> int:
     result = review(args.run_dir, host=args.host, model=args.model, effort=args.effort,
                     skill_root=args.skill_root, prior_learnings=prior)
     print((args.run_dir / "review.md").read_text())
+    checked = result["validity"]
+    print(f"review: {checked['status']}" + (f" ({checked['reason']})" if checked["reason"] else ""))
     print(f"actionable findings: {len(result['actionable'])}")
-    return 0 if result["process"]["status"] == "exited" and "learnings" in result else 1
+    return 0 if checked["status"] == "valid" else 1
 
 
 if __name__ == "__main__":

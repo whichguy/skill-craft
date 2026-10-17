@@ -1,0 +1,11 @@
+{
+  "probe": "fixed-port stale-sibling false-green reproduction",
+  "port": 39171,
+  "sibling_started": true,
+  "candidate_bind_expected_to_fail": true,
+  "exact_case_check_exit_code": 0,
+  "exact_case_check_passed": true,
+  "candidate_server_still_running": false,
+  "artifact_dir": "/tmp/shiploop-e2e-audit-20261016-coverage/fixed-port-probe-l1__p5wu",
+  "scope": "isolated temporary servers only; no repository source, model, or deployment touched"
+}

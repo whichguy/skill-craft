@@ -1,0 +1,74 @@
+{
+  "source_head": "2686b427b20d80d86ac52cb397f522329b996055",
+  "scope": "offline synthetic probes only; no model, live deployment, or repo edits",
+  "review_convergence": {
+    "failed_process_no_json": {
+      "process_status": "failed",
+      "actionable": [],
+      "missing_required_keys": [
+        "harness",
+        "learnings",
+        "missing_considerations",
+        "optimizations"
+      ]
+    },
+    "exited_process_incomplete_schema": {
+      "process_status": "exited",
+      "actionable": [],
+      "missing_required_keys": [
+        "harness",
+        "missing_considerations",
+        "optimizations",
+        "outcome"
+      ],
+      "review_cli_exit_gate_would_be_zero": true
+    },
+    "two_invalid_reviews_on_passing_runs_clean_streak": 2,
+    "failed_run_resets_clean_streak_to": 0
+  },
+  "state_binding": {
+    "fixture": "/private/tmp/shiploop-e2e-audit-20261016-grading/retained/state-binding-fixture",
+    "selected_run_dir": "/private/tmp/shiploop-e2e-audit-20261016-grading/retained/state-binding-fixture/.shiploop-runs/stale/run",
+    "selected_pass": true,
+    "runs_seen": 2,
+    "actual_work_state": "active",
+    "note": "conditional synthetic reproduction only"
+  },
+  "battleship_checks": {
+    "fixture": "/private/tmp/shiploop-e2e-audit-20261016-grading/retained/battleship-fixture",
+    "ports": [
+      49541,
+      49542,
+      49543
+    ],
+    "mutant": "no fleet; new game is gameOver=true; every fire is miss/gameOver=true",
+    "catalog_check_returncodes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "details": [
+      {
+        "returncode": 0,
+        "stderr_tail": ""
+      },
+      {
+        "returncode": 0,
+        "stderr_tail": "bash: line 1: 30757 Terminated: 15          PORT=49541 node server.js > /dev/null 2>&1\n"
+      },
+      {
+        "returncode": 0,
+        "stderr_tail": "bash: line 1: 30775 Terminated: 15          PORT=49542 node server.js > /dev/null 2>&1\n"
+      },
+      {
+        "returncode": 0,
+        "stderr_tail": ""
+      }
+    ]
+  },
+  "comparison_caveat": {
+    "different_host_build_match_reason": null,
+    "interpretation": "row_matches is descriptive across host_build drift; README/SPEC expose build identity and do not claim a controlled causal comparison"
+  }
+}
