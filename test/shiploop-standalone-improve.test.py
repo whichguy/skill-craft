@@ -126,7 +126,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         packet_path = self.save_terminal_packet(raw)
         self.assertEqual(
             packet_path,
-            self.workspace / ".shiploop-improve" / "run01" / "nav-test" / "packet.json",
+            self.workspace / ".shiploop-improve" / bridge.child_directory("implement", "nav-test") / "packet.json",
         )
         record, writes = bridge.complete(self.ephemeral_binding, self.receipt())
         self.assertEqual(record["runtime_phase"], "complete")
@@ -271,8 +271,29 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.assertNotEqual(bridge.receipt_path(first), bridge.receipt_path(second))
         self.assertEqual(
             bridge.receipt_path(second),
-            self.workspace / ".shiploop-improve" / "run02" / "nav-other" / "packet.json",
+            self.workspace / ".shiploop-improve" / bridge.child_directory("document", "nav-other") / "packet.json",
         )
+
+    def test_a_child_directory_is_short_readable_and_unique_per_action(self) -> None:
+        # The model types a child's directory in every command that names one of its files, so the name is the reviewed
+        # stage and the last 8 characters of the reviewed action's ID (efficiency plan U18), not two 36-character IDs.
+        action = "nav-" + "0123456789abcdef" * 2
+        self.assertEqual(bridge.child_directory("spec", action), "spec-89abcdef")
+        self.assertEqual(bridge.child_directory("step-plan", action), "step-plan-89abcdef")
+        self.assertEqual(bridge.child_directory("Odd Stage_1", "x"), "odd-stage-1-x")
+        # Collision test: 5,000 distinct random IDs of one stage name 5,000 distinct directories (the chance of a clash
+        # among them is about 0.3% for a random draw, so the IDs are fixed), and the stage is part of the name.
+        import random
+        rng = random.Random(20261017)
+        actions = {"nav-" + "%032x" % rng.getrandbits(128) for _ in range(5000)}
+        names = {bridge.child_directory("implement", item) for item in actions}
+        self.assertEqual(len(names), len(actions))
+        self.assertNotEqual(bridge.child_directory("spec", action), bridge.child_directory("plan", action))
+        # Two bindings of one run name two different directories, and no name holds a path separator.
+        first = bridge.binding(self.state, self.parent, "implement", {}, self.ephemeral_skill)
+        second = bridge.binding(self.state, "nav-" + "fedcba9876543210" * 2, "implement", {}, self.ephemeral_skill)
+        self.assertNotEqual(bridge.receipt_path(first).parent, bridge.receipt_path(second).parent)
+        self.assertTrue(all("/" not in name and name == name.strip(".") for name in names))
 
     def test_ephemeral_terminal_requires_two_review_minimum_even_when_runtime_gate_is_one(self) -> None:
         packet, raw = self.terminal_ephemeral(required_reviews=1)
@@ -405,7 +426,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         _packet, raw = self.terminal_ephemeral()
         self.write_evidence()
         packet_path = self.save_terminal_packet(raw)
-        self.assertEqual(packet_path.parent.parent.parent.parent, alias)
+        self.assertEqual(packet_path.parent.parent.parent, alias)
         receipt = self.receipt()
         receipt["review_refs"] = [str(alias / "review-a.md"), str(alias / "review-b.md")]
         receipt["check_refs"] = [str(alias / "check.md")]

@@ -29,6 +29,7 @@ import shiploop_expectations as expectations  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+from shiploop_improve_route import with_route  # noqa: E402
 
 
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
@@ -1394,7 +1395,7 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         self.run, self.state, self.parent_evidence_refs = run, state, []
         self.bind_current()
         packet = self.invoke(_improve_cli.CLI, "next", "--run-dir", run).stdout
-        self.assertIn("revise at the INNER stages test-spec to verify", packet)   # X4: revise is a final outcome
+        self.assertIn("revise at the INNER stages test-spec to verify", with_route(packet))   # X4: revise is a final outcome
         self.finish_ephemeral()
         flags, _receipt = self.completion_receipt()
         refused = self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,

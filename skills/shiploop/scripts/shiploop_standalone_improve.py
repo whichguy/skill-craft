@@ -52,6 +52,7 @@ _TERMINAL_PACKET_FIELDS = {
 __all__ = [
     "StandaloneImproveError",
     "binding",
+    "child_directory",
     "complete",
     "receipt_path",
     "resolve_skill",
@@ -298,10 +299,20 @@ def _binding_identity(binding: Mapping[str, Any]) -> tuple[str, str, Path, str]:
     return action, binding_id, workspace, workspace_value
 
 
-def _receipt_relative(binding_id: str, action: str) -> Path:
-    run_id, marked_action = binding_id.split("/", 1)
-    _need(marked_action == action, "binding ID does not match parent action")
-    return Path(_RECEIPT_DIRECTORY) / run_id / action / _TERMINAL_PACKET_NAME
+def child_directory(stage: str, action: str) -> str:
+    """The child's directory name under ``.shiploop-improve/``: the reviewed stage and the last 8 characters of the
+    reviewed action's ID (``spec-5e2f1a9b``), short because the model types it in every command that names a child file.
+
+    An action ID is a random 128-bit value, so two actions of one stage share a name with probability 2**-32; the full
+    ID stays in the binding, the receipt and the packet's binding line, which every import checks.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", str(stage).lower()).strip("-") or "stage"
+    return slug + "-" + action[-8:]
+
+
+def _receipt_relative(binding: Mapping[str, Any], action: str) -> Path:
+    _need(binding["binding_id"].split("/", 1)[1] == action, "binding ID does not match parent action")
+    return Path(_RECEIPT_DIRECTORY) / child_directory(binding["stage"], action) / _TERMINAL_PACKET_NAME
 
 
 def receipt_path(binding: Mapping[str, Any]) -> Path:
@@ -315,7 +326,7 @@ def receipt_path(binding: Mapping[str, Any]) -> Path:
     # packet.  `_binding_identity` has already resolved and checked its
     # physical directory; import reads below that physical identity with its
     # no-follow helper.
-    return Path(workspace_value) / _receipt_relative(binding_id, action)
+    return Path(workspace_value) / _receipt_relative(binding, action)
 
 
 def binding(
@@ -721,7 +732,7 @@ def _complete_ephemeral(
     not treat a deleted tempfile as completion or independently prove review
     semantics, checks, candidate scope, or future freshness.
     """
-    packet_relative = _receipt_relative(binding_id, action)
+    packet_relative = _receipt_relative(binding, action)
     packet_raw = _read_workspace(workspace, packet_relative, "Until Loop terminal packet")
     packet, context, report = _ephemeral_terminal_packet(
         _json(packet_raw, "Until Loop terminal packet"), workspace=workspace, binding_id=binding_id,
@@ -772,7 +783,7 @@ def _settle_incomplete_ephemeral(
     binding_id: str, workspace: Path, workspace_value: str, resolved: Mapping[str, str],
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Import one host-preserved stopped packet for an incomplete plan reconciliation."""
-    packet_relative = _receipt_relative(binding_id, action)
+    packet_relative = _receipt_relative(binding, action)
     packet_raw = _read_workspace(workspace, packet_relative, "Until Loop stopped packet")
     packet, context, report = _ephemeral_stopped_packet(
         _json(packet_raw, "Until Loop stopped packet"), workspace=workspace, binding_id=binding_id,

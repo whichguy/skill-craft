@@ -280,7 +280,8 @@ flowchart LR
 ```
 
 The runtime writes complete raw `start`, `next` and `done` JSON responses at
-`<workspace>/.shiploop-improve/<parent-run-id>/<reviewed action>/packet.json`. This file
+`<workspace>/.shiploop-improve/<stage>-<last 8 characters of the reviewed action>/packet.json`
+(for example `implement-5e2f1a9b`; the child directory). This file
 is a receipt and recovery locator, not another loop controller. Until Loop owns
 one independent temporary file for the active child. Separate parents/actions
 have separate receipts and runtime files; overlapping product edits still need

@@ -243,7 +243,7 @@ packets also select the [Backchain adaptation](backchain-planning.md#navigator-p
 For the current ephemeral adapter, carry those constraints and locators into
 frozen `context`, with the exact parent binding line in `context.request` and a
 fresh `handoff` on each `done`. Save complete raw runtime responses at the
-per-action `.shiploop-improve/<run-id>/<reviewed action>/packet.json` path (the runtime writes it
+per-action `.shiploop-improve/<stage>-<last 8 characters of the reviewed action>/packet.json` path (the runtime writes it
 through `--receipt`). An active receipt supplies the exact read-only `next_argv`; a complete
 receipt survives temporary child state deletion and can be imported without
 another review. Missing or stopped child receipts leave the parent incomplete.
@@ -316,8 +316,8 @@ boundary once per assignment; an already-fresh worker does not delegate again
 because the packet repeats. When no fresh worker is usable, execute the
 assignment in this conversation.
 
-Active INNER Improve handoffs never clear the invoking parent. Under
-`delegation: inline` they begin with **Keep the invoking parent alive and run
+Active INNER Improve reviews never clear the invoking parent. Under
+`delegation: inline` the Improve route file (named by the handoff) says **Keep the invoking parent alive and run
 this Improve invocation inline.** The parent conversation runs the selected
 Improve card's ShipLoop whole-skill subcall itself, in the exact Child
 workspace. It does not hand the invocation to Ask Agent, a native worker or an
@@ -336,7 +336,7 @@ exact `next_argv`; start another runtime only through the stopped-child restart
 route. PRELUDE and
 OUTER Improve handoffs carry the same runtime lines without the prefix.
 
-Under `delegation: ask-agent`, INNER Improve handoffs instead begin with **Keep
+Under `delegation: ask-agent`, the Improve route file instead says **Keep
 the invoking parent alive and follow Improve's selected context ownership.** The
 fresh-context boundary belongs to the whole Improve executor invocation, not its
 invoking parent or individual review iterations. The parent retains collection,

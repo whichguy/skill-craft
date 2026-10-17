@@ -2282,18 +2282,18 @@ unless a finding depends on it. A pass that finds none of these is trivial.
 """
 
 
-END_REVIEW_FOCUS = """\
+END_REVIEW_FOCUS_HEAD = """\
 End-of-work code review focus. Across every executed work item's change, trace
 each new or changed public entry point with a valid, a boundary and an invalid
 input, then review the change against the rubric below. Fix violations within
 scope. A pass that finds no material violation is trivial.
-
-""" + CODE_CRAFT
+"""
+END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
 # The per-step Improve child's focus (owner decision 2026-10-10: an Improve child reviews every accepted implement step,
 # whatever the planning review option says).  The step's tests are written later, so this review is the only check of
 # the step's code before them; it carries the Code craft rubric verbatim because the child reads no other file reliably.
-IMPLEMENT_STEP_REVIEW_FOCUS = """\
+IMPLEMENT_STEP_REVIEW_FOCUS_HEAD = """\
 Implementation step review focus. This result is one step of the item's step
 plan, and its tests are written later from the test spec, so this review is the
 only check of the code before them. Review the step's diff (the step's paths since
@@ -2326,8 +2326,8 @@ Do not write tests, start a later step, or edit a recorded command. After your
 last edit, rerun the step's recorded check commands and ShipLoop's lint for the
 step's action (`shiploop lint --action`), and record their exit codes. Commit your
 edits. A pass that finds none of these is trivial.
-
-""" + CODE_CRAFT
+"""
+IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
 
 # The ask-agent route issues one implement action for every step of the plan, so the review of a plan of several steps
@@ -2382,93 +2382,12 @@ def _check_for_steps() -> None:
                                + repr(" ".join(old.split())[:70]))
 
 
-def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
-    """Return the actual Improve-skill handoff for a completed producer stage."""
-    _require_delegation(delegation)
-    text = _improve_prompt(stage)
-    if delegation == INLINE:
-        for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
-            text = text.replace(delegated, inline)
-    return text
-
-
-def _improve_prompt(stage: str) -> str:
-    """Compose the Improve child's prompt for ``stage``, adding the Backchain and coding-review guidance where the
-    stage uses them.
-    """
-    _require_stage(stage)
-    backchain = ""  # an Improve review never mentions Backchain (owner, 2026-10-11)
-    coding_review = ""
-    if stage in {"step-plan", "implement", "verify"}:
-        coding_review = """\
-Use the packet's Coding decision guide. Carry the accepted plan, proposed revisions
-and selected practice/platform locators into the child's existing contract/review
-notes. Read only applicable sections and compare decisions with independent
-requirements and checks. Planning review concerns decisions and proposed checks;
-implementation/verification review needs actual evidence. Keep the assigned edit
-scope and expected check state; this guide adds no review loop or authority.
-"""
-    outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
-    test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
-    plan_guard = ""
-    if stage in {"plan", "step-plan"}:
-        plan_guard = """\
-Review the actual steps after their creation, including any linked execution
-graph. Carry the plan/graph locators and current content identities into this
-child's existing contract and review notes. Check direct dependencies, missing
-suppliers, ready/done criteria, independent paths, joins, resource exclusions,
-and integration/verification ownership. Recheck affected relationships after
-material repairs. Keep the plan pending until this actual Improve loop completes;
-structural validation alone does not complete this handoff.
-"""
-
-    release_guard = ""
-    if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
-        # No Improve child runs at the release stage itself (stage_spec: release has no improve), so every Improve
-        # that reads this guard is stage-scoped: it assesses and records, and never executes or replays a release
-        # effect (SPEC S-3; environment-lifecycle.md#release-operation-ownership).
-        performs = """\
-its authority. A stage-scoped Improve assesses and records its handoff; it does not
-execute or replay a release effect (a deployment, an MCP interaction or any other
-release operation). Those run only at the release stage, with a recorded grant and
-their required checks. Do not repeat unchanged release effects merely to advance the
-review streak. Reconcile uncertain or partial outcomes by reading the recorded
-receipts, without inventing provider guarantees; a retry belongs to the release
-stage, under the release guidance, with the prior operation/receipt identity and the
-provider's supported retry or idempotency procedure.
-"""
-        release_guard = """\
-Read and retain Release operation guidance and the current operation/evidence
-locators. Review this stage's plan, readiness checks, or observed outcome within
-""" + performs + """\
-Material candidate changes require corrective planning and affected revalidation.
-External release N/A still requires applicable local candidate and consumer checks.
-"""
-
-    assessment = ""
-    if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
-        assessment = """\
-Review the packet's State and data assessment for the affected slice. Check actual
-resource/consumer identity, transition correctness, workload criteria and applicable
-release/recovery conditions against the proposed work and tests. At initial plan,
-apply Initial-plan reconciliation; carry its selected source/test locators into
-this child's contract and notes. Keep unknowns visible and use existing correction
-routes for newly discovered effects. This is part of this Improve call.
-"""
-    baseline_guard = ""
-    if stage == "discovery":
-        baseline_guard = """\
-For this discovery handoff, use the packet's Initial repository baseline
-guide to review evidence, commands, and classification only. You may improve
-run notes and repeat authorized checks, but may not edit product source, tests,
-dependency definitions, or product configuration, install dependencies, provision
-targets, or perform a repair/bootstrap to make the observation green. Keep an
-expected-RED repair or missing-coverage bootstrap as evidence for its named
-producer; a completed evidence review does not certify repository health.
-"""
-    return f"""\
-This producer attempt has returned a result; its parent action now awaits Improve.
-Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
+# The fixed part of every Improve child's prompt (efficiency plan U18): no handoff prints it any more; it is carried word for
+# word by skills/improve/references/shiploop-route.md ("Review inputs"), which test/improve-route.test.py keeps in step.
+# ``improve_prompt`` composes the opening, the scope sentence, the HEAD, the stage's paragraphs and the TAIL;
+# ``improve_stage_prompt`` is what a handoff prints of it: the scope sentence and the stage's paragraphs.
+_IMPROVE_OPENING = "This producer attempt has returned a result; its parent action now awaits Improve.\n"
+IMPROVE_REVIEW_INPUTS_HEAD = """\
 selected skill card and follow the Until Loop runtime bound by that card.  Use the
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
@@ -2505,23 +2424,8 @@ measurability, preserved conditions, and unresolved targets within this scope.
 Use the packet's Initial repository baseline guide when baseline evidence is
 relevant. Retain its locator, command/result evidence, classification, and
 readiness conditions in the child contract/review notes for cold recovery.
-
-{baseline_guard}
-
-{plan_guard}
-
-{backchain}
-
-{coding_review}
-
-{assessment}
-
-{outer_handshake}
-
-{test_facilities}
-
-{release_guard}
-
+"""
+IMPROVE_REVIEW_INPUTS_TAIL = """\
 When the candidate concerns actor interactions, channels, incoming/outgoing events,
 connection lifecycle, state ownership or UI, read the applicable Interaction design
 guide sections, including UI-specific planning when relevant, and the current
@@ -2598,6 +2502,121 @@ outcome rather than replaying it.
 """
 
 
+def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+    """Return the actual Improve-skill handoff for a completed producer stage."""
+    _require_delegation(delegation)
+    text = _improve_prompt(stage)
+    if delegation == INLINE:
+        for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
+            text = text.replace(delegated, inline)
+    return text
+
+
+def _improve_guards(stage: str) -> list[str]:
+    """The stage-conditional paragraphs of the Improve child's prompt, in print order (an empty string where the stage
+    has none): baseline, plan, Backchain, coding review, state assessment, outer handshake, test facilities, release."""
+    _require_stage(stage)
+    backchain = ""  # an Improve review never mentions Backchain (owner, 2026-10-11)
+    coding_review = ""
+    if stage in {"step-plan", "implement", "verify"}:
+        coding_review = """\
+Use the packet's Coding decision guide. Carry the accepted plan, proposed revisions
+and selected practice/platform locators into the child's existing contract/review
+notes. Read only applicable sections and compare decisions with independent
+requirements and checks. Planning review concerns decisions and proposed checks;
+implementation/verification review needs actual evidence. Keep the assigned edit
+scope and expected check state; this guide adds no review loop or authority.
+"""
+    outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
+    test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
+    plan_guard = ""
+    if stage in {"plan", "step-plan"}:
+        plan_guard = """\
+Review the actual steps after their creation, including any linked execution
+graph. Carry the plan/graph locators and current content identities into this
+child's existing contract and review notes. Check direct dependencies, missing
+suppliers, ready/done criteria, independent paths, joins, resource exclusions,
+and integration/verification ownership. Recheck affected relationships after
+material repairs. Keep the plan pending until this actual Improve loop completes;
+structural validation alone does not complete this handoff.
+"""
+
+    release_guard = ""
+    if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
+        # No Improve child runs at the release stage itself (stage_spec: release has no improve), so every Improve
+        # that reads this guard is stage-scoped: it assesses and records, and never executes or replays a release
+        # effect (SPEC S-3; environment-lifecycle.md#release-operation-ownership).
+        performs = """\
+its authority. A stage-scoped Improve assesses and records its handoff; it does not
+execute or replay a release effect (a deployment, an MCP interaction or any other
+release operation). Those run only at the release stage, with a recorded grant and
+their required checks. Do not repeat unchanged release effects merely to advance the
+review streak. Reconcile uncertain or partial outcomes by reading the recorded
+receipts, without inventing provider guarantees; a retry belongs to the release
+stage, under the release guidance, with the prior operation/receipt identity and the
+provider's supported retry or idempotency procedure.
+"""
+        release_guard = """\
+Read and retain Release operation guidance and the current operation/evidence
+locators. Review this stage's plan, readiness checks, or observed outcome within
+""" + performs + """\
+Material candidate changes require corrective planning and affected revalidation.
+External release N/A still requires applicable local candidate and consumer checks.
+"""
+
+    assessment = ""
+    if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
+        assessment = """\
+Review the packet's State and data assessment for the affected slice. Check actual
+resource/consumer identity, transition correctness, workload criteria and applicable
+release/recovery conditions against the proposed work and tests. At initial plan,
+apply Initial-plan reconciliation; carry its selected source/test locators into
+this child's contract and notes. Keep unknowns visible and use existing correction
+routes for newly discovered effects. This is part of this Improve call.
+"""
+    baseline_guard = ""
+    if stage == "discovery":
+        baseline_guard = """\
+For this discovery handoff, use the packet's Initial repository baseline
+guide to review evidence, commands, and classification only. You may improve
+run notes and repeat authorized checks, but may not edit product source, tests,
+dependency definitions, or product configuration, install dependencies, provision
+targets, or perform a repair/bootstrap to make the observation green. Keep an
+expected-RED repair or missing-coverage bootstrap as evidence for its named
+producer; a completed evidence review does not certify repository health.
+"""
+    return [baseline_guard, plan_guard, backchain, coding_review, assessment, outer_handshake, test_facilities,
+            release_guard]
+
+
+def improve_stage_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+    """What an Improve handoff prints of ``improve_prompt``: the stage's scope sentence and its own paragraphs.
+
+    The fixed review inputs around them are IMPROVE_REVIEW_INPUTS_HEAD and _TAIL, which the Improve skill's ShipLoop route
+    carries; the same inline wording applies as in ``improve_prompt``.
+    """
+    _require_delegation(delegation)
+    _require_stage(stage)
+    paragraphs = [f"Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}."]
+    paragraphs += [guard.rstrip("\n") for guard in _improve_guards(stage) if guard]
+    text = "\n\n".join(paragraphs) + "\n"
+    if delegation == INLINE:
+        for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
+            text = text.replace(delegated, inline)
+    return text
+
+
+def _improve_prompt(stage: str) -> str:
+    """Compose the Improve child's prompt for ``stage``: the scope sentence, the fixed review inputs (which the Improve
+    skill's ShipLoop route carries) and the stage's own paragraphs between them."""
+    guards = _improve_guards(stage)
+    return (_IMPROVE_OPENING
+            + f"Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the\n"
+            + IMPROVE_REVIEW_INPUTS_HEAD + "\n"
+            + "\n\n".join(guards) + "\n\n"
+            + IMPROVE_REVIEW_INPUTS_TAIL)
+
+
 if len(STAGES) != 24 or len(set(STAGES)) != len(STAGES):
     raise RuntimeError("navigator stage catalog must contain 24 unique stages")
 if set(DUTIES) != set(STAGES) or set(IMPROVE_SCOPES) != set(STAGES):
@@ -2625,8 +2644,12 @@ __all__ = (
     "ENVIRONMENT_DISCOVERY_REQUIREMENTS",
     "CODE_CRAFT",
     "IMPLEMENTATION_STAGES",
+    "END_REVIEW_FOCUS_HEAD",
     "IMPLEMENT_STEP_REVIEW_FOCUS",
+    "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
     "IMPROVE_PROMPTS",
+    "IMPROVE_REVIEW_INPUTS_HEAD",
+    "IMPROVE_REVIEW_INPUTS_TAIL",
     "IMPROVE_SCOPES",
     "INLINE",
     "INNER",
@@ -2643,6 +2666,7 @@ __all__ = (
     "STAGE_RULES",
     "duty",
     "improve_prompt",
+    "improve_stage_prompt",
     "inner_context",
     "prompt",
 )

@@ -30,6 +30,8 @@ import shiploop_planning_revision as revision  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
+sys.path.insert(0, str(ROOT / "test"))
+from shiploop_improve_route import with_route  # noqa: E402
 
 
 
@@ -608,7 +610,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("ShipLoop started this review when the Improve stage began", improve)
         self.assertIn("Do not write the opening or start the runtime yourself", improve)
         self.assertNotIn("write the opening file", improve)
-        self.assertIn("Then say 'Run /improve'", improve)
+        self.assertIn("Then say 'Run /improve'", with_route(improve))
         self.assertIn("improve-reconcile", improve)
         cancel_rule = ("Freeze in repeat_condition: if a finding invalidates an accepted discovery, "
                        "research, spec or test-strategy premise")
@@ -667,7 +669,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("Planning scratch directory: " + str(scratch), packet)
         self.assertIn("frozen scope", packet_lower)
         self.assertIn("product integration", packet_lower)
-        self.assertIn("decisions or decision-relevant evidence", packet_lower)
+        self.assertIn("decisions or decision-relevant evidence", with_route(packet_lower))
         self.assertIn("final_result", packet)
         # The queue rule is the plan producer's; the Improve handoff says its final_result carries the step result's
         # fields, work_items included (packet re-cut, 2026-10-11).

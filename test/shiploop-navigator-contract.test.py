@@ -43,6 +43,8 @@ import shiploop_reference as run_reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_standalone_improve as standalone_improve  # noqa: E402
+from shiploop_improve_route import route_text, with_route  # noqa: E402
 
 
 # This is the public navigator contract.  Never derive it from the implementation:
@@ -268,9 +270,10 @@ class NavigatorContractTests(unittest.TestCase):
         return _with_packet_file(completed.stdout)
 
     def _improve_view(self, root: Path, state: dict) -> str:
-        """The Improve packet plus the handoff file ShipLoop writes beside it (re-cut, 2026-10-11): the packet is
-        two instructions, and everything else the old packet said is in the handoff text."""
-        return navigator.render(None, root, state) + "\n" + navigator.improve_handoff_text(None, root, state)
+        """The Improve packet plus the handoff file ShipLoop writes beside it (re-cut, 2026-10-11) plus the route file the
+        handoff names (plan U18): the packet is two instructions, the handoff holds this review's facts and the route file
+        what is the same in every review."""
+        return with_route(navigator.render(None, root, state) + "\n" + navigator.improve_handoff_text(None, root, state))
 
     def _assert_improve_policy_routes(self, view: str, *, backchain_expected: bool | None = None) -> None:
         """The Improve view (packet plus handoff file) routes the requirement policies. The Backchain planning guide
@@ -408,7 +411,7 @@ class NavigatorContractTests(unittest.TestCase):
         self._assert_two_instruction_improve_packet(navigator.render(None, root, bound))
         # The boundary reaches the reviewer through the handoff file (re-cut, 2026-10-11), unchanged.
         self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY,
-                      " ".join(navigator.improve_handoff_text(None, root, bound).split()))
+                      " ".join(with_route(navigator.improve_handoff_text(None, root, bound)).split()))
 
     def test_declares_the_flat_sdlc_graph_independently(self) -> None:
         self.assertEqual(tuple(prompts.PRELUDE), EXPECTED_PRELUDE)
@@ -444,7 +447,13 @@ class NavigatorContractTests(unittest.TestCase):
                         # Re-cut (2026-10-11): the Improve packet is two instructions and starts with no context
                         # prefix; the prefix opens the handoff file ShipLoop writes for the child.
                         self.assertFalse(packet.startswith(expected_prefix))
-                        packet = navigator.improve_handoff_text(None, root, current)
+                        # an unbound child names no route file, so the handoff is read for the bound child
+                        packet = navigator.improve_handoff_text(None, root, self._bind_synthetic_child(current))
+                        if stage in EXPECTED_INNER:
+                            # the context prefix is the route file's (plan U18): the handoff names its route, once
+                            self.assertIn(" · Route: " + current["delegation"], packet)
+                            self.assertNotIn(expected_prefix.strip(), packet)
+                            packet = with_route(packet)
                     else:
                         self.assertEqual(packet.startswith(expected_prefix), stage in EXPECTED_INNER)
                     if owner == "improve" and stage not in EXPECTED_INNER:
@@ -506,7 +515,8 @@ class NavigatorContractTests(unittest.TestCase):
                 # a cold `next` rewrites beside the child's opening file.
                 self._assert_two_instruction_improve_packet(cold)
                 handoff = navigator.improve_handoff_path(current["active_improve"]).read_text(encoding="utf-8")
-                self.assertIn("\n" + expected_prefix, handoff)
+                self.assertIn(expected_prefix.strip(), route_text())      # moved to the route file, which the handoff names
+                self.assertIn(" · ROUTE = ", handoff)
             else:
                 # emit prints the whole packet when it fits PRINT_LIMIT, else a head and the file; either way the
                 # complete packet leads with the prefix.
@@ -754,7 +764,7 @@ class NavigatorContractTests(unittest.TestCase):
         cold_packet = self._cold_next(root)
         # The cold Improve packet is two instructions; its detail is the handoff file `next` rewrites.
         self._assert_two_instruction_improve_packet(cold_packet)
-        cold = cold_packet + "\n" + navigator.improve_handoff_path(bound["active_improve"]).read_text(encoding="utf-8")
+        cold = with_route(cold_packet + "\n" + navigator.improve_handoff_path(bound["active_improve"]).read_text(encoding="utf-8"))
         recovered = store.read_record(root / "state.md")
 
         self.assertEqual((root / "state.md").read_bytes(), before)
@@ -1420,7 +1430,7 @@ class NavigatorContractTests(unittest.TestCase):
 
         # The Improve packet is two instructions (re-cut, 2026-10-11); its detail is in the handoff file.
         self._assert_two_instruction_improve_packet(navigator.render(None, self.repo / ".shiploop", bound))
-        handoff = " ".join(navigator.improve_handoff_text(None, self.repo / ".shiploop", bound).split())
+        handoff = " ".join(with_route(navigator.improve_handoff_text(None, self.repo / ".shiploop", bound)).split())
         for duty in (
             "For test plans, authored/refined tests, fixtures, suite wiring or test evidence",
             "harness, case and suite locators",
@@ -1633,7 +1643,7 @@ class NavigatorContractTests(unittest.TestCase):
             self.assertEqual(recovered["active_improve"], waiting["active_improve"])
             child = waiting["active_improve"]
             safe_reference = str(
-                self.repo / ".shiploop-improve" / waiting["run_id"] / child["action_id"]
+                self.repo / ".shiploop-improve" / standalone_improve.child_directory(child["stage"], child["action_id"])
                 / "reviews" / "review-<n>.md"
             )
             for render_state, packet in (("current", current_packet), ("cold", cold_packet)):
@@ -2523,8 +2533,8 @@ class SkillCardContextBoundaryTests(unittest.TestCase):
                       " ".join(prompts.IMPROVE_INNER_CONTEXT.split()))
         self.assertIn('INNER **producer** packets begin with "Execute the prompt in a fresh context."',
                       card)
-        # The Improve stage's packet is two lines; the prefix is the first line of its handoff file (2026-10-12).
-        self.assertIn('Improve handoffs instead begin "Keep the invoking parent alive"', card)
+        # The Improve stage's packet is two lines; the prefix is the first line of its route's ask-agent text (plan U18).
+        self.assertIn('The Improve route file instead says "Keep the invoking parent alive"', card)
         self.assertTrue(improve_prefix.startswith("Keep the invoking parent alive"))
         self.assertNotIn("prefix both producer and Improve assignments", card)
 

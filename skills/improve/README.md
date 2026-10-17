@@ -143,6 +143,14 @@ The reusable obligations are in [review-policy.md](references/review-policy.md).
 [callback-evidence.md](references/callback-evidence.md) explains the
 host-record and handoff boundary.
 
+SKILL.md is a router (efficiency plan U18). A direct `/improve` or an `improve-agent` worker reads
+[standalone-route.md](references/standalone-route.md), which holds the standalone binding, continuation after
+context loss, completion summary, preview and execution handoff. A ShipLoop review (the argument
+`ShipLoop Improve: <handoff path>`) reads the ShipLoop subcall in SKILL.md and
+[shiploop-route.md](references/shiploop-route.md), which carries what a ShipLoop child needs from those four
+documents once, plus the text that used to repeat in every handoff.
+`test/improve_route_ledger.json` has a row for every paragraph of them.
+
 ## Preview and installation
 
 Dry run, preview, show how you interpret this, and do not execute show the
