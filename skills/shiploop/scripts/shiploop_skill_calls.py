@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 RECORD_FILE = "skill-calls.jsonl"
+PLUGIN = "skill-craft"  # the one plugin namespace every ShipLoop skill is invoked under (/skill-craft:<leaf>)
 # The handoff path is the longest thing a call carries; a record line stays far under a page.
 ARGS_LIMIT = 2000
 # Quotes and escapes a model may put around a path it copies into the Skill call's argument.
@@ -28,8 +29,13 @@ _QUOTING = re.compile(r"""['"`\\]""")
 
 
 def skill_name(raw: Any) -> str:
-    """The skill as the Skill tool names it, without a plugin prefix or slash: ``skill-craft:improve`` is ``improve``."""
-    return str(raw or "").strip().lstrip("/").rsplit(":", 1)[-1].strip().lower()
+    """The skill as the Skill tool names it, without a slash or this plugin's prefix: ``skill-craft:improve`` is ``improve``.
+
+    Another plugin's ``improve`` keeps its prefix, so it is not this skill.
+    """
+    name = str(raw or "").strip().lstrip("/").strip().lower()
+    plugin, _, leaf = name.rpartition(":")
+    return leaf.strip() if plugin.strip() in ("", PLUGIN) else name
 
 
 def _line(record: Mapping[str, Any]) -> bytes:
@@ -85,7 +91,7 @@ def read_records(run_dir: str | Path) -> list[dict]:
     except OSError:
         return []
     found = []
-    for line in text.splitlines():
+    for line in text.split("\n"):  # not splitlines(): U+2028 and U+0085 inside an argument are not line ends
         try:
             item = json.loads(line)
         except ValueError:

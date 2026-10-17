@@ -105,6 +105,7 @@ class SkillCallHookTests(keepalive_tests.KeepaliveTestCase):
     def test_nothing_is_recorded_unless_a_bound_claude_session_called_the_skill_tool(self) -> None:
         self.skill("never-bound", "improve", "x")  # no binding for this session
         self.bind()
+        self.skill("another-session", "improve", "x")  # a session that is bound to nothing writes into no run
         other_tool = skill_payload("session-1", "improve", "x", tool_name="Bash")
         self.assertIsNone(self.hook("skill", "claude", other_tool))
         # another host's payload reaches this host's entry only by mistake; its own entry handles it
@@ -259,6 +260,24 @@ class SkillCallRecordTests(unittest.TestCase):
             self.assertEqual(second.text, "")
             lines = [json.loads(line) for line in (run / skill_calls.RECORD_FILE).read_text().splitlines()]
             self.assertEqual([(line["gate"], line["action"]) for line in lines], [("not enforced", "nav-a")])
+
+    def test_a_record_survives_characters_that_str_splitlines_would_split_on(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp)
+            (run / "state.md").write_text("x")
+            skill_calls.record_call(run, {"skill": "improve", "args": "ShipLoop Improve:\u2028/w/handoff.md\x85"},
+                                    session="s", now=100.0)
+            self.assertEqual(len(skill_calls.read_records(run)), 1)
+            self.assertIsNotNone(skill_calls.improve_call_since(run, 0, ["/w/handoff.md"]))
+
+    def test_only_this_plugins_improve_is_the_improve_skill(self) -> None:
+        for name in ("improve", "/improve", "Improve", " skill-craft:improve ", "/skill-craft:improve"):
+            self.assertEqual(skill_calls.skill_name(name), "improve", name)
+        for name in ("evilplugin:improve", "other:skill-craft:improve", "improve-agent", "skill-craft:improve-agent",
+                     "improved", ""):
+            self.assertNotEqual(skill_calls.skill_name(name), "improve", name)
 
     def test_matching_ignores_quotes_and_takes_the_latest_call_after_the_start(self) -> None:
         import tempfile
