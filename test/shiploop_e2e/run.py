@@ -2064,8 +2064,8 @@ def guard_coverage(out: Path, preflights=()) -> dict:
                     record = json.loads(line)
                 except ValueError:
                     continue
-                if isinstance(record, dict) and "end" not in record:
-                    calls += 1
+                if isinstance(record, dict) and "end" not in record and record.get("name", "sf") in GUARDED_NAMES:
+                    calls += 1  # a host-automation stand-in's line (osascript, open) is not an sf call
     except OSError:
         pass
     found = _model_sf(out / "events.jsonl")

@@ -57,7 +57,10 @@ or profile visibility that shows them. Confirm the tab with
 for its API name. The Tooling `CustomTab` query returns no rows for a Lightning
 component tab and would stay red after a good deploy. Run that confirm once at
 release-check, beside `sf project deploy validate` (the dry-run), so its
-"not there yet" output is on record before the real deploy.
+"not there yet" output is on record before the real deploy. At release-plan,
+`consumer_entry.how` names the App Launcher entry and its URL path
+(`/lightning/n/<TabApiName>` for a component tab), and `sources` lists the tab
+and app files.
 
 When Salesforce is an affected service boundary, apply the conditional
 [service discovery guide](../service-discovery.md). Record the observed selected

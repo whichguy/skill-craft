@@ -80,8 +80,10 @@ class GuardCase(unittest.TestCase):
         self.shim = self.tmp / "shim"
         self.shim.mkdir()
         self.use_sf(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(FAKE_SF))} \"$@\"\n")
-        self.wrappers = run.write_model_bin({"sf": GUARD, "sfdx": GUARD.replace("--prefix SLChess --", "--prefix SLChess --deny-all --")},
-                                            self.platform_dir, self.real_home)
+        self.wrappers = run.write_model_bin(
+            {"sf": GUARD, **{name: GUARD.replace("--prefix SLChess --", f"--prefix SLChess --deny-all --name {name} --")
+                             for name in ("sfdx", "osascript", "open")}},
+            self.platform_dir, self.real_home)
         self.state = self.tmp / "state.json"
         self.fake_log = self.tmp / "fake.log"
 
@@ -120,8 +122,11 @@ class GuardCase(unittest.TestCase):
         before_reached, before_calls = len(self.reached()), len(self.calls())
         done = self.sf(*argv, name=name)
         self.assertEqual(done.returncode, 2, (argv, done.stdout, done.stderr))
-        self.assertIn("sf_guard: denied", done.stderr)
+        self.assertIn(f"{name}: denied by this run's guard: ", done.stderr)
         self.assertIn(reason, done.stderr, argv)
+        self.assertIn(f"{name}: this run allows only `sf`, only on org {ORG!r}", done.stderr)  # the scope, after every denial
+        self.assertNotIn("sf_guard", done.stderr)  # no message names the guard's file
+        self.assertNotIn(str(CHECKS), done.stderr)
         self.assertEqual(done.stdout, "")
         self.assertEqual(len(self.reached()), before_reached, f"{argv} reached sf")
         calls = self.calls()
@@ -132,7 +137,7 @@ class GuardCase(unittest.TestCase):
     def assert_reaches_sf(self, *argv: str) -> subprocess.CompletedProcess:
         before_reached = len(self.reached())
         done = self.sf(*argv)
-        self.assertNotIn("sf_guard:", done.stderr, (argv, done.stderr))
+        self.assertNotIn("denied by this run's guard", done.stderr, (argv, done.stderr))
         self.assertEqual(len(self.reached()), before_reached + 1, (argv, done.stdout, done.stderr))
         self.assertEqual(self.calls()[-1]["decision"], "allowed")
         self.assertEqual(self.ends()[-1]["call"], self.calls()[-1]["call"])
@@ -203,6 +208,48 @@ class DenyTest(GuardCase):
     def test_sfdx_is_denied_whatever_it_is_given(self):
         self.assert_denied("force:org:display", "--targetusername", ORG, name="sfdx", reason="not available in this run")
         self.assert_denied("--version", name="sfdx", reason="not available in this run")
+
+    def test_host_automation_is_denied_logged_by_name_and_not_counted_as_an_sf_call(self):
+        self.assert_denied("-e", 'tell application "Browser" to open location "https://example.test"', name="osascript",
+                           reason="`osascript` is not available in this run")
+        self.assert_denied("https://example.test", name="open", reason="`open` is not available in this run")
+        self.assertEqual([entry.get("name") for entry in self.calls()], ["osascript", "open"])
+        out = self.platform_dir.parent
+        (out / "events.jsonl").write_text("")
+        self.assertEqual(run.guard_coverage(out)["guard_calls"], 0)  # stand-in lines are not the model's sf calls
+        self.assert_denied("org", "display", "--target-org", ORG, reason="access token")
+        self.assertEqual(run.guard_coverage(out)["guard_calls"], 1)
+        self.assertNotIn("name", self.calls()[-1])
+
+    def test_the_salesforce_case_stands_in_for_sfdx_and_host_automation(self):
+        case = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())["chess-salesforce"]
+        bins = case["platform"]["model_bin"]
+        self.assertEqual(set(bins), {"sf", "sfdx", "osascript", "open"})
+        for name in ("sfdx", "osascript", "open"):
+            self.assertIn(f"--deny-all --name {name} --", bins[name])
+        self.assertNotIn("--deny-all", bins["sf"])
+
+
+class ScopeLineTest(GuardCase):
+    """The guard tells the model what the run allows, so the model need not read the guard's source."""
+
+    def test_help_prints_the_run_s_scope_after_the_cli_s_own_help(self):
+        for argv in (("--help",), ("project", "deploy", "start", "--help"), ("help",)):
+            done = self.sf(*argv)
+            self.assertEqual(self.calls()[-1]["decision"], "allowed", argv)  # reached the CLI (the fake's exit code passes through)
+            scope = done.stderr.strip().splitlines()[-1]
+            self.assertTrue(scope.startswith(f"sf: this run allows only `sf`, only on org {ORG!r}"), (argv, scope))
+            self.assertIn("deploys: ApexClass, CustomTab, CustomApplication, FlexiPage named SLChess*", scope)
+            self.assertIn("commands: ", scope)
+            self.assertNotIn("sf_guard", done.stderr)
+        done = self.sf("org", "list", "--json")  # not a help call: the CLI's output only
+        self.assertNotIn("this run allows", done.stderr)
+
+    def test_a_denial_that_lists_the_allowed_commands_does_not_list_them_twice(self):
+        done = self.sf("totally-unknown")
+        self.assertEqual(done.stderr.count("apex run test"), 1, done.stderr)
+        done = self.sf("org", "display", "--target-org", ORG)
+        self.assertEqual(done.stderr.count("apex run test"), 1, done.stderr)
 
 
 class PinTest(GuardCase):
@@ -506,10 +553,11 @@ class WrapperTest(GuardCase):
 
     def test_the_fixed_flags_come_first_and_the_model_s_flags_are_its_own(self):
         self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "--", "data", "query", "--org", "x"]),
-                         ("de", "P", False, ["data", "query", "--org", "x"]))
-        self.assertEqual(sf_guard.parse_fixed(["--prefix", "P", "--org", "de", "--deny-all", "--", "--"]),
-                         ("de", "P", True, ["--"]))
-        self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "org", "list"]), ("de", "P", False, ["org", "list"]))
+                         ("de", "P", False, "sf", ["data", "query", "--org", "x"]))
+        self.assertEqual(sf_guard.parse_fixed(["--prefix", "P", "--org", "de", "--deny-all", "--name", "open", "--", "--"]),
+                         ("de", "P", True, "open", ["--"]))
+        self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "org", "list"]),
+                         ("de", "P", False, "sf", ["org", "list"]))
 
 
 class FlagsDirTest(GuardCase):
@@ -841,7 +889,7 @@ class ScopeTest(GuardCase):
         # Through the wrapper: refused before the real sf is reached.
         done = self.sf("project", "deploy", "start", "--metadata", "CustomObject:Foo__c", "--target-org", ORG, "--json")
         self.assertEqual(done.returncode, 2)
-        self.assertIn("sf_guard: denied: deploy is outside the approved scope", done.stderr)
+        self.assertIn("sf: denied by this run's guard: deploy is outside the approved scope", done.stderr)
         self.assertEqual(self.reached(), [])
 
     def test_a_manifest_outside_the_approved_names_is_refused(self):
@@ -1143,7 +1191,7 @@ class ScopeTest(GuardCase):
         done = self.sf("data", "query", "-q", "x", "--target-org", "y" * 5000)
         self.assertEqual(done.returncode, 2)
         self.assertLessEqual(len(self.calls()[-1]["reason"]), 2000)
-        self.assertLess(len(done.stderr), 2200)
+        self.assertLess(len(done.stderr), 2200 + len(sf_guard.scope_line("sf", ORG, "SLChess")) + 1)  # + the fixed scope line
 
     def test_a_manifest_that_is_not_a_regular_file_is_refused_without_being_read(self):
         # Each is judged in a child with a timeout: reading the pipe would wait for a writer that never comes.
@@ -1270,7 +1318,7 @@ class HelpAndGenerateTest(GuardCase):
         for command in ("project deploy start", "project retrieve start", "apex run test", "apex generate ...", "template generate ...",
                         "data query", "org list", "lightning generate ...", "sobject describe", "help ..."):
             self.assertIn(command, done.stderr)
-        self.assertEqual(len(done.stderr.strip().splitlines()), 1)
+        self.assertEqual(len(done.stderr.strip().splitlines()), 2)  # the denial with the list, then the scope without it
 
     def test_denials_of_reading_say_so(self):
         self.assert_denied("config", "get", "target-org", reason="reads or changes the CLI's configuration")
@@ -1320,7 +1368,7 @@ pathlib.Path(os.environ["SEEN"]).write_text(pathlib.Path(os.environ["E2E_PLATFOR
         for argv in (("org", "list", "--json"), ("data", "query", "-q", "x", "--target-org", ORG, "--json")):
             done = self.sf(*argv)
             self.assertEqual(done.returncode, 2, argv)
-            self.assertTrue(done.stderr.startswith("sf_guard: denied: the call could not be logged"), (argv, done.stderr))
+            self.assertTrue(done.stderr.startswith("sf: denied by this run's guard: the call could not be logged"), (argv, done.stderr))
             self.assertEqual(len(done.stderr.strip().splitlines()), 1)
             self.assertEqual(done.stdout, "")
         self.assertEqual(self.reached(), [])
@@ -1352,7 +1400,7 @@ class CrashTest(GuardCase):
         (self.work / "sfdx-project.json").write_text("[" * 200000 + "]" * 200000)  # json.loads gives up with RecursionError
         done = self.sf("project", "deploy", "start", "--target-org", ORG, "--json")
         self.assertEqual(done.returncode, 2)
-        self.assertIn("sf_guard: denied: the guard could not judge this call (RecursionError)", done.stderr)
+        self.assertIn("sf: denied by this run's guard: the guard could not judge this call (RecursionError)", done.stderr)
         self.assertNotIn("Traceback", done.stderr)
         self.assertEqual(done.stdout, "")
         self.assertEqual([(entry["decision"], entry["argv"][:3]) for entry in self.calls()], [("denied", ["project", "deploy", "start"])])

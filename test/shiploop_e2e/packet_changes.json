@@ -28,7 +28,7 @@
   "U26": [],
   "U27": [],
   "U28": [],
-  "U29": [],
+  "U29": [{"prefix": "pytest `-v`, others: GUIDES/platforms/; never dot or junit)", "stages": ["step-plan"], "offset": ["pytest `-v`, `node --test` default spec or tap reporter"], "note": "the node --test reporter example moves to the node-express platform card (rev 4 Step 10.1, D-13 keeps Jest and pytest)"}, {"prefix": "A command passes only when it exits 0 and actually ran tests: ShipLoop reads the runner's summary, refuses", "stages": ["test", "verify"], "offset": ["A command passes only when it exits 0 and actually ran tests: ShipLoop reads the runner's summary, refuses"], "note": "COUNT_RULE: the node --test reporter clause becomes a pointer to GUIDES/platforms/ (rev 4 Step 10.1)"}],
   "U30": [],
   "U31": [],
   "U32": [],

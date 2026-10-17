@@ -1,0 +1,18 @@
+{
+  "_comment": "Domain words that must not appear in ShipLoop's generic text (owner rule 8: platform detail lives only in references/platforms/). Read by test/shiploop-domain-words.test.py. Each word matches as a whole word, case-insensitively, anywhere under `scan` except the `allow_dirs` and the exact `allow` lines. Adding a word is one line. Generic runner examples (Jest, pytest, node) are not listed (D-13: keep).",
+  "scan": "skills/shiploop",
+  "allow_dirs": ["skills/shiploop/references/platforms/"],
+  "allow": [
+    {"path": "skills/shiploop/references/coding-guidance.md", "line_contains": "| [Salesforce](platforms/salesforce.md) |",
+     "why": "the platform index row of the guidance selector"},
+    {"path": "skills/shiploop/README.md", "line_contains": "[Salesforce](references/platforms/salesforce.md)",
+     "why": "the platform link of the README"}
+  ],
+  "words": {
+    "chess": ["chess", "FEN", "perft", "castling", "Kiwipete"],
+    "example apps": ["Battleship"],
+    "salesforce": ["sf", "sfdx", "Apex", "Lightning", "LWC", "Salesforce", "permission set", "App Launcher", "lightning__Tab",
+                   "CustomTab"],
+    "host automation": ["osascript", "Safari", "Chrome --version"]
+  }
+}

@@ -158,15 +158,22 @@ def _dotnet(text: str) -> Optional[Dict[str, int]]:
     return None
 
 
+# The reader table: every runner whose summary ``count`` reads, in the order it tries them (pytest last, because its
+# reader also judges by the exit code when no other runner matched).  RUNNERS is generated from it, and the packet text
+# that names the runners ShipLoop reads prints RUNNERS, so the list cannot drift from the code.
+READERS = (
+    ("jest", _jest), ("vitest", _vitest), ("unittest", _unittest), ("mocha", _mocha),
+    ("cargo", _cargo), ("go", _go), ("dotnet", _dotnet), ("node", _node),
+)
+RUNNERS = ", ".join([name for name, _reader in READERS] + ["pytest"])
+
+
 def count(output: str, exit_code: Optional[int]) -> Optional[Dict[str, object]]:
     """Return ``{"ran", "failed", "runners"}`` summed over every recognised runner, or ``None``."""
     output = _plain(output)
     found: List[str] = []
     ran = failed = 0
-    for name, reader in (
-        ("jest", _jest), ("vitest", _vitest), ("unittest", _unittest), ("mocha", _mocha),
-        ("cargo", _cargo), ("go", _go), ("dotnet", _dotnet), ("node", _node),
-    ):
+    for name, reader in READERS:
         result = reader(output)
         if result is not None:
             found.append(name)

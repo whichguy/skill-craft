@@ -1197,7 +1197,10 @@ what went **through** the wrapper, not what the model did in the org: a model th
 absolute path, a login shell the pin missed, its own `HOME`) leaves no line in it. Its format: every call writes a decision line
 `{"ts", "call", "org", "prefix", "argv", "decision": "allowed|denied", "reason"}` (`call` is a short random id; argv and
 reasons are scrubbed and bounded), and an allowed call then writes an end line `{"ts", "call", "end": true, "exit", "stderr_head",
-"interrupted"}` (never stdout). The number of calls is the number of lines without an `end` key.
+"interrupted"}` (never stdout). The number of calls is the number of lines without an `end` key. The case also puts deny-all stand-ins
+for `sfdx` and for the host automation a model could drive the owner's browser or desktop with (`osascript`, `open`) on the model's
+PATH; their lines carry `"name"` and are not sf calls. Every denial tells the model what the run allows (the org, the deploy scope,
+the allowed commands), and so does `sf --help`; no message names the guard's file, so a model need not read its source.
 
 So the harness checks the log against the transcript. `model_sf_commands` reads `events.jsonl` (the shapes differ per host: Grok and
 Codex `rawInput.command`, Claude `tool_use` `input.command`), takes the values of keys named `command` or `cmd` (a list is an argv and
