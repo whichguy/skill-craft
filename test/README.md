@@ -162,9 +162,12 @@ drives an inner stage through the CLI finishes that stage's loop with
 ShipLoop's own contract file; never write a receipt by hand. The loop contracts
 and receipt checks themselves are covered by `test/shiploop-loops.test.py`.
 
-A test that reads a packet's first lines (header, owner rule, context-index pointer, callback, goal, done-when) finds
-them with `test/shiploop_packet_view.assert_top_block`, by the constant or label that defines each part, and asserts
-their order; never address one as `lines[header + 2]`. A test that reads the Until Loop block (its argument, exit
+A test that reads a packet's first lines (header, the `next` pointer, the `Full packet:` pointer, callback, owner rule,
+goal, done-when) finds them with `test/shiploop_packet_view.assert_top_block`, by the constant or label that defines each
+part, and asserts their order; never address one as `lines[header + 2]`. Where the callback sits (the third line after the
+header, within 1,500 characters) is asserted by `assert_callback_after_pointers`, which one test calls over every stage.
+A test that needs the packet file a print names uses `packet_file_named` (the path on the `Full packet:` line, which
+every producer print carries) or `head_packet_path` (the file only when the print is a head of it). A test that reads the Until Loop block (its argument, exit
 conditions or start command) uses `test/shiploop_loop_support.LoopBlock`. When a unit moves a part of the top block
 it edits `TOP_ORDER` or a label in the helper once; the helper's negative self-test is
 `TopBlockHelperTests` in `test/shiploop-packet-recut.test.py`. `unaccepted_outcomes` checks that every outcome a

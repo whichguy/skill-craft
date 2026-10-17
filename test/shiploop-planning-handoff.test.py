@@ -22,7 +22,6 @@ sys.path.insert(0, str(ROOT / "test"))
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_planning_revision as planning_revision  # noqa: E402
-import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
@@ -164,11 +163,12 @@ class ContextIndexTests(unittest.TestCase):
                 for stage, workitem, packet, state in full_walk(run, repo, delegation):
                     visited.add(stage)
                     with self.subTest(delegation=delegation, stage=stage, workitem=workitem):
-                        # The pointer to the master index sits under the header, after the owner rule (2026-10-16), found by
-                        # its text and not by line number (shiploop_packet_view).
-                        view = assert_top_block(self, packet, require=("owner", "pointer"))
-                        self.assertEqual(view["pointer"], prompts.index_pointer(run / context_index.INDEX_FILE))
-                        self.assertEqual(packet.count(str(run / context_index.INDEX_FILE)), 1)
+                        # The pointers sit under the header (plan 6.2): the next command, then the packet file; the run's
+                        # master index is named by the References block ("Run records"), once.  Found by constant and label,
+                        # not by line number (shiploop_packet_view).
+                        view = assert_top_block(self, packet, require=("pointer", "packet", "callback", "owner"))
+                        self.assertIn("next --run-dir=" + str(run), view["pointer"])
+                        self.assertEqual(packet.count("RUN/" + context_index.INDEX_FILE), 1)
                         self.assertNotIn("not accepted yet", packet)
                         # Every stage it reads that has an accepted result is listed, by the References block's name.
                         current = planning_revision.current_actions(state)

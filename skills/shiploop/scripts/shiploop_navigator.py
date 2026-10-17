@@ -1567,7 +1567,7 @@ PRINT_LIMIT = 16_000
 
 # The most a printed head totals at a normal install (an 83-character run directory, a 96-character CLI path), and the
 # most Grok gives a model whole: above it Grok keeps the first and last ~10,000 characters and elides the middle
-# (measured 2026-10-17).  The required blocks of a head (tiers P0, P1 and the pointer lines) are never left out; the
+# (measured 2026-10-17).  The required blocks of a head (tiers P0, which carries the pointer lines, and P1) are never left out; the
 # lookups, the chrome and the quoted files are, from the end of the list backwards, when the head would pass it.
 HEAD_LIMIT = 20_000
 
@@ -1593,7 +1593,7 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     if run_reference.stale(root, version):
         # A run saved before this file existed, or by another version, gets it here; the cursor does not move.
         store.atomic_write_text(Path(root) / run_reference.REFERENCE_FILE, run_reference.render(state, root, version))
-    # Every packet's second line points at the run's master index; a run saved without it gets it here (as reference.md does).
+    # The References block names the run's master index; a run saved without it gets it here (as reference.md does).
     if not (Path(root) / context_index.INDEX_FILE).is_file():
         store.atomic_write_text(Path(root) / context_index.INDEX_FILE,
                                 context_index.render(state, root, current_stage(state)))
@@ -1648,18 +1648,18 @@ def printed_text(core: Any, root: Path, state: Mapping[str, Any], path: Path, te
 # An active producer packet is a list of blocks in the order of the plan's section 6.1.  The whole print and the file
 # take every block; the head takes the required ones and as many of the rest as fit ``HEAD_LIMIT``.  A block is the
 # lines one builder produces, so a line's wording lives once, and its tier says whether a reader cut short needs it.
-P0, P1, POINTER, LOOKUP, CHROME, QUOTED, FILE_ONLY = "P0", "P1", "pointer", "lookup", "chrome", "quoted", "file"
+P0, P1, LOOKUP, CHROME, QUOTED, FILE_ONLY = "P0", "P1", "lookup", "chrome", "quoted", "file"
 # Tiers a head always carries (the required text), and the tiers it carries only while they fit, in print order.
-HEAD_REQUIRED = frozenset((P0, P1, POINTER))
+HEAD_REQUIRED = frozenset((P0, P1))
 HEAD_OPTIONAL = (LOOKUP, CHROME, QUOTED)
 
 
 class _Block(NamedTuple):
     """The lines one builder prints, and where a reader cut short finds them.
 
-    ``name`` is stable (tests and the head table cite it); ``tier`` is P0 (what to do and how it is checked), P1 (the
-    stage's own input), pointer (head only: where the whole is), lookup and chrome (the file repeats them), quoted
-    (data quoted by value) or file (the whole print and the file only).  ``head`` is the text a head prints when it
+    ``name`` is stable (tests and the head table cite it); ``tier`` is P0 (what to do and how it is checked, with the
+    pointer lines that say where the whole is), P1 (the stage's own input), lookup and chrome (the file repeats them),
+    quoted (data quoted by value) or file (the whole print and the file only).  ``head`` is the text a head prints when it
     differs from the whole print's, a shorter excerpt.
     """
 
@@ -1679,41 +1679,32 @@ def _text_of(blocks: list[_Block], *, head: bool = False) -> str:
 
 def _select_head(blocks: list[_Block], measure: Callable[[str], int] = len) -> list[_Block]:
     """The blocks a head prints: every required block, then each lookup, chrome and quoted block, in print order, while the
-    head fits ``HEAD_LIMIT``; one stub line says so when the quoted files and hand-offs did not fit.
+    head fits ``HEAD_LIMIT``.
 
     The first optional block that does not fit ends the head, so what a reader loses is the end of the list: the quoted
-    knowledge files and hand-offs first, then the chrome and the lookups the file repeats whole.  ``HEAD_END``, the
-    last line of every print, is never dropped.
+    knowledge files and hand-offs first, then the chrome and the lookups the file repeats whole.  Nothing stands in for
+    what was left out: the packet's second pointer line says the file holds the knowledge files quoted whole and the
+    hand-offs.  ``HEAD_END``, the last line of every print, is never dropped.
     """
     chosen = [block for block in blocks if block.tier in HEAD_REQUIRED]
-    quoted = any(block.tier == QUOTED for block in blocks)
-    # The stub that stands for the quoted files is reserved first: a head is never a line over its limit.
-    reserve = (len(QUOTED_STUB) + 1) if quoted else 0
-    used = measure(_text_of(chosen, head=True)) + 1 + len(HEAD_END) + 1 + reserve
+    used = measure(_text_of(chosen, head=True)) + 1 + len(HEAD_END) + 1
     kept: set[str] = set()
     for block in blocks:
         if block.tier in HEAD_OPTIONAL:
             size = measure(_text_of([block], head=True)) + 1
-            if used - (reserve if block.tier == QUOTED else 0) + size > HEAD_LIMIT:
+            if used + size > HEAD_LIMIT:
                 break  # a prefix: nothing after a block that does not fit is kept
             kept.add(block.name)
-            used += size - (reserve if block.tier == QUOTED else 0)
-    result = [block for block in blocks if block.tier in HEAD_REQUIRED or block.name in kept]
-    if quoted and not any(block.tier == QUOTED for block in result) and used <= HEAD_LIMIT:
-        result.append(_Block("quoted-stub", LOOKUP, [QUOTED_STUB]))  # a head with no room left says nothing more
-    return result
-
-
-QUOTED_STUB = ("Knowledge files this stage reads and the hand-offs from earlier stages: in the full packet, each quoted "
-               "whole.")
+            used += size
+    return [block for block in blocks if block.tier in HEAD_REQUIRED or block.name in kept]
 
 
 def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
                 timeline: Mapping[str, Any] | None = None, *, measure: Callable[[str], int] = len) -> str:
     """The printed part of an active packet longer than ``PRINT_LIMIT``: what to do, in the order a reader cut short needs.
 
-    The blocks of ``_producer_blocks`` in print order: the stage line, the callback, goal and loop, the status, the
-    duties and rules, the stage's own inputs, the result template, the pointers; then, while the head fits
+    The blocks of ``_producer_blocks`` in print order: the stage line, the two pointer lines and the callback, goal and
+    loop, the status, the duties and rules, the stage's own inputs, the result template; then, while the head fits
     ``HEAD_LIMIT``, the lookups, the chrome and the quoted knowledge files and hand-offs (the file has them all, quoted
     whole).  Owner, 2026-10-16: the head used to leave the duties in the file, so a reader of the printed text alone
     never saw them (measured offline at 2686b427).
@@ -1813,10 +1804,12 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     """The blocks of an active producer packet, in the order the plan's section 6.1 gives them.
 
     One list builds the printed head (``packet_head`` takes the required blocks and what fits), the whole print and the
-    packet file (every block).  ``path`` is the packet file, named by the head's pointer lines; a whole print has none.
-    The order: the stage line, the callback, goal and Until Loop block, the status, the duties and rules, the stage's own
-    input, the result template, the pointers; then the lookups the file repeats (References, a Backchain route
-    paragraph), the chrome, the quoted knowledge files and hand-offs, and the lines only the file needs.
+    packet file (every block).  ``path`` is the packet file, named by the pointer lines under the header (default: the
+    file ``emit`` writes, ``packet_path``).
+    The order: the stage line, the two pointer lines and the callback (the top block), the goal and Until Loop block, the
+    status, the duties and rules, the stage's own input, the result template; then the lookups the file repeats
+    (References, a Backchain route paragraph), the chrome, the quoted knowledge files and hand-offs, and the lines only
+    the file needs.
     """
     prelude, inner, outer = graph(state)
     stage = current_stage(state)
@@ -1833,10 +1826,12 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         blocks.append(_Block("delegation", FILE_ONLY, [guidance.inner_context(route, improve=False), ""]))
     blocks.append(_Block("header", P0, [f"ShipLoop navigator | {stage} | revision {state['revision']}"]))
     blocks.append(_Block("top", P0, [
-        *_owner_lines(root),
+        # The pointer lines, then the callback (the third line after the header), then the style slot.
+        *_pointer_lines(core, root, state, path),
+        *_first_callback_lines(core, root, state),
+        guidance.OWNER_RULE,
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
-           f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
-        *_first_callback_lines(core, root, state)]))
+           f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else [])]))
     blocks.append(_Block("goal", P0, _goal_lines(state, stage, root)))
     loop = _loop_lines(root, state, stage, action_id, workitem)
     if loop:
@@ -1854,14 +1849,6 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.extend(_stage_input_blocks(core, root, state, stage, action_id, workitem, inner))
     blocks.append(_Block("result", P0, [
         *_result_contract_lines(root, state, stage, action_id, workitem), *_template_note_lines(stage), ""]))
-    if path is not None:
-        blocks.append(_Block("pointers", POINTER, [
-            f"Full packet: {path}",
-            "The duties and rules above are this stage's; the full packet adds the original request, the knowledge "
-            "files, hand-offs and run rules. Read it with a file-reading tool, not by printing it. References are for "
-            "lookup: open only the section a step needs, never a whole file, and do not re-read the ShipLoop skill card.",
-            "Never end the turn while a ShipLoop command is still running.",
-            "Recovery (reprints this head and rewrites the full packet): " + _callback(core, root, "next")]))
     pass_log = [line for line in _context_index_lines(root, state, stage, workitem) if line.startswith("This action's pass log")]
     references = _reference_global_lines(root, state, core)
     # The symbols come first: the prose above uses them, so they are the last lookup a short head gives up.
@@ -4455,7 +4442,8 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
     route = delegation(state)
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
-        *_owner_lines(root),
+        _recovery_pointer_line(core, root),
+        guidance.OWNER_RULE,
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_reference_lines(root, state, stage, workitem, core),
@@ -4539,20 +4527,28 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
     return improve_packet(core, root, state, timeline) + "".join(line + "\n" for line in _lint_pending(root))
 
 
-def _owner_lines(root: Path) -> list[str]:
-    """The two lines under every packet's first line: the owner rule, then the pointer to the run's master index.
+def _pointer_lines(core: Any, root: Path, state: Mapping[str, Any], path: Path | None = None) -> list[str]:
+    """The two lines under a producer packet's first line: the ``next`` command, then the packet file and how to use it.
 
-    One definition each (shiploop_prompts); the index file is written by every save, and ``emit`` writes it when a
-    run lacks it, so the path printed here always names a file that exists.
+    One definition each (shiploop_prompts).  The packet file is the one ``emit`` writes (``packet_path``), so the path
+    printed here names the file the print is a part of, in a head, a whole print and the file itself.
     """
-    return [guidance.OWNER_RULE, guidance.index_pointer(Path(root) / context_index.INDEX_FILE)]
+    return [guidance.recovery_pointer(_callback(core, root, "next")),
+            guidance.packet_pointer(path or packet_path(root, state), HEAD_END)]
+
+
+def _recovery_pointer_line(core: Any, root: Path) -> str:
+    """The first pointer line alone: the packets that have no packet file of their own to open (paused, halted, done, the
+    Improve packet that asks for a bind or a restart)."""
+    return guidance.recovery_pointer(_callback(core, root, "next"))
 
 
 def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
                          workitem: str | None) -> list[str]:
     """This action's pass log, and the progress view (what this stage builds on is in the References block).
 
-    The pointer to the run's master index is the packet's second line (``_owner_lines``), so it is not said here.
+    The pointer to the packet file and its References block is the producer packet's second line (``_pointer_lines``),
+    so it is not said here.
     """
     lines = []
     if state["status"] in ("active", "paused", "blocked"):
@@ -4792,6 +4788,10 @@ REFERENCES_HEAD = "References (symbols expand to these absolute paths; commands 
 REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE", "GUIDES")
 BUILDS_ON_HEAD = ("Results this stage builds on (open each not already in your context; report a conflict instead of "
                   "choosing silently):")
+# The run's two derived reference files, as the References block lists them (the top block's second pointer line says the
+# block lists the other references and what each holds).
+RUN_RECORDS_LINE = ("RUN/" + run_reference.REFERENCE_FILE + " (the rules' long forms: #policies, #rules, #recovery); RUN/"
+                    + context_index.INDEX_FILE + " (every file of this run and what it holds)")
 
 def reference_paths(root: Path, state: Mapping[str, Any], core: Any = None) -> dict[str, str]:
     """{symbol: absolute path} for the References block's global symbols (GUIDES is the skill's references directory)."""
@@ -4821,7 +4821,7 @@ def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None) 
 # backchain-check, improve-start, improve-commit, improve-bind), the Keepalive marker, the "Full packet:" line, the
 # Progress view link, the evidence_refs example in the result template, the Until Loop block's argument (the lines
 # between its two marker lines) and its start command, the
-# `/improve ShipLoop Improve: ...` line and the index pointer line.  A test lists the paths left in a packet's lines and
+# `/improve ShipLoop Improve: ...` line and the "Lost context" pointer line.  A test lists the paths left in a packet's lines and
 # fails on any that is neither listed here nor one of those.
 PROSE_PATH_LINES = re.compile(
     r"^(?:This action's pass log \(|Full ordered work queue: |Prior Improve evidence and lessons: |"
@@ -4893,7 +4893,9 @@ def _reference_global_lines(root: Path, state: Mapping[str, Any], core: Any = No
             "WORKTREE = " + str(repo) + " (all product work; a working directory, never a --result value"
             + ("; an isolated worktree, returned to the original branch only at release or handoff)"
                if state.get("execution_mode") == "navigator-worktree" else ")"),
-            "Knowledge files: " + "; ".join(entry(name) for name in reference_files())]
+            "Knowledge files: " + "; ".join(entry(name) for name in reference_files()),
+            # What line B of the top block promises ("its References block lists the other references and what each holds").
+            "Run records: " + RUN_RECORDS_LINE]
 
 
 def reads_pointer(stage: str) -> list[str]:
@@ -5489,7 +5491,7 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
     action_id = current_action(state)["id"]
     child = state.get("active_improve")
     if child is None:
-        return ["Callback for this stage (run once after its work, with the result written to the file it names): "
+        return [guidance.CALLBACK_LABEL
                 + _callback(core, root, "complete", action=action_id,
                             result=str(_result_input_path(root, action_id)))]
     if child["skill"] is None:
@@ -5601,13 +5603,18 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
 
 def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
                    timeline: Mapping[str, Any] | None = None) -> str:
-    """An Improve packet: invoke the improve skill, then run the done command (plus the hooks' machine lines)."""
+    """An Improve packet: invoke the improve skill, then run the done command (plus the hooks' machine lines).
+
+    The bound packet is its two instructions and carries no owner rule and no pointer (D-26: it was followed exactly, 4 of
+    4); a packet that asks for a bind or a restart keeps the ``next`` pointer, because its model has no instruction yet to
+    come back to.
+    """
     child = state["active_improve"]
     action_id, stage = child["action_id"], child["stage"]
-    lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result",
-             *_owner_lines(root)]
+    lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result"]
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
+        lines += [_recovery_pointer_line(core, root)]
         lines += [("No Improve card is recorded for this run. " if not state.get("improve_skill") else "")
                   + "Next command (bind the Improve skill's SKILL.md, absolute path; ShipLoop looks for its own at "
                   + str(guidance.installed_improve_card()) + "): "
@@ -5617,7 +5624,8 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
         argument = IMPROVE_ARGUMENT_PREFIX + str(improve_handoff_path(child))
         import shiploop_standalone_improve as standalone
         if not standalone.receipt_path(child).exists():
-            lines += ["ShipLoop could not start this review; start it again first: "
+            lines += [_recovery_pointer_line(core, root),
+                      "ShipLoop could not start this review; start it again first: "
                       + _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped"]
         lines += ["1. Run the improve skill on the " + stage + " result. For example, on Claude Code:",
                   "       /improve " + argument,

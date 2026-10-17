@@ -1,12 +1,13 @@
 """Test support: a packet's top block found by constant and label, and its ORDER asserted, never an address.
 
-A packet's first lines are its header, the owner rule, the pointer to the run's context index and the one legal
-callback; the goal and the done-when follow (``shiploop_navigator._producer_blocks``).  Suites used to address those
+A producer packet's first lines are its header, the ``next`` pointer, the ``Full packet:`` pointer, the one legal callback
+and the owner rule; the goal and the done-when follow (``shiploop_navigator._producer_blocks``, plan 6.1).  A packet that
+is not a producer's has fewer: the bound Improve packet is the header and its two instructions.  Suites used to address those
 lines by arithmetic (``lines[header + 1]``, ``lines[1 + OWNER]``), so a unit that inserted, moved or dropped one line of
 the block failed a dozen assertions that checked nothing it had changed: 42.1 minutes from first red to commit for the
 loop block and 24.6 for the reconcile, 64% of the edits pure re-pointing (test-economy review, 2026-10-17, pins P1-P3).
 
-``assert_top_block`` finds each part by the constant that defines it (``prompts.OWNER_RULE``, the pointer's prefix and
+``assert_top_block`` finds each part by the constant that defines it (``prompts.OWNER_RULE``, the pointers' prefixes and
 suffix) or by the label its line starts with, and asserts that the parts that are there come in ``TOP_ORDER`` and sit
 within ``TOP_WINDOW`` lines of the header.  A layout move edits ``TOP_ORDER`` or a label here, once, not every suite.
 
@@ -41,23 +42,29 @@ CALLBACK_LABELS = ("Callback for this stage", "2. When the improve skill has com
 
 # The parts of the top block in the order a packet prints them.  This tuple is the one place that says so: when a unit
 # moves a part, it edits the tuple (and the part's finder below), not the suites that call ``assert_top_block``.
-TOP_ORDER = ("header", "owner", "pointer", "callback", "goal", "done_when")
+TOP_ORDER = ("header", "pointer", "packet", "callback", "owner", "goal", "done_when")
 
 # Every part sits this many lines after the header or nearer: plan 6.1, "the first 14 lines after the header hold both
 # pointer lines, the callback and Goal".  Not an address: a part may move inside the window and nothing fails.
 TOP_WINDOW = 14
 
-# What each default requires.  A packet that is not a producer's (paused, halted, done, the bound Improve packet) has no
-# callback or goal; a caller names the parts it requires.
-DEFAULT_REQUIRE = ("owner", "pointer", "callback")
+# What a caller requires by default: the callback, which every packet that asks for a result has.  A packet that is not a
+# producer's (paused, halted, done, an Improve packet) lacks the other parts; a caller names the parts it requires.
+# ``PRODUCER`` is the top block of a producer packet.  Where the callback sits (plan 6.2: the third line after the header,
+# within ``CALLBACK_CHARS`` characters of it) is asserted by ``assert_callback_after_pointers``, which one dedicated test
+# calls; ``assert_top_block`` asserts order only, so a line a later unit adds after the callback fails none of its callers.
+DEFAULT_REQUIRE = ("callback",)
+PRODUCER = ("pointer", "packet", "callback", "owner")
+CALLBACK_CHARS = 1500
 
 
 def _finders(callback_labels: Sequence[str]) -> dict[str, Callable[[str], bool]]:
     return {
         "header": lambda line: line.startswith(HEADER_PREFIX),
+        "pointer": lambda line: (line.startswith(prompts.RECOVERY_POINTER_PREFIX)
+                                 and line.endswith(prompts.RECOVERY_POINTER_SUFFIX)),
+        "packet": lambda line: line.startswith(prompts.PACKET_POINTER_PREFIX),
         "owner": lambda line: line == prompts.OWNER_RULE,
-        "pointer": lambda line: (line.startswith(prompts.INDEX_POINTER_PREFIX)
-                                 and line.endswith(prompts.INDEX_POINTER_SUFFIX)),
         "callback": lambda line: line.startswith(tuple(callback_labels)),
         "goal": lambda line: line.startswith("Goal: "),
         "done_when": lambda line: line.startswith("Done when"),
@@ -125,9 +132,9 @@ def assert_top_block(test: unittest.TestCase, text: Union[str, Sequence[str]], *
     """Assert a packet's top block: the header, every part in ``require`` is found, the parts found come in
     ``TOP_ORDER`` and each lies within ``within`` lines of the header.  Returns the view for further assertions.
 
-    ``require`` names the parts the caller expects ("owner", "pointer", "callback", "goal", "done_when"); the header is
-    always required.  A part not required is still ordered and bounded when the packet has it.  ``within=None`` skips
-    the bound.  ``label`` names the packet in a failure (a stage, a route).
+    ``require`` names the parts the caller expects ("pointer", "packet", "callback", "owner", "goal", "done_when"); the
+    header is always required.  A part not required is still ordered and bounded when the packet has it.  ``within=None``
+    skips the bound.  ``label`` names the packet in a failure (a stage, a route).
     """
     view = top_block(text, callback_labels=callback_labels)
     where = (label + ": ") if label else ""
@@ -154,11 +161,56 @@ def assert_top_block(test: unittest.TestCase, text: Union[str, Sequence[str]], *
     return view
 
 
+def assert_callback_after_pointers(test: unittest.TestCase, text: Union[str, Sequence[str]], *,
+                                   chars: int = CALLBACK_CHARS, label: str = "") -> TopBlock:
+    """Assert plan 6.2's position of a producer packet's callback: the only lines between the header and the callback label
+    are the two pointer lines (so it is the third line after the header), and the label starts within ``chars`` characters
+    of the header.  Found by label, never by a line number: it names what stands between, and fails when a unit puts
+    another line there."""
+    view = assert_top_block(test, text, require=("pointer", "packet", "callback"), label=label)
+    where = (label + ": ") if label else ""
+    between = view.lines[view.index("header") + 1:view.index("callback")]
+    if between != [view["pointer"], view["packet"]]:
+        test.fail(where + "the lines between the header and the callback label must be the next pointer and the Full packet "
+                  f"pointer, in that order; found {[line[:40] for line in between]}")
+    characters = sum(len(line) + 1 for line in view.lines[view.index("header"):view.index("callback")])
+    if characters > chars:
+        test.fail(where + f"the callback label starts {characters} characters after the header, not within {chars}")
+    return view
+
+
 def _describe(part: str, callback_labels: Sequence[str]) -> str:
     return {"owner": "prompts.OWNER_RULE",
-            "pointer": "a line from prompts.INDEX_POINTER_PREFIX to INDEX_POINTER_SUFFIX",
+            "pointer": "a line from prompts.RECOVERY_POINTER_PREFIX to RECOVERY_POINTER_SUFFIX",
+            "packet": "a line starting prompts.PACKET_POINTER_PREFIX",
             "callback": " or ".join(repr(label) for label in callback_labels),
             "goal": "'Goal: '", "done_when": "'Done when'"}[part]
+
+
+# ------------------------------------------------------------------ the packet file a print names
+
+def packet_file_named(stdout: str) -> Optional[Path]:
+    """The path on the first ``Full packet:`` line of a print, or None.  Since plan 6.2 the line is the second pointer line of
+    every producer packet (a head, a whole print and the file itself): ``Full packet: <path> - open it ...``, so the path ends
+    at the first `` - ``."""
+    for line in stdout.splitlines():
+        if line.startswith(prompts.PACKET_POINTER_PREFIX):
+            return Path(line[len(prompts.PACKET_POINTER_PREFIX):].split(" - ", 1)[0])
+    return None
+
+
+def head_packet_path(stdout: str) -> Optional[Path]:
+    """The packet file ``stdout`` is a head of, or None when ``stdout`` is not a head: a whole print holds the file's text (the
+    file plus the closing line), and a packet that is not a producer's has no ``Full packet:`` line.  What a suite that reads
+    the complete packet wants: the file a cut print leaves out, never a second copy of a print that is whole."""
+    path = packet_file_named(stdout)
+    if path is None:
+        return None
+    try:
+        whole = path.read_text(encoding="utf-8")
+    except OSError:
+        return path
+    return None if whole.rstrip("\n") in stdout else path
 
 
 # ------------------------------------------------------------------ the outcomes a packet or a refusal names

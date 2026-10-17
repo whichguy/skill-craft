@@ -65,7 +65,7 @@ def template(packet):
 def full_packet(head):
     """The complete packet: the file a ``Full packet:`` pointer names, else the head itself (a short packet is whole)."""
     row = next((r for r in head.splitlines() if r.startswith("Full packet: ")), None)
-    return Path(row.removeprefix("Full packet: ")).read_text(encoding="utf-8") if row else head
+    return Path(row.removeprefix("Full packet: ").split(" - ", 1)[0]).read_text(encoding="utf-8") if row else head
 
 
 class ImproveScheduleTests(unittest.TestCase):

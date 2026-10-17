@@ -18,6 +18,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"
 sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from shiploop_packet_view import head_packet_path  # noqa: E402
 import shiploop_navigator as nav
 import shiploop_store as store
 import shiploop_chain_ledger as chain_ledger
@@ -63,12 +65,9 @@ def with_packet_file(stdout: str) -> str:
     print (paused/blocked/halted/done) already carries the full text and has
     no such line, so it passes through unchanged.
     """
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            packet_file = Path(line[len(marker):])
-            if packet_file.is_file():
-                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    packet_file = head_packet_path(stdout)  # the file a head names; None for a whole print (it holds the file's text)
+    if packet_file is not None and packet_file.is_file():
+        return stdout + "\n" + packet_file.read_text(encoding="utf-8")
     return stdout
 
 

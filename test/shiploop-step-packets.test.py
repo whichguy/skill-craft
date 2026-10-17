@@ -16,7 +16,6 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-import re
 import sys
 import tempfile
 import unittest
@@ -152,11 +151,9 @@ class StepPacketTests(unittest.TestCase):
         # value, measured at the reference install.
         self.assertGreater(len(full), navigator.PRINT_LIMIT)
         self.assertEqual(budget.known_over_the_cut("inline"), [])
-        # The table was measured on the offline walk, whose "Full packet:" line names packet.md (30 characters shorter than
-        # emit's nav-<id>.md): compare like with like.
-        offline_form = re.sub(r"(?m)^(Full packet: \S*/packets/)[^/\s]+\.md$", r"\1packet.md", printed)
-        self.assertEqual(len(printed) - len(offline_form), 30)
-        self.assertLessEqual(budget.at_reference_install(offline_form), budget.ceiling("inline", "step-plan", "head"))
+        # The table is measured on the offline walk, whose "Full packet:" line names the file emit writes (nav-<id>.md, as
+        # emit prints it): the same text, so the two compare directly.
+        self.assertLessEqual(budget.at_reference_install(printed), budget.ceiling("inline", "step-plan", "head"))
         self.assertIn("Current stage guidance:", printed)
         self.assertGreater(len(full), len(printed))  # the packet file holds the rest
 

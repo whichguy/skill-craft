@@ -75,7 +75,7 @@ def _r(section: str, start: str, kind: str = "line", end: str | None = None, n: 
 # status block and the pointer lines end it too.
 RESULT_END = (r"^(Run context index|This action's pass log|Step \S+ \(\d+ of \d+\)|Progress snapshot|Progress view:|Item plan:|"
               r"Considerations for this stage|Host-recorded labels|=== ShipLoop (status|narrative) ===|Full packet: |"
-              r"Lost context, or unsure|Until Loop \()")
+              r"Lost context, or unsure|References \(|Until Loop \()")
 
 # Order matters: the first rule whose anchor matches a free line wins.  Section names are the report's columns.
 RULES: tuple[Rule, ...] = (
@@ -102,7 +102,7 @@ RULES: tuple[Rule, ...] = (
     # --- the References block (_reference_lines): the symbols HOME, FEATURE, RUN and WORKTREE with the files under them,
     # the stage's consult note and what it builds on; it ends at the first line of another shape
     _r("references", r"^References \(", "before",
-       r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Knowledge files: |Consult at this stage|Results this stage builds on))"),
+       r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Knowledge files: |Run records: |Consult at this stage|Results this stage builds on))"),
     # --- an inner stage's Until Loop block (shiploop_loops.invoke_lines): heading, the RUN line and the literal start command
     # (or, once the receipt exists, the resume line), the follow line, the argument between its two marker lines, the
     # result line and the loop rule, which ends it (2026-10-17: one start route; saved runs of the 2026-10-16 layout end

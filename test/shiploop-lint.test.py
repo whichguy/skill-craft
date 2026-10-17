@@ -33,6 +33,7 @@ import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_packet_view import packet_file_named  # noqa: E402
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=PACKAGE, REF_DIR=PACKAGE / "references")
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -907,12 +908,9 @@ def _packet_file_text(stdout: str) -> str:
     line points at, or the stdout itself for a paused/blocked/halted/done print,
     which already carries the full text and prints no such line.
     """
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            path = Path(line[len(marker):])
-            if path.is_file():
-                return path.read_text(encoding="utf-8")
+    path = packet_file_named(stdout)
+    if path is not None and path.is_file():
+        return path.read_text(encoding="utf-8")
     return stdout
 
 

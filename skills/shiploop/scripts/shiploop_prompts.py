@@ -106,20 +106,43 @@ def inner_context(delegation: str, *, improve: bool) -> str:
     return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
 
 
-# The two lines under every packet's first line, Improve packets included (owner, 2026-10-16: "the first line of each
-# packet should say something like: read this file if you don't have context about prior paths and what you're doing,
-# or if you're uncertain in any way ... point to the file and let the model inspect it and open subfiles from there").
-# Each text is defined here once; the navigator prints them in render, packet_head and improve_packet, and nothing else
-# in a packet says either again.  A model that lost its context reads the index first, so the pointer carries the
-# absolute path of the run's context-index.md (a derived master index: shiploop_context_index).
+# The lines under every packet's first line (owner, 2026-10-16: "the first line of each packet should say something like:
+# read this file if you don't have context about prior paths and what you're doing, or if you're uncertain in any way ...
+# point to the file and let the model inspect it and open subfiles from there").  Each text is defined here once; the
+# navigator prints them in the producer packets' top block (the head, the whole print and the packet file alike) and
+# nothing else in a packet says either again.  The first line is a command, which a model follows; the second names the
+# packet file, which is the stage-complete master and whose References block lists the other references and what each
+# holds (efficiency plan 6.2).  A model that lost its context meets them before the callback, so both are literal.
 OWNER_RULE = "Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value."
-INDEX_POINTER_PREFIX = "Lost context, or unsure of anything about this run? Read "
-INDEX_POINTER_SUFFIX = (" first: it maps every file of this run and what it holds; open the file you need from there.")
+RECOVERY_POINTER_PREFIX = "Lost context, or unsure? Run "
+RECOVERY_POINTER_SUFFIX = " (it reprints this step)."
+PACKET_POINTER_PREFIX = "Full packet: "
 
 
-def index_pointer(index_path: object) -> str:
-    """The pointer line: the absolute path of the run's context-index.md, which maps every other file."""
-    return INDEX_POINTER_PREFIX + str(index_path) + INDEX_POINTER_SUFFIX
+def recovery_pointer(command: str) -> str:
+    """The first pointer line: the literal ``next`` command, which reprints the step from saved state."""
+    return RECOVERY_POINTER_PREFIX + command + RECOVERY_POINTER_SUFFIX
+
+
+def packet_pointer(path: object, head_end: str) -> str:
+    """The second pointer line: the packet file, when to open it, what it holds, and how to use its References block.
+
+    ``head_end`` is the line every complete print ends with, so a reader can tell a cut print from a whole one.  The lookup
+    rule (open only the section a step needs, never a whole reference file, do not re-read the skill card) is said here once.
+    """
+    return (PACKET_POINTER_PREFIX + str(path) + " - open it with a file tool, not the shell, when this print was cut (a "
+            "complete print ends with the line " + head_end + ") or you need the duties or the template; it also holds the "
+            "original request, the knowledge files quoted whole and the hand-offs. Its References block lists the other "
+            "references and what each holds; open only the section a step needs, never a whole reference file, and do not "
+            "re-read the ShipLoop skill card.")
+
+
+# The label of a producer packet's one legal callback.  The reason is the point: a model that pipes, redirects or builds
+# the command from a shell variable (20 of 20 calls in the recorded run, efficiency plan SP-2) gets the packet cut by its
+# own `head`, and the status display, which reads the command, never fires.
+CALLBACK_LABEL = ("Callback for this stage (run once after its work, with the result written to the file it names; run it "
+                  "exactly as printed, adding only --check-only to test before it accepts, and with no pipe, redirect, \";\" "
+                  "or shell variable: its output is the next stage's instructions and the status display reads the command): ")
 
 
 # The graph and each stage's fixed considerations live in shiploop_stage_spec.

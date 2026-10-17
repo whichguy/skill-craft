@@ -26,7 +26,9 @@ if str(SOURCE_SCRIPTS) not in sys.path:
 
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_packet_view import packet_file_named  # noqa: E402
 
 
 ACCESS_POLICY_LABEL = "Access-readiness policy: "
@@ -52,12 +54,9 @@ def _with_packet_file(stdout: str) -> str:
     would count the printed part twice, as long local temp paths make happen).
     A packet printed whole has no pointer and passes through unchanged.
     """
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            packet_file = Path(line[len(marker):])
-            if packet_file.is_file():
-                return packet_file.read_text(encoding="utf-8")
+    packet_file = packet_file_named(stdout)
+    if packet_file is not None and packet_file.is_file():
+        return packet_file.read_text(encoding="utf-8")
     return stdout
 
 
@@ -210,9 +209,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         action = self._current_action(state)
         # The one callback line carries both the command and the result file it reads (--result=); the separate
         # "Write the structured result to:" and "Call this when done:" lines are gone (2026-10-11 dedupe).
-        callback_prefix = (
-            "Callback for this stage (run once after its work, with the result written to the file it names): "
-        )
+        callback_prefix = prompts.CALLBACK_LABEL
         command = shlex.split(
             packet.split(callback_prefix, 1)[1].splitlines()[0]
         )

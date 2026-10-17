@@ -1877,6 +1877,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
 
 # The last line of a printed head (shiploop_navigator.HEAD_END; a test pins the two equal). A print that lacks it was cut.
 HEAD_END = "=== end ShipLoop head ==="
+# As a line: the packet's second pointer line names it inside a sentence near the top of every print, cut or not.
+HEAD_END_LINE = re.compile(r"^" + re.escape(HEAD_END) + r"$", re.M)
 COLD_CALLS = 12  # the calls after a break (a compaction, a fresh session, the run's start) that count as cold
 SCRIPTS = Path(__file__).resolve().parents[2] / "skills" / "shiploop" / "scripts"
 READ_TOOLS = ("Read", "read_file")
@@ -2285,7 +2287,7 @@ def reading_path(out: Path, run_dir: Path | None = None, *, limit_events: int | 
         header = PACKET_STAGE.search(text) if mine else None
         if header:
             cut = mine[-1]["cut"]
-            ended = HEAD_END in text
+            ended = HEAD_END_LINE.search(text) is not None
             print_rows.append({"call": position, "stage": header.group("stage"), "verb": mine[-1]["verb"], "chars": len(text),
                                "lines": text.count("\n") + (not text.endswith("\n")), "ended": ended,
                                "cut_by": None if cut is None else f"{cut['into']} -{cut['lines']}" if cut["lines"] else cut["into"],

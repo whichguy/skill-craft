@@ -26,7 +26,9 @@ if str(SOURCE_SCRIPTS) not in sys.path:
 
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_packet_view import head_packet_path  # noqa: E402
 
 
 def _with_packet_file(stdout: str) -> str:
@@ -37,12 +39,9 @@ def _with_packet_file(stdout: str) -> str:
     print (paused/blocked/halted/done) already carries the full text and has
     no such line, so it passes through unchanged.
     """
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            packet_file = Path(line[len(marker):])
-            if packet_file.is_file():
-                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    packet_file = head_packet_path(stdout)  # the file a head names; None for a whole print (it holds the file's text)
+    if packet_file is not None and packet_file.is_file():
+        return stdout + "\n" + packet_file.read_text(encoding="utf-8")
     return stdout
 
 
@@ -249,7 +248,7 @@ class CrossRunTests(unittest.TestCase):
     def _submit_blocked(self, packet: str) -> subprocess.CompletedProcess[str]:
         """Use the packet's exact public callback to create a blocked packet."""
         # The single callback line names the result file in its --result flag (2026-10-11 dedupe).
-        lead = "Callback for this stage (run once after its work, with the result written to the file it names): "
+        lead = prompts.CALLBACK_LABEL
         command = shlex.split(
             next(line for line in packet.splitlines() if line.startswith(lead))[len(lead):]
         )

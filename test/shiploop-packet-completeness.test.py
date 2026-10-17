@@ -117,9 +117,7 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertIn("Result template", packet)             # what it must produce
                 # The one callback line names the result file it reads (the "Write the structured result to:" line
                 # and the second "Call this when done:" callback are gone, 2026-10-11 dedupe).
-                callback = next((line for line in packet.splitlines()
-                                 if line.startswith("Callback for this stage (run once after its work, with the result "
-                                                    "written to the file it names): ")), "")
+                callback = next((line for line in packet.splitlines() if line.startswith(prompts.CALLBACK_LABEL)), "")
                 self.assertIn(" complete ", callback)
                 self.assertIn(" --result=", callback)
                 self.assertNotIn("Write the structured result to: ", packet)
@@ -548,9 +546,10 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
             self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "test-strategy writes it")
 
 
-# Packet re-cut R3: the block is "HOME = ... · RUN = ...", "WORKTREE = ...", one "Knowledge files: a; b; c" line, then
-# the "Results this stage builds on" rows.  There is no reads pointer.
-REFERENCE_ROW = re.compile(r"^(- |HOME = |WORKTREE = |Knowledge files: |Results this stage builds on)")
+# Packet re-cut R3: the block is "HOME = ... · RUN = ...", "WORKTREE = ...", one "Knowledge files: a; b; c" line, the
+# "Run records: ..." line the packet's second pointer line relies on (unit U8), then the "Results this stage builds on"
+# rows.  There is no reads pointer.
+REFERENCE_ROW = re.compile(r"^(- |HOME = |WORKTREE = |Knowledge files: |Run records: |Results this stage builds on)")
 NOT_WRITTEN = re.compile(r" \(not written yet: [^)]*\)")
 
 
@@ -605,7 +604,7 @@ def symbol_paths(block: list) -> dict:
 # the loop runtime read.  The loop's start command (its own line) is a command too.
 LITERAL_LINES = re.compile(
     r"^(?:Start \(the card runs exactly this|Keepalive marker: |Full packet: |Progress view: |\s*\"evidence_refs\": \[|"
-    r"\s*/improve ShipLoop Improve: |Lost context, or unsure of anything about this run\? Read |"
+    r"\s*/improve ShipLoop Improve: |Lost context, or unsure\? Run |"
     r"python3 .+ start --receipt )")
 
 
@@ -898,7 +897,8 @@ class ProseSymbolsTests(unittest.TestCase):
             "    Contract: " + str(self.RUN / "loops/nav-a-contract.json"),
             "    Work: Do duty items 1-4 of " + str(self.RUN / "packets/nav-a.md") + ", writing " + str(self.RUN / "inbox/nav-a.md"),
             "       /improve ShipLoop Improve: " + str(self.RUN / ".shiploop-improve/nav-a/handoff.md"),
-            prompts.index_pointer(self.RUN / "context-index.md"),
+            prompts.recovery_pointer(cli + " next --run-dir=" + str(self.RUN)),
+            prompts.packet_pointer(self.RUN / "packets/nav-a.md", navigator.HEAD_END),
             "red-check: " + cli + " red-check --run-dir=" + str(self.RUN) + " --action=nav-a",
             "Start (the card runs exactly this): python3 " + str(self.RUN / "loop.py"),
             "- [focused] node " + str(self.REPO / "test.js"),            # a recorded test command is the host's own

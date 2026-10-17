@@ -1313,7 +1313,7 @@ def full_packet_text(head: str) -> str:
     line = next((row for row in head.splitlines() if row.startswith("Full packet: ")), None)
     if line is None:
         return head
-    return Path(line.removeprefix("Full packet: ")).read_text(encoding="utf-8")
+    return Path(line.removeprefix("Full packet: ").split(" - ", 1)[0]).read_text(encoding="utf-8")
 
 
 class LoopRefusalRouteTests(RealCliCase):

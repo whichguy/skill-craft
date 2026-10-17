@@ -1005,8 +1005,8 @@ shown to have changed it by these counts, never by cost or wall time (a same-bui
   - `head_bytes` is the bytes ShipLoop first printed for the packet, as the host recorded the reply. One reader for all three hosts
     (`metrics.ToolLog.replies`): Claude's `tool_result` block, Grok's final `output_for_prompt` (after its own `exit: N` line) and
     Codex's after the harness translator. A reply holds the whole head only when it runs from the head's `ShipLoop navigator |` line
-    to its own closing line (`=== end ShipLoop head ===` from 2026-10-16; before that the status block's, or the narrative block's when one follows), carries the packet's `Full packet:`
-    line and has its callback and keepalive lines unshortened; what comes before it (a command's own output, Grok's exit line) and
+    to its own closing line (the line `=== end ShipLoop head ===` from 2026-10-16, read as a line from 2026-10-17 because the packet's second pointer line quotes it inside a sentence near the top of every print; before 2026-10-16 the status block's, or the narrative block's when one follows), carries the packet's `Full packet:`
+    line (alone on its line before 2026-10-17, then followed by ` - ` and the sentence that says when to open the file) and has its callback and keepalive lines unshortened; what comes before it (a command's own output, Grok's exit line) and
     after it (the host's `Shell cwd was reset` note, output the model chained) is not the head. A call that names a packet file (the
     model reading it) is never a print. When a packet was printed more than once the first whole print counts.
   - `head_bytes` is **null** where no reply of the run shows the head whole: the model cut the reply (`| head`, `sed -n`, a script of

@@ -75,11 +75,17 @@ import shiploop_lessons as commit_lessons
 # silently turn every head into null).
 HEAD_START = re.compile(r"^ShipLoop navigator \| (?P<stage>[\w-]+) \|", re.M)
 HEADER = re.compile(r"^ShipLoop navigator \| (?P<stage>[\w-]+) \| revision (?P<revision>\d+)", re.M)
-FULL_PACKET = re.compile(r"^Full packet: (?P<path>\S[^\n]*\.md)$", re.M)
+# The packet file named by the `Full packet:` line: alone on its line before 2026-10-17, then followed by " - " and the
+# sentence that says when to open it (plan 6.2).
+FULL_PACKET = re.compile(r"^Full packet: (?P<path>\S[^\n]*?\.md)(?: - |$)", re.M)
 STATUS_END = "=== end ShipLoop status ==="
 # The closing line of a printed head from 2026-10-16 (the status block is early, then the duties, then the pointer); a head
 # printed before that ends at the status block, with its `Full packet:` line ahead of it.
 HEAD_END = "=== end ShipLoop head ==="
+# The closing line, as a line: the packet's second pointer line names it inside a sentence ("a complete print ends with the
+# line ..."), and that sentence is in the first lines of every cut print, so a substring search finds a closing line a cut
+# print never had.
+HEAD_END_LINE = re.compile(r"^" + re.escape(HEAD_END) + r"$", re.M)
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 # A line the head prints whole, which a cut by column shortens: its end is how the cut is told.
@@ -105,12 +111,14 @@ def head_or_why(reply: str) -> tuple[str | None, str | None]:
     end = reply.find(STATUS_END)
     if end < 0:
         return None, NOT_WHOLE_BEFORE_CLOSING
-    closing = reply.find(HEAD_END)
+    closing_line = HEAD_END_LINE.search(reply)
+    closing = closing_line.start() if closing_line else -1
     pointer = FULL_PACKET.search(reply)
     if closing >= 0:
         cut = closing + len(HEAD_END)
-    elif pointer is not None and pointer.start() > end:
-        # The newer layout (pointer after the status block) cut before its closing line: not a whole print.
+    elif pointer is not None and (pointer.start() > end or "ends with the line " + HEAD_END in reply):
+        # A layout that has the closing line (the pointer after the status block, or the pointer sentence that names the
+        # closing line, near the top) cut before it: not a whole print.
         return None, NOT_WHOLE_BEFORE_CLOSING
     else:
         cut = end + len(STATUS_END)

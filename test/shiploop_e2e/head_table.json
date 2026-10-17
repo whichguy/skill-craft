@@ -1,5 +1,5 @@
 {
- "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), re-measured 2026-10-17 on the merge of wave 2 (U2 not yet merged) into the integration branch: every head fits the 20,000-character host cut (inline step-plan 19,988 is the tightest)",
+ "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), re-measured 2026-10-17 on the unit U8 branch (the two pointer lines and the callback reason under every producer's header; the footer pointer block and the knowledge-files stub gone; one Run records line in the References block): every head fits the 20,000-character host cut (inline step-plan 19,759 is the tightest)",
  "reference": {
   "run_dir_length": 83,
   "root_length": 63,
@@ -8,70 +8,70 @@
  "heads": {
   "inline": {
    "step-plan": {
-    "head": 19988,
-    "whole": 23263
+    "head": 19759,
+    "whole": 24219
    },
    "test-spec": {
-    "head": 12646,
-    "whole": 14645
+    "head": 13056,
+    "whole": 15601
    },
    "validate-existing": {
-    "head": 12269,
-    "whole": 15169
+    "head": 12762,
+    "whole": 16125
    },
    "implement": {
-    "head": 15763,
-    "whole": 18198
+    "head": 15963,
+    "whole": 19154
    },
    "test": {
-    "head": 18267,
-    "whole": 20410
+    "head": 18467,
+    "whole": 21366
    },
    "document": {
-    "head": 11616,
-    "whole": 14002
+    "head": 12109,
+    "whole": 14958
    },
    "verify": {
-    "head": 18188,
-    "whole": 20320
+    "head": 18388,
+    "whole": 21276
    },
    "carry-forward": {
-    "head": 18028,
-    "whole": 22091
+    "head": 18228,
+    "whole": 23047
    }
   },
   "ask-agent": {
    "step-plan": {
-    "head": 19449,
-    "whole": 26654
+    "head": 19538,
+    "whole": 27610
    },
    "test-spec": {
-    "head": 12856,
-    "whole": 16213
+    "head": 13056,
+    "whole": 17169
    },
    "validate-existing": {
-    "head": 12562,
-    "whole": 16737
+    "head": 12762,
+    "whole": 17693
    },
    "implement": {
-    "head": 17217,
-    "whole": 21298
+    "head": 17417,
+    "whole": 22254
    },
    "test": {
-    "head": 18267,
-    "whole": 21978
+    "head": 18467,
+    "whole": 22934
    },
    "document": {
-    "head": 11616,
-    "whole": 15570
+    "head": 12109,
+    "whole": 16526
    },
    "verify": {
-    "head": 18608,
-    "whole": 22308
+    "head": 18808,
+    "whole": 23264
    },
    "carry-forward": {
-    "head": 19294,
-    "whole": 24925
+    "head": 19494,
+    "whole": 25881
    }
   }
  },

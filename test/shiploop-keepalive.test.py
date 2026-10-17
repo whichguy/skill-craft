@@ -26,6 +26,7 @@ sys.path.insert(0, str(SCRIPTS))
 import shiploop_keepalive as keepalive  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_packet_view import assert_top_block, head_packet_path  # noqa: E402
 
 RECORDED_HOSTS = ("claude", "codex", "cursor", "grok")
 
@@ -37,11 +38,7 @@ def shiploop(*argv: str) -> subprocess.CompletedProcess:
 
 def _packet_path_from_stdout(stdout: str) -> Path | None:
     """The ``Full packet: <path>`` locator an active-state head prints, if any."""
-    marker = "Full packet: "
-    for line in stdout.splitlines():
-        if line.startswith(marker):
-            return Path(line[len(marker):])
-    return None
+    return head_packet_path(stdout)
 
 
 def _packet_file_text(stdout: str) -> str:
@@ -149,7 +146,8 @@ class RepeatPacketTests(KeepaliveTestCase):
         # file, and the result template follows the stage's duties.
         self.assertFalse(any(line.startswith("Write the structured result to: ") for line in lines))
         self.assertIn("with the result written to the file it names", lines[callback])
-        self.assertTrue(lines[callback + 1].startswith("Goal: "))
+        # the top block, in order (the pointers, the callback, the owner rule, then the goal), found by label
+        assert_top_block(self, lines, require=("pointer", "packet", "callback", "owner", "goal"))
         contract = next(i for i, line in enumerate(lines) if line == "Result template:")
         guidance = lines.index("Current stage guidance:")
         self.assertLess(callback, guidance)
