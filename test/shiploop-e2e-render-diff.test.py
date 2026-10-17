@@ -111,8 +111,9 @@ class TextRenderTests(unittest.TestCase):
                 whole = self.text["a83"][row["key"] + ".whole.txt"]
                 self.assertEqual((len(printed), len(whole)), (row["printed"], row["whole"]))
                 self.assertEqual(row["head"], len(whole) > navigator.PRINT_LIMIT)
-                self.assertEqual(printed.rstrip("\n").endswith(navigator.HEAD_END), row["head"])
-                self.assertEqual(printed == whole, not row["head"])
+                # Every print ends with the end line (a whole print is the file plus it), so a cut one lacks it.
+                self.assertTrue(printed.endswith("\n" + navigator.HEAD_END + "\n"))
+                self.assertEqual(printed == whole + navigator.HEAD_END + "\n", not row["head"])
         self.assertTrue(any(row["head"] for row in manifest["packets"]))
         self.assertEqual(set(manifest["source"]), {"commit", "dirty"})
 

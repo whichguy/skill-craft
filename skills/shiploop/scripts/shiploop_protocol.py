@@ -124,15 +124,20 @@ class _Paths:
         return self.head + ", ".join(shown) + more(len(self.paths) - len(shown)) + self.tail
 
 
+# The most one command's output holds (the return-review and workspace commands' lists): the navigator's whole-print limit
+# when the two were one constant, apart from it now so the packet limits can move without changing these outputs.
+OUTPUT_LIMIT = 16_000
+
+
 def _fit(parts: Sequence[str | _Paths], limit: Optional[int] = None) -> list[str]:
-    """The lines of one command's output, as text of at most ``limit`` characters (default ``PRINT_LIMIT``) in all.
+    """The lines of one command's output, as text of at most ``limit`` characters (default ``OUTPUT_LIMIT``) in all.
 
     A plain string is a fixed line and prints whole.  Each ``_Paths`` takes an even share of the room the fixed lines
     leave, in order, so a short list leaves its room to the longer ones after it.  Output hosts cut near 20,000
     characters, and the line a cleared context needs is the last one (the next command), so the whole output, not each
     list, is held to the limit.
     """
-    room = (limit or navigator.PRINT_LIMIT) - sum(len(part) + 1 for part in parts if isinstance(part, str))
+    room = (limit or OUTPUT_LIMIT) - sum(len(part) + 1 for part in parts if isinstance(part, str))
     lists = sum(not isinstance(part, str) for part in parts)
     lines = []
     for part in parts:

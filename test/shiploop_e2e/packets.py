@@ -48,6 +48,7 @@ import tempfile
 import types
 import uuid
 from pathlib import Path
+from typing import Any
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -358,25 +359,28 @@ def _walk(case: dict, delegation: str, temp: str, run_dir: Path):
             if inner:
                 count += 1
                 yield f"{count:02d}-{stage}-improve", cold(waiting)
-            waiting = navigator.finish_improve(waiting, action["id"], {"summary": "Synthetic review", "lessons": "x"})
+            waiting = navigator.finish_improve(waiting, action["id"], {"summary": "Synthetic review", "lessons": "Synthetic lessons."})
         state = waiting
 
 
-def offline_packets(case: dict, delegation: str = "inline", printed: bool = False) -> dict[str, str]:
+def offline_packets(case: dict, delegation: str = "inline", printed: bool = False, measure_for: Any = None) -> dict[str, str]:
     """{"<nn>-<stage>[-improve]": packet text} for one step case's inner loop, rendered from a cold read of state.md.
 
     ``printed`` gives what `emit` prints for a packet over the limit (its head) instead of the packet file's text.  The text
     carries this machine's temporary directory and this checkout's paths; offline_renders gives the fixed text.
+    ``measure_for(work directory)`` returns the length function the limits are judged by (default ``len``): a test that
+    compares lengths at a reference install passes ``shiploop_head_budget.reference_measure``.
     """
     found: dict[str, str] = {}
     with tempfile.TemporaryDirectory(prefix="shiploop-step-packets-") as temp:
         run_dir = Path(temp) / "run"
         run_dir.mkdir()
+        measure = measure_for(temp) if measure_for else len
         for key, cold_state in _walk(case, delegation, temp, run_dir):
             text = navigator.render(None, run_dir, cold_state)
-            if printed and len(text) > navigator.PRINT_LIMIT and cold_state["status"] == "active":
+            if printed and measure(text) > navigator.PRINT_LIMIT and cold_state["status"] == "active":
                 # What emit prints for a packet over the limit: the head, with the rest in the file.
-                text = navigator.packet_head(None, run_dir, cold_state, run_dir / "packets" / "packet.md")
+                text = navigator.packet_head(None, run_dir, cold_state, run_dir / "packets" / "packet.md", measure=measure)
             found[key] = text
     return found
 
@@ -450,8 +454,10 @@ class _Canon:
 
 
 def offline_renders(case: dict, delegation: str = "inline", *, run_dir_length: int | None = None,
-                    cli_path_length: int | None = None) -> dict[str, dict]:
-    """{key: {"whole": the packet file's text, "printed": what emit prints, "head": printed is a head}} with fixed text.
+                    cli_path_length: int | None = None, walk: Any = None) -> dict[str, dict]:
+    """{key: {"whole": the packet file's text, "printed": what emit prints (ending with HEAD_END), "head": printed is a
+    head, "state": the state it rendered}} with fixed text.  ``walk`` replaces the default walk (``_walk``): a generator
+    of ``(key, state read back from state.md)``, called as ``walk(case, delegation, work, run_dir)``.
 
     ``run_dir_length`` is the exact length of the run directory the packets name (default: this machine's temporary
     directory, as offline_packets); ``cli_path_length`` the exact length of the CLI path they print (default: the bare
@@ -480,11 +486,16 @@ def offline_renders(case: dict, delegation: str = "inline", *, run_dir_length: i
             core = types.SimpleNamespace(PACKAGE_ROOT=package)
         canon = _Canon(work, package, root_length, scratch)
         found: dict[str, dict] = {}
-        for key, cold_state in _walk(case, delegation, str(work), run_dir):
-            whole = canon(navigator.render(core, run_dir, cold_state))
-            head = canon(navigator.packet_head(core, run_dir, cold_state, run_dir / "packets" / "packet.md"))
-            is_head = len(whole) > navigator.PRINT_LIMIT
-            found[key] = {"whole": whole, "printed": head if is_head else whole, "head": is_head}
+        def at_install(text: str) -> int:
+            """The length a text has at the stated install: the limits are decided on it, not on this machine's paths."""
+            return len(canon(text))
+
+        for key, cold_state in (walk or _walk)(case, delegation, str(work), run_dir):
+            real = navigator.render(core, run_dir, cold_state)
+            printed = navigator.printed_text(core, run_dir, cold_state, run_dir / "packets" / "packet.md", real,
+                                             measure=at_install)
+            found[key] = {"whole": canon(real), "printed": canon(printed), "state": cold_state,
+                          "head": at_install(real) > navigator.PRINT_LIMIT and cold_state["status"] == "active"}
         run_dir_chars = len(str(run_dir))
     for row in found.values():
         row["run_dir_length"] = run_dir_chars

@@ -811,13 +811,16 @@ Every packet is complete, and it lives in a file: ShipLoop writes the full
 packet to `<run>/packets/<action>.md` (the Improve stage is its own action, so its packet goes to
 `<improve id>.md`, and the packet asking for `improve-bind` to `<improve id>-bind.md`; the producer packet that
 was sent stays on disk) and prints it whole when it is at most 16,000 characters.
-A longer packet prints a head: the callback, the goal and done-when, the status
-block, the stage's duties and rules, the result path, template and allowed
-outcomes, the packet file's path, the recovery and pause commands and the loop
-command. The quoted knowledge files and hand-offs stay in the file when the head
-would pass the limit. Read the packet file with a file-reading tool for what the
-head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps about 20 KB) and every
-byte stays in context. References a packet names are for lookup: open only the
+A longer packet prints a head, built from the same ordered blocks as the file: the callback, the goal and
+done-when, the Until Loop block, the status block, the stage's duties and rules, the stage's own input (the work item,
+the step with its paths, skills and check commands, the test floors, the rerun list, the queue rule), the result
+template and allowed outcomes, the packet file's path and the recovery command; then, while the head fits 20,000
+characters, the References block, the pass log, the progress view and the pause command; and the quoted knowledge
+files and hand-offs when the head stays within 16,000. Every print, whole or head, ends with the line
+`=== end ShipLoop head ===`: a print without it was cut (by the host, or by a pipe such as `head -N`), so run the
+command again with no pipe or read the packet file. Read the packet file with a file-reading tool for what the
+head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps the first and last 10 KB of
+a print over 20 KB) and every byte stays in context. References a packet names are for lookup: open only the
 section a step needs, never a whole reference file, and do not re-read this card.
 (The improve skill is different: an Improve stage's packet says to invoke it at every
 Improve stage.) `next` is the recovery command: it rewrites the file and

@@ -220,6 +220,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("House-style guidance", "house-style.md#write-the-match-contract"),
+        ("Plan record guide", "plan-record.md#topics-the-item-touches"),
         ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
         ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -679,7 +680,8 @@ _IMPLEMENT_CHAIN = """\
      incomplete blocker.
 """
 _IMPLEMENT_INLINE = """\
-7. **Inline.** Do the one step on the packet's Step line in this conversation. Bind no chain and dispatch no worker.
+7. **Inline.** Do the one step on the packet's Step lines (task, paths, skills, check commands, lint command) in this
+   conversation. Bind no chain and dispatch no worker.
 """
 _VERIFY_ASSEMBLY = """\
 8. **Assembly.** If implement bound a chain, confirm its finish commit is an ancestor of the execution checkout HEAD,
@@ -1140,21 +1142,9 @@ Change no product file in this stage.
      conditions;
    - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
      sections;
-   - code or stored data added or moved: reopen the namespace and data entries in HOME/architecture.md ## Structure and
-     each touched environment's tree. Per file, module and public symbol: environment, home namespace, visibility,
-     collision check (import or load test, deploy validation, or name search). Per stored field, key, table or
-     payload: owning environment, migration (unneeded, earlier step, this step, deploy obligation), round-trip
-     check. Reason for a changed placement or schema (Namespace and placement guidance, Schema and storage guidance,
-     State and data assessment);
-   - each pinned value a check replays (fixed dice, seed data), labelled a source-check fixture apart from the runtime
-     control; confirm an external oracle (golden file, fixture, snapshot) agrees with the task;
-   - interactions, UI or service state changing: a Design basis paragraph or exact section links, rechecking the
-     Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
-     plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
-     component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     and the rich interactions planned (a human-facing UI defaults to ambitious and highly interactive: direct
-     manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any
-     scaled back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
+   - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
+     interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
+     topic, opening only its matching section.
    This record is supporting reference; each step's task and criteria stay its only directive.
 10. **Knowledge.** A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
@@ -2192,6 +2182,36 @@ def _swapped(text: str, stage: str, planning_review: str) -> str:
 _check_swaps(_NO_REVIEW_SWAPS)
 
 
+# What stands in the duties where the Backchain route paragraph stood, in a packet that prints the paragraph after the
+# result template (the print-order unit: a lookup the packet file repeats whole goes behind the required text).
+BACKCHAIN_STUB = "Backchain: the route's paragraph follows the result template."
+
+
+def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, planning_review: str,
+                  execution_mode: str | None) -> list[tuple[str, str]]:
+    """The producer instruction as ``(kind, text)`` parts in print order; ``prompt`` joins them.
+
+    ``kind`` is ``duty``, ``audit`` (the inline route's short optional audit line), ``backchain`` (the route paragraph of a
+    stage that may call Backchain), ``craft`` or ``rules``.
+    """
+    parts = [("duty", duty(stage, delegation=delegation, planning_review=planning_review,
+                           backchain_passes=backchain_passes, execution_mode=execution_mode))]
+    # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
+    # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
+    # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
+    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
+        parts.append(("audit", INLINE_BACKCHAIN_AUDIT))
+    elif stage in BACKCHAIN_FOLDED_STAGES:
+        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
+    elif stage in BACKCHAIN_STAGES:
+        parts.append(("backchain", _swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage,
+                                            planning_review)))
+    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
+        parts.append(("craft", CODE_CRAFT))
+    parts.append(("rules", STAGE_RULES))
+    return parts
+
+
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
            backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
            planning_review: str = "stage", execution_mode: str | None = None) -> str:
@@ -2205,21 +2225,28 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     _require_delegation(delegation)
     _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
-    parts = [duty(stage, delegation=delegation, planning_review=planning_review,
-                  backchain_passes=backchain_passes, execution_mode=execution_mode)]
-    # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
-    # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
-    # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
-    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
-        parts.append(INLINE_BACKCHAIN_AUDIT)
-    elif stage in BACKCHAIN_FOLDED_STAGES:
-        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
-    elif stage in BACKCHAIN_STAGES:
-        parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
-    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
-        parts.append(CODE_CRAFT)
-    parts.append(STAGE_RULES)
-    return "\n\n".join(parts)
+    return "\n\n".join(text for _, text in _prompt_parts(
+        stage, delegation=delegation, backchain_passes=backchain_passes, planning_review=planning_review,
+        execution_mode=execution_mode))
+
+
+def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
+                 backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
+                 planning_review: str = "stage", execution_mode: str | None = None) -> tuple[str, str]:
+    """``(prompt text, Backchain route paragraph)`` for a packet that prints the paragraph behind its result template.
+
+    The first holds everything ``prompt`` returns, with ``BACKCHAIN_STUB`` where the paragraph stood; the second is the
+    paragraph, or "" for a stage without one (the inline route's short audit line stays in place).  Joined back in place
+    of the stub, the two are exactly ``prompt``.
+    """
+    _require_stage(stage)
+    _require_delegation(delegation)
+    _require_backchain_passes(backchain_passes)
+    _require_planning_review(planning_review)
+    parts = _prompt_parts(stage, delegation=delegation, backchain_passes=backchain_passes,
+                          planning_review=planning_review, execution_mode=execution_mode)
+    moved = next((text for kind, text in parts if kind == "backchain"), "")
+    return ("\n\n".join(BACKCHAIN_STUB if kind == "backchain" else text for kind, text in parts), moved)
 
 
 # Inline runs have no dispatcher steps, execution graph or worker packets; the

@@ -207,8 +207,8 @@ class DelegationStateTests(unittest.TestCase):
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
-        self.assertIn("**Inline.** Do the one step on the packet's Step line in this conversation. "
-                      "Bind no chain and dispatch no worker.", inline)
+        self.assertIn("**Inline.** Do the one step on the packet's Step lines (task, paths, skills, check commands, "
+                      "lint command) in this conversation. Bind no chain and dispatch no worker.", " ".join(inline.split()))
         step_plan = self.render(advance(self.state(), "step-plan"))
         flat_plan = " ".join(step_plan.split())
         self.assertIn("steps lists every implementation step in the order to do them", flat_plan)
@@ -426,15 +426,17 @@ class PacketContractTests(DelegationStateTests):
 
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
         entry = self.render(advance(self.state(), "verify"))
-        # The result contract sits under the callback, which is printed once (the "Write the structured result to:"
-        # line and the tail's "Call this when done:" callback are gone, 2026-10-11 dedupe).
+        # The callback leads and is printed once (the "Write the structured result to:" line and the tail's "Call this when
+        # done:" callback are gone, 2026-10-11 dedupe); the result contract follows the duties and rules and ends the
+        # required text (the print order of the efficiency plan, section 6.1).
         head = entry.split("Current stage guidance:", 1)[0]
         self.assertIn("\nCallback for this stage (run once after its work, with the result written to the file it "
                       "names): ", head)
         self.assertIn("--result=", head.split("\nCallback for this stage", 1)[1].split("\n", 1)[0])
         self.assertNotIn("Write the structured result to: ", entry)
         # repeat is no longer an inner outcome (8-stage loop, 2026-10-10).
-        self.assertIn("\nAllowed outcomes: done | blocked | revise", head)
+        self.assertIn("\nAllowed outcomes: done | blocked | revise", entry)
+        self.assertLess(entry.index("Current stage guidance:"), entry.index("\nAllowed outcomes: "))
         self.assertNotIn("Call this when done:", entry)
         self.assertEqual(entry.count("Callback for this stage"), 1)
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)

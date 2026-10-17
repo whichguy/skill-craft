@@ -92,9 +92,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 88)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 89)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 51)
-        self.assertEqual(len(suite_catalog.SUITES), 141)
+        self.assertEqual(len(suite_catalog.SUITES), 142)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -167,7 +167,7 @@ class TestGroupTests(unittest.TestCase):
             "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
                                          "shiploop-delegation", "shiploop-package-integrity",
                                          "shiploop-packet-completeness", "shiploop-step-packets",
-                                         "shiploop-reference", "shiploop-packet-recut"},
+                                         "shiploop-reference", "shiploop-packet-recut", "shiploop-head-order"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
             # The Run Review leaf: its own suite plus the package build that gates a new leaf.
             "skills/shiploop-run-review/scripts/export.py": {"shiploop-run-review", "marketplace-package"},
