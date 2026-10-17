@@ -9,8 +9,10 @@ The fake commits its change; a model leaves it assembled and uncommitted, which 
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,6 +20,7 @@ import textwrap
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
@@ -28,7 +31,12 @@ import packets  # noqa: E402
 import run  # noqa: E402
 import slice as step_slice  # noqa: E402
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
+import shiploop_item_scope as item_scope  # noqa: E402
+import shiploop_knowledge_home as knowledge_home  # noqa: E402
+import shiploop_lint as lint  # noqa: E402
+import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_test_loop as test_loop  # noqa: E402
 
 CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
 GIT_ENV = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -87,6 +95,7 @@ FAKE_HOST = textwrap.dedent('''
     time.sleep(120)  # a model would go on to the next packet; only the slice stop ends this
 ''')
 
+NODE_BASE = ROOT / "test" / "shiploop_e2e" / "fixtures" / "node-base"
 CASE = {"prompt": "Add src/feature.js exporting 1.", "work_item": {"id": "W1", "title": "Add src/feature.js"},
         "expect_paths": ["src/feature.js"], "checks": ["test -f src/feature.js"]}
 
@@ -99,9 +108,11 @@ class SliceCase(unittest.TestCase):
         self.work = self.out / "work"
         self.work.mkdir()
 
-    def seed(self, fixture: Path | None = None, item: dict | None = None) -> dict:
+    def seed(self, fixture: Path | None = None, item: dict | None = None, **options) -> dict:
+        """The seed as slice.py makes it: the case's item and checks, inline."""
         return run.seed_run(CLI, self.work, self.out, CASE["prompt"], "step-plan", fixture=fixture,
-                            work_item=item or CASE["work_item"], delegation="inline")
+                            work_item=item or CASE["work_item"], delegation="inline",
+                            **{"checks": CASE["checks"], **options})
 
     def fake(self, seeded: dict, mode: str, *, pause_at: str = "", clear_at: dict | None = None,
              first: bool = True) -> dict:
@@ -131,6 +142,77 @@ class SeedTests(SliceCase):
         self.assertEqual(seeded["delegation"], "ask-agent")
         state = step_slice.read_state(Path(seeded["run_dir"]))
         self.assertEqual(state["work_items"][0]["id"], "seeded-request")
+
+    def test_the_seed_records_the_item_base_the_gates_read(self):
+        """X-2 / TD-5: a seeded item enters its inner loop with the base snapshot a real run takes (lint.on_transition), so the
+        base run, the mutation check, the change inventory and the item commit have what they read. Without it each recorded
+        "skipped: no item base was recorded" and did nothing, and every slice baseline covered fewer gates than it claimed."""
+        seeded = self.seed(fixture=NODE_BASE)
+        run_dir = Path(seeded["run_dir"])
+        self.assertEqual(seeded["item_bases"], ["W1"])
+        self.assertTrue((run_dir / "lint" / "items" / "W1.md").is_file())
+        base = lint.read_base(run_dir, "W1")
+        self.assertIsNotNone(base, "lint.read_base answers None for a missing or unavailable record")
+        self.assertEqual(base["work_item"], "W1")
+        # The input of the item commit and the document stage's change check: known and empty (None is what no base gives).
+        self.assertEqual(item_scope.changed_paths(run_dir, "W1"), [])
+
+    def test_the_base_run_gate_runs_on_a_seeded_item_instead_of_skipping(self):
+        seeded = self.seed(fixture=NODE_BASE)
+        run_dir = Path(seeded["run_dir"])
+        state = step_slice.read_state(run_dir)
+        action = nav.current_action(state)["id"]
+        state = nav.apply(state, action, {"outcome": "done", "summary": "Fake plan.",
+                                          "test_commands": [{"command": "test -f src/feature.js", "suite": "focused"}]})
+        state = nav.finish_improve(state, action, {"summary": "Fake review."})  # step-plan is an Improve checkpoint
+        record, refusal = test_loop._base_run(run_dir, state, "W1", "A1", None)
+        self.assertNotIn("skipped", record, record)
+        self.assertEqual([(row["command"], row["status"]) for row in record["runs"]], [("test -f src/feature.js", "red")])
+        self.assertEqual(refusal, "")
+
+    def test_the_seed_commits_a_neutral_home_the_gates_can_read(self):
+        """SP-7a: a test case's requirement must have an entry in HOME/spec.md and a command list is read from
+        HOME/environment.md; the seed skipped the stages that write them, so the first test-spec result was refused for a
+        requirement no file held and the model wrote the spec itself."""
+        seeded = self.seed(fixture=NODE_BASE)
+        repo = Path(step_slice.read_state(Path(seeded["run_dir"]))["repo"])
+        self.assertEqual(seeded["home"], ["docs/shiploop/spec.md", "docs/shiploop/environment.md"])
+        self.assertEqual(list(knowledge_home.entries(repo, "spec.md")), ["R-1"])
+        self.assertTrue(knowledge_home.entries(repo, "spec.md")["R-1"].text.startswith("R-1: " + CASE["prompt"]))
+        environment = (repo / "docs" / "shiploop" / "environment.md").read_text()
+        self.assertIn("## Commands", environment)
+        for check in CASE["checks"]:
+            self.assertIn(check, environment)
+        # Committed in the checkout the run starts from: nothing is dirty, and the item's base already holds them.
+        self.assertEqual(subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True,
+                                        text=True).stdout, "")
+        self.assertEqual(item_scope.changed_paths(Path(seeded["run_dir"]), "W1"), [])
+
+    def test_the_flagged_no_home_seed_commits_no_home_and_still_records_the_base(self):
+        seeded = self.seed(fixture=NODE_BASE, home=False)
+        repo = Path(step_slice.read_state(Path(seeded["run_dir"]))["repo"])
+        self.assertEqual(seeded["home"], [])
+        self.assertFalse((repo / "docs" / "shiploop").exists())
+        self.assertEqual(seeded["item_bases"], ["W1"])
+        self.assertIsNotNone(lint.read_base(Path(seeded["run_dir"]), "W1"))
+
+    def test_a_home_file_the_fixture_holds_is_kept_and_a_case_with_no_checks_says_so(self):
+        fixture = self.out / "fixture"
+        (fixture / "docs" / "shiploop").mkdir(parents=True)
+        (fixture / "docs" / "shiploop" / "spec.md").write_text("R-7: the fixture's own requirement\n")
+        (fixture / "README.md").write_text("# x\n")
+        seeded = self.seed(fixture=fixture, checks=[])
+        repo = Path(step_slice.read_state(Path(seeded["run_dir"]))["repo"])
+        self.assertEqual(seeded["home"], ["docs/shiploop/environment.md"])
+        self.assertEqual(list(knowledge_home.entries(repo, "spec.md")), ["R-7"])
+        self.assertIn("none recorded", (repo / "docs" / "shiploop" / "environment.md").read_text())
+
+    def test_the_no_home_variant_is_a_flag_of_the_slice_and_of_the_seeded_run(self):
+        self.assertTrue(step_slice.parser().parse_args(["--case", "node-fix-bug", "--seed-without-home"]).seed_without_home)
+        self.assertFalse(step_slice.parser().parse_args(["--case", "node-fix-bug"]).seed_without_home)
+        with self.assertRaises(SystemExit) as refused:
+            run.main(["--case", "hello", "--seed-without-home", "--quiet"])
+        self.assertIn("--seed-without-home needs --seed-at", str(refused.exception))
 
     def test_every_step_case_names_a_fixture_that_exists(self):
         cases = json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text())
@@ -183,6 +265,183 @@ class StopTests(SliceCase):
         self.assertTrue(inner <= stages, stages)  # every inner stage printed at least once
         self.assertGreaterEqual(len(archived), len(inner))
         self.assertTrue((self.out / packets.REPORT_MD).is_file())
+
+
+def load_test_loop_driver():
+    """test/shiploop-test-loop.test.py, loaded as a module: its TestLoopTests drive a run through the real `complete`, which the
+    hermetic suites for the test stage and for the item commit already rely on (WorktreeItemCommitTests borrows it too)."""
+    spec = importlib.util.spec_from_file_location("e2e_slice_test_loop_driver", ROOT / "test" / "shiploop-test-loop.test.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+LOOP = load_test_loop_driver()
+# One focused command that exercises the changed line, so the mutation check has mutants to kill; the regression command is the
+# test_loop suite's own (`test -f retained.txt`).
+# python3 -B and an ignored __pycache__: a bytecode file written while the base and candidate ran would be copied into a mutant's
+# checkout beside its changed source and could load instead of it.
+CHECK_A = ('echo "Ran 1 test in 0.001s"\n'
+           'if python3 -B -c "import a; assert a.x == 3"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
+
+
+class RealCompleteDriver(SliceCase):
+    """A seeded run walked through the real `complete` by test/shiploop-test-loop.test.py's driver (no test methods of its own)."""
+
+    state = LOOP.TestLoopTests.state
+    action = LOOP.TestLoopTests.action
+    packet = LOOP.TestLoopTests.packet
+    complete = LOOP.TestLoopTests.complete
+    finish_improve = LOOP.TestLoopTests.finish_improve
+    drive_to = LOOP.TestLoopTests.drive_to
+    terminal = LOOP.TestLoopTests.terminal
+    run_loop = LOOP.TestLoopTests.run_loop
+    START = LOOP.TestLoopTests.START
+
+    def start_driver(self, seeded: dict, *, base: bool) -> None:
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        self.run_dir = Path(seeded["run_dir"])
+        self.repo = Path(self.state()["repo"])
+        if not base:  # what the seed on main left: no lint/items/W1.md
+            (self.run_dir / "lint" / "items" / "W1.md").unlink(missing_ok=True)
+        for key, value in (("user.email", "loop@example.invalid"), ("user.name", "Loop Test"), ("commit.gpgsign", "false")):
+            subprocess.run(["git", "-C", str(self.repo), "config", key, value], check=True, capture_output=True)
+
+    def gate_records(self) -> list[dict]:
+        records = [store.read_record(path) for path in sorted((self.run_dir / "tests").glob("*.md"))]
+        return [record for record in records if record.get("schema") in ("shiploop-test-base/v1", "shiploop-test-mutation/v1")]
+
+    def subjects(self) -> list[str]:
+        return subprocess.run(["git", "-C", str(self.repo), "log", "--format=%s"], capture_output=True, text=True).stdout.splitlines()
+
+
+class SeededRunsRunTheGatesTests(RealCompleteDriver):
+    """X-2 / TD-5, end to end: a harness-seeded item driven through the real `complete` to carry-forward.
+
+    The base run, the mutation check and the item commit run for real once the seed has recorded the item base; on a run seeded
+    the way main did (no base) the same drive records both gates as skipped and commits nothing.
+    """
+
+    pass_loop = LOOP.TestLoopTests.pass_loop  # makes both commands pass (fixed.txt, retained.txt) and submits done
+
+    def drive(self, *, base: bool) -> list[dict]:
+        (self.work / "a.py").write_text("x = 1\n")
+        (self.work / ".gitignore").write_text("__pycache__/\n")
+        (self.work / "check.sh").write_text(CHECK_A)
+        self.start_driver(run.seed_run(CLI, self.work, self.out, "Make a.x equal 3.", "step-plan",
+                                       work_item={"id": "W1", "title": "Make a.x equal 3"}, delegation="inline",
+                                       checks=["sh check.sh fixed.txt"]), base=base)
+        self.drive_to("carry-forward", each=lambda state: nav.current_stage(state) == "implement"
+                      and (self.repo / "a.py").write_text("x = 2 + 1\n"))
+        return self.gate_records()
+
+    def test_a_seeded_item_runs_the_base_run_the_mutation_check_and_the_item_commit(self):
+        gates = self.drive(base=True)
+        self.assertEqual(sorted(record["schema"] for record in gates), ["shiploop-test-base/v1", "shiploop-test-mutation/v1"])
+        for record in gates:
+            self.assertNotIn("skipped", record, record)
+        mutation = next(record for record in gates if record["schema"] == "shiploop-test-mutation/v1")
+        self.assertTrue(mutation["mutants"] and mutation["killed"] == len(mutation["mutants"]), mutation)
+        self.assertTrue(self.subjects()[0].startswith("feat: W1 "), self.subjects())
+        self.assertEqual(packets.build(self.out)["effectiveness"]["gates"], {"records": 2, "skipped": []})
+
+    def test_the_same_drive_on_a_run_seeded_without_the_base_skips_both_gates_and_commits_nothing(self):
+        gates = self.drive(base=False)
+        self.assertEqual([record["skipped"] for record in gates],
+                         ["no item base was recorded (not a Git checkout, or the base was not captured)"] * 2)
+        self.assertEqual(self.subjects(), ["seed: baseline"])
+        report = packets.build(self.out)
+        self.assertEqual([row["gate"] for row in report["effectiveness"]["gates"]["skipped"]], ["base", "mutation"])
+        self.assertIn("**Gates not exercised:** base W1 (no item base was recorded), mutation W1 (no item base was recorded)",
+                      packets.render(report))
+
+
+NODE_REGRESSION_TEST = """
+test('TC-1 paginate keeps the partial last page', () => {
+  assert.deepEqual(paginate([1, 2, 3, 4, 5], 3, 2), { page: 3, pages: 3, items: [5] });
+  assert.deepEqual(paginate([1, 2, 3, 4], 2, 2), { page: 2, pages: 2, items: [3, 4] });
+});
+"""
+
+
+@unittest.skipUnless(shutil.which("node"), "the node-base fixture's tests need node")
+class SeededCaseFixtureRunsTheGatesTests(RealCompleteDriver):
+    """A correct fix of the node-fix-bug case on its own fixture is accepted by the real gates once the seed has recorded the item
+    base, so a seeded slice's gates are exercised without refusing a normal run (a refusal would be a fixture to fix, not a gate)."""
+
+    def pass_loop(self):  # the model ran its tests; ShipLoop reruns them itself
+        self.run_loop([LOOP.TRIVIAL])
+        self.complete(dict(LOOP.DONE, evidence_refs=[str(self.terminal())]))
+
+    def test_the_real_gates_accept_a_correct_fix_of_the_case_on_its_fixture(self):
+        case = step_slice.load_step_case("node-fix-bug")
+        self.start_driver(run.seed_run(CLI, self.work, self.out, case["prompt"], "step-plan", fixture=step_slice.FIXTURES / case["fixture"],
+                                       work_item=case["work_item"], delegation="inline", checks=case["checks"]), base=True)
+        plan = {"test_commands": [{"command": "node --test test/paginate.test.js", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+                                  {"command": "node --test", "suite": "regression"}],
+                "paths": ["src/paginate.js", "test/paginate.test.js"],
+                "criteria": [{"id": "C1", "text": "paginate keeps the partial last page."}]}
+
+        def fix(state):
+            if nav.current_stage(state) == "implement":
+                source = self.repo / "src" / "paginate.js"
+                source.write_text(source.read_text().replace("Math.floor(items.length / size)", "Math.ceil(items.length / size)"))
+                tests = self.repo / "test" / "paginate.test.js"
+                tests.write_text(tests.read_text() + NODE_REGRESSION_TEST)
+
+        self.drive_to("carry-forward", step_plan=plan, each=fix)
+        base = next(record for record in self.gate_records() if record["schema"] == "shiploop-test-base/v1")
+        self.assertNotIn("skipped", base, base)
+        # The new test fails on the item's base, as a regression test for the bug must; the suite around it passes.
+        self.assertEqual([(row["command"], row["status"]) for row in base["runs"]],
+                         [("node --test test/paginate.test.js", "red"), ("node --test", "counted")])
+        self.assertTrue(self.subjects()[0].startswith("feat: W1 "), self.subjects())
+
+
+class GatesNotExercisedLineTests(SliceCase):
+    """X-2 / TD-5: the packet report says which test-stage gates wrote a record that says skipped (fidelity.gates_not_exercised)."""
+
+    def record(self, run_dir: Path, name: str, schema: str, **fields) -> None:
+        (run_dir / "tests").mkdir(exist_ok=True)
+        record = {"schema": schema, "action": "nav-t", "stage": "test", "work_item": "W1", "passed": True, **fields}
+        (run_dir / "tests" / name).write_text("```shiploop-state\n" + json.dumps(record) + "\n```\n")
+
+    def report_line(self) -> tuple[dict, str]:
+        report = packets.build(self.out)
+        return report["effectiveness"]["gates"], next(line for line in packets.render(report).splitlines()
+                                                      if line.lstrip("*").startswith("Gates not exercised"))
+
+    def test_a_run_that_has_not_reached_the_test_stage_says_not_measured_and_never_none(self):
+        self.seed()
+        gates, line = self.report_line()
+        self.assertEqual(gates, {"records": 0, "skipped": []})
+        self.assertEqual(line, "Gates not exercised: not measured (no base-run or mutation-check record: the test stage was "
+                               "not reached).")
+
+    def test_skipped_records_are_named_and_counted_against_the_records_read(self):
+        seeded = self.seed()
+        run_dir = Path(seeded["run_dir"])
+        none = "no item base was recorded (not a Git checkout, or the base was not captured)"
+        self.record(run_dir, "nav-t-base1.md", "shiploop-test-base/v1", skipped=none, disposition="passed", runs=[])
+        self.record(run_dir, "nav-t-mutation1.md", "shiploop-test-mutation/v1", mutants=[], killed=2)
+        gates, line = self.report_line()
+        self.assertEqual([row["gate"] for row in gates["skipped"]], ["base"])
+        self.assertEqual(line, "**Gates not exercised:** base W1 (no item base was recorded) (1 of 2 base-run and mutation-check "
+                               "records say skipped: the gate wrote a record and did nothing).")
+
+    def test_records_that_ran_say_none_with_their_count(self):
+        seeded = self.seed()
+        run_dir = Path(seeded["run_dir"])
+        self.record(run_dir, "nav-t-base1.md", "shiploop-test-base/v1", disposition="passed", runs=[{"command": "c"}])
+        _gates, line = self.report_line()
+        self.assertEqual(line, "Gates not exercised: none (1 base-run and mutation-check records, none says skipped).")
+
+    def test_a_run_folder_that_cannot_be_read_is_not_measured_and_the_report_still_renders(self):
+        self.assertIsNone(packets.gate_facts(None))
+        self.assertEqual(packets.gates_line(None), "Gates not exercised: not measured (the run folder cannot be read).")
 
 
 class AssembledProductTests(SliceCase):

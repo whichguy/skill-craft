@@ -1,0 +1,14 @@
+=== node-fix-bug on test/shiploop_e2e/fixtures/node-base, a correct fix driven through the real complete; seed WITH the item base (this unit)
+Ran 1 test in 4.525s
+OK
+base1.md | shiploop-test-base/v1 | skipped: None | mutants: 0 | killed: None | runs: [('node --test test/paginate.test.js', 'red'), ('node --test', 'counted')]
+mutation1.md | shiploop-test-mutation/v1 | skipped: no mutants: no changed product line matched an operator | mutants: 0 | killed: 0 | runs: []
+GIT LOG feat: W1 Fix paginate() dropping the last partial page || seed: baseline || 
+
+=== node-fix-bug on test/shiploop_e2e/fixtures/node-base, a correct fix driven through the real complete; seed WITHOUT the item base (what main's seed left)
+Ran 1 test in 3.887s
+OK
+base1.md | shiploop-test-base/v1 | skipped: no item base was recorded (not a Git checkout, or the base was not captured) | mutants: 0 | killed: None | runs: []
+mutation1.md | shiploop-test-mutation/v1 | skipped: no item base was recorded (not a Git checkout, or the base was not captured) | mutants: 0 | killed: 0 | runs: []
+GIT LOG seed: baseline || 
+

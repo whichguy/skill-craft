@@ -381,7 +381,11 @@ is the one reader of that.
   release-verify record (by `created_at`) with its `where`, `kind` and **its own `passed`**: the engine records what it
   observed before it decides, so `where` alone is not a pass. The older regex reader `metrics.verifications` stays what
   baselines use; the block compares the two on the live folder (`unmeasured["validation.readers"]` names both values when
-  they differ) and a test pins that both agree on the saved runs;
+  they differ) and a test pins that both agree on the saved runs. `gates_not_exercised` lists the test stage's base-run
+  and mutation-check records (`tests/*-base*.md`, `tests/*-mutation*.md`) that say `skipped` (no item base, no focused
+  command, no mutants): the gate wrote a record with `disposition` passed and did nothing, so the run is no evidence about
+  it. The validation line names them (`gates not exercised (a record that says skipped): base W1 (...)`) only when there
+  are some;
 - `edits`: **heuristic, a list to confirm**, listed as facts with the `event` (the 0-based line index of `events.jsonl`) of each:
   `script_owned` (the model's edit of a file ShipLoop's scripts own, by an edit tool or by a shell `>`, `>>`, `tee`, `cp`,
   `mv`, `rm`, `sed -i` or `perl -i`; the owned set is anchored to the run directory (`.shiploop-runs/<id>/run`), the
@@ -1410,6 +1414,20 @@ dependency-free Node project whose tests use `node --test`, with a deliberate `p
 **The seed** (`run.seed_run` with `fixture`, `work_item` and `delegation`) copies the fixture into a new git
 repository and commits it. It starts a run with that delegation (inline by default: one session, every packet in
 the main context). It then records every stage before step-plan without doing it, on the plugin's own navigator.
+So the gates the test stage and verify run on an item find what they read, the seed also records what the skipped
+stages would have left (X-2, TD-5, SP-7a):
+- **the item base.** When the plan's item enters its inner loop the seed writes `lint/items/<item>.md`, the snapshot
+  `shiploop_lint.on_transition` takes on a real run, in the same transaction as the state. The base run, the mutation
+  check, the change inventory and the item commit read it; without it each recorded `skipped: no item base was
+  recorded` and did nothing, so every earlier slice baseline covers fewer gates than it claims. `seeded.item_bases`
+  names the items recorded;
+- **a neutral knowledge home**, committed into the seed repository before the baseline commit (so the worktree starts
+  clean and the item base already holds it): `docs/shiploop/spec.md` with `R-1` = the request, and
+  `docs/shiploop/environment.md` with `## Commands` = the case's checks. A test case's requirement must have an entry in
+  the living spec, and the model otherwise writes one itself. A file the fixture already holds is kept. `seeded.home`
+  names the files written;
+- `--seed-without-home` (slice.py, and run.py with `--seed-at`) is the flagged variant that commits no home, to see which
+  refusals a run with no spec hits. The item base is recorded either way.
 
 **The stop.** `slice.py` polls every 2 s. Each poll archives every distinct packet ShipLoop has emitted, because
 `run/packets/<action>.md` is rewritten on each `next`. The poll ends the host once the item's inner loop is over:
@@ -1450,6 +1468,9 @@ full run, only the last copy of each packet is available.
   - the share of its lines already sent in an earlier packet. This share is reported, not flagged: restating how a
     stage operates is the main tenet, and the number shows what it costs.
 - **Per stage:** `metrics.py`'s seconds, turns, tool calls and context peak.
+- **Gates not exercised:** one line under the verdicts, from `fidelity.gates_not_exercised`: the test stage's base-run and
+  mutation-check records that say `skipped` (the gate wrote a record and did nothing), `none` with the records read, or
+  `not measured` when the run never reached the test stage.
 
 **Isolation.** Everything a slice writes is under its output directory (default `$TMPDIR/shiploop-e2e/slice-<case>-…`):
 - the product repository;
