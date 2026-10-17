@@ -169,6 +169,9 @@ RULES: tuple[Rule, ...] = (
     _r("workspace-return", r"^Record each undecided path with"),
     _r("workspace-return", r"^(Return route \(from workspace\.md\)|Rollback of the return)", "bullets"),
     # --- Backchain block
+    # The Backchain route paragraph of a stage that may call Backchain, printed behind the result template since the print-order
+    # unit (before, a part of the stage's guidance): from its first sentence to the printed backchain-check line.
+    _r("guidance-backchain", r"^Follow the packet's Backchain planning guide", "until", r"^Run the printed `backchain-check`"),
     _r("backchain", r"^Selected Backchain and Until Loop resources", "indent"),
     _r("backchain", r"^(Backchain planning guide|Backchain audit resource|Loop resources for a repair|"
        r"Backchain graph check)"),

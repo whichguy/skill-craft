@@ -1199,7 +1199,9 @@ class NavigatorContractTests(unittest.TestCase):
             "A docs or coverage criterion gets a command check (a search for the required terms)",
             "A condition no command can confirm is not a criterion: list it in the summary as an open item",
             "with `Confirm by: unconfirmable here — <what would confirm it>`",
-            "confirm an external oracle (golden file, fixture, snapshot) agrees with the task",
+            # "confirm an external oracle (golden file, fixture, snapshot) agrees with the task" moved word for word to
+            # references/plan-record.md with the other conditional plan-record topics (print-order unit U7);
+            # test/shiploop-head-order.test.py pins the guide and the trigger words that name it.
         )
         loop = (
             "Existing tests, check scripts, golden or fixture files and thresholds are checks",
@@ -2032,7 +2034,8 @@ class NavigatorContractTests(unittest.TestCase):
                 "each in a fenced code block, never in a Markdown table cell",
                 "A passing command names the IDs or cases it ran",
             ),
-            "step-plan": ("source-check fixture", "apart from the runtime control"),
+            # the pinned-value topic moved to references/plan-record.md (U7); the duty names its trigger and the guide
+            "step-plan": ("replays a pinned value (fixed dice, seed data)", "GUIDES/plan-record.md"),
             "release-plan": (
                 "is a named step with its exact command and authorization status",
                 "Source return happens at release or handoff, not here",

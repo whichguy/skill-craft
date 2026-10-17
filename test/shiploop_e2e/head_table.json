@@ -12,20 +12,20 @@
     "whole": 23077
    },
    "test-spec": {
-    "head": 12629,
-    "whole": 14418
+    "head": 12646,
+    "whole": 14435
    },
    "validate-existing": {
-    "head": 12252,
-    "whole": 14859
+    "head": 12269,
+    "whole": 14876
    },
    "implement": {
     "head": 15677,
     "whole": 18112
    },
    "test": {
-    "head": 17861,
-    "whole": 20004
+    "head": 17878,
+    "whole": 20021
    },
    "document": {
     "head": 11616,
@@ -46,20 +46,20 @@
     "whole": 26468
    },
    "test-spec": {
-    "head": 12629,
-    "whole": 15986
+    "head": 12646,
+    "whole": 16003
    },
    "validate-existing": {
-    "head": 12252,
-    "whole": 16427
+    "head": 12269,
+    "whole": 16444
    },
    "implement": {
     "head": 17131,
     "whole": 21212
    },
    "test": {
-    "head": 17861,
-    "whole": 21572
+    "head": 17878,
+    "whole": 21589
    },
    "document": {
     "head": 11616,

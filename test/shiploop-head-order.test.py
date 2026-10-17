@@ -43,7 +43,7 @@ import shiploop_store as store  # noqa: E402
 
 CLI_PATH_LENGTH = 96          # a plugin-cache install: <root>/skills/shiploop/scripts/shiploop
 INSTALL_RUN_DIR = 83          # the run directory a normal install has
-LIVE_RUN_DIR = 163            # the run directory of the live Salesforce run
+LIVE_RUN_DIR = 163            # the run directory of the live run the plan was measured on
 HOST_CUT = 20_000             # what Grok gives a model whole (measured 2026-10-17)
 REQUIRED_BOUND = 19_500       # the required text of a head ends before it, at the normal install
 GROK_PART = 10_000            # the first and the last characters Grok keeps of a longer print
@@ -181,6 +181,39 @@ class PrintedHeadTests(unittest.TestCase):
                         for token in p0 + p1:
                             self.assertIn(token, row["printed"], token)
 
+    OTHER_KINDS = {  # packet kind -> (a state test, the tokens its print must hold)
+        "improve": (lambda key, state: state.get("active_improve") is not None,
+                    ("ShipLoop navigator | improve | revision ", "Keepalive marker: SHIPLOOP-RUN run=", "=== ShipLoop status ===",
+                     ("Next command (", "1. Run the improve skill on the"))),  # unbound card, or bound
+        "paused": (lambda key, state: state["status"] == "paused",
+                   ("ShipLoop navigator | ", "Paused, unfinished: ", "Resume: python3 ", "Keepalive marker: SHIPLOOP-RUN run=",
+                    "=== ShipLoop status ===")),
+        "halted": (lambda key, state: state["status"] == "halted",
+                   ("ShipLoop navigator | ", "Halted, unfinished: ", "No completion callback is valid while halted.",
+                    "Keepalive marker: SHIPLOOP-RUN run=", "=== ShipLoop status ===")),
+        "done": (lambda key, state: state["status"] == "done",
+                 ("ShipLoop navigator | ", "It's all complete.", "Report: ", "=== ShipLoop status ===")),
+    }
+
+    def test_improve_paused_halted_and_done_prints_hold_their_required_text_inside_the_bound(self) -> None:
+        for delegation in ("inline", "ask-agent"):
+            for length in (INSTALL_RUN_DIR, LIVE_RUN_DIR):
+                found = dict.fromkeys(self.OTHER_KINDS, 0)
+                for key, row in renders(delegation, length).items():
+                    for kind, (is_kind, wanted) in self.OTHER_KINDS.items():
+                        if not is_kind(key, row["state"]):
+                            continue
+                        found[kind] += 1
+                        with self.subTest(route=delegation, run_dir=length, kind=kind, packet=key):
+                            text = row["printed"]
+                            self.assertLessEqual(len(text), HOST_CUT)
+                            for token in wanted:
+                                alternatives = token if isinstance(token, tuple) else (token,)
+                                hit = next((one for one in alternatives if one in text), None)
+                                self.assertIsNotNone(hit, token)
+                                self.assertLessEqual(text.index(hit) + len(hit), REQUIRED_BOUND, token)
+                self.assertTrue(all(found.values()), found)
+
     def test_the_lint_mode_line_reaches_the_verify_head_when_lint_is_off(self) -> None:
         for delegation in ("inline", "ask-agent"):
             printed = [row["printed"] for key, row in renders(delegation, INSTALL_RUN_DIR, "off").items()
@@ -247,6 +280,8 @@ class OrderTests(unittest.TestCase):
                     with self.subTest(route=delegation, run_dir=length, packet=key):
                         end = row["printed"].index("=== end ShipLoop status ===") + len("=== end ShipLoop status ===")
                         self.assertLess(end, hook.WINDOW)
+                        if hook.NARRATIVE_BEGIN in row["printed"]:  # the hook reads the milestone narrative from the same window
+                            self.assertLess(row["printed"].index(hook.NARRATIVE_END) + len(hook.NARRATIVE_END), hook.WINDOW)
 
     def test_a_print_names_the_keepalive_marker_once_and_a_head_repeats_no_long_line(self) -> None:
         for delegation in ("inline", "ask-agent"):
@@ -267,6 +302,72 @@ class OrderTests(unittest.TestCase):
                         self.assertIn(hook.BEGIN, text)
                         self.assertIn(hook.END, text)
                         self.assertTrue(text.startswith((hook.HEADER, *hook.PREFIXES)))
+
+
+class TierTests(unittest.TestCase):
+    """Which tier each block of an active producer packet has (plan 6.1): the order says where a block sits, the tier says
+    whether a head that would pass the cut gives it up.  The budget tests above only see a tier when a head is tight, so
+    this pins them."""
+
+    P0 = {"header", "top", "goal", "loop", "status", "duties", "result"}
+    POINTER = {"pointers"}
+    LOOKUP = {"reference-symbols", "reference-files", "builds-on", "backchain-route"}
+    CHROME = {"progress-view", "pause"}
+    FILE = {"delegation", "halt", "pass-log", "run-context", "last-accepted", "deltas", "lint-records", "unverified",
+            "change-inventory", "chain", "discovery-links"}
+
+    def blocks(self, delegation: str, stage: str):
+        row = next(row for key, row in renders(delegation, INSTALL_RUN_DIR).items()
+                   if plans.stage_of(key) == stage and plans.is_producer(key, row["state"]))
+        with tempfile.TemporaryDirectory(prefix="shiploop-head-order-") as temp:
+            run_dir = Path(temp) / "run"
+            run_dir.mkdir()
+            return navigator._producer_blocks(None, run_dir, row["state"], None, path=run_dir / "packets" / "p.md")
+
+    def test_every_block_is_in_the_tier_the_plan_gives_it(self) -> None:
+        for delegation, stage in (("inline", "implement"), ("inline", "test"), ("inline", "verify"), ("inline", "carry-forward"),
+                                  ("inline", "validate-existing"), ("ask-agent", "step-plan"), ("inline", "step-plan")):
+            with self.subTest(route=delegation, stage=stage):
+                tiers = {block.name: block.tier for block in self.blocks(delegation, stage)}
+                for names, tier in ((self.P0, navigator.P0), (self.POINTER, navigator.POINTER), (self.LOOKUP, navigator.LOOKUP),
+                                    (self.CHROME, navigator.CHROME), (self.FILE, navigator.FILE_ONLY)):
+                    for name in names & set(tiers):
+                        self.assertEqual(tiers[name], tier, name)
+                self.assertEqual(tiers.get("quoted", navigator.QUOTED), navigator.QUOTED)
+                for name, tier in tiers.items():
+                    if tier == navigator.P1:
+                        self.assertIn(name, {"work-item", "step", "commit-scope", "expectation-results", "queue-rule",
+                                             "test-rules", "rerun", "observed", "lint-commands", "improve-lessons"})
+                self.assertEqual([name for name in tiers if name not in
+                                  self.P0 | self.POINTER | self.LOOKUP | self.CHROME | self.FILE | {"quoted"}
+                                  and tiers[name] != navigator.P1], [])
+
+    def test_the_blocks_are_in_print_order_required_first_then_lookups_chrome_quoted_and_the_rest(self) -> None:
+        # the stage's own input (P1) sits between the duties and the result template, both required: one rank
+        order = [(navigator.P0, navigator.P1), (navigator.POINTER,), (navigator.LOOKUP,), (navigator.CHROME,), (navigator.QUOTED,)]
+        for delegation in ("inline", "ask-agent"):
+            tiers = [block.tier for block in self.blocks(delegation, "step-plan") if block.tier != navigator.FILE_ONLY]
+            ranks = [next(i for i, group in enumerate(order) if tier in group) for tier in tiers]
+            self.assertEqual(ranks, sorted(ranks))
+
+    def test_the_backchain_route_paragraph_prints_after_the_template_with_a_stub_in_the_duty(self) -> None:
+        paragraph = "Follow the packet's Backchain planning guide for this stage's scoped outcome"
+        for stage in ("step-plan", "carry-forward"):
+            row = next(row for key, row in renders("ask-agent", INSTALL_RUN_DIR).items()
+                       if plans.stage_of(key) == stage and plans.is_producer(key, row["state"]))
+            with self.subTest(stage=stage):
+                whole = row["whole"]
+                self.assertIn(plans.prompts.BACKCHAIN_STUB, whole)
+                self.assertEqual(whole.count(paragraph), 1)
+                self.assertLess(whole.index("Result template:"), whole.index(paragraph))
+                self.assertLess(whole.index(plans.prompts.BACKCHAIN_STUB), whole.index("Result template:"))
+                self.assertNotIn(paragraph, row["printed"][:row["printed"].index("Result template:")])
+        for stage in plans.stage_spec.STAGES:
+            for delegation in ("inline", "ask-agent"):
+                text, moved = plans.prompts.prompt_split(stage, delegation=delegation)
+                full = plans.prompts.prompt(stage, delegation=delegation)
+                self.assertEqual(text.replace(plans.prompts.BACKCHAIN_STUB, moved) if moved else text, full)
+                self.assertEqual(plans.prompts.BACKCHAIN_STUB in text, bool(moved))
 
 
 class BlockBudgetTests(unittest.TestCase):

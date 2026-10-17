@@ -1637,7 +1637,7 @@ def printed_text(core: Any, root: Path, state: Mapping[str, Any], path: Path, te
         return packet_head(core, root, state, path, timeline=timeline, measure=measure)
     pointer = (f"Full packet: {path}\nThis packet is longer than a host's shell-output limit; the rest is "
                "in that file. Read it with a file-reading tool before acting.\n\n")
-    body = text[:PRINT_LIMIT - len(pointer)]
+    body = text[:PRINT_LIMIT - len(pointer) - len(HEAD_END) - 1]
     return pointer + body[:body.rfind("\n") + 1] + HEAD_END + "\n"
 
 
@@ -1712,9 +1712,9 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
 
     The blocks of ``_producer_blocks`` in print order: the stage line, the callback, goal and loop, the status, the
     duties and rules, the stage's own inputs, the result template, the pointers; then, while the head fits
-    ``HEAD_LIMIT``, the lookups and the chrome, and the quoted knowledge files and hand-offs when the head stays within
-    ``PRINT_LIMIT`` (they are in the file, quoted whole).  Owner, 2026-10-16: the head used to leave the duties in the
-    file, so a reader of the printed text alone never saw them (measured on node-fix-bug, 2686b427).
+    ``HEAD_LIMIT``, the lookups, the chrome and the quoted knowledge files and hand-offs (the file has them all, quoted
+    whole).  Owner, 2026-10-16: the head used to leave the duties in the file, so a reader of the printed text alone
+    never saw them (measured offline at 2686b427).
     """
     if state.get("active_improve") is not None:
         return improve_packet(core, root, state, timeline) + HEAD_END + "\n"
@@ -1813,8 +1813,8 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     One list builds the printed head (``packet_head`` takes the required blocks and what fits), the whole print and the
     packet file (every block).  ``path`` is the packet file, named by the head's pointer lines; a whole print has none.
     The order: the stage line, the callback, goal and Until Loop block, the status, the duties and rules, the stage's own
-    input, the result template, the pointers; then the lookups the file repeats (References, the pass log, a Backchain
-    route paragraph), the chrome, the quoted knowledge files and hand-offs, and the lines only the file needs.
+    input, the result template, the pointers; then the lookups the file repeats (References, a Backchain route
+    paragraph), the chrome, the quoted knowledge files and hand-offs, and the lines only the file needs.
     """
     prelude, inner, outer = graph(state)
     stage = current_stage(state)

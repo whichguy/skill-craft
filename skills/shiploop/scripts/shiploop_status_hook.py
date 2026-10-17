@@ -29,8 +29,10 @@ BOLD, PLAIN = "\x1b[1m", "\x1b[22m"
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 HEADER = "ShipLoop navigator | "
-# The block must end this early in stdout: the navigator's PRINT_LIMIT, the most
-# ShipLoop prints. Claude Code keeps the first ~30,000 characters of oversized Bash
+# The block must end this early in stdout: the navigator's PRINT_LIMIT, the most a
+# packet prints whole, and a head (up to 20,000 characters) puts the status block
+# after its callback, goal and Until Loop block, inside it (test/shiploop-head-order.test.py).
+# Claude Code keeps the first ~30,000 characters of oversized Bash
 # output (measured 2026-09-25), so the whole printed packet reaches the hook. It was
 # 8000 until the step-plan template's per-step criteria and paths (2026-10-10) pushed
 # the block 450 characters past it on the ask-agent route.

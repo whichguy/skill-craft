@@ -298,13 +298,20 @@ class PrintedHeadTests(unittest.TestCase):
                 self.assertLess(text.index("=== end ShipLoop status ==="), hook.WINDOW)
                 self.check_length("ask-agent", key, text, whole[key])
 
-    def test_a_head_that_would_pass_the_limit_drops_the_quoted_knowledge_not_the_duties(self) -> None:
-        for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():
+    def test_a_head_that_would_pass_the_host_cut_drops_the_quoted_knowledge_not_the_duties(self) -> None:
+        """The quoted knowledge files and hand-offs are the last thing a head carries, and only while the head stays within
+        the host's cut (efficiency plan U7; before it, while the head stayed within PRINT_LIMIT): else one line says they
+        are in the packet file.  The duties and the rules are never dropped."""
+        with budget.reference_tmpdir():
+            heads = packets.offline_packets(CASES["node-fix-bug"], printed=True, measure_for=budget.reference_measure)
+        for key, text in heads.items():
             if "Full packet:" not in text:
                 continue
             with self.subTest(packet=key):
-                if len(text) > navigator.PRINT_LIMIT:  # step-plan: duties alone are 9k; still no knowledge quotes
-                    self.assertIn("in the full packet, each quoted whole", text)
+                quoted = ("Knowledge files this stage reads, each quoted whole" in text
+                          or "Handed off by earlier stages, quoted by value" in text)
+                stub = "in the full packet, each quoted whole" in text
+                self.assertNotEqual(quoted, stub, "a head quotes the files or says where they are, not both and not neither")
                 self.assertIn("Current stage guidance:", text)
                 self.assertIn("Never end the turn while a ShipLoop command is still running.", text)
 

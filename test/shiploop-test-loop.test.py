@@ -1466,7 +1466,10 @@ class TestLoopTests(unittest.TestCase):
                 full = self.packet()
                 self.assertEqual(full.count("\n" + self.START), 1)  # in the head, not repeated at the tail
                 self.assertLess(full.index("\n" + self.START), full.index("Current stage guidance:"))
-                self.assertGreater(full.index("\n" + self.START), full.index(nav.STATUS_END))
+                # the Until Loop block follows the goal and precedes the status block (the print order of the efficiency
+                # plan, 6.1: the start command is in the first part of any print, whatever a cut keeps)
+                self.assertGreater(full.index("\n" + self.START), full.index("\nChecked by: "))
+                self.assertLess(full.index("\n" + self.START), full.index(nav.STATUS_END))
                 # a status hook reads only the first WINDOW bytes (16,000; 8000 before 2026-10-10)
                 self.assertLess(head.index(nav.STATUS_END), status_hook.WINDOW)
                 if stage == "verify":
