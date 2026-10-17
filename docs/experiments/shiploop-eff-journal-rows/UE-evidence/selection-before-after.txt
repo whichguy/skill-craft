@@ -1,0 +1,49 @@
+path | targeted (base -> now) | quick extra over the baseline: suites, catalog seconds (base -> now)
+test/shiploop_e2e/LEARNINGS.md
+   targeted 16 -> 2; quick extra 16 suites 578.4 s -> 2 suites 100.0 s
+   dropped: ['shiploop-e2e-baseline', 'shiploop-e2e-chess-salesforce', 'shiploop-e2e-commit-counters', 'shiploop-e2e-efficiency', 'shiploop-e2e-environment', 'shiploop-e2e-fidelity', 'shiploop-e2e-packet-anatomy', 'shiploop-e2e-platform', 'shiploop-e2e-quality', 'shiploop-e2e-render-diff', 'shiploop-e2e-reorientation', 'shiploop-e2e-runrecord', 'shiploop-e2e-sf-guard', 'shiploop-e2e-slice']
+   added:   []
+test/shiploop_e2e/baselines.jsonl
+   targeted 15 -> 3; quick extra 15 suites 578.4 s -> 3 suites 200.0 s
+   dropped: ['shiploop-e2e-chess-salesforce', 'shiploop-e2e-commit-counters', 'shiploop-e2e-efficiency', 'shiploop-e2e-environment', 'shiploop-e2e-fidelity', 'shiploop-e2e-packet-anatomy', 'shiploop-e2e-quality', 'shiploop-e2e-render-diff', 'shiploop-e2e-reorientation', 'shiploop-e2e-runrecord', 'shiploop-e2e-sf-guard', 'shiploop-e2e-slice']
+   added:   []
+test/shiploop_e2e/README.md
+   targeted 15 -> 15; quick extra 15 suites 578.4 s -> 15 suites 578.4 s
+   dropped: []
+   added:   []
+test/shiploop_e2e/cases.json
+   targeted 15 -> 16; quick extra 15 suites 578.4 s -> 15 suites 578.4 s
+   dropped: []
+   added:   []
+test/shiploop_e2e/suites.json
+   targeted 15 -> 16; quick extra 15 suites 578.4 s -> 15 suites 578.4 s
+   dropped: []
+   added:   []
+test/shiploop_e2e/packet_changes.json
+   targeted 15 -> 16; quick extra 15 suites 578.4 s -> 15 suites 578.4 s
+   dropped: []
+   added:   []
+test/shiploop_e2e/run.py
+   targeted 15 -> 15; quick extra 15 suites 578.4 s -> 15 suites 578.4 s
+   dropped: []
+   added:   []
+skills/shiploop/scripts/shiploop_workspace.py
+   targeted 12 -> 6; quick extra 8 suites 111.0 s -> 3 suites 124.9 s
+   dropped: ['shiploop-actual-improve-cli', 'shiploop-delegation', 'shiploop-guidance', 'shiploop-keepalive', 'shiploop-lint', 'shiploop-privacy', 'shiploop-quality', 'shiploop-store']
+   added:   ['shiploop-handoff', 'shiploop-knowledge', 'shiploop-return-review']
+skills/shiploop/references/coding-guidance.md
+   targeted 14 -> 14; quick extra 10 suites 131.0 s -> 9 suites 12.6 s
+   dropped: ['shiploop-chain-planning-context']
+   added:   []
+skills/shiploop/references/house-style.md
+   targeted 14 -> 14; quick extra 10 suites 131.0 s -> 9 suites 12.6 s
+   dropped: ['shiploop-chain-planning-context']
+   added:   []
+skills/shiploop/references/service-discovery.md
+   targeted 14 -> 14; quick extra 10 suites 131.0 s -> 9 suites 12.6 s
+   dropped: ['shiploop-chain-planning-context']
+   added:   []
+skills/shiploop/references/repeatable-test-suites.md
+   targeted 16 -> 16; quick extra 11 suites 132.0 s -> 10 suites 13.6 s
+   dropped: ['shiploop-chain-planning-context']
+   added:   []

@@ -29,7 +29,7 @@ STATUSES = ("firm", "interim", "exploratory", "superseded")
 ROW_HEADING = re.compile(r"^### (?P<date>\d{4}-\d{2}-\d{2})\b(?P<rest>.*)$", re.M)
 BULLET = re.compile(r"^- (?P<key>[a-z][a-z -]*?):[ \t]*(?P<value>.*)$")
 SHA = re.compile(r"^[0-9a-f]{7,40}$")
-UNIT = re.compile(r"^(?:U\d+[a-z]?\*?|INT|round-0|final)(?:, ?(?:U\d+[a-z]?\*?|INT))*$")
+UNIT = re.compile(r"^(?:U\d+[a-z]?\*?|UE|INT|round-0|final)(?:, ?(?:U\d+[a-z]?\*?|UE|INT))*$")
 REQUIRED = ("status", "snapshot", "fixture", "run-dir length", "unit", "evidence", "key learning")
 FRAGMENT_REQUIRED = ("exit items", "suites run", "suites skipped")
 PATH = re.compile(r"`([^`\s]+)`")
@@ -143,6 +143,12 @@ class RowParserTests(unittest.TestCase):
                 text = "\n".join(line if row_line.startswith(key) else row_line for row_line in GOOD.splitlines())
                 (row,) = parse_rows(text, "x")
                 self.assertTrue(any(word in p for p in problems(row, fragment=True)), problems(row, fragment=True))
+
+    def test_the_test_economy_unit_is_a_unit_id(self) -> None:
+        # The economy unit (UE) is not in the plan's numbered list, but its row is a unit's row like any other.
+        for unit in ("UE", "UE, INT", "U7, UE"):
+            self.assertTrue(UNIT.match(unit), unit)
+        self.assertFalse(UNIT.match("UF"))
 
     def test_a_superseded_row_stays_and_names_its_successor(self) -> None:
         text = GOOD.replace("- status: interim", "- status: superseded")

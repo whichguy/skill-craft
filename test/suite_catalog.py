@@ -592,7 +592,25 @@ _PATH_SUITE_IDS = {
     "skills/shiploop/scripts/shiploop_prompts.py": ("shiploop-packet-obligations",),
     "skills/shiploop/scripts/shiploop_loops.py": ("shiploop-packet-obligations",),
     "skills/shiploop/scripts/shiploop_narrative.py": ("shiploop-packet-obligations",),
+    # The E2E journal and the baseline data are read by these suites alone (test-economy review 2026-10-17, row 1).
+    "test/shiploop_e2e/LEARNINGS.md": ("shiploop-e2e", "release-preflight"),
+    "test/shiploop_e2e/baselines.jsonl": ("shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e"),
+    # The workspace module is driven through the CLI by the return-review, handoff and knowledge suites (row 3).
+    "skills/shiploop/scripts/shiploop_workspace.py": ("shiploop-return-review", "shiploop-handoff", "shiploop-knowledge"),
 }
+
+# Paths whose row above is their whole selection, beside the suite that carries their own name: the wider rule that
+# would otherwise run is skipped, because it only adds suites that do not read them.  For the two data files that rule
+# is the E2E prefix (the whole family, about 578 s of catalog estimate, for a journal or a data push); for the workspace
+# module it is the hub fallback (nine consumers, one more than HUB_REFERENCE_LIMIT, so the hub set ran in their place
+# and none of the suites that drive the module).  A new suite that reads one of these files is added to its row; the
+# E2E README.md, cases.json, suites.json and packet_changes.json stay on the prefix, because the family reads them
+# through a path helper, run.py and render_diff.py, which no file-name search sees.
+_ROW_ONLY_PATHS = frozenset({
+    "test/shiploop_e2e/LEARNINGS.md",
+    "test/shiploop_e2e/baselines.jsonl",
+    "skills/shiploop/scripts/shiploop_workspace.py",
+})
 
 # Every suite of the E2E harness family that the catalog holds (shiploop-e2e and its shiploop-e2e-<topic> files; the
 # apparatus is another family and not a ShipLoop suite).  Read from the catalog, so a group that adds a family suite is
@@ -606,8 +624,10 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 # Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
 # ShipLoop-family suite its name does not select (the leaf-name rule skips that family).  A new leaf's
 # package build is its release gate, so the Run Review leaf also selects marketplace-package.  Each family
-# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: about 182 s
-# of the quick tier on 2026-10-09 (shiploop-e2e 100, -environment 65, -fidelity 9, -reorientation 7.7, -runrecord 0.2).
+# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: the 15 family suites
+# sum to about 578 s of the estimates in _DURATION_SECONDS on 2026-10-17 (shiploop-e2e 100, -chess-salesforce 115,
+# -slice 81, -platform 75, -environment 65, -quality 43, -baseline 25, -commit-counters 24.5, -sf-guard 20, the other
+# six 30 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
 _PREFIX_SUITE_IDS = {
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
@@ -759,7 +779,8 @@ def targeted(changed: Iterable[str]) -> set[str]:
     shiploop_navigator.py or a test helper reaches its consumers; a hub that more
     than HUB_REFERENCE_LIMIT suites reference, and ShipLoop's entrypoint, select
     the fixed hub consumer set instead.  ShipLoop's prompt surface selects the
-    packet suites.
+    packet suites.  A path in _ROW_ONLY_PATHS selects its row, and nothing from
+    the prefix, consumer or hub rules.
     """
 
     ids: set[str] = set()
@@ -767,10 +788,11 @@ def targeted(changed: Iterable[str]) -> set[str]:
         parts = PurePosixPath(path).parts
         if not parts:
             continue
+        row_only = path in _ROW_ONLY_PATHS
         ids.update(suite.id for suite in SUITES if suite.path == path)
         ids.update(_PATH_SUITE_IDS.get(path, ()))
         for prefix, prefixed_ids in _PREFIX_SUITE_IDS.items():
-            if path.startswith(prefix):
+            if path.startswith(prefix) and not row_only:
                 ids.update(prefixed_ids)
         leaf = None
         if parts[0] in ("skills", "changes") and len(parts) > 2:
@@ -782,7 +804,7 @@ def targeted(changed: Iterable[str]) -> set[str]:
             ids.update(_prefixed(stem, SUITES))
         if leaf:
             ids.update(_prefixed(leaf, (suite for suite in SUITES if suite.family != "shiploop")))
-        if path not in {suite.path for suite in SUITES}:
+        if path not in {suite.path for suite in SUITES} and not row_only:
             consumers = _referencing(path)
             ids.update(consumers if len(consumers) <= HUB_REFERENCE_LIMIT else _HUB_SUITE_IDS)
         if path == "skills/shiploop/SKILL.md" or path.startswith(_SHIPLOOP_PROMPT_PREFIXES):
