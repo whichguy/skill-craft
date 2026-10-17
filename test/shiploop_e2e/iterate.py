@@ -18,7 +18,9 @@ Each iteration, in a dedicated worktree of this repository:
   6. verify  the harness itself checks the commit's scope and runs the quick
              test tier; a red suite stops the loop (nothing is reverted)
 
-It stops at --iterations, after two consecutive clean reviews of passing runs,
+It stops at --iterations, after two consecutive clean reviews of passing runs
+(a clean review is a valid one with no actionable finding; a failed, timed-out
+or malformed review is journaled as such and never counts),
 when the improver commits nothing twice in a row, on a run the skill cannot be
 blamed for (skill not invoked or wrong plugin), or on a red suite. Every
 iteration appends to LEARNINGS.md in the output directory.
@@ -167,6 +169,10 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
     if cli.get("truncated_outputs"):
         lines.append(f"- host truncated {len(cli['truncated_outputs'])} tool outputs before the model saw them")
     lines += ["", "Reviewer outcome", "", str(verdict.get("outcome", ""))]
+    checked = verdict.get("validity") or {}
+    if checked.get("status") != "valid":
+        lines += ["", f"Review {checked.get('status') or 'unchecked'}: {checked.get('reason') or 'no validity recorded'}; "
+                  "not counted as clean and nothing applied."]
     for category in reviewer.CATEGORIES:
         found = [f for f in verdict.get(category) or [] if isinstance(f, dict)]
         if found:
@@ -319,6 +325,14 @@ def main(argv: list[str] | None = None) -> int:
         entry += [f"  - rejected: {title}" for title in rejected]
         entry.append(f"- review: {stage / 'run' / 'review.md'}; learnings commit {recorded} "
                      f"(built on {', '.join(prior)})")
+        checked = verdict["validity"]
+        if checked["status"] != "valid":
+            # An unusable review (failed, timed out, no JSON, no review structure) says nothing about the run: it never
+            # counts as clean, breaks a clean streak, and hands nothing to the improver.
+            clean_streak = 0
+            journal(learnings, entry + [f"- review {checked['status']}: {checked['reason']}; not counted as clean "
+                                        "(streak 0)"])
+            continue
         if not findings:
             clean_streak = clean_streak + 1 if result["pass"] else 0
             journal(learnings, entry + [f"- clean review (streak {clean_streak})"])

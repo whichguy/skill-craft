@@ -1,0 +1,52 @@
+{
+  "schema": "shiploop-e2e-apparatus-check/1",
+  "suite": "all",
+  "modules": [
+    "test_audit",
+    "test_behavior_capture",
+    "test_campaign",
+    "test_capture",
+    "test_check_suite",
+    "test_checkout_binding",
+    "test_dag_replay",
+    "test_driver_transport",
+    "test_evidence",
+    "test_freshness",
+    "test_gas_artifact",
+    "test_grading",
+    "test_grok_adapter",
+    "test_oracle_games",
+    "test_protocol_compat",
+    "test_recovery_isolation",
+    "test_run",
+    "test_salesforce_proof",
+    "test_suites",
+    "test_tictactoe",
+    "test_timeout_cleanup",
+    "test_trace_corpus",
+    "test_verify_suite",
+    "test_workflow_review"
+  ],
+  "model_calls": 0,
+  "tests": 347,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "duration_seconds": 447.0135674580233,
+  "status": "passed",
+  "harness": {
+    "root": "/Users/dadleet/src/skill-craft/skills/shiploop-e2e-audit/harness",
+    "package_root": "/Users/dadleet/src/skill-craft/skills/shiploop-e2e-audit",
+    "source_checkout": "/Users/dadleet/src/skill-craft"
+  },
+  "selected_subject": {
+    "root": "/Users/dadleet/src/skill-craft/skills/shiploop",
+    "package_sha256": "44997ecec4b8bcb3a7a4a18a57b50ed1b8401b5619a601964657a62a68697fa3",
+    "file_count": 121,
+    "selection": "explicit",
+    "default_selection": "source-sibling",
+    "dag_replay_selected": true
+  },
+  "limitations": "Fixture apparatus evidence only; does not establish generated application or hosted behavior."
+}

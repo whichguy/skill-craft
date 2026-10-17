@@ -1,0 +1,33 @@
+{
+  "stage": {
+    "reviewed_stages": [
+      "step-plan",
+      "release-plan",
+      "test-strategy",
+      "spec",
+      "plan",
+      "test-spec",
+      "system-test-author"
+    ],
+    "reference_schedule": "ShipLoop starts an Improve child\nafter planning results (spec, test-strategy, plan, step-plan, test-spec,\nsystem-test-author, release-plan), after each accepted implement step, and after\nthe carry-forward that leaves no work item pending."
+  },
+  "none": {
+    "reviewed_stages": [
+      "release-plan",
+      "system-test-author"
+    ],
+    "reference_schedule": "ShipLoop starts an Improve child\nafter planning results (spec, test-strategy, plan, step-plan, test-spec,\nsystem-test-author, release-plan), after each accepted implement step, and after\nthe carry-forward that leaves no work item pending."
+  },
+  "chain": {
+    "effective_scope_before_completion": {
+      "id": "S1 to S2",
+      "paths": [
+        "src/a.py",
+        "src/b.py"
+      ],
+      "all_steps": true
+    },
+    "review_focus": "Implementation step review focus. This result is one step of the item's step\nplan, and its tests are written later from the test spec, so this review is the\nonly check of the code before them. Review the step's diff (the step's paths since\nthe step began) and fix, within those paths, any of these:\n- the change does not do the step's task, misses a criterion as the spec's R-<n>\n  states it, or does work no criterion asks for (a later step's work, a feature\n  the item does not request);\n- a file changed outside the step's paths, or unrelated work reverted or\n  reformatted;\n- a new or changed public entry point that does not check its arguments before\n  any effect, swallows an error or returns a success default (Code craft 2);\n- a public function without its contract docstring, a comment that restates\n  code, or dead code (rules 3-4);\n- code placed outside HOME/architecture.md's ## Structure or ## Conventions, or a\n  departure with no new AD-<n> under ## Decisions; a name that collides or is\n  exported wider than needed (rule 8);\n- a near-copy of existing logic, a new unit where an existing one could be\n  reused, composed or augmented, or a dependency, option or fallback with no\n  present need (rules 1, 9);\n- a failure that is not diagnosable, or user-facing text assembled from\n  fragments or bypassing the catalog (rules 6-7); for a UI step, a plain or\n  static interaction where the plan calls for a rich one (rule 5);\n- a step skill listed in the packet and not used, or used against its stated\n  purpose, with no reason in the result;\n- a behaviour the code now has that no test-spec case covers and the result does\n  not list for the test stage;\n- a recorded check command that fails, or a new lint finding on a changed line\n  with no waiver, after your last edit.\nDo not write tests, start a later step, or edit a recorded command. After your\nlast edit, rerun the step's recorded check commands and ShipLoop's lint for the\ns",
+    "contains_all_paths": false
+  }
+}

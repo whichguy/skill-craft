@@ -1,0 +1,39 @@
+{
+  "development_cases": 10,
+  "styles": [
+    "cli-files",
+    "parallel-graph",
+    "smoke",
+    "stateful-service",
+    "web-service"
+  ],
+  "step_cases": 4,
+  "named_suites": 6,
+  "named_suite_union": [
+    "battleship",
+    "battleship-scoring",
+    "csv-report",
+    "hello",
+    "seat-reservations"
+  ],
+  "direct_case_only": [
+    "checkers",
+    "temperature-plain",
+    "temperature-report",
+    "unit-converter",
+    "word-report"
+  ],
+  "breadth": [
+    "battleship",
+    "csv-report",
+    "seat-reservations"
+  ],
+  "breadth_styles": [
+    "cli-files",
+    "stateful-service",
+    "web-service"
+  ],
+  "portable_scenarios": 4,
+  "portable_steps": 10,
+  "apparatus_modules": 24
+}

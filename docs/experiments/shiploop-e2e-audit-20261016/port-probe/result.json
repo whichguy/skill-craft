@@ -1,0 +1,30 @@
+{
+  "probe": "fixed-port stale-sibling false-green reproduction",
+  "port": 39171,
+  "sibling_started": true,
+  "candidate_bind_expected_to_fail": true,
+  "exact_case_check_exit_code": 0,
+  "exact_case_check_passed": true,
+  "candidate_server_still_running": null,
+  "artifact_dir": "/tmp/shiploop-e2e-audit-20261016-coverage/fixed-port-probe-l1__p5wu",
+  "scope": "isolated temporary servers only; no repository source, model, or deployment touched",
+  "candidate_server_still_running_observation": "unobserved; the prior wrapper hardcoded false rather than checking the candidate child process",
+  "candidate_bind_error": {
+    "observed": false,
+    "inferred": "EADDRINUSE because the sibling was listening on the same fixed port when the candidate server attempted to bind",
+    "stderr_retained": false,
+    "basis": "the candidate launch redirected stdout and stderr to /dev/null; no bind error text was captured"
+  },
+  "response_body_retained": false,
+  "response_source": {
+    "observed": false,
+    "inferred": "the sibling handler returns a Battleship title; the candidate handler returns only candidate; the check exited 0 after curl followed by grep -qi battleship",
+    "basis": "page.html was deleted by the recipe and its contents were not retained"
+  },
+  "evidence_files": {
+    "executed_wrapper": "executed_probe.py",
+    "executed_command_text": "executed-command.txt",
+    "interpretation_and_limits": "probe-notes.md",
+    "original_receipt": "result-original.json"
+  }
+}

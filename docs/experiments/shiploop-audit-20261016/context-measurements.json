@@ -1,0 +1,407 @@
+{
+  "empty": {
+    "packet_total": 387080,
+    "packets": [
+      {
+        "stage": "intake",
+        "chars": 9185,
+        "stage_guidance_characters": 2049
+      },
+      {
+        "stage": "discovery",
+        "chars": 16146,
+        "stage_guidance_characters": 6164
+      },
+      {
+        "stage": "research",
+        "chars": 13112,
+        "stage_guidance_characters": 3855
+      },
+      {
+        "stage": "spec",
+        "chars": 15379,
+        "stage_guidance_characters": 5641
+      },
+      {
+        "stage": "improve",
+        "chars": 2008
+      },
+      {
+        "stage": "test-strategy",
+        "chars": 16970,
+        "stage_guidance_characters": 6414
+      },
+      {
+        "stage": "improve",
+        "chars": 2105
+      },
+      {
+        "stage": "plan",
+        "chars": 27968,
+        "stage_guidance_characters": 13676
+      },
+      {
+        "stage": "improve",
+        "chars": 2081
+      },
+      {
+        "stage": "prepare",
+        "chars": 10753,
+        "stage_guidance_characters": 2064
+      },
+      {
+        "stage": "step-plan",
+        "chars": 23257,
+        "stage_guidance_characters": 8884
+      },
+      {
+        "stage": "improve",
+        "chars": 1998
+      },
+      {
+        "stage": "test-spec",
+        "chars": 13173,
+        "stage_guidance_characters": 2337
+      },
+      {
+        "stage": "improve",
+        "chars": 1404
+      },
+      {
+        "stage": "validate-existing",
+        "chars": 13634,
+        "stage_guidance_characters": 2143
+      },
+      {
+        "stage": "implement",
+        "chars": 19250,
+        "stage_guidance_characters": 7147
+      },
+      {
+        "stage": "improve",
+        "chars": 2110
+      },
+      {
+        "stage": "test",
+        "chars": 18810,
+        "stage_guidance_characters": 4289
+      },
+      {
+        "stage": "document",
+        "chars": 12348,
+        "stage_guidance_characters": 2228
+      },
+      {
+        "stage": "verify",
+        "chars": 19101,
+        "stage_guidance_characters": 5353
+      },
+      {
+        "stage": "carry-forward",
+        "chars": 20757,
+        "stage_guidance_characters": 6750
+      },
+      {
+        "stage": "improve",
+        "chars": 2098
+      },
+      {
+        "stage": "system-test-author",
+        "chars": 14371,
+        "stage_guidance_characters": 4963
+      },
+      {
+        "stage": "improve",
+        "chars": 2255
+      },
+      {
+        "stage": "system-test",
+        "chars": 13317,
+        "stage_guidance_characters": 3968
+      },
+      {
+        "stage": "product-acceptance",
+        "chars": 15210,
+        "stage_guidance_characters": 4879
+      },
+      {
+        "stage": "release-plan",
+        "chars": 15463,
+        "stage_guidance_characters": 5116
+      },
+      {
+        "stage": "improve",
+        "chars": 2373
+      },
+      {
+        "stage": "release-check",
+        "chars": 11679,
+        "stage_guidance_characters": 2433
+      },
+      {
+        "stage": "release",
+        "chars": 11246,
+        "stage_guidance_characters": 2307
+      },
+      {
+        "stage": "release-verify",
+        "chars": 13905,
+        "stage_guidance_characters": 3734
+      },
+      {
+        "stage": "operations",
+        "chars": 11111,
+        "stage_guidance_characters": 2292
+      },
+      {
+        "stage": "handoff",
+        "chars": 12503,
+        "stage_guidance_characters": 3082
+      }
+    ],
+    "packets_over_16000": 8,
+    "bound_handoff_total": 276270,
+    "bound_handoffs": [
+      {
+        "stage": "spec",
+        "characters": 27055
+      },
+      {
+        "stage": "test-strategy",
+        "characters": 28304
+      },
+      {
+        "stage": "plan",
+        "characters": 33785
+      },
+      {
+        "stage": "step-plan",
+        "characters": 31770
+      },
+      {
+        "stage": "test-spec",
+        "characters": 28550
+      },
+      {
+        "stage": "implement",
+        "characters": 33719
+      },
+      {
+        "stage": "carry-forward",
+        "characters": 34377
+      },
+      {
+        "stage": "system-test-author",
+        "characters": 28070
+      },
+      {
+        "stage": "release-plan",
+        "characters": 30640
+      }
+    ],
+    "shared_reference_characters": 17613
+  },
+  "three-5000-character-files": {
+    "packet_total": 570309,
+    "packets": [
+      {
+        "stage": "intake",
+        "chars": 25012,
+        "stage_guidance_characters": 2049
+      },
+      {
+        "stage": "discovery",
+        "chars": 16030,
+        "stage_guidance_characters": 6164
+      },
+      {
+        "stage": "research",
+        "chars": 12996,
+        "stage_guidance_characters": 3855
+      },
+      {
+        "stage": "spec",
+        "chars": 15263,
+        "stage_guidance_characters": 5641
+      },
+      {
+        "stage": "improve",
+        "chars": 2008
+      },
+      {
+        "stage": "test-strategy",
+        "chars": 22168,
+        "stage_guidance_characters": 6414
+      },
+      {
+        "stage": "improve",
+        "chars": 2105
+      },
+      {
+        "stage": "plan",
+        "chars": 43795,
+        "stage_guidance_characters": 13676
+      },
+      {
+        "stage": "improve",
+        "chars": 2081
+      },
+      {
+        "stage": "prepare",
+        "chars": 15953,
+        "stage_guidance_characters": 2064
+      },
+      {
+        "stage": "step-plan",
+        "chars": 39084,
+        "stage_guidance_characters": 8884
+      },
+      {
+        "stage": "improve",
+        "chars": 1998
+      },
+      {
+        "stage": "test-spec",
+        "chars": 29000,
+        "stage_guidance_characters": 2337
+      },
+      {
+        "stage": "improve",
+        "chars": 1404
+      },
+      {
+        "stage": "validate-existing",
+        "chars": 24147,
+        "stage_guidance_characters": 2143
+      },
+      {
+        "stage": "implement",
+        "chars": 29763,
+        "stage_guidance_characters": 7147
+      },
+      {
+        "stage": "improve",
+        "chars": 2110
+      },
+      {
+        "stage": "test",
+        "chars": 29323,
+        "stage_guidance_characters": 4289
+      },
+      {
+        "stage": "document",
+        "chars": 22861,
+        "stage_guidance_characters": 2228
+      },
+      {
+        "stage": "verify",
+        "chars": 29614,
+        "stage_guidance_characters": 5353
+      },
+      {
+        "stage": "carry-forward",
+        "chars": 20641,
+        "stage_guidance_characters": 6750
+      },
+      {
+        "stage": "improve",
+        "chars": 2098
+      },
+      {
+        "stage": "system-test-author",
+        "chars": 30198,
+        "stage_guidance_characters": 4963
+      },
+      {
+        "stage": "improve",
+        "chars": 2255
+      },
+      {
+        "stage": "system-test",
+        "chars": 23830,
+        "stage_guidance_characters": 3968
+      },
+      {
+        "stage": "product-acceptance",
+        "chars": 25724,
+        "stage_guidance_characters": 4879
+      },
+      {
+        "stage": "release-plan",
+        "chars": 20663,
+        "stage_guidance_characters": 5116
+      },
+      {
+        "stage": "improve",
+        "chars": 2373
+      },
+      {
+        "stage": "release-check",
+        "chars": 16879,
+        "stage_guidance_characters": 2433
+      },
+      {
+        "stage": "release",
+        "chars": 16446,
+        "stage_guidance_characters": 2307
+      },
+      {
+        "stage": "release-verify",
+        "chars": 13789,
+        "stage_guidance_characters": 3734
+      },
+      {
+        "stage": "operations",
+        "chars": 16311,
+        "stage_guidance_characters": 2292
+      },
+      {
+        "stage": "handoff",
+        "chars": 12387,
+        "stage_guidance_characters": 3082
+      }
+    ],
+    "packets_over_16000": 19,
+    "bound_handoff_total": 360257,
+    "bound_handoffs": [
+      {
+        "stage": "spec",
+        "characters": 26939
+      },
+      {
+        "stage": "test-strategy",
+        "characters": 33502
+      },
+      {
+        "stage": "plan",
+        "characters": 49612
+      },
+      {
+        "stage": "step-plan",
+        "characters": 47597
+      },
+      {
+        "stage": "test-spec",
+        "characters": 44377
+      },
+      {
+        "stage": "implement",
+        "characters": 44232
+      },
+      {
+        "stage": "carry-forward",
+        "characters": 34261
+      },
+      {
+        "stage": "system-test-author",
+        "characters": 43897
+      },
+      {
+        "stage": "release-plan",
+        "characters": 35840
+      }
+    ],
+    "shared_reference_characters": 17613
+  },
+  "scope": "Controlled synthetic corpus; each living file is exactly 5000 characters, not an observed project. Pure navigator and bound handoff rendering only; no live model, no child runtime, no complete CLI or Git operations. Raw handoffs are sizing fixtures, not receipts."
+}

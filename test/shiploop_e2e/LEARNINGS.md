@@ -2290,3 +2290,138 @@ Evidence: `/Users/dadleet/e2e-runs/20261011/slice-fixbug-8e1253de/` (slice-resul
 - **Harness bugs found live:** the printed resume line omitted `--source checkout`, and a checkout-source resume was refused by the marketplace gate (fixed with tests).
 
 **Open.** A run to done (the board, tab, app and full-game check are W2); the Improve stop rule, the Skill-call hook for Improve, packet compaction (symbolic paths, an index in place of whole quotes), credential-screen removal and a concise-language line are implemented on branches and not yet released.
+
+## E2E audit fixes: five grading paths that could report a pass nobody earned (2026-10-16, from origin/main 2686b427) — status: interim
+
+**Question.** Can the harness paths the 2026-10-16 E2E audit reproduced still give an unearned pass, once each is fixed
+against the audit's own control? Release gates read these verdicts.
+
+The audit is `docs/shiploop-e2e-audit-2026-10-16.html`. Its evidence is `docs/experiments/shiploop-e2e-audit-20261016/`:
+`grading/receipt.json` and `grading/audit_probes.py` for the review, state and Battleship probes, and `port-probe/` for
+the fixed-port probe. The audit ran offline at 2686b427 (1,561 regression tests passed) and changed no source.
+
+Each fix has a fail-first regression built from the audit's control. It ran red on the unchanged code, then green.
+
+1. **A review must be valid before it counts as clean** (`review.py`, `iterate.py`).
+   - Control: a reviewer that failed with no JSON, and one that exited with only `{"learnings": []}`. Both gave an empty
+     actionable list. `iterate.py` counted each as a clean review of a passing run, so the streak reached 2 and the loop
+     stopped as converged (`grading/receipt.json` `review_convergence`). The CLI gate exited 0 for the second one.
+   - Fix: `review.validity` returns `valid`, `failed`, `timed_out` or `invalid` with a reason, and it is stored in
+     `review.json`. An unusable review has no actionable findings, resets the clean streak and is journaled with its
+     outcome. `review.py` exits 1 for it.
+   - Regression: `ReviewValidityTest` and `IterateConvergenceTest` in `test/shiploop-e2e.test.py`. They drive
+     `iterate.main` with the build, the run and the reviewer host faked. Red on 2686b427: 2 failures and 6 errors,
+     including streak 2 from two unusable reviews. Green after the fix. A valid review with no findings still converges.
+2. **Grade the run this invocation created** (`run.grade_shiploop`).
+   - Control: an output folder holding the invocation's active `work/.shiploop` beside an unrelated finished
+     `.shiploop-runs/stale/run`. It was graded from the finished one: `selected_pass: true` with 2 runs seen
+     (`grading/receipt.json` `state_binding`). A follow-on can reach this for real, because `continue_from` copies the
+     earlier `work/` with its untracked `.shiploop`.
+   - Fix: `shiploop-run.json` in the output folder records the runs that existed when the folder was created, each
+     with its state digest and mtime. Those are never candidates unless their state changes. The run itself is the one
+     the harness seeded, else the only new run, else the only new run the host's `--run-dir` commands named. Once
+     chosen it is recorded, so resumes and regrades grade the same run. Candidates that nothing tells apart are
+     `ambiguous`, listed, and fail. The resume refusal now names the reason.
+   - Regression: `GradeIdentityTest` (7 cases: the audit control, a preexisting stale run, a recorded run kept across
+     a resume, several runs resolved only by `--run-dir`, a reused path, the external workspace root, and the
+     in-repository run), plus `FollowOnTest.test_a_follow_on_never_counts_the_run_its_copy_brought_along` through
+     `run.main`. Red on 2686b427: 1 failure and 4 errors; the control graded the stale run as a pass. Green after the
+     fix.
+   - Fixture change: the `chain-hang` fake now finishes its seeded run. It used to leave that run active and pass only
+     because the shared fake product wrote a second, finished `work/.shiploop`. That was the audit's misgrade, inside
+     the test fakes.
+3. **Bind HTTP checks to their candidate process** (`cases.json`, new `checks/serve.py`).
+   - Control (`port-probe/`): a sibling serving `<title>Battleship</title>` held fixed port 39171, and the candidate
+     could only answer `candidate`. The exact Battleship page check exited 0. The candidate's bind error went to
+     `/dev/null`.
+   - Fix: the nine fixed-port checks (Battleship, Battleship scoring and Checkers) now run through `serve.py`. It
+     takes a free port and starts `node server.js` in its own process group, keeping stderr. It confirms with `lsof`
+     that the listener belongs to that group, then runs the check with `PORT` and `BASE` and ends only that group. A
+     candidate that exits first fails with its stderr. A port held by another process, or a listener nobody can
+     identify, fails and is named. The catalog was rewritten by one mechanical transform, not by hand.
+   - SPEC change ("Concurrency must not change a verdict"): checks share no ports. Rerunning alone only re-examines
+     failures, so it cannot catch a false green, and a check must not accept a response its own candidate did not
+     serve.
+   - Regression: `HttpCheckBindingTest`, using the `port-probe/` sibling and candidate. Three tests: the audit
+     candidate beside the sibling fails; a valid candidate passes alone and fails with `EADDRINUSE` when a sibling
+     holds its port; a listener that is not the candidate is refused, and only the candidate is ended. Red on 2686b427:
+     3 of 3 checks passed, which is the false green. Green after the fix.
+   - Same verdicts on real deliveries: 7 saved runs (3 Battleship, 2 Checkers, 2 Battleship scoring) gave identical
+     per-check results under the old and new catalogs (`fixes/http-check-equivalence.json`).
+   - Not fixed: the audit's broken Battleship fixture still passes 4 of 4. That is item 3 of the audit, deferred below.
+4. **Make the breadth selection match its claim** (`suites.json`, SPEC, README).
+   - Control: SPEC said "one case of every style", but breadth held 3 of the 5 catalog styles. `smoke` is covered
+     only by hello in its focused suite and as the batch gate. The four `parallel-graph` cases are in no named suite
+     (`coverage-inventory.json`).
+   - Decision: the claim was narrowed, and no graph case was added, because none has a qualified passing baseline. The
+     SPEC wording is its own commit. Every suite in `suites.json` now carries `styles`, and breadth also carries
+     `not_covered` with a reason for each style it leaves out.
+   - Regression: `SuiteTest.test_each_named_suite_selects_exactly_the_styles_its_claim_names`. It checks that each
+     suite's cases cover exactly its `styles`, that breadth plus `not_covered` equals the catalog's styles, and that
+     SPEC's breadth clause and the README name every style. It needs no model. Red on 2686b427: there was no `styles`
+     claim, and with one added, the old SPEC clause did not name `stateful-service`. Green after the fix.
+5. **Review the source that actually ran** (`review.py`).
+   - Control: run directly, `review.py` defaulted `--skill-root` to this checkout's `skills/shiploop` and labelled it
+     "The ShipLoop skill source that ran", whatever the run had installed (audit: Default skill root, review.py:190).
+   - Fix: `review.ran_source` reads `<plugin_dir>/skills/shiploop` from every launch record the run kept, and lists
+     each when the launches used different plugins. When no record names a source that still exists, the prompt says
+     "Source mismatch", with the reason, instead of "the source that ran", and the CLI prints `source mismatch: ...`.
+     `review.json` records `skill_source`. An explicit `--skill-root` is kept as given, which is how `iterate.py`
+     passes its worktree.
+   - Regression: `ReviewSourceTest` (4 cases: the launch record's source; no record and a deleted source give a
+     mismatch; two launches on different plugins; an explicit root). Red on 2686b427: 3 failures and 1 error, including
+     this checkout labelled as the source that ran. Green after the fix.
+
+**Result.** All five regressions were red on 2686b427 and are green on this branch. The offline suites pass (see the
+commit messages for counts). No live run has exercised the fixes yet.
+
+**Open.** A live suite run on these fixes is still needed, especially `--suite batch`, whose web cases now go through
+`serve.py`. Two states now fail instead of passing: a run that abandons its recorded ShipLoop run and starts another,
+and a follow-on whose new run cannot be told apart from the copied one. Both are deliberate.
+
+**Out of scope.** The Battleship behavioural verifier (audit item 3), the timing evidence and the pilots. The deferred
+backlog below lists them.
+
+## Deferred from the 2026-10-16 E2E audit (backlog, not started) — status: exploratory
+
+Each item carries the audit's condition for adopting it. None is implemented.
+
+- **Battleship behavioural verifier.**
+  - Finding: all four Battleship checks exited 0 against a synthetic server with no fleet, `gameOver: true` from the
+    start and one placeholder test (`grading/receipt.json` `battleship_checks`).
+  - Proposal: a small independent verifier tied to the public request. It checks real game progression, hits and
+    sinks, and a valid terminal condition.
+  - Adopt when: it first rejects that broken control and accepts valid implementations. The mutation and quality
+    records stay records, not a new pass gate. Restoring the removed acceptance set unchanged is not a remedy, because it
+    did not tell deliveries apart.
+- **Review-prompt compaction pilot.**
+  - Finding: a rendered review prompt is 95,432 characters, and 92,012 of them (96.42%) are the standing specification
+    (`review-prompt-measurement.json`). These are character counts, not tokens, latency or cost.
+  - Proposal: a concise review brief that keeps the operative clauses, exceptions and finding format, with locators for
+    supporting history. Keep one authoritative specification.
+  - Adopt when: on frozen retained traces with known findings, using the same reviewer and settings, finding recall and
+    false-positive behaviour hold. Only then compare tokens and time. Never shorten the contract just to hit a size.
+- **Context-read measurement.**
+  - Finding: the counters measure printed heads and saved packet files. The richer packet-read report is Claude only. No
+    measure is a comparable cross-host total of what a packet caused the model to read.
+  - Proposal: extend the retained event analysis. Keep the source path or hash and the stage. Separate printed text,
+    packet reads, reference reads and unknown or truncated output. Compare a populated run, a multi-step chain and a
+    context-reset case.
+  - Adopt when: completion obligations are kept and no extra rework appears, before any efficiency win is claimed.
+    Shorter saved files do not mean fewer billed tokens.
+
+### Live check of the audit fixes (2026-10-16, branch work/e2eaudit-56682d at 4dd3b4b4) — status: interim (n=1)
+
+`run.py --case battleship --source checkout --host claude` (Claude Sonnet 5.5) passed:
+- All four product checks passed. The three HTTP checks went through `checks/serve.py`, on a per-run port, owner-verified.
+- `shiploop-run.json` recorded the graded run with the basis "the only run that was not there before the invocation".
+- End state: done, unverified 0, script verifications 4/4.
+
+Evidence: `/Users/dadleet/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/`.
+
+Cost compared with the 2026-10-11 baseline in the same cell (ShipLoop 0.59.0, Claude Code 2.1.296):
+- turns 192 → 274 and cost $3.62 → $5.46;
+- implement 26 → 45 turns, test-strategy 8 → 31 turns;
+- 11 Improve children, with 18 review passes.
+
+The plugin tree and the host build both differ from the baseline, so this is descriptive, not a controlled comparison. It is worth a look at the Improve schedule and test-strategy turns on the current build.

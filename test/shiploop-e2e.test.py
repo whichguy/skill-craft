@@ -197,6 +197,9 @@ if mode == "chain-hang":
     ledger_events(("handoff_import_result", {{"attempt": "A-1"}}), ("handoff_import_result", {{"attempt": "B-1"}}),
                   ("contribution_recorded", {{"attempt": "A-1", "step": "A"}}),
                   ("contribution_recorded", {{"attempt": "B-1", "step": "B"}}))
+    # The fresh session finishes the seeded run itself: the harness grades the run it seeded, not work/.shiploop.
+    store.write_record(chain.parent.parent / "state.md", {{"status": "done", "stage": "done", "revision": 9}})
+    (chain.parent.parent / "report.html").write_text("<html></html>")
     product()
 if mode == "api-error":
     # What the real CLI wrote when the API refused: subtype stays "success", is_error says otherwise.
@@ -862,6 +865,208 @@ class ReviewParsingTest(unittest.TestCase):
         self.assertIn("**Evaluation criteria:** not answered", rendered)
 
 
+# The 2026-10-16 E2E audit's review control (docs/experiments/shiploop-e2e-audit-20261016/grading/): a reviewer that failed with
+# no JSON and one that exited with only {"learnings": []} both gave an empty actionable list, and iterate.py counted each as a
+# clean review of a passing run, so two of them stopped the loop as converged.
+VALID_EMPTY_REVIEW = ('```json\n' + json.dumps({
+    "outcome": "Delivered the request.", "learnings": [], "missing_considerations": [], "optimizations": [],
+    "harness": {"learning_retention": {"answer": "keep", "proposals": []}}}) + '\n```')
+
+
+class FakeReviewer:
+    """The reviewer host of the audit control: every call returns the next (process status, final text) pair."""
+    model, effort = "offline-probe", "high"
+
+    def __init__(self, replies: list):
+        self.replies = list(replies)
+        self.text = ""
+
+    def env(self, home):
+        return {"HOME": str(home)}
+
+    def argv(self, **kwargs):
+        return ["offline-probe"]
+
+    def translator(self):
+        return None
+
+    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None):
+        status, self.text = self.replies.pop(0)
+        Path(events_path).write_text("")
+        Path(stderr_path).write_text("")
+        return {"status": status, "returncode": {"exited": 0, "failed": 1}.get(status), "elapsed_seconds": 0}
+
+    def patches(self):
+        return (mock.patch.object(review.hosts, "host", return_value=self),
+                mock.patch.object(review.hosts, "run_agent", side_effect=self.run_agent),
+                mock.patch.object(review.hosts, "final_text", side_effect=lambda path: self.text))
+
+
+class ReviewValidityTest(unittest.TestCase):
+    UNUSABLE = (("failed", "", "failed"),
+                ("exited", '```json\n{"learnings": []}\n```', "invalid"),
+                ("exited", "I looked at the run and it was fine.", "invalid"),
+                ("timeout", "", "timed_out"),
+                ("failed", VALID_EMPTY_REVIEW, "failed"))
+
+    def review(self, status: str, text: str) -> tuple[dict, int]:
+        fake = FakeReviewer([(status, text)])
+        with tempfile.TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            for patch in fake.patches():
+                stack.enter_context(patch)
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            run_dir = Path(tmp) / "run"
+            run_dir.mkdir()
+            code = review.main([str(run_dir), "--host", "grok", "--no-prior-learnings"])
+            return json.loads((run_dir / "review.json").read_text()), code
+
+    def test_an_unusable_review_is_never_clean_and_keeps_its_own_outcome(self):
+        for status, text, outcome in self.UNUSABLE:
+            with self.subTest(status=status, text=text[:30]):
+                verdict, code = self.review(status, text)
+                self.assertEqual(verdict["validity"]["status"], outcome)
+                self.assertTrue(verdict["validity"]["reason"])
+                self.assertFalse(review.counts_as_clean(verdict))
+                self.assertEqual(verdict["actionable"], [])
+                self.assertEqual(code, 1)
+
+    def test_a_valid_review_with_no_findings_counts_as_clean(self):
+        verdict, code = self.review("exited", VALID_EMPTY_REVIEW)
+        self.assertEqual(verdict["validity"], {"status": "valid", "reason": None})
+        self.assertTrue(review.counts_as_clean(verdict))
+        self.assertEqual(code, 0)
+
+
+class ReviewSourceTest(unittest.TestCase):
+    """The 2026-10-16 E2E audit: review.py run directly gave the reviewer this checkout's skills/shiploop and called it "the
+    ShipLoop skill source that ran", whatever the run had actually installed."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name).resolve()
+        self.run_dir = self.tmp / "run"
+        self.run_dir.mkdir()
+
+    def plugin(self, name: str) -> Path:
+        root = self.tmp / name
+        (root / "skills" / "shiploop").mkdir(parents=True)
+        (root / "skills" / "shiploop" / "SKILL.md").write_text("---\nname: shiploop\n---\n")
+        return root
+
+    def launch(self, file: str, plugin_dir: Path) -> None:
+        (self.run_dir / file).write_text(json.dumps({"case": "hello", "host": "grok", "plugin_dir": str(plugin_dir)}))
+
+    def prompt(self, *extra: str) -> tuple[str, str, dict]:
+        shutil.rmtree(self.run_dir / "review", ignore_errors=True)  # one review per run directory
+        fake = FakeReviewer([("exited", VALID_EMPTY_REVIEW)])
+        seen = {}
+        fake.argv = lambda **kwargs: seen.update(kwargs) or ["offline-probe"]
+        printed = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            for patch in fake.patches():
+                stack.enter_context(patch)
+            stack.enter_context(contextlib.redirect_stdout(printed))
+            review.main([str(self.run_dir), "--host", "grok", "--no-prior-learnings", *extra])
+        return seen["prompt"], printed.getvalue(), json.loads((self.run_dir / "review.json").read_text())
+
+    def test_the_reviewer_is_given_the_source_the_runs_own_launch_record_names(self):
+        built = self.plugin("build")
+        self.launch("invocation.json", built)
+        prompt, _, verdict = self.prompt()
+        self.assertIn(f"The ShipLoop skill source that ran: {built / 'skills' / 'shiploop'}", prompt)
+        self.assertNotIn(str(ROOT / "skills" / "shiploop"), prompt)
+        self.assertEqual(verdict["skill_source"]["basis"], "the run's launch records")
+
+    def test_a_run_whose_records_name_no_source_says_so_instead_of_calling_this_checkout_the_source_that_ran(self):
+        prompt, printed, verdict = self.prompt()
+        self.assertNotIn("source that ran", prompt)
+        self.assertIn("Source mismatch", prompt)
+        self.assertIn(str(ROOT / "skills" / "shiploop"), prompt)
+        self.assertIn("source mismatch:", printed)
+        self.assertEqual(verdict["skill_source"]["basis"], "mismatch")
+        gone = self.tmp / "deleted-build"
+        self.launch("invocation.json", gone)  # recorded, but no longer on disk
+        prompt, printed, _ = self.prompt()
+        self.assertIn("Source mismatch", prompt)
+        self.assertIn(str(gone), printed)
+
+    def test_launches_on_different_plugins_name_each_source(self):
+        first, second = self.plugin("first"), self.plugin("second")
+        self.launch("invocation.json", first)
+        self.launch("invocation-resume-codex-1792200000.json", second)
+        prompt, _, verdict = self.prompt()
+        self.assertIn(str(first / "skills" / "shiploop"), prompt)
+        self.assertIn(str(second / "skills" / "shiploop"), prompt)
+        self.assertEqual(len(verdict["skill_source"]["roots"]), 2)
+
+    def test_an_explicit_skill_root_is_the_callers_statement_and_is_kept(self):
+        worktree = self.plugin("worktree")
+        self.launch("invocation.json", self.plugin("build"))
+        prompt, _, verdict = self.prompt("--skill-root", str(worktree / "skills" / "shiploop"))
+        self.assertIn(f"The ShipLoop skill source that ran: {worktree / 'skills' / 'shiploop'}", prompt)
+        self.assertEqual(verdict["skill_source"]["basis"], "given by the caller")
+
+
+class IterateConvergenceTest(unittest.TestCase):
+    """iterate.main end to end with the host, the build and the run faked: only the review's validity varies."""
+
+    def iterate(self, replies: list, iterations: int) -> str:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        repo = tmp / "repo"
+        (repo / "test" / "shiploop_e2e").mkdir(parents=True)
+        (repo / "test" / "shiploop_e2e" / "LEARNINGS.md").write_text("# ShipLoop E2E learnings\n")
+        for cmd in (["init", "-q", "-b", "main"], ["config", "user.name", "t"],
+                    ["config", "user.email", "t@example.invalid"], ["add", "test"], ["commit", "-q", "-m", "base"]):
+            subprocess.run(["git", "-C", str(repo), *cmd], check=True)
+        real_run = subprocess.run
+
+        def no_build(argv, *a, **kw):
+            if any(str(part).endswith("build-packages.py") for part in argv):
+                return subprocess.CompletedProcess(argv, 0)
+            return real_run(argv, *a, **kw)
+
+        def passing_run(argv):
+            out = Path(argv[argv.index("--output") + 1])
+            out.mkdir(parents=True)
+            (out / "result.json").write_text(json.dumps({
+                "pass": True, "host": "grok", "model": "m", "effort": "medium",
+                "process": {"status": "exited", "returncode": 0, "elapsed_seconds": 1},
+                "cli": {"num_turns": 1, "cost_usd": None}, "shiploop": {"status": "done", "stage": "done", "report_html": True},
+                "checks": [], "invoked": {"pass": True}, "plugin": {"pass": True}}))
+            return 0
+
+        fake = FakeReviewer(replies)
+        with contextlib.ExitStack() as stack:
+            for patch in fake.patches():
+                stack.enter_context(patch)
+            stack.enter_context(mock.patch.object(iterate, "new_worktree", return_value=(repo, "auto/test")))
+            stack.enter_context(mock.patch.object(iterate.subprocess, "run", side_effect=no_build))
+            stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            iterate.main(["--host", "grok", "--iterations", str(iterations), "--output", str(tmp / "out")])
+        return (tmp / "out" / "LEARNINGS.md").read_text()
+
+    def test_unusable_reviews_of_passing_runs_never_converge(self):
+        journal = self.iterate([("failed", ""), ("exited", '```json\n{"learnings": []}\n```'), ("timeout", "")], 3)
+        self.assertNotIn("clean review", journal)
+        self.assertNotIn("two consecutive clean reviews", journal)
+        self.assertIn("reached --iterations 3", journal)
+        for outcome in ("failed", "invalid", "timed_out"):
+            self.assertIn(f"- review {outcome}:", journal)
+
+    def test_two_valid_empty_reviews_of_passing_runs_converge(self):
+        journal = self.iterate([("exited", VALID_EMPTY_REVIEW)] * 2, 3)
+        self.assertIn("clean review (streak 2)", journal)
+        self.assertIn("two consecutive clean reviews of passing runs", journal)
+
+    def test_an_unusable_review_between_two_clean_ones_resets_the_streak(self):
+        journal = self.iterate([("exited", VALID_EMPTY_REVIEW), ("failed", ""), ("exited", VALID_EMPTY_REVIEW)], 3)
+        self.assertNotIn("clean review (streak 2)", journal)
+        self.assertIn("reached --iterations 3", journal)
+
+
 class LearningsTest(unittest.TestCase):
     RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
               "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},
@@ -1139,6 +1344,80 @@ class HostOutputTest(unittest.TestCase):
             self.assertIn("out   completed hi", transcript.read_text())
 
 
+class GradeIdentityTest(unittest.TestCase):
+    """The 2026-10-16 E2E audit's state control (docs/experiments/shiploop-e2e-audit-20261016/grading/state-binding-fixture):
+    an output folder holding this invocation's active run in work/.shiploop and an unrelated finished run beside it was
+    graded from the finished one, a pass nobody earned."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.out = Path(tmp.name).resolve()
+
+    def state(self, relative: str, status: str, report: bool = False) -> str:
+        folder = self.out / relative
+        run.store.write_record(folder / "state.md", {"status": status, "stage": status == "done" and "done" or "implement",
+                                                      "revision": 3})
+        if report:
+            (folder / "report.html").write_text("<html></html>")
+        return str(folder)
+
+    def audit_fixture(self) -> tuple[str, str]:
+        return self.state("work/.shiploop", "active"), self.state(".shiploop-runs/stale/run", "done", report=True)
+
+    def test_an_active_run_beside_a_stale_finished_one_is_never_graded_from_the_finished_one(self):
+        active, stale = self.audit_fixture()
+        graded = run.grade_shiploop(self.out)
+        self.assertFalse(graded["pass"])
+        self.assertNotEqual(graded.get("run_dir"), stale)
+        self.assertIn("ambiguous", graded["reason"])
+        self.assertEqual(sorted(graded["ambiguous"]), sorted([active, stale]))
+
+    def test_a_run_that_existed_before_the_invocation_started_is_not_a_candidate(self):
+        stale = self.state(".shiploop-runs/stale/run", "done", report=True)
+        run.record_preexisting_runs(self.out)
+        active = self.state("work/.shiploop", "active")
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["status"], graded["pass"]), (active, "active", False))
+        self.assertNotEqual(graded["run_dir"], stale)
+
+    def test_the_recorded_run_is_graded_and_a_resume_keeps_it_when_another_run_appears(self):
+        active = self.state("work/.shiploop", "active")
+        self.assertEqual(run.grade_shiploop(self.out)["run_dir"], active)  # the only run: bound now
+        self.assertEqual(json.loads((self.out / run.RUN_IDENTITY).read_text())["run_dir"], active)
+        self.state(".shiploop-runs/other/run", "done", report=True)
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["pass"], graded["identity"]), (active, False, "recorded"))
+
+    def test_several_new_runs_are_resolved_only_by_the_run_the_host_named(self):
+        first = self.state(".shiploop-runs/a/run", "done", report=True)
+        second = self.state(".shiploop-runs/b/run", "active")
+        self.assertIn("ambiguous", run.grade_shiploop(self.out)["reason"])
+        command = f'python3 "/x/shiploop" next --run-dir "{second}"'
+        (self.out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) + "\n")
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["pass"]), (second, False))
+        self.assertNotEqual(graded["run_dir"], first)
+
+    def test_a_new_run_that_reuses_the_path_of_a_copied_one_is_this_invocations(self):
+        self.state("work/.shiploop", "done", report=True)
+        run.record_preexisting_runs(self.out)
+        self.assertIn("every state.md was there before", run.grade_shiploop(self.out)["reason"])
+        reused = self.state("work/.shiploop", "active")
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["status"], graded["pass"]), (reused, "active", False))
+
+    def test_a_run_in_an_external_workspace_root_beside_work_is_graded(self):
+        external = self.state(".shiploop-runs/work-20261016-abc/run", "done", report=True)
+        (self.out / "work").mkdir(exist_ok=True)
+        graded = run.grade_shiploop(self.out)
+        self.assertEqual((graded["run_dir"], graded["pass"]), (external, True))
+
+    def test_a_run_inside_the_repository_is_graded(self):
+        inside = self.state("work/.shiploop", "done", report=True)
+        self.assertEqual((run.grade_shiploop(self.out)["run_dir"], run.grade_shiploop(self.out)["pass"]), (inside, True))
+
+
 class FollowOnTest(HarnessCase):
     def prior_run(self) -> Path:
         prior = self.tmp / "prior"
@@ -1163,6 +1442,17 @@ class FollowOnTest(HarnessCase):
         self.assertEqual(result["follow_on"]["prior_case"], "hello")
         self.assertEqual(result["follow_on"]["prior_turns"], 40)
         self.assertEqual(result["follow_on"]["prior_cost_usd"], 2.5)
+
+    def test_a_follow_on_never_counts_the_run_its_copy_brought_along(self):
+        prior = self.prior_run()
+        run.store.write_record(prior / "work" / ".shiploop-old" / "state.md", {"status": "done", "stage": "done"})
+        (prior / "work" / ".shiploop-old" / "report.html").write_text("<html></html>")
+        code, result = self.invoke("grok", "done", "--continue-from", str(prior), "--prompt", "Add a feature.")
+        self.assertEqual(code, 0, result)
+        identity = json.loads((Path(result["output"]) / run.RUN_IDENTITY).read_text())
+        self.assertEqual(list(identity["preexisting"]), [str(Path(result["output"]) / "work" / ".shiploop-old")])
+        self.assertEqual(identity["run_dir"], str(Path(result["output"]) / "work" / ".shiploop"))
+        self.assertEqual(result["shiploop"]["run_dir"], identity["run_dir"])
 
     def test_follow_on_case_needs_the_run_it_follows(self):
         with self.assertRaises(SystemExit) as raised:
@@ -1288,6 +1578,31 @@ class SuiteTest(HarnessCase):
         breadth = {cases[c]["style"] for c in suites["breadth"]["cases"]}
         self.assertEqual(breadth, focused)
 
+    def test_each_named_suite_selects_exactly_the_styles_its_claim_names(self):
+        """The 2026-10-16 E2E audit (item 5): SPEC called breadth "one case of every style", but it held three of the five
+        styles. Every named suite now states the styles it covers, the breadth suite also names each style it leaves out
+        and why, and SPEC and README name the same styles, so a claim and its selection cannot drift apart."""
+        cases = json.loads(run.CASES.read_text())
+        suites = {k: v for k, v in json.loads(run.SUITES.read_text()).items() if not k.startswith("_")}
+        styles_in_catalog = {case["style"] for name, case in cases.items() if not name.startswith("_")}
+        for name, suite in suites.items():
+            with self.subTest(suite=name):
+                selected = {cases[case]["style"] for case in suite.get("gate", []) + suite["cases"]}
+                self.assertEqual(selected, set(suite["styles"]), "the suite's cases must cover exactly the styles it claims")
+        breadth = suites["breadth"]
+        self.assertEqual(len(breadth["cases"]), len(breadth["styles"]), "breadth runs one case per style it claims")
+        self.assertEqual(set(breadth["styles"]) | set(breadth["not_covered"]), styles_in_catalog,
+                         "every catalog style is either covered by breadth or named as left out")
+        self.assertFalse(set(breadth["styles"]) & set(breadth["not_covered"]))
+        self.assertTrue(all(reason.strip() for reason in breadth["not_covered"].values()))
+        spec = (run.HERE / "SPEC.md").read_text()
+        claim = spec[spec.index("- **Breadth suite**"):spec.index("- **Promotion**")]
+        readme = (run.HERE / "README.md").read_text()
+        for style in styles_in_catalog:
+            self.assertIn(f"`{style}`", claim, f"SPEC's breadth claim names {style}")
+            self.assertIn(f"`{style}`", readme, f"README names {style}")
+        self.assertNotIn("one case of every style", claim)
+
     def test_case_checks_name_existing_helper_scripts_and_subcommands(self):
         cases = json.loads(run.CASES.read_text())
         for name, case in cases.items():
@@ -1307,6 +1622,92 @@ class SuiteTest(HarnessCase):
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertIn("baseline  vs", output.getvalue())
         self.assertEqual(len(self.baselines.read_text().splitlines()), 2)
+
+PORT_PROBE = ROOT / "docs" / "experiments" / "shiploop-e2e-audit-20261016" / "port-probe"
+VALID_PAGE = ("require('http').createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html'});"
+              "res.end('<title>Battleship</title> candidate')}).listen(Number(process.env.PORT));\n")
+# Ignores PORT: it listens on a port of its own choosing and records its pid, as a product with a hard-coded port does.
+ELSEWHERE = ("require('fs').writeFileSync('pid.txt', String(process.pid));"
+             "require('http').createServer((req,res)=>res.end('<title>Battleship</title>')).listen(0, '127.0.0.1');\n")
+
+
+@unittest.skipUnless(shutil.which("node") and shutil.which("lsof"), "needs node and lsof")
+class HttpCheckBindingTest(unittest.TestCase):
+    """The 2026-10-16 E2E audit's port control (docs/experiments/shiploop-e2e-audit-20261016/port-probe/): with a sibling
+    serving a Battleship page on the check's port, the Battleship page check passed for a candidate that could only answer
+    "candidate". A check must accept only a response its own candidate served."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.page_check = json.loads(run.CASES.read_text())["battleship"]["checks"][1]
+
+    def candidate(self, source: str) -> Path:
+        work = self.tmp / f"candidate-{len(list(self.tmp.iterdir()))}"
+        work.mkdir()
+        (work / "server.js").write_text(source)
+        return work
+
+    def check_port(self) -> tuple[int, dict]:
+        """The port the page check will use: a fixed one written in the check, else the one pinned through E2E_SERVE_PORT."""
+        fixed = re.search(r"127\.0\.0\.1:(\d+)", self.page_check)
+        if fixed and "serve.py" not in self.page_check:
+            return int(fixed.group(1)), {}
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        return port, {"E2E_SERVE_PORT": str(port)}
+
+    def sibling(self, port: int) -> subprocess.Popen:
+        proc = subprocess.Popen(["node", str(PORT_PROBE / "sibling" / "server.js")], env=dict(os.environ, PORT=str(port)),
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(proc.wait)
+        self.addCleanup(proc.kill)
+        for _ in range(100):
+            with contextlib.suppress(OSError), socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                return proc
+            time.sleep(0.05)
+        self.fail("the sibling never listened")
+
+    def check(self, work: Path, env: dict | None = None) -> dict:
+        with mock.patch.dict(os.environ, env or {}):
+            return run.run_checks(work, [self.page_check], timeout=60)[0]
+
+    def test_the_audit_candidate_beside_a_sibling_on_the_check_port_fails(self):
+        port, env = self.check_port()
+        sibling = self.sibling(port)
+        result = self.check(self.candidate((PORT_PROBE / "candidate" / "server.js").read_text()), env)
+        self.assertFalse(result["pass"], result)
+        self.assertIsNone(sibling.poll(), "the check must not stop a process it did not start")
+
+    def test_a_valid_candidate_passes_alone_and_fails_with_its_startup_error_when_a_sibling_holds_its_port(self):
+        work = self.candidate(VALID_PAGE)
+        self.assertTrue(self.check(work)["pass"], "the valid candidate alone")
+        port, env = self.check_port()
+        self.sibling(port)
+        result = self.check(work, env)
+        self.assertFalse(result["pass"], result)
+        self.assertIn("EADDRINUSE", result["output"])
+
+    def test_a_listener_that_is_not_the_candidate_is_refused_and_only_the_candidate_is_ended(self):
+        port, env = self.check_port()
+        sibling = self.sibling(port)
+        work = self.candidate(ELSEWHERE)
+        result = self.check(work, env)
+        self.assertFalse(result["pass"], result)
+        self.assertIn("not by the candidate", result["output"])
+        self.assertIsNone(sibling.poll())
+        pid = int((work / "pid.txt").read_text())
+        for _ in range(50):
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        else:
+            self.fail(f"the candidate {pid} the check started is still running")
+
 
 class CheckHygieneTest(unittest.TestCase):
     def test_temperature_unit_check_requires_tests_and_success(self):

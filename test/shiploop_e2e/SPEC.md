@@ -358,9 +358,18 @@ on quickly before the breadth of everything is checked.
 - **Focused suite** (depth): the cases of one style, run repeatedly while a
   change is developed for the behaviour that style exposes. It is the tight
   loop: run, measure, fix, rerun, one style at a time.
-- **Breadth suite**: one case of every style, run once each. It is the
-  generality gate: a change that improved a focused suite is not "general"
-  (S-13) until the breadth suite shows no regression in any other style.
+- **Breadth suite**: one case of each style it names, run once each: today
+  `web-service`, `cli-files` and `stateful-service` (`styles` in
+  `suites.json`). It is the generality gate for those styles: a change that
+  improved a focused suite is not "general" (S-13) until the breadth suite
+  shows no regression in any of them. It does not cover `smoke`, which
+  `hello` covers in its focused suite and as the batch gate, or
+  `parallel-graph`, whose cases have no qualified passing baseline and stay
+  opt-in (`--case`), or `hosted-platform`, whose cases deploy to a real hosted
+  org and need the owner's go for each deploy. A style joins breadth once its focused suite has passed
+  (Promotion); until then the breadth claim leaves it out by name
+  (amended 2026-10-16: the claim said every style while breadth held three
+  of five).
 - **Promotion**: work on a style stays in its focused suite until that suite's
   acceptance holds (every verdict passes, reliability and cost no worse than
   the style's baseline); then the breadth suite runs before a release is called
@@ -419,10 +428,16 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   are compared is the exception stated in the bullet "Runs compared on wall
   time or per-call cost run one after the other".
 - Concurrency must not change a verdict. Concurrent runs are quiet (no
-  interleaved live view), share no files, and pass the same checks. A
+  interleaved live view), share no files and no check ports, and pass the
+  same checks. A case's HTTP check starts the candidate on a free port of
+  its own and accepts a response only once the candidate's own process
+  group holds the listener (`checks/serve.py`; amended 2026-10-16: on a
+  fixed port a sibling's server answered the check, a false green). A
   failure seen only in a parallel run (for example two products' own tests
   binding the same fixed port, or a host rate limit) is rerun alone
-  (`--serial`) before it is attributed to ShipLoop.
+  (`--serial`) before it is attributed to ShipLoop. A pass is never rerun,
+  so rerunning alone cannot catch a false green: a check must not accept a
+  response its own candidate did not serve.
 - **Runs compared on wall time or per-call cost run one after the other**
   (amended 2026-10-08; anchor "Concurrency must not change a verdict"). A
   before/after pair, or a host or model comparison, is started the second

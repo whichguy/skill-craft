@@ -112,14 +112,26 @@ pre-created. It grades five verdicts into `result.json`:
   shows it on every launch, and an `invocation.json` written before the verdict was
   kept grades as it always did, with no evidence and so a fail);
 - **process**: the host exited 0 in time (defaults: 10,000 turns, 3 hours);
-- **shiploop**: a ShipLoop `state.md` under the output directory (in `work/.shiploop` or
+- **shiploop**: the ShipLoop run this invocation created (in `work/.shiploop` or
   an external workspace root the agent chose beside `work/`) has status `done`, with
-  its `report.html`;
+  its `report.html`. Which run that is, is recorded in `shiploop-run.json` (added
+  2026-10-16): the runs already in the folder when it was created (a follow-on's copy can
+  bring one) are never candidates, and the run itself is the one seeded by the harness,
+  else the only new run, else the only new run the host's `--run-dir` commands named.
+  A resume and a regrade grade that same run. Several runs that nothing tells apart are
+  `ambiguous` (the result lists them) and fail; an unrelated finished run is never
+  preferred;
 - **committed**: the source checkout ends committed: HEAD moved past where the
   run started, holds at least one file (ShipLoop's own empty baseline commit is not
   product; any file counts, so this is a floor, not a check of what the product is),
   and no product path is left modified or untracked (`*.log` aside);
-- **checks**: each case check command exits 0 in `work/`.
+- **checks**: each case check command exits 0 in `work/`. A check of an HTTP
+  product runs through `checks/serve.py` (added 2026-10-16): it starts the
+  candidate on a free port, confirms with `lsof` that the candidate's own process
+  group holds the listener, runs the check with `PORT` and `BASE` set, and ends
+  only that group. A candidate that exits first fails with its exit code and
+  stderr (an `EADDRINUSE` stays visible), a port answered by another process
+  fails and names it, and a listener that cannot be identified fails.
 
 The output directory keeps the prompt, argv, raw events, a readable
 `transcript.md` (built from the text the model actually saw), stderr and the
@@ -612,11 +624,17 @@ record appears twice in `result.json` by design (the copy in `start` is this inv
 
 ```sh
 bash test/run-integration.sh shiploop-e2e --suite web-service   # focused: one style, in depth
-bash test/run-integration.sh shiploop-e2e --suite breadth       # one case per style: the generality gate
+bash test/run-integration.sh shiploop-e2e --suite breadth       # one case per named style: the generality gate
 ```
 
 Each case in `cases.json` has a `style`; `suites.json` groups them into focused
-suites (one style) and the `breadth` suite (one case per style). `--suite`
+suites (one style) and the `breadth` suite (one case of each style in its `styles`:
+`web-service`, `cli-files` and `stateful-service`). Breadth names the styles it
+leaves out in `not_covered`: `smoke` (hello covers it in the smoke suite and as the
+batch gate), `parallel-graph` (no qualified passing baseline; its cases run only
+with `--case`) and `hosted-platform` (its cases deploy to a real hosted org and need
+the owner's go for each deploy). Every suite's `styles` must equal the styles of its cases, and SPEC
+and this README must name the same styles; `SuiteTest` pins all three. `--suite`
 runs the cases into one directory, each in its own folder; independent chains
 (a case with its follow-ons) run concurrently, up to `--max-parallel` (default
 3), quietly; `--serial` runs one at a time. A follow-on case starts from its
@@ -1476,6 +1494,21 @@ a successor. Findings that would move navigation, successor choice or prompt
 selection into the model are recorded as rejected and never applied. The
 review is written to `review.md` and `review.json` in the run directory.
 
+The skill source is the one the run used (`skill_source` in `review.json`, added
+2026-10-16): `<plugin_dir>/skills/shiploop` of each launch record the run kept
+(`invocation.json`, then each resume). `iterate.py` passes its worktree with
+`--skill-root`, which is taken as given. Where the records name no source that
+still exists, the reviewer gets this checkout's `skills/shiploop` with a
+"Source mismatch" line in place of "the source that ran", and `review.py`
+prints `source mismatch: ...`.
+
+A review counts only when it is valid (`validity` in `review.json`, added
+2026-10-16): the reviewer process exited, and its JSON carries the review's
+structure (`outcome`, the three finding lists and `harness`). Otherwise it is
+`failed`, `timed_out` or `invalid`, with the reason; it has no actionable
+findings, and `review.py` exits 1. A valid review with no findings is a clean
+review.
+
 ## Iterate
 
 ```sh
@@ -1496,7 +1529,8 @@ change only `skills/shiploop/`,
 then checks the commit's scope itself and runs the quick test tier.
 
 It stops at `--iterations` (at most 10), after two consecutive clean reviews of
-passing runs, when the improver commits nothing twice in a row, when a run never
+passing runs (an unusable review is journaled with its outcome, resets the streak
+and applies nothing), when the improver commits nothing twice in a row, when a run never
 reached the skill under test, when the improver strays outside its scope, or on
 a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
 every iteration: verdicts, cost, findings applied and rejected, commits and tests.

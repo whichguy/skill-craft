@@ -1,0 +1,14 @@
+{
+  "html_structure_errors": [],
+  "unclosed_tags": [],
+  "links_checked": 42,
+  "broken_local_links_or_blank_citations": [],
+  "source_files_fingerprinted": 145,
+  "source_drift": [],
+  "head_unchanged": true,
+  "existing_sample_unchanged": true,
+  "baseline_completed_and_passed": 16,
+  "visual_render": "Not inspected: browser URL policy refused file: URLs; no workaround attempted.",
+  "independent_review": "Three findings supported; citation labels and schedule wording corrected.",
+  "report_sha256": "56b9104f4d8ff5f0fde84c3a79d08808cb7d16b13dc7a4407043303eca7eaf17"
+}

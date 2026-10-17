@@ -1,0 +1,2664 @@
+{
+  "head": "2686b427b20d80d86ac52cb397f522329b996055",
+  "scope": "Actual renderer with synthetic declarations; no model, project work, or child loop execution. Characters are Unicode code points, not tokens. Fixed /simulation-only paths.",
+  "variants": {
+    "default": {
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop",
+        "graph-dry-run",
+        "--format",
+        "json"
+      ],
+      "returncode": 0,
+      "scenarios": [
+        {
+          "name": "delivery",
+          "ok": true,
+          "status": "done",
+          "events": 33,
+          "characters": 375278,
+          "max": 27484,
+          "over_16000": 7
+        },
+        {
+          "name": "two-work-items",
+          "ok": true,
+          "status": "done",
+          "events": 44,
+          "characters": 516943,
+          "max": 27484,
+          "over_16000": 12
+        },
+        {
+          "name": "blocked-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 388396,
+          "max": 27484,
+          "over_16000": 7
+        },
+        {
+          "name": "repeat-improve",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 404691,
+          "max": 27484,
+          "over_16000": 8
+        },
+        {
+          "name": "revise",
+          "ok": true,
+          "status": "done",
+          "events": 39,
+          "characters": 445394,
+          "max": 27484,
+          "over_16000": 9
+        },
+        {
+          "name": "pause-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 399532,
+          "max": 27484,
+          "over_16000": 8
+        },
+        {
+          "name": "halted",
+          "ok": true,
+          "status": "halted",
+          "events": 1,
+          "characters": 8799,
+          "max": 8799,
+          "over_16000": 0
+        }
+      ],
+      "delivery_packets": [
+        {
+          "seq": 1,
+          "from": "intake",
+          "command": "produce",
+          "owner": "root",
+          "characters": 8799,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | intake | revision 0",
+              "chars": 8799
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 2,
+          "from": "discovery",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15760,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | discovery | revision 1",
+              "chars": 15760
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 3,
+          "from": "research",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12726,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | research | revision 2",
+              "chars": 12726
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 4,
+          "from": "spec",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14970,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | spec | revision 3",
+              "chars": 14970
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 5,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 1939,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 4 | the spec result",
+              "chars": 1939
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 6,
+          "from": "test-strategy",
+          "command": "produce",
+          "owner": "root",
+          "characters": 16486,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | test-strategy | revision 5",
+              "chars": 16486
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 7,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2036,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 6 | the test-strategy result",
+              "chars": 2036
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 8,
+          "from": "plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 27484,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | plan | revision 7",
+              "chars": 27484
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 9,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2012,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 8 | the plan result",
+              "chars": 2012
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 10,
+          "from": "prepare",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10344,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | prepare | revision 9",
+              "chars": 10344
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 11,
+          "from": "step-plan",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 22710,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 22710
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 12,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1929,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 11 | the step-plan result",
+              "chars": 1929
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 13,
+          "from": "test-spec",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 12672,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 12672
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 14,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1335,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 13 | the test-spec result",
+              "chars": 1335
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 15,
+          "from": "validate-existing",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 13087,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 13087
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 16,
+          "from": "implement",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18749,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18749
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 17,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2041,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 16 | the implement result",
+              "chars": 2041
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 18,
+          "from": "test",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18234,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18234
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 19,
+          "from": "document",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 11795,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 11795
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 20,
+          "from": "verify",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18542,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18542
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 21,
+          "from": "carry-forward",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 20112,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 20112
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 22,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2029,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 21 | the carry-forward result",
+              "chars": 2029
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 23,
+          "from": "system-test-author",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13962,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test-author | revision 22",
+              "chars": 13962
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 24,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2186,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 23 | the system-test-author result",
+              "chars": 2186
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 25,
+          "from": "system-test",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12885,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test | revision 24",
+              "chars": 12885
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 26,
+          "from": "product-acceptance",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14749,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | product-acceptance | revision 25",
+              "chars": 14749
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 27,
+          "from": "release-plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15054,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-plan | revision 26",
+              "chars": 15054
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 28,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2304,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 27 | the release-plan result",
+              "chars": 2304
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 29,
+          "from": "release-check",
+          "command": "produce",
+          "owner": "root",
+          "characters": 11247,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-check | revision 28",
+              "chars": 11247
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 30,
+          "from": "release",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10837,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release | revision 29",
+              "chars": 10837
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 31,
+          "from": "release-verify",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13467,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-verify | revision 30",
+              "chars": 13467
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 32,
+          "from": "operations",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10702,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | operations | revision 31",
+              "chars": 10702
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 33,
+          "from": "handoff",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12094,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | handoff | revision 32",
+              "chars": 12094
+            }
+          ],
+          "repeated_lines": []
+        }
+      ]
+    },
+    "delegated": {
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop",
+        "graph-dry-run",
+        "--format",
+        "json",
+        "--delegation",
+        "ask-agent"
+      ],
+      "returncode": 0,
+      "scenarios": [
+        {
+          "name": "delivery",
+          "ok": true,
+          "status": "done",
+          "events": 33,
+          "characters": 396038,
+          "max": 27700,
+          "over_16000": 7
+        },
+        {
+          "name": "two-work-items",
+          "ok": true,
+          "status": "done",
+          "events": 44,
+          "characters": 555007,
+          "max": 27700,
+          "over_16000": 12
+        },
+        {
+          "name": "blocked-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 409588,
+          "max": 27700,
+          "over_16000": 7
+        },
+        {
+          "name": "repeat-improve",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 425667,
+          "max": 27700,
+          "over_16000": 8
+        },
+        {
+          "name": "revise",
+          "ok": true,
+          "status": "done",
+          "events": 39,
+          "characters": 475800,
+          "max": 27700,
+          "over_16000": 9
+        },
+        {
+          "name": "pause-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 422072,
+          "max": 27700,
+          "over_16000": 8
+        },
+        {
+          "name": "halted",
+          "ok": true,
+          "status": "halted",
+          "events": 1,
+          "characters": 9015,
+          "max": 9015,
+          "over_16000": 0
+        }
+      ],
+      "delivery_packets": [
+        {
+          "seq": 1,
+          "from": "intake",
+          "command": "produce",
+          "owner": "root",
+          "characters": 9015,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | intake | revision 0",
+              "chars": 9015
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 2,
+          "from": "discovery",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15976,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | discovery | revision 1",
+              "chars": 15976
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 3,
+          "from": "research",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12942,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | research | revision 2",
+              "chars": 12942
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 4,
+          "from": "spec",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15186,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | spec | revision 3",
+              "chars": 15186
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 5,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 1939,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 4 | the spec result",
+              "chars": 1939
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 6,
+          "from": "test-strategy",
+          "command": "produce",
+          "owner": "root",
+          "characters": 16702,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | test-strategy | revision 5",
+              "chars": 16702
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 7,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2036,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 6 | the test-strategy result",
+              "chars": 2036
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 8,
+          "from": "plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 27700,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | plan | revision 7",
+              "chars": 27700
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 9,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2012,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 8 | the plan result",
+              "chars": 2012
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 10,
+          "from": "prepare",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10560,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | prepare | revision 9",
+              "chars": 10560
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 11,
+          "from": "step-plan",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 26085,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 26085
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 12,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1929,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 11 | the step-plan result",
+              "chars": 1929
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 13,
+          "from": "test-spec",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 14236,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 14236
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 14,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1335,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 13 | the test-spec result",
+              "chars": 1335
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 15,
+          "from": "validate-existing",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 14651,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 14651
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 16,
+          "from": "implement",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 21892,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 21892
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 17,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2041,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 16 | the implement result",
+              "chars": 2041
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 18,
+          "from": "test",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 19798,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 19798
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 19,
+          "from": "document",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 13359,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 13359
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 20,
+          "from": "verify",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 20305,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 20305
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 21,
+          "from": "carry-forward",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 22879,
+          "sections": [
+            {
+              "label": "Clear and then execute the prompt.",
+              "chars": 22879
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 22,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2029,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 21 | the carry-forward result",
+              "chars": 2029
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 23,
+          "from": "system-test-author",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14178,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test-author | revision 22",
+              "chars": 14178
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 24,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2186,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 23 | the system-test-author result",
+              "chars": 2186
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 25,
+          "from": "system-test",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13101,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test | revision 24",
+              "chars": 13101
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 26,
+          "from": "product-acceptance",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14965,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | product-acceptance | revision 25",
+              "chars": 14965
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 27,
+          "from": "release-plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15270,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-plan | revision 26",
+              "chars": 15270
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 28,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2304,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 27 | the release-plan result",
+              "chars": 2304
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 29,
+          "from": "release-check",
+          "command": "produce",
+          "owner": "root",
+          "characters": 11463,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-check | revision 28",
+              "chars": 11463
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 30,
+          "from": "release",
+          "command": "produce",
+          "owner": "root",
+          "characters": 11053,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release | revision 29",
+              "chars": 11053
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 31,
+          "from": "release-verify",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13683,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-verify | revision 30",
+              "chars": 13683
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 32,
+          "from": "operations",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10918,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | operations | revision 31",
+              "chars": 10918
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 33,
+          "from": "handoff",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12310,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | handoff | revision 32",
+              "chars": 12310
+            }
+          ],
+          "repeated_lines": []
+        }
+      ]
+    },
+    "no-planning-review": {
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop",
+        "graph-dry-run",
+        "--format",
+        "json",
+        "--planning-review",
+        "none"
+      ],
+      "returncode": 0,
+      "scenarios": [
+        {
+          "name": "delivery",
+          "ok": true,
+          "status": "done",
+          "events": 28,
+          "characters": 364663,
+          "max": 27156,
+          "over_16000": 7
+        },
+        {
+          "name": "two-work-items",
+          "ok": true,
+          "status": "done",
+          "events": 37,
+          "characters": 502503,
+          "max": 27156,
+          "over_16000": 12
+        },
+        {
+          "name": "blocked-resume",
+          "ok": true,
+          "status": "done",
+          "events": 30,
+          "characters": 377781,
+          "max": 27156,
+          "over_16000": 7
+        },
+        {
+          "name": "repeat-improve",
+          "ok": true,
+          "status": "done",
+          "events": 30,
+          "characters": 380705,
+          "max": 27156,
+          "over_16000": 7
+        },
+        {
+          "name": "revise",
+          "ok": true,
+          "status": "done",
+          "events": 32,
+          "characters": 431641,
+          "max": 27156,
+          "over_16000": 9
+        },
+        {
+          "name": "pause-resume",
+          "ok": true,
+          "status": "done",
+          "events": 30,
+          "characters": 388917,
+          "max": 27156,
+          "over_16000": 8
+        },
+        {
+          "name": "halted",
+          "ok": true,
+          "status": "halted",
+          "events": 1,
+          "characters": 8799,
+          "max": 8799,
+          "over_16000": 0
+        }
+      ],
+      "delivery_packets": [
+        {
+          "seq": 1,
+          "from": "intake",
+          "command": "produce",
+          "owner": "root",
+          "characters": 8799,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | intake | revision 0",
+              "chars": 8799
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 2,
+          "from": "discovery",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15760,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | discovery | revision 1",
+              "chars": 15760
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 3,
+          "from": "research",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12726,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | research | revision 2",
+              "chars": 12726
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 4,
+          "from": "spec",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14970,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | spec | revision 3",
+              "chars": 14970
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 5,
+          "from": "test-strategy",
+          "command": "produce",
+          "owner": "root",
+          "characters": 16231,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | test-strategy | revision 4",
+              "chars": 16231
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 6,
+          "from": "plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 27156,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | plan | revision 5",
+              "chars": 27156
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 7,
+          "from": "prepare",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10089,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | prepare | revision 6",
+              "chars": 10089
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 8,
+          "from": "step-plan",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 22708,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 22708
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 9,
+          "from": "test-spec",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 12410,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 12410
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 10,
+          "from": "validate-existing",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 12825,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 12825
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 11,
+          "from": "implement",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18749,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18749
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 12,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2041,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 11 | the implement result",
+              "chars": 2041
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 13,
+          "from": "test",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18234,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18234
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 14,
+          "from": "document",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 11795,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 11795
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 15,
+          "from": "verify",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18542,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18542
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 16,
+          "from": "carry-forward",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 20112,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 20112
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 17,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2029,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 16 | the carry-forward result",
+              "chars": 2029
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 18,
+          "from": "system-test-author",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13962,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test-author | revision 17",
+              "chars": 13962
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 19,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2186,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 18 | the system-test-author result",
+              "chars": 2186
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 20,
+          "from": "system-test",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12885,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test | revision 19",
+              "chars": 12885
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 21,
+          "from": "product-acceptance",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14749,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | product-acceptance | revision 20",
+              "chars": 14749
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 22,
+          "from": "release-plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15054,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-plan | revision 21",
+              "chars": 15054
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 23,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2304,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 22 | the release-plan result",
+              "chars": 2304
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 24,
+          "from": "release-check",
+          "command": "produce",
+          "owner": "root",
+          "characters": 11247,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-check | revision 23",
+              "chars": 11247
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 25,
+          "from": "release",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10837,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release | revision 24",
+              "chars": 10837
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 26,
+          "from": "release-verify",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13467,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-verify | revision 25",
+              "chars": 13467
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 27,
+          "from": "operations",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10702,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | operations | revision 26",
+              "chars": 10702
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 28,
+          "from": "handoff",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12094,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | handoff | revision 27",
+              "chars": 12094
+            }
+          ],
+          "repeated_lines": []
+        }
+      ]
+    },
+    "backchain-converge": {
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop",
+        "graph-dry-run",
+        "--format",
+        "json",
+        "--backchain-passes",
+        "converge"
+      ],
+      "returncode": 0,
+      "scenarios": [
+        {
+          "name": "delivery",
+          "ok": true,
+          "status": "done",
+          "events": 33,
+          "characters": 374255,
+          "max": 26741,
+          "over_16000": 7
+        },
+        {
+          "name": "two-work-items",
+          "ok": true,
+          "status": "done",
+          "events": 44,
+          "characters": 515920,
+          "max": 26741,
+          "over_16000": 12
+        },
+        {
+          "name": "blocked-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 387373,
+          "max": 26741,
+          "over_16000": 7
+        },
+        {
+          "name": "repeat-improve",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 402925,
+          "max": 26741,
+          "over_16000": 8
+        },
+        {
+          "name": "revise",
+          "ok": true,
+          "status": "done",
+          "events": 39,
+          "characters": 444371,
+          "max": 26741,
+          "over_16000": 9
+        },
+        {
+          "name": "pause-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 398509,
+          "max": 26741,
+          "over_16000": 8
+        },
+        {
+          "name": "halted",
+          "ok": true,
+          "status": "halted",
+          "events": 1,
+          "characters": 8799,
+          "max": 8799,
+          "over_16000": 0
+        }
+      ],
+      "delivery_packets": [
+        {
+          "seq": 1,
+          "from": "intake",
+          "command": "produce",
+          "owner": "root",
+          "characters": 8799,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | intake | revision 0",
+              "chars": 8799
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 2,
+          "from": "discovery",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15760,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | discovery | revision 1",
+              "chars": 15760
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 3,
+          "from": "research",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12726,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | research | revision 2",
+              "chars": 12726
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 4,
+          "from": "spec",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14879,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | spec | revision 3",
+              "chars": 14879
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 5,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 1939,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 4 | the spec result",
+              "chars": 1939
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 6,
+          "from": "test-strategy",
+          "command": "produce",
+          "owner": "root",
+          "characters": 16486,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | test-strategy | revision 5",
+              "chars": 16486
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 7,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2036,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 6 | the test-strategy result",
+              "chars": 2036
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 8,
+          "from": "plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 26741,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | plan | revision 7",
+              "chars": 26741
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 9,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2012,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 8 | the plan result",
+              "chars": 2012
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 10,
+          "from": "prepare",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10344,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | prepare | revision 9",
+              "chars": 10344
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 11,
+          "from": "step-plan",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 22710,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 22710
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 12,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1929,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 11 | the step-plan result",
+              "chars": 1929
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 13,
+          "from": "test-spec",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 12672,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 12672
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 14,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1335,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 13 | the test-spec result",
+              "chars": 1335
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 15,
+          "from": "validate-existing",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 13087,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 13087
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 16,
+          "from": "implement",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18749,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18749
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 17,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2041,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 16 | the implement result",
+              "chars": 2041
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 18,
+          "from": "test",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18234,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18234
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 19,
+          "from": "document",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 11795,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 11795
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 20,
+          "from": "verify",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18542,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18542
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 21,
+          "from": "carry-forward",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 20112,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 20112
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 22,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2029,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 21 | the carry-forward result",
+              "chars": 2029
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 23,
+          "from": "system-test-author",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13962,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test-author | revision 22",
+              "chars": 13962
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 24,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2186,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 23 | the system-test-author result",
+              "chars": 2186
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 25,
+          "from": "system-test",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12885,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test | revision 24",
+              "chars": 12885
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 26,
+          "from": "product-acceptance",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14560,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | product-acceptance | revision 25",
+              "chars": 14560
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 27,
+          "from": "release-plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15054,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-plan | revision 26",
+              "chars": 15054
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 28,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2304,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 27 | the release-plan result",
+              "chars": 2304
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 29,
+          "from": "release-check",
+          "command": "produce",
+          "owner": "root",
+          "characters": 11247,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-check | revision 28",
+              "chars": 11247
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 30,
+          "from": "release",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10837,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release | revision 29",
+              "chars": 10837
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 31,
+          "from": "release-verify",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13467,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-verify | revision 30",
+              "chars": 13467
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 32,
+          "from": "operations",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10702,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | operations | revision 31",
+              "chars": 10702
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 33,
+          "from": "handoff",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12094,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | handoff | revision 32",
+              "chars": 12094
+            }
+          ],
+          "repeated_lines": []
+        }
+      ]
+    },
+    "backchain-none": {
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop",
+        "graph-dry-run",
+        "--format",
+        "json",
+        "--backchain-passes",
+        "none"
+      ],
+      "returncode": 0,
+      "scenarios": [
+        {
+          "name": "delivery",
+          "ok": true,
+          "status": "done",
+          "events": 33,
+          "characters": 372957,
+          "max": 25165,
+          "over_16000": 7
+        },
+        {
+          "name": "two-work-items",
+          "ok": true,
+          "status": "done",
+          "events": 44,
+          "characters": 514622,
+          "max": 25165,
+          "over_16000": 12
+        },
+        {
+          "name": "blocked-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 386075,
+          "max": 25165,
+          "over_16000": 7
+        },
+        {
+          "name": "repeat-improve",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 400051,
+          "max": 25165,
+          "over_16000": 8
+        },
+        {
+          "name": "revise",
+          "ok": true,
+          "status": "done",
+          "events": 39,
+          "characters": 443073,
+          "max": 25165,
+          "over_16000": 9
+        },
+        {
+          "name": "pause-resume",
+          "ok": true,
+          "status": "done",
+          "events": 35,
+          "characters": 397211,
+          "max": 25165,
+          "over_16000": 8
+        },
+        {
+          "name": "halted",
+          "ok": true,
+          "status": "halted",
+          "events": 1,
+          "characters": 8799,
+          "max": 8799,
+          "over_16000": 0
+        }
+      ],
+      "delivery_packets": [
+        {
+          "seq": 1,
+          "from": "intake",
+          "command": "produce",
+          "owner": "root",
+          "characters": 8799,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | intake | revision 0",
+              "chars": 8799
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 2,
+          "from": "discovery",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15760,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | discovery | revision 1",
+              "chars": 15760
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 3,
+          "from": "research",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12726,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | research | revision 2",
+              "chars": 12726
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 4,
+          "from": "spec",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14970,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | spec | revision 3",
+              "chars": 14970
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 5,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 1939,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 4 | the spec result",
+              "chars": 1939
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 6,
+          "from": "test-strategy",
+          "command": "produce",
+          "owner": "root",
+          "characters": 16486,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | test-strategy | revision 5",
+              "chars": 16486
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 7,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2036,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 6 | the test-strategy result",
+              "chars": 2036
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 8,
+          "from": "plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 25165,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | plan | revision 7",
+              "chars": 25165
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 9,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2012,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 8 | the plan result",
+              "chars": 2012
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 10,
+          "from": "prepare",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10344,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | prepare | revision 9",
+              "chars": 10344
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 11,
+          "from": "step-plan",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 22710,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 22710
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 12,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1929,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 11 | the step-plan result",
+              "chars": 1929
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 13,
+          "from": "test-spec",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 12672,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 12672
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 14,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 1335,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 13 | the test-spec result",
+              "chars": 1335
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 15,
+          "from": "validate-existing",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 13087,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 13087
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 16,
+          "from": "implement",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18749,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18749
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 17,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2041,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 16 | the implement result",
+              "chars": 2041
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 18,
+          "from": "test",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18234,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18234
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 19,
+          "from": "document",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 11795,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 11795
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 20,
+          "from": "verify",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 18542,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 18542
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 21,
+          "from": "carry-forward",
+          "command": "produce",
+          "owner": "W1",
+          "characters": 20112,
+          "sections": [
+            {
+              "label": "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit i",
+              "chars": 20112
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 22,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "W1",
+          "characters": 2029,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 21 | the carry-forward result",
+              "chars": 2029
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 23,
+          "from": "system-test-author",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13962,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test-author | revision 22",
+              "chars": 13962
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 24,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2186,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 23 | the system-test-author result",
+              "chars": 2186
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 25,
+          "from": "system-test",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12885,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | system-test | revision 24",
+              "chars": 12885
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 26,
+          "from": "product-acceptance",
+          "command": "produce",
+          "owner": "root",
+          "characters": 14747,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | product-acceptance | revision 25",
+              "chars": 14747
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 27,
+          "from": "release-plan",
+          "command": "produce",
+          "owner": "root",
+          "characters": 15054,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-plan | revision 26",
+              "chars": 15054
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 28,
+          "from": "improve",
+          "command": "finish-improve",
+          "owner": "root",
+          "characters": 2304,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | improve | revision 27 | the release-plan result",
+              "chars": 2304
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 29,
+          "from": "release-check",
+          "command": "produce",
+          "owner": "root",
+          "characters": 11247,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-check | revision 28",
+              "chars": 11247
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 30,
+          "from": "release",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10837,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release | revision 29",
+              "chars": 10837
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 31,
+          "from": "release-verify",
+          "command": "produce",
+          "owner": "root",
+          "characters": 13467,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | release-verify | revision 30",
+              "chars": 13467
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 32,
+          "from": "operations",
+          "command": "produce",
+          "owner": "root",
+          "characters": 10702,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | operations | revision 31",
+              "chars": 10702
+            }
+          ],
+          "repeated_lines": []
+        },
+        {
+          "seq": 33,
+          "from": "handoff",
+          "command": "produce",
+          "owner": "root",
+          "characters": 12094,
+          "sections": [
+            {
+              "label": "ShipLoop navigator | handoff | revision 32",
+              "chars": 12094
+            }
+          ],
+          "repeated_lines": []
+        }
+      ]
+    }
+  },
+  "source": {
+    "entry": {
+      "path": "skills/shiploop/SKILL.md",
+      "lines": 1196,
+      "characters": 79647,
+      "sha256": "1007eb38ccafd41e3c23633ad78bf12c7590b0653a9758046c9b615d9a209fc8"
+    },
+    "readme": {
+      "path": "skills/shiploop/README.md",
+      "lines": 1150,
+      "characters": 74696,
+      "sha256": "399ac426bdf5d1a5da998f880645ac1ed4af8a6dc9ecf35bc5c28fd9b5560c6b"
+    },
+    "inventory": {
+      "files": 100,
+      "scripts": 49,
+      "references": 43,
+      "characters": 2877593
+    }
+  }
+}
