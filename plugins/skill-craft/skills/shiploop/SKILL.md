@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.4.0
+version: 1.4.1
 allowed-tools: all
 license: MIT
 platforms:
@@ -729,7 +729,7 @@ parent alive and run this Improve invocation inline.": the parent runs the whole
 invocation itself (see step 3 below) and never clears for it.
 
 On the opt-in `delegation: ask-agent` route, active INNER **producer**
-packets begin with "Clear and then execute the prompt." Improve handoffs instead begin "Keep the invoking parent
+packets begin with "Execute the prompt in a fresh context." Improve handoffs instead begin "Keep the invoking parent
 alive": never clear, replace or wrap the live parent for Improve. For an
 `implement` producer, select the packet's chain route first. During that producer, its bound mode and executor take precedence: parallel chains
 retain their capacity and bypass this serial context boundary; explicit serial
@@ -791,14 +791,17 @@ point at material rather than asking you to reread it at every stage.
 Every packet is complete, and it lives in a file: ShipLoop writes the full
 packet to `<run>/packets/<action>.md` (the Improve stage is its own action, so its packet goes to
 `<improve id>.md`, and the packet asking for `improve-bind` to `<improve id>-bind.md`; the producer packet that
-was sent stays on disk) and prints only a short head, with the
-callback, the goal and done-when, the result path, template and allowed
-outcomes, the packet file's path, the recovery and pause commands and the status
-block. Read the packet file with a file-reading tool before acting; do not print
-it to the shell, where hosts cut long output (Grok keeps about 20 KB) and every
+was sent stays on disk) and prints it whole when it is at most 16,000 characters.
+A longer packet prints a head: the callback, the goal and done-when, the status
+block, the stage's duties and rules, the result path, template and allowed
+outcomes, the packet file's path, the recovery and pause commands and the loop
+command. The quoted knowledge files and hand-offs stay in the file when the head
+would pass the limit. Read the packet file with a file-reading tool for what the
+head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps about 20 KB) and every
 byte stays in context. References a packet names are for lookup: open only the
-section a step needs, never a whole reference file, and do not re-read this card
-or the Improve card. `next` is the recovery command: it rewrites the file and
+section a step needs, never a whole reference file, and do not re-read this card.
+(The improve skill is different: an Improve stage's packet says to invoke it at every
+Improve stage.) `next` is the recovery command: it rewrites the file and
 reprints the head, and the script cannot know what survived a clear or
 compaction, so no packet ever refers back to an earlier one. Paused, blocked,
 awaiting, halted and done packets are short and print whole.
