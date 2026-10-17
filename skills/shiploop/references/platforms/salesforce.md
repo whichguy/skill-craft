@@ -98,6 +98,17 @@ classes to fill an inventory. Reopen that exclusion when its basis changes.
 and the [deployment command's test-level contract](https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_deploy_start.html)
 are starting points; verify the rules for the operation actually selected.
 
+ShipLoop judges a focused Apex test from the runner's own pass or fail mark on
+the line that names it, so record the command with a reporter it can read:
+`sf apex run test --target-org <alias> --class-names <TestClass> --synchronous
+--result-format tap` prints an `ok` or `not ok` line per test, while the default
+table and `--result-format human` put the outcome word after the test name,
+which ShipLoop does not read, so a focused command that uses them is refused as
+unread. An Apex test runs the code already in the org, so on the item's base it
+cannot fail unless the command deploys the tree first: name each new org-bound
+test in the test result's `red_na` with that reason, and let the candidate run
+and the mutation check carry the proof.
+
 For a Lightning consumer, distinguish the org/instance identity from the
 feature's authenticated entry: an app, custom tab, component or other supported
 page. Use supported navigation (for example a generated `PageReference` URL)

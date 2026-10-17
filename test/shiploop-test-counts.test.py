@@ -93,6 +93,15 @@ GO_NO_FILES = "?   \texample.com/board\t[no test files]\n"
 GO_VERBOSE = "=== RUN   TestPlace\n--- PASS: TestPlace (0.00s)\n--- FAIL: TestSink (0.00s)\nFAIL\n"
 DOTNET_NONE = "No test matches the given testcase filter `FullyQualifiedName~TC9` in /src/bin/Board.Tests.dll\n"
 DOTNET = "Passed!  - Failed:     0, Passed:     3, Skipped:     1, Total:     4, Duration: 12 ms\n"
+# Fixture: the results table a recorded `sf apex run test --result-format human` printed in a live run (class name made neutral):
+# each test is named on its row and the outcome word comes after the name, which no runner mark of `outcomes` matches.
+RESULTS_TABLE = """\
+=== Test Results
+TEST NAME               OUTCOME  MESSAGE  RUNTIME (MS)
+──────────────────────  ───────  ───────  ────────────
+WidgetTest.TC_1         Pass              91
+WidgetTest.TC_2         Pass              27
+"""
 
 
 class CountTests(unittest.TestCase):
@@ -233,6 +242,16 @@ class JudgeTests(unittest.TestCase):
         """The base run's judgement (the test stage's RED check): new IDs must fail on the item's base."""
         return test_loop._judge_base(row, code, output, list(exempt), [], list(added))
 
+    def test_an_unread_base_outcome_points_at_the_platform_cards(self):
+        """A reporter the reader cannot read is refused with a pointer to the cards that name each platform's reporter."""
+        row = {"command": "./org-tests", "suite": "focused", "ids": ["TC_1", "TC_2"]}
+        verdict = self.base(row, 0, RESULTS_TABLE)
+        self.assertEqual((verdict["status"], verdict["ids_unread"]), ("unread", ["TC_1", "TC_2"]))
+        text = test_loop._explain_base(dict(row, **verdict))
+        self.assertIn("named TC_1, TC_2 on the base, but no output line says whether it passed or failed", text)
+        self.assertIn("the platform card under references/platforms/", text)
+        self.assertTrue(sorted((ROOT / "skills/shiploop/references/platforms").glob("*.md")), "the directory the text names holds cards")
+
     def test_red_on_the_base_needs_each_new_id_to_fail_not_a_setup_error(self):
         """The red check moved from a test-red stage to the test stage's base run (2026-10-10): each new ID is read
         from its own line, so a suite that never ran the test is not taken for a failing one."""
@@ -310,6 +329,13 @@ class OutcomesTests(unittest.TestCase):
 
     def test_an_id_inside_a_longer_token_is_not_that_id(self):
         self.assertEqual(counts.outcomes("✔ TC-10 x\n", ["TC-1"]), {"TC-1": "missing"})
+
+    def test_a_tap_line_naming_class_dot_method_is_read_and_a_results_table_row_is_only_shown(self):
+        """The platform card for an org-run test tells the model to record the command with the tap reporter: its lines carry
+        the mark first, while the default table (recorded in RESULTS_TABLE) names the test with the word after it."""
+        tap = "1..2\nok 1 WidgetTest.TC_1\nnot ok 2 WidgetTest.TC_2\n"
+        self.assertEqual(counts.outcomes(tap, ["TC_1", "TC_2"]), {"TC_1": "passed", "TC_2": "failed"})
+        self.assertEqual(counts.outcomes(RESULTS_TABLE, ["TC_1", "TC_2"]), {"TC_1": "shown", "TC_2": "shown"})
 
 
 NODE = ROOT / "test/fixtures/shiploop-node-test"

@@ -1358,7 +1358,8 @@ def _explain_base(run: Mapping[str, Any]) -> str:
     if status == "unread":
         return ("named " + ", ".join(run["ids_unread"]) + " on the base, but no output line says whether it passed or "
                 "failed. Use a reporter that marks each test's outcome on the line that names it (node --test: spec "
-                "or tap; pytest -v; python -m unittest -v; jest --verbose).")
+                "or tap; pytest -v; python -m unittest -v; jest --verbose). A platform whose tests run in a service "
+                "has its readable reporter in the platform card under references/platforms/.")
     if status == "not-run":
         return ("did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its output names "
                 "a file this item adds. A new test must fail on the base, or fail to load only because a file this "
