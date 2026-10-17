@@ -2286,7 +2286,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         authority = contract["context"]["authority"]
         self.assertIn("No push or merge", authority)
         self.assertIn("commit only with improve-commit, never git commit", authority)
-        self.assertIn("The child runs no ShipLoop callback except improve-commit", authority)
+        self.assertIn("The child runs no ShipLoop callback except improve-pass and improve-commit", authority)
         self.assertIn(str(parent_return), authority)
         self.assertNotIn("never runs a ShipLoop callback", authority)
         self.assertIn("no empty commit except a recorded remote change", authority)
@@ -2298,6 +2298,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
             with self.subTest(needed=needed):
                 self.assertIn(needed, route)
         self.assertLess(route.index("improve-commit --run-dir="), route.index(" complete --run-dir="))
+        self.assertLess(route.index("improve-pass --run-dir="), route.index("improve-commit --run-dir="))
         self.assertIn("The child never runs the complete command", route)
 
     def test_the_command_parent_return_prints_runs_and_commits_at_the_planning_stage(self):
@@ -2438,6 +2439,233 @@ class ImproveCommitContractTests(ImproveCliFixture):
         argv[-1] = "The user said not to commit."
         self.run_argv(argv)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
+
+class ImprovePassTests(ImproveCliFixture):
+    """improve-pass through the real CLI (rev 4 Step 6.3; IMP-2, IMP-5, IMP-8, IMP-11): the model writes review-<n>.md and,
+    after an edit, a commit message and checks.md; ShipLoop checks them, commits, writes the runtime report and prints
+    the runtime's done and the stage's complete, literal.  Every refusal's line 1 ends with the command to run next, and
+    the tests run that command."""
+
+    _write_producer = ImproveCommitContractTests._write_producer
+    _start_parent = ImproveCommitContractTests._start_parent
+    def setUp(self):
+        super().setUp()
+        self.environment["HOME"] = str(self.base / "home")
+
+    git = ImproveCommitContractTests.git
+    begin = ImproveCommitContractTests.begin
+    edit = ImproveCommitContractTests.edit
+    write = ImproveCommitContractTests.write
+    line_one = ImproveCommitContractTests.line_one
+    named_exit = ImproveCommitContractTests.named_exit
+    run_named = ImproveCommitContractTests.run_named
+    run_argv = ImproveCommitContractTests.run_argv
+
+    REVIEW = ("---\nclassification: {label}\nexit: {exit}\ncontinuation: allowed\n---\n"
+              "Read: the step result and the diff of product/contracts/cold-recovery.md.\n"
+              "Found: {found}\n"
+              "Changed: {changed}\n"
+              "Checked: python3 -m pytest test/product_contract_test.py: 1 passed.\n"
+              "Class: {why}\n"
+              "## Handoff\nCandidate product/contracts/cold-recovery.md reviewed at pass {n}; nothing open.\n")
+
+    def pass_args(self, *extra):
+        return [CLI, "improve-pass", "--run-dir", self.run, "--action", self.improve, *extra]
+
+    def reviews(self) -> Path:
+        return bridge.receipt_path(self.bound).parent / "reviews"
+
+    def write_review(self, n=1, *, label="trivial", exit="satisfied", found="nothing material.",
+                     changed="none.", why="no change and nothing material.", text=None):
+        path = self.reviews() / ("review-" + str(n) + ".md")
+        path.write_text(text if text is not None else self.REVIEW.format(
+            label=label, exit=exit, found=found, changed=changed, why=why, n=n), encoding="utf-8")
+        return path
+
+    def printed(self, stdout):
+        """The three lines improve-pass prints for the model: the runtime's done, complete, and improve-pass again."""
+        lines = stdout.splitlines()
+        done = next(line for line in lines if " done --state " in line)
+        complete = next(line for line in lines if line.startswith("When it returns status complete, run: "))
+        again = next(line for line in lines if line.startswith("When it returns status active"))
+        return done, complete.rsplit("run: ", 1)[1], again.rsplit("run: ", 1)[1]
+
+    def run_done(self, line):
+        """Run the printed done line as a host shell would (it reads its report from a redirect)."""
+        result = subprocess.run(["/bin/sh", "-c", line], capture_output=True, text=True, cwd=self.base, timeout=60,
+                                env=self.environment)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return json.loads(result.stdout)
+
+    def test_an_unchanged_pass_gets_script_written_checks_and_the_printed_commands_finish_the_stage(self):
+        self.begin()
+        self.write_review()
+        out = self.invoke(*self.pass_args()).stdout
+        checks = (self.reviews() / "checks.md").read_text(encoding="utf-8")
+        self.assertTrue(checks.startswith("Tree unchanged since improve-bind ("), checks)
+        self.assertIn("producer checks: ", checks)
+        report = json.loads((self.reviews() / "report-1.json").read_text(encoding="utf-8"))
+        self.assertEqual({key: report[key] for key in ("classification", "exit_assessment", "continuation_assessment")},
+                         {"classification": "trivial", "exit_assessment": "satisfied",
+                          "continuation_assessment": "allowed"})
+        self.assertIn("Found: nothing material.", report["evidence"])
+        self.assertIn("files changed since the bind: none", report["evidence"])
+        self.assertTrue(report["handoff"].startswith("Candidate product/contracts/cold-recovery.md reviewed"))
+        done, complete, again = self.printed(out)
+        # Literal and absolute: no shell variable, the receipt's own done_argv, the report by its absolute path.
+        self.assertNotIn("$", done + complete + again)
+        argv = json.loads(bridge.receipt_path(self.bound).read_text(encoding="utf-8"))["done_argv"]
+        self.assertEqual(shlex.split(done), [*argv, "<", str(self.reviews() / "report-1.json")])
+        self.assertEqual(shlex.split(again)[2:], ["improve-pass", "--run-dir=" + str(self.run),
+                                                  "--action=" + self.improve])
+        terminal = self.run_done(done)
+        self.assertEqual(terminal["status"], "complete")
+        self.run_argv(shlex.split(complete))
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+        # IMP-11: passes.md at import, one row per pass with the listed fields.
+        passes = (self.run / "improve" / self.action / "passes.md").read_text(encoding="utf-8")
+        self.assertIn("| stage | pass | label | tree changed | seconds | skill call recorded |", passes)
+        row = next(line for line in passes.splitlines() if line.startswith("| test-strategy | 1 |"))
+        cells = [cell.strip() for cell in row.strip("|").split("|")]
+        self.assertEqual(cells[2:4], ["trivial", "n"])
+        self.assertTrue(cells[4].isdigit(), row)
+        self.assertEqual(cells[5], "not enforced")  # no Claude session bound this suite's run
+        self.assertIn("Re-decide the Improve stop rule (IMP-4) at 10 step-stage reviews with at least 3 edits", passes)
+
+    def test_an_edit_without_key_learnings_is_refused_and_the_named_exit_commits_and_records_the_pass(self):
+        self.begin()
+        self.edit()
+        self.write_review(label="non-trivial", exit="unsatisfied", found="the example was wrong.",
+                          changed="product/contracts/cold-recovery.md: fixed the example.", why="it changed a file.")
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("left files uncommitted (product/contracts/cold-recovery.md)", self.line_one(refused))
+        self.assertEqual(self.named_exit(refused)[2:3], ["improve-pass"])
+        self.write("docs: fix the example\n")  # no Key learnings line
+        refused = self.run_named(refused, status=2).stderr
+        self.assertIn("Key learnings", self.line_one(refused))
+        self.assertEqual(self.named_exit(refused)[2:3], ["improve-pass"])
+        self.write("docs: fix the example\n\nKey learnings: an example must match the contract it shows.\n")
+        (self.reviews() / "checks.md").write_text("python3 -m pytest: 1 passed\n", encoding="utf-8")
+        out = self.run_named(refused).stdout
+        self.assertIn("Committed this review's changes as ", out)
+        self.assertIn("Key learnings: an example must match the contract it shows.", self.git("log", "-1", "--format=%B"))
+        self.assertIn("checks.md written by the review after its last edit", out)
+        facts = json.loads((self.reviews() / "pass-1.json").read_text(encoding="utf-8"))
+        self.assertTrue(facts["changed"])
+        self.assertEqual(len(facts["commit"]), 12)
+        done, _complete, _again = self.printed(out)
+        active = self.run_done(done)
+        self.assertEqual(active["status"], "active")  # a pass that changed content never ends the loop
+
+    def test_a_checks_file_older_than_the_last_edit_is_refused_and_the_named_exit_accepts_a_fresh_one(self):
+        self.begin()
+        checks = self.reviews() / "checks.md"
+        checks.write_text("pre-filled before the edit: all green\n", encoding="utf-8")
+        old = checks.stat().st_mtime - 60
+        os.utime(checks, (old, old))
+        self.edit()
+        self.write("docs: fix the example\n\nKey learnings: none\n")
+        self.write_review(label="non-trivial", exit="unsatisfied", changed="the example.", why="changed a file.")
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("is older than the last edit", self.line_one(refused))
+        checks.write_text("python3 -m pytest: 1 passed (after the edit)\n", encoding="utf-8")
+        self.run_named(refused)
+        self.assertTrue((self.reviews() / "report-1.json").is_file())
+
+    def test_a_review_without_its_form_is_refused_with_what_is_missing_and_the_named_exit_accepts_it(self):
+        self.begin()
+        self.write_review(text="Findings: none material.\n")
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        line = self.line_one(refused)
+        for missing in ("classification", "exit", "continuation", "Read:", "Checked:", "## Handoff"):
+            self.assertIn(missing, line)
+        self.assertFalse((self.reviews() / "report-1.json").exists())
+        self.write_review()
+        self.run_named(refused)
+        self.assertTrue((self.reviews() / "report-1.json").is_file())
+
+    def test_no_review_file_and_an_ended_loop_each_name_their_next_command(self):
+        self.begin()
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("review-1.md", self.line_one(refused))
+        self.write_review()
+        out = self.run_named(refused).stdout
+        done, complete, _again = self.printed(out)
+        self.run_done(done)
+        ended = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertEqual(self.named_exit(ended), shlex.split(complete))
+
+    def test_every_shiploop_command_the_improve_packet_and_improve_pass_print_drives_the_run_for_the_hooks(self):
+        """IMP-8: the hooks bind and refresh a session only from a command they recognise; every ShipLoop command these
+        prints name must be one, written literally with the run directory."""
+        import shiploop_keepalive as keepalive
+        self.begin()
+        packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.write_review()
+        printed = self.invoke(*self.pass_args()).stdout
+        commands = [match.group(0) for match in
+                    re.finditer(r"python3 \S+/scripts/shiploop [a-z-]+ --run-dir=[^\s]+(?: --[a-z-]+=?[^\s]*)*",
+                                packet + "\n" + printed)]
+        verbs = {shlex.split(command)[2] for command in commands}
+        self.assertTrue({"improve-pass", "complete"} <= verbs, verbs)
+        for command in commands:
+            with self.subTest(command=command):
+                if shlex.split(command)[2] in ("pause", "improve-commit"):
+                    continue  # not a driving command (a pause ends the turn; improve-commit prints no packet)
+                self.assertTrue(keepalive.DRIVING_COMMAND.search(command), command)
+                self.assertEqual(keepalive.command_run_dir({"tool_input": {"command": command}}), str(self.run))
+
+    def test_the_implement_step_focus_names_an_unexercised_language_behaviour(self):
+        """IMP-10 (kept only if the seeded string-comparison defect is caught at pass 1 in the live round, U31)."""
+        self.assertIn("- a language or library behaviour the change relies on that no command has\n  exercised "
+                      "(comparison and case rules, null and empty values, visibility,\n  ordering): run a one-line "
+                      "probe or read its primary documentation;", prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
+
+    def test_focus_ids_are_off_by_default_and_when_on_a_review_must_answer_each_one(self):
+        """IMP-6 (its own commit, default off): with FOCUS_IDS on, the handoff numbers the focus conditions F1..Fn and
+        improve-pass refuses a review that leaves an id out; the named exit is accepted once each id is answered."""
+        self.assertFalse(navigator.FOCUS_IDS)
+        self.begin("test-strategy")
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.focus_ids(state, self.bound), [])
+        with mock.patch.object(navigator, "FOCUS_IDS", True):
+            ids = navigator.focus_ids(state, self.bound)
+            lines = navigator._focus_lines(state, self.bound)
+        self.assertGreater(len(ids), 2)
+        self.assertIn("- F1: ", lines[0])
+        self.assertIn("- " + ids[-1] + ": ", lines[0])
+        self.assertIn("improve-pass refuses a review that leaves one out", lines[1])
+        scripts = str(ROOT / "skills/shiploop/scripts")
+        wrapper = [sys.executable, "-B", "-c",
+                   "import runpy, sys; sys.path.insert(0, sys.argv[1]); import shiploop_navigator; "
+                   "shiploop_navigator.FOCUS_IDS = True; cli = sys.argv[2]; sys.argv = [cli] + sys.argv[3:]; "
+                   "runpy.run_path(cli, run_name='__main__')", scripts, str(CLI), "improve-pass",
+                   "--run-dir", str(self.run), "--action", self.improve]
+        review = self.write_review()
+        refused = self.run_argv(wrapper, status=2).stderr
+        self.assertIn(", ".join(ident + ":" for ident in ids), self.line_one(refused))
+        review.write_text(review.read_text(encoding="utf-8") + "".join(ident + ": none\n" for ident in ids),
+                          encoding="utf-8")
+        self.run_argv(wrapper)
+        self.assertTrue((self.reviews() / "report-1.json").is_file())
+
+    def test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output(self):
+        """6.3 exit 2 (projected, offline): what the model writes for one pass is the review file and the two printed
+        commands it copies (improve-pass, then the runtime's done; complete runs once per stage, not per pass).  The
+        report JSON, checks.md and the shell variables of the live tails (2.0 to 2.4 KB per tail, IMP-8) are gone.
+        The commands carry this suite's paths (a run directory of about 100 characters)."""
+        self.begin("step-plan")
+        review = self.write_review(
+            found="S2 relies on a case-insensitive comparison that no command exercised; a one-line probe showed the "
+                  "language compares case-sensitively, so the step's criterion C3 held.",
+            why="nothing to change after the probe; the content is as the previous pass left it.")
+        out = self.invoke(*self.pass_args()).stdout
+        done, _complete, _again = self.printed(out)
+        command = shlex.join(["python3", *map(str, self.pass_args()[:1])]) + " " + shlex.join(
+            ["improve-pass", "--run-dir=" + str(self.run), "--action=" + self.improve])
+        written = len(review.read_bytes()) + len(command.encode()) + len(done.encode())
+        self.assertLessEqual(written, 1500, (len(review.read_bytes()), len(command), len(done), len(str(self.run))))
 
 
 class AskAgentEphemeralImproveCliTests(ImproveCliFixture):

@@ -406,7 +406,8 @@ def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated:
 
 
 CALLBACK_ATTEMPTS = "callback-attempts"
-PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-reconcile"})
+PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-pass",
+                          "improve-reconcile"})
 CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-reconcile"})
 
 
@@ -559,6 +560,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         "improve-bind",
         "improve-start",
         "improve-commit",
+        "improve-pass",
         "improve-reconcile",
         "next",
         "status",
@@ -606,7 +608,10 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             sub.add_argument("--remote-change", dest="remote_change", action="store_true",
                              help="record a change to a remote system that left no file change: the message needs a "
                                   "'Remote change:' section, and with no file pending the commit holds no files")
-        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-reconcile"):
+        if name == "improve-pass":
+            sub.add_argument("--no-commit", dest="no_commit",
+                             help="the user's or repository's instruction not to commit this review's edits")
+        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name == "improve-reconcile":
             sub.add_argument("--result", required=True)

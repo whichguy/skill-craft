@@ -1,0 +1,23 @@
+# Render diff: node-fix-bug / inline/83/96, unit U19
+
+- old SP/u19/old-inline (commit 9f949689ff3d)
+- new SP/u19/new-inline (commit 9f949689ff3d)
+- the head table is checked
+
+| stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|---|
+| step-plan | 19988 | 19988 | +0 | 19988 | 12 | 23351 | 23351 | 0 | ok |
+| step-plan-improve | 2713 | 2713 | +0 | 2713 | 17287 | 2687 | 2687 | 0 | ok |
+| test-spec | 14759 | 14759 | +0 | 14759 | 5241 | 14733 | 14733 | 0 | ok |
+| test-spec-improve | 1945 | 1945 | +0 | 1945 | 18055 | 1919 | 1919 | 0 | ok |
+| validate-existing | 15283 | 15283 | +0 | 15283 | 4717 | 15257 | 15257 | 0 | ok |
+| implement | 15763 | 15763 | +0 | 15763 | 4237 | 18286 | 18286 | 0 | ok |
+| implement-improve | 2654 | 2654 | +0 | 2654 | 17346 | 2628 | 2628 | 0 | ok |
+| test | 18239 | 18239 | +0 | 18239 | 1761 | 20470 | 20470 | 0 | ok |
+| document | 14116 | 14116 | +0 | 14116 | 5884 | 14090 | 14090 | 0 | ok |
+| verify | 18188 | 18188 | +0 | 18188 | 1812 | 20408 | 20408 | 0 | ok |
+| carry-forward | 18028 | 18028 | +0 | 18028 | 1972 | 22179 | 22179 | 0 | ok |
+| carry-forward-improve | 2642 | 2642 | +0 | 2642 | 17358 | 2616 | 2616 | 0 | ok |
+
+All 12 stages pass.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.

@@ -367,31 +367,49 @@ class GateFixture(improve_tests.ImproveCliFixture):
 class SkillCallGateTests(GateFixture):
     """`complete` on an Improve stage, through the real CLI, with the real hook writing the record."""
 
-    def test_without_a_record_the_import_is_refused_and_the_named_fix_accepts_it(self) -> None:
+    def test_without_a_record_an_ended_loop_is_refused_and_the_named_restart_route_is_accepted(self) -> None:
+        """C6/IMP-2: the loop is already complete, so a Skill call now would review nothing; the backstop's named exit is
+        improve-start --restart-stopped, then the skill, then complete (submitted through the real gate here)."""
         self.assertTrue(self.bind()["skill_hook"])
         before = self.state_bytes()
         refused = self.complete(status=2).stderr
         self.assertEqual(self.state_bytes(), before)
         first = refused.splitlines()[0]
         self.assertIn("Run the improve skill on this " + self.bound["stage"] + " result first", first)
-        # The refusal names the exit exactly: the Skill tool, skill "improve", this stage's argument, then complete.
+        self.assertIn("its review loop has already ended", first)
         named_args = re.search(r'args "([^"]+)"', first)[1]
         self.assertEqual(named_args, self.argument())
         self.assertIn('skill "improve"', first)
-        # A decision flag the model already chose is not lost by following the named command literally.
-        self.assertIn("--final-result", first)
-        self.assertIn("--no-commit", first)
+        restart = shlex.split(re.search(r"start the review again with (.+? --restart-stopped)", first).group(1))
+        self.assertEqual(restart[2:], ["improve-start", "--run-dir=" + str(self.run), "--action=" + self.improve,
+                                       "--restart-stopped"])
         named = shlex.split(first.rsplit("then run: ", 1)[1])
         self.assertEqual(named[2:], ["complete", "--run-dir=" + str(self.run), "--action=" + self.improve])
-        # Submit that fix through the same gate: invoke the skill as named, then run the named command.
-        self.call_skill("improve", named_args)
-        done = subprocess.run(named, text=True, capture_output=True, cwd=self.base, timeout=60,
+        restarted = subprocess.run(restart, text=True, capture_output=True, cwd=self.base, timeout=60,
+                                   env=self.environment)
+        self.assertEqual(restarted.returncode, 0, restarted.stdout + restarted.stderr)
+        self.assertIn("Archived the stopped child", restarted.stderr)
+        self.call_skill("improve", named_args)  # the skill runs on the new child
+        self.finish_ephemeral(json.loads(bridge.receipt_path(self.bound).read_text(encoding="utf-8")))
+        self.completion, _receipt = self.completion_receipt()
+        done = subprocess.run(named + self.completion, text=True, capture_output=True, cwd=self.base, timeout=60,
                               env={**self.environment})
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         after = store.read_record(self.run / "state.md")
         self.assertIsNone(after["active_improve"])
         self.assertEqual(after["improve_results"][self.action]["runtime_phase"], "complete")
         self.assertEqual(self.gate_lines(), [])  # enforced, so nothing was waved through
+        passes = (self.run / "improve" / self.action / "passes.md").read_text(encoding="utf-8")
+        rows = [line for line in passes.splitlines() if line.startswith("| " + self.bound["stage"] + " |")]
+        self.assertTrue(rows and all(line.endswith("| y |") for line in rows), passes)
+
+    def test_a_restart_is_refused_once_the_ended_loop_has_its_recorded_call(self) -> None:
+        self.bind()
+        self.call_skill("improve", self.argument())
+        refused = self.invoke(CLI, "improve-start", "--run-dir", self.run, "--action", self.improve,
+                              "--restart-stopped", status=2).stderr
+        self.assertIn("this review is still running", refused)
+        self.complete()
 
     def test_a_call_for_another_stage_or_before_the_stage_started_does_not_count(self) -> None:
         self.bind()
@@ -506,6 +524,47 @@ class SkillCallGateTests(GateFixture):
                                   {**binding, "run_dir": str(self.base / "other-run")})
         done = self.complete()
         self.assertIn("have not bound this Claude Code session to this run", done.stderr)
+
+
+class ImprovePassGateTests(GateFixture):
+    """improve-pass checks the recorded improve-skill call before any runtime done exists (IMP-2): the refusal prints
+    first, no done command is printed, and its named exit (the skill, then improve-pass again) is accepted."""
+
+    def setUp(self) -> None:
+        improve_tests.ImproveCliFixture.setUp(self)
+        self.keepalive_home = self.base / "keepalive"
+        self.claude_home = self.base / "claude-home"
+        self.environment.update({"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": self.SESSION,
+                                 "SHIPLOOP_KEEPALIVE_HOME": str(self.keepalive_home)})
+        self.handoff = navigator.improve_handoff_path(self.bound)
+        reviews = bridge.receipt_path(self.bound).parent / "reviews"
+        (reviews / "review-1.md").write_text(
+            "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: the result.\n"
+            "Found: nothing material.\nChanged: none.\nChecked: the fixture's check passed.\nClass: no change.\n"
+            "## Handoff\nNothing open.\n", encoding="utf-8")
+        self.pass_argv = [CLI, "improve-pass", "--run-dir", self.run, "--action", self.improve]
+
+    def test_the_skill_call_refusal_prints_before_done_and_its_named_exit_is_accepted(self) -> None:
+        self.bind()
+        refused = self.invoke(*self.pass_argv, status=2)
+        self.assertNotIn(" done --state ", refused.stdout + refused.stderr)
+        first = refused.stderr.splitlines()[0]
+        self.assertIn("Run the improve skill on this " + self.bound["stage"] + " result first", first)
+        named_args = re.search(r'args "([^"]+)"', first)[1]
+        self.assertEqual(named_args, self.argument())
+        named = shlex.split(first.rsplit("run improve-pass again: ", 1)[1])
+        self.assertEqual(named[2:], ["improve-pass", "--run-dir=" + str(self.run), "--action=" + self.improve])
+        self.assertFalse((bridge.receipt_path(self.bound).parent / "reviews" / "report-1.json").exists())
+        self.call_skill("improve", named_args)
+        accepted = subprocess.run(named, text=True, capture_output=True, cwd=self.base, timeout=60,
+                                  env=self.environment)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        self.assertIn(" done --state ", accepted.stdout)
+        self.assertIn("improve skill call recorded", accepted.stdout)
+
+    def test_an_unbound_session_is_not_gated_and_the_pass_says_so(self) -> None:
+        accepted = self.invoke(*self.pass_argv)
+        self.assertIn("improve skill call not enforced (ShipLoop's hooks have not bound", accepted.stdout)
 
 
 class SkillCallGateAskAgentTests(GateFixture):
