@@ -1,0 +1,10 @@
+# Where `sf` resolves, by shell and HOME (measured 2026-10-16 with `type -a sf`; sf itself never run).
+# PATH given to every shell: <run>/platform/bin : ~/.grok/bin : ~/.bun/bin : ~/.claude/tools : ~/.local/bin : /opt/homebrew/bin : ... : /usr/bin : /bin
+# WRAPPER = the harness wrapper; first word is the first hit.
+zsh -c   (throwaway HOME)   WRAPPER ; /opt/homebrew/bin/sf
+zsh -lc  (throwaway HOME)   /opt/homebrew/bin/sf ; WRAPPER
+zsh -ilc (throwaway HOME)   /opt/homebrew/bin/sf ; WRAPPER
+bash -lc (throwaway HOME)   /opt/homebrew/bin/sf ; WRAPPER
+zsh -lc  (real HOME)        /opt/homebrew/bin/sf ; /opt/homebrew/bin/sf ; WRAPPER
+bash -lc (real HOME)        /opt/homebrew/bin/sf ; WRAPPER
+# cause: /etc/paths.d/homebrew holds /opt/homebrew/bin and path_helper (run by /etc/zprofile and /etc/profile) puts /etc/paths(.d) entries first.

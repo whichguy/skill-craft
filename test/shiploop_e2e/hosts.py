@@ -246,11 +246,13 @@ class GrokHost(Host):
             "GROK_CURSOR_SKILLS_ENABLED": "false"})
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None):
+             max_budget_usd=10.0, plugin_dir=None, resume=None, allow=()):
         prompt_file.write_text(prompt)
         argv = [self.binary, "--cwd", str(cwd), "--prompt-file", str(prompt_file), "--verbatim",
                 "--output-format", "streaming-json", "--model", model, "--max-turns", str(max_turns),
                 "--permission-mode", permission_mode, "--no-auto-update"]
+        for rule in allow:  # a case's platform.host_allow: auto mode blocks an action it judges the user did not ask for
+            argv += ["--allow", rule]
         if resume:
             argv += ["--resume", resume]
         return argv + (["--reasoning-effort", effort] if effort else [])
@@ -299,11 +301,13 @@ class ClaudeHost(Host):
         self.binary = binary
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None):
+             max_budget_usd=10.0, plugin_dir=None, resume=None, allow=()):
         argv = [self.binary, "-p", prompt, "--model", model, "--max-turns", str(max_turns),
                 "--max-budget-usd", str(max_budget_usd), "--permission-mode", permission_mode,
                 "--output-format", "stream-json", "--verbose", "--no-session-persistence",
                 "--setting-sources", "project,local", "--strict-mcp-config"]
+        if allow:
+            argv += ["--allowedTools", ",".join(allow)]
         if effort:
             argv += ["--effort", effort]
         if plugin_dir is not None:
@@ -340,7 +344,8 @@ class CodexHost(Host):
         return f"${skill} {prompt}"
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None):
+             max_budget_usd=10.0, plugin_dir=None, resume=None, allow=()):
+        # `allow` is not used: this host runs with approval_policy "never", so no action waits for a permission.
         prompt_file.write_text(prompt)
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",
                 "-s", "danger-full-access", "-c", 'approval_policy="never"', "-C", str(cwd)]

@@ -97,6 +97,7 @@ from __future__ import annotations
 import argparse
 import atexit
 from collections import Counter
+import contextlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import hashlib
@@ -145,19 +146,30 @@ POLL_SECONDS = 2
 # session of its own (start_new_session=True), so a SIGTERM to the harness does not reach it: on 2026-10-08 the Grok host of a
 # round-2 run went on working for about 28 minutes after the harness died of one, with nothing collecting its events.
 LIVE_HOST_GROUPS: set[int] = set()
+HOST_THREAD: dict[int, int] = {}  # the same leaders, by the ident of the thread that launched them (see end_live_hosts)
 # Set when the harness was told to end (SIGTERM, SIGHUP): every launch and every resume treats it as a requested stop.
 TERMINATION = threading.Event()
 TERMINATED_BY: list[str] = []  # the name of the first signal, for the record
 HANDLED_SIGNALS: list[int] = []  # the signals install_termination_handlers took over
 
 
-def end_live_hosts() -> None:
+def end_live_hosts(thread: int | None = None, wait: float = 0.0) -> None:
     """Kill every host session that is running, and the browser of a capability probe that is running (the probe registers its
     group in environment.LIVE_PROBE_GROUPS). Also runs at exit, so a Ctrl-C or a crash leaves no orphan host or browser. Each
-    group is ended by listeners.end_group, which signals nothing whose leader was already reaped (its number may be reused)."""
-    for pid in tuple(LIVE_HOST_GROUPS):  # a copy: suite worker threads add and discard concurrently
+    group is ended by listeners.end_group, which signals nothing whose leader was already reaped (its number may be reused).
+
+    ``thread`` limits it to the hosts that thread launched (and leaves the probes): a platform cleanup, in a suite that runs
+    cases side by side, ends its own case's host and never a sibling's. ``wait`` seconds at most for each of those leaders to
+    be gone (exited or reaped) before returning, which is what a caller that acts on the platform next needs."""
+    leaders = [pid for pid in tuple(LIVE_HOST_GROUPS)  # a copy: suite worker threads add and discard concurrently
+               if thread is None or HOST_THREAD.get(pid) == thread]
+    for pid in leaders:
         listeners.end_group(pid)
-    environment.end_live_probes()
+    if thread is None:
+        environment.end_live_probes()
+    deadline = time.monotonic() + wait
+    while time.monotonic() < deadline and any(listeners.unreaped(pid) == "running" for pid in leaders):
+        time.sleep(0.05)
 
 
 atexit.register(end_live_hosts)
@@ -554,7 +566,7 @@ class LiveView:
 
     def emit(self, line: str):
         if self.enabled:
-            print(f"[{time.time() - self.start:6.0f}s] {line}", flush=True)
+            print(f"[{time.time() - self.start:6.0f}s] {scrub(line)}", flush=True)  # the terminal and its logs keep no credential
 
     def flush_text(self):
         if self.text.strip():
@@ -717,6 +729,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=stderr, env=env, start_new_session=True)
         LIVE_HOST_GROUPS.add(proc.pid)  # a signal to the harness now ends this group (on_termination)
+        HOST_THREAD[proc.pid] = threading.get_ident()
 
         def record(raw: bytes):
             nonlocal line, stop
@@ -768,6 +781,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         finally:
             if proc.poll() is not None:
                 LIVE_HOST_GROUPS.discard(proc.pid)  # reaped: its pgid may be reused, so it is never signalled again
+                HOST_THREAD.pop(proc.pid, None)
         if status is None:
             # A signal may have killed the group before this loop saw it: that is a stop, not a host failure.
             status = "stopped" if TERMINATION.is_set() else "exited" if proc.returncode == 0 else "failed"
@@ -862,16 +876,19 @@ def run_cli(host_name: str, out: Path, plugin_dir: Path) -> Path:
     return hosts.host(host_name).plugin_cli(out / "home") or shiploop_cli(plugin_dir)
 
 
-def resume_prompt(run_dir: str | None, cli: Path) -> str:
+def resume_prompt(run_dir: str | None, cli: Path, note: str | None = None) -> str:
     """The prompt that continues a run: the exact command of the CLI the run started on (SPEC: a resume names the
-    CLI the run itself uses). There is no bare-command form; main refuses a resume whose CLI file is gone."""
+    CLI the run itself uses). There is no bare-command form; main refuses a resume whose CLI file is gone.
+    ``note`` (a platform case's `resume_note`, see resume_platform_note) is appended as it is; without one the prompt is unchanged."""
     if run_dir is None:
-        return ("This session ended before the ShipLoop run was started. Continue the original "
-                "request now: start the ShipLoop run as its skill directs and follow each packet to "
-                "the end of the run. Never end the turn while a ShipLoop command is still running.")
-    return ("This session ended while the ShipLoop run was still active. Continue it now: run "
-            f"`python3 \"{cli}\" next --run-dir \"{run_dir}\"` and follow the packet it prints, to the end of the "
-            "run. Never end the turn while a ShipLoop command is still running.")
+        prompt = ("This session ended before the ShipLoop run was started. Continue the original "
+                  "request now: start the ShipLoop run as its skill directs and follow each packet to "
+                  "the end of the run. Never end the turn while a ShipLoop command is still running.")
+    else:
+        prompt = ("This session ended while the ShipLoop run was still active. Continue it now: run "
+                  f"`python3 \"{cli}\" next --run-dir \"{run_dir}\"` and follow the packet it prints, to the end of the "
+                  "run. Never end the turn while a ShipLoop command is still running.")
+    return f"{prompt} {note}" if note else prompt
 
 
 def resume_told(run_dir: str | None, cli: Path) -> dict | None:
@@ -896,6 +913,8 @@ def resume_command(out: Path, args) -> str:
         parts += [f"--{args.host}-bin", binary]
     if args.source == "checkout" and args.plugin_dir:
         parts += ["--plugin-dir", str(args.plugin_dir)]
+    if getattr(args, "keep_platform", False):
+        parts.append("--keep-platform")  # a resume keeps the platform only if it is told to again
     return shlex.join(parts)
 
 
@@ -1331,11 +1350,16 @@ def untracked(work: Path) -> set[str]:
     return {ln[3:] for ln in done.stdout.splitlines() if ln.startswith("?? ")} if done.returncode == 0 else set()
 
 
-def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | None = None) -> list[dict]:
+CHECK_TIMEOUT = 180  # seconds, one case check's ceiling; a platform case may raise it (platform.check_timeout)
+
+
+def run_checks(work: Path, checks: list[str], timeout: int = CHECK_TIMEOUT, env: dict | None = None, scrubbed: bool = False) -> list[dict]:
     """Run each check in `work`, then delete any untracked file the checks created.
 
     A follow-on run copies this checkout; a leftover (a server log, say) would
     make ShipLoop see a dirty start and return only a working-tree delta.
+
+    ``scrubbed`` (a case with a platform) removes credentials from the stored output.
     """
     before = untracked(work)
     results = []
@@ -1347,18 +1371,20 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
             code, output = done.returncode, (done.stdout + done.stderr)[-2000:]
         except subprocess.TimeoutExpired:
             code, output = None, "timeout"
+        output = scrub(output) if scrubbed else output
         results.append({"command": command, "pass": code == 0, "returncode": code, "output": output})
     for leftover in sorted(untracked(work) - before):
         (work / leftover).unlink(missing_ok=True)
     return results
 
 
-# One check's ceiling in the product-at-stop run, the same 180 s as a check in the working directory. A ceiling for a check
-# that never ends, not a tuning value.
+# One check's ceiling in the product-at-stop run, the same 180 s as a check in the working directory (CHECK_TIMEOUT); a platform
+# case's check_timeout does not raise it, because a check that runs out here is `timed_out`, never a product failure. A ceiling
+# for a check that never ends, not a tuning value.
 PRODUCT_AT_STOP_TIMEOUT = 180
 
 
-def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict | None = None) -> dict | None:
+def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict | None = None, scrubbed: bool = False) -> dict | None:
     """For a run whose ShipLoop did not reach done: do the case checks pass in ShipLoop's unreturned worktree?
 
     Information only (SPEC S-11): it never touches ``checks``, ``committed``, ``pass`` or the exit code, because a run that
@@ -1377,7 +1403,7 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
     if not checks:
         return {**head, "ran": False, "reason": "the case declares no checks", "engine": position}
     entries = []
-    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env):
+    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env, scrubbed=scrubbed):
         timed_out = done["returncode"] is None
         entry = {"command": done["command"], "pass": done["pass"], "returncode": done["returncode"], "timed_out": timed_out}
         if not done["pass"] and not timed_out:
@@ -1387,6 +1413,783 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
     passed = sum(entry["pass"] for entry in entries)
     return {**head, "ran": True, "worktree": shiploop["worktree"], "engine": position, "checks": entries,
             "passed": passed, "failed": len(entries) - passed - timed, "timed_out": timed, "total": len(entries)}
+
+
+# ---------------------------------------------------------------- platform hooks
+# A case may carry a `platform` object: the commands that make a hosted platform (an org, an account, a cloud project) safe to
+# give a model, and that remove what the run made there. The harness knows nothing about any platform; it runs the commands the
+# case names (README, "Platform hooks"):
+#   preflight  with the HOST's environment, before any model call: non-zero aborts the run (a bad home link shows up here)
+#   before     once, on a fresh run only, with E2E_PLATFORM_DIR=<output>/platform: a snapshot of what exists before the model
+#   cleanup    after grading, always (a `finally`: failure, crash, Ctrl-C): remove what the run created
+#   home_links names under the real HOME linked into a throwaway HOME (Grok, Codex), so the model's CLI is already signed in
+#   model_bin  {command name: shell command}: a guarded stand-in for each name, written to <output>/platform/bin and put first on
+#              the host's PATH. It runs the command with the REAL HOME and the model's argv as "$@", so the case's policy decides
+#              what the model may do and the real CLI keeps working where a throwaway HOME hides its login (a keychain).
+#              A login shell (the shell tool of Grok, `zsh -l`) runs macOS path_helper, which puts /etc/paths.d (Homebrew) ahead
+#              of the PATH the host was launched with, so pin_shell_path writes the PATH back to the front in the throwaway
+#              HOME's startup files and shell_resolution_problems proves, per shell, that each name still resolves to the wrapper
+#   resume_note  a sentence appended to the prompt of a RESUMED run whose earlier segment's cleanup ran (the platform was reset)
+#   check_timeout  seconds (60..3600) one of the case's checks may run, in place of CHECK_TIMEOUT: a check that asks the platform many
+#              times and cannot be run again once the cleanup has reset it
+# Every command output the harness stores or prints goes through scrub().
+PLATFORM_COMMANDS = ("preflight", "before", "cleanup")
+PLATFORM_TIMEOUT = 900  # seconds, one command's ceiling; a command that never ends, not a tuning value
+PLATFORM_TAIL = 2000  # characters of scrubbed output kept per command
+HOST_END_WAIT = 10  # seconds a platform cleanup waits for this case's hosts to be gone before it acts on the platform
+
+# Values of these keys are credentials wherever they appear (JSON, escaped JSON inside an event stream, `key: value`, `key=value`).
+SECRET_KEYS = ("accessToken", "refreshToken", "clientSecret", "sfdxAuthUrl")
+_SECRET_VALUE = re.compile(r"(?P<head>(?:" + "|".join(SECRET_KEYS) + r")(?:\\*[\"'])?\s*[:=]\s*(?:\\*[\"'])?)(?P<value>[^\s\"'\\,}]+)")
+# A Salesforce session token, whatever key (if any) carries it: <org id>!<session>.
+_SESSION_TOKEN = re.compile(r"00D[A-Za-z0-9]{12,15}![A-Za-z0-9._]{20,}")
+REDACTED = "[redacted]"
+
+
+def scrub(text) -> str:
+    """``text`` with every credential replaced by ``[redacted]``: the value of a key named accessToken, refreshToken, clientSecret
+    or sfdxAuthUrl, and any string shaped like a Salesforce session token. Idempotent; text with neither is returned unchanged."""
+    text = text if isinstance(text, str) else ("" if text is None else str(text))
+    text = _SECRET_VALUE.sub(lambda match: match.group("head") + REDACTED, text)
+    return _SESSION_TOKEN.sub(REDACTED, text)
+
+
+def scrub_files(folder: Path) -> list[str]:
+    """Scrub, in place, the regular files directly in ``folder`` (the harness's own records: event stream, transcript, prompts,
+    stderr), not the work folder or the host's throwaway profile. Byte-preserving where nothing matches. Returns the names changed."""
+    changed = []
+    for path in sorted(folder.iterdir()):
+        if path.is_symlink() or not path.is_file():
+            continue
+        try:
+            raw = path.read_text(encoding="utf-8", errors="surrogateescape")
+            clean = scrub(raw)
+            if clean != raw:
+                path.write_text(clean, encoding="utf-8", errors="surrogateescape")
+                changed.append(path.name)
+        except OSError:
+            continue
+    return changed
+
+
+def case_platform(name: str) -> dict | None:
+    """The validated `platform` object of a named case, None for a case without one (and for a custom prompt)."""
+    if name == "custom":
+        return None
+    spec = (json.loads(CASES.read_text()).get(name) or {}).get("platform")
+    if spec is None:
+        return None
+    return validate_platform(name, spec)
+
+
+def validate_platform(name: str, spec) -> dict:
+    problems = []
+    if not isinstance(spec, dict):
+        raise SystemExit(f"case {name!r}: platform must be an object")
+    for key in PLATFORM_COMMANDS:
+        if key in spec and not (isinstance(spec[key], str) and spec[key].strip()):
+            problems.append(f"{key} must be a non-empty command string")
+    if "resume_note" in spec and not (isinstance(spec["resume_note"], str) and spec["resume_note"].strip()):
+        problems.append("resume_note must be a non-empty string")
+    if "host_allow" in spec and not (isinstance(spec["host_allow"], list)
+                                     and all(isinstance(rule, str) and rule.strip() for rule in spec["host_allow"])):
+        problems.append("host_allow must be a list of non-empty permission rules (for example \"Bash(sf *)\")")
+    timeout = spec.get("check_timeout", CHECK_TIMEOUT)
+    if not (isinstance(timeout, int) and 60 <= timeout <= 3600):
+        problems.append("check_timeout must be an integer number of seconds from 60 to 3600")
+    if spec.get("before") and not spec.get("cleanup"):
+        problems.append("before without cleanup: nothing would remove what the run makes")
+    links = spec.get("home_links", [])
+    if not (isinstance(links, list) and all(isinstance(n, str) and n and "/" not in n and n not in (".", "..") for n in links)):
+        problems.append("home_links must be a list of plain names under the home folder (no path separators)")
+    bins = spec.get("model_bin", {})
+    if not (isinstance(bins, dict) and all(isinstance(n, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", n)
+                                           and isinstance(c, str) and c.strip() for n, c in bins.items())):
+        problems.append("model_bin must be an object of plain command names to non-empty shell commands")
+    if problems:
+        raise SystemExit(f"case {name!r}: platform: " + "; ".join(problems))
+    return spec
+
+
+def platform_env(base: dict, platform_dir: Path) -> dict:
+    return dict(base, E2E_CHECKS=str(HERE / "checks"), E2E_PLATFORM_DIR=str(platform_dir))
+
+
+def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
+    """Write ``<platform_dir>/bin/<name>`` for each name: an executable ``#!/bin/sh`` script that runs the case's command with the
+    real HOME and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
+    none). Returns {name: path}. The command is the case's own text, run as the case wrote it."""
+    folder = platform_dir / "bin"
+    folder.mkdir(parents=True, exist_ok=True)
+    baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder)}
+    written = {}
+    for name, command in bins.items():
+        path = folder / name
+        path.write_text("#!/bin/sh\n# written by the E2E harness (platform.model_bin); the case's policy decides what the model may run\n"
+                        + "".join(f"export {key}={shlex.quote(value)}\n" for key, value in baked.items())
+                        + f"exec env HOME={shlex.quote(str(real_home))} {command} \"$@\"\n")
+        path.chmod(0o755)
+        written[name] = str(path)
+    return written
+
+
+# The startup files a shell the model may use reads after /etc/zprofile or /etc/profile ran path_helper: zsh login (.zprofile),
+# zsh interactive (.zshrc), bash login (the first of .bash_profile, .profile) and bash interactive (.bashrc).
+SHELL_STARTUP_FILES = (".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile")
+PIN_MARK = "# skill-craft E2E (platform.model_bin): the guarded commands stay first on PATH after macOS path_helper moved them"
+# The shells whose resolution of a guarded name is checked: a plain `-c` shell (what the host's own tools use), a login shell and
+# an interactive login shell (what Grok's shell tool starts). One that is not installed here is skipped. The host's own $SHELL,
+# when it is none of these, is checked too (login and interactive login): see resolution_shells.
+RESOLUTION_SHELLS = (("/bin/sh", "-c"), ("/bin/sh", "-lc"), ("/bin/bash", "-c"), ("/bin/bash", "-lc"), ("/bin/zsh", "-c"),
+                     ("/bin/zsh", "-lc"), ("/bin/zsh", "-ilc"))
+RESOLUTION_TIMEOUT = 30  # seconds per shell
+
+
+def pin_shell_path(home: Path, bin_dir: Path, real_home: Path) -> list[str]:
+    """Make ``bin_dir`` the first PATH folder again after path_helper: append a marked PATH line to each shell startup file of
+    the throwaway ``home``, once (a file that already holds the block is left as it is, and a file's own content is kept).
+
+    Returns the names of the startup files that carry the block. Nothing is written when ``home`` is the real home (a Claude
+    host), and a startup file that is a symlink (a ``home_links`` name) is never written through, so the real home's files are
+    never touched; a host without a throwaway home is left to shell_resolution_problems to refuse."""
+    home = Path(home)
+    if home.resolve() == Path(real_home).resolve():
+        return []
+    block = f'{PIN_MARK}\nPATH={shlex.quote(str(bin_dir))}":$PATH"\nexport PATH\n'
+    home.mkdir(parents=True, exist_ok=True)
+    pinned = []
+    for name in SHELL_STARTUP_FILES:
+        path = home / name
+        if path.is_symlink():
+            continue
+        try:
+            text = path.read_text(errors="replace") if path.exists() else ""
+            if block not in text:
+                with path.open("a") as handle:
+                    handle.write(("" if not text or text.endswith("\n") else "\n") + block)
+        except OSError:
+            continue
+        pinned.append(name)
+    return pinned
+
+
+def resolution_shells(env: dict) -> list[tuple[str, str]]:
+    """RESOLUTION_SHELLS, and the host's own ``$SHELL`` (login and interactive login) when ``env`` names one that is executable
+    and not already listed: a host's shell tool normally starts ``$SHELL -l``, which may be Homebrew's zsh or another shell."""
+    shells = list(RESOLUTION_SHELLS)
+    own = env.get("SHELL")
+    if own and os.path.isfile(own) and os.access(own, os.X_OK) and own not in {shell for shell, _ in shells}:
+        shells += [(own, "-lc"), (own, "-ilc")]
+    return shells
+
+
+def shell_resolution_problems(names, bin_dir: Path, env: dict) -> list[str]:
+    """One problem per guarded name and shell where the name does not resolve to ``bin_dir/<name>``: each shell of
+    resolution_shells (the ones installed) is started with ``env`` (the host's: throwaway HOME, wrapper-first PATH) and asked
+    ``command -v <name>``, which prints the path and never runs it. Empty means the wrapper is what the model's shells find."""
+    # SHELL_SESSIONS_DISABLE: Apple Terminal's zsh session files, which an interactive zsh would write into HOME
+    probe_env = dict(env, SHELL_SESSIONS_DISABLE="1")
+    problems = []
+    for shell, flag in resolution_shells(env):
+        if not os.access(shell, os.X_OK):
+            continue
+        for name in names:
+            want = str(Path(bin_dir) / name)
+            try:
+                done = subprocess.run([shell, flag, "command -v " + shlex.quote(name)], env=probe_env, stdin=subprocess.DEVNULL,
+                                      capture_output=True, text=True, errors="replace", timeout=RESOLUTION_TIMEOUT,
+                                      start_new_session=True)
+            except subprocess.TimeoutExpired:
+                problems.append(f"`{shell} {flag}` did not answer `command -v {name}` within {RESOLUTION_TIMEOUT}s")
+                continue
+            lines = [line.strip() for line in done.stdout.splitlines() if line.strip()]
+            found = lines[-1] if lines else ""
+            if found != want:
+                problems.append(f"`{name}` resolves to {found or 'nothing'} under `{shell} {flag}`, not to the wrapper {want}: "
+                                "the model's shell would run the real command, outside the case's policy")
+    return problems
+
+
+# What a model that was given a guarded sf can be seen to have run, and where the guard (checks/sf_guard.py) keeps its record.
+GUARD_LOG = "sf-calls.jsonl"
+PREFLIGHT_RANGES = "preflight-ranges.jsonl"  # next to the guard log: one [from, to] line per preflight that ran, appended as it ends
+GUARDED_NAMES = ("sf", "sfdx")
+
+# A command counts as running sf only where a shell would start it: the case prompt ShipLoop's `workspace start` is given, a note
+# written through a heredoc, `command -v sf` and `echo "sf missing"` all contain the word without running it. So a command is read
+# the way a shell reads it (quotes, here-documents, substitutions, `bash -c` scripts); the one place the word counts inside a
+# string is the list form of a program's own subprocess call (`["sf", ...`, in a python heredoc or `python3 -c`).
+_SHELLS = frozenset(("sh", "bash", "zsh", "dash", "ksh"))
+# Words that may stand before the command a simple command runs: reserved words, and wrappers whose own flags and numbers
+# (`timeout 60`, `nice -n 5`, `env -i`) are skipped with them.
+_BEFORE_COMMAND = frozenset(("if", "then", "elif", "else", "do", "while", "until", "!", "{", "env", "exec", "command", "builtin",
+                             "time", "nohup", "nice", "sudo", "timeout", "xargs"))
+_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+_SHELL_SCRIPT_FLAG = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
+_SF_LIST = re.compile(r"""\[\s*["']((?:[^"'\s]*/)?sf(?:dx)?)["']""")
+_SF_LOOKUP = re.compile(r"(?:\$\(|`)\s*(?:command -v|which|type -p)\s+(?:sf|sfdx)\s*(?:\)|`)")
+_NESTING = 4  # how deep `bash -c '... $(...) ...'` is followed
+
+
+def _skip_quoted(text: str, i: int) -> int:
+    """The index just past the quoted string that opens at ``text[i]`` (the end of the text where it never closes)."""
+    quote, j = text[i], i + 1
+    while j < len(text) and text[j] != quote:
+        j += 2 if quote == '"' and text[j] == "\\" else 1
+    return j + 1
+
+
+def _paren_end(text: str, i: int) -> int:
+    """The index of the ``)`` that closes a ``$(`` whose body starts at ``i`` (the end of the text where it never closes)."""
+    depth = 1
+    while i < len(text):
+        if text[i] == "\\":
+            i += 2
+        elif text[i] in "'\"":
+            i = _skip_quoted(text, i)
+        else:
+            depth += (text[i] == "(") - (text[i] == ")")
+            if depth == 0:
+                return i
+            i += 1
+    return len(text)
+
+
+def _substitution(text: str, i: int) -> tuple[str, int]:
+    """For the ``$(`` or backtick at ``text[i]``: (the text inside the substitution, the index just past it)."""
+    if text[i] == "`":
+        end = text.find("`", i + 1)
+        end = len(text) if end < 0 else end
+        return text[i + 1:end], end + 1
+    end = _paren_end(text, i + 2)
+    return text[i + 2:end], end + 1
+
+
+def _heredoc_body(text: str, i: int, delimiter: str, strip_tabs: bool) -> tuple[str, int]:
+    """(body, index after it) of the here-document whose lines start at ``i``: everything up to the line that is the delimiter."""
+    lines = []
+    while i < len(text):
+        end = text.find("\n", i)
+        end = len(text) if end < 0 else end
+        line, i = text[i:end], min(end + 1, len(text))
+        if (line.lstrip("\t") if strip_tabs else line) == delimiter:
+            break
+        lines.append(line)
+    return "\n".join(lines), i
+
+
+def _shell_tokens(text: str):
+    """What a POSIX shell reads in ``text``: ("word", w) with its quoting removed, ("op", c) for a separator of simple commands,
+    ("sub", s) for the text inside a `$(...)` or backtick substitution (commands of their own), ("data", s) for a here-document
+    body (input, not commands). A comment is dropped; an unclosed quote runs to the end of the text."""
+    word: list[str] = []
+    started = False  # a word is open, so a quoted '' is a word
+    heredocs: list[tuple[str, bool]] = []  # read at the next newline
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if c in " \t;&|()\n" or text.startswith("<<", i) and not text.startswith("<<<", i):
+            if started:
+                yield "word", "".join(word)
+                word, started = [], False
+            if c == "<":  # a here-document: its delimiter is not a word, its body starts after this line
+                j = i + 2
+                strip_tabs = text.startswith("-", j)
+                j += strip_tabs
+                while j < n and text[j] in " \t":
+                    j += 1
+                if j < n and text[j] in "'\"":
+                    end = _skip_quoted(text, j)
+                    delimiter = text[j + 1:end - 1]
+                else:
+                    end = j
+                    while end < n and text[end] not in " \t\n;&|()<>":
+                        end += 1
+                    delimiter = text[j:end]
+                heredocs.append((delimiter, strip_tabs))
+                i = end
+                continue
+            if c == "\n":
+                for delimiter, strip_tabs in heredocs:
+                    body, i = _heredoc_body(text, i + 1, delimiter, strip_tabs)
+                    yield "data", body
+                    i -= 1  # the newline that ended the body's last line is the next one read
+                heredocs = []
+            if c not in " \t":
+                yield "op", c
+            i += 1
+        elif c == "#" and not started:
+            end = text.find("\n", i)
+            i = n if end < 0 else end
+        elif c == "'":
+            end = _skip_quoted(text, i)
+            word.append(text[i + 1:end - 1])
+            started, i = True, end
+        elif c == '"':
+            j, part = i + 1, []
+            while j < n and text[j] != '"':
+                if text[j] == "\\" and text[j + 1:j + 2] and text[j + 1] in '$`"\\\n':
+                    part.append(text[j + 1])
+                    j += 2
+                elif text.startswith("$(", j) or text[j] == "`":
+                    inner, end = _substitution(text, j)
+                    yield "sub", inner
+                    part.append(text[j:end])
+                    j = end
+                else:
+                    part.append(text[j])
+                    j += 1
+            word.append("".join(part))
+            started, i = True, j + 1
+        elif text.startswith("$(", i) or c == "`":
+            inner, end = _substitution(text, i)
+            yield "sub", inner
+            word.append(text[i:end])
+            started, i = True, end
+        elif text.startswith("<<<", i):  # a here-string: its word is an argument
+            word.append("<<<")
+            started, i = True, i + 3
+        elif c == "\\":
+            if text[i + 1:i + 2] != "\n":  # a backslash before a newline continues the line
+                word.append(text[i + 1:i + 2])
+                started = True
+            i += 2
+        else:
+            word.append(c)
+            started = True
+            i += 1
+    if started:
+        yield "word", "".join(word)
+
+
+def _simple_command_runs(words: list[str], depth: int) -> list[str]:
+    """The word by which the simple command ``words`` runs sf or sfdx (``sf``, ``/opt/homebrew/bin/sf``), else nothing. Leading
+    `VAR=x` assignments, reserved words and wrappers are looked through; ``command -v sf`` looks sf up and does not run it; the
+    script of a `bash -c` or `eval` is read as commands."""
+    wrapped = False
+    for start, word in enumerate(words):
+        if _ASSIGNMENT.match(word) or word in _BEFORE_COMMAND:
+            wrapped = wrapped or word in _BEFORE_COMMAND
+        elif wrapped and word in ("-v", "-V") and words[start - 1] == "command":
+            return []
+        elif not (wrapped and (word.startswith("-") or word.isdigit())):
+            break
+    else:
+        return []
+    command = words[start:]
+    program = command[0].rsplit("/", 1)[-1]
+    if program in GUARDED_NAMES:
+        return [command[0]]
+    if _SF_LOOKUP.fullmatch(command[0]):
+        return ["sf"]  # `$(command -v sf) org list`: whatever the PATH finds
+    if depth >= _NESTING:
+        return []
+    if program in _SHELLS:
+        for number, flag in enumerate(command[1:-1], 1):
+            if _SHELL_SCRIPT_FLAG.fullmatch(flag):
+                return _sf_words(command[number + 1], depth + 1)
+    elif program == "eval":
+        return _sf_words(" ".join(command[1:]), depth + 1)
+    return []
+
+
+def _sf_words(text: str, depth: int = 0) -> list[str]:
+    """Every word by which a command of the shell text ``text`` runs sf or sfdx, in the order read (see _simple_command_runs)."""
+    found: list[str] = []
+    words: list[str] = []
+    for kind, value in _shell_tokens(text):
+        if kind == "word":
+            words.append(value)
+        elif kind == "op":
+            found += _simple_command_runs(words, depth)
+            words = []
+        elif kind == "sub" and depth < _NESTING:
+            found += _sf_words(value, depth + 1)
+    return found + _simple_command_runs(words, depth)
+
+
+def sf_words(command: str) -> list[str]:
+    """The words by which one model command runs sf or sfdx: as a shell command (`sf`, `HOME=x /opt/homebrew/bin/sf`, `bash -lc
+    'cd w && sfdx ...'`) and in the list form of a subprocess call (`["sf", ...`, `["/opt/homebrew/bin/sf", ...`)."""
+    return _sf_words(command) + [match.group(1) for match in _SF_LIST.finditer(command)]
+
+
+def _command_strings(value):
+    """Every command under a key named `command` or `cmd`, anywhere in a decoded event (the model's own tool inputs). A list is
+    an argv, as a Codex command may be, and is quoted into the one command line it stands for."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in ("command", "cmd") and isinstance(item, str):
+                yield item
+            elif key in ("command", "cmd") and isinstance(item, list) and item and all(isinstance(word, str) for word in item):
+                yield shlex.join(item)
+            else:
+                yield from _command_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _command_strings(item)
+
+
+def _model_sf(events_path: Path) -> dict[str, list[str]]:
+    """{command: the words by which it runs sf} for each distinct command in the host's event stream that runs sf or sfdx. A line
+    that is not JSON is skipped."""
+    found: dict[str, list[str]] = {}
+    try:
+        lines = events_path.read_text(errors="replace").splitlines()
+    except OSError:
+        return found
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        for command in _command_strings(event):
+            if command not in found and (words := sf_words(command)):
+                found[command] = words
+    return found
+
+
+def model_sf_commands(events_path: Path) -> list[str]:
+    """The distinct commands in the host's event stream that run `sf` or `sfdx` (`sf org list`, `HOME=/x sf apex run`,
+    `subprocess.run(["sf", ...`, `/opt/homebrew/bin/sf ...`). Text that only mentions sf (the prompt, a note, a model's prose) does
+    not run it and is not counted. A heuristic: it reads commands, not intent."""
+    return list(_model_sf(events_path))
+
+
+def _outside(word: str, bin_dir: Path) -> bool:
+    """Whether ``word``, how a command started sf, is a path to something other than the wrapper in ``bin_dir``."""
+    if "/" not in word:
+        return False
+    folder = os.path.dirname(os.path.expanduser(word))
+    return not os.path.isabs(folder) or os.path.realpath(folder) != os.path.realpath(bin_dir)
+
+
+def _direct(found: dict[str, list[str]], bin_dir: Path) -> list[str]:
+    return [command for command, words in found.items() if any(_outside(word, bin_dir) for word in words)]
+
+
+def direct_sf_commands(events_path: Path, bin_dir: Path) -> list[str]:
+    """The commands among model_sf_commands that start sf or sfdx by a path (`/opt/homebrew/bin/sf`, `~/.local/share/sf/client/bin/sf`,
+    `./sf`) other than the wrapper folder ``bin_dir``: the real CLI, which no wrapper stands in front of."""
+    return _direct(_model_sf(events_path), bin_dir)
+
+
+def guard_log_lines(out: Path) -> int:
+    """The lines <output>/platform/sf-calls.jsonl holds now (0 where there is none)."""
+    try:
+        with (out / "platform" / GUARD_LOG).open("rb") as handle:
+            return sum(chunk.count(b"\n") for chunk in iter(lambda: handle.read(1 << 20), b""))
+    except OSError:
+        return 0
+
+
+def preflight_ranges(out: Path) -> list[tuple[int, int]]:
+    """The ranges [from, to) of guard-log lines that the harness's own preflights wrote, one per preflight that ran
+    (<output>/platform/preflight-ranges.jsonl, appended by platform_preflight the moment the preflight ends, so a resume that is
+    refused later still has its range): wrapper calls the case's preflight command made, which are not the model's. A line that
+    is not a pair of integers is skipped; empty where the file is absent."""
+    ranges = []
+    try:
+        lines = (out / "platform" / PREFLIGHT_RANGES).read_text().splitlines()
+    except OSError:
+        return ranges
+    for line in lines:
+        try:
+            first, last = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(first, int) and isinstance(last, int):
+            ranges.append((first, last))
+    return ranges
+
+
+def guard_coverage(out: Path, preflights=()) -> dict:
+    """Did the guard see the model's sf, and did the model go around it? ``{model_sf_commands, guard_calls, direct_sf_commands,
+    bypassed}``: the distinct sf commands in the event stream; the calls the guard logged outside ``preflights`` (the line ranges
+    of the harness's own preflights, see preflight_ranges; a call is a log line without an `end` key, allowed or denied); the
+    commands that started sf by a path outside the wrapper folder; and ``bypassed``: commands were run and the guard saw none, or
+    a command went around the wrapper, so the policy did not govern this run (an invalid trial, not a ShipLoop verdict). It
+    catches total bypass and the direct forms above; a model that makes a guarded call and then reaches the real CLI some other way
+    (its own HOME, a variable holding the path) is not seen."""
+    calls = 0
+    try:
+        with (out / "platform" / GUARD_LOG).open(errors="replace") as handle:
+            for number, line in enumerate(handle):
+                if any(first <= number < last for first, last in preflights):
+                    continue
+                try:
+                    record = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(record, dict) and "end" not in record:
+                    calls += 1
+    except OSError:
+        pass
+    found = _model_sf(out / "events.jsonl")
+    commands, direct = len(found), len(_direct(found, out / "platform" / "bin"))
+    return {"model_sf_commands": commands, "guard_calls": calls, "direct_sf_commands": direct,
+            "bypassed": (commands > 0 and calls == 0) or direct > 0}
+
+
+def bypass_lines(coverage: dict) -> list[str]:
+    """The plain lines that say why a run is an invalid trial (empty where it is not)."""
+    lines = []
+    if coverage["direct_sf_commands"]:
+        lines.append(f"the model started sf by a path outside the wrapper in {coverage['direct_sf_commands']} sf-looking commands "
+                     "(see transcript.md), so the policy did not govern those calls: an invalid trial, not a ShipLoop verdict")
+    if coverage["model_sf_commands"] and not coverage["guard_calls"]:
+        lines.append(f"the guard saw no model call although the transcript shows {coverage['model_sf_commands']} sf-looking "
+                     "commands, so the policy may not have governed this run: an invalid trial, not a ShipLoop verdict")
+    return lines
+
+
+def run_platform_command(command: str, cwd: Path, env: dict, timeout: int = PLATFORM_TIMEOUT) -> dict:
+    """Run one platform command in a shell of its own session; {command, returncode, ok, output} with the output scrubbed and
+    cut to its tail (a timeout is returncode None). A Ctrl-C while it runs is noted and waited out once, so a cleanup that has
+    begun is not abandoned; a second Ctrl-C leaves it running and says so."""
+    proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, errors="replace", start_new_session=True)
+    interrupts, code, output = 0, None, ""
+    deadline = time.time() + timeout
+    while True:
+        try:
+            output, _ = proc.communicate(timeout=max(1, deadline - time.time()))
+            code = proc.returncode
+            break
+        except subprocess.TimeoutExpired:
+            listeners.end_group(proc.pid)  # the harness's one group kill (S-12): the shell and whatever it started
+            output, _ = proc.communicate()
+            output += f"\ntimeout after {timeout}s"
+            break
+        except KeyboardInterrupt:
+            interrupts += 1
+            if interrupts > 1:
+                output, code = "abandoned by a second Ctrl-C; it may still be running", None
+                break
+            print("Ctrl-C: waiting for the platform command to finish (press again to abandon it)", flush=True)
+    return {"command": command, "returncode": code, "ok": code == 0, "output": scrub(output)[-PLATFORM_TAIL:]}
+
+
+def link_homes(names: list[str], env: dict) -> list[dict]:
+    """Symlink ``<throwaway home>/<name>`` to ``~/<name>`` for each name that exists, and say what happened to each name.
+
+    Only existence is checked (a stat), never the contents: the harness does not read credentials. A host on the real HOME (Claude)
+    needs nothing; a name that does not exist is skipped silently and recorded as absent.
+    """
+    real, target = Path.home(), Path(env.get("HOME") or Path.home())
+    if target.resolve() == real.resolve():
+        return [{"name": name, "linked": False, "reason": "the host runs in the real HOME"} for name in names]
+    records = []
+    for name in names:
+        source, link = real / name, target / name
+        if not source.exists():
+            records.append({"name": name, "linked": False, "reason": "absent from the real HOME"})
+        elif link.is_symlink() and os.readlink(link) == str(source):
+            records.append({"name": name, "linked": True, "target": str(source)})
+        elif os.path.lexists(link):
+            records.append({"name": name, "linked": False, "reason": "already present in the throwaway HOME; not replaced"})
+        else:
+            link.symlink_to(source)
+            records.append({"name": name, "linked": True, "target": str(source)})
+    return records
+
+
+def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
+    """Make the home links and the model_bin wrappers, then run the case's preflight command with the host's environment;
+    {home_links, preflight} (plus, where the case has a model_bin: model_bin {name: wrapper path}, shell_path_pinned,
+    model_bin_resolution {ok, problems}). With a model_bin it also appends [from, to], the guard-log lines the case's preflight
+    command wrote through the wrappers (not the model's calls), to <output>/platform/preflight-ranges.jsonl as the preflight
+    ends (see preflight_ranges). ``preflight`` is None where the case names no command.
+    ``host_env`` is changed in place: with model_bin its PATH starts with the wrappers' folder, which is what the host launches
+    with and what the preflight runs under (so it proves the wrapper works from the host's environment).
+
+    With model_bin the wrapper must also be what the model's shells find: pin_shell_path puts it first again in the throwaway
+    HOME's startup files, and shell_resolution_problems checks each shell. Any problem makes ``preflight`` a failing record and
+    the case's own preflight command is not run, so both callers refuse the run (a host on the real HOME is not pinned, so it
+    is refused when a login shell reorders its PATH: refused rather than run unguarded)."""
+    platform_dir = out / "platform"
+    platform_dir.mkdir(exist_ok=True)
+    links = link_homes(spec.get("home_links") or [], host_env)
+    state: dict = {"home_links": links}
+    if spec.get("model_bin"):
+        real_home = Path(os.environ.get("HOME") or Path.home())
+        state["model_bin"] = write_model_bin(spec["model_bin"], platform_dir, real_home)
+        host_env["PATH"] = str(platform_dir / "bin") + os.pathsep + host_env.get("PATH", "")
+        state["shell_path_pinned"] = pin_shell_path(Path(host_env.get("HOME") or real_home), platform_dir / "bin", real_home)
+        problems = shell_resolution_problems(list(spec["model_bin"]), platform_dir / "bin", host_env)
+        state["model_bin_resolution"] = {"ok": not problems, "problems": problems}
+        if problems:
+            state["preflight"] = {"command": "model_bin shell resolution", "returncode": 1, "ok": False,
+                                  "output": scrub("\n".join(problems))[-PLATFORM_TAIL:]}
+            return state
+    command = spec.get("preflight")
+    first = guard_log_lines(out)  # where this invocation's preflight starts writing (a resume's preflight calls are not the model's)
+    try:
+        state["preflight"] = run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None
+    finally:
+        if spec.get("model_bin"):
+            # Recorded here, not with the invocation record: a resume can be refused after its preflight (the version gate), and
+            # the wrapper lines that preflight wrote must still not read as the model's calls at the next resume.
+            with (platform_dir / PREFLIGHT_RANGES).open("a") as handle:
+                handle.write(json.dumps([first, guard_log_lines(out)]) + "\n")
+    return state
+
+
+def manual_cleanup_command(out: Path, spec: dict) -> str:
+    """The cleanup as one command to paste into any shell: `env` sets the two variables before the shell expands the case's
+    text (a `VAR=x cmd "$VAR"` prefix does not: $VAR is empty in that same command's arguments)."""
+    return (f"env E2E_PLATFORM_DIR={shlex.quote(str(out / 'platform'))} E2E_CHECKS={shlex.quote(str(HERE / 'checks'))} "
+            f"sh -c {shlex.quote(spec['cleanup'])}")
+
+
+# What an armed guard writes to the cleanup record until its own cleanup or keep replaces it. A harness killed hard in between (a
+# task limit, SIGKILL) then leaves a record that shows no successful cleanup, not the ok record an earlier segment of the run wrote.
+PENDING_CLEANUP = {"ran": False, "ok": False, "pending": True, "reason": "this invocation has not cleaned yet"}
+
+
+def write_cleanup_record(out: Path, record: dict) -> None:
+    """Write <output>/platform/cleanup-record.json, the file earlier_cleanup_record reads; a write that fails leaves what the file held."""
+    with contextlib.suppress(OSError):
+        (out / "platform").mkdir(exist_ok=True)
+        (out / "platform" / "cleanup-record.json").write_text(json.dumps(record, indent=2) + "\n")
+
+
+def earlier_cleanup_record(out: Path) -> dict | None:
+    """The cleanup record the run's last cleanup wrote (<output>/platform/cleanup-record.json); None where there is none. A
+    Ctrl-C or a crash runs the cleanup but never reaches result.json, so this is where a resume learns that the platform was reset."""
+    try:
+        record = json.loads((out / "platform" / "cleanup-record.json").read_text())
+    except (OSError, ValueError):
+        return None
+    return record if isinstance(record, dict) else None
+
+
+def resume_platform_note(spec: dict | None, earlier_platform: dict, regrade: bool) -> str | None:
+    """The case's `resume_note` for a run that continues after its platform was reset (the earlier invocation's cleanup ran);
+    None for a regrade (no host starts), for a case without a note, and where no cleanup ran. ``earlier_platform`` is the earlier
+    result's platform block, or {"cleanup": earlier_cleanup_record(...)} where that run never wrote a result."""
+    note = (spec or {}).get("resume_note")
+    return note.strip() if note and not regrade and (earlier_platform.get("cleanup") or {}).get("ran") else None
+
+
+def cleanup_banner(out: Path, spec: dict, record: dict) -> str:
+    tail = [line for line in str(record.get("output") or "").splitlines() if line.strip()][-5:]
+    return "\n".join([
+        "!" * 78,
+        f"PLATFORM CLEANUP FAILED: what this run created in the platform may still be there ({out}).",
+        "Remove it now by running, from any directory:",
+        f"  {manual_cleanup_command(out, spec)}",
+        *(f"  | {line}" for line in tail),
+        "!" * 78])
+
+
+def kept_banner(out: Path, spec: dict) -> str:
+    """The block printed when --keep-platform kept what a finished run made in the platform: where it is and the one way to remove it."""
+    return "\n".join([
+        "=" * 78,
+        f"PLATFORM KEPT (--keep-platform): what this run made is still in the {spec.get('kind') or 'platform'} ({out}).",
+        f"The cleanup did not run, so everything the run deployed stays until you remove it; the snapshot taken before the run is in "
+        f"{out / 'platform'}. Nothing else removes it, and a later run of this case may refuse to start while it is there.",
+        "Remove it now by running, from any directory:",
+        f"  {manual_cleanup_command(out, spec)}" if spec.get("cleanup")
+        else "  (the case names no cleanup command: remove it in the platform itself)",
+        "=" * 78])
+
+
+def keep_refusal(*, shiploop: dict, engine: dict, process: dict, stop_seen: bool, stop_file: Path, checks: list,
+                 invalid: bool, earlier_cleanup: dict | None = None) -> str | None:
+    """Why a --keep-platform request is not honoured; None where it is. Only a delivery that finished is kept: ShipLoop done and
+    its report written, the host ended by itself, every case check passed, and no stop, no timeout and no invalid trial. Every
+    other ending cleans the platform as it always did, so a half-built trial is never left behind. ``earlier_cleanup`` is the
+    cleanup record of the run being graded again (a regrade): one that was attempted and failed left the platform dirty, so what
+    is there is not a finished delivery; no record at all, or only the pending one an armed guard leaves (a harness that was
+    killed), does not refuse."""
+    if earlier_cleanup and not earlier_cleanup.get("ok") and not earlier_cleanup.get("pending"):
+        return "an earlier cleanup of this run failed: run the printed command first"
+    if TERMINATION.is_set() or stop_seen or stop_file.exists() or process.get("status") == "stopped":
+        return f"the run was stopped ({stop_cause(stop_file)})"
+    if process.get("status") == "timeout":
+        return "the host timed out"
+    if engine.get("status") != "done":
+        return f"ShipLoop is {engine.get('status') or 'unknown'}, not done"
+    if not shiploop.get("pass"):
+        return f"ShipLoop wrote no report ({shiploop.get('status') or shiploop.get('reason')})"
+    if process.get("pass") is False:
+        return f"the host ended {process.get('status')} rc={process.get('returncode')}"
+    if failed := [check["command"] for check in checks if not check["pass"]]:
+        return f"a case check failed ({failed[0][:120]})"
+    if invalid:
+        return "an invalid trial: the guard did not govern the model's sf"
+    return None
+
+
+class PlatformGuard:
+    """Owns the platform cleanup of one invocation. ``arm`` it once the model may start (or has started); ``finish`` runs the
+    cleanup once, from the normal path after grading and again from main's `finally`, which is what covers a crash, a
+    KeyboardInterrupt and a SystemExit. Before it acts on the platform it ends this thread's own host and waits for it to be
+    gone (HOST_END_WAIT), so a cleanup never runs beside a model that can still deploy. ``keep`` instead leaves a finished
+    delivery in the platform (--keep-platform): a later ``finish`` then does nothing, and ``print_kept`` shows the block that says
+    how to remove it by hand. A guard that was never armed does nothing. Arming also replaces the cleanup record an earlier
+    invocation left with a pending one (PENDING_CLEANUP), so a harness killed before its own cleanup is not read as already cleaned."""
+
+    def __init__(self):
+        self.spec: dict | None = None
+        self.out: Path | None = None
+        self.done = False
+        self.record: dict | None = None
+        self.banner: str | None = None  # the kept block, until it has been printed
+
+    def arm(self, spec: dict, out: Path) -> None:
+        self.spec, self.out, self.done, self.record, self.banner = spec, out, False, None, None
+        if spec.get("cleanup"):  # a case with no cleanup command writes no record at its end either (finish)
+            write_cleanup_record(out, PENDING_CLEANUP)
+
+    def armed(self) -> bool:
+        """Whether a cleanup is still pending: armed, and neither run nor kept yet."""
+        return self.spec is not None and not self.done
+
+    def keep(self, reason: str) -> dict | None:
+        """Leave the platform as the run made it. The record is {ran: False, ok: True, kept: True, reason}: ok, because nothing
+        failed (a regrade does not clean a kept run), kept, so a reader of result.json or cleanup-record.json can tell. None where
+        no cleanup is pending."""
+        if not self.armed():
+            return None
+        self.done = True
+        with contextlib.suppress(KeyboardInterrupt):  # a host that is somehow still alive must not deploy into what is kept
+            end_live_hosts(thread=threading.get_ident(), wait=HOST_END_WAIT)
+        self.record = {"ran": False, "ok": True, "kept": True, "reason": reason}
+        self.banner = kept_banner(self.out, self.spec)
+        write_cleanup_record(self.out, self.record)
+        return self.record
+
+    def print_kept(self) -> None:
+        """Print the kept block once (also from main's `finally`, so a crash after the decision still shows how to remove it)."""
+        if self.banner:
+            print(self.banner, flush=True)
+            self.banner = None
+
+    def finish(self) -> dict | None:
+        if self.spec is None or self.done:
+            return self.record
+        self.done = True
+        # A Ctrl-C or an exception can arrive while this case's host still works: end it and wait until it is gone, so the
+        # cleanup never overlaps a model that can still deploy.
+        with contextlib.suppress(KeyboardInterrupt):  # a second Ctrl-C ends the wait, never the cleanup
+            end_live_hosts(thread=threading.get_ident(), wait=HOST_END_WAIT)
+        command = self.spec.get("cleanup")
+        if not command:
+            self.record = {"ran": False, "ok": True, "reason": "the case names no cleanup command"}
+            return self.record
+        try:
+            done = run_platform_command(command, self.out, platform_env(dict(os.environ), self.out / "platform"))
+            self.record = {"ran": True, "ok": done["ok"], "returncode": done["returncode"], "output": done["output"]}
+        except BaseException as exc:  # noqa: BLE001 - the record of a cleanup that could not run is the point
+            self.record = {"ran": True, "ok": False, "returncode": None,
+                           "output": scrub(f"cleanup could not run: {type(exc).__name__}: {exc}")[-PLATFORM_TAIL:]}
+        if not self.record["ok"]:
+            print(cleanup_banner(self.out, self.spec, self.record), flush=True)
+        write_cleanup_record(self.out, self.record)
+        return self.record
 
 
 def parser() -> argparse.ArgumentParser:
@@ -1409,7 +2212,17 @@ def parser() -> argparse.ArgumentParser:
                    help="with --resume-run: start no host for any run, whatever its status, and write metrics.json, "
                         "result.json and the review export from what is on disk. For a run whose harness was killed "
                         "with its host (a task limit, an owner kill) and so never wrote them. Stop the host first: "
-                        "a live host makes this a mid-run snapshot.")
+                        "a live host makes this a mid-run snapshot, and for a run with a platform whose cleanup never "
+                        "succeeded it is cleaned now, which a model still running in it (a host outlives a killed "
+                        "harness) can undo or race.")
+    p.add_argument("--keep-platform", action="store_true",
+                   help="a case with a platform: when the run ends normally with a finished delivery (ShipLoop done, every "
+                        "case check passed), do not run the platform cleanup; keep what the run made there for a person to "
+                        "use, and print the command that removes it later by hand. Any other ending (a crash, Ctrl-C, "
+                        "timeout, stop, blocked or unfinished ShipLoop, a failed check) cleans as usual and says the keep "
+                        "was not honoured. A resumed run keeps it only if the resume command passes it again. A new run "
+                        "needs --output <a durable folder> (the snapshot the later cleanup needs must not live in $TMPDIR). "
+                        "Not with --suite")
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
@@ -2542,16 +3355,26 @@ def run_suite(args, argv: list[str]) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Run one case (or a suite) and return the exit code; see _main."""
     held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
+    guard = PlatformGuard()  # a case's platform cleanup, armed inside once the model may start, run here whatever happens
     try:
-        return _main(argv, held)
+        return _main(argv, held, guard)
     finally:
+        guard.finish()  # a crash, a Ctrl-C or an exit after the model started still removes what the run created
+        guard.print_kept()  # last, so it ends the log: when --keep-platform kept a finished delivery, what is still there and how to remove it
         for handle in held:
             handle.close()
 
 
-def _main(argv: list[str] | None, held: list) -> int:
+def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = None) -> int:
+    guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.keep_platform and (args.suite or args.preflight_only or args.baseline_report):
+        raise SystemExit("--keep-platform keeps what one run of a case with a platform made there: it does not go with --suite, "
+                         "--preflight-only or --baseline-report")
+    if args.keep_platform and not args.output and not args.resume_run:  # a resume reuses its run's folder; --output is ignored there
+        raise SystemExit("--keep-platform needs --output <a durable folder>: the snapshot the later cleanup needs must not live in "
+                         "$TMPDIR, which macOS purges after days")
     if args.baseline_report:
         return baseline_report_main(args)
     if args.runs or args.json:
@@ -2563,11 +3386,19 @@ def _main(argv: list[str] | None, held: list) -> int:
         for line in problems:
             print(f"refused: {line}", flush=True)
         refused = bool(problems)
+        spec = None if args.prompt else case_platform(args.case)  # the case's platform checks run here too
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
             args.host = name
             check = out / name
             check.mkdir()
-            _, _, versions = marketplace_preflight(args, check, the_host(args).env(check / "home"))
+            host_env = the_host(args).env(check / "home")
+            _, _, versions = marketplace_preflight(args, check, host_env)
+            if spec:
+                versions["platform"] = platform_preflight(spec, host_env, check)
+                found = versions["platform"]["preflight"]
+                print(f"platform preflight ({name}): " + ("no command" if found is None else
+                      ("OK" if found["ok"] else "REFUSED: ") + (found["output"].strip()[-1500:] if not found["ok"] else "")), flush=True)
+                refused = refused or (found is not None and not found["ok"])
             (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
             refused = refused or bool(versions["gate"])
         return 1 if refused else 0
@@ -2596,6 +3427,10 @@ def _main(argv: list[str] | None, held: list) -> int:
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
         planning_review = planning_review_choice(args.planning_review, earlier)
+        # The platform the run started with (invocation.json), not whatever cases.json says now: its cleanup is what undoes it.
+        platform_spec = validate_platform(name, (earlier.get("platform") or {})["spec"]) if (earlier.get("platform") or {}).get("spec") else None
+        if args.keep_platform and not platform_spec:
+            raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
         prompt = (out / "prompt.txt").read_text().strip()
         work = out / "work"
         state = grade_shiploop(out)
@@ -2657,6 +3492,9 @@ def _main(argv: list[str] | None, held: list) -> int:
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
         name, prompt, checks, follows = load_case(args)
+        platform_spec = case_platform(name)
+        if args.keep_platform and not platform_spec:
+            raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
         planning_review = planning_review_choice(args.planning_review, None)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
@@ -2719,6 +3557,28 @@ def _main(argv: list[str] | None, held: list) -> int:
     args.effort = args.effort or host.effort
     args.skill = args.skill or host.skill
     env = host.env(out / "home")
+    earlier_platform = earlier_result.get("platform") or {}
+    # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
+    # crash leaves result.json holding an older one, so the record the cleanup itself writes (platform/cleanup-record.json) wins.
+    earlier_cleanup = (earlier_cleanup_record(out) if resumed else None) or earlier_platform.get("cleanup")
+    # A run that ended by Ctrl-C or a crash ran its cleanup but wrote no result.json: its cleanup record tells the resumed model.
+    note_platform = earlier_platform if earlier_platform.get("cleanup") or not resumed else {"cleanup": earlier_cleanup_record(out)}
+    platform_state: dict = {}
+    if platform_spec and regrade:
+        platform_state = {key: earlier_platform.get(key) for key in ("home_links", "model_bin", "preflight")
+                          if key != "model_bin" or key in earlier_platform}  # nothing starts: restate the run's own
+        platform_state.update({key: earlier_platform[key] for key in ("shell_path_pinned", "model_bin_resolution")
+                               if key in earlier_platform})
+    elif platform_spec:
+        # Before the marketplace install and before any model call: the host's own environment, so a bad home link shows here.
+        platform_state = platform_preflight(platform_spec, env, out)
+        refusal = platform_state["preflight"]
+        if refusal is not None and not refusal["ok"]:
+            if not resumed:  # a resumed run already has a result.json worth more than a refusal stub
+                (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "output": str(out),
+                                                             "platform": {**platform_state, "refused": True}}, indent=2) + "\n")
+            raise SystemExit(f"platform preflight refused the run before any model started (exit {refusal['returncode']}): "
+                             f"{refusal['output'].strip()[-1500:]} (see {out / 'result.json'})")
     if regrade:
         # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity and the plugin
         # verdict the run recorded (see the invocation record below). Claude's init event shows the plugin on
@@ -2732,14 +3592,22 @@ def _main(argv: list[str] | None, held: list) -> int:
         # bound Improve child records paths inside them. Only the CI and checkout checks still apply. It also
         # keeps that launch's plugin verdict, since a Grok or Codex stream cannot show which plugin loaded.
         plugin_dir, plugin = Path(earlier["plugin_dir"]), earlier.get("plugin")
-        released = released_versions()
-        versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
-                    "released": released,
-                    "gate": [problem for problem in version_gate(released, None, None)
-                             if not problem.startswith("installed ")]}
+        if str((earlier.get("versions") or {}).get("source") or "").startswith("checkout"):
+            # Started on --source checkout: that build is the thing under test and was never published, so the marketplace
+            # gate (CI of origin/main, "publish your commits first") does not apply to its resume (found 2026-10-17: it refused
+            # the resume of a run whose local HEAD was, by design, ahead of origin/main).
+            released = None
+            versions = {"source": "checkout (resumed on its original build)", **installed_versions(plugin_dir),
+                        "local_head": git("rev-parse", "HEAD").strip(), "gate": []}
+        else:
+            released = released_versions()
+            versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
+                        "released": released,
+                        "gate": [problem for problem in version_gate(released, None, None)
+                                 if not problem.startswith("installed ")]}
         if versions["gate"]:
             raise SystemExit("version gate: " + "; ".join(versions["gate"]))
-        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
+        if released is not None and host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
             # Codex syncs installed plugins to its marketplace's current release when a session starts and
             # deletes the old version's files, which the run's CLI and any bound Improve child point to.
             raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
@@ -2791,8 +3659,10 @@ def _main(argv: list[str] | None, held: list) -> int:
         if not args.quiet:
             print(f"seeded: {', '.join(seeded['skipped'])} recorded without doing them; host starts at "
                   f"{seeded['stage']} in {seeded['run_dir']}", flush=True)
+    # The permission rules the case's platform asks the host to pre-approve (the host's own classifier would otherwise judge them).
+    host_allow = tuple((platform_spec or {}).get("host_allow") or ())
     # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
-    opening = (resume_prompt(resumed["run_dir"], the_cli) if resumed
+    opening = (resume_prompt(resumed["run_dir"], the_cli, resume_platform_note(platform_spec, note_platform, regrade)) if resumed
                else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt)) if seeded
                else host.invoke(args.skill, prompt))
     stamp = launch_stamp(out, host.name) if resumed else None
@@ -2801,7 +3671,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                     cwd=work, model=args.model, effort=args.effort,
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
-                    plugin_dir=None if host.marketplace else plugin_dir)
+                    plugin_dir=None if host.marketplace else plugin_dir, allow=host_allow)
     # The host CLI's build, probed once for this launch and written on this launch's record. A regrade starts no host: it
     # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
     # that ran). Claude's build is its init event's (read below), so it is never probed.
@@ -2837,6 +3707,9 @@ def _main(argv: list[str] | None, held: list) -> int:
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
                                           **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
+    if platform_spec:
+        invocation["platform"] = {"spec": platform_spec, "dir": str(out / "platform"), **platform_state}
+        invocation["keep_platform"] = args.keep_platform  # this invocation's own: a resume keeps the platform only if told again
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{stamp}.json").write_text(
@@ -2851,6 +3724,14 @@ def _main(argv: list[str] | None, held: list) -> int:
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
+            if platform_spec:
+                linked = [link["name"] for link in platform_state["home_links"] or [] if link["linked"]]
+                guarded = f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else ""
+                cleanup_runs = ("cleanup runs after grading unless --keep-platform keeps a finished delivery" if args.keep_platform
+                                else "cleanup runs after grading, always")
+                print(f"  platform  home links {', '.join(linked) or 'none'}{guarded}; {cleanup_runs}. By hand: "
+                      f"{manual_cleanup_command(out, platform_spec) if platform_spec.get('cleanup') else 'the case names no cleanup'}",
+                      flush=True)
             if needs:
                 print(f"  environment  {environment.browser_line(start_environment.get('browser') or {})}"
                       if "browser" in needs and start_environment.get("observed") else
@@ -2859,6 +3740,36 @@ def _main(argv: list[str] | None, held: list) -> int:
                 print("  environment  a custom prompt declares no need by itself, so no browser capability is recorded "
                       "(pass --need browser if this run uses a browser)", flush=True)
 
+    platform_dir = out / "platform"
+    before_record_file = platform_dir / "before-record.json"
+    platform_before = None
+    if platform_spec and not regrade:
+        if resumed:
+            # A resume does not snapshot again: the first run's snapshot is what the cleanup compares with.
+            platform_before = (json.loads(before_record_file.read_text()) if before_record_file.is_file()
+                               else {"ran": False, "reason": "the earlier invocation recorded no snapshot"})
+        elif platform_spec.get("before"):
+            platform_before = run_platform_command(platform_spec["before"], out, platform_env(dict(os.environ), platform_dir))
+            before_record_file.write_text(json.dumps(platform_before, indent=2) + "\n")
+            if not platform_before["ok"]:
+                (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "output": str(out), "platform": {
+                    **platform_state, "before": platform_before, "refused": True}}, indent=2) + "\n")
+                raise SystemExit(f"platform before command failed (exit {platform_before['returncode']}), so no model started: "
+                                 f"{platform_before['output'].strip()[-600:]} (see {out / 'result.json'})")
+        guard.arm(platform_spec, out)  # from here the model may start: the cleanup runs after grading, whatever happens
+    elif platform_spec and regrade and not (earlier_cleanup or {}).get("ok"):
+        if lock is not None:
+            # A run whose cleanup never succeeded is cleaned when it is graded again. The lock proves that no harness is running
+            # this case, not that no model is: a host runs in its own session and outlives a harness that was killed (SIGKILL
+            # drops the lock), so a regrade of such a run must wait until its host is stopped (see --grade-only).
+            guard.arm(platform_spec, out)
+        else:
+            # Another harness holds the case (or the lock cannot be taken): its trial may still be using what a cleanup removes.
+            print(f"regrade: this run's platform cleanup did not succeed, but {out / listeners.LOCK_NAME} is held by another "
+                  "harness, so the run may still be live and no cleanup is run now. Grade it again once that harness has "
+                  f"ended, or clean by hand: {manual_cleanup_command(out, platform_spec)}", flush=True)
+    if platform_spec and regrade:
+        platform_before = earlier_platform.get("before")
     deadline = time.time() + args.timeout
     if resumed and not regrade:
         # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
@@ -2888,7 +3799,8 @@ def _main(argv: list[str] | None, held: list) -> int:
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
                          prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
-                         max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
+                         max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
+                         allow=host_allow)
         process = session(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
                          kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
@@ -2925,7 +3837,7 @@ def _main(argv: list[str] | None, held: list) -> int:
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode,
-                         max_turns=args.max_turns, resume=session_id)
+                         max_turns=args.max_turns, resume=session_id, allow=host_allow)
         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
                          translate=host.translator(), stop_file=stop_file, kind="continued", reason="resume-loop",
                          told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)
@@ -2949,6 +3861,8 @@ def _main(argv: list[str] | None, held: list) -> int:
         process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
         # A requested stop is not a host failure: no process verdict (None, which no verdict list counts).
         process["pass"] = None if process["status"] == "stopped" else process["status"] == "exited"
+    if platform_spec and not regrade:
+        scrub_files(out)  # the event stream is a record: a credential the model's tool output showed is not kept in it
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
@@ -2979,13 +3893,18 @@ def _main(argv: list[str] | None, held: list) -> int:
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
-    check_results = run_checks(work, checks, env=check_env)
+    # A regrade of a platform run that was cleaned cannot ask the platform again: it restates the checks the run made while the
+    # work was deployed, rather than replace a pass with checks that find nothing there.
+    restated = bool(regrade and platform_spec and (earlier_cleanup or {}).get("ok") and earlier_result.get("checks"))
+    check_results = (earlier_result["checks"] if restated else
+                     run_checks(work, checks, timeout=(platform_spec or {}).get("check_timeout", CHECK_TIMEOUT), env=check_env,
+                                scrubbed=bool(platform_spec)))
     engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     try:
         # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
         # check which timed out leaves is stopped with the rest in a run that launched a host. A regrade reaps nothing (the run
         # it grades may have a live host), so there the server stays up: stop it by pid (README).
-        at_stop = product_at_stop(shiploop, engine, checks, check_env)
+        at_stop = earlier_result.get("product_at_stop") if restated else product_at_stop(shiploop, engine, checks, check_env, scrubbed=bool(platform_spec))
     except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
         at_stop = {"information_only": True, "ran": False,
                    "reason": "could not be computed: " + (" ".join(str(exc).split())[:200] or type(exc).__name__)}
@@ -2993,6 +3912,37 @@ def _main(argv: list[str] | None, held: list) -> int:
         # A check may leave a server too (a timed-out check leaves its `node server.js &`). A regrade reaps nothing: it
         # starts no host, and the run it grades may have a live one.
         left_behind.append(listeners.reap(out))
+    platform_block = None
+    keep_not_honoured = None  # why --keep-platform did not keep the platform (None: kept, moot, or not asked)
+    keep_moot = False  # --keep-platform where no cleanup was pending (a regrade of a run already cleaned or kept): changes nothing
+    if platform_spec:
+        # Did the guard see the model's sf at all, and did the model go around it? Counted outside the harness's own preflights
+        # (one range per preflight that ran, platform/preflight-ranges.jsonl); a run that recorded none is not judged.
+        ranges = preflight_ranges(out)
+        guarded = any(name in (platform_spec.get("model_bin") or {}) for name in GUARDED_NAMES)
+        coverage = guard_coverage(out, ranges) if guarded and ranges else None
+        if args.keep_platform:
+            if not guard.armed():
+                keep_moot = True
+            else:
+                keep_not_honoured = keep_refusal(shiploop=shiploop, engine=engine, process=process, stop_seen=stop_seen,
+                                                 stop_file=stop_file, checks=check_results, invalid=bool((coverage or {}).get("bypassed")),
+                                                 earlier_cleanup=earlier_cleanup if regrade else None)
+                if keep_not_honoured is None:
+                    guard.keep("--keep-platform")
+        # After grading, so the checks saw the deployed work; the guard's `finally` in main() is the same call for a run that never gets here.
+        cleanup = guard.finish() or earlier_cleanup or {"ran": False, "ok": False, "reason": "no cleanup record"}
+        scrub_files(out)
+        earlier_cleanups = list(earlier_platform.get("earlier_cleanups") or [])
+        if resumed and not regrade and earlier_platform.get("cleanup"):
+            earlier_cleanups.append(earlier_platform["cleanup"])
+        platform_block = {"spec": platform_spec, "dir": str(platform_dir), **platform_state, "before": platform_before,
+                          "cleanup": cleanup, **({"earlier_cleanups": earlier_cleanups} if earlier_cleanups else {}),
+                          **({"guard_log_preflight_ranges": [list(item) for item in ranges]} if ranges else {}),
+                          **({"guard_coverage": coverage} if coverage else {}),
+                          **({"keep_not_honoured": keep_not_honoured} if keep_not_honoured else {}),
+                          **({"checks_restated": "the platform was already cleaned; these are the checks made while deployed"} if restated else {})}
+    invalid_trial = bool(platform_block and (platform_block.get("guard_coverage") or {}).get("bypassed"))
     left = (earlier_result.get("left_behind") if regrade
             else listeners.merge_left_behind([earlier_result.get("left_behind") if resumed else None, *left_behind]))
     case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
@@ -3017,7 +3967,9 @@ def _main(argv: list[str] | None, held: list) -> int:
     verdicts = [invoked["pass"], plugin["pass"], *([] if process["pass"] is None else [process["pass"]]),
                 shiploop["pass"], committed["pass"],
                 *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
-                *(c["pass"] for c in check_results)]
+                *(c["pass"] for c in check_results),
+                *([bool(platform_block["cleanup"].get("ok"))] if platform_block else []),  # a platform left dirty is a failed run
+                *([not platform_block["guard_coverage"]["bypassed"]] if platform_block and platform_block.get("guard_coverage") else [])]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
     termination = termination_facts(process, engine, resume_stop,
@@ -3026,6 +3978,9 @@ def _main(argv: list[str] | None, held: list) -> int:
         outcome, outcome_basis = outcome_class(all(verdicts), termination)
     except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
         outcome, outcome_basis = None, "could not be computed: " + (_head(exc, 200) or type(exc).__name__)
+    if invalid_trial:
+        # Not a ShipLoop verdict: the class is unknown, and the basis keeps what the termination alone would have said.
+        outcome, outcome_basis = None, f"invalid trial: {'; '.join(bypass_lines(platform_block['guard_coverage']))} (otherwise {outcome_basis})"
     # The machine at the end and the whole run's hosts and neighbours; each part that cannot be read says so (SPEC).
     if regrade:
         end_environment = environment.unobserved("regraded: the end of the run was not observed")
@@ -3037,6 +3992,9 @@ def _main(argv: list[str] | None, held: list) -> int:
             end_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
         result_start = start_environment
     run_environment = environment.result_block(out, result_start, end_environment)
+    if platform_block and isinstance(run_environment, dict):
+        run_environment = {**run_environment, "platform_home_links": platform_state.get("home_links"),  # what the model could reach
+                           **({"platform_model_bin": platform_state["model_bin"]} if platform_state.get("model_bin") else {})}
     # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
@@ -3062,6 +4020,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               "identity_unmeasured": identity_unmeasured,
               "process": process, "termination": termination, "outcome_class": outcome, "outcome_basis": outcome_basis,
               "environment": run_environment,
+              **({"platform": platform_block} if platform_block else {}),
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
@@ -3092,7 +4051,7 @@ def _main(argv: list[str] | None, held: list) -> int:
     # killed by the deadline or a stop before ShipLoop wrote any state (engine unknown). The turns, cost and stages are a
     # fragment, and the next run would be compared with it (SPEC). A host that ends by itself is a finished run's row.
     engine_active = engine.get("status") == "active"
-    unfinished = engine_active or process["status"] in ("timeout", "stopped")
+    unfinished = engine_active or process["status"] in ("timeout", "stopped") or invalid_trial  # an invalid trial measures nothing of ShipLoop
     baseline_file = args.baseline if not (resumed or seeded or unfinished) else None
     # The row is written for any run that ended, but only a run that reached done is compared: a blocked or halted run's
     # turns, cost and stages stop at the block (r1 Grok printed "503 -> 301" for a blocked run against a blocked row).
@@ -3178,6 +4137,23 @@ def _main(argv: list[str] | None, held: list) -> int:
     print(f"  checks    expected from {expectations['checks']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
+    if platform_block:
+        cleaned, seen = platform_block["cleanup"], platform_block.get("guard_coverage")
+        print(f"  platform  {mark(cleaned.get('ok') and not (seen or {}).get('bypassed'))}  "
+              + ("platform KEPT (--keep-platform), no cleanup run" if cleaned.get("kept")
+                 else "cleanup ran" if cleaned.get("ran") else "cleanup did not run") + f"; home links "
+              + (", ".join(link["name"] for link in platform_state.get("home_links") or [] if link["linked"]) or "none")
+              + (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else "")
+              + (f"; guard saw {seen['guard_calls']} model calls (transcript shows {seen['model_sf_commands']} sf-looking commands"
+                 + (f", {seen['direct_sf_commands']} by a path outside the wrapper" if seen["direct_sf_commands"] else "") + ")"
+                 if seen else ""))
+        if keep_not_honoured:
+            print(f"            --keep-platform NOT honoured ({keep_not_honoured}), so the platform was cleaned as usual")
+        elif keep_moot:
+            print("            --keep-platform changes nothing here: no cleanup was pending (an earlier invocation already "
+                  "cleaned or kept the platform, or another harness holds the run)")
+        for line in bypass_lines(seen) if seen else []:
+            print(f"            {line}")
     print(f"  {exported}")
     if before:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
@@ -3211,6 +4187,8 @@ def _main(argv: list[str] | None, held: list) -> int:
             else f"no earlier row for {name} from this source"))
     elif resumed or seeded:
         print("  baseline  nothing compared: a resumed or seeded run is not a baseline")
+    elif invalid_trial:
+        print("  baseline  nothing compared: an invalid trial (the guard did not govern the model's sf) says nothing of ShipLoop, so no row is written")
     else:
         why = ("its engine is still active" if engine_active else
                f"the harness ended the host: {process['status']}; engine {engine.get('status') or 'unknown'}")
@@ -3255,6 +4233,14 @@ def _main(argv: list[str] | None, held: list) -> int:
 
         failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", check_observed(c))
                       for c in check_results if not c["pass"])
+        if platform_block and not platform_block["cleanup"].get("ok"):
+            failed.append(("platform", "the case's cleanup command exits 0 and leaves the platform as it found it",
+                           str(platform_block["cleanup"].get("output") or platform_block["cleanup"].get("reason"))[-300:]))
+        if invalid_trial:
+            seen = platform_block["guard_coverage"]
+            failed.append(("platform", "the model's sf runs through the guard (an invalid trial otherwise)",
+                           f"{seen['model_sf_commands']} sf-looking commands in the transcript ({seen['direct_sf_commands']} by a path "
+                           f"outside the wrapper), {seen['guard_calls']} guard calls"))
         print(f"  mismatch  {write_mismatch(out, name, args.host, failed)}")
     # The delivered-quality phase runs last: it can take minutes after the host ended and a task launcher's limit is near 30, so
     # the result, the metrics, the Run Review export and the baseline row are all written before it, and it adds its block to
