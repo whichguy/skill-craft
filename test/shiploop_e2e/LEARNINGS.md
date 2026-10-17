@@ -2425,3 +2425,19 @@ Cost compared with the 2026-10-11 baseline in the same cell (ShipLoop 0.59.0, Cl
 - 11 Improve children, with 18 review passes.
 
 The plugin tree and the host build both differ from the baseline, so this is descriptive, not a controlled comparison. It is worth a look at the Improve schedule and test-strategy turns on the current build.
+
+## The Salesforce chess case, live run 2: a correct app, a stopped SDLC, a clean org (2026-10-17, ShipLoop 1.4.0 from the checkout) — status: interim (n=1, one host)
+
+Grok 4.7 medium on `chess-salesforce` against the owner's Developer Edition org, two segments, 4 h 02 min wall clock, at least $12.21, 906 turns (lower bound).
+
+- **Result: STOPPED at the 4-hour cap, ShipLoop active at `test` of work item 2 of 2; nothing committed.** The case's org checks at the stop passed: deployed components,
+  14 Apex tests, `rules` 28 of 28. Delivery failed (`project`, `committed`), so the trial is not a pass and is not a baseline.
+- **The platform scaffolding worked.** The guard governed the model's calls (140 logged over both segments, 2 denials); the cleanup restored the org (harness verification plus an
+  independent query: no `SLChess*` or `slChess*` item).
+- **Time:** planning to test-spec took 77.7 min of engine time, Improve 41.2 min of it in 5 children; the first work item went through
+  step-plan, test-spec, implement, test (blocked once, then revised), document, verify and carry-forward before the second reached `test`. The efficiency plan
+  targets the reading path and the review loops, not the platform.
+- **Both findings of the first segment held:** the classifier refusing the deploy (fixed with `host_allow` and an owner-chosen permission mode) and the version gate
+  refusing a resume on a checkout build (fixed, `--source checkout`).
+
+Evidence and details: `docs/e2e-salesforce-chess-journal.md` F9. Run folder (not committed): `sfchess/live2` under the session scratchpad.
