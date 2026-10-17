@@ -303,6 +303,16 @@ class _Echo:
         self.text += text
 
 
+# What each non-Claude host sets in the shells it runs (any one row entry is enough).  A host started from a Claude Code
+# shell inherits Claude's session variables as well and has no Skill tool; its own marker must win.
+NESTED_HOST_MARKERS = {
+    "grok": ({"GROK_AGENT": "1", "GROK_SESSION_ID": "grok-1"},),
+    "codex": ({"CODEX_THREAD_ID": "codex-thread-1"}, {"CODEX_SANDBOX": "seatbelt"}),
+    "cursor": ({"CURSOR_PLUGIN_ROOT": "/plugin"},),
+    "opencode": ({"OPENCODE": "1"},),
+}
+
+
 class GateFixture(improve_tests.ImproveCliFixture):
     """A run at its first Improve stage, finished, with the real hook available to bind and record."""
 
@@ -461,7 +471,7 @@ class SkillCallGateTests(GateFixture):
         inherited = {**self.environment}
         with self.hook_environment():
             self.assertEqual(keepalive.skill_gate(str(self.run), inherited), (True, ""))
-            for marker in ("CODEX_THREAD_ID", "CODEX_SANDBOX", "CURSOR_PLUGIN_ROOT"):
+            for marker in ("CODEX_THREAD_ID", "CODEX_SANDBOX", "CURSOR_PLUGIN_ROOT", "OPENCODE"):
                 with self.subTest(marker=marker):
                     enforce, why = keepalive.skill_gate(str(self.run), {**inherited, marker: "1"})
                     self.assertFalse(enforce)
@@ -470,6 +480,24 @@ class SkillCallGateTests(GateFixture):
         done = self.complete()
         self.assertIn("only Claude Code's hooks record Skill calls", done.stderr)
         self.assertNotIn("Run the improve skill on this", done.stderr)
+
+    def test_every_non_claude_host_has_a_nested_marker_that_beats_an_inherited_claude_session(self) -> None:
+        # The host list comes from the hook installer's own table, so a host added there fails here until its marker
+        # is known (a table row below) and skill_gate reads it.  OpenCode sets OPENCODE=1 in its process at startup
+        # and the shells it runs inherit it (a string in the 1.18.31 binary: process.env.OPENCODE="1").
+        others = [host for host in keepalive.HOSTS if host != "claude"]
+        self.assertEqual(sorted(others), sorted(NESTED_HOST_MARKERS),
+                         "a host in keepalive.HOSTS has no known marker for a nested start from a Claude shell")
+        self.bind()
+        inherited = {**self.environment}
+        with self.hook_environment():
+            self.assertEqual(keepalive.skill_gate(str(self.run), inherited), (True, ""))
+            for host in others:
+                for marker in NESTED_HOST_MARKERS[host]:
+                    with self.subTest(host=host, marker=sorted(marker)):
+                        enforce, why = keepalive.skill_gate(str(self.run), {**inherited, **marker})
+                        self.assertFalse(enforce)
+                        self.assertIn("only Claude Code's hooks record Skill calls", why)
 
     def test_a_session_bound_to_another_run_does_not_gate_this_one(self) -> None:
         binding = self.bind()

@@ -385,9 +385,10 @@ def skill_call(host: str, payload: Mapping[str, Any]) -> bool:
         agent_id=payload.get("agent_id"))
 
 
-# A host started from a Claude shell inherits Claude's variables and has no Skill-call hook: Codex and Cursor set
-# their own, which win over the inherited Claude session (shiploop_grants.detect_host reads the same Codex ones).
-NESTED_NON_CLAUDE = ("CODEX_SANDBOX", "CODEX_THREAD_ID", "CURSOR_PLUGIN_ROOT")
+# A host started from a Claude shell inherits Claude's variables and has no Skill-call hook: Codex, Cursor and OpenCode
+# set their own, which win over the inherited Claude session (shiploop_grants.detect_host reads the same Codex ones;
+# Grok's pair is SESSION_ENV, read first).  OpenCode sets OPENCODE=1 at startup and its shells inherit it.
+NESTED_NON_CLAUDE = ("CODEX_SANDBOX", "CODEX_THREAD_ID", "CURSOR_PLUGIN_ROOT", "OPENCODE")
 
 
 def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool, str]:
