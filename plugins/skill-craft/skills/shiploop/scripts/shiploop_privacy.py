@@ -1,8 +1,8 @@
-"""Conservative credential screening for ShipLoop's durable records.
+"""Conservative credential-like text redaction for ShipLoop's display views.
 
-The helpers intentionally recognize only a small set of explicit credential
-representations.  They are a defense-in-depth screen, not a claim that every
-secret format can be detected.
+The progress page, the status views and the lint output redact what these helpers flag.  No submission, record or
+commit is refused or changed because of it (owner decision 2026-10-16).  The helpers recognize only a small set of
+explicit credential representations: a display redaction, not a claim that every secret format can be detected.
 """
 
 from __future__ import annotations

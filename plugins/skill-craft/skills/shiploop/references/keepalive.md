@@ -13,6 +13,7 @@ optional; runs work without it.
 | `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `repo`, `next`. Exit 2 with an `error` field when the run cannot be read. |
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
+| `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 
 `hook-status` is the only place that decides whether a run can move.
@@ -67,6 +68,29 @@ Each stop decision is appended to
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/decisions.log` with its
 reason, and hook failures to `errors.log` beside it.
 
+## Skill calls (Claude Code only)
+
+A packet says to invoke the improve skill (the Skill tool, skill `improve`, the argument it prints) at every Improve
+stage, and a model that does not leaves a review the skill never ran. Wording did not change that in live runs, so a hook
+records the calls and the Improve stage's `complete` checks them.
+
+- **The record.** `scripts/shiploop-skill-call` (the `skill-calls` hook, event `after-skill`, a `PostToolUse` hook matching
+  `Skill`) appends one JSON line to the bound run's `skill-calls.jsonl`: `ts` and `at`, `skill` (normalised, so
+  `skill-craft:improve` is `improve`), `called_as`, `args` (cut at 2,000 characters), `session`, `tool_use_id` and, for a
+  subagent, `agent_id`. Only a session the keepalive hooks bound to the run writes it, only a regular file inside that run
+  directory, and the hook is silent and never blocks the call. The file is evidence, not state, and is append-only.
+- **The gate.** `complete --action=<improve id>` refuses until the record holds a call to `improve` made after that Improve
+  stage started (the child's `start.json`) whose `args` carry the stage's handoff path or its action id; quoting is ignored.
+  The refusal's first line names the fix: invoke the Skill tool with skill `improve` and the printed argument, let it
+  finish, run `complete` again.
+- **When it does not apply.** The gate holds only when this command runs in a Claude Code session whose hooks bound this
+  run and whose hooks include the Skill-call hook (the bind records that as `skill_hook`, judged from the hook
+  configuration the hook was loaded from, so an install from before this hook never holds a run to a record nothing
+  writes). It also does not apply under `delegation: ask-agent` (a fresh worker runs the review, out of this session's
+  hooks), on Grok, Codex, Cursor or OpenCode, with no hooks installed, or with `SHIPLOOP_KEEPALIVE=off`. Then `complete`
+  accepts the review on the Improve runtime's own receipt and, once the import is accepted, says so once per run (stderr,
+  and a `gate` line in the record).
+
 ## Several agents on one run
 
 ShipLoop's run lock already serializes CLI commands. Keepalive adds one rule:
@@ -89,7 +113,7 @@ only the run's owner session is ever kept alive.
 
 A marketplace install of the ShipLoop plugin carries the hooks. ShipLoop
 declares them in `host-hooks.json` (`keepalive-observe` on `after-shell`,
-`keepalive-stop` on `turn-end`), and the package generator writes each host's
+`keepalive-stop` on `turn-end`, and for Claude Code only `skill-calls` on `after-skill`), and the package generator writes each host's
 own file: `hooks/hooks.json` for Claude and Grok, `hooks/codex.json`,
 `hooks/cursor.json`. Their argument-free entry scripts
 (`scripts/shiploop-keepalive-observe`, `scripts/shiploop-keepalive-stop`) run
@@ -115,7 +139,7 @@ Hermes is not supported.
 
 | Host | Registered in | Continue signal | Unattended (headless) |
 |------|---------------|-----------------|-----------------------|
-| Claude Code | `~/.claude/settings.json` (`PostToolUse` Bash, `Stop`) | `{"decision":"block","reason":…}` | Hook alone keeps `claude -p` going. |
+| Claude Code | `~/.claude/settings.json` (`PostToolUse` Bash and Skill, `Stop`) | `{"decision":"block","reason":…}` | Hook alone keeps `claude -p` going. |
 | Codex | `~/.codex/hooks.json` (`PostToolUse`, `Stop`); approve once when Codex asks | `{"decision":"block","reason":…}` | Hook alone keeps `codex exec` going. |
 | Grok | `~/.grok/hooks/shiploop-keepalive.json`, written by ShipLoop on its first command under Grok | `{"decision":"block","reason":…}`; at most 8 per turn | Hook alone keeps `grok -p` going. |
 | Cursor | `~/.cursor/hooks.json` (`afterShellExecution`, `stop`) | `{"followup_message":…}` | `cursor-agent -p` never fires `stop`: use `shiploop-drive`, which resumes the chat. |

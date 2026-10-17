@@ -15,6 +15,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-skill-call",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [

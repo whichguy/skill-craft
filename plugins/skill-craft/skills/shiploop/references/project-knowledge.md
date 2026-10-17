@@ -518,23 +518,20 @@ planning, and later runs inherit it.
 | --- | --- |
 | `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`) and its acceptance criteria inside it, a `Retired` section with reasons. Sections: `## Requirements`, `## Non-functional requirements`, `## Retired` |
 | `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each; each harness and suite with its files and command, and the system-test catalog; the test-ID scheme and the one command that lists the IDs already taken (the test code is the one home of the IDs); the standing release and rollback procedure, under the heading the run uses. Sections: `## Targets and runtimes`, `## Commands`, `## Skills` (the repository's local skill directory), `## Harnesses and suites`, `## ID convention`, `## Access and accounts`, `## Platform facts` |
-| `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the real-boundary checks a local test cannot prove (each with its owner), and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values or code that assigns them, because the credential screen reads this file too. It links the repository's own architecture or ADR documents instead of copying them. Sections: `## Stack`, `## Structure`, `## Conventions`, `## Interfaces and boundaries`, `## Real-boundary checks`, `## Decisions`, `## Superseded` |
+| `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the real-boundary checks a local test cannot prove (each with its owner), and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values. It links the repository's own architecture or ADR documents instead of copying them. Sections: `## Stack`, `## Structure`, `## Conventions`, `## Interfaces and boundaries`, `## Real-boundary checks`, `## Decisions`, `## Superseded` |
 
 The living files are `spec.md`, `environment.md` and `architecture.md` (consumer
 contract, 2026-10-11): an older home's `README.md` and `test-strategy.md` are left in
-place, and nothing requires, writes or names them; the credential screen still reads
-them. Each packet names the home and the files its stage keeps up to date. At three
+place, and nothing requires, writes or names them. Each packet names the home and the files its stage keeps up to date. At three
 closes (`prepare`, `release-plan`, `release-verify`) ShipLoop
-refuses `done` until that close's files exist, refuses lines that look like
-credentials, refuses a living spec or architecture whose uncommitted version no
+refuses `done` until that close's files exist, refuses a living spec or architecture whose uncommitted version no
 longer mentions an earlier committed requirement (`R-<n>`) or decision (`AD-<n>`)
 ID (the base is the last commit, so a drop a review already committed through
 `improve-commit` is not seen), and then commits exactly `docs/shiploop/`
 (`docs(shiploop): record <run> knowledge at <stage>`). After any other accepted
-stage that changed `docs/shiploop/`, ShipLoop applies the same credential and ID
-checks (refusing that stage's `done` on a failure) and commits it
-(`... knowledge after <stage>`); the model never commits the home itself. A file
-the credential screen flags is left uncommitted and named. The last close is at
+stage that changed `docs/shiploop/`, ShipLoop applies the same ID check
+(refusing that stage's `done` on a failure) and commits it
+(`... knowledge after <stage>`); the model never commits the home itself. The last close is at
 `release-verify` so the commit returns with the workspace. The return plan keeps
 `docs/shiploop/**`. Files an earlier run wrote in older homes
 (`docs/requirements.md`, `docs/current-system.md`, ShipLoop-authored only) move

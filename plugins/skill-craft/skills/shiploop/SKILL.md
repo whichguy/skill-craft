@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.4.1
+version: 1.5.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -335,6 +335,12 @@ or starts the runtime. The Improve packet has two lines: run the improve skill o
 id, never the reviewed action's id. (Before 2026-10-11 the model wrote the opening, ran
 `improve-start --opening` and finished with `improve-complete`; that verb is gone.)
 
+On Claude Code with ShipLoop's hooks bound to the run, a hook records every Skill call in the run's
+`skill-calls.jsonl`, and the Improve stage's `complete` refuses until it holds a call to the improve skill made after
+the stage started with that stage's handoff in its argument; the refusal's first line names the call to make. Anywhere
+the hooks cannot record (another host, no hooks, `delegation: ask-agent`), nothing is enforced and `complete` says so once. See
+[Skill calls](references/keepalive.md#skill-calls-claude-code-only).
+
 Every other producer result, and a planning result the option does not review, is
 accepted on its own checks and the graph advances directly. The stage names stay in
 the graph, so an auditor still sees
@@ -373,11 +379,11 @@ results, quoted to the stages that consume them. The three files have named sect
 never a refusal). An older home's `README.md`, `test-strategy.md` and `features/`
 folders are left in place and no longer required, written or named.
 At `prepare`, `release-plan` and `release-verify`, ShipLoop
-refuses `done` until that close's files exist, screens them for credentials,
+refuses `done` until that close's files exist,
 refuses a living spec or architecture whose uncommitted version drops an earlier committed
 ID (an edit a review already committed through `improve-commit` is not seen), and commits exactly
 `docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
-ShipLoop runs the same credential and ID checks and commits it too, so never
+ShipLoop runs the same ID check and commits it too, so never
 commit it yourself. The `release-verify` commit is always made: its body is the
 result's `lessons` (`Learned`, `Key considerations`, `Open for the next run`) and the
 open items still left. Intake and discovery packets quote the last three commit

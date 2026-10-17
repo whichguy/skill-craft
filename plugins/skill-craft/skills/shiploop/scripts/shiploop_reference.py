@@ -95,7 +95,7 @@ WORKSPACE_TEXT = """\
 All product work happens in the execution checkout; run state, results and reports stay outside it. Each item is
 assembled there, and ShipLoop commits its declared files when verify is accepted; the original branch is returned only
 at release or handoff, after the assembled-candidate checks. There, `workspace plan-return` commits product files still uncommitted onto the
-run branch (never run evidence, protected paths or files that look like credentials) and binds a path review;
+run branch (never run evidence or protected paths) and binds a path review;
 decide every path with `workspace review-return --keep PATH... --exclude PATH...` (keep lasting work, exclude
 transient output), then `workspace return`. The release packet prints the exact commands. No automatic push,
 cleanup or publication is implied."""

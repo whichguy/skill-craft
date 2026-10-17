@@ -4,6 +4,58 @@ Written by scripts/release.py.
 
 ## 2026-10-16
 
+### skill-craft 2.5.0
+
+- Skills: shiploop 1.5.0
+
+### shiploop 1.5.0
+
+- ShipLoop commits every file it is asked to commit. Before, any file whose text matched the credential screen (a line such
+  as `Auth: sf login (alias de)` or `signature: static` was enough) was unstaged and left out of the item commit, the
+  knowledge-home commit, the Improve review's commit and the late-file commit that `plan-return` makes, and a notice told
+  the model to reword the file and commit it. A file left out that way kept the return off the user's branch (the return
+  fell back to the working-tree route) and left the model a hand-commit to do, which the packets forbid.
+  - `plan-return` no longer takes a `fresh` list of skipped paths, and no output says "Not committed, they look like they
+    hold a credential".
+  - The Return route sentence reads "plan-return commits files left uncommitted, so commit nothing for the return." The
+    exception for a file it reports as not committed is gone.
+  - Paths ShipLoop never commits are unchanged: run evidence, protected paths and the caller's exclusions.
+- ShipLoop refuses no submission or commit message because its text looks like a credential, and no packet says it does.
+  Before, a stage result, a prompt, an Improve opening or final result, an `improve-commit` message and any line of
+  `docs/shiploop/` was screened for an "explicit credential pattern", and `auth`, `token`, `signature` or `sig` followed
+  by `:` or `=` and a word counted as one unless the word was on a short list. Ordinary documentation such as
+  `Auth: sf login (alias de)`, `access token: not printed` or `Password: bcrypt, cost 12` was refused, and the model had to
+  reword it before the run could go on.
+  - The Checked-by line of every stage reads "the usual faults (no outcome or summary, or an absolute evidence_refs path
+    that does not exist)"; the gates for `spec`, `plan` and `step-plan` no longer add "or that looks like a credential".
+  - The Improve packet's checked-by sentence no longer lists "credential-looking text" among what `improve-commit`
+    refuses; the knowledge-home line no longer says ShipLoop "screens them for credentials".
+  - The architecture duty keeps one positive instruction: name a credential by its alias or mechanism, never its value.
+  - `workspace start` and `init` take a prompt that mentions a token or a key.
+  - The progress page and the lint output still redact credential-like text; they are display only and refuse nothing. The
+    terminal status block, the narrative and the run files (`state.md`, `status.md`, `timeline.json`) print what was
+    submitted as written, as they did for text the old screen let through.
+  - `commit_paths` commits every path it is given, including a file named like `.env`. What keeps secrets out of the product
+    commit is the `review-return` keep/exclude choice and the duty to keep credentials out of the product commit.
+- On Claude Code, ShipLoop now enforces that the improve skill is invoked at every Improve stage, instead of asking for it in
+  the packet. In the 2.1.0 live run 3 of 4 Improve reviews were written by a script that reported to the runtime directly, and in
+  the 2.4.0 live slice the skill was invoked for 1 of 4 stages; changing the packet's wording did not move either.
+  - A new hook, `scripts/shiploop-skill-call` (`PostToolUse` on the Skill tool, declared as `after-skill` in
+    `host-hooks.json` for Claude only; `shiploop-hook install --host claude` adds the same entry), appends each Skill call
+    of a session the keepalive hooks bound to a run to the run's `skill-calls.jsonl`: time, skill (`skill-craft:improve`
+    and `improve` are one), argument, tool-use id, session and, for a subagent, its id. It never blocks the call and writes
+    only inside the bound run directory.
+  - `complete --action=<improve id>` refuses until the record holds a call to the improve skill made after that Improve
+    stage started whose argument carries the stage's handoff path or action id. The refusal's first line names the Skill
+    call to make and the command to run after it.
+  - Where no record can exist (Grok, Codex, Cursor, OpenCode, no hooks, hooks turned off with `SHIPLOOP_KEEPALIVE=off`,
+    hooks installed before this one, or `delegation: ask-agent`, where a fresh worker runs the review) nothing is enforced,
+    and `complete` says so once per run when it accepts the import.
+  - Codex and Cursor started from a Claude shell inherit its session variables but have no Skill tool, so their own
+    markers (`CODEX_THREAD_ID`, `CODEX_SANDBOX`, `CURSOR_PLUGIN_ROOT`) exempt them. A hook reading closed or non-text stdin
+    exits 0 with nothing recorded. The refusal reminds the model to keep its `--final-result`, `--notes` and `--no-commit`.
+  - The hook generator accepts the new `after-skill` event (Claude only) and refuses it for any other host.
+
 ### skill-craft 2.4.1
 
 - Skills: shiploop 1.4.1

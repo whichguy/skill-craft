@@ -142,8 +142,7 @@ def case_end_states(row: "Stage") -> str:
 
 # plan-return's own rule (``workspace.commit_leftovers``), worded once: the workspace Return route line and a worktree
 # run's item-commit sentence both print it (SPEC S-12).
-RETURN_LEFTOVERS = ("plan-return commits files left uncommitted, so commit nothing for the return except a file it "
-                    "reports as not committed.")
+RETURN_LEFTOVERS = "plan-return commits files left uncommitted, so commit nothing for the return."
 
 # Who commits an item's files (SPEC S-4, S-5): one rule, printed by every stage that adds files to the item.  The first
 # sentence mirrors ``item_scope.commit_scope`` (declared paths, the docs path class and docs/shiploop/); the second
