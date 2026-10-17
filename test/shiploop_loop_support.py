@@ -75,6 +75,28 @@ def finish_loop(run_dir: Path, *, outcome: str = "done", note: str = "fixture") 
     raise RuntimeError("the fixture loop did not end within 10 iterations")
 
 
+# The keys of the lean return a run started with --receipt prints from start and done (the vendored runtime's
+# PRINTED_KEYS); the receipt keeps the full packet and the runtime's next prints it whole.
+LEAN_KEYS = frozenset({"status", "state_file", "receipt", "instruction", "conditions", "report_fields", "next_argv",
+                       "done_argv", "verify_script"})
+
+
+def full_packet(printed: Mapping[str, Any]) -> dict[str, Any]:
+    """The full packet behind a printed return: the receipt's, after checking the lean fields agree with it.
+
+    A return that is already a full packet (a run without a receipt, or ``next``) is returned as it is.
+    """
+    if set(printed) != LEAN_KEYS:
+        return dict(printed)
+    full = json.loads(Path(printed["receipt"]).read_text(encoding="utf-8"))
+    for key in ("status", "state_file", "receipt", "next_argv", "done_argv", "verify_script"):
+        if full.get(key) != printed[key]:
+            raise AssertionError(f"the printed {key} differs from the receipt's")
+    if full["conditions"]["exit"] != printed["conditions"]["exit"]:
+        raise AssertionError("the printed exit condition differs from the receipt's")
+    return full
+
+
 def with_receipt(result: Mapping[str, Any], receipt: Path) -> dict[str, Any]:
     """``result`` with the receipt in evidence_refs, as the printed template prefills it."""
     refs = [str(ref) for ref in result.get("evidence_refs", []) if str(ref) != str(receipt)]

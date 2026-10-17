@@ -72,7 +72,7 @@ class V4ConsumersTests(unittest.TestCase):
         self.assertEqual(json.loads(stopped.stdout)['status'], 'stopped')
         packet_path = bridge.receipt_path(binding)
         packet_path.parent.mkdir(parents=True, exist_ok=True)
-        packet_path.write_text(stopped.stdout)
+        # the runtime wrote the full stopped packet to this receipt itself; stdout is its lean return (U21)
         evidence = self.f.repo / ('experiment-' + action + '.md')
         evidence.write_text('Observed premise contradiction; synthetic observation for protocol test.\n')
         receipt = {'summary': 'An experiment invalidated the ' + target + ' premise.',
@@ -123,7 +123,7 @@ class V4ConsumersTests(unittest.TestCase):
         )
         packet_path = bridge.receipt_path(binding)
         packet_path.parent.mkdir(parents=True, exist_ok=True)
-        packet_path.write_text(started.stdout, encoding='utf-8')
+        # the runtime writes every full packet to this receipt itself; stdout is its lean return (U21)
         packet = json.loads(started.stdout)
 
         for index, assessment in enumerate(('unsatisfied', 'satisfied'), start=1):
@@ -141,7 +141,6 @@ class V4ConsumersTests(unittest.TestCase):
                 }),
                 text=True, capture_output=True, check=True, timeout=30,
             )
-            packet_path.write_text(completed.stdout, encoding='utf-8')
             packet = json.loads(completed.stdout)
         self.assertEqual(packet['status'], 'complete')
 

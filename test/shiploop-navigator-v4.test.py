@@ -169,10 +169,10 @@ class NavigatorV4Tests(unittest.TestCase):
         stopped = json.loads(terminal.stdout)
         self.assertEqual(stopped["status"], "stopped")
         self.assertFalse(Path(stopped["state_file"]).exists())
+        # The runtime wrote the full terminal packet to the receipt itself; stdout is its lean return (U21).
         packet_path = bridge.receipt_path(binding)
-        packet_path.parent.mkdir(parents=True, exist_ok=True)
-        packet_path.write_text(terminal.stdout, encoding="utf-8")
-        return terminal.stdout
+        self.assertEqual(json.loads(packet_path.read_text(encoding="utf-8"))["status"], "stopped")
+        return packet_path.read_text(encoding="utf-8")
 
     def reconciliation_input(self, action: str, *, target: str = "research") -> tuple[dict, Path, Path]:
         evidence = self.repo / f"reconciliation-{action}.md"

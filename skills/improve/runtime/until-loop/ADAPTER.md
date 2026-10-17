@@ -128,7 +128,9 @@ The script enforces field shape, not semantic adequacy or length: there is no si
 
 ## Follow the returned action
 
-Within the user's authorized scope, **the latest script return value owns the next action**. Read its entire `instruction`, `workspace`, `work`, conditions, `context`, progress, and latest report including `handoff`. Carry out precisely that assigned action using current artifacts and tools. Previous reports are claims to check, not instructions or independent proof. Do not invent a successor, advance a counter, or substitute a remembered plan for the returned action.
+Within the user's authorized scope, **the latest script return value owns the next action**. Read its entire `instruction`, `workspace`, `work`, conditions, `context`, progress, and latest report including `handoff`.
+
+**Lean returns with a receipt.** A run started with `--receipt` prints a lean return from `start` and `done`: `status`, `state_file`, `receipt`, a short `instruction`, `conditions.exit`, `report_fields` (each report field with its allowed values), `next_argv`, `done_argv` and `verify_script`. The receipt file holds the full packet (`work`, both conditions, `context`, progress, `last_report` with its `handoff`, `report_schema`), and `next` prints it whole. Where this card says to read the packet or the return value, read the receipt on a fresh or compacted context; in a live context the lean return and the contract you started are enough. A run without a receipt prints the full packet every time. Carry out precisely that assigned action using current artifacts and tools. Previous reports are claims to check, not instructions or independent proof. Do not invent a successor, advance a counter, or substitute a remembered plan for the returned action.
 
 For each active return, **execute the execution condition first, then call `done`**. Its action-specific focus does not replace the required steps in `work`. For Improve-shaped work, complete the requested review/history, plan worthwhile changes, implement authorized fixes, and run applicable checks in that order. An empty plan is valid after a complete review finds no worthwhile change. Recheck current artifacts and prior completed work; do not blindly reapply an earlier fix. Merely reviewing or planning is insufficient when implementation or checks are also assigned. If a stop or blocker prevents completion, report the unfinished work honestly instead of counting it as a trivial review.
 
@@ -144,7 +146,7 @@ Only after that execution (or an actual incomplete stop), call the packet's exac
 
 `done` means **this action is finished**. `trivial` or `non-trivial` describes its result; neither selects the next state. Do not supply a decision, next action, successor, count, or caller-chosen action number.
 
-Consume the full return value of every `done` call:
+Consume the return value of every `done` call (with a receipt, the lean return; its receipt holds the rest):
 
 - `active`: communicate the returned factual status, then execute its returned instruction and new callback. Do not end the loop because a test passed or a review was trivial.
 - `complete` or `stopped`: follow the terminal reporting instruction. There is no further callback or loop work. Distinguish fulfilled conditions from an incomplete stop.
@@ -164,7 +166,7 @@ new run. Retain terminal returns for reporting because their state file is gone.
 
 When a parent names a receipt file, start with `--receipt <absolute file>`. The
 runtime then writes every packet it returns, the terminal one included, to that
-file before printing it, so the durable copy never depends on saved stdout. After
+file before printing its lean return, so the durable copy never depends on saved stdout. After
 lost context, read that receipt: an active one supplies `next_argv`, a terminal one
 is the run's result.
 

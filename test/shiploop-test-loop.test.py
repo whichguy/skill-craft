@@ -309,6 +309,7 @@ class TestLoopTests(unittest.TestCase):
             self.assertEqual(packet["status"], "active")
             packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(report), text=True,
                                                capture_output=True, check=True, timeout=30).stdout)
+        packet = support.full_packet(packet)  # the receipt holds the full packet behind the lean print (U21)
         self.assertEqual(json.loads(self.terminal().read_text()), packet)
         return packet
 

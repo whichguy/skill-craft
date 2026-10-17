@@ -90,7 +90,12 @@ create `.until-loop` in the workspace or look for another run's state.
 
 Read the entire active packet: instruction, workspace, work, conditions,
 progress, complete frozen `context`, last report including `handoff`, report schema
-and exact `done_argv`. Execute the full
+and exact `done_argv`. With `--receipt`, `start` and `done` print a lean
+return instead (`status`, `state_file`, `receipt`, `instruction`, `conditions.exit`,
+`report_fields`, `next_argv`, `done_argv`, `verify_script`; a terminal one has no
+callback): the receipt holds that full packet and `next` prints it whole, so read
+the receipt on a fresh or compacted context. Without a receipt every return is the
+full packet. Execute the full
 assigned iteration before calling `done`. A material finding does not excuse
 skipping its required fix/check; an incomplete action is `unresolved`.
 

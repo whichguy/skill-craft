@@ -1050,6 +1050,82 @@ def _terminal_packet(
     return packet
 
 
+_REPAIRS_NOTE = (
+    " This run repaired frozen exit checks: list each repair (clause, old and new command, "
+    "reason) in the terminal report so the user can confirm none loosened its clause."
+)
+# The fields a printed lean return carries (skill-craft adaptation, 2026-10-17).  A run started with --receipt prints
+# these from start and done; the receipt keeps the full packet, and next prints it whole for recovery.
+PRINTED_KEYS = frozenset({
+    "status", "state_file", "receipt", "instruction", "conditions", "report_fields", "next_argv", "done_argv",
+    "verify_script",
+})
+
+
+def _report_fields(has_checks: bool) -> dict[str, str]:
+    """Each report field with its allowed values: the enums come from ``_report_schema`` so the two never differ."""
+    properties = _report_schema(has_checks)["properties"]
+    fields = {name: "|".join(prop["enum"]) for name, prop in properties.items() if "enum" in prop}
+    fields["evidence"] = "nonblank: this iteration's observations and any remaining gap"
+    fields["handoff"] = "nonblank: the full compact replacement handoff, not a delta"
+    if "check_repairs" in properties:
+        fields["check_repairs"] = ("optional [{id, command, reason}], only for a failed check whose command "
+                                   "misstates its clause, with an unsatisfied exit")
+    return fields
+
+
+def _printed_active(path: Path, state: dict[str, Any], packet: dict[str, Any]) -> dict[str, Any]:
+    """The lean return ``start`` and a non-terminal ``done`` print when the run keeps a receipt (else the packet).
+
+    The work, full conditions, context, progress and the last report stay in the contract and the receipt: printing
+    them on every return cost 19 to 22 KB per non-terminal ``done`` in a live run.
+    """
+    if state["receipt"] is None:
+        return packet
+    verify = (", run verify_script once, unchanged, as your shell tool's command after the iteration's last change "
+              "and before reporting a satisfied exit" if state["contract"]["exit_checks"] else "")
+    return {
+        "status": packet["status"],
+        "state_file": str(path),
+        "receipt": state["receipt"],
+        "instruction": (
+            f"{_next_action(state)} Do one complete iteration of the contract's Work{verify}, then send one JSON "
+            "report with report_fields on standard input to done_argv even if the exit is unmet (incomplete work is "
+            "unresolved, never trivial; a blocker is continuation blocked) and follow its returned instruction: the "
+            "runtime alone decides the next action, the count and completion. The receipt holds the full packet "
+            "(work, conditions, context, progress, last report and handoff, report_schema): read it first on a fresh "
+            "or compacted context, or run next_argv once if the run may have moved on."
+        ),
+        "conditions": {"exit": state["contract"]["exit_condition"]},
+        "report_fields": _report_fields(bool(state["contract"]["exit_checks"])),
+        "next_argv": packet["next_argv"],
+        "done_argv": packet["done_argv"],
+        "verify_script": packet["verify_script"],
+    }
+
+
+def _printed_terminal(packet: dict[str, Any], reason: str, repaired: bool) -> dict[str, Any]:
+    """The lean return a terminal ``done`` prints when the run keeps a receipt (else the packet)."""
+    if packet["receipt"] is None:
+        return packet
+    return {
+        "status": packet["status"],
+        "state_file": packet["state_file"],
+        "receipt": packet["receipt"],
+        "instruction": (
+            f"This run is {packet['status']}: {reason} Do no further work and invoke no callback for this run; "
+            "report its result once from the receipt file (final report, progress and check results), keeping "
+            "reported claims apart from verified outcomes, and if nested return the receipt to its reporting owner."
+            + (_REPAIRS_NOTE if repaired else "")
+        ),
+        "conditions": {"exit": packet["conditions"]["exit"]},
+        "report_fields": None,
+        "next_argv": None,
+        "done_argv": None,
+        "verify_script": None,
+    }
+
+
 def start(
     contract: object,
     directory: str | os.PathLike[str] | None = None,
@@ -1059,6 +1135,15 @@ def start(
 
     With ``receipt``, every packet this run returns is also written to that file.
     """
+    return _start(contract, directory, receipt)[0]
+
+
+def _start(
+    contract: object,
+    directory: str | os.PathLike[str] | None = None,
+    receipt: str | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """``start``, plus the return the command line prints (lean when the run keeps a receipt)."""
     initial = {
         "contract": _validate_contract(contract, input_contract=True),
         "run_id": secrets.token_urlsafe(18),
@@ -1115,7 +1200,7 @@ def start(
         # A run whose receipt cannot be written would not have its durable copy.
         _discard_created_file(path, identity)
         raise
-    return packet
+    return packet, _printed_active(path, initial, packet)
 
 
 def next_packet(path: str | os.PathLike[str]) -> dict[str, Any]:
@@ -1135,6 +1220,13 @@ def done(
     path: str | os.PathLike[str], action_id: str, report: object
 ) -> dict[str, Any]:
     """Accept one report for the issued action and choose the next transition."""
+    return _done(path, action_id, report)[0]
+
+
+def _done(
+    path: str | os.PathLike[str], action_id: str, report: object
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """``done``, plus the return the command line prints (lean when the run keeps a receipt)."""
     fd, state_path = _open_state(path, os.O_RDWR)
     try:
         current = _read_state_fd(fd)
@@ -1215,60 +1307,44 @@ def done(
         _encode_state({**updated, "check_repairs": [],
                        "last_checks": None if updated["last_checks"] is None
                        else [{**r, "output_tail": ""} for r in updated["last_checks"]]})
+        stop: tuple[str, str] | None = None
         if continuation == "cancelled":
+            stop = ("stopped", "the callback explicitly cancelled it.")
+        elif validated_report["exit_assessment"] == "satisfied" and checks_pass and gate_met:
+            stop = ("complete",
+                    "the semantic exit assessment is satisfied and the pass was trivial with the "
+                    "workspace content unchanged from the previous pass"
+                    + (", and the pass before it was also trivial and satisfied with the content unchanged, "
+                       if _required_trivial_reviews(current) == UNCHANGED_AFTER_EDIT_GATE
+                       and current["action_number"] > 1 else ", ")
+                    + "which meets the review gate."
+                    if unchanged_gate
+                    else "the semantic exit assessment is satisfied and the review gate is met.")
+        elif continuation == "blocked":
+            stop = ("stopped", "the continuation assessment is blocked before completion.")
+
+        if stop is not None:
             terminal = _terminal_packet(
-                status="stopped",
+                status=stop[0],
                 path=state_path,
                 state=measured,
                 report=validated_report,
                 trivial_streak=trivial_streak,
-                reason="the callback explicitly cancelled it.",
+                reason=stop[1],
             )
-        else:
-            if validated_report["exit_assessment"] == "satisfied" and checks_pass and gate_met:
-                terminal = _terminal_packet(
-                    status="complete",
-                    path=state_path,
-                    state=measured,
-                    report=validated_report,
-                    trivial_streak=trivial_streak,
-                    reason=("the semantic exit assessment is satisfied and the pass was trivial with the "
-                            "workspace content unchanged from the previous pass"
-                            + (", and the pass before it was also trivial and satisfied with the content unchanged, "
-                               if _required_trivial_reviews(current) == UNCHANGED_AFTER_EDIT_GATE
-                               and current["action_number"] > 1 else ", ")
-                            + "which meets the review gate."
-                            if unchanged_gate
-                            else "the semantic exit assessment is satisfied and the review gate is met."),
-                )
-            elif continuation == "blocked":
-                terminal = _terminal_packet(
-                    status="stopped",
-                    path=state_path,
-                    state=measured,
-                    report=validated_report,
-                    trivial_streak=trivial_streak,
-                    reason="the continuation assessment is blocked before completion.",
-                )
-            else:
-                terminal = None
-
-        if terminal is not None:
             terminal["last_check_results"] = check_results
-            if current["check_repairs"]:
-                terminal["instruction"] += (
-                    " This run repaired frozen exit checks: list each repair (clause, old and new command, "
-                    "reason) in the terminal report so the user can confirm none loosened its clause."
-                )
+            repaired = bool(current["check_repairs"])
+            if repaired:
+                terminal["instruction"] += _REPAIRS_NOTE
             # Persist the terminal packet before its state disappears.
             _write_receipt(current, terminal)
             _delete_owned(state_path, os.fstat(fd))
-            return terminal
+            return terminal, _printed_terminal(terminal, stop[1], repaired)
         # Only an active run keeps state; the terminal path above has already returned.
         _write_payload_fd(fd, _encode_state(updated))
         packet = _active_packet(state_path, updated)
         _write_receipt(updated, packet)
-        return packet
+        return packet, _printed_active(state_path, updated, packet)
     finally:
         os.close(fd)
 
@@ -1407,11 +1483,11 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write(summary + "\n")
             return 0
         if args.command == "start":
-            result = start(_stdin_json(), directory=args.directory, receipt=args.receipt)
+            result = _start(_stdin_json(), directory=args.directory, receipt=args.receipt)[1]
         elif args.command == "next":
-            result = next_packet(args.state)
+            result = next_packet(args.state)  # the recovery read prints the full packet
         else:
-            result = done(args.state, args.action, _stdin_json())
+            result = _done(args.state, args.action, _stdin_json())[1]
     except StateError as error:
         _write_json(_error_packet(error, _known_state_path(args)))
         return 2

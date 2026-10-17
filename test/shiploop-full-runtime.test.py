@@ -24,7 +24,7 @@ import unittest
 
 import package_build
 import shiploop_knowledge_support as knowledge_support
-from shiploop_loop_support import finish_loop, with_receipt
+from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -278,6 +278,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             self.fail(f"Until Loop did not return JSON: {detail}\n{exc}")
         self.assertIsInstance(packet, dict)
+        if set(packet) == LEAN_KEYS:  # a receipt run prints a lean return; its receipt holds the full packet (U21)
+            return Path(packet["receipt"]).read_bytes(), full_packet(packet)
         return result.stdout, packet
 
     def _git(self, repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
