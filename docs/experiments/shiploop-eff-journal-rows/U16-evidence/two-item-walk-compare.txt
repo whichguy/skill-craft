@@ -1,0 +1,106 @@
+Two-item multi-step walk (test/shiploop_head_plans.py full_walk, both routes, run dir 83, CLI 96): packets that differ before/after U16
+ask-agent/21-document whole differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+ask-agent/21-document printed differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+ask-agent/22-verify whole differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+ask-agent/22-verify printed differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+ask-agent/23-carry-forward whole differs:
+    -- W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+ask-agent/23-carry-forward printed differs:
+    -- W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+ask-agent/32-document whole differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+ask-agent/32-document printed differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+ask-agent/33-verify whole differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+ask-agent/33-verify printed differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+ask-agent/34-carry-forward whole differs:
+    -- W2 verify item commit: the WORKTREE commit whose subject starts 'feat: W2 ' (the item's committed change)
+ask-agent/34-carry-forward printed differs:
+    -- W2 verify item commit: the WORKTREE commit whose subject starts 'feat: W2 ' (the item's committed change)
+inline/23-document whole differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+inline/23-document printed differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+inline/24-verify whole differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+inline/24-verify printed differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+inline/25-carry-forward whole differs:
+    -- W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+inline/25-carry-forward printed differs:
+    -- W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+inline/34-document whole differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+inline/34-document printed differs:
+    -1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+    +1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
+    +Changed since the item base (script-derived): not computed: no base snapshot was captured when it started
+inline/35-verify whole differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+inline/35-verify printed differs:
+    -1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+    +1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+    +   command into RUN/tests/<action>-check-only.md: copy no exit code.
+    -11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    -    any required check not run and why, known limitations.
+    +11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
+inline/36-carry-forward whole differs:
+    -- W2 verify item commit: the WORKTREE commit whose subject starts 'feat: W2 ' (the item's committed change)
+inline/36-carry-forward printed differs:
+    -- W2 verify item commit: the WORKTREE commit whose subject starts 'feat: W2 ' (the item's committed change)
+carry-forward packets byte-identical: ['ask-agent/35-carry-forward-improve', 'inline/37-carry-forward-improve']

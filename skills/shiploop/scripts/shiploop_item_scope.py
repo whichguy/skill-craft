@@ -150,6 +150,21 @@ def changed_paths(run_dir: Path, work_item: str, *, timeout: float = 60.0) -> Op
     return changed_since(run_dir, lint.read_base(Path(run_dir), work_item), timeout=timeout)
 
 
+# Why an item's changed paths are unknown: what a packet prints after "not computed: " and what commit_item raises with.
+NO_BASE = "no base snapshot was captured when it started"
+UNREADABLE = "its diff against the base snapshot could not be read"
+
+
+def changed_paths_or_reason(run_dir: Path, work_item: str, *,
+                            timeout: float = 60.0) -> Tuple[Optional[List[str]], str]:
+    """(``changed_paths``, '') when the item's changes can be read, else (None, why not: ``NO_BASE`` or ``UNREADABLE``)."""
+    base = lint.read_base(Path(run_dir), work_item)
+    if not base or not base.get("toplevel") or not base.get("tree"):
+        return None, NO_BASE
+    changed = changed_since(run_dir, base, timeout=timeout)
+    return (changed, "") if changed is not None else (None, UNREADABLE)
+
+
 def changed_since(run_dir: Path, base: Optional[Mapping[str, Any]], *,
                   timeout: float = 60.0) -> Optional[List[str]]:
     """Repository-relative paths whose working content differs from ``base``; ``None`` when unknown.
@@ -224,10 +239,13 @@ def commit_item(run_dir: Path, state: Mapping[str, Any], work_item: str,
 
     Returns (new commit ID or '', changed paths left alone (undeclared and not documentation, or withheld by the
     workspace)).  The model never writes this commit: committing is mechanical (SPEC S-5), and headless hosts
-    refuse model-written ``git commit`` shell.
+    refuse model-written ``git commit`` shell.  Raises ItemScopeError when the item's changes cannot be read: an unknown
+    change is never reported as nothing to commit.
     """
     import shiploop_git
-    changed = changed_paths(run_dir, work_item)
+    changed, why = changed_paths_or_reason(run_dir, work_item)
+    if changed is None:
+        raise ItemScopeError("the item's changes cannot be read (" + why + ")")
     if not changed:
         return "", []
     chosen, undeclared = commit_scope(changed, declared(state, work_item), withheld(run_dir, state))
@@ -262,6 +280,7 @@ def scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str) -> st
 
 
 __all__ = ("DOCUMENT_STAGE", "LEFT_OUT_STAGES", "NOT_APPLICABLE", "TEST_STAGES", "ItemScopeError",
-           "behavioural", "behavioural_paths", "changed_paths", "changed_since", "classify", "commit_item",
+           "NO_BASE", "UNREADABLE",
+           "behavioural", "behavioural_paths", "changed_paths", "changed_paths_or_reason", "changed_since", "classify", "commit_item",
            "commit_scope", "declared", "left_out", "no_document_item", "no_test_item", "normalise_paths", "outside",
            "scope_refusal", "withheld")

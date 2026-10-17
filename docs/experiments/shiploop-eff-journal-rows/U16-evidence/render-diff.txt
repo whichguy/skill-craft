@@ -1,0 +1,444 @@
+### inline 83
+# Render diff: node-fix-bug / inline/83/96, unit U16
+
+- old SP/eff2/U16/before-inline-83 (commit 9f949689ff3d)
+- new SP/eff2/U16/after-inline-83 (commit 9f949689ff3d)
+- the head table is checked
+
+| stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|---|
+| step-plan | 19988 | 19988 | +0 | 19988 | 12 | 23351 | 23351 | 0 | ok |
+| step-plan-improve | 2713 | 2713 | +0 | 2713 | 17287 | 2687 | 2687 | 0 | ok |
+| test-spec | 14759 | 14759 | +0 | 14759 | 5241 | 14733 | 14733 | 0 | ok |
+| test-spec-improve | 1945 | 1945 | +0 | 1945 | 18055 | 1919 | 1919 | 0 | ok |
+| validate-existing | 15283 | 15283 | +0 | 15283 | 4717 | 15257 | 15257 | 0 | ok |
+| implement | 15763 | 15763 | +0 | 15763 | 4237 | 18286 | 18286 | 0 | ok |
+| implement-improve | 2654 | 2654 | +0 | 2654 | 17346 | 2628 | 2628 | 0 | ok |
+| test | 18239 | 18239 | +0 | 18239 | 1761 | 20470 | 20470 | 0 | ok |
+| document | 14116 | 14225 | +109 | 14225 | 5775 | 14090 | 14199 | 0 | ok |
+| verify | 18188 | 18188 | +0 | 18188 | 1812 | 20408 | 20408 | 0 | ok |
+| carry-forward | 18028 | 13774 | -4254 | 18028 | 6226 | 22179 | 17925 | 0 | ok |
+| carry-forward-improve | 2642 | 2642 | +0 | 2642 | 17358 | 2616 | 2616 | 0 | ok |
+
+## document
+  -   114  [PW] 1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and…
+  +   117  [PW] 1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results …   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+  +   106  [PW] Changed since the item base (script-derived): not computed: no base snapshot was captured when it started   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+
+## verify
+  -    59  [PW]     any required check not run and why, known limitations.
+  -   119  [PW] 1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<ac…
+  -   115  [PW] 11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit …
+  +    69  [PW]    command into RUN/tests/<action>-check-only.md: copy no exit code.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   117  [PW] 1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every r…   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   107  [PW] 11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+
+## carry-forward
+  -   115  [PW]       HOME/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credent…
+  -   116  [PW]       RUN/notes/<action>-skill-trial.md (an update also runs one retained older use). The note says whether a…
+  -   116  [PW]       WORKTREE, added under ## Skills. Never edit an installed or shared skill, install globally, add a depen…
+  -   114  [PW]       `create`; name a reused skill in `reason`); the trial note in evidence_refs. On accept ShipLoop commits…
+  -   110  [PW]       `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
+  -   112  [PW]       combining contracts would obscure selection or break a consumer). `update` or `create` only when the sa…
+  -    94  [PW]       connector or privilege, or publish. Derived content keeps source, revision and licence.
+  -    60  [PW]       decision rule. Task-specific values stay in evidence.
+  -   115  [PW]       demonstrated lesson, keeping supported inputs, defaults and older examples); `create` (no suitable skil…
+  -   110  [PW]       different parameter values alone need no new skill); `update` (a small compatible extension capturing a
+  -    41  [PW]       installation is not proof it runs.
+  -   111  [PW]       it and does not restate its logic. A judgement step stays in SKILL.md as a numbered instruction with its
+  -   115  [PW]       it and when not). Body: what it produces and why; each input (type, required, default and its source); …
+  -    96  [PW]       link from the repository skill index; list any index file outside HOME/ in `skill.index`.
+  -    98  [PW]       machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
+  -   114  [PW]       procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur;…
+  -   117  [PW]       procedure, or a code, test or doc change already captures it); `reuse` (an existing skill covers it unc…
+  -   118  [PW]       reader (given only the index, the skill and a new task) tried it, or "cold-context reuse untested". Pre…
+  -    65  [PW]       skill directory and the `index` files as their own commit.
+  -   116  [PW]       skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence…
+  -   113  [PW]       steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests …
+  -   115  [PW]       success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md…
+  -    85  [PW]       those IDs in `skill.evidence`. Capture no transcript or speculative framework.
+  -    51  [PW]      loop and report blocked; it is no queue edit.
+  -    43  [PW]      revalidation, ahead of its consumers;
+  -    77  [PW]      transcript, invent no decision ledger; a context summary is not proof);
+  -   110  [PW]    - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
+  -   108  [PW]    - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
+  -   116  [PW]    - finding incompatible with the approved work (changed requirement, permission or invocation contract): st…
+  -    88  [PW]    - needed research or preparation prerequisite: its own item ahead of every consumer;
+  -   118  [PW]    1. *Inspect* the repository skill index (the directory HOME/environment.md ## Skills names, or README or A…
+  -   115  [PW]    2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance): `none` (no rep…
+  -   110  [PW]    3. *Where:* the repository's skill directory (## Skills, or the existing layout), else `skills/<name>/` in
+  -   118  [PW]    4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (whe…
+  -   103  [PW]    5. *Prove.* Run the skill once on this run's real procedure; write command, exit code and output to
+  -   118  [PW]    6. *Register:* a line with the skill's path, when to use it and its inputs in HOME/environment.md ## Skill…
+  -   119  [PW]    7. *Record:* `skill` = `{"decision", "reason", "path", "evidence", "index"}` (`path` = the SKILL.md for `u…
+  -    99  [PW]    An earlier selection or passing trial is an input, not authority: revalidate for each new task.
+  -   116  [PW]    To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prereq…
+  -    60  [PW]    give every observation that affects later work an owner:
+  -   117  [PW]    order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or superses…
+  -    53  [PW]    the summary. Omit `work_items` to keep the queue.
+  -   108  [PW] - W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+  -   116  [PW] 2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and co…
+  -    35  [PW] 3. **Skill decision**, in `skill`:
+  -    83  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and the skill, item 3.7).
+  -   141  [PW] Omit work_items to retain the future queue. Supplied work_items replaces the entire future queue after the cu…
+  -   310  [PW] Read every pending item's full title/context before replacing it. Return all still-required future items in p…
+  -   328  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/ru…
+  +    38  [PW]    RUN/notes/<action>-skill-trial.md.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole …   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    procedure will recur (put it in `skill.evidence`): follow Repository-local skill guidance and write the tr…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    73  [PW]    queue, rows `{"id", "title", "context"}`, and say why in the summary.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   117  [PW]    the repository skill index (HOME/environment.md ## Skills) and your host's skills and list them in evidenc…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW]    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   114  [PW] 2. **Queue** (Carry-forward mapping guidance). No item follows W1: omit `work_items`. To add a corrective ite…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW] 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeate…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    98  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and a created or updated skill, item 3).   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   160  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/ru…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+
+All 12 stages pass.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit=0
+### inline 163
+# Render diff: node-fix-bug / inline/163/96, unit U16
+
+- old SP/eff2/U16/before-inline-163 (commit 9f949689ff3d)
+- new SP/eff2/U16/after-inline-163 (commit 9f949689ff3d)
+- the head table is checked
+
+| stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|---|
+| step-plan | 19774 | 19774 | +0 | 19817 | 226 | 24871 | 24871 | 0 | ok |
+| step-plan-improve | 3033 | 3033 | +0 | 3033 | 16967 | 3007 | 3007 | 0 | ok |
+| test-spec | 14216 | 14216 | +0 | 15909 | 5784 | 16093 | 16093 | 0 | ok |
+| test-spec-improve | 2265 | 2265 | +0 | 2265 | 17735 | 2239 | 2239 | 0 | ok |
+| validate-existing | 13922 | 13922 | +0 | 13629 | 6078 | 16617 | 16617 | 0 | FAIL |
+| implement | 16723 | 16723 | +0 | 16637 | 3277 | 19246 | 19246 | 0 | FAIL |
+| implement-improve | 2974 | 2974 | +0 | 2974 | 17026 | 2948 | 2948 | 0 | ok |
+| test | 19759 | 19759 | +0 | 19370 | 241 | 21990 | 21990 | 0 | FAIL |
+| document | 15556 | 15665 | +109 | 15372 | 4335 | 15530 | 15639 | 0 | FAIL |
+| verify | 19548 | 19548 | +0 | 19430 | 452 | 21768 | 21768 | 0 | FAIL |
+| carry-forward | 19468 | 15134 | -4334 | 19175 | 4866 | 23699 | 19365 | 0 | ok |
+| carry-forward-improve | 2962 | 2962 | +0 | 2962 | 17038 | 2936 | 2936 | 0 | ok |
+
+## validate-existing
+  FAIL head table: printed 13922 passes the table value 13629
+
+## implement
+  FAIL head table: printed 16723 passes the table value 16637
+
+## test
+  FAIL head table: printed 19759 passes the table value 19370
+
+## document
+  FAIL head table: printed 15665 passes the table value 15372
+  -   114  [PW] 1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and…
+  +   117  [PW] 1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results …   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+  +   106  [PW] Changed since the item base (script-derived): not computed: no base snapshot was captured when it started   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+
+## verify
+  FAIL head table: printed 19548 passes the table value 19430
+  -    59  [PW]     any required check not run and why, known limitations.
+  -   119  [PW] 1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<ac…
+  -   115  [PW] 11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit …
+  +    69  [PW]    command into RUN/tests/<action>-check-only.md: copy no exit code.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   117  [PW] 1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every r…   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   107  [PW] 11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+
+## carry-forward
+  -   115  [PW]       HOME/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credent…
+  -   116  [PW]       RUN/notes/<action>-skill-trial.md (an update also runs one retained older use). The note says whether a…
+  -   116  [PW]       WORKTREE, added under ## Skills. Never edit an installed or shared skill, install globally, add a depen…
+  -   114  [PW]       `create`; name a reused skill in `reason`); the trial note in evidence_refs. On accept ShipLoop commits…
+  -   110  [PW]       `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
+  -   112  [PW]       combining contracts would obscure selection or break a consumer). `update` or `create` only when the sa…
+  -    94  [PW]       connector or privilege, or publish. Derived content keeps source, revision and licence.
+  -    60  [PW]       decision rule. Task-specific values stay in evidence.
+  -   115  [PW]       demonstrated lesson, keeping supported inputs, defaults and older examples); `create` (no suitable skil…
+  -   110  [PW]       different parameter values alone need no new skill); `update` (a small compatible extension capturing a
+  -    41  [PW]       installation is not proof it runs.
+  -   111  [PW]       it and does not restate its logic. A judgement step stays in SKILL.md as a numbered instruction with its
+  -   115  [PW]       it and when not). Body: what it produces and why; each input (type, required, default and its source); …
+  -    96  [PW]       link from the repository skill index; list any index file outside HOME/ in `skill.index`.
+  -    98  [PW]       machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
+  -   114  [PW]       procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur;…
+  -   117  [PW]       procedure, or a code, test or doc change already captures it); `reuse` (an existing skill covers it unc…
+  -   118  [PW]       reader (given only the index, the skill and a new task) tried it, or "cold-context reuse untested". Pre…
+  -    65  [PW]       skill directory and the `index` files as their own commit.
+  -   116  [PW]       skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence…
+  -   113  [PW]       steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests …
+  -   115  [PW]       success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md…
+  -    85  [PW]       those IDs in `skill.evidence`. Capture no transcript or speculative framework.
+  -    51  [PW]      loop and report blocked; it is no queue edit.
+  -    43  [PW]      revalidation, ahead of its consumers;
+  -    77  [PW]      transcript, invent no decision ledger; a context summary is not proof);
+  -   110  [PW]    - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
+  -   108  [PW]    - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
+  -   116  [PW]    - finding incompatible with the approved work (changed requirement, permission or invocation contract): st…
+  -    88  [PW]    - needed research or preparation prerequisite: its own item ahead of every consumer;
+  -   118  [PW]    1. *Inspect* the repository skill index (the directory HOME/environment.md ## Skills names, or README or A…
+  -   115  [PW]    2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance): `none` (no rep…
+  -   110  [PW]    3. *Where:* the repository's skill directory (## Skills, or the existing layout), else `skills/<name>/` in
+  -   118  [PW]    4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (whe…
+  -   103  [PW]    5. *Prove.* Run the skill once on this run's real procedure; write command, exit code and output to
+  -   118  [PW]    6. *Register:* a line with the skill's path, when to use it and its inputs in HOME/environment.md ## Skill…
+  -   119  [PW]    7. *Record:* `skill` = `{"decision", "reason", "path", "evidence", "index"}` (`path` = the SKILL.md for `u…
+  -    99  [PW]    An earlier selection or passing trial is an input, not authority: revalidate for each new task.
+  -   116  [PW]    To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prereq…
+  -    60  [PW]    give every observation that affects later work an owner:
+  -   117  [PW]    order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or superses…
+  -    53  [PW]    the summary. Omit `work_items` to keep the queue.
+  -   108  [PW] - W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+  -   116  [PW] 2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and co…
+  -    35  [PW] 3. **Skill decision**, in `skill`:
+  -    83  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and the skill, item 3.7).
+  -   141  [PW] Omit work_items to retain the future queue. Supplied work_items replaces the entire future queue after the cu…
+  -   310  [PW] Read every pending item's full title/context before replacing it. Return all still-required future items in p…
+  -   488  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwwwwww…
+  +    38  [PW]    RUN/notes/<action>-skill-trial.md.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole …   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    procedure will recur (put it in `skill.evidence`): follow Repository-local skill guidance and write the tr…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    73  [PW]    queue, rows `{"id", "title", "context"}`, and say why in the summary.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   117  [PW]    the repository skill index (HOME/environment.md ## Skills) and your host's skills and list them in evidenc…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW]    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   114  [PW] 2. **Queue** (Carry-forward mapping guidance). No item follows W1: omit `work_items`. To add a corrective ite…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW] 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeate…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    98  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and a created or updated skill, item 3).   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   240  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwwwwww…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+
+5 of 12 stages fail.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit=1
+### ask-agent 83
+# Render diff: node-fix-bug / ask-agent/83/96, unit U16
+
+- old SP/eff2/U16/before-ask-agent-83 (commit 9f949689ff3d)
+- new SP/eff2/U16/after-ask-agent-83 (commit 9f949689ff3d)
+- the head table is checked
+
+| stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|---|
+| step-plan | 19449 | 19449 | +0 | 19449 | 551 | 26742 | 26742 | 0 | ok |
+| step-plan-improve | 2713 | 2713 | +0 | 2713 | 17287 | 2687 | 2687 | 0 | ok |
+| test-spec | 12856 | 12856 | +0 | 12856 | 7144 | 16301 | 16301 | 0 | ok |
+| test-spec-improve | 1945 | 1945 | +0 | 1945 | 18055 | 1919 | 1919 | 0 | ok |
+| validate-existing | 12562 | 12562 | +0 | 12562 | 7438 | 16825 | 16825 | 0 | ok |
+| implement | 17217 | 17217 | +0 | 17217 | 2783 | 21386 | 21386 | 0 | ok |
+| implement-improve | 2654 | 2654 | +0 | 2654 | 17346 | 2628 | 2628 | 0 | ok |
+| test | 18239 | 18239 | +0 | 18239 | 1761 | 22038 | 22038 | 0 | ok |
+| document | 15684 | 15793 | +109 | 15793 | 4207 | 15658 | 15767 | 0 | ok |
+| verify | 18608 | 18608 | +0 | 18608 | 1392 | 22396 | 22396 | 0 | ok |
+| carry-forward | 19294 | 15040 | -4254 | 19294 | 4960 | 25013 | 20759 | 0 | ok |
+| carry-forward-improve | 2642 | 2642 | +0 | 2642 | 17358 | 2616 | 2616 | 0 | ok |
+
+## document
+  -   114  [PW] 1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and…
+  +   117  [PW] 1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results …   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+  +   106  [PW] Changed since the item base (script-derived): not computed: no base snapshot was captured when it started   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+
+## verify
+  -    59  [PW]     any required check not run and why, known limitations.
+  -   119  [PW] 1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<ac…
+  -   115  [PW] 11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit …
+  +    69  [PW]    command into RUN/tests/<action>-check-only.md: copy no exit code.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   117  [PW] 1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every r…   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   107  [PW] 11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+
+## carry-forward
+  -   115  [PW]       HOME/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credent…
+  -   116  [PW]       RUN/notes/<action>-skill-trial.md (an update also runs one retained older use). The note says whether a…
+  -   116  [PW]       WORKTREE, added under ## Skills. Never edit an installed or shared skill, install globally, add a depen…
+  -   114  [PW]       `create`; name a reused skill in `reason`); the trial note in evidence_refs. On accept ShipLoop commits…
+  -   110  [PW]       `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
+  -   112  [PW]       combining contracts would obscure selection or break a consumer). `update` or `create` only when the sa…
+  -    94  [PW]       connector or privilege, or publish. Derived content keeps source, revision and licence.
+  -    60  [PW]       decision rule. Task-specific values stay in evidence.
+  -   115  [PW]       demonstrated lesson, keeping supported inputs, defaults and older examples); `create` (no suitable skil…
+  -   110  [PW]       different parameter values alone need no new skill); `update` (a small compatible extension capturing a
+  -    41  [PW]       installation is not proof it runs.
+  -   111  [PW]       it and does not restate its logic. A judgement step stays in SKILL.md as a numbered instruction with its
+  -   115  [PW]       it and when not). Body: what it produces and why; each input (type, required, default and its source); …
+  -    96  [PW]       link from the repository skill index; list any index file outside HOME/ in `skill.index`.
+  -    98  [PW]       machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
+  -   114  [PW]       procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur;…
+  -   117  [PW]       procedure, or a code, test or doc change already captures it); `reuse` (an existing skill covers it unc…
+  -   118  [PW]       reader (given only the index, the skill and a new task) tried it, or "cold-context reuse untested". Pre…
+  -    65  [PW]       skill directory and the `index` files as their own commit.
+  -   116  [PW]       skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence…
+  -   113  [PW]       steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests …
+  -   115  [PW]       success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md…
+  -    85  [PW]       those IDs in `skill.evidence`. Capture no transcript or speculative framework.
+  -    51  [PW]      loop and report blocked; it is no queue edit.
+  -    43  [PW]      revalidation, ahead of its consumers;
+  -    77  [PW]      transcript, invent no decision ledger; a context summary is not proof);
+  -   110  [PW]    - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
+  -   108  [PW]    - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
+  -   116  [PW]    - finding incompatible with the approved work (changed requirement, permission or invocation contract): st…
+  -    88  [PW]    - needed research or preparation prerequisite: its own item ahead of every consumer;
+  -   118  [PW]    1. *Inspect* the repository skill index (the directory HOME/environment.md ## Skills names, or README or A…
+  -   115  [PW]    2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance): `none` (no rep…
+  -   110  [PW]    3. *Where:* the repository's skill directory (## Skills, or the existing layout), else `skills/<name>/` in
+  -   118  [PW]    4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (whe…
+  -   103  [PW]    5. *Prove.* Run the skill once on this run's real procedure; write command, exit code and output to
+  -   118  [PW]    6. *Register:* a line with the skill's path, when to use it and its inputs in HOME/environment.md ## Skill…
+  -   119  [PW]    7. *Record:* `skill` = `{"decision", "reason", "path", "evidence", "index"}` (`path` = the SKILL.md for `u…
+  -    99  [PW]    An earlier selection or passing trial is an input, not authority: revalidate for each new task.
+  -   116  [PW]    To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prereq…
+  -    60  [PW]    give every observation that affects later work an owner:
+  -   117  [PW]    order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or superses…
+  -    53  [PW]    the summary. Omit `work_items` to keep the queue.
+  -   108  [PW] - W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+  -   116  [PW] 2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and co…
+  -    35  [PW] 3. **Skill decision**, in `skill`:
+  -    83  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and the skill, item 3.7).
+  -   141  [PW] Omit work_items to retain the future queue. Supplied work_items replaces the entire future queue after the cu…
+  -   310  [PW] Read every pending item's full title/context before replacing it. Return all still-required future items in p…
+  -   328  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/ru…
+  +    38  [PW]    RUN/notes/<action>-skill-trial.md.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole …   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    procedure will recur (put it in `skill.evidence`): follow Repository-local skill guidance and write the tr…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    73  [PW]    queue, rows `{"id", "title", "context"}`, and say why in the summary.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   117  [PW]    the repository skill index (HOME/environment.md ## Skills) and your host's skills and list them in evidenc…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW]    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   114  [PW] 2. **Queue** (Carry-forward mapping guidance). No item follows W1: omit `work_items`. To add a corrective ite…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW] 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeate…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    98  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and a created or updated skill, item 3).   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   160  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/ru…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+
+All 12 stages pass.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit=0
+### ask-agent 163
+# Render diff: node-fix-bug / ask-agent/163/96, unit U16
+
+- old SP/eff2/U16/before-ask-agent-163 (commit 9f949689ff3d)
+- new SP/eff2/U16/after-ask-agent-163 (commit 9f949689ff3d)
+- the head table is checked
+
+| stage | printed old | printed new | Δ | table | to host cut | whole old | whole new | moved lines | result |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|---|
+| step-plan | 19260 | 19260 | +0 | 19892 | 740 | 28262 | 28262 | 0 | ok |
+| step-plan-improve | 3033 | 3033 | +0 | 3033 | 16967 | 3007 | 3007 | 0 | ok |
+| test-spec | 14216 | 14216 | +0 | 14006 | 5784 | 17661 | 17661 | 0 | FAIL |
+| test-spec-improve | 2265 | 2265 | +0 | 2265 | 17735 | 2239 | 2239 | 0 | ok |
+| validate-existing | 13922 | 13922 | +0 | 13629 | 6078 | 18185 | 18185 | 0 | FAIL |
+| implement | 18177 | 18177 | +0 | 18091 | 1823 | 22346 | 22346 | 0 | FAIL |
+| implement-improve | 2974 | 2974 | +0 | 2974 | 17026 | 2948 | 2948 | 0 | ok |
+| test | 19759 | 19759 | +0 | 19370 | 241 | 23558 | 23558 | 0 | FAIL |
+| document | 13349 | 13458 | +109 | 13165 | 6542 | 17098 | 17207 | 0 | FAIL |
+| verify | 19968 | 19968 | +0 | 19629 | 32 | 23756 | 23756 | 0 | FAIL |
+| carry-forward | 19884 | 16400 | -3484 | 19858 | 3600 | 26533 | 22199 | 0 | FAIL |
+| carry-forward-improve | 2962 | 2962 | +0 | 2962 | 17038 | 2936 | 2936 | 0 | ok |
+
+## test-spec
+  FAIL head table: printed 14216 passes the table value 14006
+
+## validate-existing
+  FAIL head table: printed 13922 passes the table value 13629
+
+## implement
+  FAIL head table: printed 18177 passes the table value 18091
+
+## test
+  FAIL head table: printed 19759 passes the table value 19370
+
+## document
+  FAIL head table: printed 13458 passes the table value 13165
+  -   114  [PW] 1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and…
+  +   117  [PW] 1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results …   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+  +   106  [PW] Changed since the item base (script-derived): not computed: no base snapshot was captured when it started   <- U16 approval: plan rev 6 row TD-8 (U16): the document packet prints the script-derived changed paths its duty 1 names (P: +120 characters; row 13 allows document up to 14,700)
+
+## verify
+  FAIL head table: printed 19968 passes the table value 19629
+  -    59  [PW]     any required check not run and why, known limitations.
+  -   119  [PW] 1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<ac…
+  -   115  [PW] 11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit …
+  +    69  [PW]    command into RUN/tests/<action>-check-only.md: copy no exit code.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   117  [PW] 1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every r…   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+  +   107  [PW] 11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.   <- U16 approval: plan rev 6 row VR-5 (U16): verify duty 1 runs complete --check-only instead of rerunning by hand, duty 11 drops the exit codes (zero net growth: the new lines are as long as the removed ones)
+
+## carry-forward
+  -   115  [PW]       HOME/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credent…
+  -   116  [PW]       RUN/notes/<action>-skill-trial.md (an update also runs one retained older use). The note says whether a…
+  -   116  [PW]       WORKTREE, added under ## Skills. Never edit an installed or shared skill, install globally, add a depen…
+  -   114  [PW]       `create`; name a reused skill in `reason`); the trial note in evidence_refs. On accept ShipLoop commits…
+  -   110  [PW]       `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
+  -   112  [PW]       combining contracts would obscure selection or break a consumer). `update` or `create` only when the sa…
+  -    94  [PW]       connector or privilege, or publish. Derived content keeps source, revision and licence.
+  -    60  [PW]       decision rule. Task-specific values stay in evidence.
+  -   115  [PW]       demonstrated lesson, keeping supported inputs, defaults and older examples); `create` (no suitable skil…
+  -   110  [PW]       different parameter values alone need no new skill); `update` (a small compatible extension capturing a
+  -    41  [PW]       installation is not proof it runs.
+  -   111  [PW]       it and does not restate its logic. A judgement step stays in SKILL.md as a numbered instruction with its
+  -   115  [PW]       it and when not). Body: what it produces and why; each input (type, required, default and its source); …
+  -    96  [PW]       link from the repository skill index; list any index file outside HOME/ in `skill.index`.
+  -    98  [PW]       machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
+  -   114  [PW]       procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur;…
+  -   117  [PW]       procedure, or a code, test or doc change already captures it); `reuse` (an existing skill covers it unc…
+  -   118  [PW]       reader (given only the index, the skill and a new task) tried it, or "cold-context reuse untested". Pre…
+  -    65  [PW]       skill directory and the `index` files as their own commit.
+  -   116  [PW]       skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence…
+  -   113  [PW]       steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests …
+  -   115  [PW]       success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md…
+  -    85  [PW]       those IDs in `skill.evidence`. Capture no transcript or speculative framework.
+  -    51  [PW]      loop and report blocked; it is no queue edit.
+  -    43  [PW]      revalidation, ahead of its consumers;
+  -    77  [PW]      transcript, invent no decision ledger; a context summary is not proof);
+  -   110  [PW]    - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
+  -   108  [PW]    - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
+  -   116  [PW]    - finding incompatible with the approved work (changed requirement, permission or invocation contract): st…
+  -    88  [PW]    - needed research or preparation prerequisite: its own item ahead of every consumer;
+  -   118  [PW]    1. *Inspect* the repository skill index (the directory HOME/environment.md ## Skills names, or README or A…
+  -   115  [PW]    2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance): `none` (no rep…
+  -   110  [PW]    3. *Where:* the repository's skill directory (## Skills, or the existing layout), else `skills/<name>/` in
+  -   118  [PW]    4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (whe…
+  -   103  [PW]    5. *Prove.* Run the skill once on this run's real procedure; write command, exit code and output to
+  -   118  [PW]    6. *Register:* a line with the skill's path, when to use it and its inputs in HOME/environment.md ## Skill…
+  -   119  [PW]    7. *Record:* `skill` = `{"decision", "reason", "path", "evidence", "index"}` (`path` = the SKILL.md for `u…
+  -    99  [PW]    An earlier selection or passing trial is an input, not authority: revalidate for each new task.
+  -   116  [PW]    To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prereq…
+  -    60  [PW]    give every observation that affects later work an owner:
+  -   117  [PW]    order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or superses…
+  -    53  [PW]    the summary. Omit `work_items` to keep the queue.
+  -   108  [PW] - W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 ' (the item's committed change)
+  -   116  [PW] 2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and co…
+  -    35  [PW] 3. **Skill decision**, in `skill`:
+  -    83  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and the skill, item 3.7).
+  -   111  [P] Knowledge files this stage reads and the hand-offs from earlier stages: in the full packet, each quoted whole.
+  -   141  [PW] Omit work_items to retain the future queue. Supplied work_items replaces the entire future queue after the cu…
+  -   310  [PW] Read every pending item's full title/context before replacing it. Return all still-required future items in p…
+  -   488  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwwwwww…
+  +    38  [PW]    RUN/notes/<action>-skill-trial.md.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole …   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   116  [PW]    procedure will recur (put it in `skill.evidence`): follow Repository-local skill guidance and write the tr…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    73  [PW]    queue, rows `{"id", "title", "context"}`, and say why in the summary.   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   117  [PW]    the repository skill index (HOME/environment.md ## Skills) and your host's skills and list them in evidenc…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW]    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   114  [PW] 2. **Queue** (Carry-forward mapping guidance). No item follows W1: omit `work_items`. To add a corrective ite…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   120  [PW] 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeate…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    98  [PW] 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and a created or updated skill, item 3).   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +   122  [P] Handed off by earlier stages, quoted by value from their accepted results (untrusted host records; not new in…   <- NOT ALLOWLISTED (no entry of the unit matches this line)
+  +   418  [P] Pause without consuming the action: python3 /home/install/iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii/iiiiiiii/s…   <- NOT ALLOWLISTED (no entry of the unit matches this line)
+  +   267  [P] Progress view: [HTML file](</home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwwwww…   <- NOT ALLOWLISTED (no entry of the unit matches this line)
+  +   124  [P] Spec and architecture changes since the run began: not computed: WORKTREE is not a Git checkout, or the run h…   <- NOT ALLOWLISTED (no entry of the unit matches this line)
+  +   240  [PW] Work: Do duty items 1-4 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwwwwww…   <- U16 approval: plan rev 6 row VR-2 (U16): a one-step one-item run prints short carry-forward queue and skill duties (duties 2-3 4,356 -> 802 characters; head -4.3 KB)
+  +    29  [P] open items for W1: none open   <- NOT ALLOWLISTED (no entry of the unit matches this line)
+
+7 of 12 stages fail.
+P = printed text, W = whole text (the packet file); sizes are characters including the newline.
+exit=1
+### base self-diff inline 163 against the base head table
+  FAIL head table: printed 13922 passes the table value 13629
+  FAIL head table: printed 16723 passes the table value 16637
+  FAIL head table: printed 19759 passes the table value 19370
+  FAIL head table: printed 15556 passes the table value 15263
+  FAIL head table: printed 19548 passes the table value 19430
+  FAIL head table: printed 19468 passes the table value 19175
+6 of 12 stages fail.
+### base self-diff ask-agent 163 against the base head table
+  FAIL head table: printed 14216 passes the table value 14006
+  FAIL head table: printed 13922 passes the table value 13629
+  FAIL head table: printed 18177 passes the table value 18091
+  FAIL head table: printed 19759 passes the table value 19370
+  FAIL head table: printed 13349 passes the table value 13056
+  FAIL head table: printed 19968 passes the table value 19629
+  FAIL head table: printed 19884 passes the table value 19858
+7 of 12 stages fail.

@@ -743,6 +743,21 @@ def _duty_focus(number: int, where: str, product: str) -> str:
 ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` "
                 "does not show `TC-4`: title it `TC-4 (a)`).")
 
+# A run of one work item with one step and no pending item (``shiploop_loops.one_step_run``) repeated no procedure and has no
+# future queue to map, so carry-forward prints these for duties 2 and 3 (plan row VR-2, measured 4,356 -> 802 characters).
+# ``<<item>>`` is the item's ID.  Every other run prints the duties above, byte for byte.
+_CARRY_FORWARD_ONE_STEP = """\
+2. **Queue** (Carry-forward mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
+   defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
+   queue, rows `{"id", "title", "context"}`, and say why in the summary.
+3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeated. Inspect
+   the repository skill index (HOME/environment.md ## Skills) and your host's skills and list them in evidence_refs,
+   then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n> says the
+   procedure will recur (put it in `skill.evidence`): follow Repository-local skill guidance and write the trial to
+   RUN/notes/<action>-skill-trial.md.
+"""
+
+
 # Placeholders duty() fills from the run: the Backchain item of spec and plan (by the run's Backchain passes option)
 # and the item commit rule of document and verify (by the run's execution mode).
 _BACKCHAIN_ITEM = "<<backchain item>>"
@@ -1272,7 +1287,7 @@ preparatory commit); a mismatch there is a revise.
    outside dependency must unblock it.
 """,
     "document": """\
-1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
    item's diff.
 2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
    docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
@@ -1292,7 +1307,8 @@ preparatory commit); a mismatch there is a revise.
 This is item acceptance, not a claim that integration or release has happened. Each review iteration does items 1-7
 in order; """ + _VERIFY_ONCE + """
 
-1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
+   command into RUN/tests/<action>-check-only.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
    this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report revise.
@@ -1329,8 +1345,7 @@ in order; """ + _VERIFY_ONCE + """
    pending with its owner in HOME/architecture.md ## Real-boundary checks (Real-boundary test guidance).
 10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
     commit. """ + _ITEM_COMMIT + """
-11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
-    any required check not run and why, known limitations.
+11. **Summary:** entry points traced, each trace's issue and fix, required checks not run and why, limits.
 12. Criterion or check unachievable as planned: report revise naming it. Report blocked, with blocked_by, only when
     the user, an access grant or an outside dependency must unblock it.
 """,
@@ -2103,21 +2118,35 @@ def _item_commit_rule(execution_mode: str | None) -> str:
     return stage_spec.ITEM_COMMITS + " " + left
 
 
+def _one_step_carry_forward(text: str, item: str) -> str:
+    """The carry-forward duty with items 2 and 3 in their one-step one-item form (``_CARRY_FORWARD_ONE_STEP``)."""
+    start = text.index("2. **Queue** (Carry-forward mapping guidance).")
+    end = text.index("4. **Commit nothing.**")
+    # Item 4 names item 3.7, which the short form folds into item 3.
+    tail = text[end:].replace("(and the skill, item 3.7)", "(and a created or updated skill, item 3)")
+    return text[:start] + _CARRY_FORWARD_ONE_STEP.replace("<<item>>", item) + tail
+
+
 def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage",
-         backchain_passes: str = DEFAULT_BACKCHAIN_PASSES, execution_mode: str | None = None) -> str:
+         backchain_passes: str = DEFAULT_BACKCHAIN_PASSES, execution_mode: str | None = None,
+         one_step_item: str | None = None) -> str:
     """Return one stage duty with the run's implementation-route paragraph.
 
     ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES): ``stage`` renders the
     text below unchanged, ``none`` swaps the sentences that promise an Improve child the run will not start
     (see _NO_REVIEW_SWAPS).  The literal default ``stage`` keeps catalog renders independent of the option's
     default.  ``backchain_passes`` picks the Backchain item of spec and plan; ``execution_mode`` (state key
-    ``execution_mode``) picks what the commit rule says about a file the item commit leaves.
+    ``execution_mode``) picks what the commit rule says about a file the item commit leaves.  ``one_step_item`` is the
+    item's ID when the run has one work item with one step and no pending item (``shiploop_loops.one_step_run``): the
+    carry-forward duty then prints items 2 and 3 short; every other stage ignores it.
     """
     _require_stage(stage)
     _require_delegation(delegation)
     _require_planning_review(planning_review)
     _require_backchain_passes(backchain_passes)
     text = DUTIES[stage]
+    if stage == "carry-forward" and one_step_item:
+        text = _one_step_carry_forward(text, one_step_item)
     if _BACKCHAIN_ITEM in text:
         text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage, backchain_passes))
     if _ITEM_COMMIT in text:
@@ -2201,14 +2230,15 @@ BACKCHAIN_STUB = "Backchain: the route's paragraph follows the result template."
 
 
 def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, planning_review: str,
-                  execution_mode: str | None) -> list[tuple[str, str]]:
+                  execution_mode: str | None, one_step_item: str | None = None) -> list[tuple[str, str]]:
     """The producer instruction as ``(kind, text)`` parts in print order; ``prompt`` joins them.
 
     ``kind`` is ``duty``, ``audit`` (the inline route's short optional audit line), ``backchain`` (the route paragraph of a
     stage that may call Backchain), ``craft`` or ``rules``.
     """
     parts = [("duty", duty(stage, delegation=delegation, planning_review=planning_review,
-                           backchain_passes=backchain_passes, execution_mode=execution_mode))]
+                           backchain_passes=backchain_passes, execution_mode=execution_mode,
+                           one_step_item=one_step_item))]
     # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
     # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
     # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
@@ -2227,7 +2257,8 @@ def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, plannin
 
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
            backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
-           planning_review: str = "stage", execution_mode: str | None = None) -> str:
+           planning_review: str = "stage", execution_mode: str | None = None,
+           one_step_item: str | None = None) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
     The navigator always passes the run's delegation, Backchain passes option and planning review
@@ -2240,12 +2271,13 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     _require_planning_review(planning_review)
     return "\n\n".join(text for _, text in _prompt_parts(
         stage, delegation=delegation, backchain_passes=backchain_passes, planning_review=planning_review,
-        execution_mode=execution_mode))
+        execution_mode=execution_mode, one_step_item=one_step_item))
 
 
 def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
                  backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
-                 planning_review: str = "stage", execution_mode: str | None = None) -> tuple[str, str]:
+                 planning_review: str = "stage", execution_mode: str | None = None,
+                 one_step_item: str | None = None) -> tuple[str, str]:
     """``(prompt text, Backchain route paragraph)`` for a packet that prints the paragraph behind its result template.
 
     The first holds everything ``prompt`` returns, with ``BACKCHAIN_STUB`` where the paragraph stood; the second is the
@@ -2257,7 +2289,7 @@ def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
     _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
     parts = _prompt_parts(stage, delegation=delegation, backchain_passes=backchain_passes,
-                          planning_review=planning_review, execution_mode=execution_mode)
+                          planning_review=planning_review, execution_mode=execution_mode, one_step_item=one_step_item)
     moved = next((text for kind, text in parts if kind == "backchain"), "")
     return ("\n\n".join(BACKCHAIN_STUB if kind == "backchain" else text for kind, text in parts), moved)
 

@@ -1495,7 +1495,8 @@ def _queue_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
                              "membership, order or context changes, return the complete ordered "
                              "work_items in the producer result. Omit work_items only after "
                              "confirming the retained queue still represents the whole approved plan.")
-        elif stage == "carry-forward":
+        elif stage == "carry-forward" and not loops.one_step_run(state):
+            # A one-step one-item run prints only the path line: its duty 2 says how to add a corrective item.
             out.extend([
                 "Omit work_items to retain the future queue. Supplied work_items replaces "
                 "the entire future queue after the current item; it does not append.",
@@ -1513,7 +1514,14 @@ def _named_text(state: Mapping[str, Any], stage: str | None, route: str) -> str:
         return ""
     return guidance.prompt(stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
                            planning_review=recorded_planning_review(state),
-                           execution_mode=state.get("execution_mode") or None)
+                           execution_mode=state.get("execution_mode") or None,
+                           one_step_item=_one_step_item(state, stage))
+
+
+def _one_step_item(state: Mapping[str, Any], stage: str | None) -> str | None:
+    """The item's ID at a carry-forward of a one-step one-item run (``loops.one_step_run``), which prints its short queue
+    and skill duties (plan row VR-2); None at every other stage and run."""
+    return loops.one_step_run(state) if stage == "carry-forward" else None
 
 
 def _named_policy_text(state: Mapping[str, Any], stage: str | None, route: str, stage_text: str) -> str:
@@ -1828,6 +1836,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
     if stage == "carry-forward":
         blocks.append(_Block("queue-rule", P1, _queue_lines(root, state, stage)))
+        blocks.append(_Block("unnamed-commands", P1, _unnamed_command_lines(root, state, workitem)))
     if stage in test_loop.STAGES:
         blocks.append(_Block("test-rules", P1, test_loop.rule_lines(state, workitem or "", stage)))
     elif stage in test_loop.RERUN_STAGES:
@@ -1857,7 +1866,8 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     stage_text = _named_text(state, stage, route)  # rendered once: the run rules read it, the producer prints it
     duties, backchain = guidance.prompt_split(
         stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
-        planning_review=recorded_planning_review(state), execution_mode=state.get("execution_mode") or None)
+        planning_review=recorded_planning_review(state), execution_mode=state.get("execution_mode") or None,
+        one_step_item=_one_step_item(state, stage))
     _need(isinstance(duties, str) and bool(duties.strip()), f"navigator prompt is unavailable for {stage}")
     blocks: list[_Block] = []
     if stage in inner:
@@ -2457,7 +2467,8 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     A close (prepare, release-plan, release-verify) also prints the section notices
     (``knowledge.section_notices``) right after its commit: a count, never a refusal, and none at
     the terminal handoff, which is no close.  A close accepted in this call prints them even when
-    the script records another stage after it.
+    the script records another stage after it.  An accepted carry-forward prints
+    ``knowledge.command_notices`` the same way.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -2478,6 +2489,14 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])
     for line in knowledge.section_notices(after, close):
         print(line)
+    # An accepted carry-forward: one counted line when a command that passed at its item's verify is still not named in
+    # environment.md (plan row VR-3); never a refusal.
+    if root is not None:
+        for row in rows:
+            if row["stage"] == "carry-forward" and row["outcome"] == "done" and row.get("workitem"):
+                for line in knowledge.command_notices(
+                        after, _verify_passed_commands(root, after, str(row["workitem"])) or ()):
+                    print(line)
     if (root is not None and after.get("execution_mode") == "navigator-worktree"
             and (committed.commit or terminal)):
         import shiploop_workspace as workspace
@@ -5282,6 +5301,21 @@ def _preparatory(root: Path, state: Mapping[str, Any], item: str, action: str) -
     return "commit " + commit[:12] + " in WORKTREE" if commit else None
 
 
+def _item_commit_product(root: Path, state: Mapping[str, Any], item: str, action: str) -> str | None:
+    """The item commit verify's accept made (``_item_commit``), named by its subject, or None when the
+    WORKTREE log has no ``feat: <item> `` subject (verify committed nothing, or the commit failed).  An item without a
+    base snapshot has no commit (``item_scope.commit_item`` raises), so the log is not read for it."""
+    if not lint.read_base(Path(root), item):
+        return None
+    subject = "feat: " + item
+    found = shiploop_git.git(Path(str(state.get("repo") or root)), "log", "--max-count=50", "--format=%s",
+                             "--fixed-strings", "--grep=" + subject)
+    if found.returncode or not any(line == subject or line.startswith(subject + " ")
+                                   for line in found.stdout.splitlines()):
+        return None
+    return "the WORKTREE commit whose subject starts '" + subject + " '"
+
+
 def _improve_receipt(root: Path, state: Mapping[str, Any], item: str, action: str) -> str | None:
     return "RUN/improve/" + action + "/receipt.md" if action in state.get("improve_results", {}) else None
 
@@ -5304,8 +5338,7 @@ _PRODUCTS: dict[str, tuple[tuple[str, Any, str], ...]] = {
              ("loop receipt", _run_file(loops.terminal_path("{action}")), "")),
     "verify": (("change inventory", _run_file(lint.inventory_path("{action}")), "the files the item changed"),
                ("rerun record", _run_latest(test_loop.verify_path), "each recorded command's rerun"),
-               ("item commit", lambda root, state, item, action: "the WORKTREE commit whose subject starts 'feat: "
-                + item + " '", "the item's committed change")),
+               ("item commit", _item_commit_product, "the item's committed change")),
 }
 # What a stage's accepted result is for, when the stage names it.
 _RESULT_USE = {"step-plan": "the steps, criteria, test commands, expectations and paths",
@@ -5560,8 +5593,44 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     return lines
 
 
+# The document packet's changed-paths line; its duty 1 names it.
+CHANGED_SINCE_BASE = "Changed since the item base (script-derived): "
+
+
+def _verify_passed_commands(root: Path, state: Mapping[str, Any], work_item: str | None) -> list[str] | None:
+    """The commands ShipLoop's latest verify rerun of ``work_item`` ran that passed, in run order; None without a record."""
+    if not work_item:
+        return None
+    action = planning_revision.current_actions(state).get((work_item, "verify"))
+    found = _latest_record(root, test_loop.verify_path, action) if action else None
+    if not found:
+        return None
+    try:
+        runs = store.read_record(Path(root) / found).get("runs") or ()
+    except Exception:  # noqa: BLE001 - an unreadable record names nothing; the packet line is a hint, never a gate
+        return None
+    return list(dict.fromkeys(str(run.get("command")) for run in runs
+                              if isinstance(run, Mapping) and run.get("status") in test_loop.PASSING and run.get("command")))
+
+
+def _unnamed_command_lines(root: Path, state: Mapping[str, Any], work_item: str | None) -> list[str]:
+    """Carry-forward's line of the commands that passed at verify and HOME/environment.md does not name (plan row VR-3)."""
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
+    passed = _verify_passed_commands(root, state, work_item)
+    if passed is None:
+        return []
+    unnamed = knowledge.unnamed_commands(state, passed)
+    if not unnamed:
+        return ["Commands that passed at verify and are not named in HOME/environment.md: none."]
+    return ["Commands that passed at verify and are not named in HOME/environment.md: "
+            + "; ".join("`" + command + "`" for command in unnamed)
+            + ". Write each under ## Commands, or say in the summary why one does not belong."]
+
+
 def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """The item's declared paths at document, and at verify what ShipLoop will and will not commit.
+    """The item's declared paths and its changed paths (``CHANGED_SINCE_BASE``) at document, and at verify what ShipLoop
+    will and will not commit.
 
     The lists come from ``item_scope.commit_scope``, the rule ``commit_item`` applies, so the packet names the
     files before the commit and the notice after it names the same ones.  Unknown changes print nothing.
@@ -5572,6 +5641,11 @@ def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_i
         return []
     allowed = item_scope.declared(state, work_item)
     lines = ["Step plan paths: " + (", ".join(allowed) or "none declared")]
+    if stage == "document":
+        # The inventory document's duty 1 lists behaviours from (plan row TD-8): the change inventory exists only at verify.
+        changed, why = item_scope.changed_paths_or_reason(root, work_item)
+        return lines + [CHANGED_SINCE_BASE + (("not computed: " + why) if changed is None
+                                               else (", ".join(changed) or "none"))]
     if stage != "verify":
         return lines
     changed = item_scope.changed_paths(root, work_item)
