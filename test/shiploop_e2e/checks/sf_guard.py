@@ -4,7 +4,7 @@
 The harness writes an executable `sf` into <output>/platform/bin and puts that directory first on the model's PATH. The script
 runs this file with the real HOME (so the real CLI can reach its login in the macOS keychain, which a throwaway HOME hides):
 
-    sf_guard.py --org de --prefix SLChess [--deny-all] [--] <the model's argv...>
+    sf_guard.py --org de --prefix SLChess [--deny-all [--name <command>]] [--] <the model's argv...>
 
 Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is what keeps the model to the one org):
 
@@ -35,7 +35,14 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
   * LOCAL commands (`--version`, `--help`, `help`, `project generate`, `lightning generate`, `apex generate`, `template generate`,
     `org list`) pass unchanged. `--help` or `-h` after an allowed command, or a group of allowed commands, passes too, without
     `--target-org`: the CLI prints help and runs nothing. A denied command stays denied with `--help`.
-  * `--deny-all` makes this a stand-in that denies everything (the harness uses it to cover `sfdx`, which would bypass the policy).
+  * `--deny-all` makes this a stand-in that denies everything (the harness uses it to cover `sfdx`, which would bypass the policy,
+    and the host automation a model could drive the owner's own browser or desktop with, `osascript` and `open`); `--name` is the
+    command it stands in for, named in its messages and in its log lines (`"name"`, absent for `sf`).
+
+What the model is told: every denial is one line `<name>: denied by this run's guard: <reason>` and a second line with what this
+run allows (the org, the deploy scope and, unless the reason already lists them, the allowed commands); a help call (`--help`, `-h`,
+`help`, no arguments) prints that line after the CLI's own help. No message names this file or its path, so a model learns the policy
+from the guard's answers instead of reading its source.
 
 Every call appends a DECISION line to $E2E_PLATFORM_DIR/sf-calls.jsonl before anything runs (call id, timestamp, scrubbed argv,
 decision and reason), and an allowed call appends an END line when the real sf has finished (the same call id, `"end": true`, the
@@ -110,6 +117,7 @@ PREFIX_OK = {("help",), ("project", "generate"), ("lightning", "generate"), ("ap
              ("template", "generate")}  # these take sub-words (`project generate manifest`)
 HELP_ONLY = {("--version",), ("-v",), ("--help",), ("-h",)}  # the one flag-first form that passes: nothing else follows it
 HELP_FLAGS = ("--help", "-h")
+HELP_REASONS = ("no arguments (the CLI's own help)", "help for a group of allowed commands", "help")  # decide()'s help verdicts
 
 DENY_REASONS = [  # (command prefix, why) for a clear message; anything else not in ALLOW is "not in the allow list"
     (("org", "display"), "shows the org's access token"),
@@ -233,6 +241,19 @@ def has_short(argv: list[str], letter: str) -> bool:
 
 def allowed_commands() -> str:
     return ", ".join(sorted(" ".join(words) + (" ..." if words in PREFIX_OK else "") for words in PINNED | LOCAL))
+
+
+def denied_line(name: str, reason: str) -> str:
+    return f"{name}: denied by this run's guard: {reason}"
+
+
+def scope_line(name: str, org: str, prefix: str, reason: str = "") -> str:
+    """What this run allows, printed after a denial and after help: the org pin, the deploy scope and the allowed commands (left
+    out when the reason already lists them)."""
+    deploys = approved_text(prefix, lwc_prefix(prefix)) if prefix else "none (no deploy scope is defined)"
+    commands = "" if "allowed: " in reason else f"; commands: {allowed_commands()}"
+    return (f"{name}: this run allows only `sf`, only on org {org!r} (every command that talks to an org carries --target-org "
+            f"{org}); deploys: {deploys}{commands}")
 
 
 def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) -> tuple[bool, str]:
@@ -616,8 +637,9 @@ def write_log(entry: dict) -> bool:
     return True
 
 
-def log_decision(call: str, argv: list[str], org: str, prefix: str, allowed: bool, reason: str) -> bool:
+def log_decision(call: str, argv: list[str], org: str, prefix: str, allowed: bool, reason: str, name: str = "sf") -> bool:
     return write_log({"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "call": call, "org": org, "prefix": prefix,
+                      **({} if name == "sf" else {"name": name}),
                       "argv": [scrub(token)[:ARG_LIMIT] for token in argv], "decision": "allowed" if allowed else "denied",
                       "reason": scrub(reason)[:REASON_LIMIT]})
 
@@ -627,21 +649,24 @@ def log_end(call: str, code: int | None, stderr: str, interrupted: bool) -> bool
                       "stderr_head": scrub(stderr)[:200], "interrupted": interrupted})
 
 
-def parse_fixed(args: list[str]) -> tuple[str, str, bool, list[str]]:
-    """The wrapper's fixed flags (--org, --prefix, --deny-all, in any order), one optional `--` after them, then the model's argv."""
-    org, prefix, deny_all, i = "", "", False, 0
+def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str]]:
+    """The wrapper's fixed flags (--org, --prefix, --deny-all, --name, in any order), one optional `--` after them, then the model's
+    argv: (org, prefix, deny_all, name, argv), name `sf` unless --name gives another."""
+    org, prefix, deny_all, name, i = "", "", False, "sf", 0
     while i < len(args):
         if args[i] == "--org" and i + 1 < len(args):
             org, i = args[i + 1], i + 2
         elif args[i] == "--prefix" and i + 1 < len(args):
             prefix, i = args[i + 1], i + 2
+        elif args[i] == "--name" and i + 1 < len(args):
+            name, i = args[i + 1], i + 2
         elif args[i] == "--deny-all":
             deny_all, i = True, i + 1
         else:
             break
     if i < len(args) and args[i] == "--":
         i += 1
-    return org, prefix, deny_all, args[i:]
+    return org, prefix, deny_all, name, args[i:]
 
 
 def child_env(org: str, environ: dict | None = None) -> dict:
@@ -674,21 +699,22 @@ def run_real(real: str, argv: list[str], state: dict, env: dict | None = None) -
 
 
 def main(args: list[str]) -> int:
-    org, prefix, deny_all, argv = parse_fixed(args)
+    org, prefix, deny_all, name, argv = parse_fixed(args)
     if not org:
-        print("sf_guard: denied: the wrapper was built without --org", file=sys.stderr)
+        print(denied_line(name, "the wrapper was built without --org"), file=sys.stderr)
         return 2
     call = os.urandom(4).hex()
     if deny_all:
-        allowed, reason = False, "this command is not available in this run; use `sf` with --target-org " + org
+        allowed, reason = False, f"`{name}` is not available in this run; use `sf` with --target-org {org}"
     else:
         try:
             allowed, reason = decide(argv, org, prefix=prefix)
         except Exception as exc:  # a crash is a refusal with a decision line, never a traceback and an unlogged call
             allowed, reason = False, f"the guard could not judge this call ({type(exc).__name__})"
     if not allowed:
-        logged = log_decision(call, argv, org, prefix, False, reason)
-        print(f"sf_guard: denied: {reason[:REASON_LIMIT]}" + ("" if logged else " (and the call could not be logged)"), file=sys.stderr)
+        logged = log_decision(call, argv, org, prefix, False, reason, name)
+        print(denied_line(name, reason[:REASON_LIMIT]) + ("" if logged else " (and the call could not be logged)"), file=sys.stderr)
+        print(scope_line(name, org, prefix, reason), file=sys.stderr)
         return 2
     state: dict = {"proc": None, "interrupted": False, "at": 0.0}
 
@@ -701,18 +727,18 @@ def main(args: list[str]) -> int:
     for number in SIGNALS:
         signal.signal(number, interrupt)
     if not log_decision(call, argv, org, prefix, True, reason):
-        print("sf_guard: denied: the call could not be logged (E2E_PLATFORM_DIR is unset or not writable)", file=sys.stderr)
+        print(denied_line(name, "the call could not be logged (E2E_PLATFORM_DIR is unset or not writable)"), file=sys.stderr)
         return 2
     real = find_real_sf()
     if real is None:
         log_end(call, 127, "no real sf on PATH", False)
-        print("sf_guard: no real `sf` found on PATH outside the wrapper", file=sys.stderr)
+        print(f"{name}: no real `sf` found on PATH outside this run's guard", file=sys.stderr)
         return 127
     try:
         out, err, code = run_real(real, argv, state, child_env(org))
     except OSError as exc:
         log_end(call, 126, str(exc), False)
-        print(f"sf_guard: the real `sf` could not be started: {scrub(str(exc))}", file=sys.stderr)
+        print(f"{name}: the real `sf` could not be started: {scrub(str(exc))}", file=sys.stderr)
         return 126
     for number in SIGNALS:  # the child is gone: a later signal ends this process instead of being swallowed while the output is written
         signal.signal(number, signal.SIG_DFL)
@@ -720,6 +746,8 @@ def main(args: list[str]) -> int:
     sys.stdout.write(scrub(out))
     sys.stdout.flush()
     sys.stderr.write(scrub(err))
+    if reason in HELP_REASONS or argv[:1] in (["--help"], ["-h"], ["help"]):
+        sys.stderr.write(scope_line(name, org, prefix) + "\n")
     sys.stderr.flush()
     return code
 

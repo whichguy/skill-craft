@@ -1,0 +1,552 @@
+.FFFFFFFFFFFFFFFFFFFF.E
+======================================================================
+ERROR: test_the_reference_runner_list_names_every_runner_shiploop_reads (__main__.DomainWordTests.test_the_reference_runner_list_names_every_runner_shiploop_reads)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 104, in test_the_reference_runner_list_names_every_runner_shiploop_reads
+    names = [name for name, _reader in counts.READERS] + ["pytest"]
+                                       ^^^^^^^^^^^^^^
+AttributeError: module 'shiploop_test_counts' has no attribute 'READERS'
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='chess')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[157 chars]ess'] != ['ski[36 chars]s.py:2652: chess']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: chess'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: chess']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: chess']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='FEN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[155 chars]FEN'] != ['ski[36 chars]s.py:2652: FEN']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: FEN'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: FEN']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: FEN']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='perft')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[157 chars]rft'] != ['ski[36 chars]s.py:2652: perft']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: perft'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: perft']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: perft']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='castling')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[160 chars]ing'] != ['ski[36 chars]s.py:2652: castling']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: castling'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: castling']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: castling']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='Kiwipete')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[160 chars]ete'] != ['ski[36 chars]s.py:2652: Kiwipete']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: Kiwipete'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: Kiwipete']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: Kiwipete']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='Battleship')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[162 chars]hip'] != ['ski[36 chars]s.py:2652: Battleship']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: Battleship'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: Battleship']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: Battleship']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='sf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[154 chars] sf'] != ['ski[36 chars]s.py:2652: sf']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: sf'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: sf']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: sf']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='sfdx')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[156 chars]fdx'] != ['ski[36 chars]s.py:2652: sfdx']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: sfdx'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: sfdx']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: sfdx']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='Apex')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[156 chars]pex'] != ['ski[36 chars]s.py:2652: Apex']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: Apex'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: Apex']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: Apex']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='Lightning')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[161 chars]ing'] != ['ski[36 chars]s.py:2652: Lightning']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: Lightning'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: Lightning']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: Lightning']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='LWC')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[155 chars]LWC'] != ['ski[36 chars]s.py:2652: LWC']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: LWC'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: LWC']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: LWC']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='Salesforce')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[162 chars]rce'] != ['ski[36 chars]s.py:2652: Salesforce']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: Salesforce'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: Salesforce']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: Salesforce']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='permission set')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[166 chars]set'] != ['ski[36 chars]s.py:2652: permission set']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: permission set'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: permission set']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: permission set']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='App Launcher')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[164 chars]her'] != ['ski[36 chars]s.py:2652: App Launcher']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: App Launcher'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: App Launcher']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: App Launcher']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='lightning__Tab')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[166 chars]Tab'] != ['ski[36 chars]s.py:2652: lightning__Tab']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: lightning__Tab'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: lightning__Tab']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: lightning__Tab']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='CustomTab')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[161 chars]Tab'] != ['ski[36 chars]s.py:2652: CustomTab']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: CustomTab'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: CustomTab']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: CustomTab']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='osascript')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[161 chars]ipt'] != ['ski[36 chars]s.py:2652: osascript']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: osascript'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: osascript']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: osascript']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='Safari')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[158 chars]ari'] != ['ski[36 chars]s.py:2652: Safari']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: Safari'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: Safari']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: Safari']
+? ^
+
+
+======================================================================
+FAIL: test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog (__main__.DomainWordTests.test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog) (word='Chrome --version')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 78, in test_every_listed_word_is_caught_when_planted_in_the_prompt_catalog
+    self.assertEqual(findings(Path(temp)), [f"{PROMPTS}:{len(original.splitlines()) + 2}: {word}"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['ski[36 chars]s.py:1525: permission set', 'skills/shiploop/s[168 chars]ion'] != ['ski[36 chars]s.py:2652: Chrome --version']
+
+First differing element 0:
+'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set'
+'skills/shiploop/scripts/shiploop_prompts.py:2652: Chrome --version'
+
+First list contains 3 additional elements.
+First extra element 1:
+'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher'
+
+- ['skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf',
+-  'skills/shiploop/scripts/shiploop_prompts.py:2652: Chrome --version']
+? ^
+
++ ['skills/shiploop/scripts/shiploop_prompts.py:2652: Chrome --version']
+? ^
+
+
+======================================================================
+FAIL: test_generic_text_names_no_domain_word (__main__.DomainWordTests.test_generic_text_names_no_domain_word)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<SP>/u29ff.MbbL/test/shiploop-domain-words.test.py", line 67, in test_generic_text_names_no_domain_word
+    self.assertEqual(findings(ROOT), [], "move platform detail to skills/shiploop/references/platforms/ "
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                         "(or, for a new generic sense of a word, narrow test/domain-words.json)")
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['skills/shiploop/references/consumer-deli[411 chars] sf'] != []
+
+First list contains 7 additional elements.
+First extra element 0:
+'skills/shiploop/references/consumer-delivery.md:183: Salesforce'
+
++ []
+- ['skills/shiploop/references/consumer-delivery.md:183: Salesforce',
+-  'skills/shiploop/scripts/shiploop_navigator.py:2292: Salesforce',
+-  'skills/shiploop/scripts/shiploop_navigator.py:2292: lightning__Tab',
+-  'skills/shiploop/scripts/shiploop_navigator.py:2292: CustomTab',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1525: permission set',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1554: App Launcher',
+-  'skills/shiploop/scripts/shiploop_prompts.py:1567: sf'] : move platform detail to skills/shiploop/references/platforms/ (or, for a new generic sense of a word, narrow test/domain-words.json)
+
+----------------------------------------------------------------------
+Ran 5 tests in 2.784s
+
+FAILED (failures=20, errors=1)
+exit 1

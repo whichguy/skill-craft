@@ -1118,7 +1118,7 @@ Change no product file in this stage.
 5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test and
    verify stages run exactly these.
    - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
-     pytest `-v`, `node --test` default spec or tap reporter; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
+     pytest `-v`, others: GUIDES/platforms/; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
@@ -1522,7 +1522,7 @@ in order; """ + _VERIFY_ONCE + """
 2. Write the release steps in `summary` and HOME/environment.md (item 8): target and candidate identity, permission,
    prerequisites, user impact, monitoring, stop conditions. Every operation the user-visible outcome needs is a
    named step with its exact command and authorization status: the deploy, each access or visibility change (for
-   example assigning a permission set, activating an app or tab), each browser session a consumer check needs with
+   example granting a role or permission, activating an app or menu entry), each browser session a consumer check needs with
    its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact
    publication, deployment, promotion and consumer verification as separate steps. Order the remaining schema,
    data, service and cutover work with its durable execution owner, observations and recovery limits (Release
@@ -1551,7 +1551,7 @@ in order; """ + _VERIFY_ONCE + """
    and never write into the user's checkout by absolute path. A check only a person can make is an open item in
    `assumptions` (who, where, what to report) with release-verify or handoff as `consumer`, not a command. None
    applies: empty list with `consumer_checks_na` and the reason.
-7. `consumer_entry`: `how` a person reaches the result (App Launcher name and URL path, command, page) and the
+7. `consumer_entry`: `how` a person reaches the result (app or menu entry name and URL path, command, page) and the
    repository `sources` files that create that entry.
 8. Update HOME/environment.md: target under ## Targets and runtimes; deploy, dry-run, rollback and confirm commands
    under ## Commands; approvals and accounts under ## Access and accounts.
@@ -1564,7 +1564,7 @@ in order; """ + _VERIFY_ONCE + """
 2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
    evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
    readiness, any target concurrency condition (Release operation guidance).
-3. Run the dry-run form of the planned deploy (for example `sf project deploy validate`) once; save the output in
+3. Run the dry-run form of the planned deploy (for example the deploy tool's validate or check-only mode) once; save the output in
    RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
 4. Run each `consumer_checks` post-release confirm command once against the current target; save its "not there yet"
    output in the same file. A confirm command that cannot tell present from absent is fixed now in

@@ -20,6 +20,8 @@ Check PostgreSQL connection limits, Redis's `maxmemory-policy`, BullMQ concurren
 
 A local single-process `node app.js` run proves route logic and DB queries, but not multi-instance session sharing, Socket.IO cross-instance delivery, cron dedup under multiple replicas, or real SIGTERM behavior. Test graceful shutdown — the process manager sending SIGTERM and `server.close()` finishing in-flight requests while refusing new ones — by sending a real SIGTERM to a running instance, not Ctrl-C in a dev terminal. ([expressjs.com graceful shutdown](https://expressjs.com/en/advanced/healthcheck-graceful-shutdown/))
 
+Record a focused `node --test` command with a reporter ShipLoop reads: the default spec reporter or `--test-reporter=tap` prints each test's name with its outcome; `dot` and `junit` do not, so a focused command that uses them is refused as unread. When you filter (`--test-name-pattern`), check that the filter selects the listed IDs: a command that runs no test is refused. ([nodejs.org/api/test](https://nodejs.org/api/test.html))
+
 ## Current facts (as of 2026-09-26)
 
 - Node.js 24 is Active LTS, Node 26 is Current, entering LTS October 2026. ([nodejs.org releases](https://nodejs.org/en/about/previous-releases), [endoflife.date/nodejs](https://endoflife.date/nodejs))

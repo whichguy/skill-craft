@@ -1,0 +1,86 @@
+FFFFEF
+======================================================================
+ERROR: test_help_prints_the_run_s_scope_after_the_cli_s_own_help (__main__.ScopeLineTest.test_help_prints_the_run_s_scope_after_the_cli_s_own_help)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 240, in test_help_prints_the_run_s_scope_after_the_cli_s_own_help
+    scope = done.stderr.strip().splitlines()[-1]
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+
+======================================================================
+FAIL: test_host_automation_is_denied_logged_by_name_and_not_counted_as_an_sf_call (__main__.DenyTest.test_host_automation_is_denied_logged_by_name_and_not_counted_as_an_sf_call)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 213, in test_host_automation_is_denied_logged_by_name_and_not_counted_as_an_sf_call
+    self.assert_denied("-e", 'tell application "Browser" to open location "https://example.test"', name="osascript",
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       reason="`osascript` is not available in this run")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 125, in assert_denied
+    self.assertIn(f"{name}: denied by this run's guard: ", done.stderr)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "osascript: denied by this run's guard: " not found in 'sf_guard: denied: this command is not available in this run; use `sf` with --target-org fake-org\n'
+
+======================================================================
+FAIL: test_the_salesforce_case_stands_in_for_sfdx_and_host_automation (__main__.DenyTest.test_the_salesforce_case_stands_in_for_sfdx_and_host_automation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 227, in test_the_salesforce_case_stands_in_for_sfdx_and_host_automation
+    self.assertEqual(set(bins), {"sf", "sfdx", "osascript", "open"})
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the second set but not the first:
+'open'
+'osascript'
+
+======================================================================
+FAIL: test_a_default_deny_lists_what_is_allowed (__main__.HelpAndGenerateTest.test_a_default_deny_lists_what_is_allowed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 1316, in test_a_default_deny_lists_what_is_allowed
+    self.assert_denied("force", "source", "deploy", reason="allowed: ")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 125, in assert_denied
+    self.assertIn(f"{name}: denied by this run's guard: ", done.stderr)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "sf: denied by this run's guard: " not found in 'sf_guard: denied: `force source deploy` is not in the allow list (default deny); allowed: apex generate ..., apex get log, apex get test, apex list log, apex run, apex run test, data get record, data query, help ..., lightning generate ..., org list, org list metadata, org list metadata-types, project deploy report, project deploy start, project deploy validate, project generate ..., project retrieve preview, project retrieve start, sobject describe, sobject list, template generate ..., version\n'
+
+======================================================================
+FAIL: test_a_denial_that_lists_the_allowed_commands_does_not_list_them_twice (__main__.ScopeLineTest.test_a_denial_that_lists_the_allowed_commands_does_not_list_them_twice)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 252, in test_a_denial_that_lists_the_allowed_commands_does_not_list_them_twice
+    self.assertEqual(done.stderr.count("apex run test"), 1, done.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : sf_guard: denied: `org display` is denied: it shows the org's access token
+
+
+======================================================================
+FAIL: test_the_fixed_flags_come_first_and_the_model_s_flags_are_its_own (__main__.WrapperTest.test_the_fixed_flags_come_first_and_the_model_s_flags_are_its_own)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-U29-24271e/test/shiploop-e2e-sf-guard.test.py", line 555, in test_the_fixed_flags_come_first_and_the_model_s_flags_are_its_own
+    self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "--", "data", "query", "--org", "x"]),
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     ("de", "P", False, "sf", ["data", "query", "--org", "x"]))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ('de', 'P', False, ['data', 'query', '--org', 'x']) != ('de', 'P', False, 'sf', ['data', 'query', '--org', 'x'])
+
+First differing element 3:
+['data', 'query', '--org', 'x']
+'sf'
+
+Second tuple contains 1 additional elements.
+First extra element 4:
+['data', 'query', '--org', 'x']
+
+- ('de', 'P', False, ['data', 'query', '--org', 'x'])
++ ('de', 'P', False, 'sf', ['data', 'query', '--org', 'x'])
+?                   ++++++
+
+
+----------------------------------------------------------------------
+Ran 6 tests in 1.798s
+
+FAILED (failures=5, errors=1)
+exit 1

@@ -299,8 +299,8 @@ COUNT_RULE = ("A command passes only when it exits 0 and actually ran tests: Shi
               + guidance.ID_WORD_RULE + " A filter "
               "that matches nothing is not evidence; running the whole suite instead of the named cases does "
               "not satisfy a listed ID. If ShipLoop cannot read a focused command's test count, it needs ids "
-              "and a runner flag that prints test names (for example --verbose; for node --test the spec or tap "
-              "reporter, never dot or junit).")
+              "and a runner flag that prints test names (for example --verbose; never dot or junit; a platform's "
+              "runner: GUIDES/platforms/).")
 # The test stage's floor (owner decision 2026-10-10, 2): the base count, raised by any earlier run of the action.
 FLOOR_RULE = ("Each focused and regression command must also run at least its floor: the larger of the tests it ran on "
               "the item's base (ShipLoop's base run, with this item's test files copied in) and the most any earlier "
@@ -613,9 +613,9 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
                     "exit code. Report outcome replan now, with one corrective work item: a new id, a title, and a "
                     "context that names this command and says to record it as suite check in " + field
                     + ". The outer stages then run again, and " + source + " records it.")
-        return (unread + "Give the command ids and a runner flag that prints test names (node --test: the spec or tap "
-                "reporter, never dot or junit), use a runner ShipLoop recognises, or, for a command that is not a test "
-                "runner, record it as suite `check`.")
+        return (unread + "Give the command ids and a runner flag that prints test names (for example --verbose; never "
+                "a dot or junit reporter), use a runner ShipLoop reads (" + counts.RUNNERS + "), or, for a command "
+                "that is not a test runner, record it as suite `check`.")
     if status == "timeout":
         return ("timed out, so it reached no verdict about the product. This is not a diagnosis: it can mean a "
                 "deadlock, a broken test, a suite too slow for this budget or an external dependency.")
@@ -1376,9 +1376,9 @@ def _explain_base(run: Mapping[str, Any]) -> str:
                 "so ShipLoop can judge each one, and make the tests assert the behaviour the change adds.")
     if status == "unread":
         return ("named " + ", ".join(run["ids_unread"]) + " on the base, but no output line says whether it passed or "
-                "failed. Use a reporter that marks each test's outcome on the line that names it (node --test: spec "
-                "or tap; pytest -v; python -m unittest -v; jest --verbose). A platform whose tests run in a service "
-                "has its readable reporter in the platform card under references/platforms/.")
+                "failed. Use a reporter that marks each test's outcome on the line that names it (pytest -v; python -m "
+                "unittest -v; jest --verbose). Another runner's readable reporter is in the platform card under "
+                "references/platforms/.")
     if status == "not-run":
         return ("did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its output names "
                 "a file this item adds. A new test must fail on the base, or fail to load only because a file this "

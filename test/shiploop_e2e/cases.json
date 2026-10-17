@@ -253,7 +253,9 @@
       "cleanup": "python3 \"$E2E_CHECKS/chess_salesforce.py\" cleanup   --org de --prefix SLChess",
       "model_bin": {
         "sf": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --",
-        "sfdx": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --"
+        "sfdx": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --name sfdx --",
+        "osascript": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --name osascript --",
+        "open": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --name open --"
       },
       "check_timeout": 900,
       "host_allow": ["Bash(sf *)", "Bash(cd *)", "Bash(tail *)", "Bash(head *)", "Bash(tee *)", "Bash(grep *)"],

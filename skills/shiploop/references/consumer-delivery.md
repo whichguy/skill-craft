@@ -180,7 +180,7 @@ until a fresh `system-test` and `release-plan` complete for the current contract
 
 When every corrective item changed only non-code paths (its step plan records no
 test command and declares only documentation, configuration or navigation
-metadata, such as a Salesforce tab and app), each outer stage's packet names the
+metadata, such as a tab or app menu entry), each outer stage's packet names the
 delta: the changed paths and the result that stage accepted before the replan.
 The stages still run, because the fresh evidence above is required, but each
 keeps and cites its earlier evidence for everything the paths do not affect, and

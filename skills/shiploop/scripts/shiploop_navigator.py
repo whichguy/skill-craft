@@ -2289,7 +2289,7 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
     _need("consumer_entry" in result,
           "a done release-plan result must record consumer_entry: {\"how\": \"<how a person reaches the "
           "result>\", \"sources\": [\"<repository files that create that entry>\"]}. A deployed component "
-          "with no navigation entry (for example a Salesforce lightning__Tab target without a CustomTab) "
+          "with no navigation entry (for example a component marked usable in a tab when no tab lists it) "
           "is not reachable; plan the entry as source files.")
     entry = result["consumer_entry"]
     sources = entry.get("sources") if isinstance(entry, Mapping) else None

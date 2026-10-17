@@ -1,0 +1,10 @@
+$ grep -rIl -e Kiwipete -e perft -e Salesforce skills/shiploop/scripts
+exit 1
+$ grep -rIl -e Kiwipete -e perft -e Salesforce skills/shiploop
+skills/shiploop/README.md
+skills/shiploop/references/coding-guidance.md
+skills/shiploop/references/platforms/ui-frameworks.md
+skills/shiploop/references/platforms/salesforce.md
+$ grep -rIn -e Kiwipete -e perft -e Salesforce skills/shiploop --exclude-dir=platforms
+skills/shiploop/README.md:896:remote access. [Salesforce](references/platforms/salesforce.md) is an example,
+skills/shiploop/references/coding-guidance.md:53:| [Salesforce](platforms/salesforce.md) | Apex, LWC, permissions, transaction, or cache boundary. |
