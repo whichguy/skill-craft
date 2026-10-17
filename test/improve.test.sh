@@ -3,8 +3,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-default_package="$root/skills/improve"
-package="${IMPROVE_PACKAGE_ROOT:-$default_package}"
+package="${IMPROVE_PACKAGE_ROOT:-}"
 
 fail() {
   printf 'improve.test.sh: FAIL %s\n' "$*" >&2
@@ -24,6 +23,22 @@ if [[ $# -gt 0 ]]; then
   [[ $# -eq 2 && "$1" == "--package" ]] || usage
   [[ -z "${IMPROVE_PACKAGE_ROOT:-}" ]] || fail 'use IMPROVE_PACKAGE_ROOT or --package, not both'
   package="$2"
+fi
+
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/improve-package-test.XXXXXX")"
+cleanup() {
+  rm -rf "$tmpdir"
+}
+trap cleanup EXIT
+
+# Check the shipped package, not a source tree containing earlier test caches.
+if [[ -z "$package" ]]; then
+  packages="${SKILL_CRAFT_PACKAGES:-}"
+  if [[ -z "$packages" ]]; then
+    packages="$tmpdir/build"
+    python3 -B "$root/scripts/build-packages.py" "$packages" >/dev/null
+  fi
+  package="$packages/plugins/skill-craft/skills/improve"
 fi
 
 [[ -d "$package" ]] || fail "package directory does not exist: $package"
@@ -62,12 +77,6 @@ run_python() {
   env -i PATH="$PATH" HOME="${HOME:-/tmp}" PYTHONNOUSERSITE=1 \
     PYTHONDONTWRITEBYTECODE=1 python3 "$@"
 }
-
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/improve-package-test.XXXXXX")"
-cleanup() {
-  rm -rf "$tmpdir"
-}
-trap cleanup EXIT
 
 copy_parent="$tmpdir/isolated package parent with spaces"
 mkdir -p "$copy_parent"
@@ -217,7 +226,9 @@ Path(sys.argv[3]).write_text(json.dumps(contract) + "\n", encoding="utf-8")
 PY
 
 ephemeral_initial="$tmpdir/ephemeral initial.json"
-run_python "$ephemeral_runtime" start --isolated \
+ephemeral_state_dir="$tmpdir/ephemeral state"
+mkdir -p "$ephemeral_state_dir"
+run_python "$ephemeral_runtime" start --isolated --directory "$ephemeral_state_dir" \
   <"$ephemeral_contract" >"$ephemeral_initial"
 ephemeral_state="$(run_python - "$ephemeral_initial" <<'PY'
 import json
