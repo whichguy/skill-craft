@@ -1,0 +1,15 @@
+Until Loop (no iteration limit; the loop script counts the iterations):
+RUN the Until Loop now, once, before any work, and do this stage's work only inside it. Start it with this command, in the foreground, exactly as printed (if the Receipt below already exists and is active, run its next_argv instead: a second start resets the loop):
+python3 /home/install/iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii/iiiiiiii/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-terminal.json < /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-contract.json
+Then follow each packet it prints (run its done_argv as printed) until the receipt says complete or stopped. Its argument is already in the Contract file; do not edit that file or the receipt:
+----- BEGIN until-loop ARGUMENT -----
+Work: Do duty items 1-6 of /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/packets/nav-3c2bb784832841eda77ca7ffd78fc6fb.md, one `test_cases` row per case; then run the `complete --check-only` command printed there and fix each refusal.
+Exit when ALL of these hold:
+1. every completion criterion has at least one test case, or a justified not-applicable
+2. each case has an independent oracle, a RED and a GREEN definition, and an ID a focused command lists
+Repeat while a criterion has no entry, an entry lacks a field, or the complete command with --check-only refuses an id; there is no iteration limit. Stop blocked when a criterion cannot be tested as written (the stage then reports revise). Never stop cancelled: a user's stop is the ShipLoop packet's pause command.
+Contract: /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-contract.json
+Receipt: /home/render/wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww/wwwwwwwwwwwwwwwwwwwwwwwww/run/loops/nav-3c2bb784832841eda77ca7ffd78fc6fb-terminal.json
+----- END until-loop ARGUMENT -----
+Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run the Callback command above. If that refuses for the loop, run the start command above again (an active receipt: its next_argv instead), then run the Callback again. Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled, plus evidence and handoff (nonblank text).
+Call an exit condition satisfied only when a command or file shows it after your last edit.

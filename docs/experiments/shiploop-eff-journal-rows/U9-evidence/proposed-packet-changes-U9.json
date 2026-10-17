@@ -1,0 +1,45 @@
+[
+  {
+    "prefix": "Until Loop (no iteration limit; the loop script counts the iterations):",
+    "approval": "plan 6.3 (decision D-3 amended by C1), unit U9, journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "heading of the block (plan 6.3); +39"
+  },
+  {
+    "prefix": "RUN the Until Loop now, once, before any work",
+    "approval": "plan 6.3 (decision D-3 amended by C1), unit U9, journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "the RUN line with the foreground rule and the active-receipt clause (LP-3); replaces the RUN-the-skill line (+92)"
+  },
+  {
+    "prefix": "Then follow each packet it prints (run its done_argv as printed)",
+    "offset": [
+      "Claude Code: the Skill tool, skill \"until-loop\""
+    ],
+    "note": "follow line and the Contract-file rule; replaces the per-host line (-29)"
+  },
+  {
+    "prefix": "Result: when the Receipt says status complete",
+    "approval": "plan 6.3 (decision D-3 amended by C1), unit U9, journal row docs/experiments/shiploop-eff-journal-rows/U9.md",
+    "note": "result line with the five done-report fields (SP-4) and the next_argv route (+210)"
+  },
+  {
+    "prefix": "Call an exit condition satisfied only when",
+    "offset": [
+      "ShipLoop wrote the loop contract"
+    ],
+    "note": "LOOP_RULE keeps the exit-evidence sentence only (-65); the do-not-edit rule moved to the follow line"
+  },
+  {
+    "prefix": "Done when: every exit condition in the Until Loop argument below",
+    "offset": [
+      "Done when: every exit condition in the /until-loop argument below"
+    ],
+    "note": "the slash form leaves the printed text (-1)"
+  },
+  {
+    "prefix": "Where and floors: ShipLoop runs each recorded command in the Until Loop argument above",
+    "offset": [
+      "Where and floors: ShipLoop runs each recorded command in the /until-loop argument above"
+    ],
+    "note": "the slash form leaves the printed text (-1)"
+  }
+]

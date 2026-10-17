@@ -1112,8 +1112,8 @@ class EditsTest(unittest.TestCase):
 
 
 class LoopCommandsTest(unittest.TestCase):
-    """The commands the packet's loop block tells a host with no Skill tool to run (2026-10-16) are the instructed
-    step, not model-written glue, and the readers still tell the runtime's own calls apart."""
+    """The command the packet's loop block tells every host to run (2026-10-16; the one route, 2026-10-17) is the
+    instructed step, not model-written glue, and the readers still tell the runtime's own calls apart."""
 
     RUN = "/work/.shiploop-runs/w1/run"
     SCRIPT = "/plugin/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"

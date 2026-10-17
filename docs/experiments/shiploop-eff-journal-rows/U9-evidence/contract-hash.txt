@@ -1,0 +1,4 @@
+sha256[:16] of loops/<action>-contract.json (run and repo paths normalised), eight inner stages
+base INT e4c675d5: {"carry-forward": "43f26e339bd9af46", "document": "170dbc1407d824d7", "implement": "8ab07d4bc9222ebe", "step-plan": "33b71e3ebdfad2cf", "test": "49553536b8381ab1", "test-spec": "b0c0112c79acaf33", "validate-existing": "1095edabf76a85a6", "verify": "1c4f38b1cb40ea99"}
+U9 branch:       {"carry-forward": "43f26e339bd9af46", "document": "170dbc1407d824d7", "implement": "8ab07d4bc9222ebe", "step-plan": "33b71e3ebdfad2cf", "test": "49553536b8381ab1", "test-spec": "b0c0112c79acaf33", "validate-existing": "1095edabf76a85a6", "verify": "1c4f38b1cb40ea99"}
+identical: yes
