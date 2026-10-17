@@ -1,0 +1,294 @@
+{
+ "lens": "facts",
+ "problems": [
+  {
+   "id": "RT-01",
+   "severity": "P1",
+   "where": "6.3 loop block; U9 Work; C1/D-3",
+   "claim": "6.3 gives the amended Until Loop block and says it 'Keeps the owner's RUN and the literal command'; the block ends with the Result sentence.",
+   "finding": "The 6.3 block (and the S7 text it came from) silently drops LOOP_RULE, the only packet sentence that says 'Call an exit condition satisfied only when a command or file shows it after your last edit' (main also has 'If ShipLoop refuses done after the loop ends, fix the cause, start the loop again with the same command, and submit again'). Findings SPEC-1/SP-5 say every stage-loop exit is otherwise the model's own word. U9's Work names INVOKE_LINE, HOST_LINE, RESULT_LINE, RESUME_LINE, invoke_lines, start_command but not LOOP_RULE, so an implementer who follows 6.3 verbatim deletes an obligation with no ledger row (owner rule 5, main tenet).",
+   "evidence": "skills/shiploop/scripts/shiploop_loops.py: symbol LOOP_RULE (grep 'after your last edit'); branch -loop- 0d462ca4: invoke_lines ends with ' '.join(LOOP_RULE.split()) after RESULT_LINE; grep 'satisfied only when' SP/eff2/aggregate-plan-rev5.md finds nothing.",
+   "correction": "Keep LOOP_RULE in 6.3 after the Result line (at least 'Call an exit condition satisfied only when a command or file shows it after your last edit.', about 100 chars; the -loop- branch's two-sentence form is about 155), name LOOP_RULE in U9's Work, budget it in U7, and give it a ledger row."
+  },
+  {
+   "id": "RT-02",
+   "severity": "P1",
+   "where": "Section 1 point 7; C14; N3; U14 Work and exit",
+   "claim": "'a printed cap (`0 of 11`) ... fixed in zero-byte waves'; 'Fix the print (U14); the cap stays script-side'; exit: `grep -rn \"of 11\" skills/shiploop/scripts/shiploop_test_loop.py` finds none in printed text.",
+   "finding": "(a) The model-facing cap is printed in six functions, not only loop_lines: besides it, rerun_lines ('at most 11 refused runs, then ...' in the Test rerun list), verify (two refusal tails 'Refused runs for this action: N of 11'), base_check (refusal tail 'N of 11 ... base and candidate runs together'), _place_reply and _unavailable_sentence ('the 11 refused runs'). U14 touches only loop_lines, so owner rule 7 (no model-facing cap) is still violated after U14. (b) The exit is vacuous: the source builds the text with ' of ' + str(MAX_REFUSED_RUNS), so the string 'of 11' does not occur in the file today (grep exits 1 on main).",
+   "evidence": "Command run: grep -rn 'of 11' skills/shiploop/scripts/shiploop_test_loop.py -> exit 1 on main. grep -n 'MAX_REFUSED_RUNS' in the same file shows the str() concatenations in loop_lines, rerun_lines, verify (x2), base_check, _place_reply, _unavailable_sentence.",
+   "correction": "Either widen U14 to every print of MAX_REFUSED_RUNS (count only when above 0, no cap digits) or say the plan keeps the cap in refusal text. Replace the exit with a test that renders the test packet, the rerun list and each refusal at refused = 0..12 and asserts the cap digits never appear. Do not list the cap as 'fixed' in section 1 until then."
+  },
+  {
+   "id": "RT-03",
+   "severity": "P1",
+   "where": "Section 1 point 6; C7; IMP-4 row; D-6; U2 Work (b) and exit 1",
+   "claim": "Gate 3 = 'two consecutive trivial, unchanged passes counted from the last pass that edited'; D-6: 'gate 3 costs nothing against main for code reviews'.",
+   "finding": "As worded, a review whose first pass leaves the tree unchanged has no edit to count from, so it needs two passes; main's rule, and R1's recommendation, stop it at pass 1. In the live run 5 of 7 implement reviews ended at pass 1, so a literal gate 3 adds a pass to each (contradicting 'zero added cost against main'). U2 exit 1 tests (edit,none,edit,none,none) and (edit,none,none) but never (none) -> P1 under gate 3. The stop branch retires the unchanged_first_pass key, so main's shortcut must be re-implemented inside gate 3.",
+   "evidence": "SP/eff2/decisions-release.json R1 recommendation: 'implement and carry-forward stop on a first pass that is unchanged (main's rule) and, after any edit, need two consecutive passes that are trivial AND measured-unchanged'; findings-improve.json IMP-4 and r5/dec-release.txt: 'adfd6e3b stays 5 passes, ed863ab3 stays 3, the other five end at P1'; changes/shiploop/improve-stop-rule-one-unchanged-pass.md ('the old unchanged_first_pass key is gone').",
+   "correction": "Define gate 3 as: stop on one trivial pass that leaves the tree unchanged when no pass has edited; after any edit, stop on two consecutive trivial unchanged passes. Add to U2 exit 1: a first pass that is unchanged stops at P1 under gate 3 (and gate 3 never stops a trivial-but-changed pass)."
+  },
+  {
+   "id": "RT-04",
+   "severity": "P2",
+   "where": "6.1 order row 1; 6.2 ('lines 3 and 4 on an inner stage, which has the delegation line first'); U8 exit 1; U7 invariants",
+   "claim": "Row 1 'Delegation line (inner stages; guidance.inner_context ...)' is 'existing'; callback is 'line 5 on an inner stage'; callback within the first 8 lines and 1,500 chars with at most 4 lines before it, for every route.",
+   "finding": "The printed head does not carry the delegation prefix today: packet_head starts with the header; only render() (whole prints and the packet file) prepends guidance.inner_context plus a blank line (finding SP-3 says the same). So 'existing' is false for heads, and its bytes (inline INLINE_STAGE_CONTEXT 196 chars; ask-agent SERIAL_INNER_CONTEXT 1,548 chars in 23 lines) are in no head budget or 6.2 net. The invariant cannot hold where the prefix is printed: on ask-agent every inner packet file and each whole print starts with 23 prefix lines (ask-agent validate-existing prints whole at 15,938 at 83); even inline a whole print has its header at line 5 (two prefix lines and two blank lines), so with the two pointer lines the callback is line 8 with 7 lines before it, not line 5 with 4 before; on ask-agent the header is line 25 and the callback line 28.",
+   "evidence": "skills/shiploop/scripts/shiploop_navigator.py: render() adds guidance.inner_context for stage in INNER, packet_head() does not (read); python3 len() of shiploop_prompts.SERIAL_INNER_CONTEXT = 1,548 chars, 23 lines; INLINE_STAGE_CONTEXT = 196; my render at default TMPDIR (83): ask-agent 05-validate-existing = 15,938 (<= PRINT_LIMIT, so whole, prefix first); whole-print 03-test-spec on main: inline header line 5 / callback line 6, ask-agent header line 25 / callback line 26 (SP/eff2/rt_top.py).",
+   "correction": "Say the head gets the prefix only if U7 adds it, and budget +196 (inline) / +1,548 (ask-agent) per inner head; define the position invariants from the header line (the status hook already strips the PREFIX) or exempt the prefix: 'callback within 3 lines of the header', not 'within the first 8 lines and 4 lines before it'."
+  },
+  {
+   "id": "RT-05",
+   "severity": "P2",
+   "where": "U1 Work (c); section 2 table; 6.5 row 10; 8.3; risks",
+   "claim": "'classify the merged tree's validate-existing growth (11,756 to 15,978 inline at 163, M, cause unknown)'; 'The unexplained +4,222-character growth of validate-existing'.",
+   "finding": "The cause is the 16,000-char whole-versus-head switch, and the packet shrank. At a 163-char dir main's whole validate-existing text is 16,210 (> PRINT_LIMIT 16,000), so main prints the 11,756 head; the merged tree's whole text is 15,978 (232 chars shorter, from symbols), so it prints whole. Test-spec (15,537) and document (14,908) sit just under the same cliff, so any U12/U13/U16 addition can flip them to a head, and a removal can flip others the other way.",
+   "evidence": "Command run (TMPDIR padded to a 128-char dir, offline_packets printed=False vs True): main 05-validate-existing whole 16,210 / printed 11,756; merged (SP/eff2/rel-ac9e47) whole 15,978 / printed 15,978. Scripts SP/eff2/rt_whole.py.",
+   "correction": "Replace 'cause unknown / unexplained +4,222' with 'a flip from head (11,756) to whole print (15,978) because the whole text fell from 16,210 to 15,978'; drop the 'at most 15,980 until classified' budget and add the 16,000 cliff distance per stage to the U7 head table."
+  },
+  {
+   "id": "RT-06",
+   "severity": "P2",
+   "where": "5.0 G-RENDER (used by U1, U7-U13, U16, U17, U25, U29)",
+   "claim": "G-RENDER: `python3 test/shiploop_e2e/packets.py --offline node-fix-bug <fresh dir> ...` 'diffed with the previous render: every changed line classified'; before U5 use `SP/eff2/r5/heads_one.py`.",
+   "finding": "Neither tool prints packet text. packets.py --offline prints a size and section report (JSON or Markdown), writes nothing and ignores the output directory; heads_one.py prints a {packet: length} JSON. A line-level diff and 'every changed line classified' need a text dump; U5 is only said to add --run-dir-length.",
+   "evidence": "Commands run: `python3 -B test/shiploop_e2e/packets.py --offline node-fix-bug --json` (sections and char counts only); test/shiploop_e2e/packets.py main(): the --offline branch returns before any write; SP/eff2/r5/heads_one.py prints lengths only. A text dumper exists only in scratch (SP/eff2/r5/dump_heads.py, needs REDTEAM_PAD_ROOT).",
+   "correction": "Add to U5: `packets.py --offline ... --text-dir <dir>` (one file per packet, printed and whole) plus --run-dir-length, with a test; point G-RENDER at that, and drop '<fresh dir>' from the current command line."
+  },
+  {
+   "id": "RT-07",
+   "severity": "P2",
+   "where": "U32 Work; section 2 run-2 row",
+   "claim": "'then the resume command printed in `SP/sfchess/live2/resume-grok-*.txt` (carries `--source checkout`, fixed in e64c1156)'.",
+   "finding": "resume-grok-*.txt is the prompt given to the Grok model on resume (it begins 'This session ended while the ShipLoop run was still active ... run `python3 .../shiploop next ...`'), not the harness command. run.py resume_command does not print --source at all; e64c1156 instead made a resume of a run whose versions.source starts with 'checkout' skip the marketplace gate. U27 (rev 4 Step 9.2) correctly plans to extend resume_command, so U32 and U27 contradict each other.",
+   "evidence": "cat SP/sfchess/live2/resume-grok-1792206100.txt (prompt text, no --source); test/shiploop_e2e/run.py resume_command (parts: --resume-run, --host, --model, --timeout, --max-resumes, --max-budget-usd, --permission-mode, optional --plugin-dir/--keep-platform); git show e64c1156 (message and run.py diff).",
+   "correction": "U32: run `python3 test/shiploop_e2e/run.py --resume-run <live2> --host grok --timeout 10800` (plus --permission-mode as run 2 used); a checkout run resumes without the marketplace gate since e64c1156. Say that U27 adds --source/--keep-platform to the printed command."
+  },
+  {
+   "id": "RT-08",
+   "severity": "P2",
+   "where": "5.9 cost table; U32 Work; U33 Work; P1 row",
+   "claim": "Final run '$26 to 30 (cap $45)' with `--max-budget-usd 45`; resume `--max-budget-usd 20`.",
+   "finding": "The Grok argv has no budget flag; run.py documents --max-budget-usd as 'claude only; grok has no spend cap'. On the Grok final run and the resume the flag is inert. The only bound is the two 10,800 s timeouts, about 6 h, about $37 at the measured $6.10 per Grok hour (the process decision itself says 'a 6 h cap = $37').",
+   "evidence": "test/shiploop_e2e/hosts.py Grok argv (no budget flag; Claude argv has --max-budget-usd); run.py add_argument('--max-budget-usd', help='claude only; grok has no spend cap'); decisions-process.json P1 evidence ('a 6 h cap = $37').",
+   "correction": "Write '(no spend cap on Grok; bounded by 2 x 10,800 s, about $37)' and keep the flag only as documentation; add a harness stop on spend if a hard cap is wanted."
+  },
+  {
+   "id": "RT-09",
+   "severity": "P2",
+   "where": "Section 1 point 10; 5.9 cost table; U6 part 2; U23/U24/U26; 7.2 A/A sentence",
+   "claim": "'35 units (31 firm, 4 conditional; 31 offline, 4 live)'; round 0 A/A = 'Claude node-fix-bug twice, about $9'; total 'about $80 to 100'; 7.2: 'A/A (U6): the control twice per host and case'.",
+   "finding": "(a) 7.2 needs an A/A pair for each of the 3 slice kinds (Claude node-fix-bug, Grok node-fix-bug, Claude node-add-function ask-agent) but U6 and the cost table schedule only Claude node-fix-bug; Grok (2 x 250 x $0.0285, about $14) and ask-agent (about $9) pairs are missing from U6, the exits and the total. (b) The conditional units are not offline: U23 exit needs arms.py to select the card arm, U24 needs arm A4 to beat pointer-only, U26 needs at least 25 paired replays per arm plus a slice per host; none of those arms is in U31's control-versus-candidate design, and the cost table lists them under 'Offline ... none'. The '31 offline / 4 live' split and the $80 to 100 total therefore omit live spend.",
+   "evidence": "Arithmetic from the plan's own constants ($0.0187 / $0.0285 per turn, 250 turns per slice); 5.8 U23/U24/U26 exits; 7.2 table.",
+   "correction": "Add the two missing A/A pairs to U6 (about +$23), or state that U31's Grok and ask-agent rows have no spread and cannot decide time; move U23/U24/U26 live arms into a costed conditional live unit or mark the totals 'excluding conditional live arms'."
+  },
+  {
+   "id": "RT-10",
+   "severity": "P2",
+   "where": "7.3 row 'Seeded defects caught at pass 1'; U19 exit 4; U26 canary; U31 Work",
+   "claim": "'the three audit cases and a language-semantics case (string comparison case rules)' decide whether the IMP-10 bullet and IMP-6 commit stay.",
+   "finding": "No unit builds these fixtures. step_cases.json cases carry only fixture, prompt, work_item, expect_paths, checks (no defect seeding), U5's fixtures are the long-knowledge and small-home homes, and U31's Work only says 'plus the rows of 7.3'. U19 exit 4 and U26 therefore have a pass/fail condition with no test subject.",
+   "evidence": "test/shiploop_e2e/step_cases.json keys per case; grep -n -i seeded SP/eff2/aggregate-plan-rev5.md shows only the rows that use the fixtures (7.3, U19, U26) and U3's unrelated 'seeded slices'.",
+   "correction": "Add a unit (or an U5 sub-item) that builds a seeded-defect step case with a code defect that no command exercises (a string-compare case rule) and the audit cases, with a harness test that the defect survives a no-review run; or drop the exit."
+  },
+  {
+   "id": "RT-11",
+   "severity": "P2",
+   "where": "6.3 Result line; 3.2 row SP-4/X-7; U9",
+   "claim": "'Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled.'",
+   "finding": "The runtime's report schema requires five fields: those three plus evidence and handoff (both nonblank strings). A line headed 'Done-report fields' that lists three invites a report missing evidence and handoff, which the runtime refuses.",
+   "evidence": "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py: symbols _REPORT_FIELDS and _report_schema (required = classification, exit_assessment, continuation_assessment, evidence, handoff).",
+   "correction": "Say 'Done-report enum fields' and add 'plus evidence and handoff (nonblank text)', or point to the report_schema in the start return (the lean return keeps the field names)."
+  },
+  {
+   "id": "RT-12",
+   "severity": "P2",
+   "where": "U29 exit 2 (and rev 4 Step 10.1)",
+   "claim": "`grep -rIl \"Kiwipete\\|perft\\|Salesforce\" skills/shiploop --include=*.py --include=*.md` lists only `references/platforms/` files.",
+   "finding": "Unsatisfiable as worded under a 'no iteration limit' loop: legitimate non-platform files name Salesforce today: skills/shiploop/references/coding-guidance.md (the platform index row '[Salesforce](platforms/salesforce.md)', which reference-routing needs), skills/shiploop/README.md (link to the platform card), references/consumer-delivery.md (an example), and scripts/shiploop_navigator.py (one example string). The same unit's other exit (reference-routing exits 0, 'the platform card is still reached') conflicts with removing the index row.",
+   "evidence": "Command run: grep -rIl -e Kiwipete -e perft -e Salesforce skills/shiploop -> README.md, references/consumer-delivery.md, references/platforms/ui-frameworks.md, references/platforms/salesforce.md, references/coding-guidance.md, scripts/shiploop_navigator.py.",
+   "correction": "Scope the grep to generators and prompts (skills/shiploop/scripts/*.py) and the domain-word test; allow the platform index in coding-guidance.md and README links; fix the named example strings in consumer-delivery.md and shiploop_navigator.py."
+  },
+  {
+   "id": "RT-13",
+   "severity": "P2",
+   "where": "6.2 'What goes'; U8 Work",
+   "claim": "6.2 deletes 'the footer sentence \"The duties and rules above are this stage's...\"' as a whole.",
+   "finding": "The footer line is one sentence group that also carries 'References it names are for lookup: open only the section a step needs, never a whole reference file, and do not re-read the ShipLoop skill card.' Finding X-1 explicitly says to keep that sentence where it is; TD-2 proposes deleting only the first sentence. The new lines 1 and 2 do not carry the lookup rule and no ledger decision is recorded, so an obligation is dropped silently (rule 5; Grok read ShipLoop's own text in 120 of 387 turns).",
+   "evidence": "skills/shiploop/scripts/shiploop_navigator.py packet_head footer string ('... References it names are for lookup ...'); findings-cross.json X-1 proposal ('keep the sentence ... where it is'); grep -n -i 'for lookup' SP/eff2/aggregate-plan-rev5.md finds nothing.",
+   "correction": "Delete only 'The duties and rules above are this stage's; the full packet adds ...' (covered by the new Full packet line) and keep or relocate 'References it names are for lookup: open only the section a step needs, never a whole reference file, and do not re-read the ShipLoop skill card.' with a ledger row."
+  },
+  {
+   "id": "RT-14",
+   "severity": "P3",
+   "where": "6.3 last paragraph; 1 point 4; U9",
+   "claim": "'Nothing says \"Skill tool\"; the slash form appears nowhere.'",
+   "finding": "True only inside the block. DONE_WHEN_LOOP (the Done-when line of every looped stage) says 'every exit condition in the /until-loop argument below holds', the test stage prints 'in the /until-loop argument above', and SKILL.md still says 'INVOKE /until-loop NOW'. U9 lists none of these.",
+   "evidence": "grep -n '/until-loop' skills/shiploop/scripts/shiploop_navigator.py (DONE_WHEN_LOOP), shiploop_test_loop.py (head of the where-and-floors text), skills/shiploop/SKILL.md 'Stage Until Loops'.",
+   "correction": "Either scope the sentence to the block or add DONE_WHEN_LOOP, the test where-and-floors text and the SKILL.md paragraph to U9 (and a pin test)."
+  },
+  {
+   "id": "RT-15",
+   "severity": "P3",
+   "where": "6.2 net bytes; U8 exit 3",
+   "claim": "'Projected net against main: about -100 to -200 characters per producer packet at 163 (the new lines about +700; the removed lines about -830)'; U8 'P: -100 to -200 per producer against main'.",
+   "finding": "Recomputed at a 163-char dir: the two new lines are about 752 chars with the offline CLI (about 814 to 839 with a live or plugin-cache CLI path), the removed lines measure 881 (Full packet 194, footer 367, Never-end 61, Recovery 255, plus newlines), and U8 also adds the callback reason (+160 chars). Net for U8 is about +30 chars, not -100 to -200; the -100..-200 holds only for the two pointer lines without the callback reason, and the dropped --result= (-190) belongs to U10.",
+   "evidence": "python3 length arithmetic on the 6.2 strings and on main's step-plan head at a 128-char TMPDIR (SP/eff2/rt_text.py).",
+   "correction": "State U8's net as about 0 to +60 at 163 (before U10's -190) and do not rely on U8 for step-plan head room."
+  },
+  {
+   "id": "RT-16",
+   "severity": "P3",
+   "where": "U9 exit 2; U1 exit 4",
+   "claim": "U9: `grep -rn 'skill until-loop\\|skill \"until-loop\"' skills/shiploop` finds nothing. U1: `grep -rn \"the line after the header\" skills/shiploop/commands` finds nothing.",
+   "finding": "Both greps miss the text they are meant to catch. SKILL.md says 'the Skill tool `until-loop`' (backticks, or split across a line break on the -loop- branch), which 'skill until-loop' does not match. skills/shiploop/commands/shiploop-complete.md says 'on the line after its' + newline + 'header', which the U1 pattern does not match; only shiploop-next.md matches, so fixing next.md alone passes the exit while complete.md stays stale.",
+   "evidence": "grep results on main and the -loop- worktree: SKILL.md line 'Code the Skill tool `until-loop`'; shiploop-complete.md lines 3-4.",
+   "correction": "Use patterns 'Skill tool' (restricted to the until-loop paragraph) and 'line after' in commands/*.md, or assert in a test that neither card contains a line-number claim."
+  },
+  {
+   "id": "RT-17",
+   "severity": "P3",
+   "where": "7.2; U31 Work; U6 part 2",
+   "claim": "'candidate = INT built with `--source checkout`' for the battery slices.",
+   "finding": "--source exists only on run.py. slice.py has no --source flag (it builds this checkout by default; --plugin-dir selects another build), so the literal command fails in argparse.",
+   "evidence": "test/shiploop_e2e/slice.py add_argument list (--case, --regrade, --host, --model, --effort, --delegation, --plugin-dir, --output, --timeout, ...); run.py has --source {marketplace,checkout}.",
+   "correction": "For slices say 'run slice.py from the INT worktree (it builds that checkout) and from a main worktree for the control, or pass --plugin-dir'; keep --source checkout for the U33 run.py command."
+  },
+  {
+   "id": "RT-18",
+   "severity": "P3",
+   "where": "Section 1 point 1; D-23; U1/U2; alias line 'R5 = D-5/D-16/D-23'",
+   "claim": "INT = `feat/shiploop-eff-int-<hex6>`; merge docs, -packets-, -loop-, then -stop-.",
+   "finding": "The plan presents this as R5/D-23 but R5 recommended branch `feat/shiploop-eff-tr1-<hex6>` and merging stop first (after R1, R2 and the S-10 text), then packets, then loop; rev 4 Rollout also said stop, packets, loop. The plan follows decisions-process P5 (packets, loop, stop last) without saying it overrides R5. Harmless technically (merges are clean in any order) but the departure is not recorded.",
+   "evidence": "SP/eff2/decisions-release.json R5 recommendation; decisions-process.json P5 ('order -packets-, -loop-, and -stop- last'); final-plan.md section 9 'Tranche-1 intake order'.",
+   "correction": "Add one line to D-23: 'order follows P5 (stop last, after the S-10 text); R5 proposed stop first and the name -tr1-'."
+  },
+  {
+   "id": "RT-19",
+   "severity": "P3",
+   "where": "Section 1 point 6; D-15 row",
+   "claim": "'the released hook makes every Claude Improve stage load the 28.4 KB card'.",
+   "finding": "Stated as a fact in the headline; the evidence is an inference from reading the gate code (the artifact build predates the hook; finding IMP-3 says 113.6 KB 'with the gate on' and lists 'whether the hooks were bound' as not measured). D-15 labels it P; section 1 does not.",
+   "evidence": "findings-improve.json IMP-3 and not_measured.",
+   "correction": "Write 'would make every Claude Improve stage load ... (projected; U6 part 1 measures it)'."
+  },
+  {
+   "id": "RT-20",
+   "severity": "P3",
+   "where": "3.2 row X-14/VR-1b/IMP-11",
+   "claim": "'the 7.1 exit (\"0 reads of `shiploop_*.py`\") already holds on this Claude run (0 reads in 9 calls)'.",
+   "finding": "9 calls is the step-plan stage only (SP-10). The recorded run has 41 model tool calls (metrics model_calls 41) and X-14 counts ShipLoop source reads as 0 over the whole run.",
+   "evidence": "SP/v9/node-fix-bug/metrics.json (turns 70, model_calls 41); findings-stepplan.json SP-10; findings-cross.json X-14.",
+   "correction": "Write '(0 reads in 41 tool calls)'."
+  },
+  {
+   "id": "RT-21",
+   "severity": "P3",
+   "where": "Section 2 table rows main and Worktrees",
+   "claim": "main 'holds ... the E2E audit fixes (a7c1fdb2)'; scratch `m16/m` is '(detached 2686b427, on origin/main)'.",
+   "finding": "a7c1fdb2 is the commit that adds the baseline row of the audit-fix Battleship run (test commit), not the fixes; the audit fixes arrived through c96d18be/4c9e1def and others. 2686b427 is an ancestor of origin/main (35+ commits behind da9e2e75), not its tip.",
+   "evidence": "git log --oneline -5 on main; git merge-base --is-ancestor 2686b427 origin/main exits 0; git rev-parse origin/main = da9e2e75.",
+   "correction": "Say 'E2E audit fixes (merged via c96d18be; baseline row a7c1fdb2)' and 'detached at 2686b427, an ancestor of origin/main'."
+  },
+  {
+   "id": "RT-22",
+   "severity": "P3",
+   "where": "3.2 row VR-5",
+   "claim": "VR-5 row ends 'item 8 (Assembly) prints on ask-agent only'.",
+   "finding": "That change is VR-6's proposal (finding VR-6, item 2 and 'Print item 8 only when delegation is ask-agent'); VR-5 is the rerun/check-only duty rewrite. 6.5 row 14 attributes it to 'U16, U11' correctly, but the 3.2 row mixes the two ids.",
+   "evidence": "findings-verifyrest.json VR-5 and VR-6 proposals.",
+   "correction": "Move 'item 8 (Assembly) prints on ask-agent only' to the SP-5/TD-6/SPEC-7/VR-6 row (U11)."
+  },
+  {
+   "id": "RT-23",
+   "severity": "P3",
+   "where": "U2 Work (d)",
+   "claim": "'fix the \"must be a Git worktree\" sentences in `ADAPTER.md`, `runtime-ephemeral.md`, the change note'.",
+   "finding": "On the stop branch neither ADAPTER.md nor skills/improve/runtime/until-loop/references/runtime-ephemeral.md contains that sentence (they describe the limit as 'outside Git ... a change cannot be measured'). The sentence is the start refusal text in scripts/until_loop_ephemeral.py ('workspace must be a Git worktree ...') and the change note says 'ShipLoop's Improve tests and fixtures use Git worktrees, which the gate needs'. runtime-ephemeral.md also lives under until-loop/references/, not runtime/.",
+   "evidence": "grep -rn -i 'git worktree' on the -stop- worktree under skills/improve and changes/ (2 hits: the start refusal in until_loop_ephemeral.py and the change note); r5/dec-release.txt carries the claim.",
+   "correction": "List the real places: the start refusal in until_loop_ephemeral.py, the outside-Git limit paragraphs in runtime-ephemeral.md and ADAPTER.md (to say the limit is lifted), and the change note."
+  },
+  {
+   "id": "RT-24",
+   "severity": "P3",
+   "where": "Section 1 point 5 vs C4, 8.2, U23",
+   "claim": "Point 5: the card, orient print and 'the lean frame are not built unless the battery shows a gap'; C4/8.2/U23: 'the lean frame is deleted'.",
+   "finding": "Two statements about the same item: conditional vs deleted. U23 says 'The lean frame (Step 3.4b) is deleted'.",
+   "evidence": "aggregate-plan-rev5.md sections 1, 3.1 C4, 5.5 U23, 8.2.",
+   "correction": "Say 'deleted' in section 1 or make it a conditional arm everywhere."
+  },
+  {
+   "id": "RT-25",
+   "severity": "P3",
+   "where": "N8; U1 exit",
+   "claim": "N8: 'Step 1.0's exit is all of G-SUITES (adds `step-packets`, `rehydration`, `installed-skill-invocation`)'.",
+   "finding": "U1 merges only -packets- and -loop-; installed-skill-invocation is red only from -stop- (merged in U2) and is not in G-SUITES (it is run only by units touching skills/improve/runtime/**).",
+   "evidence": "SP/eff2/r5/dec-release.txt (installed-skill-invocation 2 failures on the all-three merge); 5.0 G-SUITES list.",
+   "correction": "Drop installed-skill-invocation from N8 or move it to U2's exit."
+  },
+  {
+   "id": "RT-26",
+   "severity": "P3",
+   "where": "N11; 8.3 'host cut'; R4 text",
+   "claim": "'The 20,000 figure is Grok evidence ... no Claude figure'; U6 probes all hosts.",
+   "finding": "The code already records a Claude measurement: shiploop_status_hook.WINDOW comment says 'Claude Code keeps the first ~30,000 characters of oversized Bash output (measured 2026-09-25)'. The plan should cite it (it supports 'ceiling is Grok-only') and probe Codex and Grok first.",
+   "evidence": "skills/shiploop/scripts/shiploop_status_hook.py (comment above WINDOW).",
+   "correction": "Cite the 2026-09-25 Claude figure and narrow the U6 probe to Codex, Grok and a re-check on Claude."
+  },
+  {
+   "id": "RT-27",
+   "severity": "P3",
+   "where": "6.2 callback label vs U11/SP-5 Work text",
+   "claim": "Callback label: 'run it exactly as printed, with no pipe, redirect, \";\" or shell variable'; U11: 'run the Callback command with `--check-only` added'.",
+   "finding": "The two instructions conflict for the same command: 'exactly as printed' forbids the added flag the Work line requires. _verb accepts the --check-only form (U8 exit 2 tests it), so the label should allow it.",
+   "evidence": "aggregate-plan-rev5.md 6.2 and 3.2 row SP-5.",
+   "correction": "Label: 'run it exactly as printed (the only addition allowed is --check-only before done), with no pipe, ...'."
+  },
+  {
+   "id": "RT-28",
+   "severity": "P3",
+   "where": "3.2 row SPEC-2 vs 6.5 row 11",
+   "claim": "SPEC-2 (M): 'head 15,912 / 17,284 / 17,648 chars at 66 / about 165 / 190-char dirs'; 6.5 row 11: main implement head '15,669 / 16,783' at 163.",
+   "finding": "The two M values are for different fixtures: SPEC-2 used a realistic step plan (criteria, test commands, test cases) rendered by SP/eff2/render-specimpl-real/dump_real.py; 6.5 uses the offline default step case. At about 163 the same stage reads 17,360 vs 15,669; the row does not say which fixture it is.",
+   "evidence": "SP/eff2/render-specimpl-real/inline-163/04-implement.head.txt = 17,360 chars; SP/eff2/r5/main-heads/main-163.json implement 15,669.",
+   "correction": "Label the fixture on each M figure (rule 9: label every figure) and use one fixture for head budgets."
+  },
+  {
+   "id": "RT-29",
+   "severity": "P3",
+   "where": "U10 exit 1 vs U1(c)",
+   "claim": "U10 lists what 'stay absolute': 'callback, commands, Keepalive marker, Full packet:, Progress link, template evidence_refs value, loop Contract/Receipt/Start lines and the /improve line'.",
+   "finding": "The loop `Work:` line is missing (U1(c) and rev 4 Step 3.1 include it). Work is part of the contract JSON (hash-compared by check_terminal), so symbolising it breaks the receipt check; a test written from U10's list could demand a symbol there.",
+   "evidence": "final-plan.md Step 3.1 exit 1 ('loop Work/Contract/Receipt/Start'); shiploop_loops.WORK strings contain '{run}/packets/{action}.md' absolute paths.",
+   "correction": "Add 'Work' to U10 exit 1's absolute list."
+  },
+  {
+   "id": "RT-30",
+   "severity": "P3",
+   "where": "Section 2 table run-2 row; N15",
+   "claim": "'169 MB under `$TMPDIR`; macOS purges `$TMPDIR` after days'.",
+   "finding": "The folder is at /private/tmp/claude-501/.../scratchpad/sfchess/live2, not under $TMPDIR (/var/folders/_n/.../T/). The purge risk (macOS cleans /private/tmp and /var/folders T) is real but the sentence names the wrong directory. Size is right (173,172 KB).",
+   "evidence": "echo $TMPDIR; du -sk SP/sfchess/live2 = 173172.",
+   "correction": "Say 'under the session scratchpad in /private/tmp'."
+  },
+  {
+   "id": "RT-31",
+   "severity": "P3",
+   "where": "D-1 row; C13",
+   "claim": "'The saving is bytes written, not ingested: the model read about 6% of the quote region and cut every print (X-1, rev 4 evidence 6)'.",
+   "finding": "Two hosts are fused: 'about 6%' is the Grok live-run figure (rev 4 evidence 6), 'cut every print' is the Claude artifact, where the model also read the 29,175-char step-plan packet file whole (quote region included).",
+   "evidence": "final-plan.md evidence 6; findings-cross.json X-1/X-14.",
+   "correction": "Write 'Grok read about 6% of the quote region; the Claude run cut every print but read step-plan's packet file whole'."
+  }
+ ],
+ "verified_ok": [
+  "Branch facts by git: -stop- 60018152+3b9ca9c9 (2 ahead, 35 behind), -loop- 0d462ca4 (1 ahead), -packets- f3f6a6bc/0eeb68e2/c8d49b01 (3 ahead); docs/efficiency-journal-98075a = 90fa2ca0, 1 ahead of origin/main, 4 files +823 including LEARNINGS +16; packet-order-255e57 0 ahead and clean; sf-chess worktree has exactly the one baseline row modified; p_step.txt is 71,834 bytes; main = origin/main = da9e2e75, skill-craft 2.5.0 / shiploop 1.5.0, CI push runs success; f1f38850 d4d08351 996a378c 5d028aee d56904e2 e64c1156 2be7906b 11f5a5b9 398466a3 2686b427 are in main.",
+  "Artifact: 20 of 20 complete calls piped to head (19 with -N, 1 bare head), N 8 to 60, median 20; one 'Unknown skill: until-loop'; 'skipped: no item base was recorded' in tests base1 and mutation1; status hook _verb returns None for piped, 2>&1, $SC/$R-built and R=...; commands and a verb for the literal one (run on main); main step-plan head: loop block at line 182 of 202, verify duties at line 34 of 153, Full packet at 122, loop heading 129.",
+  "Head sizes re-rendered at default TMPDIR (83) and padded (163): main step-plan 19,395 / 21,077 at 83 and 20,595 / 22,277 at 163; merged 21,924 / 23,606 at 163 and (via the recut test and the slope files) 20,484 / 22,166 at 83; every main/merged value in 6.5 rows 8-15 matches r5/main-heads and heads-merged JSON; linear extrapolation reproduces R4's 83 values exactly.",
+  "Sizes: improve/SKILL.md 28,365; review-policy 6,558; runtime ADAPTER.md 24,003; callback-evidence.md 13,515; shiploop SKILL.md 80,439; handoffs 27,531 to 35,161 chars; implement handoff focus starts at char 15,233 of 34,314; OWNER_RULE 93 chars; style line 251 chars; RESUME_LINE text exact; the -loop- commit's +596..+616 per stage, +1,063 first cost and 19,974 result; 0eeb68e2 hand-off block sizes (28,734 / 26,044 / 28,862 / 28,532 / 37,898 / 38,002 / 15,297).",
+  "Counts: 69 findings across the six files with the ids the plan cites; 53 decision rows; 35 units (4 conditional, 31 firm; 31 offline by the plan's own list); 10 owner items; 24 stages in 6.5; 7 'always' improve stages, carry-forward 'last-item', implement 'step'; reviewed_stages('none') = system-test-author, release-plan.",
+  "Statistics: nine ShipLoop 0.59.0 Claude hello rows give turns CV 0.32, cost CV 0.38, planning-seconds CV 0.33 and $0.0187 per turn (recomputed from baselines.jsonl); rule-of-three 3/18 = 16.7%; the n = 2(2.8 CV/eff)^2 figures (160, 26, 25, 98, 220) recompute; Grok $0.0285 per turn and $6.10 per hour recompute from live2 (428 turns, $12.21, 7,202 s); run 2 stopped at timeout with org checks deployed/tests 14/rules 28 passed and project failed.",
+  "R5 evidence: four red ShipLoop suites on the merged tree with the counts 2 / 68 / 1 / 1, installed-skill-invocation 2 red from -stop-, release dry-run version changes; StopRuleReplayTests expectations (spec 7, test-strategy 2, plan 3, step-plan 1, test-spec 2; 21 -> 15 passes) match the stop branch test; OpenCode sets OPENCODE=1 per the decision evidence and NESTED_NON_CLAUDE lacks it.",
+  "Symbols and files named in the plan exist (checked with git grep on main or the named branch): packet_head, render, _after_status_lines, _step_lines, _lint_lines, PRINT_LIMIT, HEAD_END, _first_callback_lines, _consumer_lines, _submitted_result, improve_start_contract, _skill_call_gate, skill_calls.improve_call_since, keepalive.skill_gate/HOSTS/COMMAND_RUN_DIR/DRIVING_COMMAND, PACKET_VERBS (hook and protocol), _TEST_CASE_SHAPE (prints R-3), loop_lines, commit_item (returns ('', [])), parse_spec (one spec), SEED_SCRIPT (no capture_base), keep_refusal, resume_command, MAP_ROWS/index_pointer/OWNER_RULE (packets branch), HOST_LINE/RESUME_LINE (loop branch), StopRuleReplayTests, all G-SUITES test files; run.py flags --source/--keep-platform/--resume-run/--preflight-only/--host all; README 'Keeping what a run made' and keep_refusal match the plan's description of the current contract."
+ ]
+}

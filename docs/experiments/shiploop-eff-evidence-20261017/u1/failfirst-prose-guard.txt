@@ -1,0 +1,37 @@
+.F
+======================================================================
+FAIL: test_the_argument_block_and_the_start_command_are_exempt (__main__.ProseLineGuardTests.test_the_argument_block_and_the_start_command_are_exempt)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/test/zz-failfirst.test.py", line 673, in test_the_argument_block_and_the_start_command_are_exempt
+    self.assertEqual([line for line in found if "/r/run/" in line],
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     ["Prose that names /r/run/state.md outside every exemption."])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['Work: Do duty items 1-4 of /r/run/packets[301 chars]on.'] != ['Prose that names /r/run/state.md outside [13 chars]on.']
+
+First differing element 0:
+'Work: Do duty items 1-4 of /r/run/packets[42 chars]a.md'
+'Prose that names /r/run/state.md outside every exemption.'
+
+First list contains 4 additional elements.
+First extra element 1:
+'Contract: /r/run/loops/a-contract.json'
+
+- ['Work: Do duty items 1-4 of /r/run/packets/a.md, writing the result at '
+-  '/r/run/inbox/a.md',
+-  'Contract: /r/run/loops/a-contract.json',
+-  'Receipt: /r/run/loops/a-terminal.json',
+-  'python3 /s/until_loop_ephemeral.py start --receipt '
+-  '/r/run/loops/a-terminal.json < /r/run/loops/a-contract.json',
+-  'Prose that names /r/run/state.md outside every exemption.']
+? ^
+
++ ['Prose that names /r/run/state.md outside every exemption.']
+? ^
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+FAILED (failures=1)

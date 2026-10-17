@@ -1,0 +1,282 @@
+{
+  "group": "strategy",
+  "decisions": [
+    {
+      "id": "S1",
+      "question": "Planning-review default (D-7): keep planning_review stage as the default, or default to none, when the plan projects planning at about 35-41 min with stage and about 20 min with none against the owner's 30-minute bar?",
+      "options": [
+        {
+          "label": "Keep stage as the default; land the cheap Improve fixes (IMP-1 focus first, D-15 router); run the D-7 blind quality pair; let eval-decision-priority decide the flip",
+          "effect": "Planning stays about 35-41 min (projected: 52.7 min today, minus stop rule about 4, pass tail about 1.5, gate vocabulary about 2, re-orientation 4.5-9). All five planning reviews keep running; in the Salesforce study 8 of 21 passes were material (spec 5 of 8, test-strategy, plan and test-spec one each) [measured, one run].",
+          "cost": "The default misses the 30-minute bar by 5-11 min (projected). One paired live run (stage vs none, same case and host) plus an offline blind review of documents that already exist.",
+          "risk": "On Claude the reviews are unguided today (criteria reached the model in 0 of 4 reviews), so measuring stage before IMP-1 and D-15 land would understate its value; the control arm must include both."
+        },
+        {
+          "label": "Flip the default to none now",
+          "effect": "Planning about 22 min measured (Grok 4.7 medium, battleship, --planning-review none: whole run 93.6 min, all verdicts pass) against 72.7 min for the stage probe on 1.21.0; about 20 min projected with the plan's other cuts. Meets the bar.",
+          "cost": "Drops the review where the measured value sits: spec Improve was 17.6 min with 5 material passes (untested black castling, a false check oracle, a strict-parser FEN), test-strategy P1 (R-12 and NFR-3 unmapped), plan P1, test-spec P1 (untested R-6 refusal). The escape rate without review is unmeasured.",
+          "risk": "Contradicts the owner's 2026-10-05 condition (flip only after the M1/M2 measurement) and the enterprise-rigour rule. A missed plan seam cost Luna 165.9 min of redo; a Sonnet plan review caught the same class (docs/experiments/shiploop-planning-review-20261005)."
+        },
+        {
+          "label": "Add a third mode that reviews only stages with measured yield (for example spec, test-strategy, plan; not step-plan)",
+          "effect": "Removes about 2.85 min per item (step-plan review: 0 material passes, the third review of the same W1 checks); closes about 3 min of the 5-11 min gap, not all of it.",
+          "cost": "A third value for the planning_review state key: reference text, saved-run refusal, tests; built on one run's per-stage yields.",
+          "risk": "Premature: yield per stage is n=1 and the artifact's 4 of 4 trivial reviews are weak evidence because their criteria were never read."
+        }
+      ],
+      "recommendation": "Option 1. Keep stage as the default. Before the verification run: land IMP-1 (move the focus block to the top of the Improve handoff, zero bytes) and D-15 so the control reviews are guided; run the offline M2 check on the existing none documents; run one paired live comparison; then apply eval-decision-priority (a material quality difference decides, else fewer tokens, else less time). Print the planning window split into stage work and Improve after every run so the cost of the 30-minute bar is visible in minutes, and write per-stage yield into RUN/improve/<action>/passes.md (IMP-11) so a later decision can drop one stage instead of the mode.",
+      "rationale": "The owner's standing rules already decide the procedure: quality first (eval-decision-priority), rigour is standard even for small requests (shiploop-enterprise-rigour), a conflict with the 30-minute ceiling is surfaced rather than silently resolved by dropping rigour (planning-seven-minute-ceiling note), and the default flips only after measurement (planning-review-release-2026-10-05). The artifact cannot settle it: its four Improve reviews took 55 s of 223 s (the two planning ones 36 s, about 16%) and all ended trivial in pass 1, but the model never read the criteria and the item was a one-line fix, so 4 of 4 none is weak evidence either way. Value concentrates where plans are complex, which the artifact cannot show. None remains available per run as the documented speed mode. The owner can override by ranking the 30-minute bar above review.",
+      "evidence": [
+        "Plan section 5.7 and D-7: planning 52.7 min today, about 35-41 projected; 'planning_review none (D-7) is the only lever that reaches 30'.",
+        "docs/experiments/grok-none-battleship-20261006/evidence.json: planning about 22 min with none vs 72.7 min stage on 1.21.0, all verdicts pass, 93.6 min [measured, one run, a different case from live2].",
+        "docs/experiments/improve-stop-rule-20261016/improve-value-study.json (branch shiploop-eff-stop-6afcbc): 21 passes, 8 material, 41.2 min; spec 17.6 min with 5 material passes; step-plan 2.85 min with 0.",
+        "findings-improve.json IMP-1: 'The review criteria reached the model in 0 of 4 reviews'; artifact files 02, 05, 07, 12 show reviews of 26, 10, 6 and 13 s.",
+        "docs/experiments/shiploop-planning-review-20261005/README.md: the platform-claim bullet caught 10 of 15 plan-stage errors vs 0 of 15; 'the escape rate without review is unknown'.",
+        "Memory notes planning-review-release-2026-10-05, shiploop-enterprise-rigour, eval-decision-priority, proactively-run-verification (runs may be launched without asking)."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "(a) The blind downstream check finds no material quality difference (interval inside the judge's test-retest noise, references/judges.json) between stage and none documents on at least two cases: then tokens and time decide and none becomes the default. (b) The per-stage yield ledger shows a stage with no material pass across three or more runs: drop that stage from the reviewed set instead. (c) The owner ranks the 30-minute bar above review.",
+      "confirm_by": "Offline first, no Grok credit: Opus 5.5 medium (one judge, blind to arm) reviews the spec, test-strategy, plan and test-spec documents of /Users/dadleet/e2e-runs/20261006/v1220-battleship-grok-medium-none with the planning focus constants; count material defects of the study's classes (unmapped requirement, untested refusal, false oracle, gate that passes with nothing built) and compare with the first-pass defect lists recorded for stage. Then one paired live run (stage with IMP-1 and D-15 vs none, same case, Grok 4.7 medium) at the verification run.",
+      "owner_needed": "no"
+    },
+    {
+      "id": "S2",
+      "question": "Which quote and hand-off cuts are safe under the main tenet (D-1 index above a per-file size, D-2 request printing, step-scoped hand-offs), in what order, and what is the minimal test for each?",
+      "options": [
+        {
+          "label": "Ship the script-provable and additive cuts now (same-packet dedupe W2 and the built new-file diff pointer 2.1, step-scoped implement hand-offs 5.1, request.md with S-ids and a never-refusing notice 4.2a); hold D-1 and D-2/4.2b until step 1.3 reports quoted characters that reached the model",
+          "effect": "W2: ten-stage long-knowledge fixture 362,660 to 273,444 chars (-24.6%, measured offline); small homes byte-identical; node-fix-bug about 0 (197 identical chars, 1.2%). 5.1: implement S1 hand-off 24.7 KB to about 1.2 KB (live, projected); (k-1)/k for k-step items, nothing for one-step items. 4.2a adds a display index and removes nothing.",
+          "cost": "Four steps (2.1, 2.2, 5.1, 4.2a), all testable offline; 5.1 also needs the G-S6 implement boundary and inside rows.",
+          "risk": "Low. Dedupe removes only lines a script proves repeat inside one packet; 5.1 fails toward more text through the item-set fallback; 4.2a never refuses."
+        },
+        {
+          "label": "Ship the plan as written: D-1 index above a per-file size (about 0.3-0.5 KB per large file) and D-2 pointer plus a required constraints list in non-mapping stages",
+          "effect": "Projected -184 KB of the 282 KB quote region and about -150 KB in Improve hand-offs on the live run; request -4.8 KB per non-mapping stage.",
+          "cost": "Coverage derivation from DUTIES and READS, a seeded-omission blind check, G-S6 index-route rows; amends decision D1.",
+          "risk": "Reverses the owner's D1 (knowledge-file quotes stay uncut) and moves request grounding out of the packet, against the main tenet. The saving is bytes written, not ingested: the model read about 6% of the quoted text, and in the artifact it saw 12-43% of every print."
+        },
+        {
+          "label": "Dedupe only (W2 and 2.1); no step-scoped hand-offs, no request index",
+          "effect": "Keeps the safest 25% on long homes and nothing on small homes.",
+          "cost": "Leaves the 24.7 KB implement hand-off for multi-step items and the Improve hand-offs that inherit it.",
+          "risk": "Misses the one structured, id-based cut that is cheap and safe."
+        }
+      ],
+      "recommendation": "Option 1, in this safety order: (1) W2 dedupe and the 2.1 pointer, (2) 5.1 step-scoped implement hand-offs, (3) 4.2a request.md with S-ids and the notice, (4) D-1 index, (5) D-2/4.2b. Do not build (4) or (5) in this release. First add the ingest bucket to step 1.3 (quoted characters that reached the model, by file class, print versus file read, per stage); decide D-1 per file size from that report (the plan's 6 KB cliff has no evidence behind it), and drop 4.2b unless the report shows the request block is ingested in a share that matters beside the A/A spread. Keep the request verbatim in every packet kind. Make the 2.1 wording conditional as the plan says ('above' only where READS lists the file, else 'open HOME/<file> (<size>)').",
+      "rationale": "Main tenet: repetition across packets is grounding and only repetition inside one packet is waste, so (1)-(3) are safe and (4)-(5) are not safe until proven (memory shiploop-main-tenet-context-clear says never to move grounding into a file the packet merely names). Credit what is ingested (plan principle 1): the quote region sits mostly in the packet file, not the print; the artifact's model cut every complete to its first 8-60 lines and opened the packet file in 3 of 8 stages; the 156,284 chars of Improve hand-offs reached it as a 2,303-char preview on one of four stages. So D-1's -184 KB is unproven as an ingest saving while its S-6 risk (a requirement present only in an indexed section) is real. D-1 and D-2 also reverse owner decisions (D1; verbatim request), so they stay owner calls until measured.",
+      "evidence": [
+        "Plan evidence 6: quote region 43% of packet bytes; 'the model read about 6% of the quoted text'; 97.6% of input tokens were cache reads.",
+        "findings-cross.json X-1: every complete ran as '... 2>&1 | head -N' (N 8 to 60, median 20), so the model saw 12-43% of each producer packet; X-8: hand-offs 156,284 chars (43% of what ShipLoop wrote), one of four touched, about 6% read.",
+        "findings-cross.json X-13: only 197 chars of identical lines inside one packet (1.2%): W2 yields about nothing at a small home.",
+        "Plan evidence 13 [BR]: new-file diff pointer, ten fixture stages 362,660 to 273,444 (-24.6%); small homes byte-identical.",
+        "Memory compact-packets-printed-whole ('Knowledge-file quotes and hand-off values stay uncut (D1)'); memory shiploop-main-tenet-context-clear; plan W4 and W5 savings tables.",
+        "Plan section 8.5 / principle 1: credit a saving only to the change that removes bytes still ingested."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "Step 1.3 showing the quote region is ingested in a material share (for example Grok reads the packet file whole in most stages), so an index would save real context; or a seeded-omission test where the index arm honours the planted requirement as often as the control; or the owner restating that file size, not ingest, is the target.",
+      "confirm_by": "Per cut. W2/2.1: python3 -B test/shiploop-handoff.test.py (8 of 10 NewFileDiffPointerTests fail on 1a7c12d7), a new test that no line of 25+ chars repeats inside any consumer block for every stage x route, small-home render byte-identical. 5.1: the two-step test (S1 at most 2 KB, S2 unchanged, item-set fallback), then G-S6 implement boundary and inside on Claude and Grok. 4.2a: S-ids equal the sentence split of the stored request; the notice fires on a missing S-n and never refuses. D-1: only after 1.3 reports ingest, the coverage test plus the seeded-omission blind check.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "S3",
+      "question": "The centralised reference (D-21, D-22, D-28): a small derived start-here card, reference.md, or splitting the 80 KB entry card; the owner's first-line pointer to a master reference and/or a script call that returns state; form, size, location, trigger wording; is the Claude SessionStart(compact) hook worth a probe?",
+      "options": [
+        {
+          "label": "Plan as written: derived RUN/start-here.md (4,416 chars at the live prefix, 3,998 at a normal install), pointer under the header, orient print on next/init/resume, SKILL.md top block, entry-card split, hook arm A4",
+          "effect": "A run-level card for symbols, file map, commands, rules and stage sequence, delivered inline when card plus head fits the 20,000-char host cut (about 2 of 8 stages of a small bug fix, projected) and only named otherwise. It earns zero byte credit until measured (plan 5.7).",
+          "cost": "A new derived file with a rewrite-on-difference rule in emit(), a head reservation in packet_head, a byte-identical-at-every-revision test, a 24-stage orient-print test, battery arms A1/A1c/A2/A4 (about 20 slices).",
+          "risk": "Followed only when printed inline: reference.md, context-index.md and status.md were opened 0 times in 1,219 tool calls. Arm A1 bundles card, pointer and SKILL.md block, so the card's own contribution can never be separated (breaks the credit-once rule)."
+        },
+        {
+          "label": "No new file: two lines under the callback in every packet (a next command; the Full packet path with an open-with-a-file-tool instruction), the SKILL.md top block (3.5a) and the entry-card split (3.5b) as the recovery levers; build the card only as its own battery arm if the first arm shows a gap; probe SessionStart(compact) in parallel",
+          "effect": "Lines 3-4 are visible in 100% of the cuts the model made (callback and Goal 100%; today's file pointer sits at line 49 and reached the model in 3 of 8 prints) [projection from 7 observed cut lengths]. Net about -200 B per packet or better (projected: replaces the later Recovery line, the Full packet line, the footer sentence and, on the packets branch, the index pointer). The measured recovery lever stays the entry card: read first after each of the last 9 compactions, 80 KB whole on Grok.",
+          "cost": "Lowest: no derived file, no emit() rule, no orient print; battery arms become A1 (pointer lines + SKILL.md block) vs A1 plus card.",
+          "risk": "A model that ignores command-shaped pointers still lands on the 80 KB card, so 3.5b is the real lever; if the battery shows a gap the card is a small build afterwards."
+        },
+        {
+          "label": "Make the top of reference.md the master reference (D-21 option B)",
+          "effect": "One file fewer than option 1.",
+          "cost": "reference.md is 20.7 KB; a pointer would have to say read lines 1-60 only.",
+          "risk": "Models read run files whole unless told offsets, so the first-read target exceeds the plan's 4,600-char bound (principle 4)."
+        }
+      ],
+      "recommendation": "Option 2. Exact text for every producer packet (line 1 stays the HEADER the status hook matches; the callback stays line 2, which removes the pending callback-placement decision): line 3 'Lost context, or unsure? Run python3 <CLI> next --run-dir=<RUN> (it reprints this step; RUN/reference.md holds long forms by anchor, RUN/context-index.md the record of decisions).' line 4 'Full packet: <RUN>/packets/<id>.md - open it with a file tool, not the shell: a print cut by | head drops the duties, the template and the loop command.' (about 300 chars with literal absolute paths; Improve packets carry the same two lines with the absolute path). Keep the 'Full packet:' prefix literal. SKILL.md gets the plan's 450-char recovery block directly after the title and keeps 'Keep this command in any summary you write'. Do 3.5a now (no byte credit), 3.5b as the pilot (all recovery-read credit lives there). Build start-here.md only if the 3.7 battery shows arm A1 failing S-6 or taking more orientation calls than A1 plus card. Probe the Claude SessionStart hook: yes; if source 'compact' fires and its stdout reaches the model, ship it Claude-only and print one line (run dir and the next command), reusing the binding the Stop hook already uses (shiploop_keepalive._continue_reason says 'Do not end the turn: run next').",
+      "rationale": "The evidence says commands are followed and files are not: next ran within 12 calls after 9 of 14 compactions with no pointer at all, the mid-packet index pointer got 0 opens in 16 breaks, and the model's own habit is to cut every print, so only the first lines are reliably read. The packet file is already the stage-complete master reference (the model opens it by label slices when unsure) and the entry card is where recovery actually lands. A run-level card duplicates what the packet already restates (symbols, loop mechanics now in the loop block, stage sequence in the status block) and, at 4.4 KB, fits inline in a minority of stages, so most of the time it would be a file nobody opens. This is also KISS and stateless-skill: the hook or the command carries position, the model carries nothing. It departs from the plan's D-21 and from the owner's master-reference idea only in what the master reference is: the packet file plus reference.md, with the card kept as a measurable option.",
+      "evidence": [
+        "findings-cross.json X-1: 'ran as ... 2>&1 | head -N (N 8 to 60, median 20)'; callback and Goal visible 100%, status 76%, template 24%, duties 29%, loop Start 0%, file pointer 0% under the 7 observed cuts (projection on main's offline heads).",
+        "findings-cross.json X-9: when unsure the model opened the packet file by label (grep -A60 'Current stage guidance'), the ADAPTER section the packet named, and next once; it 'opened none of 103 listed pointers'. Recovery after a clear 'is not measured' in this artifact.",
+        "Plan evidence 4: 0 opens of context-index.md or reference.md in 16 breaks; next within 12 calls after 9 of 14 in-session compactions (64%); the first call after each of the last 9 compactions was the shiploop SKILL.md read.",
+        "Plan evidence 5 and 16: Grok returned skill markdown whole (17 of 17); the 4,416-char card fits inline in about 2 of 8 stages of node-fix-bug.",
+        "skills/shiploop/scripts/shiploop_keepalive.py _continue_reason: the Stop hook already prints 'run <next> and follow the packet it prints'; hooks.json registers PostToolUse and Stop only.",
+        "Plan 5.8 arm definitions: A1 bundles card, new pointer and SKILL.md block; memory todo-stateless-skill-report-done; memory shiploop-reference-not-reread."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "(a) The battery shows cleared models given only the two lines take more orientation calls or redo work compared with the card (A1 plus card beats A1 beyond the A/A spread). (b) A probe shows a named run file of at most 4.6 KB is opened at about the next rate (64%) when named on line 3, which would make the card cheap to add. (c) The hook probe shows SessionStart(compact) injects: then the hook, not a file, is the Claude lever.",
+      "confirm_by": "Rung 0: a test that the first 8 lines of every packet kind (producer, Improve, paused, halted, done) hold the callback, the next command and the Full packet path, line 1 is still the HEADER, and the journaled head table shows the swap byte-neutral or better. Rung 1: six forced-clear slices on node-fix-bug (Claude and Grok, resume prompt withheld, at implement boundary and inside) comparing control, A1 and A1 plus card on calls and characters read before the first productive action, entry-card opens, index of the first next, redone work (must be zero). Hook probe: one Claude slice with /compact and a SessionStart hook that logs its stdin JSON and prints a marker.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "S4",
+      "question": "Style and concision line (D-8, D-9): where the owner's 'concise but technically accurate language' goes, exact wording, exemptions for carriers, and how to test it against loss of fidelity.",
+      "options": [
+        {
+          "label": "B0+ (258 chars) at the end of the 'Fill the template:' line, replacing the built OWNER_RULE text; screen two sites and take the Fill site on a tie (the plan)",
+          "effect": "Printed in head-only and whole packets beside the gated headline, the only style rule observed obeyed. Cost about 65 tokens per packet.",
+          "cost": "Rung 1 replay of frozen units at 25+ per arm, a slice, then a Salesforce run.",
+          "risk": "The template block is visible in about 24% of the cuts the model makes (it pipes complete to head -N, N median 20), so the line is absent in about three of four views."
+        },
+        {
+          "label": "A tightened line (251 chars) in the top lines under the callback and pointers of every producer packet, in the slot OWNER_RULE occupies today; Improve packets keep their minimal form and the line goes to the Improve opening and handoff recipe",
+          "effect": "Visible in 100% of the cuts (line 5 of the print, N 8 or more). Same cost of about 65 tokens per packet; offset by the pointer-line swap in S3 (net bytes about zero). Honest effect on wall time 1-3% at best (ceiling 3.4 min per 75); likely about zero on Claude, whose results in the artifact are already terse.",
+          "cost": "One constant STYLE_RESULT; SPEC S-16 in its own commit (D-8); the same screen ladder as option 1.",
+          "risk": "A general line loses to a specific duty; 'very technically accurate' invites qualifiers (removed here); brevity can license dropping detail, so the carve-outs and canaries must hold."
+        },
+        {
+          "label": "First packet only (intake), as the owner's words read literally",
+          "effect": "Smallest text.",
+          "cost": "None.",
+          "risk": "Cannot work: the first compaction lands about 17 min in and the main tenet clears context between stages, so later packets would not carry it."
+        },
+        {
+          "label": "Structure first, no style line: summary placeholders (8.2) and script-written Improve boilerplate (6.3) only",
+          "effect": "Targets the measured excess directly (the 16% prose excess sits in summary, evidence and handoff fields).",
+          "cost": "Does not deliver what the owner asked for.",
+          "risk": "None for fidelity; the owner may read it as ignoring the request."
+        }
+      ],
+      "recommendation": "Option 2, with structure first. Order: the 8.2 placeholders and 6.3 boilerplate land first (a specific duty beats a general line); then the style line ships only if rung 1 shows it adds a gain beyond them. Text (251 chars, the owner's own phrase kept): 'Write concise but technically accurate language: state each fact once; do not restate the packet or narrate intent. Never shorten identifiers, paths, commands, expected values, required fields, a duty's stated reason, a lesson or an open item's owner.' Site: the top lines of every producer packet and of the packet file (line 5, after the callback and the two pointer lines), replacing OWNER_RULE; never in the request or STAGE_RULES; never in the Improve packet (owner's 2026-10-11 minimal rule), which gets 'evidence: the candidate id, what changed, each check with its exit code, the commit id, the remaining gap and the review file path; cite the review, do not copy it' in its opening and handoff recipe. Exempt carriers are named by the line itself plus the Improve opening: Key learnings and Learned-from in commit bodies, honesty markers (planned-not-passed), evidence_refs, open-item owners and consequences, expected values and oracles, a duty's stated reason. Flip the plan's tie-break: if the replay cannot separate the two sites, take the top site, because only the top is seen when the model cuts its print. SPEC S-16 text is the owner's gate (D-8).",
+      "rationale": "The site changes with the new evidence: all 20 completes in the artifact were cut to a head of 8-60 lines, so the Fill line is seen in about a quarter of views and the top lines in all of them. The effect is small and model-dependent (the Grok study measured 16% prose excess; the Claude artifact's summaries are two sentences and its Improve reviews 220-470 chars), so the line is cheap insurance, not a lever, and must not displace specific duties. It extends the owner's 'first packet' to every packet by the main tenet. The cost-benefit is acceptable only with the carve-outs, because gates read shape only: a thin summary, reason or evidence passes unseen, and the next stage after a clear needs decisions, defaults and open owners.",
+      "evidence": [
+        "findings-cross.json X-1 and findings-testdoc.json TD-1: every complete piped to head -N; template visible in 24% of projected cuts, duties 29%, RULES 0%.",
+        "Plan section 6: B0+ text (258 chars), hazards (1)-(8), ceiling 3.4 min per 75, detectable effect = 2.8 x CV x sqrt(2/n) (CV 10% needs 25 per arm for 8%).",
+        "skills/shiploop/scripts/shiploop_navigator.py HEADLINE_LIMIT = 100: the one length rule observed obeyed; shiploop_prompts OWNER_RULE on branch shiploop-eff-packets-6afcbc is 93 chars and lacks the reason/learnings/prose carve-outs.",
+        "Artifact 02/05/07/12: Improve reviews of 439, 381, 226 and 273 bytes; findings-testdoc.json TD-12: the test summary restates counts ShipLoop already records.",
+        "Memory improve-packet-minimal (Improve packet is two instructions); memory prompts-concise-meaningful-change; memory eval-decision-priority (quality first)."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "Rung 1 showing no paired prose-character drop beyond the A/A spread (ship nothing, keep the structure package); a failed canary or lower seeded-defect catch (reject or rescope); or a replay that separates the two sites in favour of the Fill site by more than the spread.",
+      "confirm_by": "Rung 0 (no model): the constant appears once per head and per whole packet, heads stay inside the journaled table, delegation tests exit 0, the constant is absent from the request and STAGE_RULES. Rung 1: writing-turn replay of frozen units (intake, spec, step-plan, test-spec, one Improve pass with a seeded defect) at 25+ per arm: paired prose characters fall beyond the A/A spread, reasoning tokens do not rise, every canary holds (R-ids kept; computed expected values byte-identical; Confirm-by/pass-when shape; each open question has an owner and consequence; Key learnings and Learned-from present; seeded defect caught in pass 1). Add one cold downstream stage fed the concise upstream result, graded by a blind rubric-eval judge (Opus 5.5 medium, one judge per round). Decide with arms.py.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "S5",
+      "question": "Script-owned derivations and gate vocabulary printed in the packet (plan 7.1 and 7.2; D-12, D-13, D-14): which fields, which packets, in what order?",
+      "options": [
+        {
+          "label": "Plan as written: 7.1 (print vocabulary, derive bookkeeping, one RULES line) and 7.2 (derived-value provenance) in one wave after 1.2 and 3.2",
+          "effect": "Targets the 120 of 387 Grok turns that read ShipLoop text (55 read validator source); derivations up to 8-9 min on cases with computed values (projected, not additive with the stop rule).",
+          "cost": "Large surface: several packets, new shiploop_derivations.py, 230 literal pins around the touched text.",
+          "risk": "The 7.1 exit (0 reads of shiploop_*.py) already holds on the Claude artifact (0 reads in 9 calls), so it cannot discriminate; derivations of follows, absent expectations and paths solve a problem the artifact did not show (zero step-plan refusals)."
+        },
+        {
+          "label": "Evidence-ordered waves: (a) wording that misleads, zero bytes; (b) derivations a script can prove, as counted notices first and always overridable; (c) vocabulary from the validators' own tables, judged on Grok and Codex; (d) provenance 7.2 only after a second-app proof",
+          "effect": "Removes false instructions and two real refusals first; every later wave is justified by a measured read or refusal. Wave (a) is byte-neutral or negative.",
+          "cost": "Slightly more sequencing; needs the seeded-slice fix (new question 2) so slices exercise the gates.",
+          "risk": "Wave (c) cannot be judged on Claude; needs a Grok or Codex slice."
+        },
+        {
+          "label": "Defects only; no new derivations or vocabulary (KISS)",
+          "effect": "Smallest change.",
+          "cost": "Leaves the Grok reading cost (120 of 387 turns).",
+          "risk": "Fixes none of the cost that motivated 7.1."
+        }
+      ],
+      "recommendation": "Option 2, in this order. Wave 0: fix SEED_SCRIPT so seeded slices capture the item base (new question 2), then re-take the A/A baseline. Wave (a), misleading text, zero bytes, all observed in the artifact: (1) _TEST_CASE_SHAPE and HANDOFF_SHAPES print R-<n> placeholders instead of the literal R-3/TC-1, and the unknown-requirement refusal prints the ids HOME/spec.md holds or 'no R-<n> entry: report revise naming it' (test-spec; X-5, SPEC-3, SP-7); (2) _checked_line tail becomes 'a refusal does not advance the run; complete --check-only runs the same gates and prints the first refusal, so repeat it until it accepts' (SPEC-7, TD-3); (3) loops.WORK ranges and the false 'printed there' (test-spec 1-6 of 7, implement 1-4 of 7, verify 1-7 vs exit 4 which is item 9, step-plan/test-spec check-only, test lacks the clause) generated from the parsed duty count with a pin test (SPEC-7, SP-5, TD-6, VR-6); (4) the item commit: commit_item must not return silently when no base exists and the carry-forward locator must not claim 'committed' (VR-7, IMP-7); (5) the model-facing cap 'Refused runs ... 0 of 11' prints the count only (TD-10); (6) validate-existing summary under 100 chars (SPEC-12). Wave (b), script-proven: append the loop receipt to evidence_refs when absent after check_terminal (typed in 7 of 7 results, X-15); print the gate outcomes (proven versus skipped) under complete and write disposition skipped (TD-3); a derived line of passed verify commands not named in environment.md at carry-forward (VR-3); a script-derived changed-paths line at document (TD-8); per-item test-decision locators for system-test-author (VR-4). Defer step-plan follows, absent and paths derivations (SP-10: accepted first try, zero refusals). Wave (c): print consumer values, the credential-key shapes as guidance, the wrapper-versus-inner-object line, the headline limit and the HOME screen and id check from the validators' own tables (7.1a); keep the RULES line 'run complete --check-only, do not read ShipLoop scripts' off by default (check-only was used correctly 9 of 9; the second half is a prohibition, rule 13). Wave (d): 7.2 with the gate refusing nothing when absent, plus the oracle placeholder 'where its expected value comes from' (SPEC-10), after a second non-chess app shows fewer spec-stage Improve minutes than control. D-12: yes, provenance in results, never spec.md (spec is the contract, provenance is evidence about it; no NFR renumbering). D-13: keep the Jest and pytest examples, but generate the runner list from shiploop_test_counts' own reader table so it is validator vocabulary, and move platform flags (sf, the node --test reporter) to references/platforms/. D-14: yes, --delivery-contract only when the request or host asks (SKILL.md already says 'explicitly piloting'; move that into the intake duty); I found no run showing it enabled unrequested, so the wording change is cheap and unmeasured.",
+      "rationale": "The owner's rules decide the order: KISS (fix what breaks or misleads a normal run), scripts own derivation, generic text, and exits are script-run. Wave (a) is what the artifact shows misleading a normal run: the literal R-3 example was copied ('Requirement is expected as R-3; I'll use it') and a model-written spec entry was committed; _checked_line promised all refusals first and test-spec needed two rounds; the test packet shows a cap the owner rules out. Vocabulary matters on the hosts that read ShipLoop text, not on Claude.",
+      "evidence": [
+        "findings-cross.json X-5 and findings-specimpl.json SPEC-3: three check-only refusals, all test-spec; the model copied R-3 from _TEST_CASE_SHAPE while the template printed R-1 and then wrote an invented R-3 into HOME/spec.md, committed as 2d09996.",
+        "findings-stepplan.json SP-10 and WORKS WELL: step-plan accepted first try, 0 reads of shiploop_*.py in 9 calls; findings-cross.json X-14: the 7.1 exit already holds on this Claude run, so judge it on Grok or Codex.",
+        "findings-testdoc.json TD-10: the test packet prints 'Refused runs for this action so far: 0 of 11', a model-facing cap against owner rule 7; TD-3: base and mutation gates 'skipped: no item base was recorded' yet disposition passed.",
+        "findings-cross.json X-15: the loop receipt path typed into evidence_refs in 7 of 7 producer results, 32-hex action id typed 55 times.",
+        "Plan 7.1 and 7.2 exits; memory kiss-over-adversarial-guards, memory shiploop-purpose, memory test-the-route-not-the-wording (a refusal's named exit must be submitted through the real gate)."
+      ],
+      "confidence": "high",
+      "what_would_change_it": "A Grok or Codex slice showing no ShipLoop-source reads without wave (c) (drop 7.1a); or wave (b) notices firing on legitimate results (keep them notices, never gates); or a second app showing no effect of 7.2 (delete it).",
+      "confirm_by": "Wave (a): for each corrected sentence a test through the real gate pairs it with the behaviour it describes (callback-contract, navigator-contract); grep -rn on the old strings finds none. Wave (b): every prefilled row can be overridden and no notice refuses (real gate). Wave (c): a Grok slice reads shiploop_*.py 0 times (the 1.3 bucket) with heads inside the 1.2 table.",
+      "owner_needed": "no"
+    },
+    {
+      "id": "S6",
+      "question": "Remaining design calls: D-15 (split improve SKILL.md), D-17 (priority-ordered head builder), D-18 (Backchain block to a reference), D-19 (lean print of the Until Loop return), D-20 (batch-reads rule), D-11 (shorter action ids).",
+      "options": [
+        {
+          "label": "Adopt all six as the plan recommends",
+          "effect": "Every lever in motion at once.",
+          "cost": "Highest surface; D-18 and D-19 touch S-6 and the vendored runtime.",
+          "risk": "D-18 and D-20 have no measured need; D-11 interacts with 3.2."
+        },
+        {
+          "label": "Adopt D-15, D-17 and D-19 now; hold D-18, D-20 and D-11 behind measurements",
+          "effect": "Takes the three with measured cost today: D-15 prevents 113.6 KB of Improve-card ingest per small item on Claude now that the released hook makes every Improve stage load the 28.4 KB card (vs 28.4 KB in the artifact); D-17 puts duties and the loop start inside the lines the model actually sees; D-19 cuts 20,082 chars per first loop in a context (about 4 KB lean, about -16 KB).",
+          "cost": "D-19 needs the vendored runtime change (D-5: upstream release, tag, re-vendor).",
+          "risk": "D-17 reorders text pinned by about 230 literal tests; D-19 must pass the main-tenet probe."
+        },
+        {
+          "label": "Defer all six until the 1.3 reading accounting exists",
+          "effect": "Nothing changes until measured.",
+          "cost": "Leaves the gate-on Improve ingest and the hidden-duties problem.",
+          "risk": "Both are already measured in the artifact, so waiting buys nothing."
+        }
+      ],
+      "recommendation": "Option 2, with these verdicts. D-15 YES, first and alone (6.1a): improve/SKILL.md (28,365 chars) becomes a router of at most 6,000 chars that keeps 'When this skill is invoked with the argument ShipLoop Improve: <handoff path>', the binding rule and the improve-commit/receipt rules; the rest goes to skills/improve/references/shiploop-route.md (at most 8,192 chars) with a ledger row per obligation of improve/SKILL.md, review-policy.md, ADAPTER.md and callback-evidence.md; it needs none of 1.0, 1.1, 1.3, 3.1, 3.3. D-17 YES, widened: one ordered list builds render(), packet_head() and the packet file (header, pointers, callback, Goal, Done-when, Checked-by, Until Loop RUN and start command, Step line for implement, duties, template, RULES, then status and narrative, References, quotes), so duties start within 40 lines for every stage (today verify's head has them at line 34 of 153 and render() prints them at line 96-103 of 125-137) and a cut file loses only quoted material. D-18 DEFER (Tier 3): the block holds an obligation (request a review or audit, cite the receipt) and the packet file repeats it, so a cut tail loses nothing; re-decide at Step 8.5 when the per-stage head table shows plan still over the cut after 3.2 and 8.2, and then move only the mechanics (resource list) behind the script-written start-contract file, never the obligation lines. D-19 YES in two parts: the plan's lean non-terminal done print, extended to the start return and the terminal done (13,098 plus 6,984 chars at step-plan; the model's own filter kept state_file, done_argv, conditions.exit and report_schema); print the three fixed report enums once in RESULT_LINE (X-7); ride the D-5 batch, not this release. D-20 EXPERIMENT ONLY: no default RULES line; run it as one Grok arm and ship only if turns per stage fall beyond the A/A spread without more refusals; the cheaper lever is fewer reads (1.2 and 7.1). D-11 NOT NOW: shorter ids save about 24 chars twice per callback, a minor part once 3.2 drops --result and Halt; re-decide with the metric of printed complete commands typed with variables or pipes (20 of 20 piped, 19 of 20 with variables in the artifact).",
+      "rationale": "Owner rules: question every change (for, against, verdict), fix what misleads a normal run, prompts concise, and size bounds are not a reason to trim an obligation. D-15 and D-17 are the two with the strongest measured need and no byte cost; D-19 is measured but crosses the vendored boundary; D-18, D-20 and D-11 are each a speculative lever with a cheaper precondition (head table, A/B, callback shrink).",
+      "evidence": [
+        "findings-improve.json IMP-3: the released Skill-call gate makes all four Improve stages load the card, 113.6 KB against 28.4 KB in the artifact; skills/improve/SKILL.md is 28,365 chars (ADAPTER.md 24,003, callback-evidence.md 13,515, review-policy.md 6,558).",
+        "findings-cross.json X-4, findings-testdoc.json TD-2, findings-verifyrest.json VR-1: two layouts (head order versus render order), duties at line 34 of 153 in verify's head, Full packet at line 122, loop command at line 129.",
+        "findings-stepplan.json SP-4 and findings-cross.json X-7: the start return 13,098 chars and terminal done 6,984; 22,604 chars (17% of tool-result chars) touch the loop runtime; the model filtered with python3 -c in 6 of 7 starts; plan 6.5: live non-terminal done 19-22 KB, 29 returns, 163 KB.",
+        "findings-stepplan.json SP-9: the plan head is 21.2 KB (22.7 live) and the Backchain block 2.5-5.4 KB; plan D-27 accepts a cut tail the file repeats.",
+        "findings-specimpl.json SPEC-5: the printed complete command is 330+ chars at a 190-char run dir, which is why the model abbreviates with variables; plan 5.6 lists shorter ids at 6.2% of typed path chars.",
+        "findings-cross.json X-11: 70 turns against 41 tool calls in the artifact; plan D-20 and step 9.3."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "D-15: a pilot case where a cleared child needs the invariant policy in the handoff itself. D-17: the cut test shows P0 does not fit with the card or loop block (then D-27). D-19: the cleared-model replay fails with only the lean return. D-18: the 8.5 table shows plan or step-plan over the cut after the other offsets. D-20: turns fall without more refusals. D-11: the printed-command metric shows more than half of commands still use variables after 3.2.",
+      "confirm_by": "D-15: improve-plugin, improve-runtime, skill-frontmatter and marketplace-package suites plus the four pilot cases (stopped-child restart, commit-policy variants, two-step chain, context loss mid-review) and pass-1 seeded-defect catch equal to control. D-17: a head-completeness test (every P0 token inside the first 19,500 chars at a 163-char run dir) and a cut test (every stage x route has Callback, Goal, Done-when, duties and the loop start inside the first 40 lines). D-19: a cleared Claude or Grok model given only the lean start and done returns completes 7 stages with reports accepted by check_loop_packet. D-20: one Grok A/B on turns per stage. D-11: the metric above.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "S7",
+      "question": "The Until Loop block: judge the built block (branch -loop-, 0d462ca4) against how the model actually started loops, and propose changes (slash form vs Skill tool wording per host; steps prepared in an until-loop style syntax when building a plan).",
+      "options": [
+        {
+          "label": "Keep the built block as is (RUN line, markers, Skill tool first for Claude, the literal command for any other host)",
+          "effect": "Satisfies the owner's wording: RUN, argument layout between markers, literal command, result line.",
+          "cost": "None.",
+          "risk": "In the artifact the Skill route failed (Unknown skill: until-loop), costing 2 of 9 calls and 2.6 KB at step-plan; skill-craft registers no until-loop skill (the runtime is vendored under skills/improve/runtime/until-loop), so every cold looped stage would repeat it. The block is the last element of the head, visible in 0% of the cuts the model makes."
+        },
+        {
+          "label": "Keep the layout and wording but one start route for every host: RUN plus the literal start command first, then the argument for reading, then the result and next; drop the Skill-tool sentence; place the block right after Checked-by (before the Keepalive marker and status)",
+          "effect": "Removes the failed Skill call and ADAPTER grep (2 calls, about 2.6 KB per cold looped stage, projected from one observation); puts RUN and the command at about line 9-12, inside all 7 observed cut lengths (N 14-50); the hook window needs the status block only inside the first 16,000 bytes, which still holds. Net bytes slightly negative (the host line shrinks by about 85 chars).",
+          "cost": "Update the host-line test and SKILL.md wording; pin the labels the model greps (Work:, Exit when ALL of these hold:, Current stage guidance:).",
+          "risk": "A host that registers an until-loop skill gets the command instead of the skill (equivalent: the skill's card runs the same command); the order problem (7 of 7 wrote the result before starting) is not fixed by wording alone."
+        },
+        {
+          "label": "Slash form (/until-loop ...) everywhere",
+          "effect": "One uniform string.",
+          "cost": "None.",
+          "risk": "A model cannot type a slash command; slash text in tool output is not executed (Grok 0 of 4, Claude 0 of 2 for /clear). The Improve packet already shows /improve plus a parenthetical Skill-tool instruction, which works only because an improve skill is registered."
+        }
+      ],
+      "recommendation": "Option 2, plus a later script-derived step in item D below. Exact block (lines separated by ' // '): 'Until Loop (no iteration limit). // RUN the until-loop skill now, once, before any work; do this stage's work only inside the loop. Start it with this command, in the foreground, exactly as printed: // python3 <runtime> start --receipt <receipt> < <contract> // Then follow each packet it prints (run its done_argv as printed) until the receipt says complete or stopped. Its argument, already written to the Contract file (do not edit it or the receipt): // ----- BEGIN until-loop ARGUMENT ----- // Work: ... // Exit when ALL of these hold: ... // Repeat while ... // Contract: <abs> // Receipt: <abs> // ----- END until-loop ARGUMENT ----- // Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run the Callback command above. If that refuses for the loop, run the start command again (an active receipt: its next_argv instead), then complete again.' A packet read after the loop started keeps the branch's RESUME_LINE in place of the RUN line. Per host: the command is the route on Claude, Codex and Grok (hook-visible, copy-ready, absolute); say nothing about the Skill tool; slash form appears nowhere in the block. Test: the first 14 lines of every looped head hold the RUN line and the start command; the printed command, run against the real runtime in a temp directory, makes the receipt active (the branch already tests this). D, plan steps in until-loop syntax: do not ask the model to author new syntax; the script derives each implement loop's extra exit clauses from the accepted step plan (each criterion's 'Confirm by: ...; pass when ...' text and the suite check rows), keeping contract_writes rebuilding the contract from state; the stronger form, exit_checks that make a one-pass 'satisfied' need a recorded run, waits for the D-5 re-vendor with the 0.8.0 pin (new question 6).",
+      "rationale": "The built block is right in content and fixes what the owner named, but the artifact shows three problems. (1) The Skill route is wrong by construction in a skill-craft install (Unknown skill, then an ADAPTER grep, then variable-built runtime calls); one literal command works on every host and every hook sees it. (2) Position: the block ends the head, so under the model's own head cut it is never seen; commands are followed only when seen. (3) The loop is a receipt, not a control: all 11 loops ended after one pass trivial and satisfied with exit_checks empty, and in 7 of 7 producer stages the result was written before the loop started. Wording cannot fix (3); a literal start line makes starting first cheap, and script-run exit checks (S-6 safe, hooks see the commands, the 0.8.0 design) are the structural fix. This keeps the owner's 2026-10-16 request and follows its logic; it amends only the Skill-tool sentence.",
+      "evidence": [
+        "findings-stepplan.json SP-1: 'Unknown skill: until-loop' at step-plan; the model grepped ADAPTER.md (2,550 chars) and then wrote the result first; 'Write the result first, then start the loop' (artifact 01-step-plan.md, Skill call at the end of the stage).",
+        "branch shiploop-eff-loop-6afcbc 0d462ca4, skills/shiploop/scripts/shiploop_loops.py HOST_LINE: 'Claude Code: the Skill tool, skill until-loop, with that argument. Any other host: run this in the foreground...'.",
+        "findings-cross.json X-6 and findings-specimpl.json SPEC-4: later stages started the runtime by hand from memory; X-1: loop Start visible in 0% of projected cuts; rendered main head (eff2/render-stepplan/inline-01-step-plan.head.txt) puts 'Until Loop' at line 182 of 202.",
+        "findings-cross.json X-7: all 11 loops ended after one pass, trivial and satisfied, exit_checks []; 20 of 41 tool calls touch the loop runtime; findings-specimpl.json SPEC-1: 'every exit condition is the model's word'.",
+        "Memory shiploop-no-clear-pause-2026-09 (slash text in tool output does not execute); memory hooks-must-see-every-command; memory until-loop-exit-checks-0-8-0; shiploop-lint-exit-criteria-2026-09 (steps iterate until a stated check confirms each exit criterion)."
+      ],
+      "confidence": "high",
+      "what_would_change_it": "A normal install where the bare until-loop skill resolves on Claude and a cold slice shows the Skill route is as cheap and followed as the command (then keep both, command first); or the cold slice showing the model starts the loop first no more often than control (then the order fix must come from exit_checks alone).",
+      "confirm_by": "Offline: the position test above plus the existing InvokeLinesTests (both markers once with exactly five fields, the printed command makes the receipt active). Live, one Claude cold slice at the step-plan and test-spec boundaries (plugin-dir install, forced clear): count Skill calls named until-loop (target 0), ADAPTER greps (0) and loops started before the first write to inbox/<action>.md (control 0 of 7 in the artifact), from event order in events.jsonl.",
+      "owner_needed": "yes"
+    }
+  ],
+  "new_questions": [
+    "Should the status hook and keepalive observer tolerate what the model actually types (a trailing 2>&1, a trailing | head, | tail or | cat, same-command NAME=value expansions), or stay literal-only? In the Claude artifact all 20 complete calls were piped to head -N and 19 used shell variables, the display fired once in 21 commands and the RULES bullet 'unpiped' was ignored 20 of 20 (X-1, X-3, TD-1, SPEC-5); plan principle 5 assumes the model types what is printed. Proposal: keep literal commands, add a piped_shiploop_calls metric, put the pointer, style and loop lines inside the first 8-14 lines (S3, S4, S7), then decide from the metric; no deny hook (owner rule 13).",
+    "Fix SEED_SCRIPT in test/shiploop_e2e/run.py before the A/A baseline of Step 1.1: it never calls lint.capture_base, so every seeded slice ran without the base run, mutation gate, change inventory and item commit (tests/*-base1.md say 'skipped: no item base was recorded' yet record disposition passed), and the artifact's PASS and every earlier node-fix-bug baseline cover fewer gates than they claim (X-2, TD-5, SP-7).",
+    "The test packet prints a model-facing cap, 'Refused runs for this action so far: 0 of 11' (shiploop_test_loop.loop_lines), against owner rule 7 and the 2026-10-11 reaffirmation that no count is shown. Print the count only (and only above 0) and keep the cap script-side? Owner to confirm the 2026-10-10 cap was not meant to be model-visible (TD-10).",
+    "Stop-rule scope (journal F1, IMP-4): plan 6.4 and D-6 apply one-pass-unchanged to every Improve child, but the study measured only the five planning stages. In the Salesforce run an implement-step review (adfd6e3b) took 5 passes and its P3 found a real defect (Apex == on strings is case-insensitive) that the rule would cut. Proposal: planning stages as built; step and last-item stages need two consecutive unchanged passes after any pass that edited code; re-decide when passes.md holds 10 step-stage reviews with at least 3 edits.",
+    "Price the plan-stage Backchain child for the 30-minute bar: the plan counts Improve and planning_review none but not --backchain-passes (default one), which was 17% (64.1 of 375.9 min) of the Luna v1210 planning window. Measure its share in the live2 planning window before D-7 and D-18.",
+    "Make the stage loops controls instead of receipts: after the D-5 re-vendor (until-loop 0.8.0 exit_checks), freeze the complete --check-only command as the contract's exit check so a one-pass 'satisfied' needs a recorded run after the last change (SP-5, SPEC-1, X-7: all 11 loops ended in pass 1 with exit_checks empty). Hooks keep seeing the commands because the runtime prints the script and the executor runs its text."
+  ]
+}

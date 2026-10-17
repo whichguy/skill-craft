@@ -1,0 +1,308 @@
+{
+  "group": "release",
+  "decisions": [
+    {
+      "id": "R1",
+      "question": "Stop-rule scope (branch -stop-, finding F1, plan 6.4/D-6): should the one-pass 'trivial and content unchanged' stop end every Improve child, or only the document stages, with a measured two-clean-pass confirmation kept for implement-step and end-of-work code reviews?",
+      "options": [
+        {
+          "label": "A. One pass for every Improve child (as built: 60018152, 3b9ca9c9)",
+          "effect": "Document stages: the study's 21 passes become 15 (replay stops spec 7/8, test-strategy 2/5, plan 3/4, step-plan 1/1, test-spec 2/3; measured by replay). Code reviews: the 7 implement-step reviews of the live Salesforce run (5+3+1+1+1+1+1 = 13 passes) become 9, -4 passes (projected 4 to 8 min at the study's 2.0 min per pass).",
+          "cost": "No extra code; the runtime change is already built.",
+          "risk": "Cuts the one late code defect on record: implement child adfd6e3b took P1 edit, P2 'No material finding', P3 found that Apex == on strings ignores case (every black piece read as white, black castling lost), P4 and P5 clean; gate 2 stops it at P2. The study measured only five document stages and says not to extend to code reviews. n=1 find in 2 multi-pass code reviews."
+        },
+        {
+          "label": "B. One pass for the 7 `improve: always` document stages; implement and carry-forward stop on a first pass that is unchanged (main's rule) and, after any edit, need two consecutive passes that are trivial AND measured-unchanged (new vendored-only gate value 3)",
+          "effect": "Document-stage saving unchanged (same replay, 21 -> 15 passes). Code reviews unchanged from today: adfd6e3b stays 5 passes (P3 find kept), ed863ab3 stays 3, the other five end at P1. Zero added cost against main.",
+          "cost": "About 15 lines in the vendored runtime `done` (a clean-pass count and an 'edited earlier' flag), `improve_start_contract` picks the gate from STAGE_SPEC[stage].improve, two replay cases, and a stage-kind variant of the one-pass wording the stop branch wrote for every stage (the contract's exit_condition, the handoff 'Review passes' sentence, improve/SKILL.md 'Exit rule', review-policy.md, the S-10 carve-out). Forgoes the 4 passes option A would save.",
+          "risk": "A second repurposed value in the vendored fork. Upstream (0.8.3) the field is a count, so the published plugin would read 3 as three trivial reviews; Improve contracts run only on the improve card's bundled runtime (`_start_improve` uses child['skill']['runtime_cli']), so there is no live exposure today, but it is the same skew class as gate 2 (finding F5, Backchain converge)."
+        },
+        {
+          "label": "C. Keep main's rule everywhere (two trivial labels, or one when the first pass changed nothing); drop the stop-rule branch",
+          "effect": "No document-stage saving: the replay's 6 of 21 passes (about 4 min net per run) are not taken.",
+          "cost": "Discards the built runtime change and the S-10 carve-out work.",
+          "risk": "Three polish edits per five document stages keep forcing two more passes each (study: spec P6, test-strategy P3, plan P2)."
+        }
+      ],
+      "recommendation": "B. Gate 2 (one trivial, unchanged pass) for spec, test-strategy, plan, step-plan, test-spec, system-test-author and release-plan; gate 3 for implement and carry-forward. Have the script record per pass whether the one-pass rule would have stopped (IMP-11 passes.md) and re-decide option A when 10 step reviews with at least 3 edits exist. This narrows the owner's 2026-10-16 'one unchanged pass' decision to the stages the study measured; it does not touch the 2026-09-26 unchanged-first-pass rule (2be7906b), which B keeps for code reviews.",
+      "rationale": "The study that justifies the rule covers five document stages (system-test-author and release-plan are documents of the same kind, unmeasured) and its own limits say not to extend it to code. The only multi-pass code reviews on record show the extension zone is where a real late defect sat. B costs nothing against today (code reviews keep main's pass counts) and keeps every measured saving, so it passes the owner's decision order (a material quality difference trumps; near-identical quality then fewest tokens, then time) without a trade. Option A's extra 4 passes are a projection from one Grok run; a missed code defect would likely be caught later by the test stage (not measured), which is why this is a call for the owner, not a rule.",
+      "evidence": [
+        "docs/shiploop-improve-stop-rule-journal-2026-10-16.md (branch -stop-): 21 passes, 8 material, 10 with no change; three polish edits reset the streak; replay stops 7/2/3/1/2.",
+        "SP/sfchess/live2/.shiploop-runs/work-20261017-005941-6661b3/worktree/.shiploop-improve/nav-7ff82c15.../nav-adfd6e3b.../reviews/review-3.md: 'Apex == on strings is case-insensitive ... every black piece in a FEN was stored as the white piece'; review-2.md says 'No material finding'.",
+        "Pass counts per implement child in the same run (counted from reviews/): adfd6e3b 5, ed863ab3 3 (P1 edit, P2 and P3 'Finding: none material'), e4cc9c04 1, cab5e8d4 1, bf9ed336 1, be354b65 1, 09af30a7 1 = 13; under gate 2 the first two stop at P2 (computed by me from the review text).",
+        "SP/eff2/findings-improve.json IMP-4 (all 4 artifact reviews ended at pass 1, so the artifact cannot decide; same proposal) and IMP-11.",
+        "skills/shiploop/scripts/shiploop_stage_spec.py STAGE_SPEC: improve='always' for 7 stages, 'step' for implement, 'last-item' for carry-forward (python3 -I probe).",
+        "Plan 6.4 and D-6 apply the rule to every Improve child; the branch journal lists F1 as an owner call."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "A ledger of 10 or more step reviews with at least 3 pass-1 edits in which the confirming pass never found anything (then A), or the owner judging 4 passes per Salesforce-size run worth more than the chance of a late code find, given that the test and verify stages follow.",
+      "confirm_by": "Offline, no model: add the two live sequences (edit, none, edit, none, none; edit, none, none) to StopRuleReplayTests in test/improve-runtime.test.py and assert gate 2 stops them at P2 and gate 3 at P5 and P3, while the document-stage replay still stops 7/2/3/1/2.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "R2",
+      "question": "Stop-rule P1s F2 (installed-skill-invocation is red on the branch and not selected by the quick tier) and F3 (a non-Git in-place run can never start its first Improve review): fix both, or constrain F3 by refusing non-Git runs at init? Which is KISS?",
+      "options": [
+        {
+          "label": "A. Fix both. F2: two one-line catalog mappings plus `git init` in the two failing fixtures. F3: measure a non-Git workspace through a throwaway bare repository inside the runtime's `_workspace_tree`.",
+          "effect": "F2: a change under skills/improve/runtime/until-loop/ selects until-loop-vendor and installed-skill-invocation (today neither: `suite_catalog.targeted` returns 13 ids without them for until_loop_ephemeral.py). F3: the unchanged-content rule works the same outside Git; I proved the measurement in a scratch probe (`git init --bare` in a temp dir, `GIT_WORK_TREE`, temp index, `write-tree`: equal tree id twice, different id after an edit).",
+          "cost": "About 12 lines in `_workspace_tree`, one runtime test, the 'must be a Git worktree' sentences in ADAPTER.md, runtime-ephemeral.md and the change note. No fixture changes beyond the two.",
+          "risk": "A big non-Git tree with no ignore rules hashes slowly each pass; the existing 60 s timeout still refuses start with the existing message. The route is exceptional (SKILL.md: an explicit in-place/non-Git run)."
+        },
+        {
+          "label": "B. Fix F2; constrain F3: `init` refuses a non-Git --repo and names `workspace start` or `git init` first",
+          "effect": "The failure appears at launch instead of at the first Improve review.",
+          "cost": "Measured by a logging patch in a scratch clone across all 87 ShipLoop suites: 103 `init` calls on non-Git directories in 12 suites (keepalive 59, skill-calls 14, cross-run 13, consumer-delivery-cli 4, no-model-launch 4, auth-readiness 2, rehydration 2, navigator-contract, status-display, progress, navigator-v4, narrative). Each fixture needs a `git init`, and four documents lose the direct-entry route.",
+          "risk": "Removes a documented capability: SKILL.md 'An explicitly selected in-place/non-Git run may instead use the direct entry', and `shiploop_knowledge_home.commit` still says 'not a checkout: nothing to commit, as before'. Refuses a run that would otherwise work for a long document."
+        },
+        {
+          "label": "C. Fix F2; document F3 (not a normal run, KISS)",
+          "effect": "Nothing changes in code.",
+          "cost": "Zero.",
+          "risk": "A real stuck state: `_improve_stage_start` prints the refusal to stderr and leaves the stage pending; the pending packet then names `improve-start --restart-stopped`, which calls `_start_improve` and fails the same way. A model asked to proceed with no way out is the hang owner rule 13 forbids."
+        },
+        {
+          "label": "D. Degrade the gate to `required_trivial_reviews 1` for non-Git (the runtime's own error text suggests it)",
+          "effect": "The run proceeds.",
+          "cost": "`_progress` in shiploop_standalone_improve.py requires gate 2 and `last_pass_changed_tree is False`; the terminal-packet check does too: three places change, plus tests.",
+          "risk": "Re-admits a label-only exit that the study's must_not_reintroduce forbids."
+        }
+      ],
+      "recommendation": "A. F2 is two mapping lines in test/suite_catalog.py `_PREFIX_SUITE_IDS` (key skills/improve/runtime/until-loop/ -> until-loop-vendor, installed-skill-invocation) plus `git init` in the two fixtures. F3 is the throwaway-bare-repository measurement: same rule outside Git, no gate value, importer or fixture change.",
+      "rationale": "KISS is the smallest change that keeps a documented route working. Every other Git-dependent gate already degrades outside Git (commit returns Committed('', []), capture_base is unavailable, improve_changes.review_changes returns None), so refusing only Improve is the inconsistent choice. Option B costs 9 or more fixtures and a capability; C leaves a stuck run; D re-opens the label-only exit. Option A is not a version or a fallback rule: the same measurement, another way to compute the tree.",
+      "evidence": [
+        "Ran test/installed-skill-invocation.test.py on main + stop + packets + loop in a scratch clone: 2 failures, 'required_trivial_reviews 2 (unchanged content) needs a content tree the runtime can measure: the workspace must be a Git worktree ... otherwise use required_trivial_reviews 1' (SP/eff2/r2/installed-skill-merged.txt).",
+        "python3 -I probe of test/suite_catalog.py: targeted(['skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py']) = 13 ids, no 'until-loop-vendor', no 'installed-skill-invocation'; PROVENANCE.json selects until-loop-vendor only.",
+        "skills/shiploop/scripts/shiploop_navigator.py `_improve_stage_start` (prints 'ShipLoop could not start the Improve review', leaves the stage pending) and `_improve_restart` (same `_start_improve`).",
+        "Scratch probe SP/eff2/r2/ng/tree.sh: tree id 972b5b8f... twice for equal content, 092bf420... after an edit, in a directory where `git rev-parse` fails.",
+        "skills/shiploop/SKILL.md lines 211-225 (explicit in-place/non-Git entry); skills/shiploop/scripts/shiploop_knowledge_home.py `commit` ('not a checkout: nothing to commit, as before').",
+        "Logging patch of shiploop_protocol.py in a scratch clone, SP/eff2/r2/probe-logs/*.log (non-Git init census: 103 calls, 12 of 87 suites)."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "The owner stating that non-Git in-place runs are not a supported route (then B, and delete the documented route in four files), or a large real non-Git tree whose hash exceeds the 60 s timeout.",
+      "confirm_by": "Add to test/improve-runtime.test.py: a gate-2 start in a non-Git temp directory is accepted, an edit changes the tree, an unchanged trivial pass completes; add a catalog test that targeted() of the runtime script names until-loop-vendor and installed-skill-invocation; rerun installed-skill-invocation (12 tests, 2 red today).",
+      "owner_needed": "no"
+    },
+    {
+      "id": "R3",
+      "question": "Callback placement: keep the owner rule and the index pointer above the callback (the callback moves from line 2 to line 4, as built in f3f6a6bc), or put them after it?",
+      "options": [
+        {
+          "label": "A. As built: header, owner rule, pointer, callback (callback begins at char 469 on line 4 at a 163-char run dir)",
+          "effect": "A lost-context reader meets the pointer first, as the owner asked ('the first line of each packet should say ...'). Visible in every observed cut: `| head -N` had N 8 to 60 over the 20 complete calls, 14 to 50 on the 7 producer prints.",
+          "cost": "About 424 chars above the callback at 163; two command cards say 'the line after the header' (shiploop-next.md, shiploop-complete.md) and are now false.",
+          "risk": "A warm model reads a conditional line it does not need every packet; the plan's gate 'warm next calls not above control' measures that."
+        },
+        {
+          "label": "B. Callback on line 2; owner rule and pointer after it",
+          "effect": "Restores the pinned position (rehydration, delegation, improve-schedule, navigator-contract, planning-handoff).",
+          "cost": "A three-line swap and the pins move back.",
+          "risk": "Contradicts the owner's words; the artifact shows no visibility gain from line 2."
+        },
+        {
+          "label": "C. A, with the block bounded by a test and rewritten by plan 5.5 (Recovery command first; owner rule moves to the Fill site if D-9 takes it)",
+          "effect": "The top block is at most 5 lines and the 'Callback for this stage' label stays within the first 8 lines and 1,500 chars at 83 and 163 chars, for every stage, route and packet kind.",
+          "cost": "One head-position test and the two card edits.",
+          "risk": "None found beyond A."
+        }
+      ],
+      "recommendation": "C. Keep the lines above the callback (the owner's wording decides), bound the block with a position test, and repair the two stale cards by naming the label ('the line starting Callback for this stage') instead of a line number. Do not spend a battery arm on the order.",
+      "rationale": "Where the model looks first is not the callback line: it opens things by label (`grep -A60 'Current stage guidance'`, 'Argument:', 'Exit when') and cuts its own prints at N of 8 or more lines, so line 2 versus line 4 changes nothing it sees; it followed 0 of 103 listed pointers. What changes behaviour is a command it can run, which plan 5.5 supplies. The cost of the placement is bytes above the block, which matters only through the head budget (R4).",
+      "evidence": [
+        "SP/eff2/findings-cross.json X-1: 20 of 20 complete calls piped through head, N 8 to 60 (median 20), producer prints N = 50,30,30,40,14,30,25; X-9: grep by label, 0 of 103 listed pointers opened.",
+        "Commit f3f6a6bc message: owner words 2026-10-16 ('the first line of each packet should say something like: read this file ...').",
+        "Rendered merged tree (SP/eff2/r5/merged163-inline/01-step-plan.printed.txt): line 2 Owner rule at char 45, line 3 pointer at 139, line 4 Callback at 469.",
+        "grep in the packets worktree: skills/shiploop/commands/shiploop-next.md line 13 and shiploop-complete.md line 3 still say 'the line after the header' (PK-2).",
+        "Plan 5.5 first lines: delegation line, header, two Recovery lines, RUN/WORKTREE/HOME line, then the callback (about line 6)."
+      ],
+      "confidence": "high",
+      "what_would_change_it": "A forced-clear battery arm (plan 3.7, A1) in which warm `next` calls or first-read bytes rise with the pointer on top, or a host whose print is cut below 5 lines.",
+      "confirm_by": "Add to PrintedHeadTests: for every stage x route x packet kind the 'Callback for this stage' label sits within the first 8 lines and first 1,500 chars at run dirs of 83 and 163 chars (fails if the top block grows).",
+      "owner_needed": "no"
+    },
+    {
+      "id": "R4",
+      "question": "The inline step-plan printed head passes the ~20,000-char host cut once packets and loop merge (20,484 at an 83-char run dir, 21,924 at 163): trim ~500 characters, reorder so a cut only drops lines the packet file repeats, or accept the cut (plan D-27)?",
+      "options": [
+        {
+          "label": "A. Trim about 500 characters",
+          "effect": "83-char dir: 20,484 -> about 19,984 (projected). 163-char dir: still 21,424, 1,424 over (measured table).",
+          "cost": "The only large candidate is duty 9's four conditional bullets (SP-8, about -1,500 chars), which moves how-to-plan text out of the packet into a referenced file; the rest is chrome.",
+          "risk": "A 16-char margin: any later +17 chars breaks the test again. Trims guidance to fit a display limit, against the owner's 2026-09-27 rule, and moves grounding out of the packet (main tenet)."
+        },
+        {
+          "label": "B. Reorder (loop block, callback and Keepalive before print-only chrome: Full packet, Progress view, footer, Pause, Knowledge sentence, HEAD_END), remove the one script-proven same-packet duplicate, and replace the constant by a per-stage head table",
+          "effect": "Reorder alone, 83-char dir (line simulation on the merged render, projected): the loop block ends near char 18,900 and the cut falls on Recovery tail, Pause, the Knowledge sentence and HEAD_END. 163-char dir: the cut drops the end of the Result sentence and the contract note plus chrome; the 652-char start command survives. Without the reorder, the merged head at 163 is cut inside the Contract line (char 19,993) and loses Receipt, END marker, host line, start command and Result (measured).",
+          "cost": "No bytes saved. Moving Recovery and Full packet to the first lines (plan 5.5) puts about 150 to 450 chars above the block; offsets: the footer and Knowledge sentence merge into the top pointer (about -360), the host line drops its Skill-tool fork (about -66), the 61-char 'Never end the turn' line goes (it repeats a RULES bullet in the same head). Projected total at 83: 20,095, start command ends at 19,211.",
+          "risk": "At 163 the start command still ends at 20,491 in the simulation, 491 past the cut; the Pause command and Progress link leave the print for a model that never opens the file. About 230 text pins and the order-sensitive suites move together."
+        },
+        {
+          "label": "C. Accept the cut as is",
+          "effect": "Nothing changes.",
+          "cost": "Zero.",
+          "risk": "The owner's explicit Until Loop block is what falls in the cut, because it is last in the head: at 83 the end of the Result sentence and the contract note; at 163 Receipt, host line, start command and Result. Main already loses 595 chars at 163 (20,595); ask-agent step-plan is 21,077 on main at 83 (the test allows 22,000)."
+        },
+        {
+          "label": "D. Shorten the E2E harness run-dir prefix so runs measure what a normal install sees",
+          "effect": "The 163-char case is the harness's 116-char scratch prefix repeated about 18 times in the head; at 130 chars the simulated start command ends inside 20,000 (projected, 491 chars / about 15 occurrences).",
+          "cost": "A change in test/shiploop_e2e/run.py output naming; no product change.",
+          "risk": "Hides the long-path case; a user with a long repo path still gets the cut."
+        }
+      ],
+      "recommendation": "B, with D as hygiene. Set the hard test at the normal install (loop start command, Callback and Keepalive marker end before char 19,500 at 83 chars) and journal the 163-char stage table with the first lost line instead of failing on it. Do not trim guidance.",
+      "rationale": "The owner's standing rule (2026-09-27): a host display limit is not a content cap; fix the delivery with essentials first, never trim the guidance. The cut should only remove chrome the file repeats. Reorder alone does that at a normal install; trimming ~500 chars does not fix the live prefix and sits on the cut. Checked on the merged render: Pause, Progress view, the loop block and the Result sentence also appear in the full-packet file; the Full packet pointer, the footer sentence and the Knowledge sentence exist only in the print, so they go to the top (merged into one pointer line), not into the cut.",
+      "evidence": [
+        "Measured inline step-plan printed head (SP/eff2/r5/heads_one.py on scratch clones of main da9e2e75): main 19,395 at 83 / 20,595 at 163; packets alone 20,005 / 21,285; loop alone 19,950 at 83; all three 20,484 / 21,924. ask-agent: main 21,077 at 83; all three 22,166 / 23,606.",
+        "Line positions on the merged 163-char head: Full packet at 16,605, Progress 16,800, footer 17,067, 'Never end the turn' 17,382 (line 180) versus RULES line 129 'never end the turn while one runs', Recovery 17,444, Pause 17,700, loop block 18,031 to 21,786, Contract at 19,993, HEAD_END 21,898.",
+        "Line-level simulation of reorder and of reorder plus dedupes (SP/eff2/r5, python3 -I scripts in this session): totals 20,095 at 83 and 21,535 at 163; start command ends 19,211 and 20,491.",
+        "Packet-recut PrintedHeadTests: inline 20,484 not < 20,000; ask-agent 22,166 not < 22,000; shiploop-step-packets test_the_printed_head_fits_the_host_output_limit 20,460 not <= 20,000 (merged scratch tree).",
+        "Memory verbose-prompts-over-size-bounds (owner 2026-09-27): 'fix the delivery ... essentials first ... never trim the guidance'. Memory shiploop-main-tenet-context-clear.",
+        "SP/eff2/findings-stepplan.json SP-9 and SP-3, findings-testdoc.json TD-2, findings-verifyrest.json VR-1 all propose the same ordering."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "The host-cut probe (plan 1.3, print 40 KB of numbered lines per host) showing Claude and Codex return 30,000 or more: the 20,000 figure is Grok-only evidence (memory 2026-09-27), so only Grok would constrain it. Or a stage whose P0 text alone exceeds 20,000 at a normal install.",
+      "confirm_by": "Run the cut probe on Claude, Codex and Grok first (minutes, no model run of ShipLoop); then add the position test at 83 chars and record the 163-char table.",
+      "owner_needed": "no"
+    },
+    {
+      "id": "R5",
+      "question": "Merge order and release grouping for -packets-, -loop- and -stop- (plan Step 1.0, D-16, D-23): which together, which separately, which tests gate each, and does the vendored until-loop change wait for an upstream release?",
+      "options": [
+        {
+          "label": "A. Plan as written: one integration branch, merge stop -> packets -> loop, reconcile, one release",
+          "effect": "One verification run and one refresh.",
+          "cost": "Holds the only change with a measured time gain (the stop rule) behind the packets and loop reconciliation and their owner decisions (R3, R4, D-26, the unknown-skill host line).",
+          "risk": "The named base `feat/shiploop-eff-release-ca2c6e` no longer exists: it shipped as 2.5.0 (da9e2e75). The plan also defers any release of the packets pointer until Step 3.3 retargets it."
+        },
+        {
+          "label": "B. Integrate all three on a new branch off main in the order stop, packets, loop (any order merges clean); release the stop rule on its own, the packets and loop with the later text waves",
+          "effect": "The owner's checkout E2E run sees all three; the stop rule's planning-time effect (replay 21 -> 15 passes, about 4 min net) is not held for the head work.",
+          "cost": "Two releases and two preflights (each shiploop release needs a LEARNINGS entry or a No-E2E-Round trailer). Reconciliation list is longer than Step 1.0 states: symbols-guard exemption for the loop Work lines (68 failures), head order and ceilings (packet-recut 2, step-packets 1), a skill-calls.jsonl row in the context-index map (rehydration).",
+          "risk": "Version skew at gate 2 between the published until-loop plugin and the vendored fork until upstream adopts the change (affects Backchain converge only, opt-in; default `one` pass uses gate 0)."
+        },
+        {
+          "label": "C. Release each branch separately",
+          "effect": "Smallest blast radius per release.",
+          "cost": "Three releases; packets alone is red (packet-recut 20,005 > 20,000; rehydration 'skill-calls.jsonl'), so it needs fixes before it can ship by itself.",
+          "risk": "Three host refreshes for text changes that share one head budget."
+        },
+        {
+          "label": "D. Wait for the upstream until-loop release before shipping the stop rule",
+          "effect": "No fork of the vendored runtime.",
+          "cost": "Blocks on the owner's upstream go and the marketplace pin (D-5).",
+          "risk": "Delays the largest measured planning-time lever; the fork has precedent (ADAPTER.md is already a recorded adaptation) and a hash test."
+        }
+      ],
+      "recommendation": "B. New integration branch feat/shiploop-eff-tr1-<hex6> off main da9e2e75 (revise D-23). Merge stop first (after R1, R2 and the S-10 text), then packets, then loop, each a merge commit with G-SUITES between; reconcile in the loop merge commit. Release the stop rule separately and do not wait for upstream: PROVENANCE.json records the adaptation and test/until-loop-vendor.test.py enforces it; open the upstream change in parallel because a re-vendor must carry it.",
+      "rationale": "The three branches are independent: they merge textually clean in either order and their red sets are disjoint (stop: installed-skill-invocation only; packets: packet-recut by 5 chars and rehydration; loop: green alone). Only stop has a measured time gain; packets and loop add head bytes (+610 and +555 chars at 83) for owner-asked wording and need the R3/R4/D-26 decisions plus a Claude slice for the Skill-tool host line. D-16 already says the vendored change ships separately.",
+      "evidence": [
+        "Scratch clone SP/eff2/rel-ac9e47 (main da9e2e75 + stop + packets + loop, all `git merge --no-ff` exit 0, also clean in the order packets, loop, stop).",
+        "All 87 ShipLoop suites on the merged tree (groups shiploop-1/2/3, SP/eff2/r2/probe-out-shiploop-*/receipt.json): exactly four red: shiploop-packet-recut 2 failures (20,484; 22,166), shiploop-packet-completeness 68, shiploop-step-packets 1 (20,460), shiploop-rehydration 1 (MasterIndexTests entry 'skill-calls.jsonl', hook x packets). `quick --changed-from origin/main` selected 68 suites and shows the same four red (62 of 68 done when written; SP/eff2/r5/quick-all3/receipt.json).",
+        "Loop alone: packet-recut, packet-completeness, loops, rehydration, step-packets all OK. Packets alone: packet-recut 1 failure (20,005), rehydration 1. On the all-three merge: improve-runtime, until-loop-vendor, improve-plugin and improve.test.sh OK; installed-skill-invocation 2 failures.",
+        "`python3 scripts/release.py --dry-run` on the merge, after a No-E2E-Round trailer: shiploop 1.5.0 -> 1.6.0 (5 notes), improve 0.4.2 -> 0.5.0, backchain 0.6.3 -> 0.6.4, shiploop-run-review 0.2.2 -> 0.3.0, skill-craft 2.5.0 -> 2.6.0; the journal's 'mixed minor and patch' refusal does not reproduce.",
+        "skills/improve/runtime/until-loop/PROVENANCE.json: ADAPTER.md already carries an adaptation_reason; the stop rule adds two more with 'Not yet upstreamed ... a re-vendor must carry it'.",
+        "docs/shiploop-efficiency-journal-2026-10-16.md (branch table and 'Decisions waiting'); plan Rollout and D-16, D-23."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "The owner preferring one batch release (the grouping then is the same merge order with both gates), the stop rule's F1 decision stalling (packets and loop then go first on the same gates), or the upstream until-loop release landing first (re-vendor then drops the adaptation).",
+      "confirm_by": "In a clone of main: repeat the three merges, apply the reconciliation, and require `bash test/run-all.sh --group quick --changed-from main` plus `--group shiploop-composition` and the G-SUITES list to exit 0; for the stop release add improve-runtime, improve.test.sh, until-loop-vendor, installed-skill-invocation, improve-plugin, standalone-improve, stopped-improve, actual-improve-cli, improve-schedule, run-review; for packets and loop add the head table and one Claude and one Grok node-fix-bug slice.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "R6",
+      "question": "Skill-call hook: OpenCode (and any non-Claude host) started from a bound Claude shell is still gated. What is the minimal robust rule? Also D-24 (Claude-only accepted) and the P2 limits (judged from disk config; calls before binding).",
+      "options": [
+        {
+          "label": "A. Add OpenCode's own marker to NESTED_NON_CLAUDE and pin it with a table test over keepalive.HOSTS",
+          "effect": "OPENCODE in the environment turns the gate off, like CODEX_THREAD_ID, CODEX_SANDBOX and CURSOR_PLUGIN_ROOT today. Red/green proved in a scratch clone: with OPENCODE=1 `skill_gate` returns enforce True on main; after the one-element change all 30 skill-call tests pass.",
+          "cost": "One tuple element and one test row; a test that every host in keepalive.HOSTS other than claude has a nested marker (fails when a host is added without one).",
+          "risk": "Another nested host with an unknown marker (Cursor's CLI agent) is not measured."
+        },
+        {
+          "label": "B. 'Exactly Claude's marker set': enforce only when no other host family's variables are present",
+          "effect": "Would catch unknown hosts.",
+          "cost": "A prefix rule.",
+          "risk": "Not implementable: Claude's own shell here carries CODEX_COMPANION_SESSION_ID and CODEX_COMPANION_TRANSCRIPT_PATH (set by the Codex plugin), so a CODEX_ prefix would switch the gate off for Claude users who have that plugin."
+        },
+        {
+          "label": "C. Walk the process ancestry (ps) and enforce only if the nearest host binary is Claude",
+          "effect": "Robust to unknown markers.",
+          "cost": "A subprocess per gate and platform-specific ps parsing.",
+          "risk": "More machinery than the gap (an OpenCode started from a bound Claude shell on the same run) is worth; not KISS."
+        },
+        {
+          "label": "D. Require positive proof that the session recorded any Skill call since binding",
+          "effect": "Self-calibrating.",
+          "cost": "The entry-card Skill call precedes binding, so no proof exists at the first Improve stage.",
+          "risk": "Would disable the gate exactly when it first matters."
+        }
+      ],
+      "recommendation": "A. Accept D-24 (Claude-only; other hosts get the existing 'not enforced' note). Leave the P2 limits documented and unbuilt: the gate reads the hooks.json beside the running hook script (the version the session loaded), the binding precedes the Improve stage, a rewritten start.json voids a call and the packet says to call again, and a 2,000-char argument limit exceeds a handoff path.",
+      "rationale": "OpenCode 1.18.31 sets its marker at startup and its shell tool inherits process.env, so the marker is real, not guessed. One element plus one structural test closes the only observed deadlock class (a host with no Skill tool held to a record nothing writes) at KISS cost. The wider rules are either impossible (B), heavy (C) or self-defeating (D).",
+      "evidence": [
+        "OpenCode binary /opt/homebrew/Cellar/opencode/1.18.31/bin/opencode (grep -a): `process.env.AGENT=\"1\",process.env.OPENCODE=\"1\",process.env.OPENCODE_PID=String(process.pid)` in the CLI middleware; the bash tool spawns with `extendEnv:!0,env:{...Y.env,TERM:\"dumb\"}`.",
+        "skills/shiploop/scripts/shiploop_keepalive.py: NESTED_NON_CLAUDE = (\"CODEX_SANDBOX\", \"CODEX_THREAD_ID\", \"CURSOR_PLUGIN_ROOT\"); SESSION_ENV orders grok before claude; HOSTS includes opencode.",
+        "Scratch red/green: SP/eff2/rel-x23 branch probe-opencode: test_codex_or_cursor_started_from_a_bound_claude_shell_is_not_gated with 'OPENCODE' added fails (True is not false) on main, passes with the element added; whole suite Ran 30 tests OK.",
+        "`env | grep CODEX` in this Claude session shows CODEX_COMPANION_SESSION_ID and CODEX_COMPANION_TRANSCRIPT_PATH.",
+        "docs/shiploop-efficiency-journal-2026-10-16.md: 'an OpenCode marker is unknown, so OpenCode from a bound Claude shell is still gated'; hook known limits listed there.",
+        "skills/shiploop/scripts/shiploop_keepalive.py `skill_hook_registered` judges SCRIPTS.parents[2]/hooks/hooks.json, the package of the running hook script."
+      ],
+      "confidence": "high",
+      "what_would_change_it": "A measured nested host with a different marker (probe Cursor's CLI agent), or a live Claude run where the gate refuses forever because the session registered an older hook set than the disk (then record the registered hooks at bind time).",
+      "confirm_by": "Add 'OPENCODE' to the marker loop of test_codex_or_cursor_started_from_a_bound_claude_shell_is_not_gated and a test that derives the host list from keepalive.HOSTS; the first is green in the scratch clone today (30 tests).",
+      "owner_needed": "no"
+    },
+    {
+      "id": "R7",
+      "question": "D-26: keep the owner rule and master-index pointer on Improve packets (+344 chars each) despite the 2026-10-11 minimal-Improve-packet rule? D-4: may ShipLoop run the runtime's `done` itself (single verb), or only print it (two-step)?",
+      "options": [
+        {
+          "label": "D-26 keep both lines on the bound Improve packet (as built, shiploop_navigator.improve_packet via _owner_lines)",
+          "effect": "Every Improve packet carries the owner rule and the recovery pointer: +344 chars on a packet of 2.0 to 2.9 KB (+12 to 17%).",
+          "cost": "The pointer names context-index.md today (0 opens in 16 breaks); plan 5.5 retargets it.",
+          "risk": "Contradicts improve-packet-minimal (2026-10-11: 'no rules, goal, references, recovery prose')."
+        },
+        {
+          "label": "D-26 drop both lines from the bound Improve packet; keep a pointer only on the pending or stopped Improve packet, which already carries a literal command",
+          "effect": "The Improve packet stays at its floor: header, the two steps, Keepalive marker, status, narrative. A cleared parent still has the run directory in the literal `complete` command.",
+          "cost": "One deletion at the improve_packet call site and the OwnerLinesTests rows for Improve.",
+          "risk": "If the owner meant 'each packet' to include Improve (2026-10-16), this is the opposite of what they asked; reversible by one line."
+        },
+        {
+          "label": "D-4 two-step: `improve-pass` composes and prints the literal runtime `done` and `complete` commands; the model runs them",
+          "effect": "Hooks and permission prompts see each command; the model's typed tail shrinks (plan 6.3 target 4.3 -> 1.5 KB).",
+          "cost": "The model still chooses when to run `done`, so the skill-call refusal can arrive after the loop is terminal (IMP-2).",
+          "risk": "A model that types `done` by hand never calls improve-pass."
+        },
+        {
+          "label": "D-4 single verb: ShipLoop runs `done` in its own subprocess",
+          "effect": "One command; the refusal could precede `done`.",
+          "cost": "A command leaves the host shell tool; the runtime `done` averages 7.4 s over 29 calls in the live run (plan figure, not re-measured), hidden inside one ShipLoop call.",
+          "risk": "Breaks the owner's hooks-must-see-every-command rule (2026-10-11) by intent: hooks, permission prompts and sandboxes would no longer see `done`."
+        }
+      ],
+      "recommendation": "D-26: drop both lines from the bound Improve packet and keep the Recovery pointer only where the packet is already a recovery packet (pending, stopped, unbound). D-4: no; keep two-step, and make the skill-call refusal's named exit work when the child is already terminal by naming `improve-start --restart-stopped` (the route exists for a first-pass-unchanged child), submitting that exit through the real gate in a test.",
+      "rationale": "The Improve rule is explicit and later restated ('any time we run improve, it's really just calling the improve skill and then ... done'); the Improve packet was followed exactly 4 of 4 in the artifact and the pointer adds nothing a literal callback lacks. The owner-rule line's style content reaches Improve through the opening and handoff recipe (plan 8.3), so dropping it from the packet loses no style direction. The 2026-10-16 'each packet' words most plausibly meant producer packets, but only the owner can say, so one line of confirmation is needed. For D-4 the hooks rule decides by intent, and the real flaw IMP-2 found is the ordering of the check, which is fixed by a working named exit rather than by moving `done` out of the host shell.",
+      "evidence": [
+        "Memory improve-packet-minimal.md: 'There are no rules, goal, references, recovery prose or next-phase description.' Memory hooks-must-see-every-command.md.",
+        "Bound Improve packet on main (SP/eff2/improve-8b2857/04-step-plan-packet.txt): 2,560 chars, two numbered steps, Keepalive marker, status, narrative; packets branch adds Owner rule + 'Lost context, or unsure ...' (+344, commit f3f6a6bc note) at improve_packet line 5353 `*_owner_lines(root)`.",
+        "SP/eff2/findings-improve.json works_well: Improve packets 'followed exactly in 4 of 4'; IMP-2: in 05, 07 and 12 the model ran runtime `done` and `shiploop complete` in ONE shell call, so a refusal arrives after the loop is terminal (checked in SP/artrev/05-improve-improve-review.md: `python3 $P done ... ; python3 $SC complete --run-dir=$R ...`).",
+        "Ran the hooks on the recorded shape: keepalive COMMAND_RUN_DIR.search and shiploop_status_hook._verb return False/None for `python3 $SC complete --run-dir=$R ... 2>&1 | head -30`, and match the literal command.",
+        "skills/shiploop/scripts/shiploop_navigator.py `_improve_restart` allows a restart when the child ended on one unchanged pass (`_unchanged_first_pass` on main).",
+        "SP/eff2/findings-improve.json IMP-8 (4 of 4 tails re-typed commands through shell variables)."
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "The owner saying 'each packet' includes Improve, or a battery row in which a cleared Improve parent fails to recover without the pointer (plan 3.7 'Improve compaction mid-pass').",
+      "confirm_by": "Owner one-line answer for D-26; for D-4 a test that a faked terminal child + missing Skill record is refused, the printed exit `improve-start --restart-stopped` is submitted, the skill call recorded, and `complete` accepted.",
+      "owner_needed": "yes"
+    }
+  ],
+  "new_questions": [
+    "Base branch: the plan's integration branch feat/shiploop-eff-release-ca2c6e shipped as 2.5.0 (main da9e2e75) and no longer exists. D-23 and Step 1.0 should name main as the base of a new integration branch; the three unreleased branches merge clean into it in either order (measured in a scratch clone).",
+    "Step 1.0's exit list names packet-recut and packet-completeness only. The merged tree is also red on shiploop-step-packets (test_the_printed_head_fits_the_host_output_limit, 20,460 > 20,000) and shiploop-rehydration (MasterIndexTests, 'skill-calls.jsonl' missing from the context-index map: the released hook meets the packets map). Add both to the reconciliation list and to the exit.",
+    "Skill-call gate order (IMP-2): when the model runs the runtime `done` and `complete` in one shell call, the refusal arrives after the loop is terminal and its named exit (invoke the skill) cannot produce a review. Should the refusal also name `improve-start --restart-stopped`, with the exit submitted through the real gate in a test? (R7 recommends yes.)",
+    "Loop block host line: skill-craft ships no until-loop skill (plugin.json has no dependency; until-loop is an external plugin in catalog/external-plugins.json) and three reviewers saw 'Unknown skill: until-loop' in the recorded run. Should the block lead with the literal start command on every host (SP-1) instead of offering the Skill tool first? It also frees about 66 chars of head.",
+    "Host cut: the ~20,000-char figure is Grok evidence from 2026-09-27; no probe of Claude or Codex exists (plan 1.3 lists it). Run the probe before the per-stage ceilings are fixed in tests.",
+    "Version skew at gate 2: the published until-loop plugin (0.8.3, where required_trivial_reviews is a count) and the vendored fork give value 2 different meanings (two trivial passes versus one unchanged pass), and a new value 3 would read as three trivial passes upstream. Should the unchanged-content modes be an Improve-only optional contract field instead (the published plugin refuses unknown fields, so a mistaken hand-off fails loudly), leaving required_trivial_reviews with its published meaning and closing F5 (Backchain converge)?"
+  ]
+}

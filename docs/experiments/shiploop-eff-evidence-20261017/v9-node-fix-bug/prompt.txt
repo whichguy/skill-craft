@@ -1,0 +1,1 @@
+In this Node.js project, paginate() in src/paginate.js loses the last page whenever the number of items is not a multiple of the page size: paginate([1,2,3,4,5], 3, 2) returns no items and reports 2 pages, but it should return { page: 3, pages: 3, items: [5] }. Fix the bug and add a regression test; npm test must pass.

@@ -1,0 +1,238 @@
+{
+ "83": {
+  "inline": {
+   "step-plan": {
+    "head": 20638,
+    "whole": 24448,
+    "mode": "head",
+    "raw_head": 20392,
+    "raw_whole": 24044
+   },
+   "test-spec": {
+    "head": 12268,
+    "whole": 14419,
+    "mode": "whole",
+    "raw_head": 12022,
+    "raw_whole": 14085
+   },
+   "validate-existing": {
+    "head": 11891,
+    "whole": 14860,
+    "mode": "whole",
+    "raw_head": 11645,
+    "raw_whole": 14526
+   },
+   "implement": {
+    "head": 15436,
+    "whole": 18057,
+    "mode": "head",
+    "raw_head": 15181,
+    "raw_whole": 17714
+   },
+   "test": {
+    "head": 15798,
+    "whole": 20005,
+    "mode": "head",
+    "raw_head": 15561,
+    "raw_whole": 19680
+   },
+   "document": {
+    "head": 11400,
+    "whole": 13710,
+    "mode": "whole",
+    "raw_head": 11154,
+    "raw_whole": 13376
+   },
+   "verify": {
+    "head": 15973,
+    "whole": 20203,
+    "mode": "head",
+    "raw_head": 15727,
+    "raw_whole": 19869
+   },
+   "carry-forward": {
+    "head": 16877,
+    "whole": 21799,
+    "mode": "head",
+    "raw_head": 16631,
+    "raw_whole": 21395
+   }
+  },
+  "ask-agent": {
+   "step-plan": {
+    "head": 22320,
+    "whole": 27776,
+    "mode": "head",
+    "raw_head": 22074,
+    "raw_whole": 27372
+   },
+   "test-spec": {
+    "head": 12268,
+    "whole": 15987,
+    "mode": "whole",
+    "raw_head": 12022,
+    "raw_whole": 15653
+   },
+   "validate-existing": {
+    "head": 11891,
+    "whole": 16428,
+    "mode": "head",
+    "raw_head": 11645,
+    "raw_whole": 16094
+   },
+   "implement": {
+    "head": 16550,
+    "whole": 21213,
+    "mode": "head",
+    "raw_head": 16295,
+    "raw_whole": 20870
+   },
+   "test": {
+    "head": 15798,
+    "whole": 21573,
+    "mode": "head",
+    "raw_head": 15561,
+    "raw_whole": 21248
+   },
+   "document": {
+    "head": 11400,
+    "whole": 15278,
+    "mode": "whole",
+    "raw_head": 11154,
+    "raw_whole": 14944
+   },
+   "verify": {
+    "head": 16172,
+    "whole": 21970,
+    "mode": "head",
+    "raw_head": 15926,
+    "raw_whole": 21636
+   },
+   "carry-forward": {
+    "head": 18080,
+    "whole": 24570,
+    "mode": "head",
+    "raw_head": 17834,
+    "raw_whole": 24166
+   }
+  }
+ },
+ "163": {
+  "inline": {
+   "step-plan": {
+    "head": 22078,
+    "whole": 25968,
+    "mode": "head",
+    "raw_head": 21832,
+    "raw_whole": 25564
+   },
+   "test-spec": {
+    "head": 13628,
+    "whole": 15779,
+    "mode": "whole",
+    "raw_head": 13382,
+    "raw_whole": 15445
+   },
+   "validate-existing": {
+    "head": 13251,
+    "whole": 16220,
+    "mode": "whole",
+    "raw_head": 13005,
+    "raw_whole": 15886
+   },
+   "implement": {
+    "head": 16000,
+    "whole": 19017,
+    "mode": "head",
+    "raw_head": 15745,
+    "raw_whole": 18674
+   },
+   "test": {
+    "head": 16919,
+    "whole": 21525,
+    "mode": "head",
+    "raw_head": 16682,
+    "raw_whole": 21200
+   },
+   "document": {
+    "head": 12840,
+    "whole": 15150,
+    "mode": "whole",
+    "raw_head": 12594,
+    "raw_whole": 14816
+   },
+   "verify": {
+    "head": 17333,
+    "whole": 21563,
+    "mode": "head",
+    "raw_head": 17087,
+    "raw_whole": 21229
+   },
+   "carry-forward": {
+    "head": 18317,
+    "whole": 23319,
+    "mode": "head",
+    "raw_head": 18071,
+    "raw_whole": 22915
+   }
+  },
+  "ask-agent": {
+   "step-plan": {
+    "head": 23760,
+    "whole": 29296,
+    "mode": "head",
+    "raw_head": 23514,
+    "raw_whole": 28892
+   },
+   "test-spec": {
+    "head": 13628,
+    "whole": 17347,
+    "mode": "head",
+    "raw_head": 13382,
+    "raw_whole": 17013
+   },
+   "validate-existing": {
+    "head": 13251,
+    "whole": 17788,
+    "mode": "head",
+    "raw_head": 13005,
+    "raw_whole": 17454
+   },
+   "implement": {
+    "head": 17510,
+    "whole": 22173,
+    "mode": "head",
+    "raw_head": 17255,
+    "raw_whole": 21830
+   },
+   "test": {
+    "head": 16919,
+    "whole": 23093,
+    "mode": "head",
+    "raw_head": 16682,
+    "raw_whole": 22768
+   },
+   "document": {
+    "head": 12840,
+    "whole": 16718,
+    "mode": "head",
+    "raw_head": 12594,
+    "raw_whole": 16384
+   },
+   "verify": {
+    "head": 17532,
+    "whole": 23330,
+    "mode": "head",
+    "raw_head": 17286,
+    "raw_whole": 22996
+   },
+   "carry-forward": {
+    "head": 19520,
+    "whole": 26090,
+    "mode": "head",
+    "raw_head": 19274,
+    "raw_whole": 25686
+   }
+  }
+ }
+}

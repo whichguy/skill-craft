@@ -1,0 +1,259 @@
+{
+  "group": "process",
+  "decisions": [
+    {
+      "id": "P1",
+      "question": "Run 2 of the Salesforce chess case stopped at the cap with ShipLoop active at `test` of work item 2 of 2. What is the next live round and its budget: resume run 2, a fresh run on released 2.5.0, go straight to the plan-implemented run, or change the case first?",
+      "options": [
+        {
+          "label": "A. Resume run 2 once, to done, on its original 1.4.0 build, in the background, no keep",
+          "effect": "Finishes the SDLC on a hosted platform for the first time: runs the 9 outer stages never run live (the plan's per-packet rows 16 to 24 are estimates) and the rest of item 2; may be the case's first pass; gives the time-to-done control. The harness already supports it (the case's resume_note tells the model the org was reset and to deploy again).",
+          "cost": "Projected 1.7 h (range 1.1 to 2.8) and about $10 (range $7 to 17). Basis: Grok segment 2 measured $12.21 for 7,202 s and 428 turns = $6.10/h; remaining = item 2 test/document/verify/carry-forward 0.3 to 0.55 h plus 9 outer stages at the measured mean of 538 s per stage. Needs --timeout 10800 (7200 hit the cap) and --max-budget-usd 20.",
+          "risk": "Old build: measures nothing about 2.5.0 or the plan. Cannot keep the app (the run folder is under $TMPDIR; README requires a durable --output for --keep-platform). Org busy until the cleanup. Grok login and quota unchecked. The folder can be purged after days."
+        },
+        {
+          "label": "B. Fresh run on released 2.5.0 first",
+          "effect": "Measures the credential removal (live2 had zero refused submissions, so there is nothing to see) and not the Skill-call hook (Claude-only, D-24).",
+          "cost": "Projected 5 to 6 h and $30 to 37 (4.04 h already spent plus the 1.7 h remaining, at $6.10/h).",
+          "risk": "Near-duplicate of the final run; a third stop at a 4 h cap is likely; the default contract deletes a working app on a timeout (keep_refusal: 'the host timed out')."
+        },
+        {
+          "label": "C. Go straight to the plan-implemented run (fresh, --source checkout, --keep-platform, durable --output)",
+          "effect": "Lowest spend and the run the owner asked for on 2026-10-17. The outer stages are first met at hour 4 or later.",
+          "cost": "Projected 4.3 to 4.9 h (old-build 5.7 h less 15 to 25% from the plan's levers) and $26 to 30; a 6 h cap = $37.",
+          "risk": "An outer-stage platform problem (permission classifier, guard, release or operations stage on an org) is found late; today's contract cleans the working app on a timeout."
+        },
+        {
+          "label": "D. Change the case first (smaller scope, cheaper model)",
+          "effect": "A shorter, cheaper run.",
+          "cost": "Not measured. Gives up the owner's 'playable chess app that remains'; Grok 4.7 medium is the owner's execution default.",
+          "risk": "Moves the target after one miss; evidence not comparable with run 2."
+        }
+      ],
+      "recommendation": "Order: (1) now, no go needed (proactively-run-verification): one Claude Sonnet 5.5 node-fix-bug slice on main da9e2e75 (= 2.5.0), `python3 test/shiploop_e2e/slice.py --case node-fix-bug --host claude`, to measure the Skill-call hook (improve skill invoked in 4 of 4 Improve stages, was 1 of 4 on 1.3.0) and the credential removal; cost is unreported by the slice harness, projected $1 to 2 (70 turns x $0.0187). (2) With your go, option A in the background while the plan is implemented: --timeout 10800, --max-budget-usd 20, one resume, stop only on a fatal block, no keep. (3) Before the final run land a harness-only keep-on-cap rule: also keep when the org checks (deployed, tests, rules) pass, the trial is valid and the host timed out, recorded 'not a pass'; never after a user stop or an invalid trial; README text and a test with it. (4) Final run = option C: fresh, --source checkout, --keep-platform with a durable --output, two 10,800 s segments (6 h), --max-budget-usd 45. Projected total $40 to 55.",
+      "rationale": "The hook only exists on Claude, so only a Claude slice can measure it; the credential removal cannot show in this case (0 refusals); the cap, not the app, ended run 2 (deployed, tests and rules passed 28 of 28 at the stop), so the cap and the keep rule are the two cheap levers; the resume runs in the background while the plan is built, so it costs no session time and finds the unmeasured outer-stage problems at about $10 instead of at hour 4 of a $30 run. Changing the case gives up the owner's goal. Consistent with batch-run-to-completion (resume stopped runs in place), proactively-run-verification, experiments-use-sonnet (Grok 4.7 medium execution) and the one-at-a-time-against-the-org rule.",
+      "evidence": [
+        "scratchpad sfchess/live2/metrics.json: stages total 14,519.8 s; item 1 inner stages (step-plan to carry-forward) 7,853 s; item 2 so far 3,419 s; shiploop_failures [] (zero refusals); cost_usd 12.2123; turns 906",
+        "scratchpad sfchess/live2/result.json: process.status timeout, elapsed_seconds 7201.6; cli.sessions 428 turns, $12.21; platform.spec.resume_note",
+        "scratchpad sfchess/live2/sessions.jsonl: segment 1 (sessions 1 to 4) 6,864 s, segment 2 (session 5) 7,202 s",
+        "test/shiploop_e2e/run.py keep_refusal (refuses on timeout, on ShipLoop not done) and test/shiploop_e2e/README.md 'Keeping what a run made' (durable --output needed; macOS purges $TMPDIR)",
+        "docs/e2e-salesforce-chess-journal.md F9 in the docs commit 90fa2ca0 (deployed, tests 14 of 14, rules 28 of 28 at the stop)",
+        "docs/shiploop-efficiency-journal-2026-10-16.md decision 5; plan step 6.2 and D-24 (hook Claude-only); artifact page: improve skill invoked in 1 of 4 stages on 1.3.0",
+        "memory salesforce-chess-e2e-state-2026-10-16 ('Resume only with --source checkout and the owner's go for more time'), batch-run-to-completion, proactively-run-verification, experiments-use-sonnet, detach-long-runs (tasks die near 120 min: resume in place)"
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "Grok login or quota failing the preflight (skip step 2); the 2.5.0 slice showing the hook at 0 of 4 or a hang (fix that first); the owner preferring to save the $10 (skip step 2 and run option C with a 6 h cap); a resume that blocks again on the permission classifier (stop, record, no second retry).",
+      "confirm_by": "Main session, no model, about 1 min and $0: `python3 test/shiploop_e2e/run.py --preflight-only --host grok` plus the case preflight `python3 test/shiploop_e2e/checks/chess_salesforce.py preflight --org de --prefix SLChess` (clean org, sf resolves to the wrapper in six shell forms). Step 1's slice is its own confirmation.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "P2",
+      "question": "What should the verification battery be after the next release: which cases, hosts and models, how many paired runs, which clears of context, and how is it decided by a script?",
+      "options": [
+        {
+          "label": "A. The plan's full design at every release: 5 arms x 2 cases x 2 hosts, six clears per slice (about 20 slices)",
+          "effect": "Strongest evidence for the start-here card and entry-card workstream.",
+          "cost": "Projected $100 to 140 and 12 h or more of Grok wall time (20 slices x about 250 turns x $0.0187 Claude or $0.0285 Grok per turn).",
+          "risk": "Contradicts 'one live verification run per release' and testing-scope-to-change; clears inside one slice are not independent samples; most arms exist only to choose the card design, which is a one-time decision."
+        },
+        {
+          "label": "B. Hard gates plus exact bytes, 6 slices per release that changes what the model reads",
+          "effect": "Decides S-6 by zero redone calls, and bytes by an offline render (exact), with time and tokens descriptive. Slices: node-fix-bug inline on Claude Sonnet 5.5 (control, candidate) and on Grok 4.7 medium (control, candidate); node-add-function as a two-step ask-agent chain on Claude (control, candidate). Six clears per slice: step-plan, implement, test, verify, carry-forward and one Improve window; Claude at boundary and inside, Grok at boundaries only (clear.py gates :inside only on Claude streams); resume prompt withheld.",
+          "cost": "Projected about $33 and 2.5 h wall (4 Claude + 2 Grok slices; Claude 3.2 s and $0.0187 per turn, Grok 16.8 s and $0.0285 per turn, about 250 turns per slice). Slice cost is unreported by the harness, so these are projections.",
+          "risk": "Detects frequent failure only: 0 failures in the 18 candidate clears bounds the per-clear failure rate below 17% (rule of three, 95%)."
+        },
+        {
+          "label": "C. Offline renders plus two small full runs",
+          "effect": "Cheap (hello costs $3.69 on average); proves bytes and head budgets only.",
+          "cost": "About $8 projected.",
+          "risk": "No clear-the-context evidence, which the main tenet (S-6) requires before any consolidation."
+        },
+        {
+          "label": "D. Compare time, turns and cost between arms at n=2 to 3",
+          "effect": "Looks like a quick answer.",
+          "cost": "Cheap per run.",
+          "risk": "Measured spread of nine identical Claude hello runs: turns CV 0.32, cost CV 0.38, planning seconds CV 0.33. A 10% effect needs about 160 runs per arm and a 25% effect about 26 (n = 2 x (2.8 x CV / effect)^2). It cannot decide."
+        }
+      ],
+      "recommendation": "Option B, decided by arms.py (plan 1.3; it does not exist yet). Every release: Tier 0 with no model (G-SUITES, G-LEDGER, G-RENDER, head table). Only a release that changes packet text or order, the entry card, the loop block, Improve text or a hook adds Tier 1 = the 6 slices above, control = the previous release's pinned sha re-run the same day (host builds drift), A/A spread = 2 control runs per host and case, taken once and again when the host build changes, kept in the journal. arms.py decides in this order: hard gates (zero redone state-changing calls in every clear; first-pass refusals per verb not above control plus the A/A spread; warm `next` calls not above control; no lost ledger obligation; no flipped SPEC clause; on Claude the improve skill invoked in every Improve stage), then exact bytes ingested, then time and tokens descriptive only; it exits non-zero without a decision or when the difference is inside the A/A spread. Judge only where text moves: Opus 5.5 medium, one per round, blind to arm, for the seeded-defect catch and the retention rubric. Codex: one smoke slice (Luna xhigh) on the efficiency release only, not a gate. Prerequisite: make SEED_SCRIPT capture the item base, otherwise every slice skips the base run, mutation gate, change inventory and item commit. The Salesforce run (P1) and hello/checkers n=2 full runs belong to the plan release, not to every release.",
+      "rationale": "Follows eval-decision-priority (material quality first, then tokens, then time; thresholds are the control's own spread, never invented), testing-scope-to-change, proactively-run-verification and the plan's own principle 10. S-6 is a hard property, so zero redone calls is the right gate, not a mean. Time, turns and cost cannot decide at any affordable n (measured CV 0.32 to 0.38); bytes are exact offline; refusals, warm next calls and redone calls are counts that move by large factors when a pointer works.",
+      "evidence": [
+        "test/shiploop_e2e/baselines.jsonl: nine Claude hello rows, ShipLoop 0.59.0, 2026-10-10/11: turns mean 197 sd 63, cost mean $3.69 sd 1.38, planning_seconds mean 321 sd 105 (computed here)",
+        "test/shiploop_e2e/clear.py module docstring: S-6 passes only with zero redone completed state-changing calls; non-Claude :inside stops are recorded, not gated; only one --clear-at per run today (parse_spec)",
+        "test/shiploop_e2e has no arms.py (listing); plan steps 1.3, 3.7 and section 5.8",
+        "findings-cross.json X-2 and findings-testdoc.json TD-5: SEED_SCRIPT in test/shiploop_e2e/run.py never calls lint.capture_base; tests/*-base1.md and *-mutation1.md say 'skipped: no item base was recorded'",
+        "artifact node-fix-bug slice: 223 s and 70 turns (3.2 s per turn); live2 segment 2: 428 turns in 7,202 s (16.8 s per turn) and $12.21 ($0.0285 per turn)",
+        "memory eval-decision-priority, experiments-use-sonnet, testing-scope-to-change, luna-unreliable-use-sol, shiploop-main-tenet-context-clear"
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "An A/A pair in which the control itself redoes work or shows warm-next counts that differ by more than 1 to 2 (then the n=1 hard-gate design is unstable: use 3 paired slices); the hook or card changes turning out to need the 5-arm design once (run it once as an experiment, still not per release); a host whose clears cannot be gated at all.",
+      "confirm_by": "A/A on Claude node-fix-bug: run the control slice twice with the six clears (existing clear.py verdicts until arms.py exists, then feed both to it). Both must show zero redone calls and arms.py must exit non-zero (inside the spread). Projected about $9 and 30 min (plan exit 1.3.3).",
+      "owner_needed": "no"
+    },
+    {
+      "id": "P3",
+      "question": "Push the local docs branch (docs/efficiency-journal-98075a, one commit) to main now or with the next release, and what else is committed but unpublished?",
+      "options": [
+        {
+          "label": "A. Push the docs commit to main now (after adding run 2's baseline row), and back up the three feature branches as non-main branches",
+          "effect": "Run 2's record (journal F9, LEARNINGS entry, evidence), the branch journal and plan revision 4 reach origin; the only copies of the stop, loop and packets work stop being local.",
+          "cost": "Minutes. `bash test/run-all.sh --group quick --changed-from origin/main` first; docs-only, so CI is not watched.",
+          "risk": "The plan file on main is revision 4 with a stale premise (see new question 1) until the aggregate plan replaces it as a second commit. The LEARNINGS.md touch makes the next shiploop release's E2E-round preflight pass mechanically; the real gate stays the verification run's own entry and the plan's journal test."
+        },
+        {
+          "label": "B. Hold everything for the next release",
+          "effect": "No change on main until the owner has seen the result.",
+          "cost": "None now.",
+          "risk": "Run 2's only durable record, the branch journal and 6 commits of study evidence stay local-only on a laptop; the run-2 folder sits under $TMPDIR."
+        },
+        {
+          "label": "C. Split: push journal, run 2 and LEARNINGS now, hold the plan file",
+          "effect": "Avoids publishing a plan that is about to be superseded.",
+          "cost": "Rewrite one unpushed commit and re-run the checks.",
+          "risk": "More handling for little gain; a dated plan revision marked superseded is the normal practice in this repo (journal: 'edit later rather than deleting')."
+        }
+      ],
+      "recommendation": "Option A, with your go. Steps: (1) copy the 1-line run-2 row from the uncommitted baselines.jsonl of the sf-chess worktree into the docs branch (precedent: 5 failed rows are already committed) and amend nothing else; (2) `bash test/run-all.sh --group quick --changed-from origin/main`; (3) push the docs branch to origin/main; do not wait for CI (docs only, memory check-ci-after-push exception); (4) back up the three unreleased branches with `git push origin feat/shiploop-eff-stop-6afcbc feat/shiploop-eff-loop-6afcbc feat/shiploop-eff-packets-6afcbc` (branches, not main); (5) the aggregate plan lands later as revision 5 in its own commit. Also committed but unpublished: nothing else on a branch. Uncommitted: that baseline row; `p_step.txt` (71 KB untracked packet dump in the main checkout, safe to delete). Not in any repo: the scratchpad studies and this study's output, and run 2's compact review-export.json (41 KB, last written before the final state).",
+      "rationale": "Pushing a docs-only commit changes nothing hosts run (no release, no skill text), so the 'no push until the owner sees the result' hold, which protects the implemented plan, is not what this is; it is the cheapest protection against losing the run-2 record and 6 commits that exist nowhere else. check-release-boundary already passes for the commit.",
+      "evidence": [
+        "git: docs/efficiency-journal-98075a is 1 ahead of origin/main; `git diff --stat origin/main..HEAD` = 4 files, +823 (3 docs, test/shiploop_e2e/LEARNINGS.md)",
+        "command run: `python3 scripts/check-release-boundary.py --base origin/main --head docs/efficiency-journal-98075a` printed 'check-release-boundary: OK', exit 0",
+        "`git ls-remote --heads origin` finds none of feat/shiploop-eff-stop-6afcbc, -loop-6afcbc, -packets-6afcbc, docs/efficiency-journal-98075a; archive/canonical-wip-2026-10-16 is on origin",
+        "sf-chess-fb04a2 worktree: `git diff --stat` = test/shiploop_e2e/baselines.jsonl, 1 insertion (the chess-salesforce run 2 row, pass false); baselines.jsonl already holds 5 rows with pass false",
+        "scripts/release.py E2E_JOURNAL preflight (a commit touching LEARNINGS.md since the last release satisfies it)",
+        "memory check-ci-after-push (docs and wording-only: do not watch CI), quick-needs-changed-from, push-updates-marketplace (no release for docs)"
+      ],
+      "confidence": "high",
+      "what_would_change_it": "The owner wanting nothing on main until the Salesforce result is seen (then option B plus the branch backup alone); a failing quick tier or boundary check on the docs commit.",
+      "confirm_by": "`python3 scripts/check-release-boundary.py --base origin/main --head docs/efficiency-journal-98075a` (done: OK) and `bash test/run-all.sh --group quick --changed-from origin/main` exiting 0 before the push.",
+      "owner_needed": "yes"
+    },
+    {
+      "id": "P4",
+      "question": "Which follow-ups from the credential-removal review (CR-1, CR-4, CR-5, CR-6), the guard `.gitkeep` false block and the Apex-output reading by ShipLoop's red-check and mutation steps (D-25, a platform-declared test adapter) go now, later or never?",
+      "options": [
+        {
+          "label": "A. Everything now, including the D-25 adapter",
+          "effect": "Closes every open row.",
+          "cost": "The adapter is a new mechanism (platform-declared reporter vocabulary plus 'run against the base') on top of the 36-unit plan.",
+          "risk": "Delays the final live run; violates KISS-over-adversarial-guards for CR-4, CR-5 and CR-6, which break nothing."
+        },
+        {
+          "label": "B. Triage by 'did a real run hit it and does it mislead the normal path' (recommended)",
+          "effect": "Fixes the three things the Salesforce case hit or depends on and documents the rest.",
+          "cost": "One small commit: one test, one guard line with its test, one platform-card paragraph and one pointer sentence.",
+          "risk": "The card text may not be enough for the Apex reporter (unverified); then the adapter code follows, with evidence."
+        },
+        {
+          "label": "C. Document all, fix none",
+          "effect": "No work.",
+          "cost": "None.",
+          "risk": "Leaves two defects observed in the very case that must pass: the false block and the unreadable Apex reporter."
+        }
+      ],
+      "recommendation": "Option B. NOW (before the final live run): (1) CR-1: one acceptance test through the real gate, a reviewed stage whose summary holds `Auth: sf login (alias de)` starts its Improve child (the Salesforce case writes such text: 4 of 29 accepted live2 results mention sf login, credential or access token). (2) The `.gitkeep` false block: in test/shiploop_e2e/checks/sf_guard.py a default-scope deploy of an empty directory is refused as 'not a class, tab, app or app page named SLChess*' (1 of the 2 denials in 140 calls); skip the exact name `.gitkeep` in the scope walk, plus one test in shiploop-e2e-sf-guard. (3) The Apex reporter, text only (the first half of D-25): in references/platforms/salesforce.md state which reporter flag ShipLoop can read and that an org-bound test cannot fail on the base unless the command deploys the tree (so red_na with its reason is the route); make the 'unread' refusal in shiploop_test_loop._explain_base name the platform card instead of listing only node, pytest, unittest and jest. LATER: CR-4 (fold the retired-phrase list of shiploop-packet-completeness over `shiploop reference` text and SKILL.md the next time that test is edited; no stale text exists today); the adapter code only if the final run still hits 'unread' with the card in place. NEVER: CR-5 (the journal already records that the commit message's byte savings do not reproduce: 32 per inner stage, 65 step-plan, 289 over 12 packets, not 345; do not rewrite the commit), CR-6 (fix the one test comment when that file is next touched; the dated 2026-10-11 doc is history), CR-2/CR-3 (display-only, known: the display screen flags 0 of 29 live2 results).",
+      "rationale": "KISS over adversarial guards and 'question the value of every change': fix only what breaks or misleads a normal run. CR-1 protects the path the removal changed and the Salesforce case exercises; the false block and the unreadable reporter were observed in run 2 (the test stage of item 1 took 361 s blocked, 1,163 s revise and 428 s; the 'unread' sentence appears 21 times in the event stream, not de-duplicated). The adapter is a separate plan (D-25) and a text card is the cheapest test of whether code is needed.",
+      "evidence": [
+        "docs/shiploop-efficiency-journal-2026-10-16.md table 'Findings on the released work': CR-1, CR-4, CR-5, CR-6, CR-2/CR-3 statuses",
+        "command run: shiploop_privacy.sensitive_text over the 29 files in sfchess/live2 .shiploop-runs/*/run/results: 0 flagged; grep for sf login, credential, access token: 4 of 29 files",
+        "sfchess/live2/platform/sf-calls.jsonl: denial 'deploy is outside the approved scope ... force-app/main/default/.gitkeep'",
+        "grep of sfchess/live2/events.jsonl: 21 occurrences of 'no output line says whether it passed or failed' (the _explain_base 'unread' sentence); 1,789 mentions of the model-written rules_gate.sh",
+        "scratchpad sfchess/live2/metrics.json stages: test blocked 361 s, test revise 1,163 s, test 428 s for item 1; item 2 test active at the stop",
+        "skills/shiploop/scripts/shiploop_test_counts.py _PASS_LINE matches 'ok <n>' (TAP) and PASSED; skills/shiploop/references/platforms/salesforce.md has no reporter line (grep); findings-testdoc.json TD-11",
+        "test/shiploop-packet-completeness.test.py already guards the retired phrases in packets; grep of skills/ finds no retired phrase outside the display redaction"
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "A rehearsal showing `sf apex run test --result-format tap` does not print a line ShipLoop reads (then the adapter code is needed now); the final run hitting a different cause for the slow test stage; the owner wanting CR-4 as a standing guard.",
+      "confirm_by": "Main session, real org, no model, about 3 min (inside the existing rehearse-on-the-real-org go): `python3 test/shiploop_e2e/checks/chess_salesforce.py selftest --org de --prefix SLChess --reference`, then pipe one `sf apex run test --result-format tap` output of the reference tests into shiploop_test_counts.outcomes with the test IDs and confirm every ID reads pass. fake_sf alone cannot confirm the real format (the fake missed every real-org fact before).",
+      "owner_needed": "no"
+    },
+    {
+      "id": "P5",
+      "question": "Which worktrees and branches (sf-chess-fb04a2, packet-order-255e57, -stop-, -loop-, -packets-, and the others) to keep, and when to remove them?",
+      "options": [
+        {
+          "label": "A. Remove all of them now",
+          "effect": "Clean tree.",
+          "cost": "Seconds.",
+          "risk": "Loses the only copy of unpushed work (-stop-, -loop-, -packets-: 6 commits, none on origin) and the resume anchor of run 2; breaks 'remove only worktrees whose work is safely incorporated or preserved' (AGENTS.md)."
+        },
+        {
+          "label": "B. Rule-based: remove what is merged and clean, keep what is the sole copy, remove each in the turn it is merged (recommended)",
+          "effect": "One worktree and one scratch baseline removed now; the rest on a schedule tied to P1 and P3.",
+          "cost": "Seconds each.",
+          "risk": "Low; every removal is preceded by `git status --porcelain` empty and an ancestor check."
+        },
+        {
+          "label": "C. Keep all until the release",
+          "effect": "No risk of loss.",
+          "cost": "None.",
+          "risk": "Leaves a merged branch and a stale scratch worktree; contradicts the 2026-10-11 rule to remove in the same turn as the merge."
+        }
+      ],
+      "recommendation": "Option B. NOW: remove packet-order-255e57 and its branch (feat/packet-essentials-first-255e57 is 0 ahead of main and the worktree is clean); remove the scratch baseline worktree under the session scratchpad m16/m (detached at 2686b427, on origin/main, clean; recreate with `git worktree add --detach` when step 1.1 re-runs the audit probes). AFTER P1 and P3: sf-chess-fb04a2 stays until the run-2 decision is made (its printed resume command points at it); first the baseline row goes to the docs branch (P3 step 1), then remove the worktree and `git branch -d feat/e2e-salesforce-chess-fb04a2` (0 ahead, merged); if run 2 is resumed, keep it until the resume ends. docs-efficiency-98075a: remove with its branch right after the push in P3. -stop-, -loop-, -packets-: keep; back them up (P3), then merge into a NEW integration branch off main da9e2e75 (the plan's feat/shiploop-eff-release-ca2c6e no longer exists: it was released as 2.5.0 and removed), and remove each worktree and branch in the turn its merge lands AND the integration branch is on origin (so the work is preserved even though main has not received it); order -packets-, -loop-, and -stop- last, only after your stop-rule scope call (F1). The two Codex worktrees under ~/.codex are not ours: leave them.",
+      "rationale": "memory remove-worktree-after-merge (remove in the same turn, check clean and merged first) and AGENTS.md ('remove only worktrees whose work is safely incorporated or preserved') decide it. -stop- also has 3 open P1 findings in the branch journal, so it must not be merged just to tidy.",
+      "evidence": [
+        "command run: `git worktree list`, `git branch -vv`: packet-order-255e57 on feat/packet-essentials-first-255e57 398466a3, 0 ahead of main, `git status --porcelain` empty; sf-chess-fb04a2 e64c1156, 0 ahead of main, 1 modified file (test/shiploop_e2e/baselines.jsonl); -stop- 3b9ca9c9 (2 ahead, 35 behind), -loop- 0d462ca4 (1 ahead), -packets- c8d49b01 (3 ahead); `git ls-remote` shows none on origin",
+        "command run: legacy `git merge-tree <base> main <branch>` for each of the three: 0 conflict hunks against da9e2e75 (read-only; suites not run; the plan's recorded red combination of packets and loop still needs step 1.0)",
+        "command run: `git -C <scratchpad>/m16/m status --porcelain` empty, `merge-base --is-ancestor 2686b427 origin/main` true",
+        "no branch feat/shiploop-eff-release-ca2c6e in `git branch -a`; docs/shiploop-efficiency-journal-2026-10-16.md says cred and hook 'Released ... branch and worktree removed'",
+        "memory remove-worktree-after-merge, worktree-cleanup-2026-10-11, salesforce-chess-e2e-state-2026-10-16 (worktree kept for the resume line)"
+      ],
+      "confidence": "high",
+      "what_would_change_it": "The owner declining the run-2 resume and not wanting the baseline row (remove sf-chess at once); a merge of -packets- or -loop- that goes red (keep the worktree until the reconciliation lands).",
+      "confirm_by": "Before each removal: `git -C <worktree> status --porcelain` prints nothing and `git merge-base --is-ancestor <branch> <origin/main or the pushed integration branch>` exits 0.",
+      "owner_needed": "no"
+    },
+    {
+      "id": "P6",
+      "question": "How should the inner-loop redesign artifact become the owner's iteration tool: what to add or change, how is it refreshed, and what is its consumer contract?",
+      "options": [
+        {
+          "label": "A. Keep hand-publishing the static page and fix the findings by editing the HTML",
+          "effect": "Fastest first fix of the wrong figures.",
+          "cost": "Each refresh rewrites a 608 KB page; effort not measured.",
+          "risk": "The builder (build_page.py, run_page.py) exists nowhere I could find (searched the scratchpad and ~/src), so every refresh is manual and the unit errors below recur."
+        },
+        {
+          "label": "B. Rebuild the page from run files with a script in the repo, on top of flow.py, with a script-derived Read-first panel",
+          "effect": "Every figure comes from files (events.jsonl, metrics.json, packet archive); the step cards reuse flow.json; one implementation of the mechanism.",
+          "cost": "A repo script plus a test; effort not measured. The panel itself is small: the cross reviewer recomputed every panel fact with about 6 KB of throwaway scripts.",
+          "risk": "The page changes shape; the status/decision content (status.json: change log, 5 decisions, 14 open items) needs a committed home."
+        },
+        {
+          "label": "C. Option B plus the db capability for decisions (tick accept, reject or defer; a session reads it with ArtifactData; a copy-prompt button as fallback)",
+          "effect": "The owner can answer D-n and P-n items on the page and the next session reads the answers; the same pattern as the Run Review and Technique Atlas pages.",
+          "cost": "One collection (decisions) and a small panel; the artifact currently declares no capabilities, so a republish with `capabilities` is needed.",
+          "risk": "One more mutable surface; keep it to id, status, owner note and updatedAt."
+        },
+        {
+          "label": "D. Fold everything into the Run Review page",
+          "effect": "No second page; Run Review already has options to tick and a copy-prompt.",
+          "cost": "Rework of its schema.",
+          "risk": "Run Review holds numbers and advice per run; it has no model transcripts or change-log and is not the packet-reading view the owner uses."
+        }
+      ],
+      "recommendation": "Option C, built as B first. WHAT TO CHANGE, from the cross-cutting findings (X-10, X-11, X-12) and the page text I read: (1) A script-derived 'Read first' panel above the method text, each figure linked to its file: ShipLoop commands run, how many literal, how many cut by `| head` (median N), status displays fired (the recorded run: all 20 `complete` calls piped, display fired 1 of 21 commands); per producer stage chars written versus chars the model saw and whether the packet file was opened (3 of 8); per step seconds, turns and context tokens (60,063 to 152,716); gates that ran versus skipped (4 skipped); refusals by stage and cause (3, all test-spec check-only); item commit present (no); skills invoked (improve 1 of 4). (2) Fix the compare table: both columns on-disk chars from `packets.py --compare`, handoff rows added, seed packet excluded, percent shown (the page shows step-plan 22,292 against the 28,303 its own step header gives; producers are -10.4% on one basis, not -29.8%; handoffs 155,141 to 156,284, +0.7%); label time and turns n=1 (the same case spans 162 to 269 s across builds). (3) A staleness banner: 'recorded <date> on <sha>, main <sha>, N packet-generator commits since' (the page says 1.3.0 while its dashboard describes 2.5.0). (4) Decisions with ids (D-n, P-n) and a status, kept in the db. (5) Say what the run cannot show: 'warm inline context; recovery after a clear not measured', and annotate the failed Skill call and the unknown-skill detour on step-plan. (6) Small fixes: rename 'What reached the model' to 'Seen by the model (after any | head)', show each Improve packet under the step whose response printed it, tag host-injected skill text, collapse contract and receipt JSON (79,700 chars, 13%), expand-all, per-event anchors, pin mermaid to an exact version (it loads mermaid@11). HOW REFRESHED: the builder is committed (a mode of test/shiploop_e2e/flow.py plus a page wrapper, not a new tool; status content committed under docs/), rebuilt after every run and every merged change group in the same turn (owner rule), PDT stamp and shas set at build time, same URL. Also publish run 2 and the 2.5.0 slice through the existing shiploop-run-review skill rather than by hand. CONSUMER CONTRACT: the owner, in a browser, after each run or change group and at the start of a session; first screen = Read-first panel + open decisions with ids; below that the step cards; every figure links to its file; a time or turn delta is never shown without n and the A/A spread; a Claude Code session reads it with `Artifact read` and the decisions with ArtifactData. The page's next content is the 2.5.0 slice from P1 step 1, with the recorded 1.3.0 run as the 'before'.",
+      "rationale": "Follows produce-for-a-consumer (name the consumer, the moment and the form), always-href-and-ground, inner-loop-redesign-artifact-updates, and S-12 (one implementation per mechanism: flow.py already builds the per-step sequence the page hand-assembles). The findings show the page misleads on units today, which is the failure the owner's iteration tool cannot afford.",
+      "evidence": [
+        "live artifact E8GUBbJFgMLY95bm6TNhUx (read 2026-10-17): 'No runtime capabilities declared'; table row step-plan 30,672 to 22,292 while its step header reads 'The packet ShipLoop wrote (28,303 characters ...)'; 'Packets written: 13 (209,452 characters on disk)'; 'before these changes ()'; mermaid@11 in the page source",
+        "findings-cross.json X-10 (on-disk basis 208,570 to 186,869 = -10.4% for producers; carry-forward +9.1%; handoffs +0.7%), X-11 (Read-first facts), X-12 (misleading labels, 79,700 chars of contract JSON, mermaid unpinned), X-16 (162/192/223/269 s on the same case)",
+        "findings-stepplan.json SP-6 and findings-specimpl.json SPEC-11 (units mixed; diagram shows a loop that did not iterate; warm inline run)",
+        "find over /private/tmp/claude-501 (depth 6) and /Users/dadleet/src (depth 5) for build_page.py or run_page.py: no result; scratchpad redesign/ holds only the HTML, status.json (updated 2026-10-17 02:54 PDT) and backups",
+        "test/shiploop_e2e/flow.py module docstring (flow.json from state.md, packet archive and event stream, flagged by script; --bundle viewer); skills/shiploop-run-review/SKILL.md (scripts own the numbers, the owner ticks options)",
+        "memory inner-loop-redesign-artifact-updates (update after every change group; PDT stamp), produce-for-a-consumer, always-href-and-ground, artifact-return-paths-run-review (pull via db; comments push)"
+      ],
+      "confidence": "medium",
+      "what_would_change_it": "Finding the lost builder (then A is cheap and B becomes optional); the owner preferring decisions in chat over on the page (drop db and keep a copy-prompt); the db capability being unavailable for this artifact.",
+      "confirm_by": "No model, about an hour of scripting: compute the Read-first facts from the saved 1.3.0 run (scratchpad v9/node-fix-bug events.jsonl and metrics.json) with a repo script and check they reproduce the cross reviewer's numbers (20 of 20 piped, 1 display of 21 commands, packet file opened in 3 of 8 producer stages, 4 gates skipped); and check the compare table equals `python3 test/shiploop_e2e/packets.py <out> --compare <earlier>`.",
+      "owner_needed": "yes"
+    }
+  ],
+  "new_questions": [
+    "The plan's base is stale: D-23 and Step 1.0 name feat/shiploop-eff-release-ca2c6e, which no longer exists (released as 2.5.0 and removed); main is da9e2e75 with the credential removal and the hook merged. The plan also says -stop- 'merges green' while the branch journal says it is not releasable (3 P1 findings, one an owner call). Which base and order for Step 1.0? Proposal: a new feat/shiploop-eff-release-<hex6> off da9e2e75; merge -packets-, then -loop- (with the reconciliation), and -stop- only after the owner's F1 (stop-rule scope) call.",
+    "Every seeded step slice skips four gates because SEED_SCRIPT in test/shiploop_e2e/run.py never captures the item base (base run, mutation check, change inventory and the item commit are skipped; the W1 commit never exists). Make the capture a prerequisite unit before step 1.1 and re-baseline all slice baselines? Proposal: yes, one harness change plus a test that lint/items/<id>.md exists after seeding.",
+    "The keep-on-cap rule for the final run needs a definition: which checks count as 'org checks' (proposal: deployed, tests, rules; not project, which needs a commit) and README text in 'Keeping what a run made'. Should it be a numbered plan unit with its own test, since today's keep_refusal would delete a working app on a timeout?",
+    "Run 2's compact review-export.json (41 KB) was last written before the final state and is not in the docs commit; the shiploop-run-review skill says to commit it with the learnings entry. Re-export from the final run folder and add it to the docs push?",
+    "The run-2 folder (sfchess/live2) lives under the session scratchpad in $TMPDIR, which macOS purges after days. If the resume (P1 option A) is wanted, it should happen within a day or two; otherwise should the folder be archived somewhere durable (not moved: its paths are absolute)?"
+  ]
+}

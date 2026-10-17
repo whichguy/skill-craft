@@ -1,0 +1,9 @@
+AssertionError: 22320 not less than or equal to 22319 : ask-agent step-plan printed as a head is 22320 characters at the reference install: above its journaled value; raise it in head_table.json with 
+AssertionError: 16877 not less than or equal to 16876 : inline carry-forward printed as a head is 16877 characters at the reference install: above its journaled value; raise it in head_table.json with
+FAILED (failures=2)
+OK
+AssertionError: 20638 not less than 20000 : inline step-plan crosses the host's output cut and is not a recorded gap
+FAILED (failures=1)
+OK
+AssertionError: 20638 not less than or equal to 20637
+FAILED (failures=1)

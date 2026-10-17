@@ -1,0 +1,205 @@
+{
+ "lens": "Adversarial design review: sequencing, S-6, head budget at 83/163, owner rules, reversals, hidden costs, misses, KISS",
+ "problems": [
+  {
+   "id": "RT-1",
+   "severity": "P0",
+   "where": "aggregate-plan-rev5.md section 1 item 3; U7 exit 2; section 6.5 row 8; D-18; D-27",
+   "claim": "Heads fit by reorder and named offsets, never by trimming a duty; step-plan budget is about 19,900 (inline) and 21,700 (ask-agent) at 83 characters, with P0 ending before character 19,500.",
+   "finding": "The plan's own numbers do not meet its hard invariant. Chrome is only about 460 characters, so a 19,900 total puts P0 at about 19,440, and 21,700 puts P0 at about 21,200 (1,700 over). Simulating the plan's order on the real merged render gives about 20.7 KB total and P0 ending near 20.2 KB inline, so about 700 over. Ask-agent adds duty 11 and the Backchain block (about 1.7 KB), so it is about 2,400 over. The only listed relief is ladder rung 3 (move duty 9's conditional bullets to plan-record.md), which section 3.3 and 8.2 forbid, and D-18 (move the Backchain block) is deferred to U29, after U7 needs it. Section 6.5 row 6 (plan) says the 21.0 KB head is cut 'on chrome' at 163, but 21.0 KB minus about 0.46 KB of chrome is still past 20,000.",
+   "evidence": "Ran: SP/eff2/r5/merged83-inline/01-step-plan.printed.txt is 20,484 chars; Progress view, Pause and HEAD_END lines total 462. Removed lines I could name (index pointer, Full packet, footer, 'Never end the turn', Recovery, Knowledge sentence) = 1,029; new 6.2 lines = 562; callback reason = 159; 400-char excerpt and duty-9 opening are my estimates (not measured). Diff of SP/eff2/redteam-render/ask83 against the inline render shows the ask-agent extra is duty 11 plus the Backchain paragraph. Plan quote: 'about 19,900 / 21,700 at 83 (P); P0 ends before char 19,500 at 83 (hard)'.",
+   "correction": "Decide D-18 (Backchain block to a reference) or relax the hard invariant for ask-agent step-plan before U7, not at U29. Drop the claim 'never by trimming a duty' from section 1, or state which duty moves. Re-derive the step-plan budget from the listed offsets."
+  },
+  {
+   "id": "RT-2",
+   "severity": "P0",
+   "where": "U18 work (a)/(b) and exit 1; D-15; owner rule 5",
+   "claim": "skills/improve/SKILL.md becomes a router of at most 6,000 characters and skills/improve/references/shiploop-route.md (at most 8,192 bytes) takes the rest, a test asserting both bounds.",
+   "finding": "About 18.9 KB of the 28.4 KB card is the standalone /improve and improve-agent binding (Standalone owner binding, Continue after context loss, Completion summary, Preview, Execution handoff), not ShipLoop. The ShipLoop subcall is about 4.3 KB. Either those obligations are dropped for every non-ShipLoop /improve user, or the bounds are exceeded, so the exit cannot be met honestly. A file named shiploop-route.md also cannot be the home of the standalone path, and the card is linked by anchors (#agent-run-invocation, #standalone-owner-binding).",
+   "evidence": "wc -c skills/improve/SKILL.md = 28,365; awk over lines 90-153 (ShipLoop whole-skill subcall) = 4,296 bytes; lines 165-end = 18,886 bytes. The card's own text: 'This standalone card binds that reusable policy...'. Owner rule 5: raise the bound, do not trim an obligation.",
+   "correction": "Split into router + shiploop-route.md + standalone-route.md (or keep the standalone body in place), set the bounds from the measured ShipLoop-only text, and add a standalone /improve fixture to the exit."
+  },
+  {
+   "id": "RT-3",
+   "severity": "P0",
+   "where": "U33 work; U27 keep rule; D-27/P1; N13/N17; owner update 2026-10-17 (the app must remain in org de)",
+   "claim": "The final run uses two 10,800 s segments, resumed once, as visible background tasks, and the app stays in the org.",
+   "finding": "Two independent paths defeat the kept app. (1) The measured background-task kill is about 120 min, below the 180-min segment; a kill is SIGTERM, which sets TERMINATION, so keep_refusal returns 'the run was stopped' and the platform guard cleans the org (deletes the app); U27 itself says 'never after a signal'. A 4.3-4.9 h run needs at least three invocations. (2) If the timeout fires first, U27 keeps the app, and every non-regrade --resume-run runs platform_preflight, which the case's preflight refuses while a kept SLChess app exists, so the resume cannot start. N17 mentions the refusal only for the next run, not the next segment.",
+   "evidence": "memory detach-long-runs.md: 'a long background Bash task is killed at about 120.3 min' (2026-10-05); run 2 deliberately used --timeout 7200 (result.json process.elapsed_seconds 7201.6). test/shiploop_e2e/run.py: on_termination sets TERMINATION; keep_refusal returns 'the run was stopped' when TERMINATION is set; main resume path calls platform_preflight(platform_spec, env, out) when not regrade. sessions.jsonl and result.json earlier_cleanups show run 2's org was cleaned at each invocation end.",
+   "correction": "Use segments under 7,200 s with --resume-run each time, make keep_unfinished apply only to a declared final invocation (or let the resume preflight accept the run's own kept record), and add a Monitor re-arm (memory progress-monitor-rearm)."
+  },
+  {
+   "id": "RT-4",
+   "severity": "P1",
+   "where": "U1 work (c) and exit 2; U7 'needs U1'",
+   "claim": "U1 swaps the head-size constant for a per-stage table plus the hard test at 83 (loop start, callback, Keepalive marker end before char 19,500) and every G-SUITES suite exits 0 on the merged tree.",
+   "finding": "On the merged tree the loop start command sits at the end of the head, so the new hard test fails before U7's reorder, but U7 needs U1. The executor loops or blocks at U1 on the critical path.",
+   "evidence": "SP/eff2/r5/merged83-inline/01-step-plan.printed.txt: 'until_loop_ephemeral.py start' line begins at offset 19,432 and is 492 chars (ends 19,924, line 201 of 206); the Result line begins at 19,925. Shorter real install paths still end near 19,850.",
+   "correction": "Move the loop-start/hard-test assertion to U7 and keep U1's table as the green baseline."
+  },
+  {
+   "id": "RT-5",
+   "severity": "P1",
+   "where": "U2 work (b) and exit 1; D-6/R1; section 1 item 6",
+   "claim": "Gate 3 for implement and carry-forward 'costs nothing against main'.",
+   "finding": "U2's written gate 3 is 'two consecutive trivial, unchanged passes counted from the last pass that changed it'. That drops the decision's first clause (R1 option B: stop on a first pass that is unchanged, main's rule). Built literally, a clean first review needs pass 2, so each of the five implement reviews that end at P1 in the live run costs one extra pass. No exit case checks 'first pass unchanged ends at P1 under gate 3', so the tests pass anyway.",
+   "evidence": "decisions-release.json R1 option B text and evidence ('the other five end at P1'); main runtime skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py completes on unchanged_first_pass at pass 1; U2 exit 1 lists replay cases (edit,none,none) etc. but none starting with 'none'.",
+   "correction": "Add to U2 work (b) and exit 1: gate 3 completes on an unchanged first pass; extend StopRuleReplayTests with (none) -> P1 for gate 3."
+  },
+  {
+   "id": "RT-6",
+   "severity": "P1",
+   "where": "U8 line B (6.2); U9 RESUME_LINE; journal LP-3 (not in any unit)",
+   "claim": "A cut print is recovered by opening the packet file, 'or you need the duties, the template or the loop command'.",
+   "finding": "The runtime does not refuse a second start for the same receipt, and the packet file keeps the RUN line plus the copy-ready start command until the next emit. Line B sends every cut-print reader to that file, so a reader after a clear can restart the loop and reset its progress. LP-3 is open and unassigned.",
+   "evidence": "Ran the vendored runtime twice on one --receipt in SP/eff2/redteam-render/dstart: after one non-trivial done, progress action_number 2; a second start returned rc 0 and progress action_number 1. Commit 0d462ca4 message: 'writes a new run over it'. shiploop_loops: RESUME_LINE if os.path.lexists(receipt) else INVOKE_LINE is chosen at emit time.",
+   "correction": "Assign LP-3 to U9: rewrite the packet file when the loop starts (or make start refuse an existing active receipt), and drop 'the loop command' from line B's reasons."
+  },
+  {
+   "id": "RT-7",
+   "severity": "P1",
+   "where": "Consumer line; G-RENDER; U1 N15; U5 exit 1 and 3; U35 exit; U34",
+   "claim": "The session that executes reads this plan as its work order; exits reproduce numbers from SP/sfchess/live2, SP/v9/node-fix-bug and SP/pk/live.",
+   "finding": "The plan, the six findings files, the decisions files and the cited inputs live only in the session scratchpad under /private/tmp, which macOS purges after days (the plan says so for live2); U34 lands the plan last. Only live2 is copied (to src-archive, outside the repo). U5 and U35 exits cannot be evaluated by a later session, and CLAUDE.md says evidence stays in the repo.",
+   "evidence": "CLAUDE.md: 'Keep evidence in the repo (exported, compact), never only in a scratchpad.' du: SP/v9 2.2 MB, SP/pk 0.7 MB, SP/artrev 0.5 MB, none committed; G-RENDER names SP/eff2/r5/heads_one.py.",
+   "correction": "In U1 commit the plan, the two findings sets and compact copies of v9, pk and artrev under docs/experiments/ and point the exits there."
+  },
+  {
+   "id": "RT-8",
+   "severity": "P1",
+   "where": "section 1 item 10; section 5.9 cost table; decisions-process.json option C",
+   "claim": "The final run takes 4.3 to 4.9 h and $26 to 30 (cap 6 h).",
+   "finding": "The range comes from 'old-build 5.7 h less 15 to 25% from the plan's levers'. The plan's own measured levers are about 4 min net (stop rule) and 1 to 3% at best (style line, conditional); heads and dedupe save bytes, not minutes, and the plan says time cannot be decided at affordable n. At 5.7 h against a 6 h cap the run likely hits the cap again, as run 2 did at test.",
+   "evidence": "decisions-process.json: 'Projected 4.3 to 4.9 h (old-build 5.7 h less 15 to 25% from the plan's levers)'; run 2: 4.06 h spent plus 1.7 h remaining; $6.10/h gives about $35.",
+   "correction": "State 5 to 6 h and $30 to 37 as the expectation, or show the lever measurement; plan for a third invocation."
+  },
+  {
+   "id": "RT-9",
+   "severity": "P2",
+   "where": "section 5 preamble; G-RENDER; U14 exit; U10 exit 1",
+   "claim": "Every exit item is a command or file check with an expected result.",
+   "finding": "G-RENDER's 'every changed line classified ... no head grows without a named offset' has no script (used by U1, U7-U11), so it is model-judged (rule 9). U14's 'grep -rn \"of 11\"' finds nothing today because the number is built from MAX_REFUSED_RUNS, so it cannot fail. U10 exit 1 greps FEATURE/spec.md, which U11 owns, and a second copy sits in skills/shiploop-run-review/defaults/stages.json.",
+   "evidence": "grep -c 'of 11' skills/shiploop/scripts/shiploop_test_loop.py = 0 on main; hits for FEATURE/spec.md: shiploop_stage_spec.py:222 and defaults/stages.json; U19(4) and U31 rely on an Opus judge for 'caught at pass 1'.",
+   "correction": "Name a script for line classification (extend packet_anatomy or a diff checker), grep the formatted source ('MAX_REFUSED_RUNS) + \" of\"'), and move cross-unit greps to their owning unit; score seeded defects by a script."
+  },
+  {
+   "id": "RT-10",
+   "severity": "P2",
+   "where": "section 5.9 graph; U9; U18; U2; D-18",
+   "claim": "U9 runs in parallel with U7; U18 (base main) runs first and alone; D-18 is re-decided at U29.",
+   "finding": "U9's exit (the RUN line and start command in the first 14 lines) needs U7's ordered builder, so it is not independent. U18 rebuilds SKILL.md, review-policy.md, callback-evidence.md and ADAPTER.md from main while U2 (merging the stop branch) edits the same four files, so merges conflict and U18's ledger is stale. D-18 is needed by U7 but scheduled after it.",
+   "evidence": "git diff --stat main...feat/shiploop-eff-stop-6afcbc touches skills/improve/SKILL.md, references/callback-evidence.md, references/review-policy.md, runtime/until-loop/ADAPTER.md.",
+   "correction": "Order U2 before U18 (or base U18 on INT after U2), make U9's order check part of U7, and decide D-18 inside U7."
+  },
+  {
+   "id": "RT-11",
+   "severity": "P2",
+   "where": "G-SUITES; U11; U15; test/shiploop-run-review.test.py",
+   "claim": "G-SUITES plus G-QUICK catch every suite a unit breaks.",
+   "finding": "Changing a stage's goal (U11's FEATURE/spec.md fix) or complete_runs (U15 adds check-rerun) makes the committed defaults/stages.json stale, and shiploop-run-review goes red. That suite is not in G-SUITES, and --changed-from does not select it, so it surfaces only in full CI at the release commit (the quick-needs-changed-from failure).",
+   "evidence": "test_the_committed_catalog_equals_what_the_engines_stage_table_yields ('stage table changed: run export.py --stages'); suite_catalog.targeted(['skills/shiploop/scripts/shiploop_stage_spec.py']) returned 12 suites without shiploop-run-review; run-all.sh --group quick --list and shiploop-composition do not list it. Stage catalog rows carry completeRuns and purpose.",
+   "correction": "Add shiploop-run-review to G-SUITES, regenerate defaults/stages.json with export.py --stages, and add a changes/shiploop-run-review note."
+  },
+  {
+   "id": "RT-12",
+   "severity": "P2",
+   "where": "U1 work (c) and exit 4",
+   "claim": "Two stale cards name 'the line after the header'; the grep covers skills/shiploop/commands.",
+   "finding": "Two more statements that the callback is the line after the header stay false after U8: skills/shiploop/README.md and skills/shiploop/references/navigator.md (a reference the model opens).",
+   "evidence": "skills/shiploop/README.md:972 'its first line after the header is the one legal callback'; skills/shiploop/references/navigator.md:260 'The line after the packet header ... is the one legal callback'; test/shiploop-improve-schedule.test.py:70 helper 'the line after the navigator header'.",
+   "correction": "Widen the grep to skills/shiploop and fix all three."
+  },
+  {
+   "id": "RT-13",
+   "severity": "P2",
+   "where": "G-RENDER; U5 --run-dir-length; U1 hard test; section 6.5",
+   "claim": "The 'normal install' is a run directory of 83 characters.",
+   "finding": "Offline renders print the CLI as bare 'shiploop' (_command returns it when core has no PACKAGE_ROOT); the real plugin-cache CLI is 96 characters and appears three times in a step-plan head (callback, next, pause), so about 260 characters are missing from every '83' figure. The journal's PK-1 named this blind spot; the plan never mentions it.",
+   "evidence": "shiploop_navigator._command; ls of /Users/dadleet/.claude/plugins/cache/whichguy/skill-craft/*/skills/shiploop/scripts/shiploop = 96 chars; grep of the plan for 'CLI path' finds nothing; merged83 render shows 'python3 shiploop complete/next/pause'.",
+   "correction": "Pad the CLI path in --run-dir-length and in PrintedHeadTests, and recompute the 83 table."
+  },
+  {
+   "id": "RT-14",
+   "severity": "P2",
+   "where": "G-UNIT; G-STD; G-REVIEW (17 units); memory testing-scope-to-change",
+   "claim": "Every unit merges with G-SUITES (25 suites) plus G-QUICK plus a gpt-6.1-sol review.",
+   "finding": "This is the pattern the owner corrected five times ('I think that's testing too much'; 'default to one review round, plus one final targeted test pass'; prompt-only changes: run one or two pinning suites). 17 units carry G-REVIEW, and the same suites re-run at U30.",
+   "evidence": "grep: G-REVIEW appears in the exits of U2, U7-U19, U21, U25, U29; memory testing-scope-to-change.md.",
+   "correction": "Scope per unit to the pinned suites found by search, one review round per release, full set at U30 only."
+  },
+  {
+   "id": "RT-15",
+   "severity": "P2",
+   "where": "section 5 (35 units, 'Repeat while any condition fails; no iteration limit')",
+   "claim": "Each unit loops until its exits hold.",
+   "finding": "CLAUDE.md says no unbounded autonomous loop and requires stops on 3 no-progress iterations and the same error 3 times. Units have specific 'Stop blocked' lines but no generic stops and no budget for the offline loops (the live runs have --max-budget-usd).",
+   "evidence": "CLAUDE.md: 'Never start an unbounded autonomous loop - every loop carries a real quota' and 'Stop on: 3 no-progress iterations; same error 3x'.",
+   "correction": "Add the 3-no-progress and same-error stops and a per-unit cap to G-UNIT."
+  },
+  {
+   "id": "RT-16",
+   "severity": "P2",
+   "where": "U6 part 2; section 7.2; U31 exit 2",
+   "claim": "A/A is the control twice per host and case; arms.py exits non-zero inside the A/A spread.",
+   "finding": "U6 prices and requires one pair (Claude node-fix-bug, about $9) but U31 has three slice kinds (Grok node-fix-bug, Claude two-step ask-agent); their spreads do not exist. A spread from n=2 has one degree of freedom.",
+   "evidence": "U6 work: 'Claude node-fix-bug twice, about $9'; U6 exit 3: 'both A/A controls'; section 7.2: 'twice per host and case'.",
+   "correction": "Run and price an A/A pair per slice kind, or declare the other slices descriptive only."
+  },
+  {
+   "id": "RT-17",
+   "severity": "P2",
+   "where": "section 6.2; D-21; section 4.3 item 4",
+   "claim": "The owner's 'master reference' is the packet file; the top lines drop the reference.md and context-index.md names.",
+   "finding": "The owner's quoted words ask the top of each packet to say where the master reference index is, 'to find all the other references and what it can find in there'. The plan frames this as 'a card you may have pictured' and lists no pointer to any index.",
+   "evidence": "Commit f3f6a6bc message quotes the owner (2026-10-16); plan 6.2: 'Your master reference is the packet file'.",
+   "correction": "Quote the owner's words in 4.3 item 4 and keep one line naming the index and what it holds, or get the explicit ruling."
+  },
+  {
+   "id": "RT-18",
+   "severity": "P2",
+   "where": "U15; U12 (SPEC-6 notice)",
+   "claim": "U15 makes implement complete refuse done unless each check row exits 0.",
+   "finding": "Value shown: one run where checks were typed words, no failing check accepted ('Fidelity, not minutes'). For: earlier feedback; against: a new refusal (rule 13/4), ShipLoop's subprocess runs model-written commands (owner 2026-10-11: hooks must see every command, the reason the plan gives to defer exit_checks), a deploy-type check redeploys, and the revert test (U31) has no Salesforce slice. Verdict: notice only, or defer. U12's coverage notice has 'impact low, no bytes' and its own false-notice risk: defer.",
+   "evidence": "findings-specimpl.json SPEC-1, SPEC-6; plan section 3.3 row 'SPEC-1 stage 3 ... (owner 2026-10-11: no runtime subprocess)'; shiploop_stage_spec.COMPLETE_RUNS.",
+   "correction": "Ship U15 as a printed notice, or add a Salesforce slice before making it a refusal."
+  },
+  {
+   "id": "RT-19",
+   "severity": "P2",
+   "where": "U8 callback reason; line B; section 7.2 decision order",
+   "claim": "The callback reason and cut detection are efficiency changes.",
+   "finding": "They aim to make the model read prints it now cuts: it saw 3.4-7.4 KB of 17-29 KB per producer packet. If it complies, ingest per stage rises by roughly 10-20 KB, and the plan's own decision order ranks bytes ingested second. No direction or offset is stated; U21 (the offset) rides the upstream release.",
+   "evidence": "findings-cross.json X-1 (observation), plan 7.2 'then fewer bytes ingested'; artifact: 20 of 20 complete calls piped (my regex count over SP/artrev).",
+   "correction": "State the expected ingest increase and the offsets, or keep the print cut and move the status/callback lines earlier."
+  },
+  {
+   "id": "RT-20",
+   "severity": "P3",
+   "where": "section 5.9 critical path; U29",
+   "claim": "Critical path: ... U25, U29, U30, U31, U33.",
+   "finding": "U29 (platform text move, domain-word lint) is rule 8 hygiene unrelated to efficiency or to the run, yet it gates U30 and the live battery. Rule-8 violations are real (README, consumer-delivery.md, coding-guidance.md, navigator.py), so keep it, off the critical path.",
+   "evidence": "grep -rIl 'Kiwipete|perft|Salesforce' skills/shiploop lists README.md, references/consumer-delivery.md, coding-guidance.md and scripts/shiploop_navigator.py outside platforms/.",
+   "correction": "Make U29 not gate U31/U33."
+  },
+  {
+   "id": "RT-21",
+   "severity": "P3",
+   "where": "D-16, D-5; memory batch-run-to-completion",
+   "claim": "Release A (stop rule, router, markers) and release B; vendored changes ride upstream.",
+   "finding": "Rev 4 D-16 said one release after one verification run; rev 5 splits into two and ships release A before U31 tests it, without listing the change in section 3.1 or the memory ('release once').",
+   "evidence": "final-plan.md D-16; rev 5 D-16; memory batch-run-to-completion.md.",
+   "correction": "Add a C-row and ask the owner explicitly."
+  }
+ ],
+ "verified_ok": [
+  "20 of 20 model complete calls piped through head and built with shell variables (regex count over SP/artrev: 20/20/20); DRIVING_COMMAND and COMMAND_RUN_DIR do not match 'python3 $SC complete' (ran), but match a literal 'shiploop next --run-dir=/abs' even when piped.",
+  "Merged-tree step-plan head 20,484 at 83 characters reproduces from the saved render; loop block, owner rule and index pointer positions match the plan's account.",
+  "Improve stages with improve: always are exactly spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan; implement is 'step', carry-forward 'last-item' (STAGE_SPEC).",
+  "OpenCode sets process.env.OPENCODE=\"1\" at startup (strings of /opt/homebrew/bin/opencode 1.18.31), so U20's marker is real.",
+  "Branch state: stop 2 ahead/35 behind, loop 1/35, packets 3/35, docs branch 1 ahead of main; 398466a3 is in main; packet-order worktree is clean.",
+  "'Never end the turn' appears twice in the step-plan and implement heads (standalone line plus RULES bullet), so removing the standalone line there is a script-proven duplicate inside one packet; 0eeb68e2's diff-to-pointer is also within one packet, not an S-6 move.",
+  "Exits that fail on main as claimed: U9 grep (shiploop_loops.py:460 'skill until-loop'), U12 grep ('\"R-3\"' at shiploop_expectations.py:93), U11 shiploop-drive grep, U8 'Run context index'.",
+  "C6 evidence: in artifact 05-improve the runtime done and shiploop complete ran in one Bash call.",
+  "Test-suite names in G-SUITES all exist except the three the plan creates (packet-obligations, efficiency-journal, domain-words); run-all.sh supports --changed-from."
+ ]
+}

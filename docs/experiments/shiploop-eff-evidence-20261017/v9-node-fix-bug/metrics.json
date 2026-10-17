@@ -1,0 +1,294 @@
+{
+  "tmp_writes": [],
+  "claude_code_version": "2.1.296",
+  "sessions": [],
+  "turns": 70,
+  "model_calls": 41,
+  "window_tokens": null,
+  "tokens": {
+    "input_peak": 152716
+  },
+  "unmeasured": {
+    "compactions": "only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "window_tokens": "no result event named one context window in its modelUsage (the host reports none, the session ended before it reported, or several models reported different windows)"
+  },
+  "cost_usd": null,
+  "unreported_sessions": 1,
+  "unreported_sessions_at_least": null,
+  "compactions": null,
+  "truncated_outputs": null,
+  "cancelled_tool_calls": [],
+  "shiploop_failures": [
+    {
+      "verb": "complete",
+      "exit": null,
+      "line": "ShipLoop navigator: test_cases[0] needs exactly id, criterion, requirement, oracle, red, green; test_cases are [{\"id\": \"TC-1\", \"criterion\": \"C1\", \"requirement\": \"R-3\", \"oracle\": \"<what observes the be"
+    },
+    {
+      "verb": "complete",
+      "exit": null,
+      "line": "ShipLoop navigator: test_cases[0] needs exactly id, criterion, requirement, oracle, red, green; test_cases are [{\"id\": \"TC-1\", \"criterion\": \"C1\", \"requirement\": \"R-3\", \"oracle\": \"<what observes the be"
+    },
+    {
+      "verb": "complete",
+      "exit": null,
+      "line": "ShipLoop navigator: Fix case requirements in /private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/v9/node-fix-bug/.shiploop-runs/seed/run/inbox/nav-5a"
+    }
+  ],
+  "tool_use": {
+    "calls": 41,
+    "by_tool": {
+      "Bash": 37,
+      "Edit": 1,
+      "Read": 1,
+      "Skill": 2
+    },
+    "result_chars": 134265,
+    "scratch_scripts": [],
+    "packets": {
+      "on_disk": {
+        "files": 13,
+        "bytes": 210253
+      },
+      "printed": {
+        "replies": 12,
+        "chars": 54709
+      },
+      "read": {
+        "read_tool": [
+          {
+            "packet": "nav-3a28fd23340c4d02b25b75858c852abc",
+            "whole": true,
+            "chars": 29175
+          }
+        ],
+        "shell": {
+          "calls": 2,
+          "chars": 8269
+        }
+      }
+    }
+  },
+  "script_verifications": {
+    "records": 2,
+    "passed": 2,
+    "could_not_run": 0,
+    "commands": 6,
+    "red": 0
+  },
+  "model_glue": [],
+  "asked_user": [],
+  "improve_children": 4,
+  "improve_reviews": {
+    "children": 4,
+    "passes": 4,
+    "max_passes": 1,
+    "per_child": [
+      {
+        "child": "nav-3a28fd23340c4d02b25b75858c852abc",
+        "passes": 1,
+        "seconds": 0.0,
+        "bytes": 439
+      },
+      {
+        "child": "nav-5abc7f7e0a1645a4aa3f1a682045235b",
+        "passes": 1,
+        "seconds": 0.0,
+        "bytes": 381
+      },
+      {
+        "child": "nav-60214ef934314757bef02fff25cf64ab",
+        "passes": 1,
+        "seconds": 0.0,
+        "bytes": 226
+      },
+      {
+        "child": "nav-a4fd6cda001649a996a9599bc78e4d41",
+        "passes": 1,
+        "seconds": 0.0,
+        "bytes": 273
+      }
+    ]
+  },
+  "knowledge_reads": [],
+  "narrative": {
+    "emitted": 3,
+    "shown": 0,
+    "verbatim": 0,
+    "skipped": [
+      "step-plan",
+      "step-plan",
+      "improve"
+    ],
+    "results": 15,
+    "with_headline": 7
+  },
+  "stages": [
+    {
+      "stage": "intake",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "discovery",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "research",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "spec",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "test-strategy",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "plan",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "prepare",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "step-plan",
+      "outcome": "done",
+      "seconds": 66.4,
+      "turns": 21,
+      "tool_calls": 15,
+      "context": {
+        "calls": 14,
+        "peak": 108853,
+        "peakPct": null
+      }
+    },
+    {
+      "stage": "test-spec",
+      "outcome": "done",
+      "seconds": 49.0,
+      "turns": 21,
+      "tool_calls": 10,
+      "context": {
+        "calls": 10,
+        "peak": 122350,
+        "peakPct": null
+      }
+    },
+    {
+      "stage": "validate-existing",
+      "outcome": "done",
+      "seconds": 0.0,
+      "turns": 0,
+      "tool_calls": 0
+    },
+    {
+      "stage": "implement",
+      "outcome": "done",
+      "seconds": 29.0,
+      "turns": 8,
+      "tool_calls": 4,
+      "context": {
+        "calls": 5,
+        "peak": 129992,
+        "peakPct": null
+      }
+    },
+    {
+      "stage": "test",
+      "outcome": "done",
+      "seconds": 20.0,
+      "turns": 5,
+      "tool_calls": 4,
+      "context": {
+        "calls": 3,
+        "peak": 134848,
+        "peakPct": null
+      }
+    },
+    {
+      "stage": "document",
+      "outcome": "done",
+      "seconds": 13.0,
+      "turns": 4,
+      "tool_calls": 2,
+      "context": {
+        "calls": 2,
+        "peak": 139052,
+        "peakPct": null
+      }
+    },
+    {
+      "stage": "verify",
+      "outcome": "done",
+      "seconds": 15.0,
+      "turns": 3,
+      "tool_calls": 2,
+      "context": {
+        "calls": 2,
+        "peak": 142766,
+        "peakPct": null
+      }
+    },
+    {
+      "stage": "carry-forward",
+      "outcome": "done",
+      "seconds": 27.0,
+      "turns": 6,
+      "tool_calls": 3,
+      "context": {
+        "calls": 4,
+        "peak": 150232,
+        "peakPct": null
+      }
+    },
+    {
+      "stage": "system-test-author",
+      "outcome": null,
+      "incomplete": true,
+      "seconds": 2.4,
+      "turns": 2,
+      "tool_calls": 1,
+      "context": {
+        "calls": 1,
+        "peak": 152716,
+        "peakPct": null
+      }
+    }
+  ],
+  "planning": {
+    "window": {
+      "closed": true,
+      "through": "test-spec",
+      "seconds": null,
+      "host_seconds": null,
+      "before_engine_seconds": null
+    },
+    "stages": [],
+    "improve": null,
+    "producer_seconds": null,
+    "unmeasured": {
+      "window": "a planning stage was accepted before the host's first event (the harness records a seeded run's early stages itself), so the window is not the host's work"
+    },
+    "tokens": {
+      "unmeasured": "the planning window is not measured: a planning stage was accepted before the host's first event (the harness records a seeded run's early stages itself), so the window is not the host's work"
+    }
+  },
+  "fresh_starts": [],
+  "fresh_starts_unmeasured": "compactions not detected on this host: only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "span": {
+    "started": 1791778315.59,
+    "ended": 1791778537.361
+  }
+}
