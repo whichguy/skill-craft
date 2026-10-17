@@ -751,6 +751,8 @@ class DelegationCliTests(unittest.TestCase):
         self.base = Path(self.temp.name).resolve()
         self.repo = self.base / "product"
         self.repo.mkdir()
+        # The Improve review's unchanged-content gate measures a Git worktree; ShipLoop starts the child at the transition.
+        subprocess.run(["git", "-C", str(self.repo), "init", "-q"], check=True, capture_output=True)
         self.run = self.base / "run"
         self.env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "GIT_CONFIG_NOSYSTEM": "1",
                     "GIT_CONFIG_GLOBAL": os.devnull}

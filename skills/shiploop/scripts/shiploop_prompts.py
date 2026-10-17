@@ -1902,7 +1902,8 @@ A protected or out-of-scope change follows the existing blocked or recovery rout
 # Backchain passes option existed.
 _BACKCHAIN_PLAN_GATE_CONVERGE = """\
 Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
-two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
+two consecutive distinct complete trivial/no-change dependency reviews (the bundled runtime
+measures the plan unchanged since the previous pass instead of counting), recovery, and
 terminal transition; Backchain and ShipLoop do not copy that runtime or create another
 controller.
 """
@@ -2037,8 +2038,9 @@ _BACKCHAIN_GATE_ONE_ITEM = """Until Loop owns the callback handle, progress, the
       repaired the candidate, and no second review runs. Put the line `Backchain passes: one` beside the binding
       marker in the child request;"""
 _BACKCHAIN_GATE_CONVERGE_ITEM = """Until Loop owns the callback handle, progress, its
-      `required_trivial_reviews: 2` gate for two consecutive distinct complete trivial/no-change dependency reviews,
-      recovery and the terminal transition; copy none of that runtime and create no other controller;"""
+      `required_trivial_reviews: 2` gate for two consecutive distinct complete trivial/no-change dependency reviews
+      (the bundled runtime measures the plan unchanged since the previous pass instead of counting), recovery and
+      the terminal transition; copy none of that runtime and create no other controller;"""
 
 
 def _backchain_item(stage: str, backchain_passes: str) -> str:

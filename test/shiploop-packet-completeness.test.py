@@ -51,6 +51,7 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
     """
     with tempfile.TemporaryDirectory(prefix="shiploop-packet-completeness-") as temp:
         repo = Path(temp)
+        subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True, capture_output=True)  # the gate measures Git
         run = repo / "run"
         run.mkdir()
         state = navigator.new_state(str(repo), "Build a thing.", delegation="inline", planning_review=planning_review,

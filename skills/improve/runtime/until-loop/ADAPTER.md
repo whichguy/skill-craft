@@ -27,7 +27,7 @@ metadata:
 You are the executor of a script-owned loop. Interpret the user's natural language,
 execute one assigned iteration, report its evidence, and follow the script's
 returned instruction. The script owns action identity, current state, the
-consecutive-trivial count and transitions. You own semantic judgment and actual
+review-gate measurement and transitions. You own semantic judgment and actual
 work. Do not invoke `/goal` or create a background scheduler.
 
 For authorized execution, always start the runtime, even when the work looks
@@ -137,7 +137,7 @@ One callback covers **one complete assigned iteration**, not the entire loop. Tr
 Only after that execution (or an actual incomplete stop), call the packet's exact `done_argv` with a JSON report on stdin matching its `report_schema`:
 
 - `classification`: `trivial` only for a distinct completed iteration/review with only trivial/no changes, no material findings and applicable checks; `non-trivial` for behavioral changes or material findings, even if fixed in this action; `unresolved` if the required execution or assessment remains incomplete. Classify this iteration's actual changes and findings; line count or earlier edits still present in the diff do not determine materiality.
-- `exit_assessment`: `satisfied`, `unsatisfied`, or `unknown`, based on evidence for the substantive exit condition. Report `satisfied` only after checking every exit clause on its own, against its literal wording (every qualifier of where, which, how many and exactly what) and the current artifacts, after this iteration's last change. Name each clause and its fresh observation in `evidence`, taken this iteration from current artifacts or durable receipts (never by repeating a one-time action); a clause you did not observe is `unknown`, not satisfied. The script also enforces the requested consecutive-trivial gate. `unresolved` cannot assert a satisfied exit.
+- `exit_assessment`: `satisfied`, `unsatisfied`, or `unknown`, based on evidence for the substantive exit condition. Report `satisfied` only after checking every exit clause on its own, against its literal wording (every qualifier of where, which, how many and exactly what) and the current artifacts, after this iteration's last change. Name each clause and its fresh observation in `evidence`, taken this iteration from current artifacts or durable receipts (never by repeating a one-time action); a clause you did not observe is `unknown`, not satisfied. The script also enforces the review gate (a trivial report, and for gate 2 unchanged content). `unresolved` cannot assert a satisfied exit.
 - `continuation_assessment`: `allowed`, `blocked`, or `cancelled`, based on the repeat condition and current user instructions. Name an actual blocker or cancellation in the evidence.
 - `evidence`: actual observations, checks, changes and remaining gaps for this iteration. Do not submit intended actions or sample claims as observed facts.
 - `handoff`: the complete compact continuation summary described above, including still-relevant prior facts and exact new artifact/receipt locators. Always required; never replace it with only “see above” or this iteration’s delta.
@@ -188,14 +188,15 @@ The single tempfile lasts across script calls in this logical run and is removed
 For authorized execution, send the interpreted contract as JSON stdin to
 `python <absolute scripts/until_loop_ephemeral.py> start`. Include `workspace`,
 `work`, `exit_condition`, `repeat_condition`, `required_trivial_reviews`, the
-`exit_checks` list, and the complete `context` object described in the adapter.
-Set the gate from the requested policy: Improve uses two; generic work defaults
-to zero unless a review count was requested. With a gate of two or more, the
-loop ends when that many consecutive passes make no changes, or when the first
-pass completes with no change: the runtime records the workspace's Git content
-at `start` and, if a trivial, satisfied first report leaves it unchanged,
-completes with `progress.unchanged_first_pass`. The report cannot claim this;
-Git decides it. The returned packet is the first
+optional `candidate_paths` and `exit_checks` lists, and the complete `context` object described in the adapter.
+Set the gate from the requested policy: Improve uses 2; a requested single trivial
+review uses 1; generic work defaults to 0. Gate 2 ends the loop on the first pass that is
+reported trivial and satisfied and leaves the content tree as the previous pass left it (the
+first pass: as it was at `start`); it does not count reviews, and larger values are refused. The runtime
+records the workspace's Git content, plus the bytes of any `candidate_paths` file, at `start`
+and after every pass, and `progress.last_pass_changed_tree` carries the result. The report
+cannot claim this; Git decides it, and a pass that changed the tree never ends the loop
+however it is labelled. The returned packet is the first
 action. Keep conditions out of the executable body so one callback never conceals
 multiple private improvement iterations.
 
@@ -203,7 +204,7 @@ On user corrections, compare old and new clauses and retain unaffected
 constraints. For a direct invocation whose frozen work, exit/repeat conditions,
 or review gate must change, stop the old run as cancelled, then initialize the
 revised authorized contract only when execution is requested. Never carry a
-clean-review streak across changed criteria.
+clean-review streak or an unchanged-pass observation across changed criteria.
 
 For an owner-bound invocation, first follow the consumer's update and recovery
 contract; the child must not independently cancel and replace its owner's run.
@@ -215,7 +216,7 @@ runtime. Keep launch context immutable as the original record. A handoff or owne
 note records authority; it cannot invent permission. Coordinate any newly
 authorized write paths with the owner before using them. Report material work or
 unresolved conditions truthfully in the next full-cycle callback so the runtime
-resets its normal streak; an authority update is not itself a qualifying review.
+measures the change; an authority update is not itself a qualifying review.
 If the frozen work or conditions must change, keep the invocation incomplete and
 return the conflict to the owner for its supported transition, without fabricating
 a restart, callback or successful completion. If higher-priority instructions
@@ -235,7 +236,7 @@ unchanged background briefly. The reporting owner incorporates child results
 without duplicate overall updates; preserve required launch/return notices and
 exact internal handoffs. Reporting does not change control flow: continue only
 the current authorized action, or honor the returned stop or handoff. The
-script-reported progress is authoritative for the review count; the latest report
+script-reported progress is authoritative for the review gate; the latest report
 remains a claim about work and checks. When explaining remaining loop work, use
 that count and the exit condition to make the remaining requirement concrete
 without predicting that the next iteration will succeed. Preserve the meaningful

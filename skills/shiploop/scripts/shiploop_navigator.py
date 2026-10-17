@@ -3225,25 +3225,23 @@ def _optional_text_file(value: Any, label: str) -> str:
 def _derived_improve_receipt(child: Mapping[str, Any], args: Any) -> dict[str, Any]:
     """The completion record, built from what ShipLoop already knows (plan P12).
 
-    The review references are the last one or two ``review-<n>.md`` files (one when the
-    terminal packet ended on an unchanged first pass), the check reference is
-    ``checks.md``; the model supplies only lessons, a changed decision and a
-    no-commit reason, each optional.
+    The review reference is the last ``review-<n>.md`` file (the one pass the runtime ended on: trivial, with the
+    content unchanged since the previous pass), the check reference is ``checks.md``; the model supplies only
+    lessons, a changed decision and a no-commit reason, each optional.
     """
     reviews = improve_reviews_dir(child)
     found = sorted((int(match.group(1)), path) for path in (reviews.iterdir() if reviews.is_dir() else ())
                    if (match := REVIEW_FILE.fullmatch(path.name)) and path.is_file())
-    count = 1 if _unchanged_first_pass(child) else 2
     names = ", ".join(path.name for _, path in found) or "none"
-    _need(len(found) >= count,
-          "Improve completion needs the last " + str(count) + " review file(s) in " + str(reviews)
+    _need(bool(found),
+          "Improve completion needs the final pass's review file in " + str(reviews)
           + ", named review-<n>.md by pass number; found: " + names)
     checks = reviews / CHECK_FILE
     _need(checks.is_file(), "Improve completion needs the check output in " + str(checks))
     receipt: dict[str, Any] = {
-        "summary": "Improve reviewed the " + str(child["stage"]) + " result; it ended on "
-                   + str(count) + " trivial pass" + ("" if count == 1 else "es") + ".",
-        "review_refs": [str(path) for _, path in found[-count:]],
+        "summary": "Improve reviewed the " + str(child["stage"]) + " result; it ended on pass " + str(found[-1][0])
+                   + ", a trivial pass that left the content unchanged.",
+        "review_refs": [str(found[-1][1])],
         "check_refs": [str(checks)],
     }
     lessons = _optional_text_file(getattr(args, "notes", None), "Improve notes")
@@ -3258,15 +3256,17 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any) -> dict[str, A
     return receipt
 
 
-def _unchanged_first_pass(child: Mapping[str, Any]) -> bool:
-    """Whether the child's saved terminal packet ended on one unchanged trivial pass."""
+def _ended_on_first_pass(child: Mapping[str, Any]) -> bool:
+    """Whether the child's saved terminal packet is a completion on its first pass (the content was then unchanged
+    from the tree at the review's start, so edits since the bind were never reviewed)."""
     import shiploop_standalone_improve as standalone
 
     try:
         packet = json.loads(standalone.receipt_path(child).read_text(encoding="utf-8"))
     except (OSError, ValueError):  # no readable packet claims nothing
         return False
-    return bool(isinstance(packet, dict) and (packet.get("progress") or {}).get("unchanged_first_pass"))
+    progress = packet.get("progress") if isinstance(packet, dict) else None
+    return bool(isinstance(progress, dict) and packet.get("status") == "complete" and progress.get("action_number") == 1)
 
 
 def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str,
@@ -3286,8 +3286,8 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
             owed, str(message_path), _callback(core, root, "improve-commit", action=improve_id(state),
                                                message=str(message_path)),
             _callback(core, root, "complete", action=improve_id(state))))
-    if changes is not None and changes[0] and _unchanged_first_pass(child):
-        raise NavigatorError("The Improve runtime ended on one unchanged trivial pass, but these files changed "
+    if changes is not None and changes[0] and _ended_on_first_pass(child):
+        raise NavigatorError("The Improve runtime ended on its first pass with the content unchanged, but these files changed "
                              "since the review was bound: " + ", ".join(changes[0]) + ". Review them again, "
                              "reporting each pass that changes a file non-trivial: start the review again with "
                              + _callback(core, root, "improve-start", action=improve_id(state))
@@ -5669,14 +5669,14 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         guidance.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
-        "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. When the first pass is trivial and leaves the workspace unchanged, the runtime checks that from Git and completes after that one pass.",
+        "Review passes: the passes are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. The runtime ends the review on a pass you report trivial and satisfied after which it measures the content (Git, plus this stage's result file) unchanged from the previous pass (the first pass: from the start); a pass that changed content never ends it, however you label it, so report a pass that changed anything as non-trivial.",
         "Changes: change what is warranted in code, tests or documentation, and commit it; "
         + _improve_rerun_clause(child["stage"])
         + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the complete command with --no-commit.",
         "Evidence: write each review pass to " + str(evidence_root / "review-<n>.md") + " (n = the pass "
         "number: review-1.md, review-2.md, ...) and the current check output to "
-        + str(evidence_root / "checks.md") + ". The complete command imports the last two passes (the last "
-        "one when the first pass changed nothing) and checks.md; nothing else to list. A plan/RED "
+        + str(evidence_root / "checks.md") + ". The complete command imports the final pass (the last review file) "
+        "and checks.md; nothing else to list. A plan/RED "
         "disposition is checked against its own criteria, not future product success.",
         "Optional, for later steps: lessons in a plain-text file passed as --notes " + str(notes_path) + ".",
         "Temporary files, including each report you pass to the runtime on standard input, go in "
@@ -6234,15 +6234,16 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
                  "materially change a decision in this provisional plan or determine whether its consumer may "
                  "proceed; reuse sufficient evidence; zero experiments is valid. Scratch writes stay in the "
                  "planning scratch directory named in context.scope.")
-    exit_condition = ("Two consecutive full review passes find nothing material to change, or the first "
-                      "full pass changes nothing and the runtime sees an unchanged Git tree; no material "
-                      "defect remains in the candidate; the applicable checks are recorded.")
-    repeat = ("Repeat while a warranted change or a required qualifying review remains. Stop incomplete "
-              "on an actual blocker or a user stop. Never push.")
+    exit_condition = ("A full review pass finds nothing material to change and leaves the content (the Git "
+                      "worktree and the stage result file) exactly as the previous pass left it, the first "
+                      "pass as it was at the start, which the runtime measures; no material defect remains "
+                      "in the candidate; the applicable checks are recorded.")
+    repeat = ("Repeat while a warranted change remains or the latest pass changed the content. Stop "
+              "incomplete on an actual blocker or a user stop. Never push.")
     if planning:
         exit_condition += (" Planning experiment exit: coherent current planning artifacts, a complete "
                            "assumption list with no open entry a bounded probe could settle now, and the "
-                           "two qualifying reviews.")
+                           "qualifying unchanged review.")
         repeat += (" If a finding invalidates an accepted discovery, research, spec or test-strategy "
                    "premise, finish the current bounded work and report classification unresolved or "
                    "non-trivial, exit_assessment unsatisfied or unknown, and continuation_assessment "
@@ -6272,7 +6273,8 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
         workspace=child["workspace"], work=work,
         exit_condition=exit_condition + loop_contract.stage_exit(child["stage"]),
         repeat_condition=repeat, required_trivial_reviews=2, request=request, scope=scope,
-        authority=authority, environment=sections["Environment"], resources=resources)
+        authority=authority, environment=sections["Environment"], resources=resources,
+        candidate_paths=[os.path.abspath(root / "inbox" / (child["action_id"] + ".md"))])  # the runtime needs absolute
 
 
 def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
@@ -6555,12 +6557,12 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
         saved_status = json.loads(receipt.read_text(encoding="utf-8")).get("status") if receipt.exists() else None
     except (OSError, ValueError, AttributeError):
         saved_status = None
-    _need(not receipt.exists() or saved_status == "stopped" or _unchanged_first_pass(child),
+    _need(not receipt.exists() or saved_status == "stopped" or _ended_on_first_pass(child),
           "this review is still running; continue it from its saved receipt " + str(receipt)
           + " (active: run its next_argv once; complete: run " + _callback(core, root, "complete",
                                                                          action=improve_id(state)) + ")")
     if receipt.exists() and saved_status != "stopped":
-        # A completed review that ended on one unchanged pass is restarted because files changed after its bind.  Those
+        # A completed review that ended on its first pass is restarted because files changed after its bind.  Those
         # files are committed (the gate refuses otherwise), so the new review's baseline is the tree as it stands now:
         # an honest second pass that changes nothing then ends clean instead of meeting the same refusal again.
         changes = improve_changes.review_changes(root, Path(state["repo"]), child["action_id"])
