@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-10-17
 
+### skill-craft 2.5.2
+
+- Skills: improve 0.4.3
+
+### improve 0.4.3
+
+- Vendor Until Loop 0.9.0 runtime helpers while keeping standalone Improve on its isolated callback mode.
+
 ### skill-craft 2.5.1
 
 - Skills: backchain 0.6.4
