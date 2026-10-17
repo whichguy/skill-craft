@@ -5117,6 +5117,27 @@ class ResumeCommandTest(PrintedCase):
         self.assertNotIn("--effort", found[0])
         self.assertEqual(run.parser().parse_args(found[0][2:]).host, "claude")
 
+    def test_the_printed_command_round_trips_for_a_marketplace_a_checkout_and_a_plugin_dir_run(self):
+        """U27: the line is complete for each way a run starts. It parses with the harness's own parser to the arguments the run had
+        (`--source checkout` too, which a checkout build the harness made itself has no `--plugin-dir` to imply)."""
+        flags = ["--host", "grok", "--model", "m", "--effort", "high", "--timeout", "900", "--max-resumes", "3",
+                 "--max-budget-usd", "12.5", "--permission-mode", "bypassPermissions"]
+        for kind, extra in (("marketplace", []), ("checkout", ["--source", "checkout"]),
+                            ("plugin-dir", ["--plugin-dir", str(self.plugin)]),
+                            ("checkout and keep", ["--source", "checkout", "--keep-platform"])):
+            with self.subTest(kind=kind):
+                args = run.parser().parse_args([*flags, *extra])
+                if args.plugin_dir:
+                    args.source = "checkout"  # what main does before it prints the line
+                printed = run.resume_command(Path("/o/run"), args)
+                words = shlex.split(printed)
+                self.assertEqual("--source" in words, kind != "marketplace", "a marketplace run is the default and says nothing")
+                again = run.parser().parse_args(words[2:])
+                self.assertEqual(again.resume_run, Path("/o/run"))
+                again.resume_run = None
+                self.assertEqual(vars(again), vars(args), "the printed line parses to the arguments the run had, nothing defaulted")
+                self.assertEqual(again.source, "marketplace" if kind == "marketplace" else "checkout")
+
     def test_the_printed_command_continues_the_run_in_place(self):
         code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
         argv = self.commands(printed)[0][2:]

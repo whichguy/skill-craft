@@ -911,8 +911,8 @@ def resume_command(out: Path, args) -> str:
     binary = getattr(args, args.host + "_bin")
     if binary != parser().get_default(args.host + "_bin"):
         parts += [f"--{args.host}-bin", binary]
-    if args.source == "checkout" and args.plugin_dir:
-        parts += ["--plugin-dir", str(args.plugin_dir)]
+    if args.source == "checkout":  # a checkout build the harness made itself has no --plugin-dir; the line still says what it ran on
+        parts += ["--source", "checkout", *(["--plugin-dir", str(args.plugin_dir)] if args.plugin_dir else [])]
     if getattr(args, "keep_platform", False):
         parts.append("--keep-platform")  # a resume keeps the platform only if it is told to again
     return shlex.join(parts)
@@ -1505,6 +1505,10 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
 #              of the PATH the host was launched with, so pin_shell_path writes the PATH back to the front in the throwaway
 #              HOME's startup files and shell_resolution_problems proves, per shell, that each name still resolves to the wrapper
 #   resume_note  a sentence appended to the prompt of a RESUMED run whose earlier segment's cleanup ran (the platform was reset)
+#   resume_note_kept  the same for a RESUMED run whose earlier segment KEPT an unfinished platform (see keep_checks): what the
+#              model deployed is still there, and the case's own preflight (which refuses a platform that is not clean) is skipped
+#   keep_checks  the words (the verb of a command, for example `deployed`) of the case's own checks that must all pass for
+#              --keep-platform to keep the platform of a run that did not finish; each word names exactly one of the case's checks
 #   check_timeout  seconds (60..3600) one of the case's checks may run, in place of CHECK_TIMEOUT: a check that asks the platform many
 #              times and cannot be run again once the cleanup has reset it
 # Every command output the harness stores or prints goes through scrub().
@@ -1564,8 +1568,13 @@ def validate_platform(name: str, spec) -> dict:
     for key in PLATFORM_COMMANDS:
         if key in spec and not (isinstance(spec[key], str) and spec[key].strip()):
             problems.append(f"{key} must be a non-empty command string")
-    if "resume_note" in spec and not (isinstance(spec["resume_note"], str) and spec["resume_note"].strip()):
-        problems.append("resume_note must be a non-empty string")
+    for key in ("resume_note", "resume_note_kept"):
+        if key in spec and not (isinstance(spec[key], str) and spec[key].strip()):
+            problems.append(f"{key} must be a non-empty string")
+    words = spec.get("keep_checks")
+    if "keep_checks" in spec and not (isinstance(words, list) and words and len(set(map(str, words))) == len(words)
+                                      and all(isinstance(word, str) and word.split() == [word] for word in words)):
+        problems.append("keep_checks must be a non-empty list of distinct words, each one word of a check command (for example \"deployed\")")
     if "host_allow" in spec and not (isinstance(spec["host_allow"], list)
                                      and all(isinstance(rule, str) and rule.strip() for rule in spec["host_allow"])):
         problems.append("host_allow must be a list of non-empty permission rules (for example \"Bash(sf *)\")")
@@ -1584,6 +1593,20 @@ def validate_platform(name: str, spec) -> dict:
     if problems:
         raise SystemExit(f"case {name!r}: platform: " + "; ".join(problems))
     return spec
+
+
+def keep_check_names(spec: dict | None, checks: list) -> dict:
+    """{word: the case's checks whose command holds it as a whole word}, for each word of the platform's `keep_checks`."""
+    return {word: [c for c in checks if word in str(c).split()] for word in (spec or {}).get("keep_checks") or ()}
+
+
+def refuse_unmatched_keep_checks(name: str, spec: dict | None, checks: list) -> None:
+    """A keep word that names no check, or more than one, would silently clean a working platform at the end of a long run:
+    refused before any model starts."""
+    bad = {word: len(found) for word, found in keep_check_names(spec, checks).items() if len(found) != 1}
+    if bad:
+        raise SystemExit(f"case {name!r}: platform.keep_checks must each name exactly one of the case's checks; "
+                         + ", ".join(f"{word!r} names {count}" for word, count in bad.items()))
 
 
 def platform_env(base: dict, platform_dir: Path) -> dict:
@@ -2069,7 +2092,7 @@ def link_homes(names: list[str], env: dict) -> list[dict]:
     return records
 
 
-def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
+def platform_preflight(spec: dict, host_env: dict, out: Path, skip_command: str | None = None) -> dict:
     """Make the home links and the model_bin wrappers, then run the case's preflight command with the host's environment;
     {home_links, preflight} (plus, where the case has a model_bin: model_bin {name: wrapper path}, shell_path_pinned,
     model_bin_resolution {ok, problems}). With a model_bin it also appends [from, to], the guard-log lines the case's preflight
@@ -2081,7 +2104,11 @@ def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
     With model_bin the wrapper must also be what the model's shells find: pin_shell_path puts it first again in the throwaway
     HOME's startup files, and shell_resolution_problems checks each shell. Any problem makes ``preflight`` a failing record and
     the case's own preflight command is not run, so both callers refuse the run (a host on the real HOME is not pinned, so it
-    is refused when a login shell reorders its PATH: refused rather than run unguarded)."""
+    is refused when a login shell reorders its PATH: refused rather than run unguarded).
+
+    ``skip_command`` (a reason) leaves the case's own preflight command unrun and records it as skipped, ok: the resume of a run
+    whose earlier segment kept an unfinished platform, which the command would refuse as not clean. The links, the wrappers and
+    their per-shell proof still run."""
     platform_dir = out / "platform"
     platform_dir.mkdir(exist_ok=True)
     links = link_homes(spec.get("home_links") or [], host_env)
@@ -2100,7 +2127,9 @@ def platform_preflight(spec: dict, host_env: dict, out: Path) -> dict:
     command = spec.get("preflight")
     first = guard_log_lines(out)  # where this invocation's preflight starts writing (a resume's preflight calls are not the model's)
     try:
-        state["preflight"] = run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None
+        state["preflight"] = ({"command": command, "returncode": None, "ok": True, "skipped": skip_command, "output": ""}
+                              if command and skip_command
+                              else run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None)
     finally:
         if spec.get("model_bin"):
             # Recorded here, not with the invocation record: a resume can be refused after its preflight (the version gate), and
@@ -2140,11 +2169,13 @@ def earlier_cleanup_record(out: Path) -> dict | None:
 
 
 def resume_platform_note(spec: dict | None, earlier_platform: dict, regrade: bool) -> str | None:
-    """The case's `resume_note` for a run that continues after its platform was reset (the earlier invocation's cleanup ran);
-    None for a regrade (no host starts), for a case without a note, and where no cleanup ran. ``earlier_platform`` is the earlier
-    result's platform block, or {"cleanup": earlier_cleanup_record(...)} where that run never wrote a result."""
-    note = (spec or {}).get("resume_note")
-    return note.strip() if note and not regrade and (earlier_platform.get("cleanup") or {}).get("ran") else None
+    """The case's `resume_note` for a run that continues after its platform was reset (the earlier invocation's cleanup ran), or
+    its `resume_note_kept` where the earlier invocation kept an unfinished platform (what the model deployed is still there);
+    None for a regrade (no host starts), for a case without that note, and where neither happened. ``earlier_platform`` is the
+    earlier result's platform block, or {"cleanup": earlier_cleanup_record(...)} where that run never wrote a result."""
+    cleanup = earlier_platform.get("cleanup") or {}
+    note = (spec or {}).get("resume_note_kept" if cleanup.get("kept_unfinished") else "resume_note")
+    return note.strip() if note and not regrade and (cleanup.get("ran") or cleanup.get("kept_unfinished")) else None
 
 
 def cleanup_banner(out: Path, spec: dict, record: dict) -> str:
@@ -2158,11 +2189,14 @@ def cleanup_banner(out: Path, spec: dict, record: dict) -> str:
         "!" * 78])
 
 
-def kept_banner(out: Path, spec: dict) -> str:
-    """The block printed when --keep-platform kept what a finished run made in the platform: where it is and the one way to remove it."""
+def kept_banner(out: Path, spec: dict, unfinished: bool = False) -> str:
+    """The block printed when --keep-platform kept what a run made in the platform: where it is and the one way to remove it.
+    ``unfinished``: ShipLoop did not finish, so the block says this is NOT a pass and that a resume continues with the platform in place."""
     return "\n".join([
         "=" * 78,
         f"PLATFORM KEPT (--keep-platform): what this run made is still in the {spec.get('kind') or 'platform'} ({out}).",
+        *([f"ShipLoop did not finish, so this is NOT a pass: the platform is kept because the case's keep checks passed "
+           f"({', '.join(spec.get('keep_checks') or ())}). Resuming this run continues with it in place."] if unfinished else []),
         f"The cleanup did not run, so everything the run deployed stays until you remove it; the snapshot taken before the run is in "
         f"{out / 'platform'}. Nothing else removes it, and a later run of this case may refuse to start while it is there.",
         "Remove it now by running, from any directory:",
@@ -2171,18 +2205,29 @@ def kept_banner(out: Path, spec: dict) -> str:
         "=" * 78])
 
 
-def keep_refusal(*, shiploop: dict, engine: dict, process: dict, stop_seen: bool, stop_file: Path, checks: list,
-                 invalid: bool, earlier_cleanup: dict | None = None) -> str | None:
-    """Why a --keep-platform request is not honoured; None where it is. Only a delivery that finished is kept: ShipLoop done and
-    its report written, the host ended by itself, every case check passed, and no stop, no timeout and no invalid trial. Every
-    other ending cleans the platform as it always did, so a half-built trial is never left behind. ``earlier_cleanup`` is the
-    cleanup record of the run being graded again (a regrade): one that was attempted and failed left the platform dirty, so what
-    is there is not a finished delivery; no record at all, or only the pending one an armed guard leaves (a harness that was
-    killed), does not refuse."""
+def keep_blocker(*, process: dict, stop_seen: bool, stop_file: Path, invalid: bool, earlier_cleanup: dict | None = None) -> str | None:
+    """Why no run may be kept, finished or not; None where nothing forbids it. A person's stop, a stop file or a signal, an invalid
+    trial, and (for a regrade) an earlier cleanup that was attempted and failed: what is in the platform is then not a delivery
+    anyone chose to keep. No record at all, or only the pending one an armed guard leaves (a harness that was killed), does not
+    forbid it."""
     if earlier_cleanup and not earlier_cleanup.get("ok") and not earlier_cleanup.get("pending"):
         return "an earlier cleanup of this run failed: run the printed command first"
     if TERMINATION.is_set() or stop_seen or stop_file.exists() or process.get("status") == "stopped":
         return f"the run was stopped ({stop_cause(stop_file)})"
+    if invalid:
+        return "an invalid trial: the guard did not govern the model's sf"
+    return None
+
+
+def keep_refusal(*, shiploop: dict, engine: dict, process: dict, stop_seen: bool, stop_file: Path, checks: list,
+                 invalid: bool, earlier_cleanup: dict | None = None) -> str | None:
+    """Why a --keep-platform request is not honoured for a FINISHED delivery; None where it is. A finished delivery is ShipLoop
+    done and its report written, the host ended by itself, every case check passed, and no stop, no timeout and no invalid trial
+    (keep_blocker). Every other ending is judged by keep_decision. ``earlier_cleanup`` is the cleanup record of the run being
+    graded again (a regrade)."""
+    if blocked := keep_blocker(process=process, stop_seen=stop_seen, stop_file=stop_file, invalid=invalid,
+                               earlier_cleanup=earlier_cleanup):
+        return blocked
     if process.get("status") == "timeout":
         return "the host timed out"
     if engine.get("status") != "done":
@@ -2193,9 +2238,31 @@ def keep_refusal(*, shiploop: dict, engine: dict, process: dict, stop_seen: bool
         return f"the host ended {process.get('status')} rc={process.get('returncode')}"
     if failed := [check["command"] for check in checks if not check["pass"]]:
         return f"a case check failed ({failed[0][:120]})"
-    if invalid:
-        return "an invalid trial: the guard did not govern the model's sf"
     return None
+
+
+KEPT_FINISHED, KEPT_UNFINISHED = "finished", "unfinished"
+
+
+def keep_decision(*, keep_checks: tuple | list = (), **ended) -> tuple[str | None, str | None]:
+    """How a --keep-platform request ends: (KEPT_FINISHED, None) for a finished delivery (keep_refusal), (KEPT_UNFINISHED, None)
+    for a run that did not finish (ShipLoop not done, or the host timed out) whose platform is nevertheless working, or
+    (None, why) when it is cleaned. The platform of an unfinished run is working when the case declares ``keep_checks`` (words of
+    its own checks, for example `deployed`, `tests`, `rules`) and every one of them ran and passed; a person's stop, a signal, an
+    invalid trial and a failed earlier cleanup (keep_blocker) forbid it. The run is then recorded NOT a pass. A run whose ShipLoop
+    is done and whose host did not time out is judged as a finished delivery only: a failed check there is a failed delivery."""
+    why = keep_refusal(**ended)
+    if why is None:
+        return KEPT_FINISHED, None
+    unfinished = ended["process"].get("status") == "timeout" or ended["engine"].get("status") != "done"
+    if not (keep_checks and unfinished) or keep_blocker(process=ended["process"], stop_seen=ended["stop_seen"], stop_file=ended["stop_file"],
+                                                         invalid=ended["invalid"], earlier_cleanup=ended.get("earlier_cleanup")):
+        return None, why
+    unmet = [word for word in keep_checks
+             if not any(word in str(check["command"]).split() and check["pass"] for check in ended["checks"])]
+    if unmet:
+        return None, f"{why}; not kept as an unfinished run either: the keep check(s) {', '.join(unmet)} did not pass"
+    return KEPT_UNFINISHED, None
 
 
 class PlatformGuard:
@@ -2223,17 +2290,18 @@ class PlatformGuard:
         """Whether a cleanup is still pending: armed, and neither run nor kept yet."""
         return self.spec is not None and not self.done
 
-    def keep(self, reason: str) -> dict | None:
+    def keep(self, reason: str, unfinished: bool = False) -> dict | None:
         """Leave the platform as the run made it. The record is {ran: False, ok: True, kept: True, reason}: ok, because nothing
-        failed (a regrade does not clean a kept run), kept, so a reader of result.json or cleanup-record.json can tell. None where
-        no cleanup is pending."""
+        failed (a regrade does not clean a kept run), kept, so a reader of result.json or cleanup-record.json can tell. With
+        ``unfinished`` (ShipLoop did not finish: see keep_decision) it also holds kept_unfinished: True, which is what a resume reads
+        to leave the case's preflight unrun and to say what the model deployed is still there. None where no cleanup is pending."""
         if not self.armed():
             return None
         self.done = True
         with contextlib.suppress(KeyboardInterrupt):  # a host that is somehow still alive must not deploy into what is kept
             end_live_hosts(thread=threading.get_ident(), wait=HOST_END_WAIT)
-        self.record = {"ran": False, "ok": True, "kept": True, "reason": reason}
-        self.banner = kept_banner(self.out, self.spec)
+        self.record = {"ran": False, "ok": True, "kept": True, **({"kept_unfinished": True} if unfinished else {}), "reason": reason}
+        self.banner = kept_banner(self.out, self.spec, unfinished)
         write_cleanup_record(self.out, self.record)
         return self.record
 
@@ -2293,8 +2361,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--keep-platform", action="store_true",
                    help="a case with a platform: when the run ends normally with a finished delivery (ShipLoop done, every "
                         "case check passed), do not run the platform cleanup; keep what the run made there for a person to "
-                        "use, and print the command that removes it later by hand. Any other ending (a crash, Ctrl-C, "
-                        "timeout, stop, blocked or unfinished ShipLoop, a failed check) cleans as usual and says the keep "
+                        "use, and print the command that removes it later by hand. A run that did not finish (ShipLoop not "
+                        "done, or the host timed out) is kept too, recorded NOT a pass, when the case's keep_checks (the "
+                        "checks that prove the platform works) all pass and the trial is valid. Any other ending (a crash, "
+                        "Ctrl-C, stop, a failed keep check or case check, an invalid trial) cleans as usual and says the keep "
                         "was not honoured. A resumed run keeps it only if the resume command passes it again. A new run "
                         "needs --output <a durable folder> (the snapshot the later cleanup needs must not live in $TMPDIR). "
                         "Not with --suite")
@@ -3506,6 +3576,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         platform_spec = validate_platform(name, (earlier.get("platform") or {})["spec"]) if (earlier.get("platform") or {}).get("spec") else None
         if args.keep_platform and not platform_spec:
             raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
+        refuse_unmatched_keep_checks(name, platform_spec, checks)
         prompt = (out / "prompt.txt").read_text().strip()
         work = out / "work"
         state = grade_shiploop(out)
@@ -3570,6 +3641,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         platform_spec = case_platform(name)
         if args.keep_platform and not platform_spec:
             raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
+        refuse_unmatched_keep_checks(name, platform_spec, checks)
         planning_review = planning_review_choice(args.planning_review, None)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
@@ -3647,7 +3719,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                                if key in earlier_platform})
     elif platform_spec:
         # Before the marketplace install and before any model call: the host's own environment, so a bad home link shows here.
-        platform_state = platform_preflight(platform_spec, env, out)
+        # The earlier segment kept an unfinished platform: what is in it is this run's own work, which the case's preflight (it
+        # refuses a platform that is not clean) would refuse. The links, the wrappers and their proof still run (platform_preflight).
+        kept_unfinished_before = bool(resumed and (earlier_cleanup or {}).get("kept_unfinished"))
+        platform_state = platform_preflight(platform_spec, env, out, skip_command=(
+            "the earlier segment kept this run's own unfinished work in the platform" if kept_unfinished_before else None))
+        if kept_unfinished_before and not args.quiet:
+            print(f"resume: the earlier segment kept an unfinished {platform_spec.get('kind') or 'platform'}: the case's own preflight "
+                  "is skipped, because what this run deployed is still there and that preflight would refuse it", flush=True)
         refusal = platform_state["preflight"]
         if refusal is not None and not refusal["ok"]:
             if not resumed:  # a resumed run already has a result.json worth more than a refusal stub
@@ -3804,7 +3883,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             if platform_spec:
                 linked = [link["name"] for link in platform_state["home_links"] or [] if link["linked"]]
                 guarded = f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else ""
-                cleanup_runs = ("cleanup runs after grading unless --keep-platform keeps a finished delivery" if args.keep_platform
+                cleanup_runs = ("cleanup runs after grading unless --keep-platform keeps a finished delivery"
+                                + (f", or an unfinished one whose keep checks ({', '.join(platform_spec['keep_checks'])}) pass"
+                                   if platform_spec.get("keep_checks") else "") if args.keep_platform
                                 else "cleanup runs after grading, always")
                 print(f"  platform  home links {', '.join(linked) or 'none'}{guarded}; {cleanup_runs}. By hand: "
                       f"{manual_cleanup_command(out, platform_spec) if platform_spec.get('cleanup') else 'the case names no cleanup'}",
@@ -4002,11 +4083,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             if not guard.armed():
                 keep_moot = True
             else:
-                keep_not_honoured = keep_refusal(shiploop=shiploop, engine=engine, process=process, stop_seen=stop_seen,
-                                                 stop_file=stop_file, checks=check_results, invalid=bool((coverage or {}).get("bypassed")),
-                                                 earlier_cleanup=earlier_cleanup if regrade else None)
-                if keep_not_honoured is None:
+                kept_kind, keep_not_honoured = keep_decision(
+                    shiploop=shiploop, engine=engine, process=process, stop_seen=stop_seen, stop_file=stop_file,
+                    checks=check_results, invalid=bool((coverage or {}).get("bypassed")),
+                    earlier_cleanup=earlier_cleanup if regrade else None, keep_checks=platform_spec.get("keep_checks") or ())
+                if kept_kind == KEPT_FINISHED:
                     guard.keep("--keep-platform")
+                elif kept_kind == KEPT_UNFINISHED:
+                    guard.keep("--keep-platform (ShipLoop did not finish: NOT a pass)", unfinished=True)
         # After grading, so the checks saw the deployed work; the guard's `finally` in main() is the same call for a run that never gets here.
         cleanup = guard.finish() or earlier_cleanup or {"ran": False, "ok": False, "reason": "no cleanup record"}
         scrub_files(out)
@@ -4014,7 +4098,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if resumed and not regrade and earlier_platform.get("cleanup"):
             earlier_cleanups.append(earlier_platform["cleanup"])
         platform_block = {"spec": platform_spec, "dir": str(platform_dir), **platform_state, "before": platform_before,
-                          "cleanup": cleanup, **({"earlier_cleanups": earlier_cleanups} if earlier_cleanups else {}),
+                          "cleanup": cleanup, **({"kept_unfinished": True} if cleanup.get("kept_unfinished") else {}),
+                          **({"earlier_cleanups": earlier_cleanups} if earlier_cleanups else {}),
                           **({"guard_log_preflight_ranges": [list(item) for item in ranges]} if ranges else {}),
                           **({"guard_coverage": coverage} if coverage else {}),
                           **({"keep_not_honoured": keep_not_honoured} if keep_not_honoured else {}),
@@ -4046,6 +4131,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
                 *(c["pass"] for c in check_results),
                 *([bool(platform_block["cleanup"].get("ok"))] if platform_block else []),  # a platform left dirty is a failed run
+                *([not platform_block.get("kept_unfinished")] if platform_block else []),  # a kept unfinished platform is NOT a pass
                 *([not platform_block["guard_coverage"]["bypassed"]] if platform_block and platform_block.get("guard_coverage") else [])]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
@@ -4216,8 +4302,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     if platform_block:
         cleaned, seen = platform_block["cleanup"], platform_block.get("guard_coverage")
-        print(f"  platform  {mark(cleaned.get('ok') and not (seen or {}).get('bypassed'))}  "
-              + ("platform KEPT (--keep-platform), no cleanup run" if cleaned.get("kept")
+        print(f"  platform  {'KEPT' if cleaned.get('kept_unfinished') else mark(cleaned.get('ok') and not (seen or {}).get('bypassed'))}  "
+              + ("platform KEPT (--keep-platform), ShipLoop did not finish: NOT a pass" if cleaned.get("kept_unfinished")
+                 else "platform KEPT (--keep-platform), no cleanup run" if cleaned.get("kept")
                  else "cleanup ran" if cleaned.get("ran") else "cleanup did not run") + f"; home links "
               + (", ".join(link["name"] for link in platform_state.get("home_links") or [] if link["linked"]) or "none")
               + (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else "")

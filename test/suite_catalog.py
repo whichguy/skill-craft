@@ -315,7 +315,8 @@ _DURATION_SECONDS = {
     # The case `platform` hooks (preflight, before, home_links, model_bin, always-run cleanup, scrub): 40 tests, most of them a whole
     # run.main over a fake host and one tiny platform command. 135 tests since the model_bin pin, resolution, bypass-detector, keep-platform
     # and resume additions. Local wall seconds, 2026-10-16: 43 to 59 s at load average about 5. Under QUICK_MAX_SECONDS.
-    "test/shiploop-e2e-platform.test.py": 55.0,
+    # 2026-10-17 (unit U27, keep-on-cap): 16 more whole-run tests; 76 s in the quick receipt at load average 6 to 8. Still under it.
+    "test/shiploop-e2e-platform.test.py": 75.0,
     # The guarded `sf` on the model's PATH (checks/sf_guard.py behind the wrapper run.write_model_bin writes), 91 tests, each rule
     # run as a subprocess against the fake `sf`. Local wall seconds, 2026-10-16: 16 to 24 s at load average about 5. Under QUICK_MAX_SECONDS.
     "test/shiploop-e2e-sf-guard.test.py": 20.0,

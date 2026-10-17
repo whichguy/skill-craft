@@ -13,8 +13,9 @@ executables, and no real platform, org or model is ever reached. They say nothin
              pinned first again in the throwaway HOME's shell startup files (path_helper) and checked per shell
   coverage   the guard's own log against the sf commands in the transcript: a run the guard never saw, or that went around the
              wrapper by a path, is an invalid trial
-  keep       --keep-platform: a finished delivery is left in the platform, any other ending cleans as always
-  resume_note a sentence for the prompt of a resumed run whose platform was reset
+  keep       --keep-platform: a finished delivery is left in the platform, any other ending cleans as always, except a run that
+             did not finish whose platform works (keep_checks pass, valid trial, no stop): kept, recorded NOT a pass, resumable
+  resume_note a sentence for the prompt of a resumed run whose platform was reset (resume_note_kept: it was kept)
   check_timeout the ceiling of the case's own checks (60..3600 s, default 180), for that case only
   scrub      one function through which every stored or printed command output goes
 """
@@ -345,6 +346,32 @@ class SchemaTest(unittest.TestCase):
         spec = {"kind": "k", "preflight": "p", "before": "b", "cleanup": "c", "home_links": [".sf"], "org": "x",
                 "model_bin": {"sf": "guard --org x"}}
         self.assertIs(run.validate_platform("c", spec), spec)
+
+    def test_keep_checks_and_the_kept_resume_note_are_validated_at_load(self):
+        for bad in ([], "deployed", ["deployed", "deployed"], ["two words"], [""], [3], ["deployed", None], None, {"a": 1}):
+            with self.subTest(keep_checks=bad), self.assertRaises(SystemExit) as raised:
+                run.validate_platform("c", {"cleanup": "c", "keep_checks": bad})
+            self.assertIn("keep_checks must be a non-empty list of distinct words", str(raised.exception))
+        for bad in ("", "  ", 3, ["x"], None):
+            with self.subTest(resume_note_kept=bad), self.assertRaises(SystemExit) as raised:
+                run.validate_platform("c", {"cleanup": "c", "resume_note_kept": bad})
+            self.assertIn("resume_note_kept must be a non-empty string", str(raised.exception))
+        spec = {"cleanup": "c", "keep_checks": ["deployed", "tests"], "resume_note_kept": "still there"}
+        self.assertIs(run.validate_platform("c", spec), spec)
+
+    def test_a_keep_word_must_name_exactly_one_of_the_cases_checks_before_any_model_starts(self):
+        checks = ['python3 "$E2E_CHECKS/x.py" project --org de', 'python3 "$E2E_CHECKS/x.py" deployed --org de',
+                  'python3 "$E2E_CHECKS/x.py" tests --org de --min-tests 8']
+        run.refuse_unmatched_keep_checks("c", {"keep_checks": ["deployed", "tests"]}, checks)
+        run.refuse_unmatched_keep_checks("c", {"cleanup": "c"}, checks)
+        run.refuse_unmatched_keep_checks("c", None, checks)
+        for words, why in ((["rules"], "'rules' names 0"), (["deployed", "--org"], "'--org' names 3"), (["min"], "'min' names 0")):
+            with self.subTest(words=words), self.assertRaises(SystemExit) as raised:
+                run.refuse_unmatched_keep_checks("c", {"keep_checks": words}, checks)
+            self.assertIn(why, str(raised.exception))
+            self.assertIn("'c'", str(raised.exception))
+        # a word is matched whole, so `--min-tests` names the one command that holds it and `min` names none
+        run.refuse_unmatched_keep_checks("c", {"keep_checks": ["--min-tests"]}, checks)
 
 
 class CommandTest(PlatformCase):
@@ -1823,6 +1850,278 @@ class KeepPlatformTest(PlatformCase):
         bare.arm({"kind": "test"}, out)
         bare.keep("--keep-platform")
         self.assertIn("the case names no cleanup command", bare.banner)
+
+
+class KeepUnfinishedTest(PlatformCase):
+    """--keep-platform for a run that did not finish (owner 2026-10-17): ShipLoop not done, or the host timed out, with a platform
+    that works (every `keep_checks` word of the case's own checks passes) and a valid trial. It is kept and recorded NOT a pass; a
+    person's stop, an invalid trial and a failing keep check clean as always. A resume of such a run is not refused by the case's
+    preflight (which refuses a platform that is not clean) and is told its work is still there. Here the keep word is the command
+    `true`, which the test case's one check is."""
+
+    CLEANED = KeepPlatformTest.CLEANED
+    KEPT = KeepPlatformTest.KEPT
+    KEPT_UNFINISHED = {"ran": False, "ok": True, "kept": True, "kept_unfinished": True,
+                       "reason": "--keep-platform (ShipLoop did not finish: NOT a pass)"}
+    NOTE = "The platform was reset when the last session ended: deploy again what you still need."
+    NOTE_KEPT = "Your last session's work was kept: what you deployed is still in the platform."
+    argv, go, result = KeepPlatformTest.argv, KeepPlatformTest.go, KeepPlatformTest.result
+
+    def spec(self, **override) -> dict:
+        return self.platform(**{"keep_checks": ["true"], "resume_note": self.NOTE, "resume_note_kept": self.NOTE_KEPT, **override})
+
+    def test_a_host_that_timed_out_with_a_working_platform_is_kept_and_recorded_not_a_pass(self):
+        self.use_case(self.spec())
+        code, printed, out = self.go("--keep-platform", "--timeout", "2", "--max-resumes", "0", mode="hang")
+        result = self.result(out)
+        self.assertEqual(result["process"]["status"], "timeout")
+        self.assertEqual(code, 1)
+        self.assertFalse(result["pass"], "a kept unfinished platform is never a pass")
+        self.assertEqual(self.verbs(), ["preflight", "before"], "no cleanup ran")
+        self.assertEqual(result["platform"]["cleanup"], self.KEPT_UNFINISHED)
+        self.assertIs(result["platform"]["kept_unfinished"], True)
+        self.assertNotIn("keep_not_honoured", result["platform"])
+        self.assertEqual(json.loads((out / "platform" / "cleanup-record.json").read_text()), self.KEPT_UNFINISHED)
+        self.assertIn("  platform  KEPT  platform KEPT (--keep-platform), ShipLoop did not finish: NOT a pass; home links", printed)
+        self.assertNotIn("NOT honoured", printed)
+        self.assertFalse(self.baselines.exists(), "an unfinished run is no baseline")
+        # the last thing printed says what stays, that it is not a pass, and the one command that removes it
+        block = printed[printed.rindex("=" * 78, 0, printed.index("PLATFORM KEPT (--keep-platform): what")):]
+        self.assertEqual(printed.count("PLATFORM KEPT (--keep-platform): what"), 1)
+        self.assertTrue(block.rstrip().endswith("=" * 78))
+        self.assertIn("ShipLoop did not finish, so this is NOT a pass", block)
+        self.assertIn("(true)", block)
+        self.assertIn("Resuming this run continues with it in place", block)
+        self.assertIn(f"  {run.manual_cleanup_command(out, self.spec())}\n", block)
+        self.assertIn("cleanup runs after grading unless --keep-platform keeps a finished delivery, or an unfinished one whose "
+                      "keep checks (true) pass", printed)
+
+    def test_a_shiploop_that_stopped_before_done_is_kept_the_same_way(self):
+        self.use_case(self.spec())
+        for mode in ("stuck", "blocked", "fail"):
+            with self.subTest(mode=mode):
+                self.plat_log.unlink(missing_ok=True)
+                code, printed, out = self.go("--keep-platform", "--max-resumes", "0", mode=mode, tag=mode)
+                result = self.result(out)
+                self.assertEqual(self.verbs(), ["preflight", "before"])
+                self.assertEqual(result["platform"]["cleanup"], self.KEPT_UNFINISHED)
+                self.assertFalse(result["pass"])
+                self.assertEqual(code, 1)
+                self.assertIn("ShipLoop did not finish: NOT a pass", printed)
+
+    def test_a_failing_case_check_that_is_not_a_keep_check_does_not_stop_the_keep(self):
+        """The chess case's `project` check needs a commit: an unfinished run fails it and its working app is still kept."""
+        self.use_case(self.spec())
+        cases = json.loads(run.CASES.read_text())
+        cases["plat"]["checks"] = ["true", "false"]
+        run.CASES.write_text(json.dumps(cases))
+        _, printed, out = self.go("--keep-platform", "--max-resumes", "0", mode="stuck")
+        self.assertEqual(self.result(out)["platform"]["cleanup"], self.KEPT_UNFINISHED)
+        self.assertEqual(self.verbs(), ["preflight", "before"])
+
+    def test_a_failing_keep_check_cleans_and_says_why(self):
+        self.use_case(self.spec(keep_checks=["false"]))
+        cases = json.loads(run.CASES.read_text())
+        cases["plat"]["checks"] = ["true", "false"]
+        run.CASES.write_text(json.dumps(cases))
+        for mode, extra, why in (("stuck", (), "ShipLoop is active, not done"), ("hang", ("--timeout", "2"), "the host timed out")):
+            with self.subTest(mode=mode):
+                self.plat_log.unlink(missing_ok=True)
+                _, printed, out = self.go("--keep-platform", "--max-resumes", "0", *extra, mode=mode, tag=mode)
+                found = self.result(out)["platform"]
+                self.assertEqual(self.verbs(), self.CLEANED)
+                self.assertTrue(found["cleanup"]["ran"] and found["cleanup"]["ok"])
+                self.assertNotIn("kept", found["cleanup"])
+                self.assertNotIn("kept_unfinished", found)
+                self.assertIn(why, found["keep_not_honoured"])
+                self.assertIn("not kept as an unfinished run either: the keep check(s) false did not pass", found["keep_not_honoured"])
+                self.assertIn("--keep-platform NOT honoured (", printed)
+                self.assertNotIn("PLATFORM KEPT", printed)
+
+    def test_a_person_s_stop_and_an_invalid_trial_clean_even_when_the_platform_works(self):
+        self.use_case(self.spec())
+        _, printed, out = self.go("--keep-platform", "--max-resumes", "0", mode="stop", tag="stop")
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertIn("the run was stopped (stopped by ", self.result(out)["platform"]["keep_not_honoured"])
+        self.assertNotIn("PLATFORM KEPT", printed)
+        # an invalid trial: the transcript shows sf and the guard never saw a call
+        self.plat_log.unlink()
+        spec = self.spec(model_bin={"sf": f"{shlex.quote(sys.executable)} {shlex.quote(str(self.tmp / 'guard_tool.py'))}"}, home_links=None)
+        spec["preflight"] = f"sf probe && {self.command('preflight')}"
+        self.use_case(spec)
+        _, printed, out = self.go("--keep-platform", "--max-resumes", "0", mode="stuck", tag="invalid")
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertEqual(self.result(out)["platform"]["keep_not_honoured"], "an invalid trial: the guard did not govern the model's sf")
+        self.assertNotIn("PLATFORM KEPT", printed)
+
+    def test_a_signal_or_a_crash_still_cleans_an_unfinished_run(self):
+        self.use_case(self.spec())
+        for tag, exception in (("ctrl-c", KeyboardInterrupt()), ("boom", RuntimeError("boom"))):
+            with self.subTest(exception=type(exception).__name__):
+                self.plat_log.unlink(missing_ok=True)
+                with mock.patch.object(run, "summarize_events", side_effect=exception), \
+                        contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(type(exception)):
+                    run.main(self.argv("--keep-platform", "--max-resumes", "0", tag=tag, mode="stuck"))
+                self.assertEqual(self.verbs(), self.CLEANED)
+                self.assertNotIn("PLATFORM KEPT", printed.getvalue())
+
+    def test_a_finished_delivery_of_a_case_with_keep_checks_is_kept_as_a_finished_one(self):
+        self.use_case(self.spec())
+        code, printed, out = self.go("--keep-platform")
+        result = self.result(out)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["platform"]["cleanup"], self.KEPT)
+        self.assertNotIn("kept_unfinished", result["platform"])
+        self.assertTrue(result["pass"])
+        self.assertIn("platform KEPT (--keep-platform), no cleanup run", printed)
+        self.assertNotIn("NOT a pass", printed)
+
+    def test_without_the_flag_an_unfinished_run_is_cleaned_as_always(self):
+        self.use_case(self.spec())
+        _, printed, out = self.go("--max-resumes", "0", mode="stuck")
+        self.assertEqual(self.verbs(), self.CLEANED)
+        self.assertNotIn("kept", self.result(out)["platform"]["cleanup"])
+        self.assertNotIn("KEPT", printed)
+        self.assertNotIn("keep checks", printed)
+
+    def test_a_resume_of_a_kept_unfinished_run_skips_the_case_preflight_and_is_told_the_work_is_still_there(self):
+        self.use_case(self.spec())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        out = Path(first["output"])
+        self.assertEqual(first["platform"]["cleanup"], self.KEPT_UNFINISHED)
+        self.assertEqual(self.verbs(), ["preflight", "before"])
+        os.environ["PLAT_FAIL"] = "preflight"  # the platform now holds the run's own items: the case's preflight would refuse it
+        result, printed = self.resume("grok", out, "done", "--keep-platform")
+        self.assertEqual(self.verbs(), ["preflight", "before"], "the case's preflight did not run again, and nothing was cleaned")
+        self.assertTrue(result["pass"], result)
+        self.assertEqual(result["platform"]["cleanup"], self.KEPT, "this segment finished: a finished delivery is kept as one")
+        self.assertEqual(result["platform"]["earlier_cleanups"], [self.KEPT_UNFINISHED])
+        skipped = result["platform"]["preflight"]
+        self.assertTrue(skipped["ok"] and skipped["skipped"] and skipped["returncode"] is None and skipped["command"], skipped)
+        self.assertEqual(result["platform"]["home_links"][0]["name"], ".sfdx", "the links and the wrappers are still made")
+        self.assertIn("the case's own preflight is skipped", printed)
+        (resume_file,) = out.glob("invocation-resume-grok-*.json")
+        self.assertTrue(json.loads(resume_file.read_text())["platform"]["preflight"]["skipped"])
+        prompt = sorted(out.glob("resume-grok-*.txt"))[-1].read_text()
+        self.assertTrue(prompt.endswith(self.NOTE_KEPT), prompt[-200:])
+        self.assertNotIn(self.NOTE, prompt, "it was not reset, so the reset note would be false")
+
+    def test_a_resume_after_a_cleaned_ending_still_runs_the_case_preflight(self):
+        self.use_case(self.spec())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")  # no --keep-platform: cleaned
+        out = Path(first["output"])
+        self.assertEqual(self.verbs(), self.CLEANED)
+        os.environ["PLAT_FAIL"] = "preflight"
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.resume("grok", out, "done", "--keep-platform")
+        self.assertIn("platform preflight refused the run before any model started", str(refused.exception))
+        self.assertEqual(self.verbs(), self.CLEANED + ["preflight"], "the case's preflight ran and refused")
+
+    def test_a_resume_without_the_flag_skips_the_preflight_but_cleans_at_its_end(self):
+        self.use_case(self.spec())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        out = Path(first["output"])
+        os.environ["PLAT_FAIL"] = "preflight"
+        result, _ = self.resume("grok", out, "done")
+        self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
+        self.assertTrue(result["platform"]["cleanup"]["ran"] and result["platform"]["cleanup"]["ok"])
+        self.assertTrue(sorted(out.glob("resume-grok-*.txt"))[-1].read_text().endswith(self.NOTE_KEPT))
+
+    def test_a_segment_killed_hard_after_a_kept_one_leaves_a_pending_record_so_the_preflight_runs_again(self):
+        """A task kill leaves no signal handler to clean or keep: the pending record says nothing is known, the next resume's case
+        preflight judges the platform (a dirty one is refused, and the printed removal command is the way out)."""
+        self.use_case(self.spec())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        out = Path(first["output"])
+        self.assertEqual(first["platform"]["cleanup"], self.KEPT_UNFINISHED)
+        with mock.patch.object(run.PlatformGuard, "finish", return_value=None), \
+                mock.patch.object(run, "summarize_events", side_effect=RuntimeError("killed")), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
+            self.resume("grok", out, "stuck", "--keep-platform")  # killed after arming, before the keep decision
+        self.assertEqual(json.loads((out / "platform" / "cleanup-record.json").read_text()), run.PENDING_CLEANUP)
+        os.environ["PLAT_FAIL"] = "preflight"
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.resume("grok", out, "done", "--keep-platform")
+        self.assertIn("platform preflight refused", str(refused.exception))
+
+    def test_a_regrade_of_a_kept_unfinished_run_neither_cleans_it_nor_calls_it_a_pass(self):
+        self.use_case(self.spec())
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        out = Path(first["output"])
+        calls = self.calls()
+        regraded, printed = self.resume("grok", out, "stuck", "--grade-only", "--keep-platform")
+        self.assertEqual(self.calls(), calls, "nothing was cleaned and nothing was asked of the platform's commands")
+        self.assertEqual(regraded["platform"]["cleanup"], self.KEPT_UNFINISHED)
+        self.assertIs(regraded["platform"]["kept_unfinished"], True)
+        self.assertFalse(regraded["pass"])
+        self.assertIn("--keep-platform changes nothing here", printed)
+
+    def test_the_note_for_a_resumed_model_depends_on_what_the_earlier_segment_did(self):
+        spec = {"resume_note": self.NOTE, "resume_note_kept": self.NOTE_KEPT}
+        kept, cleaned = {"cleanup": self.KEPT_UNFINISHED}, {"cleanup": {"ran": True, "ok": True}}
+        self.assertEqual(run.resume_platform_note(spec, kept, regrade=False), self.NOTE_KEPT)
+        self.assertEqual(run.resume_platform_note(spec, cleaned, regrade=False), self.NOTE)
+        self.assertIsNone(run.resume_platform_note(spec, kept, regrade=True))
+        self.assertIsNone(run.resume_platform_note({"resume_note": self.NOTE}, kept, regrade=False),
+                          "a case with no kept note says nothing rather than the reset note, which would be false")
+        self.assertIsNone(run.resume_platform_note(spec, {"cleanup": self.KEPT}, regrade=False), "a finished keep is not resumed")
+        self.assertIsNone(run.resume_platform_note(spec, {}, regrade=False))
+
+    def test_the_keep_decision_is_a_pure_function_of_how_the_run_ended(self):
+        stop = self.tmp / "stop"
+        good = dict(shiploop={"pass": True}, engine={"status": "done"}, process={"status": "exited", "pass": True},
+                    stop_seen=False, stop_file=stop, checks=[{"command": "c deployed", "pass": True}], invalid=False)
+        unfinished = {**good, "engine": {"status": "active"}, "shiploop": {"pass": False}}
+        timeout = {**good, "process": {"status": "timeout", "pass": False}}
+        words = ("deployed",)
+        self.assertEqual(run.keep_decision(**good, keep_checks=words), (run.KEPT_FINISHED, None))
+        self.assertEqual(run.keep_decision(**good), (run.KEPT_FINISHED, None), "a case with no keep_checks keeps a finished delivery")
+        for ended in (unfinished, timeout, {**unfinished, "engine": {"status": "blocked"}}, {**unfinished, "engine": {}},
+                      {**unfinished, "process": {"status": "failed", "returncode": 1, "pass": False}}):
+            with self.subTest(ended=ended["engine"], process=ended["process"]["status"]):
+                self.assertEqual(run.keep_decision(**ended, keep_checks=words), (run.KEPT_UNFINISHED, None))
+                self.assertEqual(run.keep_decision(**ended), (None, run.keep_refusal(**ended)), "no keep_checks: cleaned as before")
+        # ShipLoop done and the host not timed out is a finished delivery only: a failed check, no report or a failed host is a failed
+        # delivery, cleaned even though the keep checks pass
+        for change in ({"checks": [{"command": "c project", "pass": False}, {"command": "c deployed", "pass": True}]},
+                       {"shiploop": {"pass": False, "status": "done"}},
+                       {"process": {"status": "failed", "returncode": 1, "pass": False}}):
+            with self.subTest(finished_but=list(change)):
+                kind, why = run.keep_decision(**{**good, **change}, keep_checks=words)
+                self.assertEqual((kind, why), (None, run.keep_refusal(**{**good, **change})))
+        # a case check that is not a keep check may fail; a keep check that fails or never ran may not
+        failing = [{"command": "c project", "pass": False}, {"command": "c deployed", "pass": True}]
+        self.assertEqual(run.keep_decision(**{**timeout, "checks": failing}, keep_checks=words), (run.KEPT_UNFINISHED, None))
+        for checks in ([{"command": "c deployed", "pass": False}], [{"command": "c project", "pass": True}], []):
+            kind, why = run.keep_decision(**{**timeout, "checks": checks}, keep_checks=words)
+            self.assertIsNone(kind)
+            self.assertEqual(why, "the host timed out; not kept as an unfinished run either: the keep check(s) deployed did not pass")
+        self.assertIsNone(run.keep_decision(**{**timeout, "checks": [{"command": "c deployed2", "pass": True}]}, keep_checks=words)[0],
+                          "a keep word is a whole word of the command")
+        # nothing forbidden by keep_blocker is ever kept, whatever the checks say
+        for change, why in (({"stop_seen": True}, "the run was stopped"), ({"process": {"status": "stopped", "pass": None}}, "the run was stopped"),
+                            ({"invalid": True}, "an invalid trial")):
+            with self.subTest(blocker=why):
+                self.assertIn(why, run.keep_decision(**{**timeout, **change}, keep_checks=words)[1])
+                self.assertIsNone(run.keep_decision(**{**timeout, **change}, keep_checks=words)[0])
+        stop.write_text("stop")
+        self.assertIn("the run was stopped", run.keep_decision(**timeout, keep_checks=words)[1])
+        stop.unlink()
+        with mock.patch.object(run.TERMINATION, "is_set", return_value=True):
+            self.assertIn("the run was stopped", run.keep_decision(**timeout, keep_checks=words)[1])
+        failed = {"ran": True, "ok": False, "returncode": 3, "output": "boom"}
+        self.assertEqual(run.keep_decision(**timeout, keep_checks=words, earlier_cleanup=failed),
+                         (None, "an earlier cleanup of this run failed: run the printed command first"))
+        for record in (None, run.PENDING_CLEANUP, self.KEPT_UNFINISHED):
+            with self.subTest(earlier_cleanup=record):
+                self.assertEqual(run.keep_decision(**timeout, keep_checks=words, earlier_cleanup=record)[0], run.KEPT_UNFINISHED)
+
+    def test_the_readme_states_the_rule_and_what_a_kept_app_does_to_the_next_run(self):
+        text = (ROOT / "test" / "shiploop_e2e" / "README.md").read_text()
+        section = text[text.index("#### Keeping what a run made"):text.index("### Launching long runs")]
+        for part in ("keep_checks", "kept_unfinished", "NOT a pass", "resume_note_kept", "chess_salesforce.py preflight",
+                     "refuse the next run", "kept after a person's stop"):
+            self.assertIn(part, section)
 
 
 class ManualCleanupTest(PlatformCase):
