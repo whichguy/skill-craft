@@ -1343,6 +1343,14 @@ a successor. Findings that would move navigation, successor choice or prompt
 selection into the model are recorded as rejected and never applied. The
 review is written to `review.md` and `review.json` in the run directory.
 
+The skill source is the one the run used (`skill_source` in `review.json`, added
+2026-10-16): `<plugin_dir>/skills/shiploop` of each launch record the run kept
+(`invocation.json`, then each resume). `iterate.py` passes its worktree with
+`--skill-root`, which is taken as given. Where the records name no source that
+still exists, the reviewer gets this checkout's `skills/shiploop` with a
+"Source mismatch" line in place of "the source that ran", and `review.py`
+prints `source mismatch: ...`.
+
 A review counts only when it is valid (`validity` in `review.json`, added
 2026-10-16): the reviewer process exited, and its JSON carries the review's
 structure (`outcome`, the three finding lists and `harness`). Otherwise it is

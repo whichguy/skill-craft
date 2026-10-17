@@ -2339,7 +2339,24 @@ Each fix has a fail-first regression built from the audit's control. It ran red 
      suite's cases cover exactly its `styles`, that breadth plus `not_covered` equals the catalog's styles, and that
      SPEC's breadth clause and the README name every style. It needs no model. Red on 2686b427: there was no `styles`
      claim, and with one added, the old SPEC clause did not name `stateful-service`. Green after the fix.
-5. **Review the source that actually ran** (`review.py`). Pending.
+5. **Review the source that actually ran** (`review.py`).
+   - Control: run directly, `review.py` defaulted `--skill-root` to this checkout's `skills/shiploop` and labelled it
+     "The ShipLoop skill source that ran", whatever the run had installed (audit: Default skill root, review.py:190).
+   - Fix: `review.ran_source` reads `<plugin_dir>/skills/shiploop` from every launch record the run kept, and lists
+     each when the launches used different plugins. When no record names a source that still exists, the prompt says
+     "Source mismatch", with the reason, instead of "the source that ran", and the CLI prints `source mismatch: ...`.
+     `review.json` records `skill_source`. An explicit `--skill-root` is kept as given, which is how `iterate.py`
+     passes its worktree.
+   - Regression: `ReviewSourceTest` (4 cases: the launch record's source; no record and a deleted source give a
+     mismatch; two launches on different plugins; an explicit root). Red on 2686b427: 3 failures and 1 error, including
+     this checkout labelled as the source that ran. Green after the fix.
+
+**Result.** All five regressions were red on 2686b427 and are green on this branch. The offline suites pass (see the
+commit messages for counts). No live run has exercised the fixes yet.
+
+**Open.** A live suite run on these fixes is still needed, especially `--suite batch`, whose web cases now go through
+`serve.py`. Two states now fail instead of passing: a run that abandons its recorded ShipLoop run and starts another,
+and a follow-on whose new run cannot be told apart from the copied one. Both are deliberate.
 
 **Out of scope.** The Battleship behavioural verifier (audit item 3), the timing evidence and the pilots. The deferred
 backlog below lists them.

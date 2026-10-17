@@ -29,6 +29,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
+import runrecord  # noqa: E402
 
 SPEC = Path(__file__).resolve().parent / "SPEC.md"
 # The standing E2E specification is the premise: one copy, loaded, never restated.
@@ -80,7 +81,47 @@ REVIEW_KEYS = ("outcome", *CATEGORIES, "harness")
 HARNESS_QUESTIONS = ("learning_retention", "further_learning", "evaluation_criteria")
 
 
-def reviewer_prompt(run_dir: Path, skill_root: Path, prior_learnings: str = "") -> str:
+DEFAULT_SKILL_ROOT = ROOT / "skills" / "shiploop"
+
+
+def ran_source(run_dir: Path, given: Path | None = None) -> dict:
+    """The ShipLoop source the run used, for the reviewer to read: `{"roots", "basis", "reason"}`.
+
+    A root the caller passes is its own statement (iterate.py passes the worktree it built the run from). Otherwise the
+    roots are `<plugin_dir>/skills/shiploop` of every launch record the run kept (invocation.json, then each resume), in
+    launch order. When no record names one, or a named one is gone, the basis is ``mismatch``: the reviewer is given this
+    checkout's skill and told it may not be what ran (2026-10-16 E2E audit: it used to be called the source that ran).
+    """
+    if given is not None:
+        return {"roots": [given.resolve()], "basis": "given by the caller", "reason": None}
+    named = []
+    for _name, record in runrecord.launches(run_dir):
+        plugin_dir = record.get("plugin_dir")
+        if isinstance(plugin_dir, str) and plugin_dir and plugin_dir not in named:
+            named.append(plugin_dir)
+    roots = [Path(plugin_dir) / "skills" / "shiploop" for plugin_dir in named]
+    missing = [str(root) for root in roots if not (root / "SKILL.md").is_file()]
+    if roots and not missing:
+        return {"roots": roots, "basis": "the run's launch records", "reason": None}
+    reason = (f"the source the run's launch records name is gone: {', '.join(missing)}" if missing
+              else "the run's launch records (invocation.json) name no plugin_dir")
+    return {"roots": [DEFAULT_SKILL_ROOT], "basis": "mismatch", "reason": reason}
+
+
+def source_line(source: dict) -> str:
+    roots = ", ".join(str(root) for root in source["roots"])
+    if source["basis"] == "mismatch":
+        return (f"- Source mismatch: {source['reason']}. The ShipLoop skill source given here is this checkout's {roots} "
+                "(SKILL.md, references/, scripts/), which may differ from what ran: say so before blaming the skill for "
+                "anything that depends on the difference")
+    label = "The ShipLoop skill source that ran" if len(source["roots"]) == 1 else (
+        "The ShipLoop skill sources that ran, one per plugin its launches used, first launch first")
+    return f"- {label}: {roots} (SKILL.md, references/, scripts/)"
+
+
+def reviewer_prompt(run_dir: Path, skill_root: Path | dict, prior_learnings: str = "") -> str:
+    source = skill_root if isinstance(skill_root, dict) else {"roots": [skill_root], "basis": "given by the caller",
+                                                              "reason": None}
     prior = (f"""
 Learnings recorded by earlier iterations (the last three commit messages). Build on them:
 check whether this run confirms, contradicts or moves past them, and do not re-report a
@@ -103,7 +144,7 @@ on the request in {run_dir / 'prompt.txt'}.
 - Where ShipLoop spent turns and time per accepted stage (cost is whole-run only), its failed
   commands, truncations and compactions: {run_dir / 'metrics.json'}. Its `unmeasured` map names
   every counter this host's events cannot show (a null or an empty list there is not a zero)
-- The ShipLoop skill source that ran: {skill_root} (SKILL.md, references/, scripts/)
+{source_line(source)}
 
 If result.json has a follow_on block, this run added a feature in a copy of an earlier
 run's repository (follow_on.prior). Then also judge retention: did ShipLoop find and use
@@ -191,7 +232,7 @@ def counts_as_clean(verdict: dict) -> bool:
 
 
 def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effort: str | None = None,
-           skill_root: Path = ROOT / "skills" / "shiploop", max_turns: int = 60, timeout: int = 1200,
+           skill_root: Path | None = None, max_turns: int = 60, timeout: int = 1200,
            prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude",
            codex_bin: str = "codex") -> dict:
     run_dir = run_dir.resolve()
@@ -199,7 +240,8 @@ def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effor
     stage = run_dir / "review"
     stage.mkdir(exist_ok=False)
     env = agent.env(stage / "home")
-    argv = agent.argv(prompt=reviewer_prompt(run_dir, skill_root.resolve(), prior_learnings),
+    source = ran_source(run_dir, skill_root)
+    argv = agent.argv(prompt=reviewer_prompt(run_dir, source, prior_learnings),
                       prompt_file=stage / "prompt.txt", cwd=run_dir, model=model or agent.model,
                       effort=effort or agent.effort, permission_mode="auto", max_turns=max_turns)
     process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
@@ -211,6 +253,7 @@ def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effor
         parsed["outcome"] = f"unusable review ({checked['status']}): {checked['reason']}"
     parsed["process"] = process
     parsed["validity"] = checked
+    parsed["skill_source"] = {**source, "roots": [str(root) for root in source["roots"]]}
     # An unusable review hands nothing on: its findings, if any, are not evidence the improver may act on.
     parsed["actionable"] = actionable(parsed) if checked["status"] == "valid" else []
     (run_dir / "review.json").write_text(json.dumps(parsed, indent=2) + "\n")
@@ -224,7 +267,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
     p.add_argument("--model")
     p.add_argument("--effort")
-    p.add_argument("--skill-root", type=Path, default=ROOT / "skills" / "shiploop")
+    p.add_argument("--skill-root", type=Path, help="the ShipLoop source the run used (default: the plugin_dir its launch "
+                   "records name; where they name none that exists, this checkout's, reported as a source mismatch)")
     p.add_argument("--no-prior-learnings", action="store_true",
                    help="do not give the reviewer the last three commit messages of this checkout")
     args = p.parse_args(argv)
@@ -232,6 +276,9 @@ def main(argv: list[str] | None = None) -> int:
     result = review(args.run_dir, host=args.host, model=args.model, effort=args.effort,
                     skill_root=args.skill_root, prior_learnings=prior)
     print((args.run_dir / "review.md").read_text())
+    source = result["skill_source"]
+    if source["basis"] == "mismatch":
+        print(f"source mismatch: {source['reason']}; the reviewer read {', '.join(source['roots'])}")
     checked = result["validity"]
     print(f"review: {checked['status']}" + (f" ({checked['reason']})" if checked["reason"] else ""))
     print(f"actionable findings: {len(result['actionable'])}")

@@ -937,6 +937,77 @@ class ReviewValidityTest(unittest.TestCase):
         self.assertEqual(code, 0)
 
 
+class ReviewSourceTest(unittest.TestCase):
+    """The 2026-10-16 E2E audit: review.py run directly gave the reviewer this checkout's skills/shiploop and called it "the
+    ShipLoop skill source that ran", whatever the run had actually installed."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name).resolve()
+        self.run_dir = self.tmp / "run"
+        self.run_dir.mkdir()
+
+    def plugin(self, name: str) -> Path:
+        root = self.tmp / name
+        (root / "skills" / "shiploop").mkdir(parents=True)
+        (root / "skills" / "shiploop" / "SKILL.md").write_text("---\nname: shiploop\n---\n")
+        return root
+
+    def launch(self, file: str, plugin_dir: Path) -> None:
+        (self.run_dir / file).write_text(json.dumps({"case": "hello", "host": "grok", "plugin_dir": str(plugin_dir)}))
+
+    def prompt(self, *extra: str) -> tuple[str, str, dict]:
+        shutil.rmtree(self.run_dir / "review", ignore_errors=True)  # one review per run directory
+        fake = FakeReviewer([("exited", VALID_EMPTY_REVIEW)])
+        seen = {}
+        fake.argv = lambda **kwargs: seen.update(kwargs) or ["offline-probe"]
+        printed = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            for patch in fake.patches():
+                stack.enter_context(patch)
+            stack.enter_context(contextlib.redirect_stdout(printed))
+            review.main([str(self.run_dir), "--host", "grok", "--no-prior-learnings", *extra])
+        return seen["prompt"], printed.getvalue(), json.loads((self.run_dir / "review.json").read_text())
+
+    def test_the_reviewer_is_given_the_source_the_runs_own_launch_record_names(self):
+        built = self.plugin("build")
+        self.launch("invocation.json", built)
+        prompt, _, verdict = self.prompt()
+        self.assertIn(f"The ShipLoop skill source that ran: {built / 'skills' / 'shiploop'}", prompt)
+        self.assertNotIn(str(ROOT / "skills" / "shiploop"), prompt)
+        self.assertEqual(verdict["skill_source"]["basis"], "the run's launch records")
+
+    def test_a_run_whose_records_name_no_source_says_so_instead_of_calling_this_checkout_the_source_that_ran(self):
+        prompt, printed, verdict = self.prompt()
+        self.assertNotIn("source that ran", prompt)
+        self.assertIn("Source mismatch", prompt)
+        self.assertIn(str(ROOT / "skills" / "shiploop"), prompt)
+        self.assertIn("source mismatch:", printed)
+        self.assertEqual(verdict["skill_source"]["basis"], "mismatch")
+        gone = self.tmp / "deleted-build"
+        self.launch("invocation.json", gone)  # recorded, but no longer on disk
+        prompt, printed, _ = self.prompt()
+        self.assertIn("Source mismatch", prompt)
+        self.assertIn(str(gone), printed)
+
+    def test_launches_on_different_plugins_name_each_source(self):
+        first, second = self.plugin("first"), self.plugin("second")
+        self.launch("invocation.json", first)
+        self.launch("invocation-resume-codex-1792200000.json", second)
+        prompt, _, verdict = self.prompt()
+        self.assertIn(str(first / "skills" / "shiploop"), prompt)
+        self.assertIn(str(second / "skills" / "shiploop"), prompt)
+        self.assertEqual(len(verdict["skill_source"]["roots"]), 2)
+
+    def test_an_explicit_skill_root_is_the_callers_statement_and_is_kept(self):
+        worktree = self.plugin("worktree")
+        self.launch("invocation.json", self.plugin("build"))
+        prompt, _, verdict = self.prompt("--skill-root", str(worktree / "skills" / "shiploop"))
+        self.assertIn(f"The ShipLoop skill source that ran: {worktree / 'skills' / 'shiploop'}", prompt)
+        self.assertEqual(verdict["skill_source"]["basis"], "given by the caller")
+
+
 class IterateConvergenceTest(unittest.TestCase):
     """iterate.main end to end with the host, the build and the run faked: only the review's validity varies."""
 
