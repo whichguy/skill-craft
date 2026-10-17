@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Package acceptance must fail closed before a host tries to load a skill."""
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -21,6 +22,25 @@ SPEC.loader.exec_module(CHECK)
 
 
 class PackageTests(unittest.TestCase):
+    def test_backchain_preservation_helper_runs_from_built_package(self):
+        helper = PLUGINS / "skill-craft/skills/backchain/scripts/check_preservation.py"
+        plan = json.loads((ROOT / "test/fixtures/backchain-chunks/mixed.json").read_text())["plan"]
+        baseline = Path(self.temp.name) / "baseline.json"
+        candidate = Path(self.temp.name) / "candidate.json"
+        baseline.write_text(json.dumps(plan))
+        candidate.write_bytes(baseline.read_bytes())
+        command = [sys.executable, "-I", "-B", str(helper), "--baseline", str(baseline),
+                   "--baseline-sha256", hashlib.sha256(baseline.read_bytes()).hexdigest(),
+                   "--candidate", str(candidate), "--mode", "legacy"]
+        result = subprocess.run(command, cwd=self.temp.name, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["confirmation_differences"], [])
+        del plan["goal_needs"]
+        candidate.write_text(json.dumps(plan))
+        result = subprocess.run(command, cwd=self.temp.name, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["errors"], ["goal_needs presence/value changed"])
+
     def test_generated_agent_routers_bind_the_selected_installed_card(self):
         for name in ("shiploop", "skill-interop"):
             text = (PLUGINS / "skill-craft" / "agents" / f"{name}.md").read_text()

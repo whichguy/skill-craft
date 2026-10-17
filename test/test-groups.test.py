@@ -149,7 +149,7 @@ class TestGroupTests(unittest.TestCase):
         cases = {
             "skills/backchain/prompts/revise.prompt.md": {"backchain-chunks"},
             "test/backchain_chunks.py": {"backchain-chunks"},
-            "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks"},
+            "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks", "marketplace-package"},
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls"},
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls"},
             "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},
