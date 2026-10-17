@@ -563,7 +563,7 @@ class GuidanceTests(unittest.TestCase):
             "test-spec": "One `test_cases` row per ID the step plan's focused commands list",
             "test": "Each case ends as:",
             "step-plan": "Confirm by: <command, observation or inspection>; pass when <expected result>",
-            "implement": "Each iteration edits first.",
+            "implement": "Complete this step's assigned criteria (Serves)",
             "verify": "Criterion or check unachievable as planned: report revise naming it.",
             "product-acceptance": "pending release verification",
             "release-verify": "the consumer entry reached after authentication",

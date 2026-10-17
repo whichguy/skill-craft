@@ -251,7 +251,9 @@ class ImproveCliFixture(unittest.TestCase):
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
             self.producer["paths"] = ["src/**"]
             self.producer["steps"] = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"],
-                                       "criteria": [], "skills": []}]
+                                       "criteria": [], "skills": [], "check": "true", "cards": [],
+                                       "cards_na": "Synthetic fixture: no coding card applies."}]
+            self.producer["match"] = [{"what": "Synthetic module", "like": None}]
             self.producer["expectations"] = [{"id": "E1", "state": "absent", "statement": "src/ does not exist yet.",
                                               "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]
         self.producer.update(producer_extra or {})

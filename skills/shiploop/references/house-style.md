@@ -96,8 +96,10 @@ instructions: recheck a rule before relying on it.
 ## Write the match contract
 
 At step planning, before any product edit, write a compact **match contract**
-into the item's accepted step plan: the plan note its result registers in
-`evidence_refs`, named in its `summary`. Every later stage that builds or
+into the item's accepted step plan as its `match` field: one row per kind of
+thing the item adds, `{"what": "<what to follow>", "like": "<exemplar path>" |
+null}`. The implement packet prints it on the step's "Existing example to
+follow" line; test and verify quote it. Every later stage that builds or
 checks the item (implementation, test authoring, documentation,
 verification) lists that step-plan result under **Results this stage builds on**, so a fresh
 context finds the contract without this conversation. Work-item `context` is
@@ -130,9 +132,9 @@ and the verifier, not a copy of the house-style record.
 
 ## Match while building
 
-At test authoring and implementation, reopen the match contract in the item's
-step-plan result and its exemplars before editing; do not work from a
-remembered summary.
+At test authoring and implementation, reopen the match contract (the step
+plan's `match` field, quoted in the packet) and its exemplars before editing;
+do not work from a remembered summary.
 
 - Write new code and tests in the exemplars' shape and vocabulary.
 - After a first draft, search again using the draft's own names and calls.

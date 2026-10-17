@@ -942,6 +942,33 @@ def _run_command(runner: Runner, command: str, cwd: Path, timeout: float, enviro
     return run, out.decode("utf-8", "replace") + "\n" + err.decode("utf-8", "replace")
 
 
+def step_proof_path(action: str, number: int) -> str:
+    """ShipLoop's record number ``number`` of one implement action's Proof run."""
+    return "tests/" + action + "-step-proof" + str(number) + ".md"
+
+
+def step_proof(root: Path, state: Mapping[str, Any], action: str, command: str, *,
+               runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
+               clock: Optional[Callable[[], float]] = None,
+               command_timeout: float = COMMAND_TIMEOUT_SECONDS) -> Tuple[Path, Dict[str, Any]]:
+    """Run one implement step's Proof from the execution checkout's root and record it.
+
+    Returns the record's path and the run (``exit``, ``seconds``, ``stdout``, ``stderr``, and ``status`` when the
+    command did not run to an exit). Writes ``RUN/tests/<action>-step-proof<n>.md``, numbering each attempt.
+    """
+    root = Path(root)
+    number = 1
+    while (root / step_proof_path(action, number)).exists():
+        number += 1
+    run, _output = _run_command(runner or lint.run_argv, command, Path(str(state["repo"])), command_timeout,
+                                dict(os.environ if env is None else env), clock or time.monotonic)
+    record = {"action": action, "command": command, "cwd": str(state["repo"]), **run}
+    path = root / step_proof_path(action, number)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    store.atomic_write_text(path, store.dumps(record, "ShipLoop step Proof run"))
+    return path, run
+
+
 def _skipped(row: Mapping[str, Any], budget: float) -> Dict[str, Any]:
     return {**row, "status": "skipped", "exit": None, "seconds": 0.0, "stdout": "",
             "stderr": "the " + str(int(budget)) + "-second budget of this ShipLoop test run ran out before this "

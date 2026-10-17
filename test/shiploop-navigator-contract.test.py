@@ -1266,9 +1266,9 @@ class NavigatorContractTests(unittest.TestCase):
         loop = (
             "Existing tests, check scripts, golden or fixture files and thresholds are checks",
             "download, install or fetch nothing",
-            "report revise, naming the criterion or command and the case",
-            "the criterion text does not say `Confirm by: unconfirmable here`",
-            f"the same check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts",
+            "naming the criterion or command and the case",
+            "unless the criterion says `Confirm by: unconfirmable here`",
+            f"{stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts first",
             "with existing behaviour kept at the conflict point",
         )
         parent = (
@@ -1287,10 +1287,11 @@ class NavigatorContractTests(unittest.TestCase):
         # items; the exit-condition rule is the loop rule, printed once in the until-loop invoke block.
         import shiploop_loops as loops
         for stage, work_pointer, duty_phrase in (
-                ("implement", "Do duty items 1-4 of {run}/packets/{action}.md for {step_change}",
-                 "edit its paths to meet its criteria"),
-                ("implement", "Do duty items 1-4 of {run}/packets/{action}.md",
-                 "changing the work, never the check, its expected result or the command"),
+                # Owner D4 (2026-10-17): implement's Work is the anchored sentence and points at the Method.
+                ("implement", "Implement all of {step_change}, anchored in the requirements that have been stated",
+                 "Complete this step's assigned criteria (Serves)"),
+                ("implement", "Follow the Method in {run}/packets/{action}.md",
+                 "Do not weaken or replace the Proof to get accepted"),
                 ("verify", "Do duty items 1-7 of {run}/packets/{action}.md in order",
                  "Per criterion name the passing command or inspection that confirms it now")):
             with self.subTest(work=stage, phrase=duty_phrase):
@@ -4057,6 +4058,12 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             result = dict(result)
             if stage == "step-plan":
                 result.setdefault("follows", [])
+            if stage == "implement":
+                # implement's record (owner, 2026-10-17); these items' steps assign no criteria, so no evidence rows.
+                result.setdefault("considerations", {key: "Synthetic fixture: a documentation file only; "
+                                                     + key.replace("_", " ") + " is unaffected (anchor: the step plan)."
+                                                     for key in navigator.CONSIDERATIONS})
+                result.setdefault("evidence", [])
             if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
                          "release-verify"):
                 result.setdefault("assumptions", [])
@@ -4085,7 +4092,9 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             "paths": [self.STEP_PLAN_NOTES],
             "test_commands": [], "test_commands_na": "A documentation-only item: no test command applies.",
             "steps": [{"id": "S1", "task": "Write notes.md.", "deps": [], "criteria": [],
-                       "paths": [self.STEP_PLAN_NOTES], "skills": []}],
+                       "paths": [self.STEP_PLAN_NOTES], "skills": [], "check": "test -f notes.md",
+                       "cards": ["coding-practices.md#documentation"]}],
+            "match": [],
             "expectations": expectations,
         }
 
@@ -4252,7 +4261,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                         "steps": ["S2"], "paths": ["more.md"], "check": "test ! -e more.md"}])
                 plan["paths"] = ["notes.md", "more.md"]
                 plan["steps"].append({"id": "S2", "task": "Write more.md.", "deps": ["S1"], "criteria": [],
-                                      "paths": ["more.md"], "skills": []})
+                                      "paths": ["more.md"], "skills": [], "check": "test -f more.md", "cards": ["coding-practices.md#documentation"]})
                 self.accept(plan)
                 for planning in ("step-plan", "test-spec"):
                     child = self.state().get("active_improve")

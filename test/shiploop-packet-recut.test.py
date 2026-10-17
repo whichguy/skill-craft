@@ -237,6 +237,11 @@ class PrintedHeadTests(unittest.TestCase):
 
     # Printed output stays under the ~20,000-character cut some hosts apply to shell output; step-plan is the largest.
     HOST_CUT = 20_000
+    # Owner decision 2026-10-17 ("allow the full prompt to be sent"): implement's head carries the full guidance and Code
+    # craft and may pass HOST_CUT, where Grok elides the middle (probe-cut/RESULTS.md); it stays under the ~30,000
+    # characters Claude Code prints whole.
+    FULL_PROMPT_STAGES = ("implement",)
+    WHOLE_PRINT = 30_000
 
     def test_the_printed_text_of_every_producer_packet_holds_its_duties(self) -> None:
         printed = packets.offline_packets(CASES["node-fix-bug"], printed=True)
@@ -249,7 +254,8 @@ class PrintedHeadTests(unittest.TestCase):
             with self.subTest(packet=key):
                 self.assertIn("Current stage guidance:", text)
                 self.assertIn("\nRULES ", text)  # the duties' own closing rules came with them
-                self.assertLess(len(text), self.HOST_CUT)
+                full = key.split("-", 1)[1] in self.FULL_PROMPT_STAGES
+                self.assertLess(len(text), self.WHOLE_PRINT if full else self.HOST_CUT)
 
     def test_the_status_block_ends_inside_the_status_hooks_window_and_leads_the_duties(self) -> None:
         import shiploop_status_hook as hook
@@ -267,7 +273,8 @@ class PrintedHeadTests(unittest.TestCase):
         lines, which the packet file repeats.  Every other stage and route stays under the cut."""
         import shiploop_status_hook as hook
         printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True)
-        over = [key for key, text in printed.items() if len(text) > self.HOST_CUT]
+        over = [key for key, text in printed.items() if len(text) > self.HOST_CUT
+                and key.split("-", 1)[1] not in self.FULL_PROMPT_STAGES]
         self.assertEqual(over, ["01-step-plan"])
         for key, text in printed.items():
             if key.endswith("-improve"):
@@ -275,7 +282,8 @@ class PrintedHeadTests(unittest.TestCase):
             with self.subTest(packet=key):
                 self.assertIn("Current stage guidance:", text)
                 self.assertLess(text.index("=== end ShipLoop status ==="), hook.WINDOW)
-                self.assertLess(len(text), 22_000)
+                self.assertLess(len(text), self.WHOLE_PRINT if key.split("-", 1)[1] in self.FULL_PROMPT_STAGES
+                                else 22_000)
 
     def test_a_head_that_would_pass_the_limit_drops_the_quoted_knowledge_not_the_duties(self) -> None:
         for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():

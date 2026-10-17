@@ -68,7 +68,10 @@ WORK: Mapping[str, str] = {
         "Take the first expectation whose check does not match its state and do duty items 1-2 of "
         "{run}/packets/{action}.md for it; then rerun every expectation's check."),
     "implement": (
-        "Do duty items 1-4 of {run}/packets/{action}.md for {step_change}. Write no tests and start no later step."),
+        "Implement all of {step_change}, anchored in the requirements that have been stated "
+        "({requirements}) and the design directions that have been applied ({design}), until each requirement assigned "
+        "to this step is satisfied and none of the others is broken. Follow the Method in {run}/packets/{action}.md. "
+        "Write no permanent tests and start no later step."),
     "test": (
         "Do duty items 1-4 of {run}/packets/{action}.md for every test case quoted in the packet until every case "
         "is a passing test the focused command runs; write each test change's independent reason in "
@@ -96,12 +99,14 @@ REPEAT: Mapping[str, str] = {
         "defect; " + _NO_LIMIT + " Otherwise stop blocked: the stage reports revise for a wrong check, an unknown "
         "fix or a fact that changes the plan, and blocked for a fix outside this run. " + _NEVER_CANCEL),
     "implement": (
-        "Repeat while a check command fails or the lint command reports a new finding on a changed line and the "
-        "latest iteration changed code to fix it; " + _NO_LIMIT + " Stop blocked when the step is proven "
-        "unachievable as planned (a criterion contradicts another criterion, the item or a protected file; it "
-        "needs a tool, access or authority that is absent; or it would exceed the item), or when the same check "
-        f"still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts (the stage then reports "
-        "revise). " + _NEVER_CANCEL),
+        "Repeat while an exit condition is unmet (the Proof fails, the lint command reports a new finding on a changed "
+        "line, an assigned criterion lacks evidence or a consideration is unanswered) and a justified investigation or "
+        "fix remains; " + _NO_LIMIT
+        + " Stop blocked and report revise, with the blocker and the attempts made, when no justified next action "
+        "remains, when the step is proven unachievable as planned (it contradicts a requirement, a decision, the item "
+        "or a protected file; it needs a tool, access or authority that is absent; or it would exceed the item), or "
+        f"when the same underlying failure persists after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts. "
+        + _NEVER_CANCEL),
     "test": (
         "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
         "below the floor, a new ID passing on the base, or a lint finding, and changed code or tests to fix it; "
@@ -245,23 +250,30 @@ COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; t
 
 def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
-           commands: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
-    """One stage's contract from plain values; ``contract`` supplies them from state."""
-    values = {"run": str(root), "action": action_id, "repo": repo}
+           commands: Sequence[Mapping[str, Any]] = (), anchors: Optional[Mapping[str, str]] = None) -> dict[str, Any]:
+    """One stage's contract from plain values; ``contract`` supplies them from state.
+
+    ``anchors`` gives implement's ``requirements`` and ``design`` phrases, built from the accepted step plan only (never
+    from HOME files, which the step itself may extend), so the contract rebuilt at complete equals the one at entry.
+    """
+    values = {"run": str(root), "action": action_id, "repo": repo, **dict(anchors or {})}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
         _need(step is not None, f"work item {item} has no implement step left in its accepted step plan")
         values["step"] = str(step.get("id"))
         if step.get("all_steps"):
-            # The ask-agent route issues one implement action for the whole plan (its chain runs the steps).
-            values["step_change"] = "the change of every step, " + str(step.get("id")) + ", in order,"
-            scope = (f"Workspace {repo}. Every step of work item {item} ({step.get('id')}): only their paths: "
-                     f"{_paths_text(step.get('paths') or ())}. Preserve every other change.")
+            # The ask-agent route issues one implement action for the whole plan (its chain runs the steps): "all of
+            # this item's plan", step by step in order (owner D5, 2026-10-17).
+            values["step_change"] = "this item's plan, steps " + str(step.get("id")) + ", in order"
+            scope = (f"Workspace {repo}. Every step of work item {item} ({step.get('id')}): their assigned criteria "
+                     "only. ShipLoop commits the item's declared files; a needed file outside them is a revise. "
+                     "Preserve every other change.")
         else:
-            values["step_change"] = "step " + str(step.get("id")) + "'s change"
-            scope = (f"Workspace {repo}. Step {step.get('id')} of work item {item}: only its paths: "
-                     f"{_paths_text(step.get('paths') or ())}. No later step's work. Preserve every other change.")
+            values["step_change"] = "step " + str(step.get("id")) + " of this item's plan"
+            scope = (f"Workspace {repo}. Step {step.get('id')} of work item {item}: its assigned criteria only, no "
+                     "later step's work. ShipLoop commits the item's declared files; a needed file outside them is a "
+                     "revise. Preserve every other change.")
     elif stage == "step-plan":
         scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft and "
                  "docs/shiploop/. Change no product file.")
@@ -328,8 +340,39 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
+    step = _implement_scope(state, item, action_id) if stage == "implement" else None
     return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
-                  step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)
+                  step=step, commands=commands,
+                  anchors=implement_anchors(state, item, step) if step is not None else None)
+
+
+def implement_anchors(state: Mapping[str, Any], item: str, step: Mapping[str, Any]) -> dict[str, str]:
+    """The implement Work line's ``requirements`` and ``design`` phrases, from the accepted step plan alone.
+
+    requirements: the step's criteria (every step's on the ask-agent route) and the R-<n> their texts name, else the
+    item's followed R-<n>; design: the item's followed AD-<n>, plus the knowledge sections and the step's cards.
+    """
+    _action, plan = _step_plan(state, item)
+    texts = {str(row.get("id")): str(row.get("text") or "") for row in plan.get("criteria") or ()
+             if isinstance(row, Mapping)}
+    if step.get("all_steps"):
+        own = [str(c) for row in plan.get("steps") or () if isinstance(row, Mapping) for c in row.get("criteria") or ()]
+    else:
+        own = [str(c) for c in step.get("criteria") or ()]
+    own = list(dict.fromkeys(own))
+    follows = [str(ident) for ident in plan.get("follows") or ()]
+    named = sorted({ident for c in own for ident in knowledge_home._ids(texts.get(c, ""))},
+                   key=lambda value: int(value.split("-")[1]))
+    named = named or [ident for ident in follows if ident.startswith("R-")]
+    decisions = [ident for ident in follows if ident.startswith("AD-")]
+    home = knowledge_home.HOME
+    return {
+        "requirements": (", ".join(own) or "the step's task") + (", serving " + ", ".join(named) if named else "")
+                        + " in " + home + "/spec.md",
+        "design": (", ".join(decisions) + " and " if decisions else "")
+                  + "the Anchored-in sections of " + home + "/architecture.md and " + home + "/environment.md, the "
+                  "step's cards and existing example",
+    }
 
 
 def _route(state: Mapping[str, Any], action_id: str) -> str:

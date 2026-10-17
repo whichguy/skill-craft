@@ -1447,20 +1447,24 @@ class PromptContractTests(unittest.TestCase):
         import shiploop_prompts as guidance
         for stage in loops.STAGES:
             self.assertNotIn("Pass-or-stop loop", guidance.prompt(stage, delegation=guidance.INLINE))
-        # Packet re-cut (2026-10-11): the loop's Work is "do duty items 1-4 of the packet"; running the checks and the
-        # lint command is stated once, in the stage's own duty item, and the loop's Repeat rule names the lint finding.
-        for stage, run_lint in (("implement", "run every recorded check command and `shiploop lint --action`"),
-                                ("test", "run every recorded command, the red-check command and the lint command")):
+        # Packet re-cut (2026-10-11): the loop's Work points at the packet (implement: its Method, owner 2026-10-17;
+        # test: its duty items); the lint command is stated once, in the stage's own duty, and the loop's Repeat rule
+        # names the lint finding.
+        for stage, pointer, run_lint in (("implement", "Follow the Method in", "After a code change run `shiploop lint --action`"),
+                                         ("test", "duty items",
+                                          "run every recorded command, the red-check command and the lint command")):
             with self.subTest(stage=stage):
                 work = " ".join(loops.WORK[stage].split())
-                self.assertIn("duty items", work)
+                self.assertIn(pointer, work)
                 self.assertIn("{run}/packets/{action}.md", work)
                 packet = " ".join(guidance.prompt(stage, delegation=guidance.INLINE).split())
                 self.assertEqual(packet.count(run_lint), 1)
                 self.assertIn("`lint_waivers`", packet)
                 self.assertIn("lint", " ".join(loops.REPEAT[stage].split()))
         implement = " ".join(guidance.prompt("implement", delegation=guidance.INLINE).split())
-        self.assertIn("the same check still fails after 7 genuine fix attempts", implement)
+        self.assertIn("7 genuine fix attempts first", implement)
+        self.assertIn("the same underlying failure persists after 7 genuine fix attempts",
+                      " ".join(loops.REPEAT["implement"].split()))
 
 
 class CliTests(Fixture):

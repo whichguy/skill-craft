@@ -44,6 +44,8 @@ COMPLETE_RUNS = frozenset({
     "test-base",           # run the item's tests on the base checkout: no new test ID passes; sets the floor
     "test-loop",           # run every recorded command on the candidate: each passes, every ID, the floor
     "test-rerun",          # run every recorded test command and require each to pass
+    "step-proof",          # run the current step's Proof command in the execution checkout; refuse done unless it exits 0
+    "implement-record",    # refuse done unless all eight considerations are answered and each assigned criterion has evidence
 })
 EDITS = frozenset({"code", "tests", "docs"})
 PHASES = ("prelude", "inner", "outer")
@@ -296,8 +298,8 @@ _ROWS = (
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
             "steps lists every implementation step in the order to do them",
-            "each step declares deps, the criteria it satisfies and the paths it changes, every criterion is satisfied "
-            "by a step, and no step only changes test files (unless the whole item is tests)",
+            "each step declares deps, the criteria it satisfies, the check that proves it and its cards, every "
+            "criterion is satisfied by a step, and no step only changes test files (unless the whole item is tests)",
             "test_commands records focused, regression and at least one check command (lint, type or build), with "
             "check_na giving the reason when there is no check command, or test_commands_na giving the reason there "
             "are no commands",
@@ -356,22 +358,25 @@ _ROWS = (
     ),
     Stage(
         "implement", "inner",
-        goal="Make this step's change on its paths in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`.",
+        goal="Complete this step's criteria in WORKTREE, anchored in the recorded requirements and decisions; answer "
+             "the considerations and give each criterion evidence.",
         short_goal='implement this step',
         done_when=(
-            "only the step's paths changed since the step began, and no later step's work is in them",
-            "after the last edit, every recorded check command exited 0",
+            "each criterion assigned to this step has evidence observed after the last change, and no R-n or AD-n "
+            "constraint on it is broken",
+            "the step's Proof exited 0 on the final work",
+            "`considerations` answers all eight with the concrete handling and its anchor",
             "after the last edit, the lint gate reports no unwaived new finding on a line this step changed",
             "the result lists each behaviour the change added that no test-spec case covers (or none), and whether "
             "each of the step's skills was used",
         ),
         develop="Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",
-        test="After each edit, rerun the check commands; change the work, never the check. Tests are written in the "
-             "test stage.",
-        tools="Run `shiploop lint --action` after each edit; the lint gate runs at complete, on every step.",
+        test="Run the step's Proof on the final work; change the work, never the Proof. Permanent tests are written in "
+             "the test stage.",
+        tools="Run `shiploop lint --action` after a code change; the lint gate runs at complete, on every step.",
         edits=frozenset({"code"}),
         entry_runs=("loop-contract",),
-        complete_runs=("loop-terminal", "lint-gate"),
+        complete_runs=("loop-terminal", "step-proof", "implement-record", "lint-gate"),
         improve="step",
         reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:validate-existing"),
         blocks=frozenset({"code-craft"}),

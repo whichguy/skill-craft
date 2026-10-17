@@ -66,7 +66,7 @@ _RESULT_KEYS = frozenset((
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
-    "follows", "test_cases", "lessons", "not_covered",
+    "follows", "test_cases", "lessons", "not_covered", "match", "considerations", "evidence",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -75,8 +75,10 @@ CONSUMES: dict[str, tuple[str, ...]] = {
     "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": ("spec_diff",),
     "plan": ("spec_diff",), "prepare": (), "step-plan": ("assumptions",),
     "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
-    "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
-    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
+    # implement's step block prints the step's own criteria and the item's match contract (owner, 2026-10-17), so its
+    # hand-offs are the R-n/AD-n it is anchored in and the test cases of its own criteria.
+    "implement": ("follows", "test_cases"), "test": ("follows", "test_cases", "not_covered", "match"),
+    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff", "match"),
     "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
     "system-test": ("system_commands", "assumptions"),
     "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
@@ -108,6 +110,7 @@ _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered",
+    "match", "considerations", "evidence",
 )
 _STATE_KEYS = frozenset(
     (
@@ -926,7 +929,14 @@ def _canonical_result(
 
 # Each new key's one producing stage (a done result only: _DONE_ONLY_FIELDS).
 HANDOFF_FIELDS = {"follows": "step-plan", "test_cases": "test-spec", "not_covered": "implement",
-                  "lessons": "release-verify"}
+                  "lessons": "release-verify", "match": "step-plan", "considerations": "implement",
+                  "evidence": "implement"}
+# The eight implement considerations (references/implement-guidance.md ## Considerations), as result keys in that order.
+CONSIDERATIONS = ("whole_step", "interactions", "build", "deploy", "state", "operations", "existing", "proof")
+EVIDENCE_FIELDS = ("criterion", "ran_or_inspected", "observed", "output", "establishes", "limits")
+# Answers that name no handling (implement guidance: "Handled", "reviewed" and a bare "N/A" are not answers).
+_EMPTY_ANSWERS = frozenset(("handled", "reviewed", "n/a", "na", "none", "ok", "done", "checked", "not checked",
+                            "not applicable", "yes", "fine"))
 _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
 # A shape refusal cannot know the route that submitted it (contract rule 4).
 _SHAPE_TAIL = "; then run the same command again."
@@ -960,6 +970,31 @@ def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, resul
             _need(isinstance(lessons[key], str) and bool(lessons[key].strip()),
                   "lessons." + key + " must be nonblank text (\"none\" only when true)" + _SHAPE_TAIL)
         result["lessons"] = {key: lessons[key] for key in names}
+    if "match" in value:
+        rows = value["match"]
+        _need(isinstance(rows, list) and all(
+            isinstance(row, Mapping) and set(row) == {"what", "like"} and isinstance(row["what"], str)
+            and row["what"].strip() and (row["like"] is None or (isinstance(row["like"], str) and row["like"].strip()))
+            for row in rows),
+              'match is [{"what": "<kind of thing and what to follow>", "like": "<existing example path>" | null}], '
+              "or [] for an item that changes no code" + _SHAPE_TAIL)
+        result["match"] = [{"what": row["what"].strip(), "like": row["like"].strip() if row["like"] else None}
+                           for row in rows]
+    if "considerations" in value:
+        answers = value["considerations"]
+        _need(isinstance(answers, Mapping) and set(answers) == set(CONSIDERATIONS)
+              and all(isinstance(answers[key], str) and answers[key].strip() for key in CONSIDERATIONS),
+              "considerations has exactly " + ", ".join(CONSIDERATIONS) + ", each the concrete handling and the anchor "
+              "that governs it, or why this step does not affect it" + _SHAPE_TAIL)
+        result["considerations"] = {key: answers[key].strip() for key in CONSIDERATIONS}
+    if "evidence" in value:
+        rows = value["evidence"]
+        _need(isinstance(rows, list) and all(
+            isinstance(row, Mapping) and set(row) == set(EVIDENCE_FIELDS)
+            and all(isinstance(row[key], str) and row[key].strip() for key in EVIDENCE_FIELDS) for row in rows),
+              "evidence is one entry per assigned criterion: {" + ", ".join('"' + key + '"' for key in EVIDENCE_FIELDS)
+              + "}, each nonblank ([] only for a step with no criteria)" + _SHAPE_TAIL)
+        result["evidence"] = [{key: row[key].strip() for key in EVIDENCE_FIELDS} for row in rows]
     if "not_covered" in value:
         rows = value["not_covered"]
         _need(isinstance(rows, list) and all(
@@ -1484,7 +1519,8 @@ def _named_text(state: Mapping[str, Any], stage: str | None, route: str) -> str:
         return ""
     return guidance.prompt(stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
                            planning_review=recorded_planning_review(state),
-                           execution_mode=state.get("execution_mode") or None)
+                           execution_mode=state.get("execution_mode") or None,
+                           code=stage != "implement" or _step_changes_code(state))
 
 
 def _named_policy_text(state: Mapping[str, Any], stage: str | None, route: str, stage_text: str) -> str:
@@ -1641,6 +1677,8 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
+        # The step comes right after its Done-when (F15: the head printed no step at all before 2026-10-17).
+        *_step_lines(state, stage, workitem, reference_dir=_reference_dir(core)),
         # Keepalive hooks bind a host session to this run from this exact line.
         f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
         "",
@@ -1896,9 +1934,11 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     rows = []
     for entry in value:
         _need(isinstance(entry, Mapping)
-              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "paths", "skills"},
+              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "paths", "skills", "check",
+                                                    "cards", "cards_na"},
               "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": [], \"criteria\": [\"C1\"], "
-              "\"paths\": [\"<repository-relative file>\"], \"skills\": [{\"name\": \"...\", \"why\": \"...\"}]}")
+              "\"check\": \"<read-only command that proves this step>\", \"cards\": [\"<reference card locator>\"], "
+              "\"skills\": [{\"name\": \"...\", \"why\": \"...\"}]}")
         step_id = _text(entry["id"], "step id")
         _need(not any(character.isspace() for character in step_id), "a step id has no spaces")
         row = {"id": step_id, "task": _text(entry["task"], "step task")}
@@ -1924,6 +1964,21 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
                 row["paths"] = item_scope.normalise_paths(entry["paths"])
             except item_scope.ItemScopeError as exc:
                 raise NavigatorError("step " + step_id + ": " + str(exc)) from exc
+        if "check" in entry:
+            check = entry["check"]
+            _need(isinstance(check, str) and check.strip() and "\n" not in check and "\0" not in check,
+                  "step " + step_id + "'s check is one nonblank command line")
+            row["check"] = check.strip()
+        if "cards" in entry:
+            cards = entry["cards"]
+            _need(isinstance(cards, list) and all(isinstance(card, str) and card.strip()
+                                                  and not any(c.isspace() for c in card.strip()) for card in cards)
+                  and len(set(cards)) == len(cards),
+                  "step " + step_id + "'s cards are unique reference locators such as coding-practices.md#state")
+            row["cards"] = [card.strip() for card in cards]
+        if "cards_na" in entry:
+            _need(entry.get("cards") == [], "step " + step_id + ": cards_na is only for an empty cards list")
+            row["cards_na"] = _text(entry["cards_na"], "step " + step_id + " cards_na")
         # Preserve omission: saved results must retain their exact canonical
         # payload, and missing dependencies do not mean independent steps.
         rows.append(row)
@@ -1985,6 +2040,29 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
     _check_step_sizing(result)
 
 
+# Where a step plan picks its cards (coding-guidance.md, Conditional index) and how a locator is resolved.
+CARD_INDEX = "the Conditional index in references/coding-guidance.md"
+_REFERENCE_DIR = Path(__file__).resolve().parent.parent / "references"
+
+
+def _heading_anchor(heading: str) -> str:
+    """A markdown heading's anchor as packets cite it: lower case, punctuation dropped, spaces as hyphens."""
+    return re.sub(r"\s", "-", re.sub(r"[^\w\s-]", "", heading.strip().lower()))
+
+
+def reference_card_exists(locator: str) -> bool:
+    """True when ``locator`` (``file.md`` or ``file.md#anchor``, relative to references/) names a file there and, when
+    an anchor is given, one of its headings."""
+    name, _, anchor = str(locator).partition("#")
+    path = (_REFERENCE_DIR / name).resolve()
+    if _REFERENCE_DIR.resolve() not in path.parents or not path.is_file():
+        return False
+    if not anchor:
+        return True
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return anchor in {_heading_anchor(line.lstrip("#")) for line in lines if line.startswith("#")}
+
+
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
     """Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).
 
@@ -1995,19 +2073,37 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
     steps = result.get("steps") or []
     known = [str(row.get("id")) for row in result.get("criteria") or () if isinstance(row, Mapping)]
     item_paths = list(result.get("paths") or ())
-    shape = ('[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "paths": ["<file this step changes>"]}]')
+    shape = ('[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "check": "<read-only command>", '
+             '"cards": ["coding-practices.md#state"]}]')
+    test_runs = {str(row.get("command") or "").strip() for row in result.get("test_commands") or ()
+                 if isinstance(row, Mapping) and row.get("suite") == "focused"}
     for step in steps:
         if not isinstance(step, Mapping):
             continue
         name = str(step.get("id"))
-        _need(step.get("paths"), "step " + name + " must list paths: the files it changes, from the item's paths. "
-              "Steps are " + shape)
+        check = step.get("check")
+        _need(isinstance(check, str) and check.strip(),
+              "step " + name + " must name its check: one read-only command, run from the repository root, that "
+              "exits 0 once this step and its deps are done (the implement packet's Proof; ShipLoop runs it at done). "
+              "It names nothing a later step or stage creates and changes no remote system. Steps are " + shape)
+        _need(check.strip() not in test_runs,
+              "step " + name + "'s check is a focused test command, which runs tests the test stage writes later; "
+              "name a check that can pass when this step ends")
+        _need("cards" in step,
+              "step " + name + " must list cards: the coding-guidance cards this kind of change needs (" + CARD_INDEX
+              + "), as locators such as coding-practices.md#state; [] with cards_na giving the reason when none applies")
+        _need(step["cards"] or step.get("cards_na"),
+              "step " + name + " lists no cards: name the cards that apply (" + CARD_INDEX + "), or add cards_na "
+              "with the reason none applies")
+        missing = [card for card in step["cards"] if not reference_card_exists(card)]
+        _need(not missing, "step " + name + " names cards that do not resolve to a reference file and heading: "
+              + ", ".join(missing) + ". Use the locators in " + CARD_INDEX)
         if known:
             _need(step.get("criteria"), "step " + name + " must list criteria: the IDs of the criteria it satisfies ("
                   + ", ".join(known) + "). A step no check can confirm on its own belongs in the step it serves.")
             unknown = [c for c in step["criteria"] if c not in known]
             _need(not unknown, "step " + name + " names criteria the result does not list: " + ", ".join(unknown))
-        outside = [path for path in step["paths"]
+        outside = [path for path in step.get("paths") or ()
                    if not any(path == item or fnmatch.fnmatchcase(path, item) for item in item_paths)]
         _need(not outside, "step " + name + " changes paths the item does not declare: " + ", ".join(outside)
               + ". Add them to the result's paths, or move that work to the step that owns them.")
@@ -2393,6 +2489,23 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
                            + str(architecture) + " (AD-): drop each other ID, or add its entry to the living file"
                            + ("; improve-commit that edit first." if command == "improve" else "."),
                            "No entry: " + ", ".join(absent) + "."])
+    if stage == "step-plan":
+        rows = result.get("match")
+        if not rows and item_scope.behavioural(list(result.get("paths") or ())):
+            return _Fault("Add match to {result}", "adds match",
+                          ['Shape: "match": [{"what": "<kind of thing and what to follow>", "like": "<existing '
+                           'example path>" | null}]: the house-style match contract (House-style guidance). This item '
+                           "changes code, so its implement, test and verify packets follow and check it."])
+        absent = [row["like"] for row in rows or () if row.get("like")
+                  and not ((repo / row["like"]).exists() or any(repo.glob(row["like"])))]
+        if absent:
+            return _Fault("Fix the match examples in {result}", "fixes match",
+                          ["Each match row's like names an existing file in " + str(repo) + ", or is null when no "
+                           "example exists yet.", "Not found: " + ", ".join(absent) + "."])
+    if stage == "implement":
+        fault = _implement_record_fault(state, result)
+        if fault is not None:
+            return fault
     if stage in assumptions.OPEN_ITEM_STAGES:
         if "assumptions" not in result:
             return _Fault("Add assumptions to {result}", "adds assumptions",
@@ -2424,6 +2537,41 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
     return None
 
 
+def _implement_record_fault(state: Mapping[str, Any], result: Mapping[str, Any]) -> _Fault | None:
+    """implement-record: all eight considerations answered with real handling, one evidence entry per assigned criterion.
+
+    Presence and coverage only; whether an answer or observation is true is the per-step Improve review's call.
+    """
+    if "considerations" not in result:
+        return _Fault("Add considerations to {result}", "adds considerations",
+                      ['Shape: "considerations": {' + ", ".join('"' + key + '": "..."' for key in CONSIDERATIONS)
+                       + "}: for each, the concrete handling and the anchor that governs it, or why this step does not "
+                       "affect it."])
+    empty = [key for key in CONSIDERATIONS
+             if result["considerations"][key].strip().lower().rstrip(".") in _EMPTY_ANSWERS]
+    if empty:
+        return _Fault("Answer the considerations in {result}", "answers considerations",
+                      ['"Handled", "reviewed" and a bare "N/A" are not answers: write the concrete handling and its '
+                       "anchor, or why this step does not affect it.", "No real answer: " + ", ".join(empty) + "."])
+    item = _current_work_item(state)
+    step = loops.current_step(state, item) if item else None
+    assigned = [str(ident) for ident in (step or {}).get("criteria") or ()]
+    if "evidence" not in result:
+        return _Fault("Add evidence to {result}", "adds evidence",
+                      ['Shape: "evidence": [{' + ", ".join('"' + key + '": "..."' for key in EVIDENCE_FIELDS)
+                       + "}], one entry per criterion assigned to this step (" + (", ".join(assigned) or "none") + ")."])
+    named = [row["criterion"] for row in result["evidence"]]
+    missing = [ident for ident in assigned if ident not in named]
+    stray = [ident for ident in named if assigned and ident not in assigned]
+    if missing or stray:
+        return _Fault("Fix the evidence in {result}", "fixes evidence",
+                      ["Give one observation per criterion assigned to this step, and none for another step's: "
+                       + ", ".join(assigned) + ".",
+                       ("No evidence: " + ", ".join(missing) + ". " if missing else "")
+                       + ("Not this step's: " + ", ".join(stray) + "." if stray else "")])
+    return None
+
+
 def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any, command: str, *,
                   next_step: NextStep) -> None:
     """Refuse a done result whose hand-off fields its consumers cannot use (consumer contract, slice 4a).
@@ -2438,7 +2586,8 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     # Only the fields this gate reads: another field's shape fault stays the refusal of the gate that owns it.
-    projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions") if key in result}
+    projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions", "paths")
+                 if key in result}
     canonical = _canonical_result(projected, stage=stage, delivery_contract="delivery_contract_version" in state)
     fault = _handoff_fault(Path(root), state, stage, canonical, command)
     _need(fault is None, _handoff_refusal(fault, next_step) if fault else "")
@@ -2490,7 +2639,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
             elif stage not in _EVERY_OPEN_ITEM:
                 rows = [found for found in rows if found.row.get("consumer") == stage]
             sources.append(Source(key, None, None, item, rows))
-        elif key in ("follows", "criteria", "test_commands"):
+        elif key in ("follows", "criteria", "test_commands", "match"):
             action, plan = test_loop._step_plan(state, item) if item else (None, {})
             value = plan.get(key) if action else None
             if key == "follows" and value is not None:
@@ -2502,8 +2651,14 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
             for owner in (items if stage == "system-test-author" else [item]):
                 action = current.get((owner, "test-spec")) if owner else None
                 found = accepted.get(action) if action else None
-                sources.append(Source(key, "test-spec", action, owner,
-                                      found.get(key) if isinstance(found, Mapping) else None))
+                value = found.get(key) if isinstance(found, Mapping) else None
+                if stage == "implement" and value is not None:
+                    # One step's packet quotes the cases of its own criteria: its target (owner, 2026-10-17).
+                    step = loops.current_step(state, owner) if owner else None
+                    if step is not None and step.get("criteria"):
+                        value = [case for case in value if isinstance(case, Mapping)
+                                 and case.get("criterion") in step["criteria"]]
+                sources.append(Source(key, "test-spec", action, owner, value))
         elif key == "not_covered":
             plan_action, _plan = test_loop._step_plan(state, item) if item else (None, {})
             history = list(state.get("history") or ())
@@ -3105,6 +3260,22 @@ def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
     return writes, payload
 
 
+def _step_proof_gate(root: Path, state: Mapping[str, Any], action_id: str, work_item: str) -> None:
+    """step-proof: run the current step's Proof in the execution checkout and refuse done unless it exits 0."""
+    step = loops.current_step(state, work_item)
+    _need(step is not None, "work item " + work_item + " has no implement step left in its accepted step plan")
+    _need(bool(step.get("check")),
+          "step " + str(step["id"]) + " has no Proof: its step plan predates step checks. Report revise naming this, "
+          "so step-plan gives each step a check; then run the same complete command again.")
+    record, run = test_loop.step_proof(root, state, action_id, str(step["check"]))
+    _need(run.get("exit") == 0,
+          "step " + str(step["id"]) + "'s Proof did not pass (exit " + str(run.get("exit")) + ", status "
+          + str(run.get("status") or "ran") + "): " + str(step["check"]) + "\nRecord: " + str(record) + "\n"
+          + (run.get("stdout") or "") + (run.get("stderr") or "")
+          + "\nFix the work, not the Proof. If the Proof cannot assess this step at this point in the plan, report "
+          "revise naming the mismatch.")
+
+
 def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: Any, *,
                  check_only: bool = False) -> list[str]:
     """The inner stages' own gates (owner decisions 2026-10-10); returns validate-existing's paths to commit.
@@ -3418,8 +3589,13 @@ _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
 _CONSUMER_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
+_MATCH_PLACEHOLDERS = {"what": "<what to follow>", "like": "<example path, or null>"}
+_CONSIDERATION_PLACEHOLDER = "<handling; anchor>"
+_EVIDENCE_PLACEHOLDERS = {"ran_or_inspected": "<command or file:lines>", "observed": "<what was seen>",
+                          "output": "<where>", "establishes": "<what it shows>", "limits": "<what it does not>"}
 HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, _ORACLE_PLACEHOLDER, _RED_PLACEHOLDER, _GREEN_PLACEHOLDER,
-                        _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER, *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER)
+                        _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER, *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER,
+                        *_MATCH_PLACEHOLDERS.values(), _CONSIDERATION_PLACEHOLDER, *_EVIDENCE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
 # field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
 # result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
@@ -3429,6 +3605,9 @@ HANDOFF_SHAPES: dict[str, Any] = {
                     "red": _RED_PLACEHOLDER, "green": _GREEN_PLACEHOLDER}],
     "not_covered": [{"behaviour": _BEHAVIOUR_PLACEHOLDER, "reason": _REASON_PLACEHOLDER}],
     "lessons": dict(_LESSON_PLACEHOLDERS),
+    "match": [dict(_MATCH_PLACEHOLDERS)],
+    "considerations": {key: _CONSIDERATION_PLACEHOLDER for key in CONSIDERATIONS},
+    "evidence": [{"criterion": "C1", **_EVIDENCE_PLACEHOLDERS}],
     "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...",
                      "consumer": _CONSUMER_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
 }
@@ -3451,10 +3630,10 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
         result["steps"] = [{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"],
-                            "paths": ["<repository-relative file this step changes>"],
+                            "check": "<read-only command>", "cards": ["<card locator>"],
                             "skills": [{"name": "<helper skill>", "why": "<its use in this step>"}]},
                            {"id": "S2", "task": "...", "deps": ["S1"], "criteria": ["C2"],
-                            "paths": ["<repository-relative file this step changes>"], "skills": []}]
+                            "check": "<read-only command>", "cards": [], "cards_na": "<why none>", "skills": []}]
         result["expectations"] = [
             {"id": "E1", "state": "works", "statement": "<what exists and works today>", "steps": ["S1"],
              "paths": ["<existing file a step changes>"],
@@ -4071,10 +4250,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
+        *_step_lines(state, stage, workitem, reference_dir=reference_dir),
         *_reference_lines(root, state, stage, workitem),
         *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if state["status"] == "active" and not state.get("active_improve") else []),
-        *_step_lines(state, stage, workitem),
         *_commit_scope_lines(root, state, stage, workitem),
         *_context_index_lines(root, state, stage, workitem),
         "",
@@ -4502,6 +4681,8 @@ _CHECK_TEXT = {
                  "below), then mutates a sample of the changed product lines and refuses when the focused tests catch "
                  "none, so a test that only loads the code is refused",
     "test-rerun": "reruns every recorded test command and refuses done unless each passes",
+    "step-proof": "runs the step's Proof in WORKTREE and refuses done unless it exits 0",
+    "implement-record": "refuses an empty consideration or an assigned criterion without evidence",
 }
 # What a rerun adds at an inner stage (verify), which is held to the item's floors; the outer reruns are not.
 _INNER_RERUN_TEXT = (", runs every listed ID and reaches its floor; ShipLoop's run record is the evidence, so a "
@@ -4521,8 +4702,8 @@ _COMMON_GATES = "no outcome or summary, or an absolute evidence_refs path that d
 # test/shiploop-callback-contract.test.py pair each named fault with its real refusal.
 _RECORDED_GATES = {
     "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
-                     "command naming an unlisted one, deps that are not earlier steps, a step without its criteria "
-                     "or paths, a step path the item does not declare, a criterion no step satisfies, a step that "
+                     "command naming an unlisted one, deps that are not earlier steps, a step without its criteria, "
+                     "check or cards, a card that does not resolve, a step path the item does not declare, a criterion no step satisfies, a step that "
                      "only changes test files)",
     "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
     "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
@@ -4708,6 +4889,8 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any) -> list[str
     if source.key == "criteria":
         return [label + ":", *("- " + str(row.get("id")) + ": " + _one_line(row.get("text"))
                                for row in value if isinstance(row, Mapping))]
+    if source.key == "match":
+        return [label + ":", *_match_rows(value)] if value else [label + ": none"]
     if source.key in ("test_commands", "system_commands"):
         return [label + ":", *("- [" + str(row.get("suite")) + "] " + str(row.get("command"))
                                + (" (ids: " + ", ".join(map(str, row["ids"])) + ")" if row.get("ids") else "")
@@ -5062,8 +5245,44 @@ def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_i
     return lines
 
 
-def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """Name the one step this inline implement packet is for, and what is already done."""
+# The knowledge-home sections an implement step is anchored in (knowledge_home.SECTIONS spells each heading).
+STEP_ANCHORS = (
+    ("Requirements", "spec.md", ("Non-functional requirements",)),
+    ("Design", knowledge.ARCHITECTURE, ("Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks")),
+    ("Environment", "environment.md", ("Targets and runtimes", "Commands", "Platform facts", "Access and accounts")),
+)
+_NOT_RECORDED = " (not recorded: decide whether it applies; absence is neither permission nor evidence)"
+STEP_POINTER = ("Do this stage inside the /until-loop invocation below; everything else in this packet is its "
+                "material.")
+
+
+def _match_rows(rows: Any) -> list[str]:
+    """The item's match contract, one row per line."""
+    return ["- " + _one_line(row.get("what")) + (" — like " + str(row["like"]) if row.get("like") else " — no example yet")
+            for row in rows or () if isinstance(row, Mapping)]
+
+
+def _headings(path: Path) -> set[str] | None:
+    """The heading texts of a markdown file, or None when the file is missing."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    return {line.lstrip("#").strip() for line in text.splitlines() if line.startswith("#")}
+
+
+def _first_clause_of(text: Any, limit: int = 80) -> str:
+    """A later step's task as far as its first sentence or colon, cut at ``limit`` characters: enough to see its scope."""
+    words = _one_line(text)
+    end = re.search(r"[.!?](\s|$)|:", words)
+    clause = (words[:end.end()].rstrip(": ") if end else words).strip()
+    return clause if len(clause) <= limit else clause[:limit - 1].rstrip() + "…"
+
+
+def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None, *,
+                reference_dir: Path | None = None) -> list[str]:
+    """The one step this inline implement packet is for: its task, criteria, Proof, anchors, cards, skills, the match
+    contract, what is already done and what comes later (owner, 2026-10-17: the packet carries the step; no paths)."""
     if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
             or delegation(state) != guidance.INLINE):
         return []
@@ -5071,16 +5290,74 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
     if done >= len(steps):
         return []
     step = steps[done]
+    _action, plan = test_loop._step_plan(state, work_item)
+    criteria = {str(row.get("id")): str(row.get("text") or "") for row in plan.get("criteria") or ()
+                if isinstance(row, Mapping)}
+    own = [str(ident) for ident in step.get("criteria") or ()]
+    follows = [str(ident) for ident in plan.get("follows") or ()]
+    named_r = sorted({ident for c in own for ident in knowledge._ids(criteria.get(c, ""))},
+                     key=lambda value: int(value.split("-")[1]))
+    requirements = named_r or [ident for ident in follows if ident.startswith("R-")]
+    decisions = [ident for ident in follows if ident.startswith("AD-")]
+    repo = Path(str(state["repo"]))
     history = [row for row in state["history"]
                if row.get("stage") == "implement" and row.get("workitem") == work_item
                and row.get("outcome") == "done"][-done:] if done else []
-    lines = [f"Step {step['id']} ({done + 1} of {len(steps)}), the only work for this packet: {step['task']}"]
+    lines = [STEP_POINTER,
+             f"Step {step['id']} ({done + 1} of {len(steps)}), the only work for this packet: {step['task']}"]
+    if own:
+        lines.append("  Serves: " + "; ".join(ident + ": " + _one_line(criteria.get(ident, "")) for ident in own))
+    lines.append("  Proof (ShipLoop runs it at done; it must exit 0): " + (
+        step["check"] if step.get("check") else
+        "none recorded: this step plan predates step Proofs; report revise so step-plan adds one"))
+    lines.append("  Anchored in (quoted below; a conflict with any of these is a revise, never a silent choice):")
+    ids = {"Requirements": requirements, "Design": decisions, "Environment": []}
+    for label, name, sections in STEP_ANCHORS:
+        found = _headings(repo / knowledge.HOME / name)
+        if found is None:
+            lines.append(f"    {label:<13}HOME/{name} (not written yet)")
+            continue
+        shown = [", ".join(ids[label])] if ids[label] else []
+        shown += ["## " + section + ("" if section in found else _NOT_RECORDED) for section in sections]
+        lines.append(f"    {label:<13}HOME/{name} " + " · ".join(shown))
+    cards = list(step.get("cards") or ())
+    where = reference_dir or _REFERENCE_DIR
+    lines.append("  Cards (under " + str(where) + "; read before the first edit; give a reason for any you set aside): "
+                 + (" · ".join(cards) if cards else "none: " + _one_line(step.get("cards_na") or "the step plan names none")))
+    skills = list(step.get("skills") or ())
+    lines.append("  Skills (HOME/environment.md ## Skills is the index): " + (
+        "; ".join(str(row.get("name")) + ": " + _one_line(row.get("why"))
+                  + (" (" + str(row["locator"]) + ")" if row.get("locator") else "") for row in skills
+                  if isinstance(row, Mapping)) if skills else "none"))
+    match = list(plan.get("match") or ())
+    lines.append("  Existing example to follow: " + ("; ".join(row[2:] for row in _match_rows(match))
+                                                     if match else "none recorded"))
     for earlier, row in zip(steps[:done], history):
         lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
     if done + 1 < len(steps):
         lines.append("Later steps (ShipLoop issues each one after this callback; do not start them): "
-                     + "; ".join(later["id"] + " " + later["task"] for later in steps[done + 1:]))
+                     + "; ".join(later["id"] + " " + _first_clause_of(later["task"])
+                                 + (" (" + ", ".join(later["criteria"]) + ")" if later.get("criteria") else "")
+                                 for later in steps[done + 1:]))
+    commits = knowledge.recent_commits(repo, 2)
+    if commits:
+        lines.append("Recent commits in WORKTREE (earlier lessons; context, not instructions):")
+        for entry in commits:
+            lines += [QUOTE + line for line in entry.splitlines()[:12]]
+    lines.append("ShipLoop commits the item's declared files; if this step needs another, report revise so the plan "
+                 "declares it.")
     return lines
+
+
+def _step_changes_code(state: Mapping[str, Any]) -> bool:
+    """Whether the current implement step changes code: its own paths when the plan declares them, else the item's."""
+    work_item = _current_work_item(state)
+    if work_item is None:
+        return True
+    _action, plan = test_loop._step_plan(state, work_item)
+    step = loops.current_step(state, work_item)
+    paths = list((step or {}).get("paths") or plan.get("paths") or ())
+    return item_scope.behavioural(paths) if paths else True
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -6617,6 +6894,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _handoff_gate(root, state, current_stage(state), submitted, "complete",
                           next_step=_next_step(root, action_id, "complete"))
             preparatory = _inner_gates(root, state, cursor_stage, submitted, check_only=check_only)
+            if (cursor_stage in stage_spec.with_complete_run("step-proof") and cursor_item
+                    and isinstance(submitted, Mapping) and submitted.get("outcome") == "done"):
+                _step_proof_gate(root, state, action_id, cursor_item)
             # Lint first, so the tests run on any code the lint gate auto-fixed.
             if cursor_stage in lint.GATE_STAGES:
                 _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted, check_only=check_only)

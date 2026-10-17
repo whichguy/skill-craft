@@ -379,7 +379,8 @@ class TestLoopTests(unittest.TestCase):
 
         def plan(commands):
             return dict(DONE, test_commands=commands, paths=["src/a.py"], criteria=[{"id": "C1", "text": "x"}],
-                        steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "paths": ["src/a.py"]}])
+                        steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "paths": ["src/a.py"], "check": "true",
+                                "cards": [], "cards_na": "Synthetic fixture."}])
 
         nav._check_submitted_test_commands("step-plan", plan(rows(2, 3)))
         nav._check_submitted_test_commands("step-plan", plan(rows(6, 15)))  # about 10 KB: over the old 9,216-byte budget

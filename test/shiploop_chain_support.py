@@ -33,10 +33,15 @@ CODE_CRAFT_HEADINGS = (
     "3. State the contract where it lives.",
     "4. Spend tokens on information.",
     "5. Small, not thin.",
-    "6. Make failure diagnosable.",
+    "6. Make failure diagnosable, and leave nothing behind.",
     "7. Write text that can be translated.",
     "8. Put it where it belongs.",
-    "9. Compose before you build.",
+    "9. Compose before you build, and build to compose.",
+    "10. Run independent work concurrently where it pays.",
+    "11. Use the platform first.",
+    "12. Bound every remote call.",
+    "13. Configuration, not constants.",
+    "14. Seams for determinism.",
 )
 
 

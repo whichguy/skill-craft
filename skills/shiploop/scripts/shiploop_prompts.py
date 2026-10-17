@@ -12,6 +12,7 @@ import textwrap
 from pathlib import Path
 
 import shiploop_stage_spec as stage_spec
+import shiploop_static as static
 
 
 SERIAL_INNER_CONTEXT = """\
@@ -568,65 +569,14 @@ clauses or cases. Never claim every requirement met while a required observation
 RECONCILIATION_STAGES = stage_spec.with_block("reconciliation")
 
 
-# One rubric for writing and reviewing code.  The code-craft stages' packets
-# (implement, test, document, verify), the per-step Improve focus and the
-# end-of-work Improve focus all carry this exact text, so no packet names the
-# rubric without also defining it.
-CODE_CRAFT = """\
-Code craft. Write for the next maintainer, a person or a model, who opens one
-file cold with no run history. Every rule serves that reader.
-1. Match the house. The repository's error types, validation helpers, docstring
-   style and logging come first; record any justified departure. Add no
-   dependency, option or fallback without a present need. An argument that
-   lets an existing unit serve this change instead of a copy is a present need.
-2. Fail at the door. A function reachable from outside its module (exported
-   API, CLI handler, request or event handler, callback) checks its arguments
-   before any effect: required values present, type and shape, range or allowed
-   set, and consistency between arguments. Reject with the house error type,
-   naming the argument, the constraint and the received value (redacted when
-   sensitive). Code called only by validated code may trust its caller; say so
-   once where that is not obvious. Never swallow an error or substitute a
-   success default; keep the original cause when rethrowing.
-3. State the contract where it lives. A new file opens with one or two lines on
-   its purpose. A public function's docstring gives purpose, argument
-   constraints, return, errors raised and side effects. In a body, comment only
-   what the code cannot say: why this approach, an invariant, a workaround and
-   its trigger, a removed approach that must not return.
-4. Spend tokens on information. Delete comments that restate a name, signature
-   or the next line. No banners, change history or commented-out code. Prefer a
-   precise name to a comment and one authoritative explanation to several.
-5. Small, not thin. KISS and YAGNI limit features and speculative
-   abstractions. They never remove an argument check, an error path, a
-   contract docstring, or the rich UI interaction the plan calls for.
-6. Make failure diagnosable. Check a response's contract, not only transport
-   success. Before mutation or cleanup, keep the context that explains a
-   failure: operation, relevant IDs, expected versus observed. Errors name the
-   operation and that mismatch. Reuse the existing debug switch for short,
-   redacted state summaries at major actions, with no diagnostic work while it
-   is off. Keep secrets and duplicate stack traces out of user-facing messages.
-7. Write text that can be translated. User-facing messages go through the
-   repository's message catalog or i18n helper when one exists; otherwise keep
-   each message one whole sentence with named placeholders, never assembled
-   from fragments, so it can be externalized later. Format numbers, dates,
-   currency and plurals through locale-aware APIs. Keep log text, error codes
-   and machine identifiers stable and untranslated.
-8. Put it where it belongs. New code lives in the namespace the step plan
-   chose, with the narrowest visibility a present consumer needs. A new name
-   must not collide with or shadow one in the shared space of any runtime it
-   runs in (such as globals, an import path, a shell or a platform org) or in a
-   library the code uses. No new generic bucket such as `utils`. Stored data
-   follows the planned schema and storage policy.
-9. Compose before you build. Before writing a new unit, evaluate reusing an
-   existing one unchanged, composing existing ones, or augmenting one (a new
-   argument, an extension point, or a shared piece extracted from existing
-   code) while its current callers keep working. Augment only when the units
-   share one meaning, not merely similar code: a near-copy of existing logic
-   is a defect, and so is a parameter that fuses two different rules. State
-   the option chosen and why in one line.
-"""
-
-
-# What a producer packet prints instead of CODE_CRAFT: one line per rule; the full rubric stays in the reference.
+# One rubric for writing and reviewing code, kept in references/code-craft.md and inserted word for word (owner,
+# 2026-10-17: static guidance is read from a file, never regenerated).  The implement packet of a step that changes code,
+# the per-step Improve focus, the end-of-work Improve focus, the chain worker brief and the run's quality/code-craft.md
+# all carry this exact text, so no packet names the rubric without also defining it.
+CODE_CRAFT = static.static_text("code-craft.md")
+IMPLEMENT_GUIDANCE_SECTIONS = ("Method", "Considerations", "Evidence and proof", "Write back")
+IMPLEMENT_GUIDANCE = "\n".join(static.static_text("implement-guidance.md", section)
+                                for section in IMPLEMENT_GUIDANCE_SECTIONS)
 
 
 # The step exit criteria's stopping rule; test/shiploop-stage-spec.test.py pins every prose copy to this value.
@@ -644,7 +594,7 @@ _STEP_PLAN_INLINE = """\
 11. **Execution graph.** Record none: an inline run issues the steps one at a time.
 """
 _IMPLEMENT_CHAIN = """\
-7. **Chain.**
+5. **Chain.**
    - The step plan says no parallel chain, or the item context says its steps write the same tree: one writer in the
      execution checkout, no chain bound; cite that locator in the result.
    - Otherwise, for a reviewed graph with safe independent steps, bind the default parallel mode (Parallel-chain
@@ -663,7 +613,7 @@ _IMPLEMENT_CHAIN = """\
      incomplete blocker.
 """
 _IMPLEMENT_INLINE = """\
-7. **Inline.** Do the one step on the packet's Step line in this conversation. Bind no chain and dispatch no worker.
+5. **Inline.** Do the one step on the packet's Step line in this conversation. Bind no chain and dispatch no worker.
 """
 _VERIFY_ASSEMBLY = """\
 8. **Assembly.** If implement bound a chain, confirm its finish commit is an ancestor of the execution checkout HEAD,
@@ -694,7 +644,8 @@ _REVIEW_FOCUS_ITEMS = (
     "  depends on, with no primary-documentation source or probe result: check it,\n"
     "  and correct the plan where it is wrong",
 )
-_REVIEW_FOCUS_STEPS = "a missing prerequisite, wrong order or unowned verification in the steps"
+_REVIEW_FOCUS_STEPS = ("a step check that cannot pass when its step ends, a card or example that does not fit its step, "
+                       "or a missing prerequisite, wrong order or unowned verification in the steps")
 
 
 def _focus_list(items: tuple) -> str:
@@ -1089,9 +1040,12 @@ Change no product file in this stage.
      into the step it serves. A single bug fix or mechanical rename is one step.
    - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
      files is refused unless the whole item is tests.
-   - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
-     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`). Every criterion is satisfied by
-     some step.
+   - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency) and the
+     `criteria` it satisfies; every criterion is satisfied by some step. Per-step `paths` are optional.
+   - `check`: a read-only command, from the repository root, that exits 0 once this step and its deps are done; it
+     uses nothing a later step creates and is no focused test or remote effect. ShipLoop runs it at done.
+   - `cards`: the Coding decision guide's cards for this change's runtime, artifact and boundary
+     (`coding-practices.md#state`); else `[]` and `cards_na: "<reason>"`.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
      reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
@@ -1116,14 +1070,14 @@ Change no product file in this stage.
    stage writes. The item commit takes these, the changed documentation and HOME/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in HOME/spec.md or HOME/architecture.md.
+   **`match`**: the house-style match contract, `[{"what", "like": <example path> | null}]`; `[]` only when the
+   item changes no code.
 9. **Plan record** in the item's `context` or the summary:
    - outcome and invariants kept; contracts and responsibilities that change;
-   - target files, interfaces and conventions, matched to the house style (House-style guidance);
+   - target files and interfaces (the conventions to match are `match`);
    - each step's failure cases and the diagnostics and errors it must produce;
    - documentation to change; integration impact and release prerequisites; readiness, completion and revalidation
      conditions;
-   - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
-     sections;
    - code or stored data added or moved: reopen the namespace and data entries in HOME/architecture.md ## Structure and
      each touched environment's tree. Per file, module and public symbol: environment, home namespace, visibility,
      collision check (import or load test, deploy validation, or name search). Per stored field, key, table or
@@ -1192,38 +1146,20 @@ Write no test code in this stage.
 On re-entry after implement, ShipLoop runs the checks in a temporary worktree at the item base (after any
 preparatory commit); a mismatch there is a revise.
 """,
-    "implement": """\
-1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
-   accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
-   reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
-   change one only when a criterion says to.
-2. **Build.** Each iteration edits first. Follow the step plan's Coding decision selection (Coding decision guide),
-   reading only its matching sections; check current code, versions and consumers before reusing or augmenting a
-   unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
-   and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
-   it); the summary says per skill whether you used it, and why not.
-3. **Check.** After each edit run every recorded check command and `shiploop lint --action`; write each exit code in
-   RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the command.
-   A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
-   what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
-   more.
-4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. Record a
-   departure from HOME/architecture.md as a new AD-<n> under ## Decisions, and a newly working command in
-   HOME/environment.md ## Commands.
-5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
-   before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
-   completion uses its recorded safe fallback or correction.
-6. **Unachievable as planned.** Stop the loop blocked and report revise, naming the criterion or command and the
-   case, when:
-   - a criterion contradicts another, the item or a protected file, shown by a check after all compatible work is
-     done, with existing behaviour kept at the conflict point;
-   - confirming it needs an absent tool, runtime, access or authority, and the criterion text does not say
-     `Confirm by: unconfirmable here`;
-   - satisfying it would exceed the item;
-   - the same check still fails after """ + _FIX_ATTEMPTS + """ genuine fix attempts;
-   - the change invalidates a recorded command (moved module, new dependency or runtime; Target-native test
-     selection) or needs a new prerequisite or authority boundary.
-   Report blocked, with blocked_by, only when the user, an access grant or an outside dependency must resolve it.
+    "implement": IMPLEMENT_GUIDANCE + """\
+
+## Result mechanics
+1. **Checks stay checks.** Existing tests, check scripts, golden or fixture files and thresholds are checks: change one
+   only when a criterion says to. Use only what is present: download, install or fetch nothing.
+2. **Lint.** After a code change run `shiploop lint --action`; a finding that must stay goes in `lint_waivers` as
+   `{"id": "<printed ID>", "reason": "<why>"}`.
+3. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else [].
+4. **Unachievable as planned.** Report revise as the loop's Repeat line says, naming the criterion or command and the
+   case; a conflict is shown by a check after all compatible work is done, with existing behaviour kept at the conflict
+   point. Also revise when the step needs a file the item does not declare, an absent tool, access or authority (unless
+   the criterion says `Confirm by: unconfirmable here`), or invalidates a recorded command (moved module, new
+   dependency or runtime; Target-native test selection). Report blocked, with blocked_by, only when the user, an access
+   grant or an outside dependency must resolve it (""" + _FIX_ATTEMPTS + """ genuine fix attempts first).
 """ + _IMPLEMENT_CHAIN,
     "test": """\
 1. **Write the cases.** Each quoted test case becomes a test titled with its ID as its own word, in the suite and
@@ -2178,12 +2114,13 @@ _check_swaps(_NO_REVIEW_SWAPS)
 
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
            backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
-           planning_review: str = "stage", execution_mode: str | None = None) -> str:
+           planning_review: str = "stage", execution_mode: str | None = None, code: bool = True) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
     The navigator always passes the run's delegation, Backchain passes option and planning review
     option; the ask-agent default keeps catalog renders identical to runs recorded before the
-    delegation setting existed, and the catalog renders the default of each option.
+    delegation setting existed, and the catalog renders the default of each option.  ``code`` is false only for an
+    implement step that changes no code (owner, 2026-10-17): its packet carries the guidance and cards, not Code craft.
     """
     _require_stage(stage)
     _require_delegation(delegation)
@@ -2200,7 +2137,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
         pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
     elif stage in BACKCHAIN_STAGES:
         parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
-    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
+    if stage in IMPLEMENTATION_STAGES and code:  # implement only: where product code is written (owner, 2026-10-11)
         parts.append(CODE_CRAFT)
     parts.append(STAGE_RULES)
     return "\n\n".join(parts)
@@ -2242,20 +2179,23 @@ scope. A pass that finds no material violation is trivial.
 IMPLEMENT_STEP_REVIEW_FOCUS = """\
 Implementation step review focus. This result is one step of the item's step
 plan, and its tests are written later from the test spec, so this review is the
-only check of the code before them. Review the step's diff (the step's paths since
-the step began) and fix, within those paths, any of these:
-- the change does not do the step's task, misses a criterion as the spec's R-<n>
-  states it, or does work no criterion asks for (a later step's work, a feature
-  the item does not request);
-- a file changed outside the step's paths, or unrelated work reverted or
-  reformatted;
+only check of the code before them. Review the step's diff (everything changed
+since the step began) and fix, within the step's assignment, any of these:
+- the change does not do the step's task, misses one of its assigned criteria, or
+  breaks an R-<n> or AD-<n> it is anchored in, or does work no criterion asks for
+  (a later step's work, a feature the item does not request);
+- unrelated work reverted or reformatted;
+- a consideration answered with "handled", "reviewed" or a bare "N/A", or an
+  answer the diff contradicts; an evidence entry that describes the change or a
+  future check instead of an observation, or that the diff or its output does not
+  support;
 - a new or changed public entry point that does not check its arguments before
   any effect, swallows an error or returns a success default (Code craft 2);
 - a public function without its contract docstring, a comment that restates
   code, or dead code (rules 3-4);
-- code placed outside HOME/architecture.md's ## Structure or ## Conventions, or a
-  departure with no new AD-<n> under ## Decisions; a name that collides or is
-  exported wider than needed (rule 8);
+- code placed outside HOME/architecture.md's ## Structure or ## Conventions; a
+  departure from an AD-<n> (a revise, never a new AD-<n>); a name that collides or
+  is exported wider than needed (rule 8);
 - a near-copy of existing logic, a new unit where an existing one could be
   reused, composed or augmented, or a dependency, option or fallback with no
   present need (rules 1, 9);
@@ -2266,10 +2206,17 @@ the step began) and fix, within those paths, any of these:
   purpose, with no reason in the result;
 - a behaviour the code now has that no test-spec case covers and the result does
   not list for the test stage;
-- a recorded check command that fails, or a new lint finding on a changed line
-  with no waiver, after your last edit.
-Do not write tests, start a later step, or edit a recorded command. After your
-last edit, rerun the step's recorded check commands and ShipLoop's lint for the
+- a complex function or class without its tombstone (rule 3); a resource left
+  unreleased on a failure path (6); concurrency without a shown gain, or with
+  unguarded shared state, unbounded workers or swallowed worker errors (10);
+  infrastructure built where the platform or an existing service provides it
+  (11); a remote call with no timeout, a retried non-idempotent operation or an
+  unbounded fetch (12); a hard-coded environment value or secret (13); a clock,
+  randomness or I/O wired in where a check or diagnosis needs replay (14);
+- the step's Proof failing, or a new lint finding on a changed line with no
+  waiver, after your last edit.
+Do not write permanent tests, start a later step, or edit a recorded command or the
+Proof. After your last edit, rerun the step's Proof and ShipLoop's lint for the
 step's action (`shiploop lint --action`), and record their exit codes. Commit your
 edits. A pass that finds none of these is trivial.
 

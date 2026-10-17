@@ -660,8 +660,10 @@ EXPECTED_CONSUMES = {
     "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": ("spec_diff",),
     "plan": ("spec_diff",), "prepare": (), "step-plan": ("assumptions",),
     "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
-    "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
-    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
+    # implement's step block prints its own criteria and the match contract (owner, 2026-10-17); test and verify quote
+    # the match contract they check the diff against.
+    "implement": ("follows", "test_cases"), "test": ("follows", "test_cases", "not_covered", "match"),
+    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff", "match"),
     "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
     "system-test": ("system_commands", "assumptions"),
     "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
@@ -671,7 +673,8 @@ EXPECTED_CONSUMES = {
 }
 # The one stage that records each key with a single producer.  assumptions (every open-item stage) and spec_diff (the
 # script, from the run baseline) have no single producer and are exempt.
-PRODUCER = {"follows": "step-plan", "criteria": "step-plan", "test_commands": "step-plan", "test_cases": "test-spec",
+PRODUCER = {"follows": "step-plan", "criteria": "step-plan", "test_commands": "step-plan", "match": "step-plan",
+            "test_cases": "test-spec",
             "not_covered": "implement", "system_commands": "system-test-author", "lessons": "release-verify"}
 
 
@@ -730,7 +733,8 @@ class ConsumesTests(RepoCase):
     def test_item_stages_get_their_items_values_and_not_recorded_is_none(self) -> None:
         state = self.fixture("test")
         sources = navigator.handoff_sources(self.root, state, "test")
-        self.assertEqual([found.key for found in sources], ["follows", "test_cases", "not_covered", "not_covered"])
+        self.assertEqual([found.key for found in sources],
+                         ["follows", "test_cases", "not_covered", "not_covered", "match"])
         follows, = self.source(sources, "follows")
         self.assertEqual((follows.stage, follows.action, follows.workitem), ("step-plan", "sp2", "W2"))
         self.assertEqual(follows.value, [("R-1", "- R-1: Place a fleet.\n  Ships may not overlap."),
@@ -744,7 +748,7 @@ class ConsumesTests(RepoCase):
         self.assertEqual(self.source(sources, "test_commands")[0].value,
                          [{"command": "t", "suite": "focused", "ids": ["TC-3"]}])     # focused rows only
         verify = navigator.handoff_sources(self.root, state, "verify")
-        self.assertEqual([found.key for found in verify], ["follows", "test_cases", "spec_diff"])
+        self.assertEqual([found.key for found in verify], ["follows", "test_cases", "spec_diff", "match"])
         self.assertIsNone(self.source(verify, "spec_diff")[0].value)                     # no baseline recorded
 
     def test_system_test_author_gets_every_items_latest_cases_and_outer_keys_come_from_their_producer(self) -> None:
@@ -884,7 +888,8 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         seed = {"outcome": "done", "summary": "A step plan without follows.", "evidence_refs": [],
                 "test_commands": [], "test_commands_na": "Synthetic fixture; no test commands.", "paths": ["src/**"],
                 "steps": [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [],
-                           "skills": []}],
+                           "skills": [], "check": "true", "cards": [], "cards_na": "Synthetic fixture."}],
+                "match": [{"what": "Synthetic module", "like": None}],
                 "expectations": [{"id": "E1", "state": "absent", "statement": "src/ does not exist yet.",
                                   "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]}
         before = state

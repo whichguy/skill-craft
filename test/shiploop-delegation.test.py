@@ -19,6 +19,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
+import shiploop_static as static  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -285,14 +286,16 @@ class DelegationStateTests(unittest.TestCase):
 class StepTests(DelegationStateTests):
     """The script, not the host, walks a work item's step plan: one implement packet per step."""
 
-    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"]},
-             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"]}]
+    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"], "check": "python3 -c 'import calc'",
+              "cards": ["coding-practices.md#existing-behavior"]},
+             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"], "check": "grep -q divide README.md",
+              "cards": [], "cards_na": "A README edit needs no coding card."}]
 
-    def at_implement(self, delegation="inline", steps=None):
-        state = advance(self.state(delegation), "step-plan")
+    def at_implement(self, delegation="inline", steps=None, state=None, **plan):
+        state = advance(state or self.state(delegation), "step-plan")
         action = nav.current_action(state)["id"]
         state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic step plan.",
-                                          "steps": steps or self.STEPS})
+                                          "steps": steps or self.STEPS, **plan})
         if state.get("active_improve") is not None:
             state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         return advance(state, "implement")
@@ -324,6 +327,88 @@ class StepTests(DelegationStateTests):
         self.assertEqual(self.render(nav.loads(nav.dumps(state))) if hasattr(nav, "loads") else second, second)
         state = self.done(state, "README documents divide.")
         self.assertNotEqual(nav.current_stage(state), "implement")
+
+    PLAN = {"criteria": [{"id": "C1", "text": "divide() returns the quotient (R-1)."},
+                         {"id": "C2", "text": "README documents divide (R-2)."}],
+            "follows": ["R-1", "AD-1"],
+            "test_commands": [{"command": "python3 -c 'import calc'", "suite": "check", "criteria": ["C1", "C2"]}]}
+    TWO_STEPS = [dict(STEPS[0], task="Add divide() to calc.py. It raises on zero.", criteria=["C1"]),
+                 dict(STEPS[1], criteria=["C2"])]
+
+    def head(self, state):
+        return nav.packet_head(None, self.run, state, self.run / "packets" / "x.md")
+
+    def test_the_step_block_carries_the_step_and_reaches_the_printed_head(self):
+        """Audit F1/F3/F15 (2026-10-17): the step's criteria, Proof, cards and skills print in the file and in the printed
+        head, which printed no step before; no path list; later steps show only their first sentence."""
+        state = self.at_implement(steps=self.TWO_STEPS, **self.PLAN)
+        for text in (self.render(state), self.head(state)):
+            with self.subTest(head=text.startswith("ShipLoop navigator")):
+                self.assertIn(nav.STEP_POINTER, text)
+                self.assertIn("Step S1 (1 of 2), the only work for this packet: Add divide() to calc.py. It raises on "
+                              "zero.", text)
+                self.assertIn("  Serves: C1: divide() returns the quotient (R-1).\n", text)
+                self.assertNotIn("C2: README documents divide", text.split("Later steps", 1)[0])
+                self.assertIn("  Proof (ShipLoop runs it at done; it must exit 0): python3 -c 'import calc'", text)
+                self.assertIn("coding-practices.md#existing-behavior", text)
+                self.assertIn("Later steps (ShipLoop issues each one after this callback; do not start them): "
+                              "S2 Document divide in README.", text)
+                self.assertNotIn("Paths (", text)
+                self.assertIn("if this step needs another, report revise so the plan declares it", text)
+                self.assertLess(text.index(nav.STEP_POINTER), text.index("Result template:"))
+        head = self.head(state)
+        self.assertLess(head.index(nav.STEP_POINTER), head.index("INVOKE /until-loop"))
+
+    def test_implement_quotes_only_this_steps_test_cases(self):
+        """Audit F3: a step's packet quotes the cases of its own criteria, not the whole item's."""
+        state = self.at_implement(steps=self.TWO_STEPS, **self.PLAN)
+        action = next(row["action"] for row in reversed(state["history"]) if row["stage"] == "test-spec")
+        case = {"requirement": "R-1", "oracle": "o", "red": "r", "green": "g"}
+        state["accepted"][action]["test_cases"] = [dict(case, id="TC-1", criterion="C1"),
+                                                   dict(case, id="TC-2", criterion="C2")]
+        cases = [source for source in nav.handoff_sources(self.run, state, "implement") if source.key == "test_cases"]
+        self.assertEqual([row["id"] for row in cases[0].value], ["TC-1"])
+        self.assertNotIn("criteria", [source.key for source in nav.handoff_sources(self.run, state, "implement")])
+
+    def test_code_craft_prints_only_for_a_step_that_changes_code(self):
+        """Owner D2/D8 (2026-10-17): a docs-only step gets its cards, not the code rubric."""
+        self.assertIn("\nCode craft. Write for the next maintainer", self.render(self.at_implement()))
+        docs = [dict(self.STEPS[1], id="S1")]
+        self.assertNotIn("Code craft. Write for the next maintainer",
+                         self.render(self.at_implement(steps=docs, paths=["README.md"])))
+
+    def test_the_static_guidance_prints_word_for_word(self):
+        """Owner D9 (2026-10-17): the implement guidance is inserted from references/implement-guidance.md unchanged."""
+        packet = self.render(self.at_implement())
+        for section in nav.guidance.IMPLEMENT_GUIDANCE_SECTIONS:
+            with self.subTest(section=section):
+                self.assertIn(static.static_text("implement-guidance.md", section), packet)
+        self.assertIn(static.static_text("code-craft.md"), packet)
+        words = ("require(", "npm", "module.exports", "def ", ".js", ".py", "pytest", "node --test")
+        guidance_text = static.static_text("implement-guidance.md")
+        self.assertEqual([word for word in words if word in guidance_text], [])
+
+    def test_anchors_name_the_steps_requirements_decisions_and_missing_sections(self):
+        """Owner 2026-10-17: the step is anchored in the planning files; a missing heading says so."""
+        repo = Path(self.temp.name) / "repo"
+        home = repo / "docs" / "shiploop"
+        home.mkdir(parents=True)
+        (home / "spec.md").write_text("# Spec\n\n## Requirements\n\n### R-1 Divide\n\n## Non-functional requirements\n")
+        (home / "architecture.md").write_text("# Architecture\n\n## Structure\n\n## Conventions\n\n## Decisions\n- AD-1: x\n")
+        state = nav.new_state(str(repo), "Synthetic delegation request.", delegation="inline")
+        packet = self.render(self.at_implement(steps=self.TWO_STEPS, state=state, **self.PLAN))
+        self.assertIn("    Requirements HOME/spec.md R-1 · ## Non-functional requirements\n", packet)
+        self.assertIn("    Design       HOME/architecture.md AD-1 · ## Structure · ## Conventions · "
+                      "## Interfaces and boundaries" + nav._NOT_RECORDED, packet)
+        self.assertIn("    Environment  HOME/environment.md (not written yet)", packet)
+
+    def test_recent_commits_are_quoted_for_the_step(self):
+        """F14, owner rule 2026-10-10: each step iteration sees the last two commits (the earlier steps' lessons)."""
+        from unittest import mock
+        with mock.patch.object(nav.knowledge, "recent_commits", return_value=["abc1234 Improve S1: keep the cap\n\nLesson."]):
+            packet = self.render(self.at_implement())
+        self.assertIn("Recent commits in WORKTREE (earlier lessons; context, not instructions):\n"
+                      + nav.QUOTE + "abc1234 Improve S1: keep the cap", packet)
 
     def test_the_snapshot_does_not_list_implement_as_done_while_steps_remain(self):
         # On steps 2..N the Progress snapshot listed implement among the accepted-done stages and dropped it from the
@@ -407,6 +492,33 @@ class StepTests(DelegationStateTests):
                 nav._canonical_result(dict(plan, steps=steps), stage="step-plan")
         with self.assertRaisesRegex(nav.NavigatorError, "only on a done step-plan"):
             nav._canonical_result({"outcome": "done", "summary": "s", "steps": self.STEPS}, stage="implement")
+
+    def test_each_step_names_its_proof_and_cards_and_no_longer_needs_paths(self):
+        """Audit F2/F4/F10, owner D3 (2026-10-17): a step's check is its Proof, its cards resolve to the coding-guidance
+        index, and per-step paths are optional because the implementer is not told which paths to change."""
+        plan = {"outcome": "done", "summary": "s", "paths": ["calc.py", "README.md"], "test_commands": [],
+                "test_commands_na": "synthetic"}
+        first = dict(self.STEPS[0])
+
+        def without(key):
+            return {name: value for name, value in first.items() if name != key}
+
+        for steps, message in (([without("check")], "step S1 must name its check"),
+                               ([dict(first, cards=["coding-practices.md#no-such-card"])], "do not resolve.*no-such-card"),
+                               ([dict(first, cards=["no-such-file.md"])], "do not resolve.*no-such-file.md"),
+                               ([without("cards")], "step S1 must list cards"),
+                               ([dict(first, cards=[])], "step S1 lists no cards")):
+            with self.subTest(message=message), self.assertRaisesRegex(nav.NavigatorError, message):
+                nav._check_submitted_test_commands("step-plan", dict(plan, steps=steps))
+        nav._check_submitted_test_commands("step-plan", dict(plan, steps=[without("paths")]))
+        focused = {"command": "python3 -m pytest -v tests", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]}
+        tested = {key: value for key, value in plan.items() if key != "test_commands_na"}
+        tested.update(test_commands=[focused], criteria=[{"id": "C1", "text": "Divide (R-1)."}])
+        with self.assertRaisesRegex(nav.NavigatorError, "is a focused test command"):
+            nav._check_submitted_test_commands("step-plan", dict(tested, steps=[dict(
+                first, criteria=["C1"], check=focused["command"])]))
+        with self.assertRaisesRegex(nav.NavigatorError, "cards_na is only for an empty cards list"):
+            nav._canonical_result(dict(plan, steps=[dict(first, cards_na="none")]), stage="step-plan")
 
 
 class PacketContractTests(DelegationStateTests):

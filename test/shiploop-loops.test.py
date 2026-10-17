@@ -163,11 +163,14 @@ class ContractTests(Synthetic):
         purposes = {row["purpose"]: row["locator"] for row in value["context"]["resources"]}
         self.assertEqual(purposes["Code craft rubric the review applies"], str(self.root / quality.RUBRIC_PATH))
 
-    def test_implement_contract_names_the_current_step_and_only_its_paths(self):
+    def test_implement_contract_names_the_current_step_and_no_paths(self):
+        """Owner D3, 2026-10-17: the implementer is not told which paths to change; the scope is the step's criteria."""
         value = loops.contract(self.root, self.state_for("implement"), "A-implement")
         self.assertIn("step S1", value["work"])
-        self.assertIn("src/a.py, src/b.py", value["context"]["scope"])
-        self.assertNotIn("src/c.py", value["context"]["scope"])
+        self.assertIn("its assigned criteria only, no later step's work", value["context"]["scope"])
+        self.assertIn("a needed file outside them is a revise", value["context"]["scope"])
+        for path in ("src/a.py", "src/b.py", "src/c.py"):
+            self.assertNotIn(path, value["context"]["scope"])
         state = self.state_for("implement")
         state["history"].append({"stage": "implement", "workitem": "W1", "action": "A-i1", "outcome": "done"})
         self.assertIn("step S2", loops.contract(self.root, state, "A-implement")["work"])
@@ -481,8 +484,54 @@ class NavigatorLoopTests(fx.RunDriver):
         with self.assertRaisesRegex(nav.NavigatorError, "the implement loop has not run"):
             self.submit(fx.DONE)
         self.run_loop([MATERIAL, dict(MATERIAL, exit_assessment="satisfied", continuation_assessment="allowed")])
-        self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())]))
+        self.submit(fx.fill(self.state(), "implement", dict(fx.DONE, evidence_refs=[str(self.receipt())])))
         # Accepted: the step's Improve child (owner decision 6) now reviews it.
+        self.assertEqual(self.state()["active_improve"]["stage"], "implement")
+
+
+class StepGateTests(fx.RunDriver):
+    """The implement gates through the real complete route (owner, 2026-10-17): step-proof and implement-record."""
+
+    def plan(self, steps, **fields):
+        self.start()
+        self.drive_to("step-plan")
+        self.complete({"outcome": "done", "summary": "Synthetic step plan with real Proofs.", "steps": steps, **fields})
+        self.drive_to("implement")
+
+    def prepared(self):
+        return fx.prepare(self.run_dir, self.state(), fx.fill(self.state(), "implement", dict(fx.DONE)))
+
+    def test_implement_done_runs_the_step_proof(self):
+        """Audit F2: every Battleship step was accepted while its check could not pass; now the Proof must exit 0."""
+        self.plan([{"id": "S1", "task": "Add new_mod.py.", "check": "test -f new_mod.py",
+                    "cards": ["coding-practices.md#existing-behavior"]}])
+        result = self.prepared()
+        with self.assertRaisesRegex(nav.NavigatorError, r"step S1's Proof did not pass \(exit 1"):
+            self.complete(result, prepare_inner=False)
+        record = self.run_dir / fx.test_loop.step_proof_path(self.action(), 1)
+        self.assertTrue(record.is_file())
+        (self.repo / "new_mod.py").write_text("def entry(value):\n    return value\n")
+        self.complete(result, prepare_inner=False)
+        self.assertEqual(self.state()["active_improve"]["stage"], "implement")
+
+    def test_implement_done_needs_real_considerations_and_each_criterions_evidence(self):
+        """Astra review 5 and owner D7: every consideration answered, one observation per criterion of this step."""
+        check = {"command": "true", "suite": "check", "criteria": ["C1", "C2"]}
+        self.plan([{"id": "S1", "task": "First.", "criteria": ["C1"], "check": "true", "cards": [], "cards_na": "n"},
+                   {"id": "S2", "task": "Second.", "deps": ["S1"], "criteria": ["C2"], "check": "true", "cards": [],
+                    "cards_na": "n"}],
+                  test_commands=[check], criteria=[{"id": "C1", "text": "One (R-1)."}, {"id": "C2", "text": "Two."}])
+        result = self.prepared()
+        lazy = dict(result, considerations=dict(result["considerations"], whole_step="Handled."))
+        with self.assertRaisesRegex(nav.NavigatorError, "No real answer: whole_step"):
+            self.complete(lazy, prepare_inner=False)
+        other = dict(result, evidence=[dict(result["evidence"][0], criterion="C2")])
+        with self.assertRaisesRegex(nav.NavigatorError, "No evidence: C1. Not this step's: C2"):
+            self.complete(other, prepare_inner=False)
+        missing = {key: value for key, value in result.items() if key != "considerations"}
+        with self.assertRaisesRegex(nav.NavigatorError, "Add considerations to"):
+            self.complete(missing, prepare_inner=False)
+        self.complete(result, prepare_inner=False)
         self.assertEqual(self.state()["active_improve"]["stage"], "implement")
 
 

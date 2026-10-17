@@ -62,7 +62,10 @@ FOCUSED = ("if test -f built.txt; then printf 'test_built (TC-1) ... ok\\n\\nRan
            "else printf 'test_built (TC-1) ... FAIL\\n\\nRan 1 test in 0.001s\\n\\nFAILED (failures=1)\\n'; "
            "exit 1; fi")
 STEP_PLAN = {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create built.txt", "deps": [],
-                                               "criteria": ["C1"], "paths": ["built.txt"], "skills": []}],
+                                               "criteria": ["C1"], "paths": ["built.txt"], "skills": [],
+                                               "check": "test -f built.txt",
+                                               "cards": ["coding-practices.md#existing-behavior"]}],
+             "match": [{"what": "a plain text file, like the repository's other text files", "like": None}],
              "criteria": [{"id": "C1", "text": "built.txt exists"}],
              "test_commands": [{"command": FOCUSED, "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                {"command": "test -f built.txt", "suite": "regression"},
@@ -75,10 +78,16 @@ SKILL_NONE = {"decision": "none", "reason": "Synthetic fixture: no procedure rep
 TEST_CASES = [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "the focused command lists TC-1 ok",
                "red": "built.txt is missing on the base", "green": "built.txt exists after the change"}]
 LESSONS = {"learned": "Synthetic fixture: nothing learned.", "considerations": "none", "open_next": "none"}
+# implement's record (owner, 2026-10-17): the eight considerations and one observation for S1's criterion C1.
+CONSIDERATIONS = {key: "Synthetic fixture: built.txt is one plain file; " + key.replace("_", " ") + " follows the step "
+                  "plan (anchor: STEP_PLAN)." for key in nav.CONSIDERATIONS}
+EVIDENCE = [{"criterion": "C1", "ran_or_inspected": "test -f built.txt", "observed": "exit 0",
+             "output": "the step-proof record", "establishes": "built.txt exists", "limits": "none"}]
 LIVING_SPEC = "# Spec\n\n## Requirements\n\n- R-1: built.txt exists.\n"
 RESULTS = {
     "step-plan": dict(STEP_PLAN, follows=[]),
     "test-spec": {"test_cases": TEST_CASES, "assumptions": []},
+    "implement": {"considerations": CONSIDERATIONS, "evidence": EVIDENCE},
     "verify": {"assumptions": []},
     "carry-forward": {"skill": SKILL_NONE, "assumptions": []},
     "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}], "assumptions": []},
@@ -415,10 +424,8 @@ class RefusalRouteTests(RealCliCase):
                             "steps": [dict(block["steps"][0], criteria=["C1", "C2"])]},
              "every criterion needs a test command that confirms it"),
             ("a step whose dependency is a later step", "step-plan",
-             lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"], "criteria": ["C1"],
-                                                "paths": ["built.txt"], "skills": []},
-                                               {"id": "S2", "task": "second", "deps": [], "criteria": ["C1"],
-                                                "paths": ["built.txt"], "skills": []}]},
+             lambda block: {**block, "steps": [dict(block["steps"][0], id="S1", deps=["S2"]),
+                                               dict(block["steps"][0], id="S2", deps=[])]},
              "step deps must name earlier steps"),
             ("no system_commands list", "system-test-author",
              lambda block: {k: v for k, v in block.items() if k != "system_commands"},
@@ -932,7 +939,8 @@ class RefusalRouteTests(RealCliCase):
         good = self.fill_done(head)
         write_block(path, {**{key: value for key, value in good.items() if key not in ("criteria", "test_commands")},
                            "paths": ["README.md"], "test_commands": [], "test_commands_na": "documentation only",
-                           "steps": [{"id": "S1", "task": "Document the change.", "paths": ["README.md"], "skills": []}],
+                           "steps": [{"id": "S1", "task": "Document the change.", "paths": ["README.md"], "skills": [],
+                                      "check": "test -f README.md", "cards": ["coding-practices.md#documentation"]}],
                            "expectations": [{"id": "E1", "state": "absent", "statement": "README.md does not exist yet.",
                                              "steps": ["S1"], "paths": ["README.md"],
                                              "check": "test ! -e README.md"}]})
@@ -954,11 +962,12 @@ class RefusalRouteTests(RealCliCase):
         self.assertIn("Done when: every exit condition in the /until-loop argument below holds", implement)
         done_when = implement.split("Exit when ALL of these hold:", 1)[1].split("Repeat while", 1)[0]
         done_when = " ".join(done_when.split())
-        # The 8-stage implement row confirms the step by its paths, the check commands and the lint gate, not by the
-        # criteria: it names no criterion field, and "every recorded check command" holds vacuously with none recorded.
-        self.assertNotIn("criteri", done_when)
+        # Owner 2026-10-17: the row names the criteria assigned to this step, which holds vacuously when the plan records
+        # none, and never a `Confirm by` field; the step block prints no Serves line, so no criterion is asked for.
+        self.assertIn("each criterion assigned to this step has evidence", done_when)
         self.assertNotIn("Confirm by", done_when)
         self.assertIn("after the last edit", done_when)
+        self.assertNotIn("  Serves:", implement)
 
 
 def printed_shapes(head: str) -> dict[str, str]:
@@ -999,8 +1008,13 @@ class StepSizingRouteTests(RealCliCase):
         bare = {key: value for key, value in step.items() if key not in ("paths", "criteria")}
         test_file = "tests/test_built.py"
         cases = [
-            ("a step without paths", {**good, "steps": [dict(bare, criteria=["C1"])]},
-             "step S1 must list paths: the files it changes, from the item's paths"),
+            # Owner D3 (2026-10-17): a step names its Proof and cards; its paths are optional.
+            ("a step without its check", {**good, "steps": [{k: v for k, v in step.items() if k != "check"}]},
+             "step S1 must name its check"),
+            ("a step without cards", {**good, "steps": [{k: v for k, v in step.items() if k != "cards"}]},
+             "step S1 must list cards"),
+            ("a card that does not resolve", {**good, "steps": [dict(step, cards=["coding-practices.md#nope"])]},
+             "step S1 names cards that do not resolve to a reference file and heading: coding-practices.md#nope"),
             ("a step without criteria while the result lists criteria", {**good, "steps": [dict(bare, paths=["built.txt"])]},
              "step S1 must list criteria: the IDs of the criteria it satisfies (C1)"),
             ("a step naming a criterion the result does not list", {**good, "steps": [dict(step, criteria=["C1", "C9"])]},
@@ -1020,9 +1034,9 @@ class StepSizingRouteTests(RealCliCase):
             with self.subTest(label):
                 write_block(path, block)
                 self.assertIn(fragment, self.refused(command, run))
-        write_block(path, good)
+        write_block(path, dict(good, steps=[{k: v for k, v in step.items() if k != "paths"}]))
         self.accepted(command)
-        self.assertEqual(self.recorded(run, action)["steps"][0]["paths"], ["built.txt"])
+        self.assertNotIn("paths", self.recorded(run, action)["steps"][0])
 
     def test_an_item_that_is_only_tests_may_have_a_test_only_step(self) -> None:
         run, head = self.new_run("step-plan")
@@ -1049,7 +1063,8 @@ class StepSizingRouteTests(RealCliCase):
                 return [fill(v, key) for v in value]
             if not isinstance(value, str) or not (value == "..." or value.startswith("<")):
                 return value
-            return {"paths": "built.txt", "command": "true", "evidence_refs": str(self.evidence)}.get(
+            return {"paths": "built.txt", "command": "true", "evidence_refs": str(self.evidence),
+                    "check": "test -f built.txt", "cards": "coding-practices.md#existing-behavior", "like": None}.get(
                 key, "What this field records.")
 
         block = fill(template)
@@ -1064,7 +1079,8 @@ class StepSizingRouteTests(RealCliCase):
                          [("S1", [], ["C1"]), ("S2", ["S1"], ["C2"])])
         write_block(path, block)
         self.accepted(command)
-        self.assertEqual([row["paths"] for row in self.recorded(run, action)["steps"]], [["built.txt"], ["built.txt"]])
+        self.assertEqual([(row["check"], row["cards"]) for row in self.recorded(run, action)["steps"]],
+                         [("test -f built.txt", ["coding-practices.md#existing-behavior"]), ("test -f built.txt", [])])
 
 
 class UnverifiedRouteTests(RealCliCase):

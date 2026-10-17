@@ -101,19 +101,44 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
             if result.get("criteria"):
                 step["criteria"] = [row["id"] for row in result["criteria"]]
             result["steps"] = [step]
-        result["steps"] = [dict(step, skills=step.get("skills", [])) if isinstance(step, Mapping) else step
-                           for step in result["steps"]]
+        result["steps"] = [_fill_step(step) if isinstance(step, Mapping) else step for step in result["steps"]]
+        result.setdefault("match", [dict(SYNTHETIC_MATCH)])
         if "expectations" not in result:
             result["expectations"] = expectations_for(repo, result["steps"], run_dir, _current_item(state))
     elif stage == "test-spec":
         # The cases live in the result (consumer contract 3.3); no gate reads a test-spec file.
         _action, plan = test_loop._step_plan(state, _current_item(state))
         result.setdefault("test_cases", test_cases_for(plan))
+    elif stage == "implement":
+        step = loops.current_step(state, _current_item(state)) or {}
+        result.setdefault("considerations", dict(SYNTHETIC_CONSIDERATIONS))
+        result.setdefault("evidence", [dict(SYNTHETIC_EVIDENCE, criterion=str(ident))
+                                       for ident in step.get("criteria") or ()])
     elif stage == "carry-forward":
         result.setdefault("skill", dict(SKILL_NONE))
     if stage in assumptions.OPEN_ITEM_STAGES:
         result.setdefault("assumptions", [])
     return result
+
+
+# What a synthetic step plan and implement result carry (owner, 2026-10-17: a step names its Proof and cards; an
+# implement result answers the eight considerations and gives each assigned criterion its evidence).
+SYNTHETIC_CHECK = "true"
+SYNTHETIC_MATCH = {"what": "Synthetic module: follow the repository's existing layout", "like": None}
+SYNTHETIC_CONSIDERATIONS = {key: "Synthetic fixture: the planned change covers " + key.replace("_", " ")
+                            + " (anchor: the fixture's step plan)." for key in nav.CONSIDERATIONS}
+SYNTHETIC_EVIDENCE = {"ran_or_inspected": "Synthetic fixture: inspected the changed file.",
+                      "observed": "The planned change is present.", "output": "synthetic://output",
+                      "establishes": "The criterion's change exists.", "limits": "Behaviour is proven by the test stage."}
+
+
+def _fill_step(step: Mapping[str, Any]) -> dict[str, Any]:
+    """A synthetic step with the fields a new step plan needs; the caller's own fields win."""
+    row = dict(step, skills=step.get("skills", []))
+    row.setdefault("check", SYNTHETIC_CHECK)
+    if "cards" not in row:
+        row.update(cards=[], cards_na="Synthetic fixture: no coding-guidance card applies.")
+    return row
 
 
 def _current_item(state: Mapping[str, Any]) -> str:
