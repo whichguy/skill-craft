@@ -6,7 +6,7 @@ description: >-
   and repeat until two consecutive passes make no changes, or the first pass
   completes with no change. Supports a read-only interpretation preview; not a
   one-off code review.
-version: 0.4.2
+version: 0.4.3
 license: MIT
 platforms:
   - linux
@@ -74,13 +74,16 @@ RUNTIME_SCRIPT="$SKILL_ROOT/runtime/until-loop/scripts/until_loop_ephemeral.py"
 ```
 
 The exact package-relative script locator for a standalone run is
-`runtime/until-loop/scripts/until_loop_ephemeral.py`. The bound adapter is the
-only CLI caller: it translates natural-language intent into its internal
-contract, starts or resumes the selected run, and consumes the exact callback
-it returns. Do not make the user supply JSON or fixed runtime arguments. A
-skill-directory or marketplace installation must keep this entire package tree
-together; the nested runtime is an internal dependency, not a second standalone
-parent.
+`runtime/until-loop/scripts/until_loop_ephemeral.py`. Its ordinary start must
+use `start --isolated`: upstream 0.9.0 also provides host-session mode and
+session/recovery helpers, but Improve keeps its own per-run temporary callback
+state. Contract/Receipt parent calls continue to use the adapter's receipt-backed
+isolated route. The bound adapter is the only CLI caller: it translates
+natural-language intent into its internal contract, starts or resumes the
+selected run, and consumes the exact callback it returns. Do not make the user
+supply JSON or fixed runtime arguments. A skill-directory or marketplace
+installation must keep this entire package tree together; the nested runtime is
+an internal dependency, not a second standalone parent.
 
 Standalone runs use that per-run temporary callback state. Do not replace
 `RUNTIME_SCRIPT` with an ambient Until Loop installation. If Python, the

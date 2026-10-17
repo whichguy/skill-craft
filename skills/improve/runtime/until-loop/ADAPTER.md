@@ -12,7 +12,7 @@ allowed-tools: all
 disable-model-invocation: false
 user-invocable: true
 argument-hint: "<what to execute, and when to stop> | preview | Contract: <abs path> Receipt: <abs path>"
-version: 0.8.3
+version: 0.9.0
 license: MIT
 platforms:
   - linux
@@ -186,7 +186,7 @@ The single tempfile lasts across script calls in this logical run and is removed
 ## Start, communicate and hand off
 
 For authorized execution, send the interpreted contract as JSON stdin to
-`python <absolute scripts/until_loop_ephemeral.py> start`. Include `workspace`,
+`python <absolute scripts/until_loop_ephemeral.py> start --isolated`. Include `workspace`,
 `work`, `exit_condition`, `repeat_condition`, `required_trivial_reviews`, the
 `exit_checks` list, and the complete `context` object described in the adapter.
 Set the gate from the requested policy: Improve uses two; generic work defaults

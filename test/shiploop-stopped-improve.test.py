@@ -206,7 +206,7 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
         self.assertEqual(archive["sha256"], hashlib.sha256(archived.encode("utf-8")).hexdigest())
         self.assertEqual(record["identities"]["evidence_sha256"][archive["source"]], archive["sha256"])
 
-    def test_rejects_malformed_active_complete_and_missing_packets(self) -> None:
+    def test_rejects_active_packet(self) -> None:
         evidence = self.write_evidence()
         submitted = self.receipt(evidence)
 
@@ -216,12 +216,17 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "not stopped"):
             bridge.settle_incomplete(self.binding, submitted)
 
+    def test_rejects_malformed_complete_and_missing_packets(self) -> None:
+        evidence = self.write_evidence()
+        submitted = self.receipt(evidence)
+
         stopped, stopped_raw = self.stopped()
         malformed = copy.deepcopy(stopped)
         malformed.pop("last_report")
         self.save_packet(json.dumps(malformed))
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "unsupported schema"):
             bridge.settle_incomplete(self.binding, submitted)
+        self.save_packet(stopped_raw)
 
         complete, complete_raw = self.completed()
         self.save_packet(complete_raw)
@@ -252,6 +257,7 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
         self.save_packet(live_raw)
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "remains present"):
             bridge.settle_incomplete(self.binding, submitted)
+        state_path.unlink()
 
         _blocked, blocked_raw = self.stopped(continuation="blocked")
         self.save_packet(blocked_raw)

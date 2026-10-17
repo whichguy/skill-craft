@@ -3,8 +3,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-default_package="$root/skills/improve"
-package="${IMPROVE_PACKAGE_ROOT:-$default_package}"
+package="${IMPROVE_PACKAGE_ROOT:-}"
 
 fail() {
   printf 'improve.test.sh: FAIL %s\n' "$*" >&2
@@ -26,6 +25,22 @@ if [[ $# -gt 0 ]]; then
   package="$2"
 fi
 
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/improve-package-test.XXXXXX")"
+cleanup() {
+  rm -rf "$tmpdir"
+}
+trap cleanup EXIT
+
+# Check the shipped package, not a source tree containing earlier test caches.
+if [[ -z "$package" ]]; then
+  packages="${SKILL_CRAFT_PACKAGES:-}"
+  if [[ -z "$packages" ]]; then
+    packages="$tmpdir/build"
+    python3 -B "$root/scripts/build-packages.py" "$packages" >/dev/null
+  fi
+  package="$packages/plugins/skill-craft/skills/improve"
+fi
+
 [[ -d "$package" ]] || fail "package directory does not exist: $package"
 package="$(cd "$package" && pwd -P)"
 [[ "$(basename "$package")" == 'improve' ]] || fail "package leaf must be improve: $package"
@@ -36,6 +51,8 @@ for required in \
   runtime/until-loop/ADAPTER.md runtime/until-loop/LICENSE \
   runtime/until-loop/PROVENANCE.json \
   runtime/until-loop/scripts/until_loop_ephemeral.py \
+  runtime/until-loop/scripts/until_loop_session.py \
+  runtime/until-loop/scripts/until_loop_recover.py \
   runtime/until-loop/references/runtime-ephemeral.md; do
   [[ -f "$package/$required" ]] || fail "missing package file: $required"
 done
@@ -60,12 +77,6 @@ run_python() {
   env -i PATH="$PATH" HOME="${HOME:-/tmp}" PYTHONNOUSERSITE=1 \
     PYTHONDONTWRITEBYTECODE=1 python3 "$@"
 }
-
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/improve-package-test.XXXXXX")"
-cleanup() {
-  rm -rf "$tmpdir"
-}
-trap cleanup EXIT
 
 copy_parent="$tmpdir/isolated package parent with spaces"
 mkdir -p "$copy_parent"
@@ -156,8 +167,8 @@ assert hashlib.sha256((root / "runtime/until-loop/ADAPTER.md").read_bytes()).hex
 assert re.fullmatch(r"[0-9a-f]{64}", entries["ADAPTER.md"]["upstream_sha256"])
 assert entries["ADAPTER.md"]["adaptation_reason"].strip()
 assert entries["ADAPTER.md"]["sha256"] != entries["ADAPTER.md"]["upstream_sha256"]
-# Only the callback runtime is vendored: the manifest lists exactly the shipped
-# runtime files, each with a matching hash, and no retained durable runtime.
+# The upstream ephemeral runtime and its session/recovery helpers are vendored;
+# no legacy durable runtime is retained.
 assert set(manifest) == {"format", "upstream", "default_ephemeral_runtime"}, sorted(manifest)
 runtime_root = root / "runtime/until-loop"
 shipped = {
@@ -178,12 +189,10 @@ assert (
 for retired in ("legacy-skill.md", "runtime-v2.md", "references/runtime.md", ".pending-v2.json"):
     assert retired not in adapter, retired
 PY
-pass ephemeral_runtime_provenance_matches_v0_8_1
+pass ephemeral_runtime_provenance_matches_v0_9_0
 
 ephemeral_runtime="$bundle/runtime/until-loop/scripts/until_loop_ephemeral.py"
 ephemeral_contract="$tmpdir/ephemeral contract.json"
-ephemeral_state_dir="$tmpdir/ephemeral state with spaces"
-mkdir -p "$ephemeral_state_dir"
 run_python - "$workspace" "$bundle" "$ephemeral_contract" <<'PY'
 import json
 import sys
@@ -217,7 +226,9 @@ Path(sys.argv[3]).write_text(json.dumps(contract) + "\n", encoding="utf-8")
 PY
 
 ephemeral_initial="$tmpdir/ephemeral initial.json"
-run_python "$ephemeral_runtime" start --directory "$ephemeral_state_dir" \
+ephemeral_state_dir="$tmpdir/ephemeral state"
+mkdir -p "$ephemeral_state_dir"
+run_python "$ephemeral_runtime" start --isolated --directory "$ephemeral_state_dir" \
   <"$ephemeral_contract" >"$ephemeral_initial"
 ephemeral_state="$(run_python - "$ephemeral_initial" <<'PY'
 import json
@@ -225,6 +236,13 @@ import sys
 
 packet = json.load(open(sys.argv[1], encoding="utf-8"))
 assert packet["status"] == "active"
+assert set(packet) == {
+    "status", "state_file", "workspace", "work", "conditions", "progress", "context",
+    "status_semantics", "last_report", "instruction", "next_argv", "done_argv",
+    "report_schema", "receipt", "exit_checks", "last_check_results", "check_repairs",
+    "verify_script",
+}, "standalone --isolated start must preserve the callback packet shape"
+assert "stack" not in packet, "standalone --isolated start must keep the legacy packet shape"
 assert packet["progress"] == {
     "action_number": 1,
     "trivial_streak": 0,
@@ -237,9 +255,8 @@ print(packet["state_file"])
 PY
 )"
 [[ -f "$ephemeral_state" ]] || fail 'ephemeral start did not create a state file'
-[[ "$(cd "$(dirname "$ephemeral_state")" && pwd -P)" == \
-   "$(cd "$ephemeral_state_dir" && pwd -P)" ]] \
-  || fail "ephemeral state escaped requested directory: $ephemeral_state"
+[[ "$ephemeral_state" != "$workspace/.until-loop/"* ]] \
+  || fail "isolated ephemeral state entered workspace state: $ephemeral_state"
 
 ephemeral_next="$tmpdir/ephemeral next.json"
 run_python "$ephemeral_runtime" next --state "$ephemeral_state" >"$ephemeral_next"
