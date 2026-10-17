@@ -1,0 +1,31 @@
+Improve handoffs (the file the improve skill reads), a bound child, every reviewed stage, both routes: characters before -> after the CHILD symbol.
+Synthetic run in a temp directory: the child directory is about 140 characters here and a live one is longer, so the live saving is larger (not measured live).
+
+ask-agent-05-spec-handoff.txt                 27127 ->  26841   -286
+ask-agent-08-test-strategy-handoff.txt        28377 ->  28091   -286
+ask-agent-11-plan-handoff.txt                 33816 ->  33436   -380
+ask-agent-15-step-plan-handoff.txt            31645 ->  31359   -286
+ask-agent-18-test-spec-handoff.txt            28931 ->  28645   -286
+ask-agent-22-implement-handoff.txt            34105 ->  33819   -286
+ask-agent-28-carry-forward-handoff.txt        34356 ->  34070   -286
+ask-agent-31-system-test-author-handoff.txt   28292 ->  28006   -286
+ask-agent-36-release-plan-handoff.txt         30606 ->  30320   -286
+inline-05-spec-handoff.txt                    25442 ->  25250   -192
+inline-08-test-strategy-handoff.txt           26692 ->  26500   -192
+inline-11-plan-handoff.txt                    32127 ->  31841   -286
+inline-15-step-plan-handoff.txt               29641 ->  29449   -192
+inline-18-test-spec-handoff.txt               27017 ->  26825   -192
+inline-22-implement-handoff.txt               32113 ->  31921   -192
+inline-28-carry-forward-handoff.txt           32442 ->  32250   -192
+inline-31-system-test-author-handoff.txt      26607 ->  26415   -192
+inline-36-release-plan-handoff.txt            28921 ->  28729   -192
+total (18 handoffs)                          538257 -> 533767  -4490
+
+The changed lines of the inline implement handoff (random ids written nav-ID / TAG, the temp directory /T, long lines cut at 200 characters):
++CHILD = /T/repo/.shiploop-improve/nav-ID/nav-ID (this review's directory: its receipt, opening, commit message and reviews)
+-ShipLoop started this review when the Improve stage began: it wrote the opening /T/repo/.shiploop-improve/nav-ID/nav-ID/opening.md from the run's state, froze the child contract (start.json beside th
++ShipLoop started this review when the Improve stage began: it wrote the opening CHILD/opening.md from the run's state, froze the child contract (start.json beside the receipt below) and started the b
+-Child latest packet receipt: /T/repo/.shiploop-improve/nav-ID/nav-ID/packet.json
++Child latest packet receipt: CHILD/packet.json
+-Evidence: write each review pass to /T/repo/.shiploop-improve/nav-ID/nav-ID/reviews/review-<n>.md (n = the pass number: review-1.md, review-2.md, ...) and the current check output to /T/repo/.shiploo
++Evidence: write each review pass to CHILD/reviews/review-<n>.md (n = the pass number: review-1.md, review-2.md, ...) and the current check output to CHILD/reviews/checks.md. The complete command impo

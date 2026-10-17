@@ -161,6 +161,37 @@ def _describe(part: str, callback_labels: Sequence[str]) -> str:
             "goal": "'Goal: '", "done_when": "'Done when'"}[part]
 
 
+# ------------------------------------------------------------------ the callback command and the result path it names
+
+def callback_line(text: Union[str, Sequence[str]]) -> str:
+    """The packet's producer callback line (the label ``Callback for this stage``).  Raises AssertionError when there is
+    none, so a lookup that finds nothing cannot pass."""
+    lines = text.splitlines() if isinstance(text, str) else list(text)
+    for line in lines:
+        if line.startswith("Callback for this stage"):
+            return line
+    raise AssertionError("the packet has no 'Callback for this stage' line")
+
+
+def callback_argv(text: Union[str, Sequence[str]]) -> list[str]:
+    """The argv of the callback command: the text after the label's closing ``): `` up to the end of the line.  The label
+    may change (it names the result path and, later, the way to run the command); the command starts at ``python3``."""
+    import shlex
+    line = callback_line(text)
+    return shlex.split(line[line.index("): python3 ") + 3:])
+
+
+def callback_result_path(text: Union[str, Sequence[str]]) -> Path:
+    """The absolute result path the callback's label names (``<run>/inbox/<action>.md``).  The command has no ``--result``
+    flag (``complete`` reads that one path by default), so the label is where a packet says where to write the result."""
+    line = callback_line(text)
+    label = line[:line.index("): python3 ")]
+    found = re.search(r"written to (/.*?/inbox/[^/\s)]+\.md)", label)   # a run directory may hold spaces
+    if found is None:
+        raise AssertionError("the callback label names no inbox result path: " + label)
+    return Path(found.group(1))
+
+
 # ------------------------------------------------------------------ the outcomes a packet or a refusal names
 
 # The outcome words of the whole graph, read from the stage table, never listed here.

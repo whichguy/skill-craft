@@ -264,6 +264,25 @@ class WhyAHeadIsNotWholeTest(unittest.TestCase):
         text = self.from_head(reply("claude-columns", "9nLJam"))
         self.assertEqual(counters.head_or_why(text), (None, counters.NOT_WHOLE_SHORTENED))
 
+    def test_a_callback_line_of_the_current_layout_is_whole_only_when_it_ends_with_its_full_action_id(self):
+        """The result path moved into the callback's label (2026-10-17): the command ends with --action=<id>."""
+        action = "nav-" + "0123456789abcdef" * 2
+
+        def head(callback: str) -> str:
+            return ("ShipLoop navigator | step-plan | revision 3\n" + callback + "\nFull packet: /r/packets/" + action + ".md\n"
+                    "Keepalive marker: SHIPLOOP-RUN run=r rev=3 dir=/r\n=== ShipLoop status ===\nx\n=== end ShipLoop status ===\n"
+                    + shiploop_navigator.HEAD_END + "\n")
+
+        label = "Callback for this stage (run once after its work, with the result written to /r/inbox/" + action + ".md): "
+        command = "python3 /s/shiploop complete --run-dir=/r --action=" + action
+        whole, why = counters.head_or_why(head(label + command))
+        self.assertIsNone(why)
+        self.assertIn(command, whole)
+        for cut in (command[:-1], command[:-20], command[:command.index("--action=") + len("--action=nav-12")],
+                    command[:command.index("--run-dir=") + 5]):
+            with self.subTest(cut=cut[-24:]):
+                self.assertEqual(counters.head_or_why(head(label + cut)), (None, counters.NOT_WHOLE_SHORTENED))
+
     def test_the_reasons_are_three_different_texts(self):
         reasons = {counters.NOT_WHOLE_BEFORE_CLOSING, counters.NOT_WHOLE_IN_NARRATIVE, counters.NOT_WHOLE_SHORTENED}
         self.assertEqual(len(reasons), 3)

@@ -41,6 +41,7 @@ import shiploop_test_loop as test_loop  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import LoopBlock, finish_loop, with_receipt  # noqa: E402
+from shiploop_packet_view import callback_argv, callback_line, callback_result_path  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -125,13 +126,16 @@ def read_block(path: Path) -> object:
 
 
 def printed_callback(head: str) -> tuple[str, Path, str]:
-    """The first callback line of a producer head, the result path it names, and the action id."""
-    line = next(row for row in head.splitlines() if row.startswith("Callback for this stage"))
-    command = line.split("): ", 1)[1]
-    argv = shlex.split(command)
-    path = Path(next(a for a in argv if a.startswith("--result=")).split("=", 1)[1])
+    """The first callback line of a producer head, the result path its label names, and the action id.
+
+    The command has no ``--result`` (``complete`` reads ``RUN/inbox/<action>.md`` by default); the label names that path.
+    """
+    line = callback_line(head)
+    command = line[line.index("): python3 ") + 3:]
+    argv = callback_argv(head)
+    assert not any(a.startswith("--result") for a in argv), argv
     action = next(a for a in argv if a.startswith("--action=")).split("=", 1)[1]
-    return command, path, action
+    return command, callback_result_path(head), action
 
 
 class RealCliCase(unittest.TestCase):
@@ -1330,7 +1334,7 @@ class LoopRefusalRouteTests(RealCliCase):
             packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
                                                capture_output=True, check=True, timeout=60).stdout)
         self.assertEqual(packet["status"], "complete")
-        return Path(re.search(r"Then list (\S+) in evidence_refs", reply).group(1))
+        return Path(re.search(r"no terminal packet exists at (\S+)\.", reply).group(1))
 
     def test_done_before_the_loop_ran_is_told_the_start_command_and_following_it_is_accepted(self) -> None:
         # test-green and static-checks are folded into test and verify (8-stage loop, 2026-10-10).
@@ -1346,10 +1350,14 @@ class LoopRefusalRouteTests(RealCliCase):
                 printed = LoopBlock(full_packet_text(head)).command
                 self.assertTrue(printed)
                 self.assertIn("Start it with: " + printed + "  and follow", reply)
+                self.assertNotIn("in evidence_refs", reply)  # ShipLoop lists the receipt itself (U10, X-15)
                 receipt = self.follow_start(reply)
-                write_block(path, {**block, "evidence_refs": [*block["evidence_refs"], str(receipt)]}, loop=False)
+                write_block(path, block, loop=False)  # the same result: the receipt is not in its evidence_refs
                 self.accepted(command)
                 self.assertIn(nav.current_stage(self.state(run)), following)
+                recorded = self.state(run)
+                kept = (recorded["accepted"].get(action) or recorded["active_improve"]["seed_result"])["evidence_refs"]
+                self.assertEqual(kept, [*block["evidence_refs"], str(receipt)])
 
     def test_revise_before_the_loop_stopped_is_told_to_run_it_until_it_stops_blocked(self) -> None:
         run, head = self.new_run("test", entered=True)
@@ -1366,8 +1374,8 @@ class LoopRefusalRouteTests(RealCliCase):
         packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(BLOCKED_REPORT), text=True,
                                            capture_output=True, check=True, timeout=60).stdout)
         self.assertEqual(packet["status"], "stopped")
-        receipt = re.search(r"Then list (\S+) in evidence_refs and submit revise again", reply).group(1)
-        write_block(path, {**block, "evidence_refs": [*block["evidence_refs"], receipt]}, loop=False)
+        self.assertIn("Then submit revise again", reply)
+        write_block(path, block, loop=False)
         self.accepted(command)
         self.assertEqual(nav.current_stage(self.state(run)), "step-plan")
 
@@ -1384,6 +1392,129 @@ class LoopRefusalRouteTests(RealCliCase):
                 reply = self.refused(command, run)
                 self.assertTrue("evidence_refs cite files that do not exist" in reply
                                 or f"the {stage} loop has not run" in reply, reply)
+
+
+class PathHandlingRouteTests(RealCliCase):
+    """Script-owned path handling (efficiency plan U10, rev 4 Step 3.2): the printed callback has no ``--result`` flag and
+    ``complete`` reads the one path it would have named, a symbol-led evidence path is expanded and checked by one reader
+    before any gate, and the loop receipt is listed by ShipLoop when the result leaves it out."""
+
+    def test_the_printed_callback_has_no_result_flag_and_complete_reads_the_inbox_path(self) -> None:
+        run, head = self.new_run()
+        command, path, action = printed_callback(head)
+        self.assertNotIn("--result", command)
+        self.assertEqual(path, run / "inbox" / (action + ".md"))  # the label names the one path to write
+        import shiploop_status_hook as status_hook
+        self.assertEqual(status_hook._verb(command), ("complete", None))                 # the hook still reads the verb
+        self.assertEqual(status_hook._verb(command + " --check-only"), ("complete", None))
+        write_block(path, self.done_fields())
+        self.assertIn("| discovery |", self.accepted(command))
+        self.assertIn(action, self.state(run)["accepted"])
+
+    def test_complete_given_another_result_path_is_refused_naming_the_path_and_the_named_path_is_accepted(self) -> None:
+        run, head = self.new_run()
+        command, path, _ = printed_callback(head)
+        other = path.with_name("elsewhere.md")
+        write_block(other, self.done_fields())
+        reply = self.refused(command + " --result=" + shlex.quote(str(other)), run)
+        self.assertIn("navigator result path must be the current generated path: " + str(path), reply)
+        write_block(path, self.done_fields())
+        self.accepted(command + " --result=" + shlex.quote(str(path)))  # the flag is still read when given
+
+    def test_a_leading_symbol_in_evidence_refs_is_expanded_checked_and_stored_absolute(self) -> None:
+        run, head = self.new_run()
+        command, path, action = printed_callback(head)
+        repo, home = self.repo_of(run), self.repo_of(run) / knowledge.HOME
+        (run / "notes").mkdir(exist_ok=True)
+        (run / "notes" / "x.md").write_text("a note\n")
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text("# Spec\n")
+        guide = nav._reference_dir(None) / "navigator.md"
+        symbols = {"RUN/notes/x.md": run / "notes" / "x.md", "RUN/notes/x.md#top": str(run / "notes" / "x.md") + "#top",
+                   "WORKTREE/a.txt": repo / "a.txt", "HOME/spec.md": home / "spec.md", "GUIDES/navigator.md": guide}
+        write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), *symbols]})
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["evidence_refs"],
+                         [str(self.evidence), *(str(value) for value in symbols.values())])
+
+    def test_a_missing_symbol_led_path_and_an_unknown_root_are_refused_and_the_absolute_path_is_accepted(self) -> None:
+        run, head = self.new_run()
+        command, path, action = printed_callback(head)
+        write_block(path, {**self.done_fields(), "evidence_refs": ["RUN/notes/missing.md"]})
+        self.assertIn("evidence_refs cite files that do not exist: " + str(run / "notes" / "missing.md"),
+                      self.refused(command, run))
+        write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), "SCRATCH/x.md"]})
+        reply = self.refused(command, run)
+        self.assertIn("evidence_refs[1] starts with SCRATCH/, which is not a root ShipLoop defines "
+                      "(GUIDES, HOME, RUN, WORKTREE); write the absolute path", reply)
+        write_block(path, self.done_fields())  # the correction the refusal names
+        self.accepted(command)
+        self.assertIn(action, self.state(run)["accepted"])
+
+    def test_assumption_evidence_is_expanded_before_its_gate_and_stored_absolute(self) -> None:
+        run, head = self.new_run("plan")
+        command, path, action = printed_callback(head)
+        (run / "notes").mkdir(exist_ok=True)
+        (run / "notes" / "probe.txt").write_text("the probe's captured output\n")
+        block = self.fill_done(head)
+        block["assumptions"] = [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
+                                 "evidence": ["RUN/notes/probe.txt"]}]
+        write_block(path, block)
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["assumptions"][0]["evidence"], [str(run / "notes" / "probe.txt")])
+
+    def test_a_result_without_the_loop_receipt_is_accepted_once_the_receipt_is_complete_and_lists_it(self) -> None:
+        for stage in ("test", "verify"):
+            with self.subTest(stage=stage):
+                run, head = self.new_run(stage, entered=True)
+                command, path, action = printed_callback(head)
+                receipt = finish_loop(run, outcome="done")
+                block = {**self.done_fields(), **({"assumptions": []} if stage == "verify" else {})}
+                self.assertNotIn(str(receipt), block["evidence_refs"])
+                write_block(path, block, loop=False)
+                self.accepted(command)
+                recorded = self.state(run)
+                kept = (recorded["accepted"].get(action) or recorded["active_improve"]["seed_result"])["evidence_refs"]
+                self.assertEqual(kept, [*block["evidence_refs"], str(receipt)])
+
+    def test_a_replay_of_a_result_that_left_the_receipt_out_is_idempotent_and_a_changed_one_is_refused(self) -> None:
+        """The run records the result with the receipt ShipLoop listed; the same file submitted again is the same result."""
+        for stage in ("test", "verify"):
+            with self.subTest(stage=stage):
+                run, head = self.new_run(stage, entered=True)
+                command, path, action = printed_callback(head)
+                finish_loop(run, outcome="done")
+                block = {**self.done_fields(), **({"assumptions": []} if stage == "verify" else {})}
+                write_block(path, block, loop=False)
+                self.accepted(command)
+                recorded = self.state(run)
+                again = self.run_printed(command)
+                self.assertEqual(again.returncode, 0, again.stdout + again.stderr)          # the replay is accepted ...
+                self.assertEqual(self.state(run), recorded)                                  # ... and changes nothing
+                write_block(path, {**block, "summary": "A different summary."}, loop=False)
+                self.assertIn("conflicting producer replay", self.refused(command, run))     # a changed result is not a replay
+
+    def test_a_result_that_lists_the_receipt_keeps_one_entry_of_it(self) -> None:
+        run, head = self.new_run("test", entered=True)
+        command, path, action = printed_callback(head)
+        receipt = finish_loop(run, outcome="done")
+        write_block(path, with_receipt(self.done_fields(), receipt), loop=False)
+        self.accepted(command)
+        recorded = self.state(run)
+        kept = (recorded["accepted"].get(action) or recorded["active_improve"]["seed_result"])["evidence_refs"]
+        self.assertEqual(kept.count(str(receipt)), 1)
+
+    def test_an_active_receipt_is_still_refused_and_is_not_listed(self) -> None:
+        run, head = self.new_run("test", entered=True)
+        command, path, _ = printed_callback(head)
+        state = self.state(run)
+        action = nav.current_action(state)["id"]
+        contract_file = run / loops.contract_path(action)
+        started = subprocess.run(shlex.split(LoopBlock(full_packet_text(head)).command)[:-2], text=True, capture_output=True,
+                                 input=contract_file.read_text(encoding="utf-8"), timeout=60)
+        self.assertEqual(started.returncode, 0, started.stderr)
+        write_block(path, self.done_fields(), loop=False)
+        self.assertIn("is still active", self.refused(command, run))
 
 
 # A command that is not a test runner: it exits 0 and prints no test count, so as suite focused it cannot be counted.
@@ -1651,8 +1782,7 @@ class EveryStageRouteTests(RealCliCase):
             while packet["status"] == "active":
                 packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
                                                    capture_output=True, check=True, timeout=60).stdout)
-            block["evidence_refs"].append(re.search(r"Then list (\S+) in evidence_refs", reply).group(1))
-            return "start the loop"
+            return "start the loop"  # the receipt is listed by ShipLoop (U10): the same result is submitted again
         if "give the reason in red_na" in reply:
             block["red_na"] = "The tests already pass: they characterise existing behaviour."
             return "red_na"

@@ -174,7 +174,7 @@ python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
 # Choose how many passes the Backchain planning child may take (one is the default; fixed for the run):
 python3 "$CLI" workspace start --repo="$REPO" --backchain-passes=converge --prompt='requested outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
-python3 "$CLI" complete --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
+python3 "$CLI" complete --run-dir="$RUN_DIR" --action="$ACTION"   # reads $RUN_DIR/inbox/$ACTION.md; --result takes only that path
 ```
 
 `workspace start` and direct `init` return an `intake` producer packet for a
@@ -432,7 +432,7 @@ The semantic result contract is small:
 | `outcome` | `done` or `blocked` at every stage; `repeat` at PRELUDE and OUTER stages (an INNER stage's Until Loop repeats instead); `revise` from `test-spec` through `verify`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews, every `implement` step and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line of at most 100 characters, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved. The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
-| `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
+| `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. A path may lead with `RUN/`, `HOME/`, `WORKTREE/` or `GUIDES/` (the packet's symbols): ShipLoop expands it before any check and stores the absolute path; another all-capital word and a slash is refused as an unknown root. An inner stage's Until Loop receipt is listed by ShipLoop when the result leaves it out. The template's placeholder is refused. |
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 

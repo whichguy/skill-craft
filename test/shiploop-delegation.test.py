@@ -24,7 +24,7 @@ import shiploop_reference as reference  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from shiploop_packet_view import assert_top_block  # noqa: E402
+from shiploop_packet_view import assert_top_block, callback_argv, callback_result_path  # noqa: E402
 
 
 def _with_packet_file(stdout: str) -> str:
@@ -441,16 +441,16 @@ class PacketContractTests(DelegationStateTests):
         # done:" callback are gone, 2026-10-11 dedupe); the result contract follows the duties and rules and ends the
         # required text (the print order of the efficiency plan, section 6.1).
         head = entry.split("Current stage guidance:", 1)[0]
-        self.assertIn("\nCallback for this stage (run once after its work, with the result written to the file it "
-                      "names): ", head)
-        self.assertIn("--result=", head.split("\nCallback for this stage", 1)[1].split("\n", 1)[0])
+        self.assertIn("\nCallback for this stage (run once after its work, with the result written to ", head)
+        self.assertEqual(callback_result_path(head).parent.name, "inbox")  # the label names the path; no --result flag
+        self.assertFalse([arg for arg in callback_argv(head) if arg.startswith("--result")])
         self.assertNotIn("Write the structured result to: ", entry)
         # repeat is no longer an inner outcome (8-stage loop, 2026-10-10).
         self.assertIn("\nAllowed outcomes: done | blocked | revise", entry)
         self.assertLess(entry.index("Current stage guidance:"), entry.index("\nAllowed outcomes: "))
         self.assertNotIn("Call this when done:", entry)
         self.assertEqual(entry.count("Callback for this stage"), 1)
-        self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
+        self.assertIn(nav.HALT_LINE, entry)
         # verify starts no Improve child, and its packet says nothing about Improve (owner rule 2026-10-10: Improve is
         # mentioned only as a directive); how to report a stop is the outcome shapes' (the trailing Improve-line sentence
         # is gone, 2026-10-11 dedupe), and the stage prints no Improve line.
@@ -712,8 +712,8 @@ class PacketContractTests(DelegationStateTests):
                     self.assertNotIn("Call this when done:", packet)
                     command = shlex.split(lead.split("): ", 1)[1])
                     self.assertEqual(command[2], "complete")
-                    self.assertTrue(any(arg.startswith("--result=") and arg.endswith(".md") for arg in command),
-                                    command)
+                    self.assertFalse(any(arg.startswith("--result") for arg in command), command)
+                    self.assertEqual(callback_result_path(lead).name, command[-1].split("=", 1)[1] + ".md")
                     # No producer packet mentions Improve ahead of time (owner rule 2026-10-10, re-cut 2026-10-11):
                     # no "Improve:" line, no "starts this action's Improve child" sentence.
                     self.assertFalse([line for line in lines if line.startswith("Improve:")])

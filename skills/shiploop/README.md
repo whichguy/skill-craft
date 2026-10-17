@@ -989,7 +989,7 @@ shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CA
 shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN
 # Callbacks the packet prints
-shiploop complete --run-dir RUN --action ACTION --result RESULT.md
+shiploop complete --run-dir RUN --action ACTION [--result RUN/inbox/ACTION.md]   # --result is that one path, which is the default
 shiploop complete --run-dir RUN --action IMPROVE_ID [--notes LESSONS.md] [--final-result RESULT.md] [--no-commit=TEXT]   # the Improve stage's import
 shiploop improve-bind --run-dir RUN --action IMPROVE_ID --skill-card ABSOLUTE_SKILL_CARD
 shiploop improve-start --run-dir RUN --action IMPROVE_ID --restart-stopped

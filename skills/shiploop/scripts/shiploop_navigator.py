@@ -1587,6 +1587,9 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
 # The last line of every print: a head, a whole packet or a pointer with what fits.  A reader whose output was cut (by
 # the host or by its own `head -N`) lacks it, so a cut is detectable.
 HEAD_END = "=== end ShipLoop head ==="
+# The terminal stop is the Pause command with its verb changed: the packet prints the Pause command as a literal
+# command line once, and the hooks see the verb the model types.
+HALT_LINE = "Halt (terminal; only on the user's explicit stop): the Pause command with `halt` in place of `pause`."
 
 # A packet at most this long prints whole; a longer active producer packet prints a head and keeps the whole in its file.
 # (Not the limit of any other command's output: see ``shiploop_protocol.OUTPUT_LIMIT``.)
@@ -1906,8 +1909,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     consumer = _consumer_lines(root, state, stage)
     blocks.append(_Block("quoted", QUOTED, consumer))
     blocks.append(_Block("pass-log", FILE_ONLY, pass_log))
-    blocks.append(_Block("halt", FILE_ONLY, [
-        "Halt (terminal and irreversible; only on an explicit user stop): " + _callback(core, root, "halt", reason="<why>")]))
+    blocks.append(_Block("halt", FILE_ONLY, [HALT_LINE]))
     blocks.append(_Block("unverified", FILE_ONLY, _unverified_lines(state, stage)))
     context = _run_context_lines(core, root, state, stage, workitem, stage_text, producer=True)
     blocks.append(_Block("run-context", FILE_ONLY, context))
@@ -3492,7 +3494,8 @@ def _optional_text_file(value: Any, label: str) -> str:
     return path.read_text(encoding="utf-8", errors="replace").strip()
 
 
-def _derived_improve_receipt(child: Mapping[str, Any], args: Any) -> dict[str, Any]:
+def _derived_improve_receipt(child: Mapping[str, Any], args: Any, root: Path | None = None,
+                             state: Mapping[str, Any] | None = None, core: Any = None) -> dict[str, Any]:
     """The completion record, built from what ShipLoop already knows (plan P12).
 
     The review reference is the last ``review-<n>.md`` file (the one pass the runtime ended on: trivial, with the
@@ -3519,7 +3522,8 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any) -> dict[str, A
         receipt["lessons"] = lessons
     final = getattr(args, "final_result", None)
     if final is not None:
-        receipt["final_result"] = store.read_record(Path(str(final)))
+        record = store.read_record(Path(str(final)))
+        receipt["final_result"] = record if state is None else expand_result_roots(record, root, state, core)
     no_commit = getattr(args, "no_commit", None)
     if no_commit:
         receipt["no_commit"] = str(no_commit)
@@ -4629,7 +4633,7 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
     if stage in test_loop.STAGES:
         # With the CLI, the list ends with the red-check command (a base check that does not count); the loop's work
         # reaches it through the Callback command's --check-only, which also runs the candidate and mutation checks.
-        cli = shlex.join([sys.executable, str(Path(__file__).resolve().parent / "shiploop")])
+        cli = shlex.join(["python3", str(Path(__file__).resolve().parent / "shiploop")])
         lines += test_loop.loop_lines(root, state, work_item or "", action_id, stage, cli=cli)
     return lines
 
@@ -4817,20 +4821,33 @@ REFERENCE_SYMBOLS = ("HOME", "RUN", "WORKTREE", "GUIDES")
 BUILDS_ON_HEAD = ("Results this stage builds on (open each not already in your context; report a conflict instead of "
                   "choosing silently):")
 
-def reference_paths(root: Path, state: Mapping[str, Any], core: Any = None) -> dict[str, str]:
-    """{symbol: absolute path} for the References block's global symbols (GUIDES is the skill's references directory)."""
+# The Improve handoff's own symbol (the handoff is the only text that defines it): the child's directory, where its
+# receipt, opening, commit message and reviews are.  It sits inside WORKTREE, so the longest root wins.
+CHILD_SYMBOL = "CHILD"
+
+
+def reference_paths(root: Path, state: Mapping[str, Any], core: Any = None,
+                    child: Path | None = None) -> dict[str, str]:
+    """{symbol: absolute path} for the References block's global symbols (GUIDES is the skill's references directory).
+
+    ``child`` adds ``CHILD`` for an Improve handoff, whose block defines it.
+    """
     repo = Path(str(state["repo"]))
-    return {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo),
-            "GUIDES": str(_reference_dir(core))}
+    paths = {"HOME": str(repo / knowledge.HOME), "RUN": str(Path(root)), "WORKTREE": str(repo),
+             "GUIDES": str(_reference_dir(core))}
+    if child is not None:
+        paths[CHILD_SYMBOL] = str(child)
+    return paths
 
 
-def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None) -> str:
-    """``text`` with each absolute HOME, RUN, WORKTREE or GUIDES path written as its symbol (longest prefix first).
+def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None, child: Path | None = None) -> str:
+    """``text`` with each absolute HOME, RUN, WORKTREE, GUIDES (or ``child``'s CHILD) path written as its symbol
+    (longest prefix first).
 
     For prose only: a command the model runs verbatim keeps its absolute paths.  A relative or root path is never
     replaced, so a symbol cannot stand for a fragment of a word.
     """
-    for name, prefix in sorted(reference_paths(root, state, core).items(), key=lambda pair: -len(pair[1])):
+    for name, prefix in sorted(reference_paths(root, state, core, child).items(), key=lambda pair: -len(pair[1])):
         if prefix.startswith("/") and len(prefix) > 1:
             text = re.sub(re.escape(prefix) + r"(?![\w.@+~-])", name, text)
     return text
@@ -4854,27 +4871,43 @@ PROSE_PATH_LINES = re.compile(
     r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
     r"This stage's result before the replan: |The result that sent it back \(|The item's previous step plan \(|"
     r"Proposed queue awaiting Improve: |"
+    # The Improve handoff's lines that name the child's files as prose (its commit-message and review-evidence lines that
+    # carry a command stay literal): the opening, the receipt, the owner record, the review and check files.
+    r"ShipLoop started this review when the Improve stage began: it wrote the opening |Child latest packet receipt: |"
+    r"Native owner record: |Evidence: write each review pass to |"
+    r"To commit a review iteration's changes, run the improve-commit command in |"
     r"(?:Current item step-plan|Current item test-decision|Run-wide test strategy) source \()")
 
 
-def prose_symbols(text: str, core: Any, root: Path, state: Mapping[str, Any], *, defined: bool | None = None) -> str:
+def prose_symbols(text: str, core: Any, root: Path, state: Mapping[str, Any], *, defined: bool | None = None,
+                  child: Path | None = None) -> str:
     """``text`` with the paths of its prose lines (``PROSE_PATH_LINES``) written as the References block's symbols.
 
     A packet without that block defines no symbols and is returned unchanged (a done or halted run's packet, the Improve
     packet).  Applied to the whole packet, so every generator's prose line is covered in one place.  ``defined`` says
     the packet carries the block when ``text`` is only a part of it (a head chooses its blocks after the symbols are
-    written, so one it leaves out still counts).
+    written, so one it leaves out still counts).  ``child`` is the Improve handoff's child directory, defined there as
+    CHILD.
     """
     if not (REFERENCES_HEAD in text if defined is None else defined):
         return text
-    paths = reference_paths(root, state, core)
+    paths = reference_paths(root, state, core, child)
     anywhere = "|".join(re.escape(path) for path in paths.values())
     guide = re.compile(r"[^:\n]{3,80}: " + re.escape(paths["GUIDES"]) + r"/[\w./-]+(?:#[\w-]+)?")
     entry = re.compile(r"- (?:[\w-]+: )?(?:" + anywhere + r")(?![\w.@+~-])\S*(?:[;] .*)?")  # a bullet that is a path
     rows = []
+    request_end = None  # the END marker of the quoted original request: its lines are the user's own words, kept as written
     for line in text.split("\n"):
-        if PROSE_PATH_LINES.match(line) or guide.fullmatch(line) or entry.fullmatch(line):
-            line = symbolic(line, root, state, core)
+        if request_end is not None:
+            # Only the generated trailer of a request cut at its limit is ShipLoop's own line.
+            if line.startswith("[Excerpt only. Full value: "):
+                line = symbolic(line, root, state, core, child)
+            elif line == request_end:
+                request_end = None
+        elif line.startswith("----- BEGIN ORIGINAL REQUEST "):
+            request_end = line.replace("BEGIN", "END", 1)
+        elif PROSE_PATH_LINES.match(line) or guide.fullmatch(line) or entry.fullmatch(line):
+            line = symbolic(line, root, state, core, child)
         rows.append(line)
     return "\n".join(rows)
 
@@ -5597,9 +5630,10 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
     action_id = current_action(state)["id"]
     child = state.get("active_improve")
     if child is None:
-        return ["Callback for this stage (run once after its work, with the result written to the file it names): "
-                + _callback(core, root, "complete", action=action_id,
-                            result=str(_result_input_path(root, action_id)))]
+        # The result path is the label's, absolute; `complete` reads that one path by default, so the command has no
+        # --result flag for the model to type.
+        return ["Callback for this stage (run once after its work, with the result written to "
+                + str(_result_input_path(root, action_id)) + "): " + _callback(core, root, "complete", action=action_id)]
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         return ["Next command (bind the selected Improve card; details below): "
@@ -5681,12 +5715,19 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
     stage, route = child["stage"], delegation(state)
     workitem = _current_work_item(state)
     reference_dir = _reference_dir(core)
+    # The child's directory is the handoff's fifth symbol, defined with the others (an unbound child has no directory).
+    child_dir = improve_opening_path(child).parent if child["skill"] is not None else None
+    references = _reference_lines(root, state, stage, workitem, core)
+    if child_dir is not None and references:
+        references.insert(next(number for number, line in enumerate(references) if line.startswith("WORKTREE = ")) + 1,
+                          CHILD_SYMBOL + " = " + str(child_dir)
+                          + " (this review's directory: its receipt, opening, commit message and reviews)")
     # The review's context lives here, not in the packet (owner: the packet is "run the improve skill, then done"): what
     # the reviewed stage read and built on, the work item, and every guide or policy the review text names.
     named = _named_text(state, stage, route) + "\n" + guidance.improve_prompt(stage, delegation=route)
     context = [
         *_goal_lines(state, stage, root),
-        *_reference_lines(root, state, stage, workitem, core),
+        *references,
         *([f"Work item: {workitem} — " + str(state["work_items"][state["work_index"]].get("title", "")),
            "Work item context: " + str(state["work_items"][state["work_index"]].get("context", ""))]
           if workitem is not None else []),
@@ -5704,7 +5745,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
             str(child.get("contract_marker", "")), "",
             *prefix,
             "## What the reviewed stage worked from", *context, "", "## The review"]
-    return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state)
+    return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
 
 
 def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
@@ -6451,7 +6492,7 @@ def red_check_command(core: Any, argv: list[str]) -> int:
             stage, action, workitem = _active_cursor(state)
             _need(stage in test_loop.STAGES and isinstance(action, Mapping) and action["id"] == args.action,
                   "red-check runs only for the current test action")
-            draft = _submitted_result(root, args) if args.result else None
+            draft = _submitted_result(root, args, state=state, core=core) if args.result else None
             ok, lines = test_loop.red_check(root, state, workitem or "", args.action, draft,
                                             base_commit=preparatory_base(root, workitem or ""))
         except (NavigatorError, test_loop.TestLoopError) as exc:
@@ -6522,19 +6563,23 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     store.transaction(root, writes)
 
 
-def _submitted_result(root: Path, args: Any, *, suffix: str = "") -> Any:
+def _submitted_result(root: Path, args: Any, *, suffix: str = "", state: Mapping[str, Any] | None = None,
+                      core: Any = None) -> Any:
     """Returns the JSON from the one ``shiploop-state`` fence of the result file submitted for ``args.action``,
-    without a shape check. ``args.result`` must equal ``root/inbox/<action><suffix>.md`` (``suffix`` is keyword-
-    only) and name a single-link regular file with no symlink up to ``root``. Raises ``NavigatorError`` for a
-    bad action, path, file or fence.
+    without a shape check. ``args.result`` is ``root/inbox/<action><suffix>.md`` (``suffix`` is keyword-only; the one
+    path that is accepted, so an omitted ``--result`` means it) and names a single-link regular file with no symlink
+    up to ``root``.  With ``state``, a leading HOME, RUN, WORKTREE or GUIDES in the result's evidence paths is
+    expanded (``expand_result_roots``).  Raises ``NavigatorError`` for a bad action, path, file, fence or root.
     """
     action_id = getattr(args, "action", None)
     _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
           "unsafe navigator action ID")
+    expected = _result_input_path(Path(root), action_id + suffix)
     raw_path = getattr(args, "result", None)
+    if raw_path is None:
+        raw_path = str(expected)
     _need(isinstance(raw_path, str) and bool(raw_path),
           "navigator complete requires a result Markdown path")
-    expected = _result_input_path(Path(root), action_id + suffix)
     path = Path(raw_path)
     _need(path == expected, "navigator result path must be the current generated path: " + str(expected))
     try:
@@ -6554,7 +6599,66 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "") -> Any:
         # takes the rejected-request route and not the durable-cursor recovery one (which stays for real
         # storage faults).  Shared with improve-reconcile, so the verb is not named.
         raise NavigatorError(f"{exc}; fix the result file and run the same command again") from exc
-    return record
+    return record if state is None else expand_result_roots(record, root, state, core)
+
+
+def _replay_with_receipt(root: Path, state: Mapping[str, Any], action_id: str, submitted: Any) -> Any:
+    """A producer result submitted again, as the run recorded it: with the loop receipt listed when the record lists it.
+
+    ShipLoop lists a loop stage's receipt itself (``loops.cite_receipt``), so the recorded result holds it even when the
+    file the model wrote does not; the replay of that file is the same result (``apply``'s idempotence compares them).
+    """
+    receipt = loops.receipt_path(root, action_id)
+    seed = state["improve_results"].get(action_id, {}).get("seed_result")
+    for kept in (seed, state["accepted"][action_id]):
+        refs = kept.get("evidence_refs") if isinstance(kept, Mapping) else None
+        if isinstance(refs, list) and str(receipt) in refs:
+            return loops.cite_receipt(submitted, receipt)
+    return submitted
+
+
+# A path in a result's evidence lists may lead with the symbol the packet's References block defines for it
+# (RUN/notes/x.md); the one reader below turns it into the absolute path before any gate, so every gate and the stored
+# result see an absolute path.  A leading all-capital word and a slash that is none of the roots is refused by name.
+_ROOT_PREFIX = re.compile(r"([A-Z][A-Z0-9_]{2,})/")
+
+
+def _expand_root(ref: Any, paths: Mapping[str, str], where: str) -> Any:
+    match = _ROOT_PREFIX.match(ref) if isinstance(ref, str) else None
+    if match is None:
+        return ref
+    name = match.group(1)
+    _need(name in paths, f"{where} starts with {name}/, which is not a root ShipLoop defines ("
+          + ", ".join(sorted(paths)) + "); write the absolute path")
+    return paths[name] + ref[len(name):]
+
+
+def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core: Any = None) -> Any:
+    """``result`` with a leading HOME, RUN, WORKTREE or GUIDES of each evidence path written as its absolute path.
+
+    The lists read are ``evidence_refs`` and each ``assumptions[].evidence`` (the only evidence fields a result has: an
+    ``unverified`` row holds exactly its five text fields); anything else, and a result that is not a mapping, is
+    returned as it is.  Raises ``NavigatorError`` for an unknown root.  The expanded text is what the gates check and
+    what the run stores.
+    """
+    if not isinstance(result, Mapping):
+        return result
+    paths = reference_paths(Path(root), state, core)
+
+    def listed(value: Any, where: str) -> Any:
+        if not isinstance(value, list):
+            return value
+        return [_expand_root(ref, paths, f"{where}[{number}]") for number, ref in enumerate(value)]
+
+    expanded = dict(result)
+    if "evidence_refs" in expanded:
+        expanded["evidence_refs"] = listed(expanded["evidence_refs"], "evidence_refs")
+    rows = expanded.get("assumptions")
+    if isinstance(rows, list):
+        expanded["assumptions"] = [dict(row, evidence=listed(row["evidence"], f"assumptions[{number}].evidence"))
+                                   if isinstance(row, Mapping) and "evidence" in row else row
+                                   for number, row in enumerate(rows)]
+    return expanded
 
 
 OPENING_SECTIONS = ("Current context and desired improvements", "Scope", "Authority", "Environment")
@@ -7307,7 +7411,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                           and action_id == child["action_id"] and child["skill"] is not None,
                           "no bound current Improve child")
                     not_enforced = _skill_call_gate(core, root, state, child)
-                    receipt = _derived_improve_receipt(child, args)
+                    receipt = _derived_improve_receipt(child, args, root, state, core)
                     final_result = receipt.get("final_result")
                     if final_result is not None:
                         _check_submitted_evidence(final_result, None)
@@ -7347,7 +7451,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                       "reconciliation receipt must use the printed inbox path")
                 # The receipt file is keyed by the reviewed action, whereas args.action names the Improve stage.
                 receipt = _submitted_result(root, SimpleNamespace(action=action_id, result=getattr(args, "result", None)),
-                                            suffix="-reconcile")
+                                            suffix="-reconcile", state=state, core=core)
                 prior = state["improve_results"].get(action_id)
                 if prior is not None:
                     _need(prior.get("runtime_phase") == "stopped",
@@ -7390,7 +7494,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _need(action_id == current,
                   f"action {action_id!r} is not the current navigator action; current action is "
                   f"{current} with result path {_result_input_path(root, current)}")
-        submitted = _submitted_result(root, args)
+        submitted = _submitted_result(root, args, state=state, core=core)
+        if action_id in state["accepted"]:
+            submitted = _replay_with_receipt(root, state, action_id, submitted)
         cursor_stage, _, cursor_item = _active_cursor(state)
         preparatory: list[str] = []
         # Owner decision 2026-10-10: --check-only runs the stage's script gates on a draft without completing, and
@@ -7402,7 +7508,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 and cursor_stage in loops.STAGES and not check_only):
             # Every inner stage runs one Until Loop (owner decision 2026-10-10): its receipt is checked first.
             try:
-                loops.check_terminal(root, state, submitted)
+                submitted = loops.cite_receipt(submitted, loops.check_terminal(root, state, submitted))
             except loops.LoopError as exc:
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:

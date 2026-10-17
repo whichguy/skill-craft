@@ -37,7 +37,7 @@ sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
-from shiploop_packet_view import assert_top_block  # noqa: E402
+from shiploop_packet_view import assert_top_block, callback_result_path  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -1637,16 +1637,17 @@ class NavigatorContractTests(unittest.TestCase):
             self.assertEqual((root / "state.md").read_bytes(), before)
             self.assertEqual(recovered["active_improve"], waiting["active_improve"])
             child = waiting["active_improve"]
-            safe_reference = str(
-                self.repo / ".shiploop-improve" / waiting["run_id"] / child["action_id"]
-                / "reviews" / "review-<n>.md"
-            )
+            child_dir = self.repo / ".shiploop-improve" / waiting["run_id"] / child["action_id"]
+            safe_reference = str(child_dir / "reviews" / "review-<n>.md")
             for render_state, packet in (("current", current_packet), ("cold", cold_packet)):
                 with self.subTest(render_state=render_state):
                     normalized_packet = " ".join(packet.split())
                     self.assertIn("Child workspace: " + str(self.repo), normalized_packet)
                     self.assertIn("complete command imports the final pass (the last review file)", normalized_packet)
-                    self.assertIn(safe_reference, normalized_packet)
+                    # The review files print as the handoff's CHILD symbol, defined once with the child's directory.
+                    self.assertIn("CHILD = " + str(child_dir) + " (this review's directory", normalized_packet)
+                    self.assertIn("CHILD/reviews/review-<n>.md", normalized_packet)
+                    self.assertIn(safe_reference, normalized_packet.replace("CHILD/", str(child_dir) + "/"))
                     # Review-note policy belongs to the selected Improve card;
                     # the parent retains its binding and receipt constraints.
                     self.assertIn(
@@ -2795,9 +2796,9 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertIn(goal, recovered.stdout)
         self.assertEqual((run_dir / "state.md").read_bytes(), before_bytes)
 
-        result_arg = next(arg for arg in shlex.split(completion_command) if arg.startswith("--result="))
+        self.assertFalse([arg for arg in shlex.split(completion_command) if arg.startswith("--result")])
         self.assertIn("Callback for this stage", recovered.stdout)  # the recovered packet names the same callback
-        callback = Path(result_arg.split("=", 1)[1])
+        callback = callback_result_path(initial)
         self.assertEqual(callback, run_dir.resolve() / "inbox" / f"{action_id}.md")
         self.assertEqual(completion_command.count("--action=" + action_id), 1)
         callback.write_text(store.dumps(result(summary="Intake completed after cold recovery."),

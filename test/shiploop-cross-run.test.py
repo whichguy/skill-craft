@@ -27,6 +27,7 @@ if str(SOURCE_SCRIPTS) not in sys.path:
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E402
 
 
 def _with_packet_file(stdout: str) -> str:
@@ -248,12 +249,9 @@ class CrossRunTests(unittest.TestCase):
 
     def _submit_blocked(self, packet: str) -> subprocess.CompletedProcess[str]:
         """Use the packet's exact public callback to create a blocked packet."""
-        # The single callback line names the result file in its --result flag (2026-10-11 dedupe).
-        lead = "Callback for this stage (run once after its work, with the result written to the file it names): "
-        command = shlex.split(
-            next(line for line in packet.splitlines() if line.startswith(lead))[len(lead):]
-        )
-        callback = Path(next(arg for arg in command if arg.startswith("--result="))[len("--result="):])
+        # The single callback line names the result file in its label; its command has no --result flag.
+        command = callback_argv(packet)
+        callback = callback_result_path(packet)
         callback.write_text(
             store.dumps(
                 {

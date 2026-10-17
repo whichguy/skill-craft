@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 import json
+import shlex
 import os
 from pathlib import Path
 import subprocess
@@ -148,7 +149,8 @@ class RepeatPacketTests(KeepaliveTestCase):
         # The "Write the structured result to:" line is gone (2026-10-11 dedupe): the callback line names the result
         # file, and the result template follows the stage's duties.
         self.assertFalse(any(line.startswith("Write the structured result to: ") for line in lines))
-        self.assertIn("with the result written to the file it names", lines[callback])
+        self.assertIn("with the result written to " + str(self.run_dir / "inbox"), lines[callback])
+        self.assertNotIn("--result", lines[callback])  # complete reads that one path by default
         self.assertTrue(lines[callback + 1].startswith("Goal: "))
         contract = next(i for i, line in enumerate(lines) if line == "Result template:")
         guidance = lines.index("Current stage guidance:")
@@ -317,6 +319,38 @@ class HookDecisionTests(KeepaliveTestCase):
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked to stop")
         self.assertIsNone(self.hook("stop", "codex", self.payload("codex", "stop")))
         self.assertIsNone(keepalive.load_binding("codex", "session-1"))
+
+    def stop_command(self, line_prefix: str) -> list[str]:
+        """The command a packet line tells the model to run, as its words, with the reason placeholder filled in."""
+        text = _packet_file_text(self.packet)
+        line = next(row for row in text.splitlines() if row.startswith(line_prefix))
+        return [("--reason=user asked to stop" if word.startswith("--reason=") else word)
+                for word in shlex.split(line.split(": ", 1)[1].split(" (only when", 1)[0])]
+
+    def test_the_printed_pause_text_runs_through_the_status_hook_and_ends_the_turn(self) -> None:
+        import shiploop_status_hook as status_hook
+        command = self.stop_command("Pause without consuming the action: ")
+        self.assertEqual(status_hook._verb(shlex.join(command)), ("pause", None))
+        self.hook("observe", "codex", self.payload("codex", "observe"))
+        ran = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(ran.returncode, 0, ran.stdout + ran.stderr)
+        self.assertEqual(self.status()["status"], "paused")
+        self.assertIsNone(self.hook("stop", "codex", self.payload("codex", "stop")))
+        self.assertIsNone(keepalive.load_binding("codex", "session-1"))
+
+    def test_the_halt_text_is_the_pause_command_with_its_verb_changed_and_it_stops_the_run(self) -> None:
+        import shiploop_status_hook as status_hook
+        text = _packet_file_text(self.packet)
+        self.assertEqual(sum(row == nav.HALT_LINE for row in text.splitlines()), 1)
+        self.assertIn("the Pause command with `halt` in place of `pause`", nav.HALT_LINE)
+        pause = self.stop_command("Pause without consuming the action: ")
+        halt = [("halt" if word == "pause" else word) for word in pause]   # what the printed sentence says to type
+        self.assertEqual(status_hook._verb(shlex.join(halt)), ("halt", None))
+        self.hook("observe", "codex", self.payload("codex", "observe"))
+        ran = subprocess.run(halt, capture_output=True, text=True)
+        self.assertEqual(ran.returncode, 0, ran.stdout + ran.stderr)
+        self.assertEqual(self.status()["status"], "halted")
+        self.assertIsNone(self.hook("stop", "codex", self.payload("codex", "stop")))
 
     def test_unbound_sessions_and_session_end_stops_are_allowed(self) -> None:
         self.assertIsNone(self.hook("stop", "grok", self.payload("grok", "stop")))

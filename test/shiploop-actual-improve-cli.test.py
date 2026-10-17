@@ -527,7 +527,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         self.assertTrue(guide.is_file())
         self.assertIn("Improve context ownership: GUIDES/" + guide.name, packet)
-        owner_record = "Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md"))
+        # The handoff names the child's files by its own symbol CHILD, defined once with the child's directory.
+        owner_record = "Native owner record: CHILD/host-owner.md"
+        self.assertIn("CHILD = " + str(bridge.receipt_path(self.bound).parent) + " (this review's directory", packet)
         if self.inline():
             # Inline Improve has no native owner; import below still succeeds.
             self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "))
@@ -806,7 +808,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(self.bound["skill"]["skill_version"], selected_version)
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for text in ("Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
-                     "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)),
+                     "Child latest packet receipt: CHILD/packet.json",
+                     "CHILD = " + str(bridge.receipt_path(self.bound).parent) + " (this review's directory",
                      "Commit policy:",
                      "Never write or edit the receipt",
                      "Completion deletes the child's temporary state"):
@@ -1546,6 +1549,24 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(state), "test-spec")
         self.assertEqual(state["accepted"][self.action]["summary"], summary)
         self.assertEqual(state["improve_results"][self.action]["receipt"]["lessons"], lessons)
+
+    def test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol(self):
+        """U10: RUN/... in a final result's evidence_refs is expanded before the Improve import's gates and stored (in the
+        accepted result and in the receipt) as the absolute path; an unknown root is refused."""
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        note = self.run / "notes" / "improve-evidence.md"
+        note.parent.mkdir(parents=True, exist_ok=True)
+        note.write_text("what the review checked\n", encoding="utf-8")
+        completion, _receipt = self.completion_receipt(final_result=dict(seed, evidence_refs=["SCRATCH/improve-evidence.md"]))
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("evidence_refs[0] starts with SCRATCH/, which is not a root ShipLoop defines", refused.stderr)
+        completion, _receipt = self.completion_receipt(final_result=dict(seed, evidence_refs=["RUN/notes/improve-evidence.md"]))
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(state["accepted"][self.action]["evidence_refs"], [str(note)])
+        self.assertEqual(state["improve_results"][self.action]["receipt"]["final_result"]["evidence_refs"], [str(note)])
 
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
@@ -2395,7 +2416,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         parent_return = bridge.receipt_path(self.bound).with_name("parent-return.md")
         policy = next(index for index, row in enumerate(lines) if row.startswith("Commit policy:"))
         self.assertEqual(lines[policy + 1],
-                         "To commit a review iteration's changes, run the improve-commit command in " + str(parent_return)
+                         "To commit a review iteration's changes, run the improve-commit command in CHILD/parent-return.md"
                          + "; its message rules are there. ShipLoop commits exactly the files this review changed. "
                          "Do not run git commit yourself.")
         self.assertFalse([row for row in lines if " improve-commit --run-dir=" in row])

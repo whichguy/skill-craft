@@ -1,0 +1,67 @@
+Fail-first record of unit U10.
+
+Method: a copy of the final tree outside any repository (rsync without .git), then `skills/` and `test/shiploop_e2e/counters.py` replaced by the INT base
+5e0ef0d0 (`git archive`), the new and changed tests kept; each group run once with `python3 -B test/shiploop-<suite>.test.py -v -k ...`. Every group fails on
+the base source (exit 1). Listed: each test that fails or errors (a test with subtests once, with the number of failing subtests).
+
+Tests that pin behaviour the base already had pass on both and are not listed: PlantedPathTests.test_the_guard_is_clean_on_the_unplanted_packet_and_names_every_root,
+test_a_new_prose_line_that_writes_a_root_path_fails_the_guard, test_the_same_path_on_a_listed_line_prints_as_its_symbol_and_passes_the_guard,
+test_a_command_line_that_names_a_root_path_stays_absolute_through_the_closed_list (the c8d49b01 guard and prose_symbols: the exit-1 characterisation) and
+HookDecisionTests.test_the_printed_pause_text_runs_through_the_status_hook_and_ends_the_turn (the Pause line was a literal command on the base).
+
+### packet-completeness -k PlantedPath -k ChildSymbol -k PrintedInterpreter -k quoted_original_request -k rendered_packet_quotes -k states_the_five -k ProseSymbols
+  ERROR ChildSymbolTests.test_a_literal_child_path_planted_in_prose_fails_the_guard_and_a_listed_line_prints_the_symbol
+  ERROR ChildSymbolTests.test_the_childs_files_print_as_the_symbol_and_no_prose_line_writes_the_directory_out (9 subtests)
+  ERROR ChildSymbolTests.test_the_commands_the_hooks_and_the_child_run_keep_the_absolute_directory
+  ERROR ChildSymbolTests.test_the_longest_root_wins_when_the_child_directory_sits_inside_the_worktree
+  FAIL  ChildSymbolTests.test_every_handoff_defines_child_once_in_its_references_block_as_its_improve_action_directory (9 subtests)
+  FAIL  ChildSymbolTests.test_every_symbol_a_handoff_uses_is_defined_in_its_references_block
+  FAIL  PlantedPathTests.test_the_slice_callback_names_its_result_path_absolute_and_every_symbol_it_uses_is_defined
+  FAIL  PrintedInterpreterTests.test_no_printed_packet_or_handoff_holds_the_hosts_interpreter_and_the_red_check_line_names_python3
+  FAIL  PrintedInterpreterTests.test_the_only_sys_executable_left_in_the_navigator_and_the_loops_runs_a_subprocess (1 subtests)
+  FAIL  ProseSymbolsTests.test_a_rendered_packet_quotes_a_request_that_lists_absolute_paths_as_written
+  FAIL  ProseSymbolsTests.test_the_quoted_original_request_keeps_the_users_own_paths_and_only_its_generated_trailer_is_symbolic
+  Ran 22 tests in 9.129s; FAILED (failures=15, errors=12)
+
+### callback-contract -k PathHandling -k LoopRefusalRoute
+  FAIL  LoopRefusalRouteTests.test_citing_a_receipt_nobody_wrote_is_still_refused (2 subtests)
+  FAIL  LoopRefusalRouteTests.test_done_before_the_loop_ran_is_told_the_start_command_and_following_it_is_accepted (2 subtests)
+  FAIL  LoopRefusalRouteTests.test_revise_before_the_loop_stopped_is_told_to_run_it_until_it_stops_blocked
+  FAIL  PathHandlingRouteTests.test_a_leading_symbol_in_evidence_refs_is_expanded_checked_and_stored_absolute
+  FAIL  PathHandlingRouteTests.test_a_missing_symbol_led_path_and_an_unknown_root_are_refused_and_the_absolute_path_is_accepted
+  FAIL  PathHandlingRouteTests.test_a_replay_of_a_result_that_left_the_receipt_out_is_idempotent_and_a_changed_one_is_refused (2 subtests)
+  FAIL  PathHandlingRouteTests.test_a_result_that_lists_the_receipt_keeps_one_entry_of_it
+  FAIL  PathHandlingRouteTests.test_a_result_without_the_loop_receipt_is_accepted_once_the_receipt_is_complete_and_lists_it (2 subtests)
+  FAIL  PathHandlingRouteTests.test_an_active_receipt_is_still_refused_and_is_not_listed
+  FAIL  PathHandlingRouteTests.test_assumption_evidence_is_expanded_before_its_gate_and_stored_absolute
+  FAIL  PathHandlingRouteTests.test_complete_given_another_result_path_is_refused_naming_the_path_and_the_named_path_is_accepted
+  FAIL  PathHandlingRouteTests.test_the_printed_callback_has_no_result_flag_and_complete_reads_the_inbox_path
+  Ran 12 tests in 49.940s; FAILED (failures=16)
+
+### loops -k CheckTerminal
+  ERROR CheckTerminalTests.test_a_blocked_result_before_the_loop_started_checks_no_receipt_and_cites_none
+  ERROR CheckTerminalTests.test_a_complete_satisfied_receipt_supports_done_only (2 subtests)
+  ERROR CheckTerminalTests.test_cite_receipt_lists_the_checked_receipt_once_and_changes_nothing_else
+  Ran 8 tests in 3.884s; FAILED (errors=4)
+
+### keepalive -k printed -k halt_text -k result_contract
+  ERROR HookDecisionTests.test_the_halt_text_is_the_pause_command_with_its_verb_changed_and_it_stops_the_run
+  FAIL  RepeatPacketTests.test_the_result_contract_ends_the_required_text_after_the_duties
+  Ran 4 tests in 8.765s; FAILED (failures=1, errors=1)
+
+### actual-improve-cli -k root_symbol
+  FAIL  EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol
+  Ran 1 test in 10.437s; FAILED (failures=1)
+
+### e2e-commit-counters -k current_layout
+  FAIL  WhyAHeadIsNotWholeTest.test_a_callback_line_of_the_current_layout_is_whole_only_when_it_ends_with_its_full_action_id
+  Ran 1 test in 0.001s; FAILED (failures=1)
+
+### test-loop -k results_the_terminal -k without_a_resolvable
+  ERROR TestLoopTests.test_results_the_terminal_packet_does_not_support_are_refused
+  FAIL  TestLoopTests.test_without_a_resolvable_runtime_the_packet_says_unavailable_and_blocked_is_accepted
+  Ran 3 tests in 32.035s; FAILED (failures=1, errors=1)
+
+### delegation -k producer_packets_state_outcomes
+  FAIL  PacketContractTests.test_producer_packets_state_outcomes_and_explicit_commands
+  Ran 1 test in 0.065s; FAILED (failures=1)
