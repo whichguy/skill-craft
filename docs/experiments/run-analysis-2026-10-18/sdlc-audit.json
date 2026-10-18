@@ -1,0 +1,377 @@
+{
+  "meta": {
+    "question": "Did the step plan (and the planning stages feeding it) consider the SDLC concerns effectively?",
+    "runs": {
+      "battleship": {
+        "run_dir": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f",
+        "layout": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in",
+        "knowledge_home": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/worktree/docs/shiploop",
+        "steps": "53 stages, done; step-plan at 11 and 25 (revision after test revise 24)"
+      },
+      "chess": {
+        "run_dir": "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29",
+        "layout": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-chess/in",
+        "knowledge_home": "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c/worktree/docs/shiploop",
+        "steps": "38 stages; ended blocked at release-verify (37, 38); operations never ran; step-plan at 11 and 17 (3 steps collapsed to 1 after implement revise 16)"
+      }
+    },
+    "generator": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b @ c70a33f4 (skills/shiploop/scripts/shiploop_prompts.py)",
+    "generator_version_note": "Chess ran an older generator than Battleship. Diffing the packets' stage guidance: chess lacks prepare duty 6 (consumer access probe), the per-step `check` field, and the ordered-procedure walk in the spec/test-strategy focus. The Battleship step-plan duty text equals the current DUTIES['step-plan'].",
+    "locator_legend": "bs:/chess: = that run's knowledge home file; NN-stage.* = that run's layout file; L = line",
+    "method": "Read packets (stage guidance), results, .actions.md, knowledge files and, for two concrete defects, the delivered product source; no transcripts. Quotes are <=200 characters."
+  },
+  "dimensions": [
+    {
+      "name": "User interface",
+      "battleship": {
+        "asked": "plan item 8 (DUTIES['plan'], skills/shiploop/scripts/shiploop_prompts.py ~L1167): \"UI: component, interaction and skin premises, the design guidance locator with identity, version or digest (or the named fallback), each async cue with purpose\"; step-plan duty 9 via _PLAN_RECORD_INTERACTIONS: \"for UI the component, interaction and skin premises, design guidance identity and version or digest (or named fallback), and the rich interactions planned\" (11-step-plan.packet.md)",
+        "considered": "bs:architecture.md AD-6 L53: \"Choice: one component, a 10 by 10 clickable grid, a New game button, Lightning styling already on the page, no image, no font, no animation.\"; spec R-9 premise; step S3 task",
+        "fit": "Good for scope: simple per the request, failure behaviour stated (failed call keeps previous JSON). Weak: the rendered board was never observed (51-release-verify: SYS-BOARD not-run, release accepted without the click); the in-flight overlap was not planned (see Concurrency)."
+      },
+      "chess": {
+        "asked": "same plan item 8 and step-plan duty 9 text (chess 08-plan.packet.md, 11-step-plan.packet.md; older wording defaults a UI to 'ambitious' without the request-ambition clause)",
+        "considered": "chess:architecture.md AD-9: \"Choice: select a piece of the side to move, then a destination square. Promotion is a chooser with queen preselected. No drag, no animation, no keyboard path.\"",
+        "fit": "Premises fit the request. Never observed by ShipLoop: release-verify blocked twice (37, 38); the owner played it out of band and the six click sequences stay not-run."
+      },
+      "owner_stage": "spec (consumer-visible premises) -> plan (AD) -> step-plan (UI decisions per step + check) -> release-verify (observation)",
+      "gap": "Decisions are made, but the UI card (references/platforms/ui.md) that carries overlapping-request and accessible-name rules was opened 0 times in either run; rendered verification is structurally a last-stage person check."
+    },
+    {
+      "name": "System API interface (contracts, callers, versioning)",
+      "battleship": {
+        "asked": "spec item 8 (skills/shiploop/scripts/shiploop_prompts.py L1047): \"For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness versus revocation, incremental state, async completion\"; step-plan duty 3 (L1266): \"A new or changed public entry point: add a criterion that it checks its arguments and carries a contract docstring\". Versioning: not in any DUTY; only coding-practices.md#schema-and-storage (\"version the payload and keep old readers working through the rollout\"), a pointer never opened.",
+        "considered": "bs:architecture.md L27: \"The grader and the board call SLBattleController.newGame(Integer) and fire(String, Integer, Integer). Both are @AuraEnabled, not cacheable, and return String.\"; AD-5 L49: \"No version field, no migration, no retention store.\"",
+        "fit": "Callers and shapes named, versioning decided (none). Gap: the `game` argument has no door check: SLBattleEngine.parse calls JSON.deserializeUntyped(raw) unvalidated and the controller maps only InvalidShotException, so a null or malformed string surfaces as a raw system exception. Step-plan criteria C1-C5 (11 and 25) carry no argument/contract criterion for `game`; duty 3's bullet is not gated."
+      },
+      "chess": {
+        "asked": "same spec item 8 and step-plan duty 3 (chess packets)",
+        "considered": "chess:architecture.md ## Interfaces and boundaries: \"Engine input: a FEN string and, for apply, a UCI string. Output: a FEN, a sorted List<String>, or a status word. Illegal apply throws SLChessEngine.IllegalMoveException.\"",
+        "fit": "Good: standard formats (FEN/UCI) make payload versioning N/A; illegal input has a typed contract with tests (illegalEngineMove, promotion rejections); controller error text probed (AD-8)."
+      },
+      "owner_stage": "spec (contract R-n) + plan (## Interfaces and boundaries, versioning AD); step-plan (entry-point criteria)",
+      "gap": "Caller compatibility and payload/API versioning are asked in no DUTY; the entry-point criterion is asked but unenforced."
+    },
+    {
+      "name": "Messaging (events, async, queues)",
+      "battleship": {
+        "asked": "discovery item 11 (L970): \"async flow: processor and recovery owner and the acceptance/completion boundary, else unknown\"; plan item 8: \"channels: per hop the lightest that meets the stated freshness (request/response; polling at a stated interval; ...\"",
+        "considered": "bs:architecture.md AD-3 L41: \"Choice: each click and New game is one imperative Apex call. The returned string is the acknowledgement. No polling, no platform event, no WebSocket, no cacheable=true.\"",
+        "fit": "Correct N/A with reason."
+      },
+      "chess": {
+        "asked": "same discovery 11 / plan 8 / spec 8",
+        "considered": "chess:spec.md R-16 L171: \"Async completion is n/a: the method returns the result or throws. Owned events are n/a\"; AD-8: \"No custom object, cache, poll, or push channel.\"",
+        "fit": "Correct N/A with reason."
+      },
+      "owner_stage": "plan (channel AD) + spec (async completion contract)",
+      "gap": "None material here; the residual async concern (client promise ordering) is Concurrency."
+    },
+    {
+      "name": "State storage, schema and ownership",
+      "battleship": {
+        "asked": "plan item 7 (L1151): \"data storage per environment (Schema and storage guidance): existing and destination schema, owner and change mechanism; for a new schema its store, keys, field types\"; spec item 9 (L1050): \"Per piece of state: owner and location; who may read it\"",
+        "considered": "bs:architecture.md AD-5 L49: \"Choice: the game document is the caller's string. Keys: shots (integer), shipsLeft (integer), gameOver (boolean), lastShot (null or object), ships ...\" plus \"Authority: whoever holds the string\" and a probed serializer (run/scratch/json-null-probe.txt)",
+        "fit": "Excellent: document schema, authority, sensitive field and a platform behaviour probe."
+      },
+      "chess": {
+        "asked": "same plan item 7 and spec item 9",
+        "considered": "chess:architecture.md L25: \"Data storage: no custom object, field, or custom metadata. The only position is the FEN string in the component's memory and in the Apex argument.\" plus the State and data table",
+        "fit": "Good."
+      },
+      "owner_stage": "plan (architecture ## Structure + AD) with spec (state lifecycle)",
+      "gap": "None for these runs; step-plan's pointer to plan-record.md (per-field migration and round-trip) was opened 0 times."
+    },
+    {
+      "name": "Data migration before the change (backfill, compatibility of existing data)",
+      "battleship": {
+        "asked": "Only for a new schema: plan item 7 \"version, migration and storage policy\"; plan-record.md (pointer): \"Per stored field, key, table or payload: owning environment, migration (unneeded, earlier step, this step, deploy obligation)\". execution-planning.md#baseline-tests-and-migrations (expand, backfill, contract) is linked only from validate-existing (STAGE_REFERENCES L267). Existing-data compatibility: not asked.",
+        "considered": "bs:architecture.md AD-5: \"No version field, no migration, no retention store.\"; environment.md L17: \"No schema change and no data load.\"",
+        "fit": "Correct N/A, stated. Unexamined but harmless: open tabs holding a game string across the run's repeated deploys (shape never changed)."
+      },
+      "chess": {
+        "asked": "same as Battleship",
+        "considered": "chess:architecture.md L25: \"Nothing is retained after the page unloads. No migration.\"",
+        "fit": "Correct N/A, stated."
+      },
+      "owner_stage": "plan (decision and ordering as an earlier item/step) -> step-plan (the step) -> release-plan (deploy-time obligation)",
+      "gap": "For a product with stored data no plan/step-plan duty requires the before-change decision (backfill, old readers, order relative to deploy); the guide that holds it is wired to validate-existing only."
+    },
+    {
+      "name": "Data migration after the change (cleanup, contraction)",
+      "battleship": {
+        "asked": "release-plan item 2 (L1699): \"Order the remaining schema, data, service and cutover work with its durable execution owner, observations and recovery limits\"; environment-lifecycle.md: \"defer destructive contraction until old consumers are absent\"; operations item 2: \"... cleanup, revalidation needs\"",
+        "considered": "bs:environment.md ## Operations L228: \"Cleanup. Not applicable. The game stores no rows (AD-5). There is nothing to delete.\"; spec R-2 L39: \"Removing them is a later cleanup, not this request.\"",
+        "fit": "Correct N/A; removal scoped out explicitly."
+      },
+      "chess": {
+        "asked": "same release-plan text; operations never reached (run ended blocked at 38-release-verify)",
+        "considered": "chess:environment.md L172: \"Org removal is not part of this plan. The grant is non-destructive. If a later instruction authorizes removal, delete only the SLChess classes, slChessBoard, ...\"",
+        "fit": "Correct N/A at plan level; no operations record exists."
+      },
+      "owner_stage": "plan (is a later contraction item needed) -> release-plan (order) -> operations (cleanup)",
+      "gap": "Contraction appears only in release-stage guidance; plan/step-plan never ask whether a follow-up cleanup item is owed."
+    },
+    {
+      "name": "Deployment switchover (order, cutover, compatibility window, rollback, flags)",
+      "battleship": {
+        "asked": "release-plan item 2 (L1696): \"the deploy, each access or visibility change (for example granting a role or permission, activating an app or menu entry)\"; item 4 rollback; prepare item 6 (L1238): \"The consumer's access: name the consumer's account or role, the entry route the plan gives them and what reaching it needs\". Flags: only coding-practices.md#feature-flags (card, never opened). Plan/step-plan: no activation duty.",
+        "considered": "bs:environment.md Release procedure (validate -> deploy -> assign -> confirm -> source return), L164: \"Partial failure: deploy without assign leaves the tab hidden. Recovery: run the assign command.\"; L122: \"Org rollback is outside the grant.\"; 08-plan summary: \"share one deploy boundary and have no independently releasable state\"",
+        "fit": "Good order, dry-run, activation switch, partial-failure recovery and rollback limits. But the activation (permission set + assign) came from the request (01-intake S4-S5), not from analysis. Unweighed: the delivery org is the test org; after 24-test revise every test command deploys, and mutation checks put mutants on org de (24-test.result: \"After a mutation run, deploy the unmutated tree again\"), so cutover happened at INNER test, and release-check could only show 'present' (49). Flags/compat window: N/A, not stated."
+      },
+      "chess": {
+        "asked": "same release-plan items; prepare had no consumer-access duty in this generator (10-prepare packet diff)",
+        "considered": "chess:architecture.md L44: \"Deploy payload: Apex classes, the LWC, the tab, and the app. No profile and no permission set.\"; spec.md L31: \"Open gap: if the deployed tab is invisible without a profile change, do not add a permission set. Record it at release verification.\"",
+        "fit": "Poor activation: Succeeded deploy, then \"Page does not exist\" for the user (environment.md L21); release-verify blocked twice; the owner added a permission set out of band. The request forbade grants, so this was a material requirement conflict to raise at spec, or to probe right after the first test deploy; it was deferred to the last stage. Same test-org == delivery-org mutant-deploy design (09-improve-plan review-1)."
+      },
+      "owner_stage": "plan (activation strategy AD: deploy unit, visibility/flag step, order, compatibility window, rollback/forward-fix, test vs delivery target) -> prepare (access probe) -> release-plan (ordered steps) -> release-check",
+      "gap": "Activation and environment separation are first asked at release-plan, after design and tests are fixed; the release-plan gate accepts a consumer_entry with no access/activation step."
+    },
+    {
+      "name": "Concurrency (simultaneous users, locking, idempotency, ordering)",
+      "battleship": {
+        "asked": "spec item 9 (L1053): \"how simultaneous changes resolve\"; intake item 6: \"shared state across people, devices or sessions\". Plan, step-plan and CODE_CRAFT: no concurrency item. platforms/ui.md (card, never opened): \"With overlapping requests or changed identity, prevent superseded results and errors from replacing the latest accepted state.\"",
+        "considered": "bs:spec.md R-9 L131: \"One player, one browser. No shared game.\"; AD-7 pure seeded functions (replay-safe). Ordering was NOT planned (S3 task has no in-flight rule); 21-improve-implement review-1: \"Found: an in-flight fire could resolve after New game and put the old game back on the board.\" -> commit 4c5b99b (generation token + pending guard)",
+        "fit": "Two tabs: implicitly safe (each tab owns its string), not stated. Idempotency: by design. Ordering: fixed late by implement Improve, not by planning."
+      },
+      "chess": {
+        "asked": "same spec item 9 / intake item 6",
+        "considered": "chess:spec.md R-10 L119: \"Simultaneous editors are out of scope: one browser view.\"; L121: \"Async: each click waits for the Apex return before drawing the new position.\"",
+        "fit": "Defect shipped: slChessBoard.js play() has no pending guard or stale-response check (refresh() has one), so a second destination click or New game during an in-flight applyMove lets the older response overwrite the newer state. The 'out of scope' line rode ~10 Improve handoffs unchallenged."
+      },
+      "owner_stage": "spec (who can act concurrently, two sessions) -> step-plan (per-step ordering rule + check) -> implement/Improve",
+      "gap": "Overlapping requests from one client are named in no DUTY; the rule lives only in an unopened card."
+    },
+    {
+      "name": "Use of existing platform services (storage, UI framework, auth, logging)",
+      "battleship": {
+        "asked": "plan item 8 (L1159): \"use the runtime's native storage, identity, cache, workflow and notification services first\"; research item 5 (L1001): \"For each need, in order: reuse unchanged, compose, augment, build new\"",
+        "considered": "bs:architecture.md AD-6 \"Lightning styling already on the page\"; permission set for access; environment.md L222: \"Salesforce Setup login history and Apex debug logs are the platform sink.\"",
+        "fit": "Good. Minor: hand-built <button>/<table> instead of base components that bring accessible names."
+      },
+      "chess": {
+        "asked": "same plan item 8 / research item 5",
+        "considered": "chess:architecture.md ## Stack: \"Lightning Web Components for slChessBoard. Unicode piece glyphs in the component. No static resource and no npm package.\"; environment.md L223 \"Observability: reuse Apex test failures and deploy command output.\"",
+        "fit": "Good; custom CSS and raw buttons rather than base components."
+      },
+      "owner_stage": "research (reuse decision) + plan (placement AD)",
+      "gap": "None structural; step-plan does not ask per step which existing service it uses instead of building."
+    },
+    {
+      "name": "Scale up and down (limits, quotas, governor limits, autoscaling, cost)",
+      "battleship": {
+        "asked": "spec item 9 (L1054): \"the runtime quotas it meets\"; spec item 6 NFR via requirements-definition.md (\"Performance, latency/freshness, throughput, capacity, resource and cost limits\"); plan item 8: \"State each channel's and cache's quota cost.\"",
+        "considered": "bs:spec.md R-11 L157: \"Bound: the transaction completes without a limit exception. newGame and fire issue no SOQL and no DML.\"; fullBoard asserts Limits.getQueries() and getDmlStatements() are 0",
+        "fit": "Good for SOQL/DML in a 100-shot transaction; CPU/heap only implicit; scale-down/cost not stated (N/A)."
+      },
+      "chess": {
+        "asked": "same",
+        "considered": "chess:spec.md R-13 L147: \"Operating condition: one synchronous Apex transaction in alias de, probed limit 10,000 ms CPU and 10,000,000 bytes heap\"; perf tests kiwipeteCpu, kiwipeteDepth2, controllerThirtyFivePlies",
+        "fit": "Excellent: probed real limits, guards asserted and measured."
+      },
+      "owner_stage": "spec (bound) + test-strategy (check) + plan (quota cost)",
+      "gap": "None material; no explicit 'scale-down/cost N/A' line is requested."
+    },
+    {
+      "name": "Security and access",
+      "battleship": {
+        "asked": "plan item 8 (L1160): \"safeguards at every placement: HOME/spec.md's personal-data handling, a server-side check on every action by a caller the product does not control\"; spec item 9 personal/secret data; prepare item 6 consumer access",
+        "considered": "bs:spec.md R-12 L163: \"The player who holds the JSON can inspect it; that is the stateless design, not a second player's view.\"; S4 permission set grants class access to SLBattleEngine and SLBattleController only; 10-prepare: \"The CLI user is a System Administrator and does not have SLBattle_Access.\"",
+        "fit": "Good least privilege and a justified self-only tamper/peek acceptance. Gaps: `game` input unvalidated (see API); no sharing mode stated (moot without data access)."
+      },
+      "chess": {
+        "asked": "same plan item 8 / spec item 9; no prepare consumer-access duty",
+        "considered": "chess:spec.md R-14: \"No credentials, tokens, or session ids in source, tests, or docs. No sf org display.\"; classes declared `with sharing`",
+        "fit": "Secrets fine. Access poor: consumer visibility unplanned (hidden tab). The knowledge home commits the org username and instance URL (environment.md L10-11); Battleship deliberately omitted them (L197)."
+      },
+      "owner_stage": "spec (R) + plan (safeguards AD) + prepare (consumer access probe) + release-plan (grant steps)",
+      "gap": "Consumer-access probe now exists (Battleship shows it works); no rule keeps operator identity out of committed knowledge."
+    },
+    {
+      "name": "Observability and operations",
+      "battleship": {
+        "asked": "discovery item 11: \"observability: event owners and sinks to reuse\"; plan item 12 (L1199) \"... logging, test and operator files\"; operations item 2 (L1817): \"monitoring, alerting, log and diagnostic access, recovery ownership (who restores and how; the rollback works)\"",
+        "considered": "bs:environment.md ## Operations L220-230 (Monitoring, Logs and audit, Recovery, Support, Cleanup, Revalidation); architecture.md L99: \"Cache, async, and logs have no remote service.\"",
+        "fit": "Good and proportionate; platform log sink named as an evidence gap rather than claimed empty."
+      },
+      "chess": {
+        "asked": "same; operations stage never reached",
+        "considered": "chess:environment.md L223: \"Observability: reuse Apex test failures and deploy command output. No new logging store.\"",
+        "fit": "Proportionate plan-level statement; no operations record because the run stopped at release-verify."
+      },
+      "owner_stage": "plan (sinks, diagnostics) + operations (running-system check)",
+      "gap": "Operations is stranded when release-verify blocks on a person check."
+    },
+    {
+      "name": "Configuration and secrets",
+      "battleship": {
+        "asked": "spec item 9 secret data; plan item 12 \"schema and config\"; platforms/salesforce.md (card): \"Keep configuration in custom metadata types\"; CODE_CRAFT rule 6: \"Keep secrets and duplicate stack traces out of user-facing messages.\" No plan/step-plan configuration decision is asked.",
+        "considered": "bs:spec.md R-12: \"Do not ask for, print, or store credentials. Do not run sf org display.\"; environment.md L197: \"username shown by sf org list, not repeated here\"; sourceApiVersion pinned 68.0",
+        "fit": "Good; product needs no runtime configuration."
+      },
+      "chess": {
+        "asked": "same",
+        "considered": "chess:spec.md R-14 (no tokens); environment.md header \"Tokens are never stored here.\"",
+        "fit": "Secrets fine; environment identity (username, instance host) committed to docs."
+      },
+      "owner_stage": "discovery (environment record) + plan (where configuration lives) + step-plan",
+      "gap": "No explicit configuration decision anywhere in plan/step-plan; fix-plan rule 13 ('configuration, not constants') not yet in CODE_CRAFT."
+    },
+    {
+      "name": "Performance limits",
+      "battleship": {
+        "asked": "spec item 6 (L1041): \"Assess non-functional requirements ... operating conditions, measurable bound or observable criterion, verification method, justified exclusion, or unresolved target.\"; test-strategy item 3 (L1072): \"Map each applicable non-functional criterion to a check\"",
+        "considered": "bs:spec.md R-11: \"No separate latency number is required.\" (100 shots in one transaction asserted)",
+        "fit": "Adequate."
+      },
+      "chess": {
+        "asked": "same",
+        "considered": "chess:spec.md R-13: 2,000 ms and 8,000 ms CPU guards; AD-1 integer mailbox chosen for CPU; observed 37/943/897 ms",
+        "fit": "Excellent."
+      },
+      "owner_stage": "spec + test-strategy (design choice at plan)",
+      "gap": "None: spec item 6 + test-strategy item 3 make NFR-to-check mapping explicit; this is the best-served dimension."
+    },
+    {
+      "name": "Accessibility",
+      "battleship": {
+        "asked": "spec item 6 via requirements-definition.md (\"Accessibility, usability, and relevant user/device conditions\"); plan item 8 \"reduced-motion alternative or an explicit static choice\"; platforms/ui.md (card, never opened): \"Verify accessible names, keyboard behavior, focus ownership and return\". Step-plan: not asked.",
+        "considered": "bs:spec.md R-13 L169: \"Accessibility beyond a clickable grid and a button: the request specifies click and a button, not a WCAG level.\"",
+        "fit": "Partial: excluding a WCAG level is right, but the 100 grid buttons have an empty label until fired (slBattleBoard.html `{cell.label}`), so no accessible names or cell identity; results not announced."
+      },
+      "chess": {
+        "asked": "same",
+        "considered": "chess:spec.md R-15: \"Exclusion: no keyboard-only acceptance criterion. The turn and status are text, so they are not color-only.\"",
+        "fit": "Partial: text status good; squares are glyph-only buttons with no coordinate names; role=\"grid\" on a div of buttons without row/gridcell roles."
+      },
+      "owner_stage": "spec (baseline obligation even without a WCAG level) + step-plan (UI step criterion) + release-verify",
+      "gap": "'Invent no accessibility level' is read as 'no accessibility work'; the minimal baseline lives only in an unopened card."
+    }
+  ],
+  "structure": {
+    "verdict": "The step plan does not make SDLC concerns explicit per item or step. Concerns that were handled well were decided upstream (spec NFR/state lifecycle, plan AD-n) from rich inline DUTY text; step-plan inherits them only as `follows` IDs. Its own concern surface is duty 9, a free-text 'Plan record' that is ungated and was skipped or compressed in all four step-plan results.",
+    "step_plan_shape": {
+      "explicit_fields": [
+        "criteria",
+        "steps (deps, criteria, check, skills)",
+        "test_commands",
+        "expectations",
+        "paths",
+        "follows"
+      ],
+      "concern_surface": "Duty 9: 'Plan record in the item's context or the summary (supporting reference; each step's task and criteria stay its only directive), for the topics this item touches only' - prose, no applicability/decision/evidence/check per concern",
+      "until_loop_exit_conditions": "The 7 exit conditions in 11-step-plan.packet.md (L19-26) cover the result opening, steps, checks, test_commands, expectations, skills and paths; none covers duty 9 or 10",
+      "what_was_written": {
+        "battleship_11": "Summary has a 'Design basis kept' sentence, failure diagnostics and 'Coding selection: Apex on API 68.0, artifact is unpackaged metadata, boundary is the org deploy' with no cards selected",
+        "battleship_25": "Revision: 'Carried over unchanged' - no plan record",
+        "chess_11": "No Coding decision selection, no per-step failure cases, no data/migration line; UI basis by AD pointer",
+        "chess_17": "Collapsed three steps to one; plan record not revisited"
+      }
+    },
+    "gated": {
+      "spec": "only R-/AD- ID preservation and the usual faults",
+      "test-strategy": "usual faults only",
+      "plan": "assumption list shape/consumers, ID preservation",
+      "step-plan": "structural fit of criteria/steps/check/test_commands/expectations/paths/follows/skill locators; nothing about any SDLC concern",
+      "release-plan": "assumptions, consumer_checks or consumer_checks_na, consumer_entry sources exist, HOME file written; no access/activation step required",
+      "operations": "usual faults only",
+      "improve_planning_focus": "_REVIEW_FOCUS_ITEMS + _REVIEW_FOCUS_STEPS: 7 check-validity conditions (replayable, procedure walk, weak stand-in, command runs, dropped IDs, unproven platform claim, step prerequisites); no concern-coverage condition. Every step-plan Improve pass read (Battleship 12 r1-r2; chess 12 r1-r3, 18 r1-r2) reviewed criterion/check precision only.",
+      "summary": "No SDLC dimension is gated at any stage."
+    },
+    "skippable_without_refusal": [
+      "step-plan duty 9 entire plan record (Coding decision selection and cards, failure cases and diagnostics, documentation, release prerequisites, UI design basis, data/migration record)",
+      "step-plan duty 3 public-entry-point argument/contract criterion (Battleship has none for the `game` input)",
+      "reading any GUIDE: in plan and step-plan neither run opened coding-guidance.md, coding-practices.md, plan-record.md, behavioral-requirements.md or platforms/ui.md",
+      "plan Design basis, namespace/data entries, safeguards and channel quota cost (only assumptions are gated)",
+      "spec NFR section and state lifecycle (only ID preservation is gated; both runs wrote them anyway)",
+      "release-plan activation/visibility step and rollback content (chess shipped a hidden tab and passed the gate)",
+      "operations checklist (and the whole stage when release-verify blocks)"
+    ],
+    "models_follow_gates_not_guides": "Battleship 11-step-plan: 46 grep/read_file calls, of which the reference-file reads are path-classes.json only; it read shiploop_expectations.py 4x, shiploop_item_scope.py 3x, navigator, knowledge_home, stage_spec and store to satisfy refusals. Chess 11 likewise read test_loop, test_counts, expectations, item_scope. Concern guidance reached the model only when printed inline in the DUTY.",
+    "late_or_missed_detection": {
+      "concurrency": "Battleship: found at implement Improve (21) not planning; chess: shipped",
+      "switchover_access": "Chess: found by the owner after release",
+      "accessibility": "Both: not found",
+      "api_door_check": "Battleship: not found"
+    },
+    "fix_plan_3_2_coverage": {
+      "source": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-step-fix-plan-2026-10-17.md §3.2 Considerations",
+      "mapping": {
+        "1 Whole step": "UI/API wiring, permissions",
+        "2 Interactions": "UI, API, security (actor authority), accessibility ('applicable accessibility')",
+        "3 Building": "build tooling",
+        "4 Deploying": "switchover (order, staged/reversible activation, undo)",
+        "5 State": "state storage, migration before, concurrency ('ordering, atomicity and concurrent updates')",
+        "6 Operating": "observability, scale/performance (resource limits), retention/cleanup",
+        "7 What exists": "platform-native services",
+        "8 Proof": "checks"
+      },
+      "not_explicit": [
+        "messaging/events/queues",
+        "migration after (expand-then-contract, contraction item)",
+        "configuration and secrets (only proposed Code craft rule 13)",
+        "scale-down/cost",
+        "API versioning/caller compatibility",
+        "test-target vs delivery-target separation"
+      ],
+      "timing_issue": "They land at implement, after step boundaries and order are fixed, and are deliberately not a gate. Ordering decisions (migrate-before as an earlier step, activation step, contraction item) must be made at plan/step-plan to change the step graph."
+    }
+  },
+  "recommendations": [
+    {
+      "rank": 1,
+      "change": "Replace step-plan duty 9's free-text plan record with a fixed generic concern list carried as data: plan writes per work item one row per concern (ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency, native-services, scale, security, observability, config, performance, accessibility) as {id, applies: yes|no, decision or reason, anchor (R-/AD-/HOME section), owner_stage}; step-plan maps each applies=yes row to {steps or later owner_stage, check: a test_commands criterion, case ID or procedure locator}. Gate only shape and references: every id present, `no` has a reason, anchors and step/check references resolve.",
+      "where": "skills/shiploop/scripts/shiploop_prompts.py DUTIES['plan'] (new item beside 7-8) and DUTIES['step-plan'] (duty 9 becomes the mapping; add one Until Loop exit condition); result templates; shiploop_stage_spec.py complete gates for plan and step-plan; rows live in the existing work-item `context`/result, not a new file",
+      "why": "4/4 step-plan results skipped or compressed the plan record without refusal; models iterate on gated fields and read gate code, not guides; concurrency, accessibility, activation and API door-check gaps all trace to concerns with no required decision.",
+      "risk": "Boilerplate rows and a perceived new ledger (owner rule: no ledgers, no gated prose). Mitigate: it replaces duty 9 prose (net shorter), lives in existing fields, gates structure only, Improve judges substance; about 15 short rows per item."
+    },
+    {
+      "rank": 2,
+      "change": "Insert the selected cards' text into the packets instead of pointing to them: each applies=yes concern selects its card(s) from the Conditional index (concurrency -> coding-practices#state and platforms/ui.md; accessibility -> platforms/ui.md; switchover -> coding-practices#feature-flags and environment-lifecycle#release-operation-ownership; migrations -> execution-planning#baseline-tests-and-migrations and coding-practices#schema-and-storage), and the step-plan Improve and implement packets print those cards (static insertion per fix plan D9), building on the fix plan's §4.1 `cards` field.",
+      "where": "references/coding-guidance.md (concern column in the Conditional index); skills/shiploop/scripts/shiploop_prompts.py packet rendering (render/packet_head/improve_handoff_text in shiploop_navigator.py); STAGE_REFERENCES",
+      "why": "platforms/ui.md already states the exact rules both runs broke (overlapping requests; accessible names) and was opened 0 times; plan-record.md 0 times; step-plan read no guide.",
+      "risk": "Packet size against the compact-packet rule. Mitigate: insert only selected cards, first paragraph each."
+    },
+    {
+      "rank": 3,
+      "change": "Plan the switchover where the design is decided, and gate it at release-plan: plan records activation (deploy unit, visibility/flag/permission step, order, compatibility window, rollback or forward fix) and whether the test target is the delivery target (then every test deploy, including mutation checks, is a user-visible cutover with a restore obligation). Spec treats a request constraint that blocks the consumer entry as a material conflict. Release-plan refuses a consumer_entry with neither an access/activation step nor `activation_na` with a reason.",
+      "where": "skills/shiploop/scripts/shiploop_prompts.py DUTIES['plan'] item 8 or the new concern item, DUTIES['spec'] item 6, DUTIES['release-plan'] items 2 and 7; release-plan gate in shiploop_stage_spec.py; platform detail stays in references/platforms/salesforce.md 'Consumer entry access'",
+      "why": "Chess deployed a hidden tab, release-verify blocked twice and the owner granted access out of band; both runs deployed mutants to the delivery org without that being a planned decision; Battleship's good activation came from the request text.",
+      "risk": "False refusals for local-only packages; the `activation_na` path covers them. Prepare duty 6 already exists, so the gate adds little prose."
+    },
+    {
+      "rank": 4,
+      "change": "Name two baselines in spec duty 9 and the interaction text, worded generically: overlapping requests from one client (an action while another is pending, a reset during a pending call; which response may update the state) and a second session of the same user; for affected UI, every control has an accessible name and status is text, even when no accessibility level is requested.",
+      "where": "skills/shiploop/scripts/shiploop_prompts.py DUTIES['spec'] item 9 and the interaction/state lifecycle constant (~L570-582)",
+      "why": "Chess shipped a stale-response race (play() without a guard); Battleship fixed it only at implement Improve; both boards shipped unnamed or glyph-only buttons.",
+      "risk": "Low; scoped to interactive or UI requests so CLI and library packages are unaffected."
+    },
+    {
+      "rank": 5,
+      "change": "Add one condition to the planning review focus: 'a concern the item touches with no decision, owner or check, or scoped out although the request's actors can still trigger it (overlapping requests, a second tab, a hidden entry)'.",
+      "where": "skills/shiploop/scripts/shiploop_prompts.py _REVIEW_FOCUS_ITEMS / _REVIEW_FOCUS_STEPS (shared by spec, test-strategy, plan, step-plan Improve)",
+      "why": "12-improve-step-plan review-1 examined only check commands; chess's 'Simultaneous editors are out of scope' passed about ten Improve handoffs unchallenged.",
+      "risk": "Slightly longer planning reviews."
+    },
+    {
+      "rank": 6,
+      "change": "Wire migration guidance where its decisions are made: add execution-planning.md#baseline-tests-and-migrations to plan, step-plan and release-plan references, and one plan item 7 line: existing data needs backfill or compatibility before the change and cleanup or contraction after, each as an item or step with an owner, or `none: <reason>`.",
+      "where": "skills/shiploop/scripts/shiploop_prompts.py STAGE_REFERENCES['plan'|'step-plan'|'release-plan']; DUTIES['plan'] item 7",
+      "why": "The expand/backfill/contract guide is linked only from validate-existing (L267), after the steps are fixed.",
+      "risk": "Low; adds one line for packages without stored data."
+    },
+    {
+      "rank": 7,
+      "change": "Keep environment identity out of committed knowledge: discovery records the alias and org/account ID, not usernames or instance hosts; add a knowledge-home lint for e-mail-shaped strings.",
+      "where": "skills/shiploop/scripts/shiploop_prompts.py DUTIES['discovery'] item 12; knowledge-home lint",
+      "why": "Chess environment.md L10-11 committed the org username and instance URL; Battleship omitted them deliberately.",
+      "risk": "Low; an over-broad lint could flag legitimate example addresses (allowlist example.com)."
+    },
+    {
+      "rank": 8,
+      "change": "Let release-plan draft the operations record so a person-check block at release-verify does not leave operations unrecorded.",
+      "where": "skills/shiploop/scripts/shiploop_prompts.py DUTIES['release-plan'] item 2 (operations section in HOME/environment.md)",
+      "why": "Chess ended blocked at release-verify, so no operations record (monitoring, recovery, cleanup) exists.",
+      "risk": "Duplication with the operations stage; keep operations as verification of that draft."
+    }
+  ]
+}
