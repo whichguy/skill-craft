@@ -1313,9 +1313,10 @@ class NavigatorContractTests(unittest.TestCase):
                 state = self._produce(state, stage, **(
                     {"work_items": [{"id": "W1", "title": "Synthetic item"}]} if stage == "plan" else {}))
             packet = navigator.render(None, self.repo / ".shiploop", state)
-            # Consumer contract D1: step-plan reads environment.md whole, where the harnesses and suites live once
-            # test-strategy.md merges into it (contract 3.6); the strategy stage result stays listed.
-            self.assertRegex(packet, r"(?m)^Knowledge files this stage reads, each quoted whole(?s:.*)^HOME/environment\.md:")
+            # Consumer contract D1: step-plan reads environment.md, where the harnesses and suites live once
+            # test-strategy.md merges into it (contract 3.6), listed by contents (owner decision D1, 2026-10-17); the
+            # strategy stage result stays listed.
+            self.assertRegex(packet, r"(?m)^Knowledge files this stage reads, listed by contents(?s:.*)^HOME/environment\.md[: ]")
             self.assertRegex(packet, r"(?m)^- test-strategy stage result: RUN/results/")
         self.assertIn(
             "harness and case locators; fixture lifecycle",

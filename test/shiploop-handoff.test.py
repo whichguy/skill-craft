@@ -152,11 +152,10 @@ class QuotedBelowTests(RepoCase):
         self.assertIn("Start from HOME/spec.md (read it whole)", duty)
         self.assertNotIn("quoted below", duty)
 
-    def test_test_strategy_quotes_the_spec_whole_and_is_handed_the_spec_diff(self) -> None:
+    def test_test_strategy_lists_the_spec_by_contents_and_is_handed_the_spec_diff(self) -> None:
         self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
         lines = navigator.reads_lines(self.state, "test-strategy")
-        self.assertEqual(lines[0], navigator.READS_HEAD)
-        self.assertIn("HOME/spec.md (source: HOME/spec.md, whole file):", lines)
+        self.assertEqual(lines, [navigator.READS_HEAD, "HOME/spec.md (39 bytes, 3 lines), contents:", "  ## Requirements: R-1"])
         self.assertEqual(navigator.CONSUMES["test-strategy"], ("spec_diff",))
 
 
@@ -1114,53 +1113,92 @@ class LongHomeCase(RepoCase):
 
     def diff_part(self, lines: list) -> list:
         start = next(i for i, line in enumerate(lines) if line.startswith("Spec and architecture changes since"))
-        end = next((i for i in range(start + 1, len(lines)) if not lines[i].startswith(("  |", "HOME/"))), len(lines))
+        end = next((i for i in range(start + 1, len(lines)) if not lines[i].startswith(("  ", "HOME/"))), len(lines))
         return lines[start:end]
 
     def head_of_base(self) -> str:
         return (self.root / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()[:12]
 
 
-class NewFileDiffPointerTests(LongHomeCase):
-    """A living file that did not exist at the run baseline has the whole file for its diff; when the same packet quotes
-    the file whole, the diff block prints a pointer (owner study 2026-10-16: 20.7 KB of the live plan packet's 22.1 KB diff
-    was the spec it had just quoted).  Followed R-<n>/AD-<n> entries that the packet quotes whole print as IDs."""
+class ContentsTests(LongHomeCase):
+    """Owner decision D1 (2026-10-17): a packet lists each knowledge file it reads by path, size and table of contents,
+    and quotes by value only the R-<n> and AD-<n> entries the stage follows (findings A AX-1, B BX-2/BX-3, E C-3, F X-2:
+    the whole quotes were 53% of a run's packet text, sat where no print reached, and the models reopened the files)."""
 
-    def test_the_diff_of_a_file_the_packet_quotes_whole_is_a_pointer_with_its_size_and_sections(self) -> None:
-        lines = self.block("plan")  # plan reads spec.md, environment.md and architecture.md whole
-        part = self.diff_part(lines)
-        self.assertEqual(part[0], "Spec and architecture changes since the run began (baseline "
-                                  + self.head_of_base() + "), nothing cut that is not printed in this packet:")
-        self.assertEqual(part[1:], [
-            "HOME/architecture.md: new since the baseline, so its diff is the whole file, which is quoted whole above ("
-            + str(len(self.arch.encode())) + " bytes; sections: Stack; Decisions; Superseded)",
-            "HOME/spec.md: new since the baseline, so its diff is the whole file, which is quoted whole above ("
-            + str(len(self.spec.encode())) + " bytes; sections: Living spec; Requirements; Non-functional requirements; "
-            "Retired)"])
+    def test_a_file_is_listed_by_path_size_and_contents_and_its_text_is_not_quoted(self) -> None:
+        lines = navigator.reads_lines(self.state_at("plan"), "plan")
+        self.assertEqual(lines[0], navigator.READS_HEAD)
+        start = lines.index("HOME/spec.md (" + str(len(self.spec.encode())) + " bytes, "
+                            + str(len(self.spec.splitlines())) + " lines), contents:")
+        self.assertEqual(lines[start + 1:start + 5], [
+            "  # Living spec",
+            "  ## Requirements: " + " · ".join("R-%d Requirement number %d" % (n, n) for n in range(1, 31)),
+            "  ## Non-functional requirements",
+            "  ## Retired: R-31 Dropped requirement"])
+        self.assertIn("  ## Decisions: " + " · ".join("AD-%d Decision %d" % (n, n) for n in range(1, 9)), lines)
+        self.assertIn("  ## Superseded: AD-9 Old way", lines)
+        self.assertIn("  ## Stack", lines)                                # the shell comment in the fence is no heading
+        self.assertNotIn("  # a shell comment, not a heading", lines)
+        self.assertIn("HOME/environment.md (22 bytes, 3 lines), contents:", lines)
         text = "\n".join(lines)
-        self.assertNotIn("uncut diff", text)
-        self.assertEqual(text.count("Behavior: the system performs behaviour 7 "), 1)  # the file's text is printed once
+        self.assertNotIn("Behavior:", text)                               # no line of any file's body
+        self.assertFalse(any(line.startswith(navigator.QUOTE) for line in lines))
+        self.assertLess(len(text), (len(self.spec) + len(self.arch)) // 8)
+
+    def test_the_outline_folds_heading_entries_into_their_section_and_skips_headings_inside_an_entry(self) -> None:
+        spec = ("Intro R-0 is not an entry start.\n- R-1: before any heading.\n# Spec\n## Requirements\n- R-2: a list entry.\n"
+                "- R-3: another.\n- R-4: a third.\n### R-5 A heading entry\n#### Acceptance\nText.\n- R-2: a later mention.\n"
+                "| R-6 | a table row |\n```\n## Fenced\n- R-7: fenced\n```\n### Notes\n## Retired\n")
+        self.assertEqual(knowledge.outline(spec, "spec.md"), [
+            knowledge.Section(0, "", (("R-1", ""),)),
+            knowledge.Section(1, "Spec", ()),
+            knowledge.Section(2, "Requirements", (("R-2", ""), ("R-3", ""), ("R-4", ""), ("R-5", "R-5 A heading entry"),
+                                                  ("R-6", ""))),
+            knowledge.Section(3, "Notes", ()),
+            knowledge.Section(2, "Retired", ())])
+        # R-6 starts on a table row, its first start (the ``entries`` rule), so it is listed where it starts.
+        self.assertEqual(navigator._contents_lines("spec.md", spec), [
+            "  (before the first heading): R-1", "  # Spec", "  ## Requirements: R-2..R-4 · R-5 A heading entry · R-6",
+            "  ### Notes", "  ## Retired"])
+        self.assertEqual(knowledge.entries(self.repo, "spec.md").keys() >= {"R-1"}, True)   # the fixture's own spec
+        self.assertEqual(knowledge.outline("## Commands\n- R-1: not an entry of this file\n", "environment.md"),
+                         [knowledge.Section(2, "Commands", ())])
+        self.assertEqual(knowledge.outline("no headings\n", "environment.md"), [])
+        self.assertEqual(navigator._file_lines("environment.md", "no headings\n", "HOME/environment.md"),
+                         ["HOME/environment.md (12 bytes, 1 line), no headings"])
+
+    def test_ids_print_as_ranges_and_a_long_contents_is_cut_with_a_count(self) -> None:
+        self.assertEqual(navigator._id_ranges(["R-1", "R-2", "R-3", "R-5", "R-6", "R-9", "R-10", "R-11", "AD-1"]),
+                         "R-1..R-3, R-5, R-6, R-9..R-11, AD-1")
+        text = "".join("## Section %d\n" % n for n in range(1, 46))
+        lines = navigator._contents_lines("environment.md", text)
+        self.assertEqual(len(lines), navigator._CONTENTS_LINES + 1)
+        self.assertEqual(lines[-1], "  ... 5 more headings")
+        self.assertEqual(navigator._cut_title("x" * 150), "x" * 97 + "...")
+
+    def test_the_diff_of_a_new_file_is_a_pointer_that_lists_its_contents_once(self) -> None:
+        lines = self.block("plan")  # plan lists spec.md, environment.md and architecture.md
+        part = self.diff_part(lines)
+        self.assertEqual(part[0], "Spec and architecture changes since the run began (baseline " + self.head_of_base()
+                         + "), a file new since then is named with its contents, any other change printed uncut:")
+        self.assertEqual(part[1:], [
+            "HOME/architecture.md: new since the baseline, so its diff is the whole file, not printed here ("
+            + navigator._size(self.arch) + "; its contents are listed above)",
+            "HOME/spec.md: new since the baseline, so its diff is the whole file, not printed here ("
+            + navigator._size(self.spec) + "; its contents are listed above)"])
         self.assertLess(lines.index(navigator.READS_HEAD), lines.index(navigator.HANDOFF_HEAD))  # "above" is true
+        self.assertEqual(sum(line.startswith("  | +") for line in lines), 0)
 
-    def test_it_saves_what_the_study_measured(self) -> None:
-        """The plan packet's block holds each file once, as its quote, plus a few lines of pointer."""
-        files = [self.spec, self.arch, "## Commands\n\nnpm test\n"]
-        once = sum(len(text) + len(navigator.QUOTE) * text.count("\n") for text in files)
-        block = "\n".join(self.block("plan"))
-        self.assertLess(len(block), once + 1_500)
-        self.assertGreater(once, 20_000)    # the files are realistic: repeating the two big ones would add 25 KB or more
-        self.assertEqual(sum(line.startswith("  | +") for line in self.block("plan")), 0)
-
-    def test_a_diff_of_a_file_the_packet_does_not_quote_stays_whole(self) -> None:
-        document = self.block("document")  # reads environment.md and architecture.md, not spec.md
-        part = self.diff_part(document)
-        self.assertTrue(any(line.startswith("HOME/architecture.md: new since the baseline") for line in part))
-        self.assertIn("  | +### R-7 Requirement number 7", part)          # spec.md's diff is still the text
-        self.assertFalse(any(line.startswith("HOME/spec.md: new since") for line in part))
-        carry = self.diff_part(self.block("carry-forward"))                # reads nothing whole
-        self.assertFalse(any(line.startswith("HOME/") for line in carry))
-        self.assertIn("  | +### R-7 Requirement number 7", carry)
-        self.assertIn("  | +### AD-3 Decision 3", carry)
+    def test_a_new_file_the_packet_does_not_list_is_a_pointer_with_its_contents(self) -> None:
+        for stage in ("document", "carry-forward", "release-verify"):  # document lists no spec; the others list nothing
+            with self.subTest(stage=stage):
+                part = self.diff_part(self.block(stage))
+                spec = next(i for i, line in enumerate(part) if line.startswith("HOME/spec.md: new since"))
+                self.assertEqual(part[spec], "HOME/spec.md: new since the baseline, so its diff is the whole file, not printed "
+                                             "here (" + navigator._size(self.spec) + "), contents:")
+                self.assertEqual(part[spec + 2], "  ## Requirements: " + " · ".join(
+                    "R-%d Requirement number %d" % (n, n) for n in range(1, 31)))
+                self.assertFalse(any(line.startswith("  | +") for line in part))   # F-12: no new file printed by its diff
 
     def test_a_file_that_existed_at_the_baseline_keeps_its_diff(self) -> None:
         self.home("spec.md", self.spec.replace("Requirement number 7", "Requirement seven"))
@@ -1171,25 +1209,6 @@ class NewFileDiffPointerTests(LongHomeCase):
         self.assertIn("  | -### R-7 Requirement number 7", part)
         self.assertIn("  | +### R-7 Requirement seven", part)
         self.assertFalse(any(line.startswith("HOME/") for line in part))
-
-    def test_a_file_whose_diff_differs_from_its_quote_keeps_its_diff(self) -> None:
-        (self.repo / knowledge.HOME / "spec.md").write_bytes(b"\xef\xbb\xbf" + self.spec.encode())  # the quote drops a BOM; the diff keeps it
-        part = self.diff_part(self.block("plan"))
-        self.assertFalse(any(line.startswith("HOME/spec.md: new since") for line in part))
-        self.assertTrue(any(line.startswith("HOME/architecture.md: new since") for line in part))
-        self.assertTrue(any("R-7 Requirement number 7" in line for line in part))
-
-    def test_headings_come_from_outside_fences_and_a_long_list_is_cut_with_a_count(self) -> None:
-        self.assertEqual(navigator._headings("# T\n\n```\n# not\n```\n## Real\n### Deep\n~~~\n## Fenced\n~~~\n## Last"),
-                         ["T", "Real", "Last"])
-        text = "".join(f"## Section {n}\n" for n in range(1, 16))
-        pointer = navigator._new_file_pointer("spec.md", text)
-        self.assertIn("sections: Section 1; Section 2;", pointer)
-        self.assertTrue(pointer.endswith("Section 12; ... 3 more)"), pointer)
-        self.assertNotIn("Section 13", pointer)
-        self.assertEqual(navigator._new_file_pointer("environment.md", "no headings here\n"),
-                         "HOME/environment.md: new since the baseline, so its diff is the whole file, which is quoted whole "
-                         "above (17 bytes)")
 
     def test_only_a_pure_new_file_chunk_counts_and_the_chunks_join_back_to_the_diff(self) -> None:
         diff = git(self.repo, "diff", "--no-color", "--no-ext-diff", self.head_of_base(), "--", knowledge.HOME)
@@ -1210,36 +1229,25 @@ class NewFileDiffPointerTests(LongHomeCase):
             "a")
         self.assertEqual(navigator._diff_chunks("not a diff\n"), [("", "not a diff\n")])
 
-    def test_followed_entries_the_packet_quotes_whole_print_as_ids_with_their_retired_mark(self) -> None:
-        lines = self.block("test-spec")      # reads spec.md and architecture.md whole
-        follows = next(i for i, line in enumerate(lines) if line.startswith("follows (W1 step-plan)"))
-        self.assertEqual(lines[follows],
-                         "follows (W1 step-plan): R-1, R-31 (now under Retired in HOME/spec.md), AD-1, AD-9 (now under "
-                         "Superseded in HOME/architecture.md) (each entry is in HOME/spec.md, HOME/architecture.md, quoted "
-                         "whole above), and these follow:")
-        self.assertEqual(lines[follows + 1], "- R-99: no entry in HOME/spec.md")      # an unknown ID is still said
-        self.assertEqual(lines[follows + 2], "criteria (W1 step-plan):")
-        self.assertEqual(sum("### R-1 Requirement number 1" in line for line in lines), 1)  # once, in the quoted file
+    def test_followed_entries_are_quoted_by_value_with_their_retired_mark(self) -> None:
+        for stage in ("test-spec", "implement", "document"):   # test-spec lists the spec, implement and document do not
+            with self.subTest(stage=stage):
+                lines = self.block(stage)
+                follows = lines.index("follows (W1 step-plan):")
+                self.assertEqual(lines[follows + 1], "- R-1:")
+                self.assertEqual(lines[follows + 2], "  | ### R-1 Requirement number 1")
+                self.assertIn("- R-31 (now under Retired in HOME/spec.md):", lines)
+                self.assertIn("- AD-9 (now under Superseded in HOME/architecture.md):", lines)
+                self.assertIn("  | ### AD-1 Decision 1", lines)
+                self.assertIn("- R-99: no entry in HOME/spec.md", lines)      # an unknown ID is still said
+                self.assertEqual(sum("### R-1 Requirement number 1" in line for line in lines), 1)  # its entry, once
+                self.assertNotIn("  | ### R-2 Requirement number 2", lines)   # a row the stage does not follow
 
-    def test_a_followed_entry_of_a_file_the_packet_does_not_quote_keeps_its_text(self) -> None:
-        lines = self.block("implement")      # reads environment.md and architecture.md, not spec.md
-        follows = next(i for i, line in enumerate(lines) if line.startswith("follows (W1 step-plan)"))
-        self.assertEqual(lines[follows], "follows (W1 step-plan): AD-1, AD-9 (now under Superseded in HOME/architecture.md) "
-                                         "(each entry is in HOME/architecture.md, quoted whole above), and these follow:")
-        self.assertEqual(lines[follows + 1], "- R-1:")
-        self.assertIn("  | ### R-1 Requirement number 1", lines)
-        self.assertIn("  | ### R-31 Dropped requirement", lines)
-        self.assertNotIn("  | ### AD-1 Decision 1", [line for line in lines[follows:] if line.startswith("  | ### AD")])
-
-    def test_when_nothing_is_quoted_the_block_is_the_old_one_but_for_the_heading(self) -> None:
-        """No file quoted and no followed entry in a printed diff (the one followed ID has no entry): nothing is replaced."""
-        state = self.state_at("document", follows=["R-99"])
-        plain = []
-        for source in navigator.handoff_sources(self.root, state, "document"):
-            plain += navigator._source_lines(self.root, state, source)
-        self.assertIn("  | +### R-7 Requirement number 7", plain)
-        self.assertIn("  | +### AD-3 Decision 3", plain)
-        self.assertEqual(navigator.handoff_lines(self.root, state, "document"), [navigator.HANDOFF_HEAD, *plain])
+    def test_every_stage_block_is_far_below_the_files_it_names(self) -> None:
+        files = len(self.spec) + len(self.arch)
+        for stage in stage_spec.STAGES:
+            with self.subTest(stage=stage):
+                self.assertLess(len("\n".join(self.block(stage))), files // 3)
 
 
 # ------------------------------------------------- a block prints nothing twice (efficiency plan U13, rev 4 Step 2.2)
@@ -1279,9 +1287,10 @@ def repeated_lines(lines: list, minimum: int = 25) -> list:
 
 
 class SameBlockDuplicateTests(LongHomeCase):
-    """A hand-off value the same block already prints is not printed again: a followed entry whose text is in a file the
-    block quotes whole, or in the whole-file diff it prints below, is listed by its ID; one step's ``not_covered`` and the
-    next step's share one label.  A script proves each duplicate (the exact text is in the other place)."""
+    """A block prints nothing twice: a followed entry is quoted once (no file's text is quoted whole, and a new file's diff
+    is a pointer, owner decision D1 of 2026-10-17), a file listed by contents is not listed again by its diff's pointer,
+    and one step's ``not_covered`` and the next step's share one label.  A script proves each duplicate (the exact text is
+    in the other place)."""
 
     def spec_text(self) -> str:
         return distinct_spec()
@@ -1289,43 +1298,29 @@ class SameBlockDuplicateTests(LongHomeCase):
     def architecture_text(self) -> str:
         return distinct_architecture()
 
-    def test_a_followed_entry_that_the_diff_below_prints_whole_is_listed_by_id(self) -> None:
-        for stage in ("document", "verify"):      # both read the architecture, neither the spec; both print the spec diff
+    def test_a_followed_entry_is_quoted_once_and_the_diff_prints_no_new_file(self) -> None:
+        for stage in ("document", "verify"):      # both list the architecture, neither the spec; both print the spec diff
             with self.subTest(stage=stage):
                 lines = self.block(stage)
-                follows = next(i for i, line in enumerate(lines) if line.startswith("follows (W1 step-plan)"))
-                self.assertEqual(
-                    lines[follows],
-                    "follows (W1 step-plan): R-1, R-31 (now under Retired in HOME/spec.md), AD-1, AD-9 (now under "
-                    "Superseded in HOME/architecture.md) (each entry is in HOME/architecture.md, quoted whole above; "
-                    "in the diff of HOME/spec.md below), and these follow:")
-                self.assertEqual(lines[follows + 1], "- R-99: no entry in HOME/spec.md")      # an unknown ID is still said
-                diff = next(i for i, line in enumerate(lines) if line.startswith("Spec and architecture changes since"))
-                self.assertLess(follows, diff)                                               # "below" is true
-                self.assertEqual(sum("### R-1 Requirement number 1" in line for line in lines), 1)   # in the diff only
-                self.assertIn("  | +### R-1 Requirement number 1", lines)
+                follows = lines.index("follows (W1 step-plan):")
+                self.assertEqual(lines[follows + 1:follows + 3], ["- R-1:", "  | ### R-1 Requirement number 1"])
+                self.assertEqual(sum("### R-1 Requirement number 1" in line for line in lines), 1)   # the entry, once
+                self.assertFalse(any(line.startswith("  | +") for line in lines))
+                self.assertIn("HOME/architecture.md: new since the baseline, so its diff is the whole file, not printed here ("
+                              + navigator._size(self.arch) + "; its contents are listed above)", lines)
+                self.assertEqual(sum(line.startswith("  ## Decisions: ") for line in lines), 1)  # listed once
                 self.assertEqual(repeated_lines(lines), [])
 
-    def test_a_file_the_diff_changes_but_does_not_add_whole_keeps_its_followed_entries_text(self) -> None:
+    def test_a_file_the_diff_changes_keeps_its_hunks_and_its_followed_entries_text(self) -> None:
         self.home("spec.md", self.spec.replace("Requirement number 7", "Requirement seven"))
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "edit")
         (self.root / knowledge.RUN_BASELINE).write_text(git(self.repo, "rev-parse", "HEAD~1").strip() + "\n")
         lines = self.block("document")
-        follows = next(i for i, line in enumerate(lines) if line.startswith("follows (W1 step-plan)"))
-        self.assertTrue(lines[follows].startswith("follows (W1 step-plan): AD-1, AD-9 (now under Superseded"), lines[follows])
-        self.assertNotIn("in the diff of", lines[follows])
         self.assertIn("- R-1:", lines)
         self.assertIn("  | ### R-1 Requirement number 1", lines)         # R-1 is printed as itself
-        self.assertIn("  | +### R-7 Requirement seven", lines)           # the changed entry is the diff's
-
-    def test_the_files_a_diff_prints_whole_are_the_new_ones_the_packet_does_not_quote(self) -> None:
-        sources = navigator.handoff_sources(self.root, self.state_at("document"), "document")
-        self.assertEqual(sorted(navigator._diff_printed_files(sources, {})), ["architecture.md", "spec.md"])
-        self.assertEqual(sorted(navigator._diff_printed_files(sources, {"architecture.md": self.arch})), ["spec.md"])
-        follows = next(position for position, source in enumerate(sources) if source.key == "follows")
-        self.assertEqual(navigator._diff_printed_files(sources[:follows], {}), {})    # a diff above the entries is not "below"
-        self.assertEqual(navigator._diff_printed_files([], {}), {})
+        self.assertIn("  | +### R-7 Requirement seven", lines)           # the changed section is the diff's, by value
+        self.assertIn("  | -### R-7 Requirement number 7", lines)
 
     def test_no_stage_prints_a_line_of_25_characters_twice_in_its_block(self) -> None:
         for stage in stage_spec.STAGES:
@@ -1361,40 +1356,43 @@ class SameBlockDuplicateTests(LongHomeCase):
 # from 20-test, whose item has two implement steps and prints one not_covered label for them (U13): 32 of 33 blocks unchanged.
 # 16-implement re-pinned on the merge of U8 into the integration branch: U17's step-scoped hand-off cuts the first step's block
 # to its criteria and test cases and names the step plan's result file (its action id written as nav-<id>, see walked_blocks),
-# with the later wording units on top; the other 32 blocks are unchanged.
+# with the later wording units on top; the other 32 blocks are unchanged.  Re-pinned 2026-10-17 by the packet review's U1
+# (knowledge by locator, owner decision D1): the 26 blocks of the stages that read a knowledge file list it by contents and
+# quote each followed entry by value; the 7 blocks of the stages that read none (discovery, research, spec, carry-forward,
+# release-verify, handoff) are unchanged.
 SMALL_HOME_FINGERPRINTS: dict = {
-    "01-intake": "dadd1187dc7e",
+    "01-intake": "912336d610d9",
     "02-discovery": "e3b0c44298fc",
     "03-research": "e3b0c44298fc",
     "04-spec": "e3b0c44298fc",
-    "06-test-strategy": "a16d4a7376fd",
-    "08-plan": "360076ddd378",
-    "10-prepare": "3d3837f47b04",
-    "11-step-plan": "a028962a6013",
-    "13-test-spec": "89da8b67a083",
-    "15-validate-existing": "d4f557cb9a0a",
-    "16-implement": "2448172f1603",
-    "18-implement": "d96c63124ef4",
-    "20-test": "4a7114e9c49d",
-    "23-document": "e027ac97cef7",
-    "24-verify": "60cdda8e3cc2",
+    "06-test-strategy": "95cbfa2dd777",
+    "08-plan": "a2377d25542c",
+    "10-prepare": "1885c1007e80",
+    "11-step-plan": "fe289f10c8cd",
+    "13-test-spec": "c6d425c9fef6",
+    "15-validate-existing": "8abbc25e598d",
+    "16-implement": "ae0941ac35b9",
+    "18-implement": "f961c135f1e1",
+    "20-test": "08a1f5db5dc5",
+    "23-document": "8455200e3c04",
+    "24-verify": "a1596c3a0323",
     "25-carry-forward": "644fb96deb86",
-    "26-step-plan": "89598d10bc2e",
-    "28-test-spec": "23fde04bb4f2",
-    "30-validate-existing": "d4f557cb9a0a",
-    "31-implement": "8e1e0a123365",
-    "33-test": "64de04bfd7e3",
-    "34-document": "264b60b69eb4",
-    "35-verify": "ed763a0acd5e",
+    "26-step-plan": "17c982bf51fc",
+    "28-test-spec": "94651e813052",
+    "30-validate-existing": "8abbc25e598d",
+    "31-implement": "7ddfaaed230c",
+    "33-test": "c02f2ad332ab",
+    "34-document": "6d8f2fb7cabd",
+    "35-verify": "eaeff627a87a",
     "36-carry-forward": "50e264bc8291",
-    "38-system-test-author": "a1172c033470",
-    "40-system-test": "8224a6f77a5a",
-    "41-product-acceptance": "615f20067d69",
-    "42-release-plan": "06b5b5d76712",
-    "44-release-check": "08a88392ba6c",
-    "45-release": "08a88392ba6c",
+    "38-system-test-author": "6a3c13636fe3",
+    "40-system-test": "4f29f2424f99",
+    "41-product-acceptance": "d1c50b335484",
+    "42-release-plan": "9279fa6fbc45",
+    "44-release-check": "b1c7d05eb7d2",
+    "45-release": "b1c7d05eb7d2",
     "46-release-verify": "3bf63126c3e6",
-    "47-operations": "08a88392ba6c",
+    "47-operations": "b1c7d05eb7d2",
     "48-handoff": "7e50c8910839",
 }
 
@@ -1457,7 +1455,8 @@ class WalkedBlockTests(unittest.TestCase):
                 # The walk reaches the stages whose blocks held the duplicates: followed entries and the spec diff together.
                 for stage in ("document", "verify"):
                     block = next(lines for key, lines in blocks.items() if plans.stage_of(key) == stage)
-                    self.assertTrue(any("in the diff of HOME/spec.md below" in line for line in block), stage)
+                    self.assertIn("- R-1:", block, stage)
+                    self.assertTrue(any(line.startswith("HOME/spec.md: new since the baseline") for line in block), stage)
 
     def test_a_small_homes_blocks_are_the_ones_the_branch_recorded(self) -> None:
         """A home of a few hundred characters has no baseline here, so no diff, no pointer and no ID the entries' quote
@@ -2100,8 +2099,7 @@ class StepScopeTests(RepoCase):
         return state
 
     def block(self, state: dict) -> list:
-        return navigator.handoff_lines(self.root, state, "implement",
-                                       {"architecture.md": (self.repo / knowledge.HOME / "architecture.md").read_text()})
+        return navigator.handoff_lines(self.root, state, "implement", {"architecture.md"})
 
     def item_set(self, state: dict) -> list:
         with mock.patch.object(navigator, "step_scope", return_value=None):
@@ -2148,16 +2146,29 @@ class StepScopeTests(RepoCase):
         self.assertIsNone(navigator.step_scope(dict(state, inner_loops={"W1": {"stage": "test", "action": {
             "id": "nav-current", "stage": "test"}}}), "test"))
 
-    def test_the_implement_improve_handoff_inherits_the_cut_block(self) -> None:
+    def test_the_implement_improve_handoff_names_the_producer_packet_and_keeps_the_steps_cut_criteria(self) -> None:
+        """U2 (2026-10-17): the handoff names the producer's packet and result instead of quoting their sources again;
+        the criteria the step is checked against stay by value, cut to the step as the producer's were."""
         state = self.step_state(TWO_STEPS)
         producer = navigator._consumer_lines(self.root, state, "implement")
-        state["active_improve"] = {"stage": "implement", "improve_action": "nav-review", "skill": "improve"}
-        reviewed = navigator._consumer_lines(self.root, state, "implement")
-        self.assertEqual(reviewed, producer)
-        self.assertIn("Cut to step S1: its criteria (C1),", "\n".join(reviewed))
+        state["active_improve"] = {"stage": "implement", "action_id": "nav-reviewed", "improve_action": "nav-review",
+                                   "skill": "improve"}
+        reviewed = navigator._reviewed_input_lines(self.root, state, "implement", "W1")
+        self.assertEqual(reviewed[0], "What the reviewed stage read and was handed (untrusted host records; open the parts "
+                                      "its result cites): its packet RUN/packets/nav-reviewed.md and its result "
+                                      "RUN/inbox/nav-reviewed.md.")
+        self.assertEqual(reviewed[1], "- Knowledge files, listed there by contents: HOME/environment.md (not written yet); "
+                                      "HOME/architecture.md (" + navigator._size(
+                                          (self.repo / knowledge.HOME / "architecture.md").read_text()) + ").")
+        self.assertEqual(reviewed[2], "- Hand-offs, quoted there by value: follows, test_cases.")
+        criteria = producer[producer.index("criteria (W1 step-plan):"):]
+        criteria = criteria[:next(i for i, line in enumerate(criteria) if i and not line.startswith("- "))]
+        self.assertEqual(reviewed[3:], criteria)                         # the step's cut criteria, as the producer had them
+        self.assertNotIn("test_cases (W1 test-spec):", reviewed)
         source = Path(navigator.__file__).read_text(encoding="utf-8")
         handoff = source[source.index("def improve_handoff_text"):source.index("def ", source.index("def improve_handoff_text") + 4)]
-        self.assertIn("*_consumer_lines(root, state, stage),", handoff)   # the Improve handoff quotes the same block
+        self.assertNotIn("_consumer_lines", handoff)
+        self.assertIn("*_reviewed_input_lines(root, state, stage, workitem),", handoff)
 
 
 class ItemRecordsTests(RepoCase):
@@ -2194,6 +2205,92 @@ class ItemRecordsTests(RepoCase):
 def stage_spec_duty(stage: str) -> str:
     import shiploop_prompts as prompts
     return prompts.prompt(stage)
+
+
+# The narrative's title quotes the request's first words; outside the inner loop (whose dry-run work item is the request)
+# the tail is only in a quote of the whole request.
+DRY_RUN_REQUEST = ("Fix the page count. Keep the API exactly as it is for every existing caller of the module, and add one "
+                   "regression test that fails before the fix.")
+
+
+def dry_run_packets(stop_at: str | None = None):
+    """(state, the producer packet's file text) for each producer action of the dry-run delivery walk, and the state an
+    Improve child parks after it as ``(waiting, None)``.  With ``stop_at``, the one item is ``(the state at that stage's
+    first produce, None)``."""
+    import shiploop_navigator_dry_run as dry_run
+    state = navigator.new_state("/simulation-only/repo", DRY_RUN_REQUEST, delegation="inline")
+    with tempfile.TemporaryDirectory(prefix="shiploop-handoff-dry-") as temp:
+        for step in dry_run.activity():
+            action = navigator.current_action(state)["id"]
+            if step["command"] != "produce":
+                state = navigator.finish_improve(state, action, step["receipt"], step.get("final_result"))
+                continue
+            if stop_at is not None:
+                if navigator.current_stage(state) == stop_at:
+                    yield state, None
+                    return
+            else:
+                yield state, navigator.render(None, Path(temp), state)
+            state = navigator.apply(state, action, step["result"])
+            if state.get("active_improve") is not None and stop_at is None:
+                yield state, None
+    if stop_at is not None:
+        raise AssertionError("stage not reached: " + stop_at)
+
+
+class RequestAndReviewedInputTests(unittest.TestCase):
+    """Owner decision D2 (2026-10-17): the request is quoted whole at intake, spec and plan, and named by its file in every
+    other packet (finding A AX-3: 125 KB across 25 producer packets and 51 KB across 11 handoffs).  Unit U2: the Improve
+    handoff names the producer's packet and result instead of quoting their sources again (B BX-3, C X5/C2-16, F F-2)."""
+
+    def test_the_request_is_quoted_whole_only_at_intake_spec_and_plan(self) -> None:
+        seen = set()
+        for state, packet in dry_run_packets():
+            if packet is None:
+                continue
+            stage = navigator.current_stage(state)
+            seen.add(stage)
+            with self.subTest(stage=stage):
+                whole = stage in ("intake", "spec", "plan")
+                self.assertEqual("----- BEGIN ORIGINAL REQUEST " in packet, whole)
+                self.assertEqual("Only the END marker carrying tag" in packet, whole)
+                if stage not in stage_spec.INNER:                          # an inner packet's work item is the request here
+                    self.assertEqual("one regression test that fails before the fix" in packet, whole)
+                self.assertEqual(packet.splitlines().count(navigator.REQUEST_POINTER), 0 if whole else 1)
+                self.assertEqual("Sentence index of this request" in packet, stage == "intake")
+        self.assertTrue({"intake", "discovery", "spec", "plan", "step-plan", "implement", "release-verify"} <= seen, seen)
+
+    def test_every_handoff_names_the_producer_packet_and_result_and_quotes_no_knowledge_file(self) -> None:
+        seen = []
+        for state, packet in dry_run_packets():
+            if packet is not None:
+                continue
+            child = state["active_improve"]
+            handoff = navigator.improve_handoff_text(None, Path("/simulation-only/run"), state)
+            with self.subTest(stage=child["stage"]):
+                seen.append(child["stage"])
+                self.assertIn("What the reviewed stage read and was handed (untrusted host records; open the parts its "
+                              "result cites): its packet RUN/packets/" + child["action_id"] + ".md and its result RUN/inbox/"
+                              + child["action_id"] + ".md.", handoff)
+                self.assertNotIn(navigator.READS_HEAD, handoff)
+                self.assertNotIn(navigator.HANDOFF_HEAD, handoff)
+                self.assertEqual("----- BEGIN ORIGINAL REQUEST " in handoff, child["stage"] in ("spec", "plan"))
+                self.assertNotIn("Revisit: ", handoff)                     # a first visit
+        self.assertTrue({"spec", "plan", "step-plan", "test-spec", "implement", "carry-forward"} <= set(seen), seen)
+
+    def test_a_revisited_stages_handoff_names_the_previous_accepted_result_and_the_revise_result(self) -> None:
+        state, _ = next(dry_run_packets(stop_at="implement"))
+        revise = navigator.current_action(state)["id"]
+        state = navigator.apply(state, revise, {"outcome": "revise", "summary": "Criterion unachievable as planned."})
+        self.assertEqual(navigator.current_stage(state), "step-plan")
+        previous = navigator._sent_back_results(state, "step-plan", "W1")[1]
+        waiting = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Amended."})
+        self.assertEqual(waiting["active_improve"]["stage"], "step-plan")
+        lines = navigator._reviewed_input_lines(Path("/r"), waiting, "step-plan", "W1")
+        self.assertEqual(lines[-1], "Revisit: W1 is back at step-plan (1 of " + str(stage_spec.MAX_REVISES) + "); the "
+                                    "previous accepted step-plan result: RUN/results/" + previous + ".md; the revise result "
+                                    "that sent it back: RUN/results/" + revise + ".md.")
+        self.assertIn(lines[-1], navigator.improve_handoff_text(None, Path("/r"), waiting))
 
 
 class RequestIndexTests(unittest.TestCase):

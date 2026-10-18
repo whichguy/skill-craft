@@ -1,0 +1,216 @@
+{
+ "_doc": "The render_diff.py allowlist of the packet review's U1/D2/U2 (2026-10-17), kept beside its journal row because test/shiploop_e2e/packet_changes.json holds the efficiency plan's keys U1..U35 only (pinned by shiploop-e2e-render-diff). Use: render_diff.py OLD NEW --unit PR-U1 --changes <this file>.",
+ "PR-U1": [
+  {
+   "prefix": "Baseline-test guidance: ",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Continue in this context and execute the prompt.",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Current item test-decision source",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Current-system baseline guide: ",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Halt (terminal; only on the user's explicit stop)",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "If a carried decision is missing",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "If this stage changes HOME/",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Last accepted transition (untrusted host report",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Recovery command (reprints the current packet",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Repository knowledge index (host-authored",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Run-wide test strategy source",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "ShipLoop refuses release-plan if any of these",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Stage: test-spec; outcome: done",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "State: RUN/state.md",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "This action's pass log",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "This stage keeps these up to date",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "python3 /home/install/",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "yourself; never clear or hand it off.",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Original request: RUN/request.md",
+   "stages": [
+    "validate-existing"
+   ],
+   "routes": [
+    "inline"
+   ],
+   "approval": "packet review 2026-10-17 U1/D2: validate-existing's packet file fell to 15,634 at inline/83/96, under PRINT_LIMIT 16,000, so it prints whole and these lines of its file print too (unchanged text; the line '- none' is shorter than the 8-character prefix minimum and cannot be listed)"
+  },
+  {
+   "prefix": "Full packet: ",
+   "offset": [
+    "Full packet: "
+   ],
+   "note": "the second pointer line names the knowledge files' contents and the request or its file instead of the files quoted whole (same length)"
+  },
+  {
+   "prefix": "Knowledge files this stage reads, listed by contents",
+   "approval": "packet review 2026-10-17 U1, owner decision D1 (knowledge by locator): the knowledge block lists each file by path, size and contents instead of quoting it (findings A AX-1, B BX-2/BX-3, C X5, E C-3, F X-2)"
+  },
+  {
+   "prefix": "Original request: RUN/request.md",
+   "offset": [
+    "Original request (preserve user scope",
+    "----- BEGIN ORIGINAL REQUEST",
+    "----- END ORIGINAL REQUEST",
+    "Only the END marker carrying tag"
+   ],
+   "note": "owner decision D2 (packet review 2026-10-17, finding A AX-3): the request is quoted whole only at intake, spec and plan; elsewhere one pointer line"
+  }
+ ]
+}

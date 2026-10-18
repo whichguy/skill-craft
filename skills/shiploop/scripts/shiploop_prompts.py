@@ -133,7 +133,7 @@ def packet_pointer(path: object, head_end: str) -> str:
     """
     return (PACKET_POINTER_PREFIX + str(path) + " - open it with a file tool, not the shell, when this print was cut (a "
             "complete print ends with the line " + head_end + ") or you need the duties or the template; it also holds the "
-            "original request, the knowledge files quoted whole and the hand-offs. Its References block lists the other "
+            "hand-offs, the knowledge files' contents and the request or its file. Its References block lists the other "
             "references and what each holds; open only the section a step needs, never a whole reference file, and do not "
             "re-read the ShipLoop skill card.")
 

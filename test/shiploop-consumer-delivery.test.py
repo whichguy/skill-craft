@@ -201,6 +201,27 @@ class ConsumerDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(navigator.NavigatorError, "delivery contract version"):
             navigator.validate(malformed)
 
+    def test_a_packet_that_names_the_request_by_its_file_keeps_the_exclusions_line_once(self) -> None:
+        """Owner decision D2 (2026-10-17): outside intake, spec and plan a packet names RUN/request.md instead of quoting
+        the request, and the accepted contract's exclusions stay beside it: once in a producer packet (its delivery block
+        prints them) and in the Improve handoff, which prints no delivery block."""
+        state = self.new_state()
+        self.assertEqual(consumer_delivery.exclusions_lines(state), [])              # no contract accepted yet
+        self.assertEqual(consumer_delivery.exclusions_lines(navigator.new_state(str(self.repo), "x")), [])  # not opted in
+        state = self.to_stage(self.accepted_contract(state), "step-plan")
+        exclusions = "Delivery exclusions: public access; versioned deployment"
+        self.assertEqual(consumer_delivery.exclusions_lines(state), [exclusions])
+        packet = navigator.render(None, self.root, state)
+        self.assertIn(navigator.REQUEST_POINTER, packet.splitlines())
+        self.assertNotIn("----- BEGIN ORIGINAL REQUEST ", packet)
+        self.assertEqual(packet.count(exclusions), 1)
+        waiting = navigator.apply(state, navigator.current_action(state)["id"], self.result())
+        self.assertEqual(waiting["active_improve"]["stage"], "step-plan")
+        handoff = navigator.improve_handoff_text(None, self.root, waiting).splitlines()
+        pointer = handoff.index(navigator.REQUEST_POINTER)
+        self.assertEqual(handoff[pointer + 1], exclusions)
+        self.assertEqual(handoff.count(exclusions), 1)
+
     def test_v3_contract_is_required_at_plan_after_its_actual_improve_handoff(self) -> None:
         state = self.new_state()
         self.assertIn(
