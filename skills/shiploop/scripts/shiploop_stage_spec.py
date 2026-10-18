@@ -352,6 +352,8 @@ _ROWS = (
         done_when=(
             "every completion criterion has at least one test case, or a justified not-applicable",
             "each case has an independent oracle, a RED and a GREEN definition, and an ID a focused command lists",
+            "each case's procedure can happen as written from its stated start, or its unreachable start is an "
+            "open item",
         ),
         test="Specify cases before code: positive, failure and boundary.",
         entry_runs=("loop-contract",),

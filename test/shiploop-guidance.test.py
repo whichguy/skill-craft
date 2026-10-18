@@ -807,6 +807,115 @@ class GuidanceTests(unittest.TestCase):
                   if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"implement", "carry-forward"}),
         )
 
+    def test_the_procedure_condition_reaches_where_procedures_originate_and_every_planning_review(self) -> None:
+        """W2-C (implement-step fix plan 4.2, T34): one procedure-validity text, in the shared review focus, reaches the
+        spec and test-strategy producers (their "Before you submit" item), every planning review's handoff, and the
+        test-spec producer, whose own item applies it to its cases and says where a procedure's locator rides.  This
+        pins the text a cleared model is given; whether a model reviewer acts on it is a live qualification."""
+        walk = normalized(prompts.PROCEDURE_WALK)
+        own = ("A plan is not a run; a setup change makes an earlier observation stale.",
+               "its locator in `oracle` or the open item's `check`", "An unreachable start is an open prerequisite")
+        state = self.state()
+        producers: list[str] = []
+        reviews: list[str] = []
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            recovered, packet = self.cold_packet(state)
+            text = normalized(packet)
+            if stage in prompts.REVIEW_FOCUS_DUTY_STAGES:
+                with self.subTest(stage=stage, boundary="producer"):
+                    duty = text[text.index("Before you submit, fix any of these in"):]
+                    self.assertIn("an ordered procedure (calls, commands, interactions) that cannot happen as written. "
+                                  + walk, duty)
+                    producers.append(stage)
+            if stage == "test-spec":
+                with self.subTest(stage=stage, boundary="producer"):
+                    self.assertIn("A case's setup and actions are an ordered procedure. " + walk, text)
+                    for phrase in own:
+                        self.assertIn(phrase, text)
+                    # ... and its loop does not exit on a case whose procedure cannot happen (an exit condition)
+                    self.assertIn("each case's procedure can happen as written from its stated start, or its "
+                                  "unreachable start is an open item", text)
+                    producers.append(stage)
+            extra: dict[str, object] = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic procedure case"}]
+            waiting, action = self.produce(recovered, **extra)
+            if waiting["active_improve"] is None:
+                state = waiting
+                continue
+            pending, packet = self.cold_packet(waiting)
+            with self.subTest(stage=stage, boundary="Improve"):
+                if stage in prompts.PLANNING_REVIEW_STAGES:
+                    self.assertEqual(normalized(packet).count(walk), 1)
+                    reviews.append(stage)
+                else:
+                    self.assertNotIn(walk, normalized(packet))
+            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+        self.assertEqual(sorted(producers), ["spec", "test-spec", "test-strategy"])
+        self.assertEqual(sorted(reviews), sorted(prompts.PLANNING_REVIEW_STAGES))
+
+    def test_a_procedure_locator_reaches_every_stage_that_consumes_its_case_or_open_item(self) -> None:
+        """W2-C (implement-step fix plan T26, T29): a procedure is carried by its locator, not copied.  The case's
+        `oracle` and an open item's `check` name it; every stage that quotes the case (implement and its Improve, test,
+        verify, system-test-author) or the open item (its consumer) is given that locator cold, and the later-owned
+        procedure stays an open item, its observer unresolved, until its consumer stage.  The observing outer stages
+        say a changed setup voids an earlier observation (their own duty text: the consumer's half of the rule).  This
+        is the data a cleared model is given, not proof that it runs the procedure."""
+        sys.path.insert(0, str(ROOT / "test"))
+        import shiploop_assumptions as assumptions
+        import shiploop_head_plans as plans
+        case_locator = "HOME/architecture.md ## Real-boundary checks RB-1"
+        open_locator = "HOME/architecture.md ## Real-boundary checks RB-2"
+        cases = [dict(plans.TEST_CASES[0], oracle="Procedure " + case_locator + ", through the public call"),
+                 plans.TEST_CASES[1]]
+        later = {"id": "A1", "disposition": "open", "consumer": "release-verify", "owner": "a person with access",
+                 "assumption": "TC-1's criterion C1 (R-1) on the released consumer surface is unobserved",
+                 "check": "Run " + open_locator + " on the released candidate; report what it shows",
+                 "reason": "no route to that surface from this host"}
+        extras = {"plan": {"work_items": [plans.CASE["work_item"]]}, "step-plan": plans.PLAN,
+                  "test-spec": {"test_cases": cases, "assumptions": [later]}}
+        quotes_case = ("implement", "test", "verify", "system-test-author")
+        voids = {"system-test": "rerun the affected observations",
+                 "release-check": "invalidates the observations it affects",
+                 "release-verify": "invalidates the observations it affects"}
+        for route in (prompts.INLINE, prompts.ASK_AGENT):
+            state = navigator.new_state(str(self.repo), "Change how a stored value is updated.", improve_skill="",
+                                        delegation=route)
+            seen: list[str] = []
+            while state["status"] != "done":
+                stage = navigator.current_stage(state)
+                recovered, packet = self.cold_packet(state)
+                with self.subTest(route=route, stage=stage):
+                    open_ids = [found.row["id"] for found in assumptions.open_items(recovered)]
+                    if stage in quotes_case:
+                        self.assertIn(case_locator, packet)
+                        self.assertIn("A1", open_ids)
+                        seen.append(stage)
+                    if stage in voids:
+                        self.assertIn(voids[stage], normalized(packet))
+                        seen.append(stage)
+                    if stage == "release-verify":
+                        self.assertIn(open_locator, packet)
+                        self.assertIn("A1", open_ids)
+                producer = navigator.current_action(recovered)["id"]
+                waiting, action = self.produce(recovered, **extras.get(stage, {}))
+                if waiting["active_improve"] is None:
+                    state = waiting
+                    continue
+                pending, packet = self.cold_packet(waiting)
+                if stage == "implement":
+                    with self.subTest(route=route, stage="implement Improve"):
+                        # The step's review reads the case where the producer's packet quotes it (by file since U2).
+                        self.assertIn("its packet RUN/packets/" + producer + ".md", packet)
+                        quoted = next(line for line in packet.splitlines()
+                                      if line.startswith("- Hand-offs, quoted there by value: "))
+                        self.assertIn("test_cases", quoted)
+                        seen.append("implement-improve")
+                state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            with self.subTest(route=route, check="every consumer reached"):
+                self.assertEqual(set(seen), set(quotes_case) | set(voids) | {"implement-improve"})
+
     def test_cold_local_skill_routes_cover_early_and_late_decisions(self) -> None:
         """Fresh producer and pending-child packets retain the local skill route.
 
@@ -2656,6 +2765,141 @@ class UnattendedWordingTests(unittest.TestCase):
         for stage in ("spec", "plan", "step-plan", "carry-forward"):
             with self.subTest(stage=stage):
                 self.assertNotIn("independent broader review", normalized(prompts.improve_prompt(stage)))
+
+
+PROCEDURES = json.loads((ROOT / "test/fixtures/procedure-validity/procedures.json").read_text(encoding="utf-8"))
+
+
+class _ReferenceStore:
+    """The fixture's R-1, written from its text alone: the independent oracle a procedure is replayed against."""
+
+    def __init__(self) -> None:
+        self.values: dict[str, object] = {}
+        self.revision = 0
+
+    def apply(self, name: str, key: str, *value: object) -> dict[str, object]:
+        """Every field any observer could show after the action: the API's value, revision and error, the page's
+        status line and enabled controls."""
+        found: dict[str, object] = {}
+        if name == "create" and key not in self.values:
+            self.values[key] = value[0]
+            self.revision += 1
+        elif name in ("get", "update", "delete") and key not in self.values:
+            found["error"] = "NotFound"
+        elif name == "get":
+            found["value"] = self.values[key]
+        elif name == "update":
+            self.values[key] = value[0]
+            self.revision += 1
+            found["value"] = value[0]
+        elif name == "delete":
+            del self.values[key]
+            self.revision += 1
+        else:
+            raise AssertionError("R-1 does not say what " + name + " does here")
+        found.update(revision=self.revision, status=str(len(self.values)) + " keys",
+                     controls=["create"] + (["update", "delete"] if self.values else []))
+        return found
+
+
+def replay(procedure: dict, observers: dict) -> int | None:
+    """The index of the first step that cannot happen as written (the store refuses an action the step expects to
+    succeed, the step expects a field its observer cannot show, or the observed value differs), else None."""
+    store = _ReferenceStore()
+    visible = observers[procedure["observer"]]
+    for index, step in enumerate(procedure["steps"]):
+        observed = store.apply(*step["action"])
+        expected = step["expect"]
+        if any(field not in visible for field in expected):
+            return index
+        if "error" in observed and "error" not in expected:
+            return index
+        if any(observed.get(field) != value for field, value in expected.items()):
+            return index
+    return None
+
+
+class ProcedureFixtureTests(unittest.TestCase):
+    """T25 of the implement-step fix plan (unit W2-C): three generic procedure faults, each in an automated case and an
+    opt-in architecture check.  What is checked here is the deterministic part: each fault exists where the fixture says
+    (replayed against an independent reference model, or run), each fixed form holds, the six-field shape gate accepts
+    the faulty case (so only a review can find the fault), and the review text that owns each fault is the one every
+    planning review prints.  Whether a model reviewer reading that text asks for the revision is a live qualification
+    (a reviewer pilot), not something an offline fixture can prove."""
+
+    def fault(self, ident: str) -> dict:
+        return next(row for row in PROCEDURES["faults"] if row["id"] == ident)
+
+    def test_each_replayed_fault_shows_at_its_step_and_its_fixed_form_holds(self) -> None:
+        for ident in ("impossible-transition", "invisible-observation"):
+            row = self.fault(ident)
+            with self.subTest(fault=ident):
+                self.assertEqual(replay(row["procedure"], PROCEDURES["observers"]), row["fault_at"])
+                self.assertIsNone(replay(row["fixed"], PROCEDURES["observers"]))
+        # The invisible observation states a true value: the API shows revision 2 there; only the page cannot.
+        unseen = self.fault("invisible-observation")["procedure"]
+        self.assertIsNone(replay(dict(unseen, observer="api"), PROCEDURES["observers"]))
+        # The intended refusal survives the fix as its own failure case, not as a weakened product.
+        self.assertEqual(self.fault("impossible-transition")["fixed"]["steps"][-1]["expect"], {"error": "NotFound"})
+
+    def test_the_guarded_command_exits_zero_having_run_nothing_and_the_unguarded_one_fails_honestly(self) -> None:
+        row = self.fault("existence-guarded-pass")
+        with tempfile.TemporaryDirectory(prefix="shiploop-procedure-") as temp:
+            tree = Path(temp)
+            runner = tree / "run-tests"
+            runner.write_text("#!/bin/sh\n: > ran\ntest -e build/app\n", encoding="utf-8")
+            runner.chmod(0o755)
+
+            def run(command: str) -> tuple[int, bool]:
+                (tree / "ran").unlink(missing_ok=True)
+                done = subprocess.run(["sh", "-c", command], cwd=tree, capture_output=True, text=True)
+                return done.returncode, (tree / "ran").exists()
+
+            self.assertFalse((tree / row["procedure"]["absent"]).exists())
+            self.assertEqual(run(row["procedure"]["command"]), (0, False))   # exit 0, and the tests never ran
+            code, ran = run(row["fixed"]["command"])
+            self.assertNotEqual(code, 0)
+            self.assertTrue(ran)
+            (tree / "build").mkdir()
+            (tree / "build/app").write_text("built\n", encoding="utf-8")
+            self.assertEqual(run(row["fixed"]["command"]), (0, True))       # once the artifact exists both agree
+        self.assertEqual(row["automated"]["command"], row["procedure"]["command"])
+        self.assertIn("`" + row["procedure"]["command"] + "`", row["architecture"])
+
+    def test_the_six_field_gate_accepts_each_faulty_case_and_refuses_a_procedure_key(self) -> None:
+        import shiploop_expectations as expectations
+        rows = [row["automated"] for row in PROCEDURES["faults"] if "oracle" in row["automated"]]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([sorted(row) for row in rows], [sorted(expectations.TEST_CASE_KEYS)] * 2)
+        self.assertEqual(expectations.normalise_test_cases(rows), rows)      # the shape is fine: the fault is meaning
+        with self.assertRaises(expectations.ExpectationError) as caught:
+            expectations.normalise_test_cases([dict(rows[0], procedure={"start": "empty store"})])
+        self.assertIn("needs exactly id, criterion, requirement, oracle, red, green", str(caught.exception))
+        for row in PROCEDURES["faults"]:
+            with self.subTest(fault=row["id"]):
+                # The opt-in form is an architecture check with its own ID, never a focused case row.
+                self.assertTrue(row["architecture"].startswith("### RB-"))
+                self.assertNotIn(row["architecture"].split()[1], [case["id"] for case in rows])
+
+    def test_the_review_text_that_owns_each_fault_is_in_the_planning_focus_and_the_guide(self) -> None:
+        focus = normalized(prompts.PLANNING_REVIEW_FOCUS)
+        guide = normalized((REFERENCES / "testing-and-documentation.md").read_text(encoding="utf-8"))
+        walk = normalized(prompts.PROCEDURE_WALK)
+        owners = {
+            "impossible-transition": "can each action occur in the state the preceding actions leave",
+            "invisible-observation": "can the chosen observer see the expected result",
+            "existence-guarded-pass": "run it once and record the exit code and the cases it executes",
+        }
+        self.assertIn(walk, focus)
+        for ident, phrase in owners.items():
+            with self.subTest(fault=ident):
+                self.assertIn(phrase, focus)
+        for phrase in ("**Procedure validity.**", "an update after a delete expected to succeed",
+                       "internal state asserted through an interface that cannot show it",
+                       "`test ! -e <file> || <run the tests>`", "that exits 0 having run nothing",
+                       "A stand-in probe proves a capability, not the procedure"):
+            with self.subTest(guide=phrase):
+                self.assertIn(phrase, guide)
 
 
 class UnverifiedWordingTests(unittest.TestCase):

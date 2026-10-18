@@ -1684,6 +1684,53 @@ class CaseRowCliTests(inner.RunDriver):
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual(self.state()["active_improve"]["stage"], "test-spec")
 
+    def test_a_procedure_key_and_an_opt_in_check_as_a_case_are_refused_and_their_named_exits_accepted(self) -> None:
+        """W2-C (implement-step fix plan T34): a case keeps exactly its six fields, so its procedure rides in `oracle`;
+        an opt-in consumer check stays outside the focused set, as an open item whose `check` names its locator.  Each
+        refusal's named fix is submitted through the real CLI and accepted."""
+        self.start()
+        self.drive_to("step-plan")
+        self.complete(dict(inner.DONE, paths=list(self.PATHS),
+                           criteria=[{"id": "C1", "text": "An update changes a stored value (R-1)."}],
+                           test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+                                          {"command": "true", "suite": "check"}]))
+        state = self.drive_to("test-spec")
+        home = self.repo / knowledge.HOME
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text("## Requirements\n\n- R-1: An update changes a stored value.\n", encoding="utf-8")
+        action = navigator.current_action(state)["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        case = {"id": "TC-1", "criterion": "C1", "requirement": "R-1",
+                "oracle": "Start: an empty store. Procedure: create k=1; update k=2; get k. Observe the API: 2.",
+                "red": "a store that drops updates returns 1", "green": "get returns 2"}
+        opt_in = {"id": "A1", "disposition": "open", "consumer": "release-verify", "owner": "a person with page access",
+                  "assumption": "C1 (R-1) on the released page is unobserved",
+                  "check": "Run HOME/architecture.md ## Real-boundary checks RB-1 on the released page; report the "
+                           "value shown", "reason": "this host has no route to the page"}
+        good = inner.prepare(self.run_dir, state, dict(inner.DONE, test_cases=[case], assumptions=[opt_in]))
+        # A procedure object on the case: the shape refusal names the six fields and nothing else.
+        store.write_record(path, dict(good, test_cases=[dict(case, procedure={"start": "an empty store"})]), "result")
+        refused = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("test_cases[0] needs exactly id, criterion, requirement, oracle, red, green",
+                      refused.stderr.splitlines()[0])
+        # The opt-in check written as a case row: refused, its ID is no focused one (never made a default command).
+        store.write_record(path, dict(good, test_cases=[case, dict(case, id="RB-1")]), "result")
+        refused = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("Fix the case IDs in " + str(path), refused.stderr.splitlines()[0])
+        self.assertIn("Not listed by a focused command of W1: RB-1.", refused.stderr.splitlines())
+        # The named exits: six fields, the opt-in check as an open item naming its locator.  Accepted.
+        store.write_record(path, good, "result")
+        checked = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        done = self.run_cli(self.command(action, path))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        seed = self.state()["active_improve"]["seed_result"]          # the result its Improve child now reviews
+        self.assertEqual(seed["test_cases"], [case])
+        self.assertEqual([row["check"] for row in seed["assumptions"]], [opt_in["check"]])
+
 
 class RequirementLinesTests(inner.RunDriver):
     """The test-spec head and file list the IDs a case's requirement may name (U12), beside the result template."""

@@ -1,10 +1,10 @@
 {
-  "_doc": "The per-stage head table of the packets (G-RENDER, test/shiploop_e2e/render_diff.py): the longest printed text each stage may have, in characters, by case, route, run-directory length and CLI path length (the key 'inline/83/96' is route/run directory/CLI path). render_diff exits non-zero when a stage prints more than its value here or has none. A value changes in the commit that journals the new value (the plan's U1 re-baselines it for the merged branches, U7 sets the allocation); no other unit raises it. The first values are main da9e2e75 (skill-craft 2.5.0 / ShipLoop 1.5.0) rendered by packets.py --offline --text-dir and written by render_diff.py --emit-table DIR --write; they are ceilings, not targets, and a stage over the 20,000-character host cut is journaled as such, not hidden here. Re-written 2026-10-17 by packet-review U3/U4 (feat/pr-u3-head-1b7a72) with render_diff.py --emit-table --write on the four renders: the head prints the guides its duties cite and the Backchain lines with the text that cites them (up to +1,200, carry-forward), the one-line pass, floor and ratchet rules (-172 at test and verify); every printed text stays under 20,000 at 83 and 163.",
+  "_doc": "The per-stage head table of the packets (G-RENDER, test/shiploop_e2e/render_diff.py): the longest printed text each stage may have, in characters, by case, route, run-directory length and CLI path length (the key 'inline/83/96' is route/run directory/CLI path). render_diff exits non-zero when a stage prints more than its value here or has none. A value changes in the commit that journals the new value (the plan's U1 re-baselines it for the merged branches, U7 sets the allocation); no other unit raises it. The first values are main da9e2e75 (skill-craft 2.5.0 / ShipLoop 1.5.0) rendered by packets.py --offline --text-dir and written by render_diff.py --emit-table DIR --write; they are ceilings, not targets, and a stage over the 20,000-character host cut is journaled as such, not hidden here. Re-written 2026-10-17 by packet-review U3/U4 (feat/pr-u3-head-1b7a72) with render_diff.py --emit-table --write on the four renders: the head prints the guides its duties cite and the Backchain lines with the text that cites them (up to +1,200, carry-forward), the one-line pass, floor and ratchet rules (-172 at test and verify); every printed text stays under 20,000 at 83 and 163. Raised 2026-10-17 by packet-review unit W2-C (valid acceptance procedures, feat/pr-w2-procedure-f8a399): test-spec duty item 4 walks each case's procedure from its stated start and says where its locator rides, and its loop gains the exit condition that each procedure can happen as written (+749 at every setting; every printed text stays under 20,000 and the inline 83 test-spec still prints whole at 15,577, under 16,000).",
   "node-fix-bug": {
     "inline/83/96": {
       "step-plan": 19989,
       "step-plan-improve": 1328,
-      "test-spec": 14828,
+      "test-spec": 15577,
       "test-spec-improve": 1328,
       "validate-existing": 15237,
       "implement": 15892,
@@ -18,7 +18,7 @@
     "inline/163/96": {
       "step-plan": 19343,
       "step-plan-improve": 1648,
-      "test-spec": 14281,
+      "test-spec": 15030,
       "test-spec-improve": 1648,
       "validate-existing": 13783,
       "implement": 16772,
@@ -32,7 +32,7 @@
     "ask-agent/83/96": {
       "step-plan": 19224,
       "step-plan-improve": 1328,
-      "test-spec": 13001,
+      "test-spec": 13750,
       "test-spec-improve": 1328,
       "validate-existing": 12503,
       "implement": 17424,
@@ -46,7 +46,7 @@
     "ask-agent/163/96": {
       "step-plan": 19647,
       "step-plan-improve": 1648,
-      "test-spec": 14281,
+      "test-spec": 15030,
       "test-spec-improve": 1648,
       "validate-existing": 13783,
       "implement": 18304,

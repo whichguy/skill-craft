@@ -227,6 +227,38 @@ explain every removal, narrowing or reassignment with its independent requiremen
 or correction basis. Retain unresolved coverage instead of silently dropping it.
 Use a compact table or equivalent existing notes, not mandatory extra files.
 
+**Procedure validity.** A case or real-boundary check written as an ordered
+procedure (calls, commands, interactions, inspections) can name repeatable
+actions and still be impossible. Before relying on one, walk it from its stated
+start and make these facts explicit where the procedure is already recorded (the
+case's fields, or the architecture, assumption or delivery record that owns it),
+not in a new record:
+
+| Fact | Content |
+| --- | --- |
+| Start | Actor or consumer, candidate and target, initial state or fixture, required capability and authority. |
+| Actions | The ordered calls, commands, interactions or inspections, and the relevant state after each. |
+| Oracle | Expected values, error, invariant or comparison, with a basis independent of the candidate's own output. |
+| Observation | The boundary that shows the result, and how evidence is obtained there. |
+| Ownership | Executed now, or by a named later stage with its prerequisites; reset or cleanup where needed. |
+| Evidence | After execution only: the actual observation, candidate and target, retained output and limits. |
+
+Two questions stay apart: can this procedure validly test the requirement
+(answered by an independent reference, a bounded simulation, an existing local
+check or a justified trace of the state after each action), and was the behavior
+observed on this candidate (answered only by running it). A stand-in probe
+proves a capability, not the procedure. An unreachable start is an open
+prerequisite with its owner. An action the preceding state forbids, or an
+expected result the chosen observer cannot show, is a defect of the procedure:
+revise it where it originated. A correct product refusing an impossible action
+is evidence against the procedure, never a reason to weaken the product; keep
+the intended refusal as its own failure case. Faults to look for: an update
+after a delete expected to succeed; internal state asserted through an interface
+that cannot show it; a guarded command (`test ! -e <file> || <run the tests>`)
+that exits 0 having run nothing. Cite a procedure another record holds by its
+locator, so every later stage runs that one; a change to its setup, candidate
+or consumer makes an earlier observation stale.
+
 Cover relevant success, invalid input, boundary/empty cases, permission failures,
 dependency failure, and regressions. Assess timing, retry/idempotency, concurrency,
 accessibility, and other risks when the behavior makes them relevant; do not

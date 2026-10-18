@@ -830,7 +830,7 @@ class WorkTextTests(Synthetic):
     # The pin: how many numbered duty items each inner stage's duty prints (the highest number; verify's item 8, the
     # assembly check, prints on the ask-agent route only).  A duty edit that adds, drops or renumbers an item fails here,
     # and the range its Work cites (counted from the same text) moves with it.
-    DUTY_ITEMS = {"step-plan": 12, "test-spec": 7, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
+    DUTY_ITEMS = {"step-plan": 12, "test-spec": 8, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
                   "verify": 12, "carry-forward": 4}
     # The items each Work cites.  A stage's loop does its whole duty but verify's: items 10 to 12 (commit nothing, the
     # summary, the revise route) follow the review loop, and its duty says items 1-7 repeat and 8-9 are done once.
