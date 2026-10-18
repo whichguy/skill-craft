@@ -1,0 +1,222 @@
+{
+  "group": "bs-build-2",
+  "scope": "Steps 25-42: the second step-plan after test (24) sent W1 back (mutation gate killed 0 of 8 because the focused commands ran the org copy), test-spec, validate-existing, implement S1-S4 again with their Improves, test, document, verify, carry-forward and its end-of-work Improve. Time: 2,223 s of stage model time + 748 s of Improve pass time (about 49.5 min).",
+  "steps": [
+    {
+      "tag": "25-step-plan",
+      "purpose": "Amend W1's step plan so the mutation gate can see a local mutant on the remote org: change only what the test revise named.",
+      "directive": 4,
+      "directive_evidence": "The new revisit lines were in the head: 'Revisit: test sent W1 back to step-plan (1 of 2 revises); this packet asks for an amended plan, not a new one', the previous result path, 'Changed upstream ...: nothing', 'Keep unchanged rows with their IDs'. First THINK: 'Unchanged rows must be carried over with their IDs. Focused commands should deploy and then test.' Nothing in the packet said how the base run and the mutation gate treat a focused command that deploys to a remote target, so the model read shiploop_test_loop.py _base_run. It then spent 12.6k think chars on red_na, floors, mutant timeouts and 'The mutation stage leaves the org dirty until the next deploy.' The 'Why' quote is cut at 600 chars, just before the ask ('Amend the step plan [truncated...]'). The full summary is printed again about 120 lines lower (LAST ACCEPTED SUMMARY).",
+      "response": "It served the purpose in 186.6 s with 11 calls. A Python transform of the previous result added the deploy prefix to the two focused commands and the regression command and carried C1-C5, S1-S4, E1-E8, paths and follows unchanged. check-only accepted it on the first try, and the summary names the changed and carried rows. The model foresaw the cost: 'If the steps are unchanged, the implement stage will re-run S1 through S4.'",
+      "step_by_step": "Plan stage. S1-S4 were kept in order with their deps and unchanged Proofs.",
+      "gaps": [
+        "A plan change limited to test_commands still restarts every implement step and its Improve (see 30-37). implement_progress (shiploop_navigator.py) counts steps from the latest accepted step plan. Fix: when _id_changes reports no change to steps, criteria or expectations (_upstream_line already computes this), carry the accepted steps over after ShipLoop reruns their Proofs, and go straight from test-spec to test.",
+        "Step-plan duty 5 (shiploop_prompts.py) and the Salesforce platform reference (references/platforms/) never say how a remote-only target interacts with the base run and the mutation gate. Fix: add one line: the focused command must deploy the candidate and then test; on the base the deploy fails, so record red_na; the last deployed mutant stays in the org until the next deploy.",
+        "_revisit_lines truncates the revise summary at REVISIT_SUMMARY = 600, which cuts off the ask. The step-plan head then prints the whole summary again under LAST ACCEPTED SUMMARY. Fix: quote the whole revise summary once, or keep its last sentences, and drop the duplicate block on a revisit."
+      ]
+    },
+    {
+      "tag": "26-improve-step-plan",
+      "purpose": "Review the amended step plan with the planning focus before test-spec and implement build on it.",
+      "directive": 3,
+      "directive_evidence": "The hand-off had the revisit line 'Revisit: W1 is back at step-plan (1 of 2); the previous accepted step-plan result: ...; the revise result that sent it back: ...'. The model's first THINK was 'The step plan change is only a deploy prefix.' The planning focus line 'a documented command that does not run what it claims on the target runtime: run it once' made it deploy: 'I will run the fleet-only focused command once to prove deploy and test execute together.' The opening's Authority says 'No push, deploy, install or credential access'. The run guard denied the first try because it ran from the wrong directory ('packageDirectories ... cannot be read'). The second try, from the worktree, deployed (Deploy ID 0Afaj00000oAJm9CAG).",
+      "response": "The amended command was proven to deploy and run fleet, and the model reasoned that the line-123 comparison mutant would fail fleet. The test stage later confirmed exactly that mutant was killed.",
+      "improve": "One trivial pass of 78 s with no edit. The finding (the amended command runs and can kill the engine mutant) was real, and it held at test (killed 2 of 8). The review missed two things: 2 of the 8 sampled mutants were .sf/orgs/.../localSourceTracking/config, and Apex-only focused commands cannot kill the LWC or test-file mutants. Only one meaningful product mutant was killed (engine line 123); the other kill was sfdx-project.json making the deploy fail. Proportionate, not a rubber stamp, but it deployed against its stated Authority.",
+      "gaps": [
+        "The Authority text and the review focus contradict each other. 'No push, deploy' (shiploop_navigator.py:7918) conflicts with the planning focus 'run it once and record the exit code' (shiploop_prompts.py:792) when the recorded command deploys. Fix: let the Authority line say that the recorded test commands may run under the run's deploy grant and nothing else may deploy, or have the focus cite the latest recorded run for a command that deploys."
+      ]
+    },
+    {
+      "tag": "27-test-spec",
+      "purpose": "Amend the test cases so their oracles and RED match the deploy-prefixed focused commands.",
+      "directive": 5,
+      "directive_evidence": "The revisit lines said 'Changed upstream ... test_commands 3 added, 3 removed' and 'Keep unchanged rows with their IDs'. THINK: 'Test cases will remain unchanged. The revised specification requires adding a deploy step' and 'The packet requires keeping unchanged rows intact, so only the required fields will be modified.' It needed no source reads and no refusals.",
+      "response": "Done in 72.2 s with 7 calls. It edited only the oracle command text and the RED ('base has no sfdx-project.json, so the deploy fails'), and carried fleet, miss, hit and A9.",
+      "step_by_step": "",
+      "gaps": [
+        "_change_text counts test commands by command text, so the deploy prefix reads as '3 added, 3 removed' and never says the IDs and suites are unchanged. Fix: match command rows on suite+ids and report 'changed (same IDs)'."
+      ]
+    },
+    {
+      "tag": "28-improve-test-spec",
+      "purpose": "Review the amended test spec.",
+      "directive": 4,
+      "directive_evidence": "The hand-off had the revisit line. The focus line 'Do not reread history or rerun a check already recorded green at this commit' was followed: 'this context already ran ... fleet Pass. Not rerun.'",
+      "response": "A trivial review in 15 s with no edit.",
+      "improve": "No defect was found and no later stage hit one in the test spec. This was the cheapest correct review in the group and shows the reuse rule working.",
+      "gaps": []
+    },
+    {
+      "tag": "29-validate-existing",
+      "purpose": "ShipLoop re-runs the expectation checks on the unchanged item base.",
+      "directive": 5,
+      "directive_evidence": "Script only. There was no model turn (0 calls) and every expectation matched its state.",
+      "response": "Done automatically.",
+      "gaps": []
+    },
+    {
+      "tag": "30-implement",
+      "purpose": "Implement S1 (sfdx-project.json and the engine) under the amended plan.",
+      "directive": 3,
+      "directive_evidence": "The revisit lines were present, but 'Your previous accepted implement result: RUN/results/nav-659d806e...md' points to S4's result, not S1's. THINK: 'Carrying over the S4 summary into S1 would be incorrect. The previous accepted implement result is S4, not S1.' The model grepped for S1's result (nav-2a6055a0). The upstream line (test_commands and test_cases only) let it conclude: 'The existing engine already satisfies the S1 proof, so no rewrite is needed.' No line said that this step's task, criteria and Proof were unchanged.",
+      "response": "No product edit. The Proof passed at check-only and complete reused that run ('That complete takes this Proof run'). Lint reported 0 findings. The 7 not_covered rows were carried. 72.3 s and 14 calls.",
+      "step_by_step": "S1 (1 of 4) ran first in plan order, with its Proof run by ShipLoop, lint and an Improve (31). It was a re-proof only, with no work.",
+      "gaps": [
+        "_sent_back_results returns earlier[-1], the last implement result before the revise (S4), as the 'previous accepted implement result' for S1. Fix: for implement, name the accepted result of the same step id.",
+        "There is no 'unchanged step' line. Fix: in step_block, when the step row equals the previous plan's, print 'S1 unchanged since RUN/results/<S1>.md: if the Proof passes on the current tree, carry that result, with no edit'. Better still, ShipLoop runs the Proof and skips the packet (see 25)."
+      ]
+    },
+    {
+      "tag": "31-improve-implement",
+      "purpose": "Review S1's change since its review base.",
+      "directive": 2,
+      "directive_evidence": "The review base was an empty diff ('diff 4811ac7c... 4811ac7c...'). The model opened neither the hand-off nor the Improve card: 'The product already exists and was reviewed in the original S1 improve. This step is trivial.' The packet says 'at every Improve stage and not from memory of an earlier one.' The implement focus paraphrases Code craft 2 as 'does not check its arguments before any effect, swallows an error or returns a success default'. It leaves out 'naming the argument, the constraint and the received value'.",
+      "response": "Trivial, no edit.",
+      "improve": "A rubber stamp: 32 s, 4 calls, review written from memory. It missed the engine's InvalidShotException sentences naming the constraint without the received row, column or cell. The first S1 review (17) and verify (40) missed it too, and the carry-forward Improve (42 pass 1) found and fixed it (commit 6d4b7d2). Cost was small, but so was the value.",
+      "gaps": [
+        "The implement focus in shiploop_prompts.py (around line 2512) drops the received-value clause of Code craft 2. Fix: quote that clause.",
+        "ShipLoop knows the base and bound trees are equal (_review_base_line in shiploop_navigator.py) but still issues the review. Fix: when the step diff is empty and the step row is unchanged, record the Improve as not needed instead of binding a review."
+      ]
+    },
+    {
+      "tag": "32-implement",
+      "purpose": "Implement S2 (the controller) under the amended plan.",
+      "directive": 3,
+      "directive_evidence": "This packet had no revisit lines, by design: _sent_back_results returns None once any implement step after the revise is accepted ('a later implement step of the amended plan is no revisit'). It also had no pointer to S2's previous result; the model grepped results/ and found nav-6beea499. After a compaction the model searched for a narrative it had already shown: THINK 'Searching compaction segments and packet files to recover the exact revision 27 narrative text', and read the 45 KB S1 packet. The step took 229.8 s against 61 s for S4.",
+      "response": "No edit, Proof 0, lint 0, previous not_covered carried.",
+      "step_by_step": "S2 (2 of 4) ran in order with its Proof, lint and Improve (33). It was a re-proof only.",
+      "gaps": [
+        "Later steps of a revisited plan get no line naming their own previous accepted result. Fix: step_block prints 'Previous accepted S<n> result: RUN/results/...md' for every step of an amended plan.",
+        "'Show the user this narrative exactly as written' (shiploop_narrative.py / status_block) does not say 'once' or 'if not already shown'. After a compaction the model hunts old packets for it. Fix: 'If you already showed it, or lost it, skip it; never search for an earlier narrative.'"
+      ]
+    },
+    {
+      "tag": "33-improve-implement",
+      "purpose": "Review S2's change since its review base.",
+      "directive": 3,
+      "directive_evidence": "It read the Improve card, the hand-off and the route, then ran next_argv, the Proof and lint as directed. The review base was again an empty diff. The pitfall it recorded, 'Do not deploy from an Improve pass', shows it read the Authority, unlike 26 and 42.",
+      "response": "Trivial, no edit.",
+      "improve": "An honest review of unchanged code (59 s, 17 calls). Nothing real was found and no later stage hit a controller defect; the received-value fix was in the engine. It was redundant because of the restart, not careless.",
+      "gaps": []
+    },
+    {
+      "tag": "34-implement",
+      "purpose": "Implement S3 (the LWC board) under the amended plan.",
+      "directive": 3,
+      "directive_evidence": "No revisit or previous-result line. The model grepped results/ for the previous S3 result (nav-ce9abf7a), then checked whether a later Improve had changed not_covered: THINK 'Checking whether a later S3 improvement added a generation token and updated the not_covered field.'",
+      "response": "No edit. 125.5 s, 13 calls, Proof 0, lint 0.",
+      "step_by_step": "S3 (3 of 4) ran in order with its Proof, lint and Improve (35). It was a re-proof only.",
+      "gaps": [
+        "The same missing per-step previous-result line as at 32."
+      ]
+    },
+    {
+      "tag": "35-improve-implement",
+      "purpose": "Review S3's change since its review base.",
+      "directive": 3,
+      "directive_evidence": "It read the hand-off and the three LWC files and ran the Proof and lint. The review base was an empty diff.",
+      "response": "Trivial, no edit.",
+      "improve": "62 s, nothing found and nothing later hit. Redundant by construction.",
+      "gaps": []
+    },
+    {
+      "tag": "36-implement",
+      "purpose": "Implement S4 (the tab, app and permission set) under the amended plan.",
+      "directive": 4,
+      "directive_evidence": "It read nav-659d806e, its own previous result and the file 30's revisit line had wrongly named for S1. It ran the Proof and lint, with no search.",
+      "response": "No edit. 61.1 s, 10 calls.",
+      "step_by_step": "S4 (4 of 4) ran last with its Proof, lint and Improve (37). It was a re-proof only.",
+      "gaps": []
+    },
+    {
+      "tag": "37-improve-implement",
+      "purpose": "Review S4's change since its review base.",
+      "directive": 3,
+      "directive_evidence": "THINK: 'I already know the skill and route.' It skipped the hand-off, read the three metadata files and listed force-app.",
+      "response": "Trivial, no edit.",
+      "improve": "18 s. Nothing was found and nothing later hit the metadata. A memory-based pass on an empty diff.",
+      "gaps": []
+    },
+    {
+      "tag": "38-test",
+      "purpose": "Make every recorded command pass, and satisfy the base-run and mutation gates with the deploy-prefixed commands.",
+      "directive": 3,
+      "directive_evidence": "Checked-by named the base run, the candidate run and the mutation check. No packet line said who restores org de after the mutation gate when a focused command deploys. THINK: 'The last mutant may remain in the org. The real complete path will not redeploy the good tree. I must redeploy it before stopping.' The model also chose to duplicate the gate: 'The loop will run the three org commands ... once manually, then let check-only re-run them. This wastes time but satisfies the duty.' The test stage has no revisit line (test is not in REVISIT_STAGES), so the model inferred 'Tests already exist.'",
+      "response": "Done in 359.6 s with red_na for fleet, miss and hit. The mutation check passed with 2 of 8 killed (engine line 123 '<' to '>='; sfdx-project.json default flag). After check-only the model redeployed and assigned. The real complete reused only the candidate run (verify1 seconds identical to check-only). It reran the mutation check on the same candidate tree 4811ac7 (mutation1.md, 170.7 s, 8 org deploys), which undid the model's restore. The last deployed mutant (slBattleBoard.js-meta.xml line 4, true to false, survived) stayed in org de through the document stage until verify's check-only redeployed.",
+      "step_by_step": "This stage followed S1-S4 as planned. It wrote no test edits; the ten methods already existed.",
+      "gaps": [
+        "The mutation check is not covered by check-only reuse. _reused in shiploop_test_loop.py covers only the command runs, so mutation_check / shiploop_mutation reran about 171 s of deploys on an unchanged tree. Fix: let complete take a passed mutation-check-only record when the candidate tree and focused commands are unchanged (the D5 rule extended).",
+        "When a focused command writes to a remote target, no restore follows the mutation gate. Fix: shiploop_mutation._check reruns the unmutated focused command once after the last mutant, or the test packet states that the host must restore and that complete reruns the mutants.",
+        "shiploop_item_scope.classify marks .sf/orgs/<id>/localSourceTracking/{HEAD,config} as code, so 2 of 8 sampled mutants (54 s) went to tool state. Fix: classify .sf/ and .sfdx/ as generated, via the Salesforce platform reference.",
+        "The stage that issued the revise gets no revisit line on its return; REVISIT_STAGES = (step-plan, test-spec, implement). Fix: add test with 'you sent W1 back for X; the amended plan changed Y'."
+      ]
+    },
+    {
+      "tag": "39-document",
+      "purpose": "Update the user and maintainer docs from observed behaviour.",
+      "directive": 3,
+      "directive_evidence": "The duties were clear: observe, write, reread, record no-change reasons. The host reset mid-stage (SAY 'I'll resume the ShipLoop run from the saved directory'). The model reread the ShipLoop SKILL.md, an unrelated long-running-background-tasks SKILL.md and inner-loop.md, and recovered through 'next'. It then read until_loop_ephemeral.py to learn whether a satisfied non-trivial report ends the loop: 'Checking lines 1256-1320 to determine whether the run should complete or continue'. It concluded wrongly: 'The gate logic is broken. Because required_trivial_reviews is zero...'. It also grepped ShipLoop's scripts for the result template shape. In all: 73 calls and 336.6 s.",
+      "response": "README.md was written from anonymous Apex on org de: the seed-1 start, a miss, a destroyer hit and sunk, controller parity, the range and repeat sentences, 0 SOQL and 0 DML. Stale 'No product code exists yet' lines were fixed, and the README fleet example exited 0. A good result. The engine was not mutated at the time (only the LWC meta was), so the observations stand.",
+      "step_by_step": "",
+      "gaps": [
+        "The loop argument says 'Repeat while ...' but not that one satisfied report ends this loop (TRIVIAL_REVIEWS[document] = 0). Verify's loop does say it ('the review gate needs one complete iteration that finds only trivial issues'). Fix: in shiploop_loops.py (stage Work text near line 87), state for every stage loop whether a trivial confirming pass is needed.",
+        "'Delete generated output the product does not need' is printed while .sf/orgs/.../localSourceTracking/* is listed under 'Changed since the item base'. Nobody acted until release excluded the files. Fix: the platform reference names Salesforce tool state, and the changed-files line marks it as generated."
+      ]
+    },
+    {
+      "tag": "40-verify",
+      "purpose": "Accept the item: confirm each criterion after the last edit, trace the entry points, review the diff.",
+      "directive": 3,
+      "directive_evidence": "Order and check-only were clear, and complete reused the check-only run (verify1 seconds identical, U9). The allowed consumer values for open items are not listed. THINK: 'Allowed consumers are needed for the verify stage.' It read shiploop_assumptions.py and grepped the navigator ('The exact names are being pulled from stage_spec.OUTER'). The gate shaped the review: 'A trivial review is required ... A non-trivial finding would stall the loop.'",
+      "response": "Done in 151.1 s. Apex traces cited earlier tests and the LWC was traced by a source walk. A1 boardClick went to release-verify and A2 deploy and assign to release. It missed the Code craft 2 received-value gap that 42 later fixed.",
+      "step_by_step": "",
+      "gaps": [
+        "Checked-by says 'an open item whose consumer is not a later outer stage' but never names the stages. Fix: print shiploop_assumptions.allowed_consumers('verify') in the head.",
+        "Review duty 5 lists 'missing argument checks or contract docstrings at an entry point' but not that a rejection names the received value. Fix: quote Code craft 2's reject clause there too."
+      ]
+    },
+    {
+      "tag": "41-carry-forward",
+      "purpose": "Close W1: update the knowledge home, the future queue and the reusable-skill decision.",
+      "directive": 3,
+      "directive_evidence": "The packet printed the unnamed verify commands and a skill template. Before starting the loop, the model read shiploop_navigator.py _check_skill_decision ('When the decision is none, extra path, evidence, and index are ignored') and shiploop_knowledge_home.py unnamed_commands ('The full command string must appear under ## Commands'). In all: 628.5 s and 40 calls, the longest non-Improve stage in the group.",
+      "response": "It served the purpose. The queue stays empty, skill is none with a reason, R-1 to R-13 have status lines, the architecture due column is 'passed', a 'Passed together' block holds the four exact verify commands, and A1 and A2 were carried.",
+      "step_by_step": "",
+      "gaps": [
+        "The result template prints path, evidence and index placeholders 'only for update or create' even for none. Fix: print {decision, reason} only, or 'omit the other keys for none' (the template builder near _check_skill_decision in shiploop_navigator.py).",
+        "'Commands that passed at verify and are not named in HOME/environment.md' (shiploop_navigator.py:6113) does not say what 'named' means. Fix: add 'named = the command text, whitespace collapsed, appears under ## Commands'."
+      ]
+    },
+    {
+      "tag": "42-improve-carry-forward",
+      "purpose": "End-of-work code review across W1's whole change: trace the entry points and check them against Code craft.",
+      "directive": 3,
+      "directive_evidence": "The end-of-work focus and the full Code craft text led straight to a real rule-2 finding. After the host resumed, the U10 line 'pass 1 is recorded by improve-pass: do not redo a recorded pass' worked: SAY 'Pass 1 is already recorded'. Pass 1 deployed '--source-dir SLBattleEngine.cls' and ran the class, against 'No push, deploy'. The hand-off already says 'ShipLoop reruns every completed item's recorded commands over it.' In pass 2 the model read navigator improve-pass, shiploop_improve_changes.py and shiploop_lint.py RUNTIME_PARTS to learn the bind semantics: 'changed == [] means nothing changed since the BIND, not since the last pass'. It also wanted to know whether carry-forward's uncommitted HOME edits counted as its changes.",
+      "response": "The defect was fixed and committed (6d4b7d2 'name the rejected shot in the engine error'), and the README error table updated. The fix held: release-plan carried it and ShipLoop's import rerun passed.",
+      "improve": "3 passes: 121 s non-trivial, 323 s trivial, 40 s trivial. In all 484 s, 76 calls and 29k think chars. Pass 1 made the group's only real Improve finding: InvalidShotException named the constraint but not the received row, column or cell (Code craft 2). Reviews 17 and 31 and verify 40 had missed it. Pass 2 cost 323 s mostly on ShipLoop source reads and a doubted LWC 'pending' bug it then dismissed. Pass 3 was the required confirmation. Effective, but the deploy broke the stated authority and duplicated ShipLoop's own rerun.",
+      "gaps": [
+        "The Authority line forbids deploys, the target is remote-only, and the hand-off says ShipLoop reruns the recorded commands at import. Fix: tell the reviewer to let the import rerun be the org proof and to run only local checks (shiploop_navigator.py:7918).",
+        "The Evidence line of the improve_handoff_text text does not say: (a) whether improve-pass's 'tree unchanged since the bind' applies per pass, and (b) that the reviewed stage's own HOME edits are uncommitted until import and are not this review's changes. Fix: one line for each."
+      ]
+    }
+  ],
+  "run_level": {
+    "step_by_step": "Yes in form, no in substance. After the revise, ShipLoop issued S1, S2, S3 and S4 in plan order. Each had its Proof run by ShipLoop (check-only reuse), the lint gate and one Improve: 4 implement and 4 Improve actions, matching the plan. All four did no work. The revise changed only test_commands, every review base was the empty diff 4811ac7..4811ac7, and no product line changed. Cost of re-proving unchanged code: 488.7 s implement plus 171 s Improve (about 11 min), 88 calls, about 149 KB of implement packets and about 121 KB of hand-offs. The cause is implement_progress, which counts steps from the latest accepted step plan, so any re-accepted plan restarts at S1.",
+    "improve": "7 Improve actions in this group; 1 found and fixed a real defect. 42 pass 1 found the Code craft 2 received-value gap in the engine's InvalidShotException and committed 6d4b7d2, and the fix held through release. 26 verified the amended deploy-then-test command, a real check (useful, but it deployed against its own Authority line). 28 was a correct 15 s reuse. 31, 33, 35 and 37 reviewed empty diffs (171 s). 31 was a rubber stamp written from memory ('This step is trivial') that missed the defect 42 later found; the first S1 review (17) and verify (40) missed it too, because the implement focus paraphrase drops 'the received value'.",
+    "directive": "The new revisit lines did their job where they appeared. At step-plan, test-spec and S1 the model knew why it was back, carried rows by ID and edited only what the revise named, with no refusals and a first-try check-only each time. Gaps: S1's 'previous accepted implement result' named S4's file; S2-S4 had no revisit or previous-result line and grepped results/; the test stage had no revisit line. 5 of the 13 model stages read ShipLoop's own source to learn an unstated rule: 25 (test_loop base run), 39 (until-loop completion), 40 (allowed consumers), 41 (skill-none shape and the commands 'named' rule), 42 (improve-pass bind semantics). Two Improves deployed against 'No push, deploy' because a focus line or the remote-only target pushed them to."
+  },
+  "best": [
+    "The revisit lines ('Revisit: ... sent W1 back ...', 'Changed upstream ...', 'Keep unchanged rows with their IDs') turned step-plan and test-spec into precise amendments (186.6 s and 72.2 s) that check-only accepted on the first try.",
+    "Check-only reuse (U9) at verify: complete took the check-only run instead of three more org deploy-and-test runs. At implement, complete reused each Proof run.",
+    "The Improve recovery line (U10), 'pass 1 is recorded by improve-pass: do not redo a recorded pass', stopped a redo after the host resumed at 42.",
+    "The end-of-work Improve focus with the full Code craft text found the one real defect of the group (Code craft 2, the received value in error messages).",
+    "28's 'Do not reread history or rerun a check already recorded green' made a correct 15 s review."
+  ],
+  "worst": [
+    "A test-commands-only revise re-ran validate-existing, S1-S4 and four Improves: about 11 min, 88 calls and about 270 KB of prompt to re-prove unchanged code (implement_progress restarts at the latest step plan; review bases were empty diffs).",
+    "The test complete re-ran the 8-mutant check (170.7 s) on the same tree after check-only had run it. That undid the model's own restore deploy and left a mutated slBattleBoard meta in org de until verify. No packet or script restores a remote target after mutation.",
+    "S1's revisit line pointed at S4's previous result (_sent_back_results takes earlier[-1]). S2-S4 got no pointer at all.",
+    "The Improve Authority 'No push, deploy' conflicts with the planning focus 'run it once' and with remote-only checks, so 26 and 42 deployed to org de.",
+    "The mutation sampler spent 2 of 8 mutants on .sf/ source-tracking config (item_scope.classify calls it code), leaving one meaningful product kill."
+  ]
+}

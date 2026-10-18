@@ -1,0 +1,176 @@
+{
+  "group": "bs-build-1",
+  "steps": [
+    {
+      "tag": "11-step-plan",
+      "purpose": "Plan W1 as ordered implement steps, each with its criteria and a Proof that ShipLoop runs, plus test_commands, expectations, paths and follows.",
+      "directive": 2,
+      "directive_evidence": "The 12 duties gave the method and the order, and check-only accepted the first submission. To learn the gates, the model still read or grepped ShipLoop's Python 29 times: shiploop_navigator, shiploop_expectations, shiploop_item_scope, shiploop_test_loop, shiploop_knowledge_home and path-classes.json. Duty 4 ('check ... needs no later step, unwritten test'; 'Remote-only target: the recorded test route only') collided with 'Tests are not a step'. THINK: 'Behavioral criteria that require Apex tests cannot be step criteria because the step check cannot use unwritten tests. Yet every criterion must be satisfied by a step.' The model resolved this by turning the criteria into source shapes. It also saw that the gate is lax. THINK: 'The gate only verifies that the criterion ID is listed on a command, not that the command mechanically proves it.' It raised the conflict between the request's --result-format human and the platform card's tap rule ('I see a conflict between the user's explicit `--result-format human` requirement and the platform guide'), then left it unresolved. There was one compaction, which `shiploop next` recovered.",
+      "response": "The plan has the right shape: 4 ordered steps (S1 project and engine, S2 controller, S3 board, S4 tab, app and permission set; deps chain []<-S1<-S2<-S3), 5 criteria, 8 expectations and the org test rows. The engine's behaviour (placement, hit, miss, sunk, game over) was left to org tests that no step can run. The focused rows are plain `sf apex run test` with no deploy, which is what the test stage later hit.",
+      "step_by_step": "Defined S1 to S4 with deps [], [S1], [S2], [S3]. Each step has exactly one Proof, a `python3 -c` string inspection of that step's own files (S4 also scans force-app for System.debug and 'sf org display'). Tests are deferred to the test stage, as the duty requires.",
+      "gaps": [
+        "Duty 4 says the `check` needs no unwritten test and 'Remote-only target: the recorded test route only'. With 'Tests are not a step', that leaves an org-only engine with no runnable behavioural Proof at any step, so the criteria were weakened to source strings. Fix: for a remote-only target, allow a step Proof that compiles or deploy-validates only that step's files, or a bounded anonymous-Apex probe (both unprobed here). Also let a criterion name the later test that proves its behaviour, as distinct from its step check. Generated in skills/shiploop/scripts/shiploop_prompts.py, step-plan duty 4 (near line 1278).",
+        "Duty 5 on focused commands never says that ShipLoop reruns them on a base copy (base run) and on mutated copies (mutation check). A focused command against a remote copy therefore has to deploy the tree it judges. The plan recorded plain `sf apex run test`, and the test stage had to revise. Fix: add to duty 5 'a remote-resident focused command deploys the tree it judges, then restores it', and to the Checked-by line, refuse a remote focused row without that deploy. shiploop_prompts.py, duty 5 (near line 1288).",
+        "The coverage gate in shiploop_navigator.py (`_normalise_criteria`) only checks that some command names each criterion ID, and the packet does not say so. The first draft named C1, C3, C4 and C5 on an Apex regression run that never reads the board or the metadata (the Improve caught it). Fix: state in duty 5 that the command naming a criterion must observe that criterion's paths.",
+        "Platform card skills/shiploop/references/platforms/salesforce.md (lines 104-110) says human output 'is refused as unread', but the request requires human. The model raised this and never recorded it. At the test stage, the candidate run with human output passed through to the mutation check, so the card's claim did not hold here. Fix the card sentence, or the parser in shiploop_test_counts.py, so they agree."
+      ]
+    },
+    {
+      "tag": "12-improve-step-plan",
+      "purpose": "Review the step plan for steps or checks a weaker stand-in would pass, commands that do not run what they claim, and wrong order or ownership, then fix it.",
+      "directive": 4,
+      "directive_evidence": "The handoff's planning focus list and the recent commit learnings steered it. THINK: 'The org suite omits source checks for the tab, controller, and board. Attaching those criteria to the org suite is the defect already warned about in commit 0205e1fd.' There was friction on the route. It read improve-context.md (about 33 KB), SKILL.md and shiploop-route.md, and it guessed at the parent return. THINK: 'I will add --final-result to the handoff, though the CLI may reject an unknown flag.'",
+      "response": "Corrected the plan before any code existed. The improved fence is what the implement packets quote.",
+      "improve": "Pass 1 (191 s, non-trivial) made 3 real fixes. (1) The regression Apex row named C1, C3, C4 and C5, which it never reads. These moved to a new check row that chains the four step Proofs, and check_na was dropped. (2) The S1 Proof rejected any ', true' in the engine, which would fail a legitimate helper such as `place(ship, true)`. It now rejects only a comma inside the JSON.serialize(...) call. (3) The S3 Proof accepted the bare word SLBattleController. It now requires both @salesforce/apex imports. Pass 2 (53 s) was trivial. Totals: 244 s, 23 calls, 1 commit (fcd65c94, environment.md). The fixes held: the chained check exited 0 at the test stage, and the board deployed with both imports. It missed that the focused `sf apex run test` rows cannot be judged by ShipLoop's base run or mutation check. The focus line 'a documented command that does not run what it claims ... run it once' was not run, because no product existed yet.",
+      "gaps": [
+        "The planning review focus (shiploop_prompts.py near line 791) has no line on where a command executes relative to the copies ShipLoop judges (base worktree, mutation copy). A reviewer without that gate knowledge cannot see the defect that later forced the revise. Fix: add 'a focused command that runs against a remote or deployed copy cannot observe ShipLoop's base or mutated copies unless it deploys them'."
+      ]
+    },
+    {
+      "tag": "13-test-spec",
+      "purpose": "Specify one test case (oracle, RED, GREEN) per focused-command ID, and route cases due at later stages to open items.",
+      "directive": 3,
+      "directive_evidence": "Duties 1-8 and the 3-row template were enough to write a result that check-only accepted the first time. The model still read shiploop_expectations.py, shiploop_assumptions.py and shiploop_stage_spec.py (7 reads) to learn the allowed open-item consumers and the coverage notices. THINK: 'The user requires at least eight test methods, but the test-spec stage only covers the three focused IDs.' A compaction hit mid-stage. Recovery found that the done report was written but never submitted ('The prior summary claimed work was done and a done report was written, but it was not submitted.') and submitted it through next_argv.",
+      "response": "3 cases under C2: fleet (R-3), miss (R-5) and hit (R-5), plus open item A9 (boardClick at release-verify). 7 of the 10 required methods have no case, only architecture.md procedures. Every RED reads 'the class is absent ... INVALID_INPUT', which is false once the class is deployed to the org that ShipLoop's base run queries.",
+      "gaps": [
+        "Duty 3 'RED: how it fails on the item's base' assumes the base run executes the base tree. For an org-resident runner, the base run queries the org, which by the test stage holds the class. RED cannot hold, so red_na is forced at the test stage. Fix: for a remote runner, have duty 3 ask whether the base run can see the base, and otherwise record red_na with its reason here. shiploop_prompts.py near line 1337.",
+        "Duty 1 says 'One test_cases row per ID the step plan's focused commands list; no other ID'. That left sameSeed, sink, gameOver, shotAfterGameOver, outOfRange, repeatShot and fullBoard without an oracle, RED or GREEN. Implement then listed them as not_covered, and the test stage wrote them from architecture.md alone. Fix: also require a case for each regression ID the item itself adds. shiploop_prompts.py near line 1330."
+      ]
+    },
+    {
+      "tag": "14-improve-test-spec",
+      "purpose": "Review the test spec for weak or unreplayable oracles and for commands that do not run what they claim, then fix them.",
+      "directive": 3,
+      "directive_evidence": "It followed the focus list. It confirmed that each oracle cites its architecture procedure and the exact null texts, and it read sf-apex-run-test-help.txt for repeated --tests. It judged RED from the local tree, not the runner. review-1: 'No product file exists, so the Apex commands stay expected RED.'",
+      "response": "Accepted the spec unchanged.",
+      "improve": "Trivial pass: 151 s, 23 calls, no edit. This was a rubber stamp relative to the test stage. It accepted 'class is absent' as RED for org-run cases. At test, no focused ID could be RED on the base, so all three went to red_na. The same blind spot (commands that never read the local tree) produced the mutation refusal and the revise.",
+      "gaps": [
+        "Same as the step-plan review: the handoff's focus never asks where the case's command executes relative to ShipLoop's base and mutation copies (shiploop_prompts.py near line 791)."
+      ]
+    },
+    {
+      "tag": "15-validate-existing",
+      "purpose": "ShipLoop runs every step-plan expectation check on the unchanged item base before S1.",
+      "directive": null,
+      "directive_evidence": "No model packet. The stage is script-only.",
+      "response": "All 8 expectations matched: the knowledge files are present, the six new-path absent checks pass, and the A8 stand-in probe file exists.",
+      "step_by_step": "Ran between test-spec and S1 and confirmed that every path S1 to S4 add was free.",
+      "gaps": []
+    },
+    {
+      "tag": "16-implement",
+      "purpose": "S1: add sfdx-project.json and SLBattleEngine (seeded placement, fire rules, InvalidShotException) to satisfy C1 and C2.",
+      "directive": 4,
+      "directive_evidence": "The Step block (task, 'Serves' with C1 and C2 quoted, Proof, 'Later steps ... do not start them') was enough: zero ShipLoop source reads and no refusal. The model went past the Proof on its own: a Python placement simulator (seeds 1 and 2 give valid, different fleets) and an anonymous-Apex probe of the LCG limbs on org de. It also shaped the code to the string Proof. THINK: 'I'll also avoid mentioning `JSON.serialize(` in docstrings to prevent the test check from flagging it.' Its first Proof run used the wrong cwd ('FileNotFoundError ... sfdx-project.json'; THINK 'The shell is currently in the original workspace, not the worktree.').",
+      "response": "Engine written with a 16-bit-limb LCG, a 200-try placement and one-argument JSON.serialize. All 10 org tests passed on the first deploy, so the code was right. At S1 only placement was checked; the fire, sink and game-over logic first ran at the test stage.",
+      "step_by_step": "S1 of 4, deps none, first in plan order. Only S1's files were added. ShipLoop ran the S1 Proof at done (check-only: 'step-proof: ... -> passed'), and Improve 17 followed. Proof meaningfulness was low for this step's purpose. It checks the signatures, the multiplier literal, the five ship names anywhere in the text and the forbidden tokens. A stub carrying those strings, even in comments, passes, and no placement or fire behaviour is executed.",
+      "gaps": [
+        "Implement exit 1 (STEP_CRITERIA_CONDITION, skills/shiploop/scripts/shiploop_stage_spec.py:76: 'each requirement assigned to this step is satisfied ... shown by a command or file') let the model report 'C1 and C2 hold' from a string Proof. C2 itself says the later org methods 'exercise the behavior'. Fix: when a criterion names a later test as its behavioural proof, the exit should say the step proves shape only and list that behaviour as unproven.",
+        "The belief 'Apex throws on signed Long overflow' drove the 16-bit-limb multiply. The org probe ran only the workaround, never a native Long multiply, so whether the workaround is needed was never established, and Improve 17 carried it as a 'Fact'. Implement duty 2 asks to check code and versions but not to probe a platform behaviour that a design choice rests on (only the Improve focus asks that). shiploop_prompts.py, implement duties (near line 1380).",
+        "The Proof is printed without its cwd ('ShipLoop runs it from WORKTREE at done', shiploop_navigator.py:6229). The model ran it from the original checkout twice (here and in Improve 21). Fix: print the model's own invocation as `cd <WORKTREE> && <proof>`."
+      ]
+    },
+    {
+      "tag": "17-improve-implement",
+      "purpose": "Review S1's engine change against its criteria, code craft and unprobed library behaviour, then fix and commit.",
+      "directive": 4,
+      "directive_evidence": "The implementation focus list worked. On the item 'a language or library behaviour ... run a one-line probe', it ran an org probe of JSON.deserializeUntyped (numbers come back as Integer, nested cells as lists). THINK: 'The fallback InvalidShotException message does not name a fixable constraint, so it is effectively dead code.' It noticed this and did not fix it.",
+      "response": "Engine left unchanged.",
+      "improve": "Trivial pass: 74 s, 10 calls, no edit. It did real verification (the deserializeUntyped probe) but left two noticed defects: placeFleet throws InvalidShotException for a placement failure (the wrong exception type), and the fallback branch it called dead code (focus rules 3-4). It did not probe the overflow 'Fact'. Nothing it missed failed later: the engine's coverage was 95% and all 10 tests passed.",
+      "gaps": [
+        "The implement review focus (shiploop_prompts.py near lines 2531-2566) names dead code but does not say that a noticed instance is material. The reviewer judged it not material and passed. Fix: say that a found dead branch or a misused error type is fixed, or recorded with a reason."
+      ]
+    },
+    {
+      "tag": "18-implement",
+      "purpose": "S2: add SLBattleController (@AuraEnabled newGame and fire delegating to the engine, InvalidShotException turned into AuraHandledException) to satisfy C3.",
+      "directive": 5,
+      "directive_evidence": "82 s, 10 calls, no ShipLoop source reads, no refusal. The Proof's substring ban shaped the wording, harmlessly. THINK: 'The controller will omit `cacheable=true` to avoid the forbidden word.'",
+      "response": "The controller delegates and calls setMessage on AuraHandledException. Two behaviours are listed as not_covered (the invalid-shot path and 100 shots in one transaction).",
+      "step_by_step": "S2 of 4, deps S1, issued after S1's Improve. The files were written in parallel with the loop start. ShipLoop's Proof passed at done, and Improve 19 followed. Proof meaningfulness was medium-high. A thin delegator's contract is its annotations, signatures, engine calls and exception type, and the Proof checks those. It does not check that fire catches InvalidShotException specifically, or that setMessage is used.",
+      "gaps": []
+    },
+    {
+      "tag": "19-improve-implement",
+      "purpose": "Review S2's controller change, then fix and commit.",
+      "directive": 4,
+      "directive_evidence": "The focus list was available, but the pass used it thinly: 24 s, 5 calls, no read_file of SLBattleController.cls (although review-1 says 'Read: SLBattleController.cls'), and no probe of its own 'Fact' that AuraHandledException needs setMessage.",
+      "response": "Controller left unchanged.",
+      "improve": "Trivial pass: 24 s, no edit. This was the thinnest review in the group. The controller's AuraHandledException path stayed unexercised (test run: SLBattleController 56% coverage, lines 23-26 uncovered), so the setMessage claim is unverified. Nothing failed later.",
+      "gaps": [
+        "The review's 'Read:' line is self-reported, and improve-pass checks only that checks.md is newer than the last edit. Fix: have improve-pass record whether each changed file was opened during the pass, from the host tool log where available, as it already notes for skill calls."
+      ]
+    },
+    {
+      "tag": "20-implement",
+      "purpose": "S3: add the slBattleBoard LWC (10 by 10 grid, New game with a random seed, shots, ships left and game over, never painting from .ships) to satisfy C4.",
+      "directive": 4,
+      "directive_evidence": "14 calls and no ShipLoop source reads. It grepped the step-plan result for the declared paths before deciding against a CSS file. It shaped the code to the Proof. THINK: 'I will define `rowAxis` and `colAxis` objects with `length: 10` to satisfy the substring count requirement.' On its own initiative it ran node --check on the JS.",
+      "response": "The board keeps a client-side marks map built from each lastShot, never reads ships, keeps the previous game on a failed call, and has a busy flag. boardClick is left to open item A9.",
+      "step_by_step": "S3 of 4, deps S2. The Proof passed at done, and Improve 21 followed. Proof meaningfulness was medium. The '.ships' absence check (after stripping 'shipsLeft') is a real hidden-ships guard, though `game['ships']` would slip past it. The imports and seed formula are real. 'length: 10' twice is a text proxy that forced decorative axis objects. Rendering, clicks and error display are proven nowhere in this group: there is no Jest and no browser.",
+      "gaps": [
+        "Duty 4 of step-plan rejects 'asserting only that a file exists' but not a check that matches the implementation's own text (a literal, a token count). Such a check dictates code form, not behaviour, as with S3's `length: 10` count and S2's 'cacheable' ban. Fix: add that sentence to step-plan duty 4 (shiploop_prompts.py near line 1278)."
+      ]
+    },
+    {
+      "tag": "21-improve-implement",
+      "purpose": "Review S3's board change, then fix and commit.",
+      "directive": 3,
+      "directive_evidence": "It found the race on the first read. A compaction mid-pass forced it to reread handoff.md, improve/SKILL.md, improve-child.md and shiploop-route.md and to rebuild its state from files. SAY: 'The S3 Improve review is written and not yet submitted. I will confirm the handoff, then run the Improve pass.' It also ran the Proof from the wrong cwd again ('The proof failed because the working directory was the original checkout.').",
+      "response": "The board now ignores a stale fire after New game and blocks clicks until New game returns.",
+      "improve": "Pass 1 (222 s, non-trivial) found a real defect. A fire in flight could resolve after New game and restore the old game, and a click during New game fired against the old game. The fix added a generation token and a pending guard. Its own first fix introduced a stuck-pending bug, which it caught after the compaction. THINK: 'calling `start()` while a fire is pending bumps the generation, so the fire's finally block never clears the pending state.' Passes 2 and 3 were trivial (98 s and 31 s). Totals: 351 s, 48 calls, 1 commit (4c5b99b0). Whether the fix held cannot be checked in this group: no test or browser exercises the board (A9 is open).",
+      "gaps": [
+        "Compaction recovery inside Improve still took 5 file reads to learn that review-1 was written but improve-pass had not run (plan finding F11). Fix: the reprinted Improve packet or handoff should state the last recorded pass and any unsubmitted reviews/review-<n>.md (the improve packet renderer in shiploop_navigator.py)."
+      ]
+    },
+    {
+      "tag": "22-implement",
+      "purpose": "S4: add tab SLBattle_Board, app SLBattle and permission set SLBattle_Access to satisfy C5.",
+      "directive": 4,
+      "directive_evidence": "15 calls and no ShipLoop source reads. It was unsure of the loop report shape although the packet lists the fields (REPORT_FIELDS). THINK: 'I need the done report schema.' It copied its own scratch/s3-done-1.json.",
+      "response": "Three XML files exactly as C5 states. At the test stage, the deploy accepted all 7 components first time and the permission set assignment succeeded.",
+      "step_by_step": "S4 of 4, deps S3, last implement step. The Proof passed at done, and Improve 23 followed. Proof meaningfulness was high for this step's purpose. The criteria are XML content (lwcComponent, navType, uiType, both form factors, one tab, visible app and tab, exactly two classAccesses), and the Proof checks exactly those plus a tree-wide secrets scan. Deployability was left to the test stage, where it passed.",
+      "gaps": []
+    },
+    {
+      "tag": "23-improve-implement",
+      "purpose": "Review S4's metadata change, then fix and commit.",
+      "directive": 5,
+      "directive_evidence": "Following the focus item 'read its primary documentation', it ran a web search to confirm that the Custom70: Handsaw motif and the LWC tab sample are valid.",
+      "response": "Metadata left unchanged.",
+      "improve": "Trivial pass: 61 s, 11 calls, no edit. It held: the deploy created the tab, app and permission set, and the assignment succeeded at test.",
+      "gaps": []
+    },
+    {
+      "tag": "24-test",
+      "purpose": "Write a test for each quoted case, make every recorded command pass against org de, and pass ShipLoop's base run and mutation check.",
+      "directive": 1,
+      "directive_evidence": "The stage text never says to deploy; the model took 'deploy, then assign' from the architecture.md ## Procedures setup line. Nor does it say how the base run and the mutation check treat a command that runs org code. Before writing any test, the model foresaw the failure. THINK: 'Mutation checks require the focused command to deploy. The current command does not deploy, so mutation will likely refuse.' The platform card said the opposite: 'let the candidate run and the mutation check carry the proof'. The refusal told it to 'Add or strengthen assertions'. It then made 39 reads of ShipLoop scripts and references, including shiploop_mutation.py 5 times, shiploop_test_loop, shiploop_loops, shiploop_navigator and inner-loop.md. It weighed burning 11 counted refusals. THINK: 'The revise action is only accepted after 11 refused counted runs or when the latest attempt could not run.' It rejected gaming the gate. THINK: 'I considered gaming the mutation engine by introducing a file it classifies as code, but that would be dishonest.' Finally it found the legal route in source. THINK: 'A stopped loop with a blocked continuation can submit a revise outcome even without an open remedy.'",
+      "response": "The tests were sound. All 10 SLBattleRulesTest methods passed on the first deploy (engine 95% coverage, controller 56%), and red-check passed with red_na for fleet, miss and hit. The stage correctly ended in revise: the mutation check killed 0 of 8 mutants, because the focused commands run org code while the mutants live in a local copy. The proposed fix (deploy inside each focused command, then redeploy the clean tree) puts mutants into the shared org and depends on a redeploy that the harness does not do. The model itself noted 'The mutation harness does not redeploy clean code after a mutant is killed.' The revise sent the item back to step-plan and re-ran 13 stages (25-37) before the second test, although only test_commands had to change.",
+      "gaps": [
+        "Mutation and the base run for org-resident runners: shiploop_mutation.mutation_check (skills/shiploop/scripts/shiploop_mutation.py:325) mutates a temporary copy and reruns focused commands that never read it. BASE_RULE (shiploop_test_loop.py:406) does the same for the base. Neither the test Checked-by (shiploop_navigator.py:5227) nor step-plan duty 5 says so. Fix: before sampling, run one sentinel mutant that breaks the build. If the focused commands still pass, refuse with 'the focused commands do not read the tree: report revise and record a deploying focused command' rather than 'add assertions'.",
+        "skills/shiploop/references/platforms/salesforce.md lines 110-113 say 'name each new org-bound test in red_na ... and let the candidate run and the mutation check carry the proof'. The mutation check cannot carry the proof for a non-deploying command. Fix the sentence to require the deploy, and state who restores the org after mutants.",
+        "Of the 8 sampled mutants, only 1 touched engine logic (SLBattleEngine.cls:123 '<' to '>='). Two hit `.sf/orgs/.../localSourceTracking/config` (CLI state the deploy created) and one hit the test class (SLBattleRulesTest.cls:206), because skills/shiploop/references/path-classes.json has no `**/*Test.cls` test pattern and no `**/.sf/**` config pattern. The other four were in board and project files (slBattleBoard html, js and js-meta.xml, sfdx-project.json) that no Apex test reads. Fix: add both patterns.",
+        "The refusal text (shiploop_mutation.py:376, 'Add or strengthen assertions ... start the Until Loop again') names no route out when assertions cannot help. The docstring 'revise opens only at the cap' (shiploop_loops.py:744) misled the model into planning 11 refusals. Fix: the refusal should add 'if the focused commands cannot observe the mutated copy, stop the Until Loop blocked and report revise naming the command'.",
+        "A revise whose only defect is test_commands still re-runs test-spec, validate-existing, all 4 implement steps and their 4 Improves (stages 25-37). Fix: in the navigator's revise routing, keep accepted implement steps when the new step plan changes only test_commands, and go from step-plan (and test-spec, if its IDs changed) straight to test."
+      ]
+    }
+  ],
+  "run_level": {
+    "step_by_step": "Yes for this group. The 4 planned steps S1 to S4 ran in plan order (stages 16, 18, 20, 22), each in its own packet limited to that step ('Later steps ... do not start them'). ShipLoop ran each step's Proof at done ('step-proof: ... -> passed'), and each step had its own Improve (17, 19, 21, 23). No step absorbed another, unlike chess, where S1 to S3 merged. The Proofs were source-string inspections, not behaviour: meaningful for S4 (the XML is the criterion) and S2 (a thin delegator), partial for S3 (hidden-ships guard, but a `length: 10` text proxy), weak for S1 (no engine logic executed). Engine behaviour was proven only at test (10 of 10 green on the first deploy) and by the model's own S1 Python simulator and org probe.",
+    "improve": "6 reviews, 905 s of pass time. Two found and fixed real defects: the step-plan review made 3 Proof and coverage fixes that held at test, and the S3 review fixed two board races, one of them introduced by its own first fix. Four were trivial. The S1 and S4 trivial reviews still verified something real (a deserializeUntyped org probe; a documentation check of the tab motif). Rubber stamps: test-spec (accepted an org-run RED of 'class is absent', which the test stage could not meet) and S2 (24 s, no file read, no probe of its setMessage claim). No product defect escaped to test. The planning reviews missed the one failure in the group, that non-deploying org commands cannot see ShipLoop's base or mutated copies, because no handoff says how those gates run.",
+    "directive": "The implement packets were sufficient: S1 to S4 and their Improves read zero ShipLoop source and hit no refusal. Planning and test were not. To learn the gates, step-plan read ShipLoop's Python 29 times, test-spec 7 times and test 39 times (scripts and references). For an org-resident runner, the test packet, the Salesforce platform card and the mutation refusal all failed to state the key fact, and the card stated the opposite. The model diagnosed the problem from source and found the revise route there. Compactions at step-plan, test-spec, the S3 Improve and test all recovered through `shiploop next` or next_argv."
+  },
+  "best": [
+    "The implement Step block (task, Serves with criteria quoted, a Proof ShipLoop runs at done, 'Later steps ... do not start them'). Four steps ran in order with zero ShipLoop source reads and a recorded step-proof gate, and all 10 org tests were green on the first deploy.",
+    "Improve reading the last commits' Key learnings: the step-plan review found its main defect (an Apex regression row named as proof of board and metadata criteria) from commit 0205e1fd.",
+    "The Improve focus line 'a language or library behaviour ... run a one-line probe or read its primary documentation' produced an org probe of JSON.deserializeUntyped (S1) and a documentation check of the tab motif (S4).",
+    "Under a gate it could not pass, the test model refused to game it. It rejected corrupting sfdx-project.json, an operator-free rewrite and a PATH wrapper, and reported revise with the mutation record as evidence."
+  ],
+  "worst": [
+    "Base run and mutation check versus an org-resident runner. Nothing states the problem in step-plan duty 5, the test Checked-by or BASE_RULE, and the Salesforce card contradicts it. It cost the test stage 39 ShipLoop source reads and a revise that re-ran 13 stages.",
+    "For an org-only target a step Proof can only match source strings, so step-by-step proof of the engine meant proving its text. The model shaped code to the strings: rowAxis and colAxis objects carrying `length: 10`, no 'cacheable' anywhere, no 'JSON.serialize(' in comments.",
+    "The mutation sample hit CLI tool state (.sf/.../localSourceTracking/config) and the Apex test class, because path-classes.json lacks `**/.sf/**` and `**/*Test.cls`. Only 1 of 8 mutants touched engine logic.",
+    "Test-spec quotes only focused IDs, so 7 of the 10 required methods had no oracle, RED or GREEN, and implement listed them as not_covered."
+  ]
+}

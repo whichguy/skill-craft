@@ -1,0 +1,176 @@
+{
+  "group": "chess-build",
+  "scale": "directive 1-5: 5 = the prompt said how (method, order, inputs, done, check); 1 = the model had to guess, search ShipLoop source, loop or get refused. Run: Grok 4.7 medium, ShipLoop 1.5.0 plus the first efficiency wave. 'Integration' = branch feat/shiploop-eff-int-c5f79b today.",
+  "steps": [
+    {
+      "tag": "13-test-spec",
+      "purpose": "Specify one test case per focused ID (oracle, RED, GREEN) and record open items with a consumer stage; write no test code.",
+      "directive": 3,
+      "directive_evidence": "Re-grounded after a compaction with one `shiploop next`. Then 16 of 30 calls read ShipLoop source (shiploop_assumptions.py, shiploop_stage_spec.py, shiploop_expectations.py, shiploop_navigator.py) because the template's consumer placeholder names no stage: THINK 'I need the list of outer stage names after test-spec.' C12 had no case and the packet gave no place to say so: it wrote 'C12 has no case: the check command greps ...' into the summary.",
+      "response": "Served: 22 cases quoting each FEN, count and exception, accepted on the first check-only; the same oracles later passed in the org (24). It recorded C12 as 'the check command' three times without asking when that check runs, two stages before it failed S1.",
+      "step_by_step": "Pre-implement. Specified cases for plan S1-S3 (C1-C11 by case, C12 by the grep).",
+      "gaps": [
+        "Consumer placeholder '<a later outer stage, or carry-forward from test-spec or verify>' names no stage; only the refusal lists them. Fix: render assumptions.allowed_consumers(stage) into the placeholder. Source: shiploop_navigator.py:_CONSUMER_PLACEHOLDER (unchanged on integration).",
+        "Exit condition 'every completion criterion has at least one test case, or a justified not-applicable' gives no place for the not-applicable (19 THINK: 'The template lacks a not-applicable field'). Fix: append '(in the summary, naming the command that confirms it)'. Source: shiploop_stage_spec.py test-spec done_when; shiploop_expectations.py:521 already treats it as a summary clause."
+      ]
+    },
+    {
+      "tag": "14-improve-test-spec",
+      "purpose": "Review the test-spec result for unreplayable, weak or dropped oracles and fix them.",
+      "directive": 4,
+      "directive_evidence": "No ShipLoop source reads. The focus line 'an expected result or check that a weaker stand-in would pass' drove the fix: SAY 'The test cases leave two assertions a weaker test could skip: membership in legalMoves before each apply, and the class the architecture table names.' Handoff 79.7 KB.",
+      "response": "Served: three real oracle fixes and one knowledge fix, all held.",
+      "improve": "Pass 1 (153 s, non-trivial, commit 2ddb6936): foolsMate and controllerThirtyFivePlies greens could pass on a final FEN alone (now require legalMoves to contain each move before applyMove); castlingBothSides lacked e1g1/e1c1 membership; architecture.md mapped startPositionMoveCount and repeatLegalMoves to SLChessRulesTest while the focused command runs SLChessCountsTest. Its own Python rewrite mangled class names ('sLChess'), fixed in the same pass. Pass 2 (36 s) trivial. Held: test 24 put the counts in SLChessCountsTest and all 22 passed. Missed: both passes wrote 'C12 stays the source grep' and never asked when that check runs.",
+      "gaps": [
+        "Planning focus 'a missing prerequisite, wrong order or unowned verification in the steps' did not make either pass ask when a check row runs. Moot on integration: each step now has its own Proof and step-plan duty 5 says 'implement runs only each step's own `check`' (shiploop_prompts.py)."
+      ]
+    },
+    {
+      "tag": "15-validate-existing",
+      "purpose": "ShipLoop runs each expectation check (E1-E5) on the unchanged item base before S1.",
+      "directive": 5,
+      "directive_evidence": "Script-run: no packet, 0 calls; record RUN/expectations/nav-2897d559….md.",
+      "response": "All E1-E5 matched. By design it checks the base, not the step checks, so it could not show that the only check row fails before S3.",
+      "step_by_step": "Gate before S1; passed.",
+      "gaps": []
+    },
+    {
+      "tag": "16-implement",
+      "purpose": "Implement plan step S1 only (sfdx-project.json and SLChessEngine, C1-C9) inside an Until Loop, every recorded check exiting 0 after the last edit.",
+      "directive": 2,
+      "directive_evidence": "The Step lines ordered S1 to pass S3's board grep ('Check commands (run each after every edit ...)': only the C12 grep). The model saw it at once: THINK 'The check command belongs to step 3, not step 1. This appears to be a step-plan bug.' Then 11 of 18 calls read ShipLoop source (shiploop_navigator.py, shiploop_stage_spec.py, shiploop_loops.py, until_loop_ephemeral.py) to establish 'The packet generator attaches all suite==check commands to every implement step' and whether a blocked loop can carry revise: 'A stopped receipt may prevent the parent from accepting completion'. The budget line 'revise (... 2 of 2 left for this item)' weighed on it: 'Revising the plan would burn one of two revise attempts and delay the engine.'",
+      "response": "Correct revise in 118 s with no product edit, accepted on the first complete. It ruled out stubs ('would violate the step plan's path gates') and called the conditional grep 'a gamey workaround', yet proposed exactly that: 'Replace the check with one command that ... runs the C12 grep only when slChessBoard.html exists ... Keep C12 on S3. Do not move the board into S1.' It did not propose merging.",
+      "step_by_step": "S1 of 3, in plan order (S1 engine -> S2 controller -> S3 board, tab, app). Stopped before any edit: check 1 exit 2 (slChessBoard.html missing). No proof, no review; sent back to step-plan.",
+      "gaps": [
+        "Run version: _step_lines printed every suite:check row on every step, and exit condition 2 said 'every recorded check command exited 0'. Fixed on integration: per-step `check` (the Proof) printed by shiploop_navigator.py:step_block and run by the step-proof gate, and the refusal names 'a Proof that needs a later step' as a revise route.",
+        "Result line 'when the Receipt says status complete (stopped: report it)' does not say that a stopped (blocked) receipt supports outcome revise or blocked; the model read shiploop_loops.py:check_loop_packet to learn it. Fix: '(stopped blocked: submit revise or blocked with it as evidence)'. Source: shiploop_loops.py:_RESULT_HEAD (unchanged on integration)."
+      ]
+    },
+    {
+      "tag": "17-step-plan",
+      "purpose": "Amend the step plan on the revise evidence: keep untouched rows and IDs, change only what the evidence requires.",
+      "directive": 2,
+      "directive_evidence": "The amend rule ('Keep every criterion, step, path and test command the evidence does not touch as written') was in the file-only deltas block at about 79 KB; the head carried only 'Done: W1 implement (sent back to step-plan): The implement packet runs every suite:check command after every step.' Duty 5 still said only 'check: the lint, type and build commands ... each safe to repeat locally'. The model took the revise's fix as written: THINK 'Only the check command is being replaced with a new test that verifies sfdx-project.json and SLChessEngine.cls exist.'",
+      "response": "Kept S1-S3 and swapped in the skip-if-board-absent grep in about 71 s of its own work. It ran the command only on the empty tree ('absent_tree_exit=1', from the missing sfdx-project.json), so the engine-present, board-absent branch it was written for never ran. Improve 18 reversed it.",
+      "step_by_step": "Kept 3 ordered steps; the check became conditional.",
+      "gaps": [
+        "Run version: the revisit block was file-only. Integration prints it at P1 (shiploop_navigator.py:_revisit_lines, packet review C2-1).",
+        "No line asked the planner to run each check on the tree of the first step that runs it. Integration enforces it by running the step's Proof at that step's done, so no packet change is needed."
+      ]
+    },
+    {
+      "tag": "18-improve-step-plan",
+      "purpose": "Review the amended step plan for weak checks, dropped requirements, wrong order or unowned verification; fix within scope.",
+      "directive": 2,
+      "directive_evidence": "The merge is reasoned in one THINK. 'A second check requiring the HTML would break S1 again, since all suite checks run during implementation.' 'The strict grep should be a regression or focused test instead ... A regression command without IDs might be rejected by the gate.' 'Merging S1, S2, and S3 ... but planning guidance says to split these steps, and the protocol's check attachment makes that impossible.' 'A single merged step is faster than three separate ones.' The handoff named neither the previous plan nor the revise result (it used warm context: 'the previous strict grep in results/nav-a3afbe1dec…'). It also lacked the amend rule and the revise's 'Keep C12 on S3. Do not move the board into S1.' After a compaction: 304 s re-grounding, plus 7 of 47 calls in until_loop_ephemeral.py and shiploop_navigator.py (the trivial gate and the final_result fallback).",
+      "response": "Real finding, damaging fix. It folded S1-S3 into one S1 (C1-C12, 11 paths), against duty 4's sizing ('Split a step ... joining two outcomes with \"and\"'), which it named, and against the revise evidence. Then it restored what its own fold had dropped: sourceApiVersion 68.0, AuraHandledException and the board rules.",
+      "step_by_step": "Changed the plan from 3 ordered steps to 1. This is where step-by-step ended.",
+      "improve": "Pass 1 (337 s, non-trivial): real, 'the conditional check exits 0 when slChessBoard.html is absent ... also lets a finished tree with no board pass'. Fix: fold S1-S3 and restore the strict grep. Its second finding, inside the same pass: the folded task had lost sourceApiVersion 68.0, AuraHandledException and the board rules (restored). Pass 2 (109 s) trivial. Held: the strict grep passed at 22, 24 and verify. Cost beyond the passes: the item lost its steps; implement 22 became one 17.2 min loop and the controller never had a step-sized review. A fix that kept 3 steps appears gate-legal in 1.5.0 (source reading, not run): shiploop_test_loop.py says 'A regression command without ids or min_tests may pass uncounted' (PASSING includes it), base_check refuses only focused IDs, and implement ran only suite:check rows. So the strict grep as a regression row naming C12, with check_na 'no local lint or compiler', kept S1-S3. The model guessed this was illegal and did not check, though it read ShipLoop source for less important questions in the same review.",
+      "gaps": [
+        "No rule said where a whole-item inspection check may live. Duty 5 defines regression as 'the retained suites the changed paths affect' (shiploop_prompts.py:1291) and is silent on uncounted rows. Mostly moot on integration: duty 5 now says 'The test and verify stages run these; implement runs only each step's own `check`', so a whole-item grep can stay a check row.",
+        "The Improve handoff did not carry the amend rule or the revise result. Integration adds the locators ('Revisit: ... the previous accepted step-plan result ... the revise result that sent it back', shiploop_navigator.py:improve_handoff_text) but still not the rule. Fix: append 'keep each step the revise evidence does not touch; a merge or split of steps cites that evidence'.",
+        "Planning focus 'a required requirement, test ID or case dropped or weakened compared with the prior accepted version' does not cover step boundaries. Fix: add 'or steps merged or split' to the planning focus in shiploop_prompts.py (the list holding 'a check that a weaker stand-in would pass', ~line 789)."
+      ]
+    },
+    {
+      "tag": "19-test-spec",
+      "purpose": "Re-specify test cases against the amended one-step plan, carrying over unchanged rows.",
+      "directive": 3,
+      "directive_evidence": "Not told it was a revisit: THINK 'The status shows test-spec as the next item after step-plan, which contradicts the earlier assumption that it was already completed.' It searched for its own prior spec (glob results/*86142*, inbox/*86142*). On C12: 'The template lacks a not-applicable field, so C12 will be justified as N/A in the summary.'",
+      "response": "Served: 22 cases byte-identical to step 13 plus one sentence ('The one-step plan keeps the same focused IDs'). Accepted on the first check-only in 145 s.",
+      "step_by_step": "Pre-implement.",
+      "gaps": [
+        "Run version: _sent_back_results returned None unless stage == step-plan. Fixed on integration: REVISIT_STAGES = (step-plan, test-spec, implement) in shiploop_navigator.py."
+      ]
+    },
+    {
+      "tag": "20-improve-test-spec",
+      "purpose": "Review the re-specified tests for weakened or dropped cases against the prior accepted spec.",
+      "directive": 3,
+      "directive_evidence": "The handoff named no previous result, so the reviewer compared against 'inbox/nav-86142…-final-result.md', a file the model itself had made. THINK 'I will diff the test cases against the prior final result to ensure no weakening.'",
+      "response": "Correct trivial pass.",
+      "improve": "One trivial pass, 45 s, no edits; a real check (Python compare: cases, assumptions and headline equal; ls exit 1 on the empty tree as the RED). Not a rubber stamp in effect: nothing later failed on test-spec content. It did not ask whether the fold, which put 'AuraHandledException that names the move' into S1's task, needed a controller illegal-move case; verify 26 later added controllerIllegalMove.",
+      "gaps": [
+        "Run-version handoff named no previous accepted result. Fixed on integration (improve_handoff_text 'Revisit: ... the previous accepted test-spec result: RUN/results/<id>.md')."
+      ]
+    },
+    {
+      "tag": "21-validate-existing",
+      "purpose": "ShipLoop reruns E1-E5 (now all pointing at the merged S1) on the unchanged base.",
+      "directive": 5,
+      "directive_evidence": "Script-run: no packet, 0 calls.",
+      "response": "All matched.",
+      "step_by_step": "Gate before the merged S1; passed.",
+      "gaps": []
+    },
+    {
+      "tag": "22-implement",
+      "purpose": "Implement the merged step S1 (engine, controller, board, tab and app; C1-C12) inside an Until Loop, with the C12 grep and lint clean after the last edit.",
+      "directive": 3,
+      "directive_evidence": "THINK 'The output was truncated in the middle. I still have the essential instructions from the visible start and end of the packet.' It never opened the packet file, and C1-C12 were file-only. No line said whether implement may touch the org: 'Deploying the classes now is permitted and will not conflict with the test stage.' Lint flagged the CLI's tracking directory and the model removed it by hand: 'The .sf directory will be removed from the worktree to keep it out of find and git scans.' No ShipLoop source reads.",
+      "response": "Served, by the model's own initiative: 11 product files, 2 deploys (the first fixed by renaming `any`), and 3 anonymous-Apex probe runs matching the mate, castle, promotion, Kiwipete 48, depth-2 2039 (781 ms) and 35-ply oracles. It also caught Apex's case-insensitive `==` in the FEN parser before deploying. 1029 s; accepted on the first complete.",
+      "step_by_step": "S1 of 1 (the merged step). ShipLoop's recorded proof was only the C12 source grep (exit 0 after the last edit) plus lint (0 findings). The behaviour proof was the model's anonymous-Apex probes in RUN/notes, which ShipLoop did not run. One Improve (23) reviewed the whole item.",
+      "gaps": [
+        "Run version: the head dropped the step's criteria (file-only) and the host cut the print. Fixed on integration: step_block prints 'Serves' criteria by value at P1.",
+        "Implement says nothing about remote effects (deploy to the dev org, anonymous Apex), while Improve's authority forbids deploy. Fix, implement duty 3 'Check': 'remote-only runtime: deploying to the recorded target and probing through the recorded route are allowed; record each probe and its output in the notes.' Source: shiploop_prompts.py implement duties.",
+        "`sf project deploy` writes .sf/ into the worktree, which exit condition 1 and lint flag; the model ran `rm -rf .sf` here and again at 24. Fix in skills/shiploop/references/platforms/salesforce.md: 'sf writes .sf/ and .sfdx/ (source tracking); the step that adds sfdx-project.json adds both to .gitignore.' (No mention there today.)"
+      ]
+    },
+    {
+      "tag": "23-improve-implement",
+      "purpose": "Review the step's diff against its task, criteria, Code craft and the implementation focus; fix within the step's paths.",
+      "directive": 3,
+      "directive_evidence": "The focus line 'a language or library behaviour ... no command has exercised (comparison and case rules ...): run a one-line probe or read its primary documentation' raised the right question. The authority 'No push, deploy, install or credential access' ruled out the probe: THINK 'I must not write tests or deploy during this Improve pass'. After a web search: 'The current LWC developer guide does not require setMessage, so the controller will not be changed based on a 2021 StackExchange quirk.' A compaction cost 256 s of re-grounding, and one `git log` ran in the wrong cwd.",
+      "response": "Trivial pass that missed a real defect.",
+      "improve": "One trivial pass, 345 s (plus 256 s re-grounding), no edits. A rubber stamp on one point. It found that 'AuraHandledException may return a generic \"Script-thrown exception\" ... unless setMessage is called explicitly' and decided 'I will fix it by calling setMessage', then reversed after the web search. Verify 26 hit it: 'AuraHandledException.getMessage() did not contain the constructor text until setMessage', and added setMessage plus a controllerIllegalMove test. It also left the controller illegal-move path out of not_covered, though its focus asks for that. Its confirmations were real: the String.equals case rule, castling through check, en-passant discovered check, Kiwipete 48.",
+      "gaps": [
+        "Authority and focus conflict on a remote-only runtime: the focus allows docs instead of a probe, and the authority forbids deploy, so the reviewer read docs and was wrong. Fix the focus line: 'a probe on the target runtime outranks documentation; a read-only execute through the recorded route (no data or metadata written) is a probe, not a deploy; a behaviour you cannot probe goes to not_covered for the test stage.' Sources: shiploop_prompts.py implement review focus (~lines 2513-2515); authority sentence at shiploop_navigator.py:7918."
+      ]
+    },
+    {
+      "tag": "24-test",
+      "purpose": "Write the test-spec cases as tests, run every recorded command until all pass, then pass ShipLoop's base, candidate and mutation runs.",
+      "directive": 4,
+      "directive_evidence": "THINK 'The test stage packet was truncated.' Its grep of the packet file found 0 matches, so it wrote the 3 classes from warm context. No ShipLoop source reads. The check-only run (base, candidate, mutation) accepted on the first try. It removed .sf again before check-only.",
+      "response": "Served: 22 tests in 3 classes, all passed in the org (one perf retry after a network fetch error; one self-made zsh loop error). 559 s.",
+      "step_by_step": "Ran once after the single implement step; tests were not per step.",
+      "gaps": [
+        "Same .sf/ tracking-state gap as 22 (platforms/salesforce.md)."
+      ]
+    },
+    {
+      "tag": "25-document",
+      "purpose": "Bring the docs and knowledge files to what was observed, with no unobserved claims.",
+      "directive": 4,
+      "directive_evidence": "73 s, 33 calls, no source reads. THINK 'I must avoid rewriting the living spec requirements and only update observed facts.'",
+      "response": "Served: environment.md and architecture.md moved from planned to observed (22 tests passed, CPU figures). It noted that there is no README and did not claim the board clicks.",
+      "gaps": []
+    }
+  ],
+  "run_level": {
+    "step_by_step": "No. The plan had 3 ordered steps: S1 engine (C1-C9), S2 controller, S3 board, tab and app (C12). S1's first attempt (16) stopped before any edit, because the only check row was S3's board grep and the generator ran every check row on every step. The revisit (17) kept 3 steps with a skip-if-absent grep. Improve 18 rightly judged that grep weak and folded the 3 steps into 1. Implement 22 then built all 11 files in one 17-min loop. ShipLoop's only recorded proof was the C12 source grep plus lint; the behaviour proof was the model's own org probes (notes only); one Improve (23) reviewed the whole item. The revise loop cost about 15 min (16: 2.0, 17+18: 9.5 including 8.3 of Improve and a 304 s re-ground, 19: 2.5, 20: 0.9).",
+    "q1_packet_lines_that_pushed_merge": [
+      "Pushed it. Implement 16's 'Check commands (run each after every edit ...)' plus exit condition 2 'every recorded check command exited 0' became a stated fact. The revise summary opens 'The implement packet runs every suite:check command after every step'; 17's status 'Done:' line repeats it; 18's review lists it under 'Facts'. Every strict-check fix then failed S1, in 18's words 'the protocol's check attachment makes that impossible'.",
+      "Permitted it. Step-plan duty 4 'every implementation step in order (one is fine)'. The reviewer set this against duty 4's own split rule ('The planning guidance says to split steps that join two outcomes with \"and\", but splitting makes the shared check fail') and added 'A single merged step is faster'.",
+      "Blocked the fix it named. Duty 5's 'regression: the retained suites the changed paths affect' says nothing of rows without IDs, so the reviewer guessed 'A regression command without IDs might be rejected by the gate'. By the 1.5.0 source such a row 'may pass uncounted' and is not run at implement.",
+      "Ruled out the weak option (correctly). The Improve focus 'an expected result or check that a weaker stand-in would pass'.",
+      "Absent where it would have stopped the merge. The amend rule 'Keep every ... step ... the evidence does not touch' (file-only in 17, missing from 18's handoff) and the revise's 'Keep C12 on S3. Do not move the board into S1.'"
+    ],
+    "improve": "4 reviews and 6 passes, about 1,025 s of passes plus 560 s of re-grounding after two compactions. 14: real (3 weak greens, 1 wrong class map); held through test 24. 18: real (the skip-if-absent grep passes a board-less tree, and its own fold dropped task text), but its fix, the merge, undid step-by-step. 20: correct trivial copy check. 23: rubber stamp on setMessage: it found the issue, reversed itself after a web search, and verify 26 had to fix it.",
+    "directive": "Two kinds of gap. (a) Mechanics the packet never stated, which the model learned by reading ShipLoop source: 16 of 30 calls in 13 (consumer stage names), 11 of 18 in 16 (check attachment, blocked to revise), 7 of 47 in 18 (trivial gate, final_result). (b) Rules missing at the moment of decision: when check rows run and where a whole-item inspection check may live (18 guessed and merged), and probe versus docs under a no-deploy authority (23 guessed wrong). Integration fixes the root of the merge (per-step Proof; 'implement runs only each step's own check') and the revisit locators. Still open: consumer stage names, the stopped-receipt route, the Improve probe rule, the amend rule in the Improve handoff, and the .sf/ state."
+  },
+  "best": [
+    "Improve focus 'an expected result or check that a weaker stand-in would pass' (shiploop_prompts.py, ~line 789): it found the final-FEN-only greens (14) and the skip-if-absent grep (18), both real.",
+    "complete --check-only with the Until Loop: zero refusals in steps 13-25. Every producer was accepted on its first real complete, and test 24's base, candidate and mutation runs passed on the first check-only.",
+    "Implement duty 6 'Unachievable as planned: stop blocked and report revise': S1 went back in 118 s with no product edit, instead of forcing the board into S1.",
+    "'Lost context, or unsure? Run shiploop next': 13 re-grounded after a compaction with one call.",
+    "Criteria and cases that quote each FEN and count: implement 22 could probe the exact oracles before tests existed, and all 22 tests passed on their first org run."
+  ],
+  "worst": [
+    "Run-version implement Step lines: 'Check commands (run each after every edit ...)' carried S3's board grep into S1 (_step_lines). This caused the revise and set up the merge. Fixed on integration (per-step Proof).",
+    "No rule for where a whole-item inspection check may live. Improve 18 guessed 'A regression command without IDs might be rejected by the gate' (false per shiploop_test_loop.py: 'may pass uncounted') and folded S1-S3 into one, against duty 4 and the revise's 'Keep C12 on S3'.",
+    "Improve authority 'No push, deploy' with a focus that accepts docs in place of a probe: 23 talked itself out of setMessage, and verify 26 fixed it.",
+    "The test-spec consumer placeholder names no stage: 16 of 30 calls in 13 read ShipLoop source.",
+    "Revisit context was missing where it was needed: 17's amend rule was file-only, and 19 and 20 were not told they were revisits. Integration fixes the producer lines and the Improve locators, but the amend rule is still not in the Improve handoff."
+  ]
+}

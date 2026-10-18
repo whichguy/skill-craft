@@ -1,0 +1,176 @@
+{
+ "group": "bs-prep",
+ "scope_note": "The task named steps 01-12 but also said 'up to but not including the first step-plan'. Steps 01-10 (intake through prepare, with the spec, test-strategy and plan Improves) are the core. 11-step-plan and 12-improve-step-plan are included and marked boundary:true so they are covered whichever reading was meant. Chess comparisons use report-chess steps 01-12.",
+ "directive_scale": "0 = the model had to search ShipLoop's own source, guess, misread, loop or was refused to execute the stage; 1 = the packet stated the method, but a load-bearing part was missing or misleading, so the model worked it out itself (whole-guide reads, a wrong default or a missed rule); 2 = the model executed from the packet as written; mapped to the report scale 1-5 as 0->1, 1->3, 2->5",
+ "steps": [
+  {
+   "tag": "01-intake",
+   "purpose": "Map every request sentence to an outcome, boundary or open question, plus where and when the result becomes visible.",
+   "directive": 5,
+   "directive_evidence": "The 8-item guidance and the S<n> template were enough: the summary maps S1-S26, names visibility ('playable board exists in org de only after release deploy and the permission-set assignment') and records the grant. SAY: 'The request already names the Developer Edition org and the deploy commands, so that is the delivery grant.' The one friction point: THINK 'The grep for project-knowledge did not find the anchor.' The model then read all of delivery-authority.md and project-knowledge.md (55k chars) to get one rule each.",
+   "response": "Served the purpose. Every sentence was cited, the interaction defaults (one player, JSON held by the component, client seed) were recorded, the API-version question went to discovery, and the hidden-ship leak risk was spotted early. The result needed 9 calls and 124 s, with no refusals (chess needed 13 calls and had 2 refusals).",
+   "gaps": [
+    "Guide references are '#slug' anchors (shiploop_prompts.py references table, e.g. line 201 ('Discovery investigation guidance', 'research-loop.md#plan-the-investigation')). A slug is not grep-able text in the file, so the 'open only the section' rule at shiploop_prompts.py:137 cannot be followed. Fix: render each reference as the heading text plus its line range, computed at packet render (e.g. 'project-knowledge.md lines 101-125, ## New work versus recovery').",
+    "Prelude packets print 'Work items planned: 1; execution starts after the preparation graph completes.' (shiploop_navigator.py:4930) before plan exists, which contradicts the narrative's 'Work items (set by plan)'. Fix: print 'Work items: set by plan' until plan is accepted."
+   ],
+   "orig_directive_0to2": 2
+  },
+  {
+   "tag": "02-discovery",
+   "purpose": "Run the baseline on the unchanged checkout and record targets, commands, platform facts, access and the delivery route in environment.md.",
+   "directive": 3,
+   "directive_evidence": "The packet has 15 items written for an existing system (service discovery, connected knowledge, current-system recovery, interaction baseline), but the checkout was empty. To decide what applied, the model read 7 whole guides (154k chars; chess read 8, 183k). THINK: 'I am reading the execution-planning baseline, environment-lifecycle discover, and current-system establish sections.' The useful work was not in the packet's wording: an API probe across 62.0-69.0 ('API 68.0 works, but 69.0 does not') and recovering from the run guard's denial of 'sf api request rest'.",
+   "response": "Served the purpose. Baseline was recorded as missing coverage, not a pass. Org de (Developer Edition, API 68.0) was resolved without printing a token, and the seed-collision modeling issue was flagged for spec ('different seeds cannot all produce different fleets over every Integer'). It took 190 s and 30 calls (chess: 112 s).",
+   "gaps": [
+    "No empty-checkout branch: for a checkout that holds only the baseline commit, items 3-6 and 9-13 could collapse to 'none, recorded' (shiploop_prompts.py discovery block near line 925). Fix: add a first line 'An empty checkout (no files beyond the baseline commit): record none for house style, skills, specs, services and consumers, and spend discovery on the delivery target and access'.",
+    "Section anchors push the model to whole-file reads (see 01-intake)."
+   ],
+   "orig_directive_0to2": 1
+  },
+  {
+   "tag": "03-research",
+   "purpose": "Resolve the consequential unknowns with evidence in research.md and move durable facts to environment.md.",
+   "directive": 5,
+   "directive_evidence": "The model worked straight from the packet: 10 web searches, a name-collision probe ('sf org list metadata' for 5 types) and an assumptions section. THINK: 'A concrete bug risk surfaced: JavaScript Date.now() exceeds Apex Integer's 32-bit signed maximum of 2147483647.' It read no guides. The weak spot: it recalled a wrong platform fact and left it unprobed. THINK: 'To avoid null ship or size values in lastShot, the controller should pass true to suppress nulls.' JSON nulls were recorded as 'open: the first Apex test ... settles it', although 'sf apex run' was allowed by the guard.",
+   "response": "Served the purpose. Date.now overflow, the existing unrelated 'battleship' LWC in the org, the free SLBattle names and the 100-shot CPU bound were all settled with sources. The JSON-null question was deferred, and the wrong belief spread: plan THINK 'JSON.serialize omits nulls; W1 will use JSONGenerator'. 09-improve-plan corrected it.",
+   "gaps": [
+    "Research item 11 lets an assumption stay 'open (the check that would settle it, why not run)' even when one allowed, read-only command settles it now. Fix (shiploop_prompts.py, research items): 'An unknown that one command allowed by this run's guard settles (anonymous code run, read-only query) is probed now and saved; open is only for a check that needs a later artifact or a person.'"
+   ],
+   "orig_directive_0to2": 2
+  },
+  {
+   "tag": "04-spec",
+   "purpose": "Write R-n requirements with independently verifiable acceptance criteria and NFRs in spec.md.",
+   "directive": 5,
+   "directive_evidence": "The packet stated the method, including the item-10 checks (the procedure walk and the weaker-stand-in check). The model wrote spec.md in one call and walked the procedure only afterwards. THINK, after the write: 'Walking through the newGame procedure with seed 1 and fire cells. Destroyer placement is seed-dependent, so the test will parse ships from JSON...' No edit followed, so R-3, R-5 and R-7 still accepted hardcoded cells and R-1 omitted 'static methods only'. The fault is compliance, not a missing directive.",
+   "response": "Mostly served. 13 requirements with confirm-by lines, the seeds-1-and-2-differ rule and NFRs R-11 to R-13. The two defects that went through were caught by the next Improve. It took 6 calls and 211 s (chess: 379 s).",
+   "gaps": [
+    "The item-10 walk leaves no trace, so 'before you submit' cannot be checked. Fix (shiploop_prompts.py, spec item 10): ask for one 'Walked:' line in summary per ordered procedure (start state, the replayed inputs, the observer), so skipping or deferring the walk is visible to Improve."
+   ],
+   "orig_directive_0to2": 2
+  },
+  {
+   "tag": "05-improve-spec",
+   "purpose": "Review the spec result against the planning-review focus list and fix what is warranted.",
+   "directive": 3,
+   "directive_evidence": "The handoff focus list ('a weaker stand-in would pass: a hardcoded value') led straight to the findings. Friction: the model read SKILL.md, the handoff and the whole shiploop-route.md (46k) in one stage. The contract's 'required_trivial_reviews': 2 was misread: THINK 'Two trivial reviews are required after content stabilizes.' and later 'the runtime may require two separate trivial reviews'. The handoff's own text says one trivial unchanged pass ends the review.",
+   "response": "Real findings, fixed and committed (5ba06cc): R-1 lacked 'SLBattleEngine methods are static'; R-3, R-5 and R-7 could be met by tests that hardcode cells instead of reading ships from newGame(1).",
+   "improve": "2 passes: one non-trivial with a commit, one trivial. 24 calls, 6.6k think chars (chess spec Improve: 3 passes, 36 calls, FEN fixes). Held: the test stage (24) passed 10/10 org methods with oracles read from the parsed ships. Residual: it considered extra seed pairs and declined ('The grader likely only checks two seeds, so this is not a defect.'). Nothing in the run tested that; it is unverified, not a miss.",
+   "gaps": [
+    "packet.json shows 'required_trivial_reviews': 2 (shiploop_loop_contract.py:18-32). In the runtime, 2 means the unchanged-content gate, one trivial pass (until_loop_ephemeral.py:140), but the model reads it as a count. All 4 BS prep Improves show the misread. Fix: print the gate as text in the contract and receipt (e.g. 'review_gate: ends on the first trivial pass that leaves content unchanged'), or rename the field.",
+    "shiploop-route.md (46k chars) is reread after every compaction ('Open ROUTE once per context'). Fix: split the route's recovery and commit sections into an excerpt the handoff names by line range."
+   ],
+   "orig_directive_0to2": 1
+  },
+  {
+   "tag": "06-test-strategy",
+   "purpose": "Map every criterion to a check, select the harness, write the suite commands and ID convention, and probe host tools now.",
+   "directive": 3,
+   "directive_evidence": "The model recovered from compaction through the printed line ('Running shiploop next to recover the current packet after compaction'). It read 6 whole guides, repeatable-test-suites.md twice (165k chars). The packet never points at the target's platform card (GUIDES/platforms/salesforce.md), which says a focused command must use a reporter ShipLoop reads (tap) and that an org test sees only deployed code. BS recorded human-format commands with no deploy. Chess's model found the card on its own: 'ShipLoop requires --result-format tap for Apex test commands.' Item 11's stand-in probe succeeded (headless Chrome read a file: page title), but the real start, a Lightning login, was never probed: 'I will not run sf org open because it might print an access token.'",
+   "response": "Partly served. The 10-method plan, procedures and source checks were good. But the recorded commands (no deploy, human reporter) are what the test stage could not use, which led to the 24-test revise. R-9's visual half was left opt-in and never observed for the rest of the run. It took 851 s (chess: 435 s) and 34 calls.",
+   "gaps": [
+    "No platform-card pointer for runner format and deploy order. Fix (shiploop_prompts.py test-strategy items 4/9, near lines 1091-1100): 'Target platform card: GUIDES/platforms/<platform>.md#<runner section>. ShipLoop's focused and regression commands follow its reporter and deploy-first rules. A command the user mandates stays as the acceptance command beside them.'",
+    "Item 11 (shiploop_prompts.py:1102) accepts a file: stand-in as the probe. That proves only that the browser runs, not that the authenticated entry can be reached under this run's guard ('org open' is not in its allow list). Fix: also probe the entry's authentication step, or read the guard's allow list, now; record the failure at test-strategy as a person-only open item with an owner, not as release-verify's problem."
+   ],
+   "orig_directive_0to2": 1
+  },
+  {
+   "tag": "07-improve-test-strategy",
+   "purpose": "Review the test strategy for unreplayable or weak oracles and for commands that do not run what they claim, then fix them.",
+   "directive": 3,
+   "directive_evidence": "The focus list produced real oracle fixes. Friction: the route file was read twice in parallel after compaction. The history window ran in the wrong repo: THINK 'The shell was in the workspace path, so git log ran against the original checkout instead of the worktree.' An Improve 'complete --check-only' was refused, because the model carried the producer's callback rule over. The two-trivial misread: 'I need two trivial satisfied passes.' The focus item 'a documented command that does not run what it claims on the target runtime' was not applied to the org commands, which test the org copy rather than the candidate. One worrying line in pass 3: 'A change was made to ensure this pass is non-trivial.'",
+   "response": "Real fixes across 3 commits (0205e1f, cf9b0e8, 0333d88): the outOfRange oracle allowed 'sunk' on a first shot; controllerShape, metaShape and boardSource source checks were added for R-8, R-2 and R-9; the claim that Apex tests need the permission set was corrected; gameOver must be false after 16 ship cells; every post-game shot is a miss; hit counts are read from the returned string; a new game must contain the text \"lastShot\":null.",
+   "improve": "4 passes: 3 non-trivial, 1 trivial. 49 calls, 22.5k think chars (chess: 2 passes, 26 calls). Held: all 10 methods passed at 24-test, and the lastShot-null text oracle passed once 09 fixed the serializer. Missed: the commands it reviewed ran 'sf apex run test' with no deploy and with the human reporter. That is exactly what 24-test hit (mutation killed 0/8 because the org copy never changed; 'ShipLoop cannot read --result-format human output'). On that dimension this review was a rubber stamp.",
+   "gaps": [
+    "Planning-review focus item (shiploop_prompts.py:791) 'a documented command that does not run what it claims on the target runtime' is too abstract. Reviewers read it as 'run it once, see RED'. Fix: '... e.g. a test command against a remote runtime that does not first deploy the tree under test runs the old copy; a reporter the platform card says ShipLoop cannot read'.",
+    "History window (improve/references/shiploop-route.md:22) gives no command. Fix: print the literal 'git -C <WORKTREE> log -7 --format=full' in the handoff.",
+    "The Improve packet's step 2 does not say that --check-only is unavailable. Fix: append '(Improve has no --check-only)' where the packet prints the complete command."
+   ],
+   "orig_directive_0to2": 1
+  },
+  {
+   "tag": "08-plan",
+   "purpose": "Return the ordered work_items with ready and done context, the assumptions and the AD decisions; audit dependencies.",
+   "directive": 1,
+   "directive_evidence": "After compaction ('Recovering from compaction'), the model made 22 read/grep calls on ShipLoop's own scripts to learn the refusal rules (chess plan: 0). THINK: 'I need to understand the assumption validator more carefully so my JSON is accepted.' / 'Reviewing shiploop_assumptions.py for exact fields and _normalise_work_items for context requirements and length limits.' / 'I need to understand ARCHITECTURE_HOLDS and how AD IDs are detected.' / 'parallel_groups can remain empty in the candidate because packaging fixes it before validation.' The printed head was cut before the Backchain resources block: 'The printed packet head did not include the selected Backchain and Until Loop resources block'.",
+   "response": "Served the planning purpose: one work item W1 with an explicit internal order (project, engine, controller, board and metadata, deploy and assign, suite), AD-2 to AD-7, a valid but incomplete backchain-check, and A8 (Lightning login) as the only open assumption. It carried the wrong JSON-null belief (fixed by 09) and recorded the suite without deploy-first. It took 732 s and 53 calls (chess: 407 s, 12 calls).",
+   "step_by_step": "Plan level only: one item W1. The THINK order 'project setup, engine, controller, board and metadata, deployment and permission-set assignment, then the org suite' was written into W1's context and plan-dependency-audit.md. The step boundaries came later, at step-plan.",
+   "gaps": [
+    "Refusal rules were not stated where the model writes. Fix in the plan template and 'Checked by' (shiploop_navigator.py:5930): 'evidence: an existing absolute path or an https URL'; 'an ID moved under ## Superseded or ## Retired counts as kept'; the work_items context limit, if any (shiploop_navigator.py:516 _normalise_work_items).",
+    "The backchain-check line (shiploop_navigator.py:4819) does not say that parallel_groups is computed (shiploop_backchain_graph.py:501 compute_parallel_groups). Fix: add 'leave parallel_groups as []; the check computes it'.",
+    "The test-command defects (no deploy, human reporter) passed through plan unchallenged. Chess's plan stage had tap and deploy-first commands inline in its packet, from its environment.md. The BS packet lists environment.md as headings only, so those commands are never in view. Fix: when a packet lists knowledge by headings, quote '## Commands' whole (it is short, and every later stage acts on it)."
+   ],
+   "orig_directive_0to2": 0
+  },
+  {
+   "tag": "09-improve-plan",
+   "purpose": "Review the plan for open assumptions a probe could settle, wrong order and unowned checks, then fix them.",
+   "directive": 3,
+   "directive_evidence": "The focus item 'a claim about what the runtime ... can do ... with no ... probe result: check it' produced three anonymous-Apex probes. The first probe misled ('Typed Apex objects omit nulls, but Maps retain them'), and the model corrected itself: 'The Account probe does not prove that custom Apex classes omit nulls.' The two-trivial misread recurred: 'Two consecutive trivial unchanged passes are required to exit'. It did not look at whether the loop commands deploy. The same review in chess found 'a TAP command that only ran sf apex run test would execute the last org copy'.",
+   "response": "One high-value fix (8947618): AD-5 now requires one-argument JSON.serialize on a custom Apex type. The probe saved to json-null-probe.txt showed that the two-argument form and SObjects drop nulls. A7 moved from open to probed, and the JSONGenerator fallback was removed.",
+   "improve": "2 passes: 1 non-trivial, 1 trivial. 29 calls, 18.5k think chars, 3 'sf apex run' probes (chess: 3 passes, 35 calls). Held: the engine used one-argument serialize, and the null-text assertions in fleet, miss and hit passed 10/10 at 24-test. Missed: deploy-first and the tap reporter, which chess's identical review caught. That gap cost the 24-test revise and the rerun of steps 25-37 (about 200 calls and about 27 min of producer model time, Improves excluded).",
+   "gaps": [
+    "Same focus-item wording gap as 07 (shiploop_prompts.py:791). The review focus list could carry the platform card's two Salesforce facts (deploy before test; tap reporter) whenever a recorded command targets a remote runtime."
+   ],
+   "orig_directive_0to2": 1
+  },
+  {
+   "tag": "10-prepare",
+   "purpose": "Prove each planned runner starts in the prepared environment, recheck the source-return route and the consumer's access.",
+   "directive": 3,
+   "directive_evidence": "Item 6's pointer to GUIDES/platforms/ worked: the model read salesforce.md and ran read-only consumer-access queries (profile System Administrator; SLBattle_Access not yet assigned). Item 3 asks only that each runner 'starts' (help or dry run), so the model never checked that ShipLoop can read the output or that the command tests the candidate. It saw the rule and dismissed it: THINK 'The user explicitly requires --result-format human, overriding the platform guide's TAP preference.'",
+   "response": "Served the narrow purpose: CLI 2.154.4, the 'sf apex run test --help' no-op, the worktree and checkout identity, no 'sf org open'. It missed the last pre-execution chance to fix the reporter and deploy order. It took 79 s and 21 calls (chess: 100 s).",
+   "gaps": [
+    "Prepare item 3 (shiploop_prompts.py:1230) checks only that a runner starts. Fix: add 'and that each recorded focused command runs the tree under test (a remote target deploys first) with a reporter ShipLoop reads (platform card); a user-mandated format stays the acceptance command, not the focused one'."
+   ],
+   "orig_directive_0to2": 1
+  },
+  {
+   "tag": "11-step-plan",
+   "boundary": true,
+   "purpose": "Split the item into ordered implement steps, each with criteria and a Proof command; record test_commands, expectations, paths and follows.",
+   "directive": 1,
+   "directive_evidence": "30 read/grep calls on ShipLoop source (chess: 16): navigator, expectations, item_scope, knowledge_home, test_loop, stage_spec, store and path-classes.json. THINK: 'I need to review the validator schema for steps, criteria, test commands, and expectations to avoid rejections.' / 'SLBattleRulesTest.cls does not match the test class pattern.' / 'Step paths must be exact files, not globs, because fnmatch * does not match slashes.' The model noticed the reporter conflict and kept human: 'I see a conflict between the user's explicit --result-format human requirement and the platform guide'. The design bind: 'Behavioral criteria that require Apex tests cannot be step criteria because the step check cannot use unwritten tests.'",
+   "response": "Four ordered steps were planned with deps (S1 project and engine, S2 controller, S3 board, S4 tab, app and permission set). But each Proof is a python source-string check: S1 requires the literal LCG constant '6364136223846793005', S3 requires 'length: 10' twice. These prove shape, not behaviour. The focused commands kept human and had no deploy, which 24-test refused. It took 878 s and 58 calls (chess: 625 s, 26 calls, with tap and deploy-first focused commands).",
+   "step_by_step": "S1 deps [], S2 [S1], S3 [S2], S4 [S3], each with a source-check Proof that ShipLoop runs at step done. Tests are deferred to the test stage. No step deploys or exercises behaviour, so a step is 'proven' only by string presence.",
+   "gaps": [
+    "'Tests are not a step' plus 'Remote-only target: the recorded test route only. None runs now: change the step boundary.' (shiploop_prompts.py:1273-1287) leaves a remote-runtime step no behavioural Proof. Fix: allow, for a remote-only target, a step check that deploys only the step's paths and runs an anonymous probe the guard allows (e.g. 'sf project deploy start --target-org de --source-dir <paths> && sf apex run --target-org de --file <probe>'), with the probe file listed as a step path.",
+    "path-classes.json 'test' has no Apex pattern, so SLBattleRulesTest.cls counts as code: expectations need it, and the mutation check mutated the test class ('including ... a test integer change', 24-test). Fix: add '**/classes/*Test.cls' and '**/classes/*Test.cls-meta.xml' to skills/shiploop/references/path-classes.json.",
+    "Path rules (exact files, no '*' across '/') and the validator's expectation shapes are learned only from source. Fix: state both in the step-plan template next to 'paths' and 'expectations'."
+   ],
+   "orig_directive_0to2": 0
+  },
+  {
+   "tag": "12-improve-step-plan",
+   "boundary": true,
+   "purpose": "Review the step plan's criteria, Proofs and test commands for weak stand-ins and commands that do not prove what they claim.",
+   "directive": 3,
+   "directive_evidence": "The focus list caught attribution errors. THINK: 'A passing Apex suite could confirm criteria C1, C4, and C5 even when the Lightning web component is broken.' It reached the documented-command item and stopped at RED: 'The test commands were already probed and recorded as RED ... rerunning them would be redundant.' The two-trivial misread recurred: 'required_trivial_reviews is two'.",
+   "response": "Real fixes (fcd65c9): C1, C3, C4 and C5 moved off the Apex regression row onto a chained source-check command; S1's ', true' rejection was narrowed to JSON.serialize calls; S3 now requires both '@salesforce/apex' imports.",
+   "improve": "2 passes: 1 non-trivial, 1 trivial. 23 calls, 17.3k think chars (chess: 3 passes, 48 calls; it added 'ls && deploy' prefixes and tap). Held: the source-check command passed at test, verify and system-test. Missed: the focused commands still had no deploy and used human, so 24-test failed the mutation gate (0/8 killed) and the step plan had to be revised (step 25).",
+   "gaps": [
+    "Same as 07 and 09: the 'does not run what it claims' focus item needs the remote-runtime example (shiploop_prompts.py:791)."
+   ],
+   "orig_directive_0to2": 1
+  }
+ ],
+ "run_level": {
+  "step_by_step": "Prep set up a step-by-step structure, but its Proofs and test routes were too weak to carry it. Plan chose one item, W1, with an explicit internal order. Step-plan split it into S1-S4 with deps and a ShipLoop-run Proof per step (new versus chess, which had no per-step check), so execution could go in plan order. But every Proof is a source-string check (literal constants, 'length: 10' twice), because the step-plan directive forbids a step check that needs unwritten tests and allows a remote target only its recorded test route. The recorded focused commands (no deploy, human reporter) made 24-test revise and rerun steps 25-37, so the plan-order sequence ran twice.",
+  "improve": "4 Improves, 10 passes, 6 commits. Every one fixed real defects: R-1 static and hardcoded-cell oracles (05); the outOfRange-sunk oracle, controller and metadata source checks, gameOver after 16, and the lastShot-null text (07); a probe-settled serializer decision that overturned a wrong belief from research and plan (09); criteria attributed to a suite that never reads the board (12). All of those held: 10/10 org methods passed at the first test run. None was a pure trivial pass, but 07, 09 and 12 were all rubber stamps on one failure class: the org test commands run the old org copy with an unreadable reporter. Chess's plan Improve caught exactly that. The miss cost the test revise plus 12 rerun stages (about 200 calls, about 27 min producer model time). Cost of the 4 BS reviews: 125 calls and 65k think chars.",
+  "directive": "The Checked-by lines plus 'complete --check-only' gave zero producer refusals across 01-12 (chess had 2). The 'Lost context ... run next' line recovered 3 compactions (06, 08, 11). The per-stage method lists were mostly followed. Three gaps did the damage. (1) Validation rules missing from the plan and step-plan packets: 52 reads of ShipLoop source (chess 16), and those two stages cost 1,610 s versus chess's 1,032 s. (2) The Salesforce platform card was never linked at test-strategy, plan or step-plan and was dismissed at prepare, so a user-mandated format overrode the runner rules. (3) Anchor-only guide references: about 800k chars of whole guides and route files read in prep (chess about 565k), despite 'open only the section'. The packet-review change 'knowledge as a table of contents' also stopped quoting environment.md's commands, which chess's packets kept in view."
+ },
+ "best": [
+  "'Checked by' plus 'complete --check-only': every one of the 10 producer submissions in 01-12 was accepted first time (chess intake alone had 2 refusals).",
+  "The planning-review focus list ('a weaker stand-in would pass', 'a claim ... with no probe result: check it'). It drove the 05, 07, 09 and 12 fixes, including three org probes that settled JSON-null behaviour before any code existed.",
+  "The 'Lost context, or unsure? Run ... next' line: compactions at test-strategy, plan and step-plan were recovered with no redone work.",
+  "Prepare item 6's GUIDES/platforms/ pointer produced a real read-only consumer-access probe (profile System Administrator; SLBattle_Access absent before deploy).",
+  "Test-strategy item 11 produced an executed browser probe and an honest open item (A8) instead of a claimed visual check."
+ ],
+ "worst": [
+  "Plan and step-plan had to read ShipLoop's own source 52 times to learn refusal rules (the assumption validator, work-item normalisation, AD-ID loss, parallel_groups, path classes, fnmatch path semantics). These are directives the packet should state.",
+  "No stage between test-strategy and the step-plan Improve linked the Salesforce card's reporter and deploy-first rules (prepare saw them and dismissed them as overridden by the user's human format). Three Improves missed it, and the result was the 24-test revise and the rerun of the whole step loop.",
+  "Step Proofs for a remote-only target became source-string greps, because the directive forbids a step check that needs unwritten tests and allows no deploy-and-probe Proof.",
+  "Contract field 'required_trivial_reviews': 2 was read as 'two trivial passes' in all four prep Improves.",
+  "Anchor-only guide references made 'open only the section' impossible: about 800k chars of whole-guide reads in prep, and the 46k-char shiploop-route.md was read 5 times in the 4 Improves (twice in parallel in 07 after compaction)."
+ ]
+}

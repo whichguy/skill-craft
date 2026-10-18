@@ -1,0 +1,186 @@
+{
+ "group": "chess-release",
+ "steps": [
+  {
+   "tag": "26-verify",
+   "purpose": "Accept W1: confirm each criterion after the last edit, trace every public entry point (valid, boundary, invalid input), review the diff, and let ShipLoop rerun every recorded command.",
+   "directive": 3,
+   "directive_evidence": "The method (trace, review, classify, fix, rerun) was clear and it worked. THINK: 'The untested controller illegal path is a material finding. Adding a test for it is the required fix.' Two duties misled it. (1) Duty 1 runs --check-only before any result exists, and the refusal was bare. THINK: 'The check-only deployment failed with a \"navigator result is unavailable\" error.' To find what was missing, it read shiploop_navigator.py at 6700, 2538, 2660, 3885 and 7655, shiploop_assumptions.py twice and shiploop_stage_spec.py (known D-8/D-9). (2) The `<ID> (<letter>)` naming cannot be an Apex name. THINK: 'Realized Apex method names cannot contain spaces or parentheses, so the required parenthetical suffix must use an underscore instead' (known D-3). Totals: 11 reads of ShipLoop source, 6 reads of the packet file, one compaction mid-stage, 73 calls, 690 s.",
+   "response": "Served the purpose. ShipLoop's rerun refused 3 of 10 rows on SLChessRulesTest.controllerIllegalMove. The failing assertion showed that AuraHandledException.getMessage() lacks the move name unless setMessage is called (anonymous Apex could not throw it, so the test was the probe). The model fixed the controller, 14/6/3 passed, and the item was accepted as d53e06cd. This overturned the implement Improve's recorded decision 'Do not add setMessage' (23 review-1).",
+   "step_by_step": "W1 is the only item; its plan collapsed to one step at 16/17. Proof: check-only first refused for a missing result, then reran all 10 recorded rows (refused 3/10), then accepted after the fix; complete reran them again and accepted. Review: verify's own Until Loop ran iteration 1, non-trivial (new test plus setMessage), and iteration 2, a trivial recheck. Rows 7-9 repeat rows 1-3, so each full rerun deployed 6 times for 3 classes (known D-1).",
+   "improve": "n/a (verify has no Improve child; its loop review did the job and caught the implement Improve's wrong call)",
+   "gaps": [
+    "Duty 10 says 'Delete generated output the product does not need'. The model deleted .sf/ here (rm -rf .sf), but every later `sf project deploy` (system-test, release-check --dry-run) wrote it back, and plan-return at release-check committed it (see 35). The delete instruction cannot hold for tool state that comes back. Fix: in skills/shiploop/scripts/shiploop_workspace.py:commit_leftovers, skip the paths that the item commit already left as undeclared non-doc files (the verify accept printed 'Not committed ... .sf/orgs/...' from shiploop_item_scope.py:commit_scope), or list them as undecided. Also add to skills/shiploop/references/platforms/salesforce.md: '.sf/ and .sfdx/ are CLI state; add them to .gitignore at prepare'."
+   ]
+  },
+  {
+   "tag": "27-carry-forward",
+   "purpose": "Close W1: record what worked in the knowledge home, set the future queue and record the reusable-skill decision.",
+   "directive": 4,
+   "directive_evidence": "The tailored lines carried this stage. The model wrote 'Commands that passed at verify and are not named in HOME/environment.md: ...' under ## Commands word for word. It followed duty 3's 'this run has 1 step in 1 item ... record `none`' exactly. It still read shiploop_navigator.py _check_skill_decision (3476) and the template builder (3835) to learn which skill keys to drop for `none`. THINK: 'For a \"none\" decision, path, evidence, and index are omitted to avoid placeholder failures.' It guessed about the loop's review gate. THINK: 'The runtime may still enforce a trivial review pass because the default review gate requires one, even though the contract exit conditions do not mention trivial reviews.' Totals: 6 source reads, 25 calls, 194 s, accepted on the first try.",
+   "response": "Served the purpose. spec.md got a status paragraph, environment.md got the commands, AD-8 got the setMessage learning, the skill decision is none, and A1 stays open for release-verify. It carried the board procedure forward without checking it.",
+   "step_by_step": "W1 close-out after verify. One Until Loop iteration (non-trivial, satisfied). Then Improve 28.",
+   "improve": "n/a",
+   "gaps": [
+    "The skill template prints path, evidence and index placeholders marked 'only for update or create', while the fill rule says 'every placeholder ... replaced'. When duty 3 already states that the decision is none (one step, no pending item), print only {\"decision\": \"none\", \"reason\": \"...\"}. Source: skills/shiploop/scripts/shiploop_navigator.py, the skill template dict (the 'only for update or create' lines, about 4117-4120).",
+    "The Until Loop block never says whether this contract needs trivial reviews (required_trivial_reviews); the model learned the number only from the start output. Print 'Trivial reviews required: <n>' in the block. Source: shiploop_navigator.py:_loop_lines (the gate value passed as required_trivial_reviews)."
+   ]
+  },
+  {
+   "tag": "28-improve-carry-forward",
+   "purpose": "Review the carry-forward result (knowledge home, queue, skill decision) against the end-of-work code focus and fix what is warranted.",
+   "directive": 3,
+   "directive_evidence": "The packet's example is the Claude Code /improve command on a Grok host (known D-17). The model read improve SKILL.md and then shiploop_skill_calls.py and navigator _skill_call_record. THINK: 'The improve skill call must be recorded in skill-calls.jsonl.' It wrote python -c to pull next_argv out of packet.json (known F-1). It also stopped over the uncommitted HOME edits. THINK: 'Carry-forward complete failed to commit the modified documentation files before starting improve' (known G30-3). Totals: 3 source reads, 20 calls.",
+   "response": "One trivial pass in 78 s. It read the result, the spec, environment and architecture sections, the controller, the test and the LWC, and ran the allow-list grep plus node --check (both exit 0). It correctly kept setMessage over the implement review's ban: 'The implementation review's prohibition is superseded by the org observation'.",
+   "step_by_step": "n/a",
+   "improve": "No finding and no edit, in 78 s and 20 calls. This was not a blind stamp: it re-ran the allow-list grep and settled the setMessage contradiction. It was still a miss. Its review says 'Read: ... architecture.md AD-8 and Real-boundary checks', and that section holds the board procedure. Step 5 of that procedure cannot be played: after a5 a6, the click a6 a7 is blocked by Black's a7 pawn, and a7 a8 by the a8 rook. Steps 2-3 ask a person to confirm FEN strings that slChessBoard.html never renders (no 'fen' in the template). Both defects reached the owner at 37 and 38. The pass also let the duplicated A1 open items through (known D-13). Its focus list (END_REVIEW_FOCUS_HEAD: code craft only) has no condition for a procedure a person will replay.",
+   "gaps": [
+    "The carry-forward Improve focus is END_REVIEW_FOCUS_HEAD plus Code craft. It lacks the procedure walk that the integration branch added to PLANNING_REVIEW_FOCUS (_PROCEDURE_ITEM: 'can each action occur in the state the preceding actions leave, can the chosen observer see the expected result?'), yet carry-forward is the end-of-work review of the item whose knowledge holds HOME/architecture.md ## Real-boundary checks. Fix: add _PROCEDURE_ITEM to the carry-forward focus. Source: skills/shiploop/scripts/shiploop_navigator.py:_improve_focus (the carry-forward branch) and shiploop_prompts.py END_REVIEW_FOCUS_HEAD."
+   ]
+  },
+  {
+   "tag": "29-system-test-author",
+   "purpose": "Author the system tests: catalog and integrated plan, the recorded system_commands, and each case it cannot run as an open item.",
+   "directive": 3,
+   "directive_evidence": "Duty 1 cites 'the open items quoted below', but they were not in the printed head. THINK: 'The packet file still needs to be checked for the complete open items and system catalog guidance.' It grepped and read the packet file (offset 700), read references/system-tests.md, and read navigator 2145 to learn the test_commands gate (known G29-1, G29-2, G29-3). Duty 5 ('Run each system command once now') had it redeploy and rerun the three classes on a product tree unchanged since verify. THINK: 'The three TAP class commands must run once now before completion. System tests will rerun them later'. Totals: 2 source reads, 13 calls, 559 s (most of it org deploys).",
+   "response": "Served the purpose. Accepted on the first try with 4 rows (3 TAP plus a grep check) and SYS-BOARD as an open item for release-verify. The SYS-BOARD text copies the unplayable promotion line and the FEN expectations.",
+   "step_by_step": "n/a (outer stage, run in plan order after carry-forward)",
+   "improve": "n/a",
+   "gaps": [
+    "Duty 5 makes the author re-run, on an unchanged product, commands that verify already ran twice. Then system-test runs them again (model) and ShipLoop reruns them a third time. After verify, the same three deploy+test commands ran 9 more times. Fix for item 5: 'A system command whose text equals a recorded command that passed at verify on the same product tree (git diff <verify commit> -- <product paths> empty) is already run: cite that run's RUN/tests file instead.' Source: skills/shiploop/scripts/shiploop_prompts.py DUTIES['system-test-author'] item 5.",
+    "Item 7 (a case this host cannot run becomes an open item) does not ask that the case's scripted inputs be checked by machine where the product has an API. The board's click list could have been replayed through SLChessController.applyMove in one anonymous Apex call, which would have failed at a6a7. Fix, appended to item 7: 'Replay its scripted inputs (moves, form values) through the product's own API once and record that command; the person then observes only what renders.' Source: shiploop_prompts.py DUTIES['system-test-author'] item 7."
+   ]
+  },
+  {
+   "tag": "30-improve-system-test-author",
+   "purpose": "Review the system-test catalog and commands against the planning focus and fix what is warranted.",
+   "directive": 3,
+   "directive_evidence": "The model again wrote python -c to pull next_argv out of packet.json (F-1). A compaction struck right after improve-pass and before done; afterwards it re-read SKILL.md, improve SKILL.md, references/improve-child.md, improve/references/shiploop-route.md and the handoff. It ran git in the source checkout instead of the worktree. THINK: 'The git command ran in the source checkout rather than the worktree' (known G30-4). It spent a long deliberation and read shiploop_prompts.py 1500 and shiploop_test_loop.py on the uncommitted environment.md. THINK: 'The uncommitted environment.md is expected. The system-test-author prompt says to commit nothing.' (known G30-3). Totals: 3 source reads, 37 calls.",
+   "response": "One trivial pass, recorded at 417 s. The final review was real. It checked all 23 IDs against the TAP logs, read the count and perf assertions (48, 14, 6, 44, 2039) and re-ran the allow-list grep (exit 0).",
+   "step_by_step": "n/a",
+   "improve": "No finding and no edit, in 417 s and 37 calls. The pass recorded before the compaction was a rubber stamp. The first THINK, before any file read: 'The system-test-author result is trivial. The catalog is sound, commands match passed tests, and the board is correctly excluded.' It then misread all-green logs: 'TAP files show 14 passed, 6 failed, and 3 skipped tests.' It wrote a thin review-1 and ran improve-pass. Only the compaction made it redo the pass properly. That redo also missed the SYS-BOARD procedure (unplayable promotion, FEN the page does not show), even though its own focus said 'a step, example or expected result that cannot be replayed exactly'. The reviewer read 'replayed exactly' as 'concrete enough', not 'legal'. The integration branch's _PROCEDURE_ITEM walk ('can each action occur in the state the preceding actions leave') targets exactly this.",
+   "gaps": [
+    "Improve accepts a trivial pass whose Read line names files the pass never opened before it decided. Fix (handoff 'Review passes' paragraph): 'Decide the classification only after the reads your Read line lists; a pass decided before reading is not a review.' Better still, make improve-pass refuse a review-<n>.md written less than N seconds after bind with no file read recorded (the host has no read log on Grok, so the wording is the practical lever). Source: shiploop_navigator.py:_improve_handoff_top / the Evidence form text."
+   ]
+  },
+  {
+   "tag": "31-system-test",
+   "purpose": "Run the recorded system tests on the assembled candidate and record each case's end state.",
+   "directive": 4,
+   "directive_evidence": "It ran the four recorded commands verbatim and was accepted on the first complete. It read navigator 2565 and shiploop_assumptions.py to confirm that release-verify is an allowed consumer. THINK: 'I will check the result schema to ensure SYS-BOARD is recorded as an open assumption with the correct fields, so ShipLoop does not refuse completion.' (known G31-2). Duty 3 ('Run the due cases') and Checked by ('ShipLoop reruns every recorded test command') together produce a double run. THINK: 'I will run the tests once to record evidence, then complete the stage so ShipLoop reruns them. ... The total cost is six deploys and six test runs.' Totals: 5 source reads, 10 calls, 135 s.",
+   "response": "Served the purpose. SYS-RULES, SYS-COUNTS, SYS-PERF and SYS-META passed. SYS-BOARD was carried as an open item for release-verify.",
+   "step_by_step": "n/a (outer stage, in plan order)",
+   "improve": "n/a",
+   "gaps": [
+    "Duty 3 asks the model to run commands that ShipLoop runs again at done. Fix: '3. ShipLoop's rerun at done is the run of every recorded system command; run one yourself only to diagnose a failure or for a case that is not recorded (item 6).' This is the system-test counterpart of D-2. Source: skills/shiploop/scripts/shiploop_prompts.py DUTIES['system-test'] item 3."
+   ]
+  },
+  {
+   "tag": "32-product-acceptance",
+   "purpose": "Accept the assembled product against the original request: one end state per requested outcome, with unverified outcomes owned and due.",
+   "directive": 3,
+   "directive_evidence": "It read shiploop_unverified.py for the unverified-entry shape (known G32-4). It also drew a false inference about Backchain. THINK: 'The printed packet lacks a Loop resources line, so repair is blocked but review may still proceed' (known G32-1). It saw the unsettled delivery contract and moved past it. THINK: 'The packet template is missing a delivery_assessment field. The run output lacks a delivery_contract reference, so I'll skip adding one.' Totals: 2 source reads, 15 calls, 99 s.",
+   "response": "Served the purpose. S1-S22 got end states, S14/S15 (board) are unverified, owned by release verification, and verify's human-format run was reused correctly. Delivery necessity stayed 'unresolved', which left release-plan to settle it.",
+   "step_by_step": "n/a",
+   "improve": "n/a",
+   "gaps": [
+    "The contract's 'Delivery necessity: unresolved' was visible from intake through product-acceptance, but only release-plan's gate refuses it, and this stage was told nothing. The integration branch now prints the settling template at release-plan (shiploop_consumer_delivery.py:_settling_template, checked_lines). No change is needed if release-plan holds; this is listed only so the Battleship analysis can confirm that release-plan settled it on the first try."
+   ]
+  },
+  {
+   "tag": "33-release-plan",
+   "purpose": "Plan the release without performing it: steps, delivery authority, rollback, release test plan, consumer_checks and consumer_entry, written into the summary and HOME/environment.md.",
+   "directive": 1,
+   "directive_evidence": "12.5 min, 64 calls, 34 reads of ShipLoop source (19 before a mid-stage compaction, 15 after it repeating the same files). What the reasoning sought: (1) the consumer_checks_na and consumer_entry gate. First THINK: 'Consumer checks should be an empty list with consumer_checks_na, since the board click is a manual check.' It read navigator _check_submitted_consumer_entry (2325). (2) The delivery contract, the main sink: 9 reads of shiploop_consumer_delivery.py plus 3 of the intake result. THINK: 'Release planning requires resolved necessity and scoped authority. The packet template omits delivery_assessment, though the guide says release planning needs a contract.' THINK: 'Changing a necessity from unresolved to required requires a correction source, because `_requires_user_correction` compares necessity.' It flip-flopped on pre-update rows, from 'cannot be marked as passed within a release-plan contract assessment' to 'can be added and marked passed' to 'No pre-update observations are needed.' (3) Who reruns consumer_checks, and whether an empty list is valid: test_loop normalise_commands, navigator 800 (RECORDED_COMMANDS). (4) The HOME-file checks: knowledge_home.py LIVING. (5) The result wrapper: store.py, navigator _canonical_result. THINK: 'The JSON inside the fence is the result object itself.' (6) The allowed open-item consumers: shiploop_assumptions.py. The packet file named 'Consumer-delivery schema and examples: GUIDES/consumer-delivery.md', which documents supersedes/correction, but only past the head. It was never opened.",
+   "response": "It served the purpose after a large detour. The accepted result has a full delivery_assessment (kind contract, supersedes intake, correction kind request, necessity required, O-effect, O-identity, O-behavior), rollback recipes as plain git commands, and SYS-BOARD open. Two seeds of later trouble: (a) O-behavior's expected text lists six click sequences, so only an itemized person report can pass it (this ended the run at 38); (b) it foresaw the .sf commit and did not prevent it. THINK: 'plan-return commits uncommitted files, so leaving junk in the working tree is unsafe. The .sf directory is untracked and could be committed as clutter.' It chose 'exclude at review-return', which forces the working-tree route.",
+   "step_by_step": "n/a (outer stage, in plan order)",
+   "improve": "n/a",
+   "gaps": [
+    "The template had no delivery_assessment, and Checked by did not name the unsettled-necessity gate (known G33-1). This is fixed on the integration branch: shiploop_consumer_delivery.py:_settling_template pre-fills supersedes/correction/obligations, and checked_lines adds the refusal to Checked by. Verify it in the Battleship run.",
+    "Not covered by the fix: for a behavior that only a person can check, _settling_template adds a required behavior row whose 'expected' the model fills with every sequence. Release-verify then cannot pass it from a one-line person reply. Fix in DUTIES['release-plan'] item 6: 'When the behavior obligation can only be observed by a person, its expected names the one outcome a person confirms in one line (the entry opens and the core action works); the detailed sequences go in the open item's check, not in expected.' Sources: skills/shiploop/scripts/shiploop_prompts.py DUTIES['release-plan'] item 6; shiploop_consumer_delivery.py:_settling_template (behavior row 'expected': '...').",
+    "Duty 4 quotes the return route ('plan-return commits files left uncommitted') but does not link it to regenerated tool state. Add to item 4: 'Untracked tool state that later commands rewrite (CLI caches, source tracking) must be in .gitignore before plan-return; excluding a path plan-return already committed forces the working-tree route.' Source: shiploop_prompts.py DUTIES['release-plan'] item 4; shiploop_stage_spec.py RETURN_LEFTOVERS."
+   ]
+  },
+  {
+   "tag": "34-improve-release-plan",
+   "purpose": "Review the release plan's target, authority, rollback and checks, perform no release effect, and fix what is warranted.",
+   "directive": 3,
+   "directive_evidence": "The review focus led straight to a real finding (the 'unowned verification / wrong order' item). Pulling next_argv took python -c again (F-1). 12 source reads went to the Improve route itself, not to the plan. (1) The uncommitted HOME edits. THINK: 'The release-plan knowledge commit did not occur.' It read shiploop_improve_changes.py. (2) The skill-call gate. THINK: 'The improve-pass skill is blocked until the improve skill's call record is present.' It read navigator 405. (3) FOCUS_IDS. THINK: 'FOCUS_IDS may be misaligned. The handoff focus bullets were not numbered F1.' (4) The ordering of checks.md against the edit. THINK: 'The checks.md file must be newer than the architecture edit.' Totals: 42 calls.",
+   "response": "Two passes: 202 s non-trivial, then 34 s trivial. It fixed the architecture.md allow-list row, which said the deploy was due at release-check (commit dc5ab465).",
+   "step_by_step": "n/a",
+   "improve": "One real finding fixed: the Real-boundary table put the deploy at release-check while the plan gives it to release. The fix held: release-check ran only --dry-run (deploy id 0Afaj00000o9B2gCAE), and release made the one deploy (0Afaj00000o9HknCAE). Cost: 236 s over 2 passes, 42 calls, 12 source reads. Missed (1): its handoff restated 'Decision: source return is a fast-forward of main ... onto shiploop/run-d026152a685ba294'. Release-check disproved it when plan-return committed the untracked .sf/ files and their exclusion forced a working-tree return. The producer had flagged the risk in its own THINK, and the review never looked at the untracked .sf/. Missed (2): it read and edited a row of the same Real-boundary table that holds the unplayable promotion line (a6 a7) and the FEN checks a person cannot see, and passed both.",
+   "gaps": [
+    "The Improve focus list in this run had no procedure walk; 'cannot be replayed exactly' was read as 'concrete'. The integration branch adds _PROCEDURE_ITEM (PROCEDURE_WALK) to PLANNING_REVIEW_FOCUS, so release-plan and system-test-author reviews now carry it (skills/shiploop/scripts/shiploop_prompts.py, _REVIEW_FOCUS_ITEMS). To make it catch the chess defect, append: 'where the product exposes an API, replay a person's scripted inputs through it once rather than reasoning about them'.",
+    "For a release-plan review, add to the focus: 'a planned return route that a later command will break: list `git status --porcelain` untracked paths; plan-return commits them, and excluding a committed path forces the working-tree route.' Source: shiploop_prompts.py, the release-plan Improve scope (IMPROVE_SCOPES['release-plan'])."
+   ]
+  },
+  {
+   "tag": "35-release-check",
+   "purpose": "Establish release readiness without releasing: dry-run, confirm-command discrimination, and the source-return plan reviewed against the HOME procedure.",
+   "directive": 4,
+   "directive_evidence": "No source reads; 24 calls, 173 s. Guidance 3 (dry-run into a named notes file) and guidance 5 (compare review-return with HOME/environment.md, correct it, rerun plan-return) were followed exactly. THINK: 'The expected return is working-tree-return, not fast-forward. I must correct environment.md and rerun plan-return.' The 'not-there-yet' condition did not fit a target already deployed to (known F-6). THINK: 'The dry-run confirms the metadata is already present in the org, not absent.' The model also blamed itself for a commit that ShipLoop made. THINK: 'Undoing the accidental .sf commit is impossible. Even after deletion, those files remain in branch history and block fast-forward returns.'",
+   "response": "Served the purpose. It caught the fast-forward to working-tree change before release and corrected environment.md (commit 9ccd9244). It did not check whether the consumer entry was reachable: the tab was hidden at first load (known F-7).",
+   "step_by_step": "n/a (outer stage, in plan order)",
+   "improve": "n/a",
+   "gaps": [
+    "Root cause of the route change: plan-return's commit_leftovers committed .sf/orgs/00Daj000018BzO3EAK/localSourceTracking/* ('ShipLoop committed these files that were left uncommitted (no action needed)'), even though the verify accept had listed them under 'Not committed'. Fix: in skills/shiploop/scripts/shiploop_workspace.py:commit_leftovers, print untracked paths outside the step-plan and doc classes as 'undecided, not committed: add to .gitignore or keep with review-return' instead of committing them silently. Also add the .sf/ note to references/platforms/salesforce.md."
+   ]
+  },
+  {
+   "tag": "36-release",
+   "purpose": "Perform the planned release operation once and record its effect and identity observations.",
+   "directive": 5,
+   "directive_evidence": "One deploy into the named receipt file, then plan-return and return, then observations O-effect and O-identity from the pre-filled template: 9 calls, 56 s, no source reads, check-only accepted on the first try. THINK: 'The candidate string must remain unchanged even if slightly stale.' (the pre-filled exact-match fields worked).",
+   "response": "Served the purpose. Deploy 0Afaj00000o9HknCAE Succeeded; the working-tree return was verified.",
+   "step_by_step": "n/a (outer stage, in plan order)",
+   "improve": "n/a",
+   "gaps": []
+  },
+  {
+   "tag": "37-release-verify",
+   "purpose": "Verify the released result from the consumer's side: run consumer_checks, observe each required behavior, and block only for a person-only observation that the release cannot be accepted without.",
+   "directive": 2,
+   "directive_evidence": "It started after a compaction (re-read SKILL.md and the packet). It made 25 reads of ShipLoop source to learn what the head did not say. THINK: 'I need to determine which recorded test commands rerun when release-verify completes.' THINK: 'The `_pending` check treats `passed` as satisfied for behavior obligations but only `already-current` for effects and identities.' THINK: 'The `_DONE_ONLY_FIELDS` constant includes assumptions and lessons.' (what blocked keeps; known F-14/F-16). Guidance 6 was right to stop the browser loop ('do not loop on it') and to block with awaiting present. It gave no rule for the content of the ask. The model never opened slChessBoard.html before writing the ask. Totals: 56 calls, 369 s.",
+   "response": "Blocking was correct, the no_default was honest, and the Tooling API identity check needed no redeploy. The ask was flawed. Step 3 asks the person to 'Confirm Black to move and FEN rnbqkbnr/...', but the board renders no FEN. Step 6 is the unplayable promotion (the click a6 a7 is blocked by Black's a7 pawn). The ask has 7 prose steps and a report that restates them. The owner replied 'It loads and I can play it', found the tab hidden ('Page does not exist') and fixed it out of band with a permission set.",
+   "step_by_step": "n/a (outer stage, in plan order)",
+   "improve": "n/a",
+   "gaps": [
+    "No step of the ask was checked against the deployed product before a person was asked. Fix in DUTIES['release-verify'] item 6, before blocking: 'Walk each awaiting step (PROCEDURE_WALK): replay scripted inputs through the product's API once (here one anonymous Apex call through SLChessController.applyMove), and ask the person only for what the page renders (open its template).' Source: skills/shiploop/scripts/shiploop_prompts.py DUTIES['release-verify'] item 6 (about line 1794 on the integration branch). The new fill-in-list wording (X-1) fixes the form, not this content."
+   ]
+  },
+  {
+   "tag": "38-release-verify",
+   "purpose": "Resume release-verify on the person's reply: recheck only the blocked cases against the same release, then continue or block for what is still unanswered.",
+   "directive": 2,
+   "directive_evidence": "The reply said 'record those as not individually confirmed', and the model saw that. THINK: 'The prior reply explicitly instructed recording the sequences as not individually confirmed rather than asking again. ... The only remaining path is blocked.' The required O-behavior gate allows only a pass, and the packet offered no route for a partial reply. With nothing directing it, it planned to take a session URL. THINK: 'The front-door URL can be used transiently without recording it.' Only the E2E sf guard stopped it ('org open is not on the allowlist'). It then read the harness's test/shiploop_e2e/checks/sf_guard.py and doubted the decision file. THINK: 'The previous model session appears to have fabricated this user reply in the decision file.' Totals: 6 source reads, 50 calls. Index model_seconds is 3401.7; the earlier review puts ~49 min of that on the owner wait and 453 s on re-grounding.",
+   "response": "It blocked again and the run ended at release-verify; operations and handoff never ran. Ask 2 was better: it dropped the FEN and asked 'whether the white pawn moved'. It kept the unplayable a-file promotion sequence and the 7 prose steps.",
+   "step_by_step": "n/a (outer stage; the only repeated stage in the group)",
+   "improve": "n/a",
+   "gaps": [
+    "The integration branch's duty 6 still re-blocks this exact case: 'Block again only when it answers none, or a required delivery-contract behavior obligation still has no passed observation'. With O-behavior's expected listing six sequences, 'It loads and I can play it' is not a pass, so the chess outcome would recur. Fix (together with the release-plan expected fix at 33): 'A reply that confirms the obligation's expected outcome is a passed observation citing RUN/decisions/<action>.md; detail lines it leaves unconfirmed are not-run open items for handoff. When the person says to record lines as unconfirmed, that is a user-decision correction: submit it, do not ask again.' Sources: skills/shiploop/scripts/shiploop_prompts.py DUTIES['release-verify'] item 6; shiploop_consumer_delivery.py (allow, at release-verify, a correction of kind user-decision that cites the decision file).",
+    "Nothing stops the stage from routing around a person-only check with session credentials; only the E2E harness guard did. Add to RULES or to item 6: 'Never open the org through a session or front-door URL (sf org open, frontdoor.jsp); a signed-in browser is the person's step.' Source: shiploop_prompts.py RULES ('Never read, keep or report credential-store or session contents') — extend it to say that using a session counts."
+   ]
+  }
+ ],
+ "run_level": {
+  "step_by_step": "Group 26-38 is the tail of the one item W1 plus the outer release sequence. W1 (its 3 planned steps had collapsed into one at 16/17) was verified once: check-only ran all 10 recorded rows (refused 3/10 on controllerIllegalMove), then accepted after the fix, and complete reran them and accepted (d53e06cd). The review was verify's own 2-iteration loop, then carry-forward plus Improve 28. The outer stages then ran strictly in plan order, with no skip and no out-of-order stage: system-test-author, Improve 30, system-test, product-acceptance, release-plan, Improve 34, release-check, release, release-verify. Each had a script-run proof where one exists: system-test's rerun of 4 rows, the release-check --dry-run file, the release deploy receipt, the release-verify Tooling queries. Only release-verify repeated, blocking twice, and the run ended there.",
+  "improve": "Three Improves ran 4 passes, and 1 of them found something real. Pass 1 of 34 found the architecture allow-list row giving the deploy to release-check; the fix (dc5ab465) held, since release-check only dry-ran and release made the one deploy. Cost: 78 + 417 + 236 s, 99 calls, and 18 ShipLoop-source reads, almost all spent on the Improve route itself (skill-call gate, FOCUS_IDS, uncommitted HOME edits, next_argv), not on the product. Misses: (1) all three read HOME/architecture.md ## Real-boundary checks, and 34 edited a row of that table, yet none saw that its promotion line is unplayable (a6 a7 is blocked by Black's a7 pawn) or that its FEN checks are invisible to a person; both went to the owner at 37/38. (2) 34 restated 'source return is a fast-forward', which release-check disproved. (3) 30's first pass was a rubber stamp, judged trivial before reading and misreading green TAP as '6 failed, 3 skipped'; only a compaction forced a real redo. The most effective review in the group was not an Improve: verify's trace duty plus the rerun gate caught the setMessage defect that the implement Improve (23) had decided against.",
+  "directive": "Scale: 5 = the prompt told it how; 1 = it had to learn the method from ShipLoop source. Stages whose head names one command and one output file were cheap: release 5 (9 calls, 56 s, 0 source reads) and release-check 4 (0 source reads). Stages whose gate inputs lived in ShipLoop source rather than the head were expensive: release-plan 1 (34 source reads, delivery contract), release-verify 2 (25+6 source reads; no rule for the ask's content or for a partial reply), verify 3 (11), carry-forward 4 (6), system-test 4 (5). The group made 109 reads of ShipLoop source in all, and compactions hit 26, 30, 33 and 37. Several duties directed waste on an unchanged product. Duties of system-test-author item 5 and system-test item 3, plus ShipLoop's rerun, ran the same three deploy+test commands 9 times after verify. The integration branch already fixes the release-plan template and Checked by (_settling_template, checked_lines), the release-verify ask form (duty 6 fill-in list) and adds the procedure walk to planning reviews. Still open: re-blocking on a partial reply, checking the ask's content against the product, .sf/ committed by plan-return, and no procedure walk in the carry-forward Improve."
+ },
+ "best": [
+  "Verify duty 4 ('A wrong, unhandled or untested path is a finding') plus ShipLoop's rerun of every recorded command: the model found the untested controller path, the org refused 3/10, and setMessage fixed a real defect for the Apex grader. This overturned the implement Improve's 'Do not add setMessage'.",
+  "Release-check guidance 5 (compare review-return's expected return with HOME/environment.md, correct it, rerun plan-return): it caught the fast-forward to working-tree change before release and fixed the procedure (9ccd9244).",
+  "Release guidance 3 (one deploy into RUN/notes/<action>-release.md) plus the pre-filled delivery observation fields: 9 calls, 56 s, no refusal, no source read.",
+  "Carry-forward's tailored lines ('Commands that passed at verify and are not named in HOME/environment.md: ...' and 'this run has 1 step in 1 item ... record `none`'): followed word for word and accepted on the first try.",
+  "`complete --check-only` in Checked by: used at 33, 35, 36, 37 and 38, each accepted on the first try; zero refusals in 27-38.",
+  "Release-verify guidance 4 ('source, HTTP or DOM structure alone cannot close a rendered interaction'): the model would not count Tooling names or Apex passes as board evidence and kept O-behavior 'blocked, not passed'."
+ ],
+ "worst": [
+  "Release-verify asks (37, 38): the promotion click list a2 a4 ... a6 a7 ... a7 a8 cannot be played (a6 a7 is blocked by Black's a7 pawn), and ask 1 asks the person to confirm FEN strings the board never renders. The list was written before plan and appears in every packet from plan (08) to release-verify, and passed 3 Improves in this group alone.",
+  "38 re-blocked although the owner wrote 'record those as not individually confirmed': a required O-behavior whose expected lists six sequences can only pass on an itemized reply, and the run ended at release-verify. The integration branch's duty 6 still says to block again in this case.",
+  "Release-plan (33): 12.5 min and 34 ShipLoop-source reads to reverse-engineer an untemplated delivery_assessment (supersedes, correction, obligations), repeated after a compaction. GUIDES/consumer-delivery.md, named only past the head, was never opened. Fixed on the integration branch.",
+  "plan-return committed the regenerated .sf/ source-tracking files at release-check, making a fast-forward impossible. The release-plan model predicted this in its THINK, the release-plan Improve restated 'fast-forward', and verify's 'Delete generated output' could not hold because every sf deploy rewrites .sf/.",
+  "38 planned to use a front-door session URL ('The front-door URL can be used transiently without recording it') and read the E2E harness's sf_guard.py; only the harness's sf allow-list stopped it.",
+  "30's first Improve pass was judged trivial before any read and misread green TAP as '14 passed, 6 failed, and 3 skipped'; ShipLoop recorded it, and only a compaction caused the real redo."
+ ]
+}

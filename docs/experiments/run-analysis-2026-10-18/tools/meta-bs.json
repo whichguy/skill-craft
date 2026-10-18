@@ -1,0 +1,111 @@
+{
+ "title": "Battleship Run Analysis",
+ "eyebrow": "ShipLoop live run \u00b7 battleship-salesforce \u00b7 2026-10-18",
+ "h1": "Battleship in Salesforce: how the prompts and the model did",
+ "lede": "Grok 4.7 at medium effort built a single-player Battleship game in Apex with a Lightning board in the owner's Developer Edition org, on the integration branch that carries the packet-review fixes (knowledge as a table of contents, one progress block, gates stated, a proof per step, revisit lines, the procedure walk). Every prompt ShipLoop wrote is below with the model's reasoning, words, tool calls and outputs, its result, and each Improve review, judged against three questions.",
+ "figures": [
+  [
+   "done",
+   "ShipLoop finished every stage (2 segments: a 2 h host timeout at document, then resumed)"
+  ],
+  [
+   "5 / 5",
+   "case checks pass in the org: project, deployed, 10 Apex tests, access, rules 19/19"
+  ],
+  [
+   "4 steps \u00d7 2",
+   "S1 engine, S2 controller, S3 board, S4 tab/app/permission set, each implement, proof and Improve; run twice after a revise"
+  ],
+  [
+   "2",
+   "ShipLoop refusals (chess: 5)"
+  ],
+  [
+   "18",
+   "Improve reviews; planning reviews fixed real defects that held"
+  ],
+  [
+   "10",
+   "context compactions; every one recovered through the recovery command"
+  ]
+ ],
+ "links": [
+  [
+   "Play the game",
+   "https://orgfarm-547c9f5ada-dev-ed.develop.lightning.force.com/lightning/n/SLBattle_Board"
+  ],
+  [
+   "Chess run analysis",
+   "https://claude.ai/artifact/PeHgXZ2M19JYSRsx4ebV1s"
+  ]
+ ],
+ "answers": {
+  "step_by_step": {
+   "label": "Yes, in order",
+   "tone": "g",
+   "text": "The four planned steps ran in plan order, each in its own packet with a proof ShipLoop ran and its own Improve review; none merged (chess merged three into one). Two limits: the per-step proofs only inspect source text, so the engine's behaviour was first proven at the test stage (10 of 10 on the first org run); and a revise that changed only the test commands re-ran all four steps on unchanged code (about 11 minutes, empty diffs)."
+  },
+  "improve": {
+   "label": "Strong in planning, thin in build",
+   "tone": "w",
+   "text": "The spec, test-strategy, plan and step-plan reviews each fixed real defects that held (for example a JSON-null decision settled by an org probe before any code). All three planning reviews missed that the org test commands did not deploy first, which cost the test revise and about 27 minutes. In the build, 1 of the 7 second-pass reviews found something real; one was written from memory, and two deployed to the org although their authority line said not to."
+  },
+  "directive": {
+   "label": "Better, with clear gaps",
+   "tone": "w",
+   "text": "Implement packets were sufficient: no reads of ShipLoop's source, no refusals. Release, system-test and operations ran from the packet alone in 42 to 73 seconds. Where a rule lived only in ShipLoop's code the model read the code: plan and step-plan 52 times, test 39 times, and 66 times in the four stages that write open items. The Salesforce platform card (deploy before test, TAP reporter) was never linked to the planning stages."
+  }
+ },
+ "fixes": [
+  {
+   "issue": "The mutation check mutates a local copy while the tests run against the copy already in the org (0 of 8 killed); 2 mutants hit .sf/ files and 1 a test class; the real complete re-ran the whole mutation after check-only and left a mutated file in the org",
+   "fix": "After a build-breaking mutant still passes, refuse with 'these commands do not read the tree' instead of 'add assertions'; exclude .sf/ and *Test.cls from mutation; reuse the check-only mutation record on an unchanged tree; restore a remote target after mutation",
+   "where": "shiploop_mutation.py, references/path-classes.json, shiploop_test_loop.py"
+  },
+  {
+   "issue": "The Salesforce card (deploy before test, TAP) never reached test-strategy, plan or step-plan; the shared review item about commands that do not run what they claim was too abstract to catch it",
+   "fix": "Link the platform card at those stages; give the review item the remote-runtime example (does the command test this candidate)",
+   "where": "guidance.STAGE_REFERENCES, shiploop_prompts._REVIEW_FOCUS_ITEMS"
+  },
+  {
+   "issue": "A revise that changed only the test commands restarted all four implement steps and their reviews",
+   "fix": "Keep accepted implement steps when the revised plan's steps, criteria and paths are unchanged",
+   "where": "shiploop_navigator.implement_progress"
+  },
+  {
+   "issue": "Open-item rows: the packet prints neither the row shape nor the allowed consumer stages; the gate is worded as a double negative and was misread (66 source reads)",
+   "fix": "Print an example row and the allowed consumers; state the gate positively",
+   "where": "shiploop_navigator.py _CONSUMER_PLACEHOLDER and the open-item gate text"
+  },
+  {
+   "issue": "Return: commit_leftovers committed the CLI's .sf/ files, the return review excluded them, so the delivery returned uncommitted (committed check failed)",
+   "fix": "Treat .sf/ as generated (ignore) in the platform card and leftover commit",
+   "where": "shiploop_workspace.commit_leftovers, references/platforms/salesforce.md"
+  },
+  {
+   "issue": "Plan and step-plan validation rules not in the packet (52 source reads; 1,610 s vs chess 1,032 s)",
+   "fix": "State the step-plan and plan gates in Checked by with accepted values",
+   "where": "_stage_gates, _result_contract_lines"
+  },
+  {
+   "issue": "Revisit lines appear on S1 only (and name S4's result); S2-S4 and test get none",
+   "fix": "Revisit lines for every revisited step and the test stage, each naming its own previous result",
+   "where": "_sent_back_results"
+  },
+  {
+   "issue": "Two Improve reviews deployed to the org despite 'No push, deploy'",
+   "fix": "Say in the Improve authority line how to probe without deploying, or that a test deploy is allowed when the run's authority covers it",
+   "where": "implement review focus; Improve authority line"
+  },
+  {
+   "issue": "Person ask for the board check: no URL, count does not match the procedure, an agent-only rule applied to the person, no yes/no form",
+   "fix": "Build the ask from the procedure: entry URL, one yes/no line per step",
+   "where": "DUTIES['release-verify'] item 6"
+  },
+  {
+   "issue": "Harness: --keep-platform cleaned up a done-but-uncommitted run; the Grok host idled 30 min after done",
+   "fix": "Keep when ShipLoop is done and the keep checks pass; end the host when the done packet is printed",
+   "where": "test/shiploop_e2e/run.py keep rule and host shutdown"
+  }
+ ]
+}

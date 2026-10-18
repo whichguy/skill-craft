@@ -1,0 +1,169 @@
+{
+  "group": "bs-release",
+  "steps": [
+    {
+      "tag": "43-system-test-author",
+      "purpose": "Author the whole-product system tests: catalog every system case, run each runnable command once, record cases this host cannot run as open items for a later stage.",
+      "directive": 3,
+      "directive_evidence": "The 8 numbered items gave the method and order: gather, choose cases, catalog shape, reuse the harness, run once, system_commands rows, open items, integrated plan. The model still made 7 ShipLoop-source reads (shiploop_test_loop.normalise_commands, shiploop_assumptions.canonical and allowed_consumers). It misread the gate: THINK 'The packet forbids open items whose consumer is a later outer stage. Release and release-verify are later, so they cannot be consumers.' It also doubted the ids: THINK 'the runner output must contain the actual method names, not SYS- identifiers ... ShipLoop may reject SYS- ids'. After reading the source: 'system-test-author is an OPEN_ITEM_STAGE. Consumers must be later outer stages.' check-only accepted on the first try. 174.6 s, 26 calls.",
+      "response": "Served. Four cases were catalogued in HOME/environment.md and RUN/notes/system-test-catalog.md. SYS-ORG-SUITE and SYS-SOURCE were run green now (deploy 0Afaj00000oARtNCAW, 10 passed). SYS-RELEASE became A2 with consumer release, and SYS-BOARD became A1 with consumer release-verify. No new facility was built.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": [
+        "The OUTER open-item template prints \"assumptions\": [] with no row. Item 7 lists assumption/check/owner/reason/consumer but omits the required id and disposition 'open', and it never lists the allowed consumers, so the model read shiploop_assumptions.py. Fix: render one open row {id, assumption, disposition: open, check, reason, consumer, owner} and list assumptions.allowed_consumers(stage). Generated at skills/shiploop/scripts/shiploop_navigator.py:4135-4136 (result['assumptions'] = [] for OUTER open-item stages); item 7 text at shiploop_prompts.py:1608.",
+        "The double-negative gate 'refuses ... an open item whose consumer is not a later outer stage' was read as forbidding later-stage consumers. Fix: state it positively, e.g. 'consumer must be one of: system-test, product-acceptance, release-plan, release-check, release, release-verify, operations, handoff'. Generated at shiploop_navigator.py:5934.",
+        "The template's system_commands example has ids [\"ST-1\"], next to a catalog whose case IDs are SYS-...; the ids must be names the runner prints (Apex method names). Fix: 'ids are the test names as the runner prints them, not catalog case IDs'. Generated at shiploop_navigator.py:4122; item 6 at shiploop_prompts.py:1599-1600."
+      ]
+    },
+    {
+      "tag": "44-improve-system-test-author",
+      "purpose": "Review the system-test-author result for steps that cannot be replayed, weak oracles, unprobed platform claims and dropped cases, and fix them within scope.",
+      "directive": 4,
+      "directive_evidence": "The handoff's focus list was followed directly: one 40 s pass, 9 calls, no ShipLoop-source reads. One confusion was the stop rule: THINK 'The runtime may still require two trivial reviews even though the printed loop condition allows completion on the first pass.' It flagged one unprobed claim, THINK 'It is unclear whether repeat assign exits nonzero or merely prints a message', and accepted it because release owns the assign.",
+      "response": "Trivial pass with no edits. The doubtful claim held later: release's assign exited 1 with 'Duplicate PermissionSetAssignment', so leaving assign out of system_commands was right.",
+      "step_by_step": "n/a",
+      "improve": "Findings: nothing material. It flagged the duplicate-assign exit code but did not probe it, although its own focus line says 'check it'; the claim held at release (exit 1). Edits: none. Cost: 1 pass, 40 s, 9 calls. Held: yes. No later stage failed because of this result. It was cheap, and correct because nothing was wrong.",
+      "gaps": [
+        "The runtime progress shows required_trivial_reviews: 2, a field that now means 'one trivial pass with unchanged content', while the handoff says one unchanged trivial pass ends the review. Both Improve reviews in this group debated it. Fix: rename the field or drop it from the lean return. Generated in skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py (adaptation in PROVENANCE.json); the handoff text is at shiploop_navigator.py:6839."
+      ]
+    },
+    {
+      "tag": "45-system-test",
+      "purpose": "Run the recorded system commands on the assembled candidate, classify every case, and keep cases this host cannot run as open items.",
+      "directive": 5,
+      "directive_evidence": "No source reads, 4 calls, 41.7 s. THINK: 'ShipLoop reruns the two commands automatically on completion. The stage work already ran them minutes ago, so I will not duplicate that step.' check-only replied: 'That complete takes this test run ... instead of running the commands again while the tree and the recorded commands stay as they are now', and the real complete reused that run.",
+      "response": "Served. Both commands passed through ShipLoop's rerun (deploy 0Afaj00000oASCjCAO). SYS-RELEASE and SYS-BOARD stayed not-run as A2 and A1, and R-13 is N/A. The result's headline claimed the pass before this stage had run anything; the check-only gate then made the claim true.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": [
+        "Item 3 says 'Run the due cases', and the rerun note says complete runs them. It does not say the check-only run may serve as this stage's run, so the model wrote 'passed' into the result before any run existed. Fix: 'the check-only rerun is this stage's run; write pass or fail after it'. Generated in the system-test duties at shiploop_prompts.py:1623-1646."
+      ]
+    },
+    {
+      "tag": "46-product-acceptance",
+      "purpose": "Judge the assembled product against the original request: one end state per request outcome, unobserved outcomes listed in unverified with owner and due stage, and missing work routed as replan.",
+      "directive": 2,
+      "directive_evidence": "The context was reset: SAY 'I'll read the current packet and the skill', after which it re-read SKILL.md (29 kB) and the packet file. It then made 19 ShipLoop-source reads (shiploop_unverified.py, navigator _check_submitted_unverified and _handoff_gate, shiploop_assumptions.py, shiploop_stage_spec.py), although the template printed the unverified row. THINK 'The product-acceptance template omits assumptions, but the packet requires carrying open items from earlier stages. Need to determine whether to record them in an assumptions field' and 'I need the outer stage names.' check-only accepted on the first try. 157.6 s, 33 calls.",
+      "response": "Served well. Request sentences S1-S26 were each mapped to an end state. It made an extra observation (a force-app tree listing) to close S6 ('nothing else') rather than listing it as unverified. Two unverified rows were recorded: the rendered board, due at release-verify, and the S5 assign, due at release. No replan was needed.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": [
+        "'Carry in the open items earlier stages recorded (system-test-author, system-test)' does not say which field to use, and this stage has no assumptions list. Fix: 'carry them as unverified rows; product-acceptance takes no assumptions list'. Generated at shiploop_prompts.py:1668.",
+        "The gate 'a due_stage that is not a later stage' does not list the stages. Fix: print the allowed due_stage values (release-plan, release-check, release, release-verify, operations, handoff). Generated at shiploop_navigator.py:5949.",
+        "Row shapes and rules the model learned from source are lost at a context reset, so it re-read source in 46 and again in 51. Putting the shapes in the packet removes both rounds of reading."
+      ]
+    },
+    {
+      "tag": "47-release-plan",
+      "purpose": "Plan the release without performing it: ordered steps with exact commands and authority, rollback, the release test plan, post-release consumer_checks and consumer_entry.",
+      "directive": 3,
+      "directive_evidence": "Stating the gates helped but did not stop the source reading: 318 s, 41 calls, 21 ShipLoop-source reads and 0 refusals, against chess's 748 s, 64 calls and 34 reads. The remaining reads targeted what Checked-by names but does not define: 'Checking allowed_consumers and whether release-check executes consumer_checks or the host does'; 'Checking the navigator to see if the release-plan rejects unnamed consumer commands'; the 'shaped like test_commands' row (it read shiploop_test_loop.normalise_commands); and placeholders. It spent about 1.5k characters of THINK on the present/absent rule: 'The grant forbids deleting metadata, so a pre-release absent observation cannot be produced.'",
+      "response": "The plan served its purpose. It gives validate, deploy, assign, confirm and source return, each with an owner and the grant; the rollback copied from the packet's recipes; a consumer_entry (App Launcher, SLBattle, SLBattle Board, 4 source files); one consumer check; and A1 for release-verify. Three latent defects shipped: (1) the dry run 'sf project deploy validate --target-org de' lacks --source-dir and exited 2 at release-check; (2) git status showed '?? .sf/' and the plan did nothing about it, so plan-return later committed it and forced a working-tree-return; (3) the confirm check observes the classes and the permission set only, not the app or tab.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": [
+        "The present/absent confirm rule assumes the target is untouched before release. Here every test command deploys to org de, so 'absent' cannot be observed and both release-plan and release-check had to work around it. Fix: 'If earlier stages already placed the candidate on the target, cite the last recorded absent observation and expect present at release-check.' Generated at shiploop_prompts.py:1716 (release-plan item 5), shiploop_prompts.py:1744 (release-check item 4) and shiploop_stage_spec.py:574 (release-check done-when).",
+        "'consumer_checks, shaped like test_commands' points to a schema the packet does not contain. Fix: print the row inline as {command, suite: check|focused|regression, ids?, min_tests?}. Generated at shiploop_prompts.py:1718.",
+        "Nothing tells release-plan that plan-return commits every untracked path, including tool state such as .sf/. Fix: release-plan item 8 should add: 'list untracked tool-state directories; add them to .gitignore or plan them as --exclude before release-check runs plan-return'. Better, fix commit_leftovers itself (see 49). Generated at shiploop_workspace.py:1294.",
+        "The consumer check does not have to observe the consumer entry. Fix: 'at least one consumer check observes what consumer_entry names on the target (here CustomTab SLBattle_Board and CustomApplication SLBattle)'. Generated at shiploop_prompts.py:1718-1725.",
+        "The template rule says to replace every <...> placeholder, but the packet's own rollback recipe contains '<kept paths>'. The model planned around a refusal that does not exist, because _placeholders only walks the hand-off fields. Fix: print the recipe with the return plan's keep rows filled in, or say the recipe text is exempt."
+      ]
+    },
+    {
+      "tag": "48-improve-release-plan",
+      "purpose": "Review the release plan for steps that cannot be replayed, documented commands that do not run, weak oracles, and unprobed claims, and fix them within scope.",
+      "directive": 3,
+      "directive_evidence": "Two lines in the handoff pulled in opposite directions: the focus line 'a documented command that does not run what it claims on the target runtime: run it once', and 'it does not execute or replay a release effect (a deployment ...)'. THINK: 'I will not run `sf project deploy validate` because it is a deployment-like operation.' It ran the confirm query once (exit 0). On the tab gap it first wrote 'A deploy that omits the tab could still pass the consumer check ... This is a material finding', then 'The gap is therefore acceptable.' It was also confused by the stop rule: 'The exit condition text and handoff contradict the progress tracker.'",
+      "response": "Trivial pass with no edits. It missed the validate exit 2, which surfaced at the next stage, and kept a consumer check that never observes the app or tab.",
+      "step_by_step": "n/a",
+      "improve": "Findings: it probed the confirm query (exit 0, retrieved 3 and 1), which is a real check and was recorded. It noticed the app/tab coverage gap and dismissed it, and release-verify's lessons repeat that limit. It did not run validate, so it missed the --source-dir defect that release-check hit (exit 2, 3 environment.md edits, rerun). Edits: none. Cost: 1 pass, 107 s, 14 calls. Held: no. This was a partial rubber stamp: the exact defect its focus line said to find by running the command once surfaced one stage later.",
+      "gaps": [
+        "The release-stage Improve text forbids 'execute or replay a release effect (a deployment ...)' without saying that a planned dry run is not a release effect. Fix: add 'A planned dry run (validate, check-only, plan, what-if) is not a release effect: run it once and record its exit code.' Generated at shiploop_prompts.py:2765, next to the focus line at shiploop_prompts.py:791.",
+        "Same stop-rule mismatch as 44 (required_trivial_reviews: 2 against a one-pass exit). Generated in skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py."
+      ]
+    },
+    {
+      "tag": "49-release-check",
+      "purpose": "Confirm release readiness without releasing: rerun the access probe, dry-run the deploy once, run each confirm command once for its absent output, then plan and review the source return.",
+      "directive": 4,
+      "directive_evidence": "No ShipLoop-source reads, 26 calls, 158.5 s. It followed items 3-5 in order. THINK 'The plan's validate command is invalid ... I will fix the dry-run command, update environment.md, and rerun.' The done-when could not be met as written: 'The gate requires an actual absent observation, so I am weighing options to satisfy it.' It cited the 2026-10-17 absent files instead. It also lost evidence: 'I accidentally overwrote the prior failure output in release-check-validate.txt.'",
+      "response": "Served. It caught and fixed the plan's dry-run defect: exit 2, then --source-dir force-app, exit 0, 33 tests. The confirm showed present, and the return was planned (18 keep, .sf excluded, working-tree-return). Side effect: plan-return auto-committed .sf/orgs/.../localSourceTracking/{HEAD,config} in commit c5f383493630 before the review, and excluding them later forced the working-tree route.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": [
+        "commit_leftovers committed untracked .sf/ source-tracking files before review-return could exclude them, and excluding committed paths forces working-tree-return: no commit on main. Consequences: the E2E 'committed' check failed (mismatch.md: HEAD 45e3cc53, 0 files in HEAD, 18 uncommitted), and the done packet asked an absent user to commit. Fix: skip untracked tool-state paths (anything a review would exclude) until review-return decides, or list undecided untracked paths before committing. Generated at skills/shiploop/scripts/shiploop_workspace.py:1294 (commit_leftovers; its docstring already notes 'a path the review then excludes still falls back to the working-tree route').",
+        "The done-when 'recorded its not-there-yet output' cannot be met when earlier stages already deployed to the target; see the first gap under 47. Generated at shiploop_stage_spec.py:574.",
+        "Item 3 saves the dry-run output to one file, so a retry after a fix overwrote the failing output. Fix: 'keep the failing run's output beside the retry's'. Generated at shiploop_prompts.py:1742."
+      ]
+    },
+    {
+      "tag": "50-release",
+      "purpose": "Perform the planned release once under the recorded grant, follow it to a terminal state, record its effect and the released identity, and return the candidate.",
+      "directive": 5,
+      "directive_evidence": "73 s, 14 calls, no source reads. THINK 'The validate result remains valid because the only post-validate commit changed documentation.' The duplicate assign was handled as planned: 'Exit code 1 was expected for a duplicate.' The confirm then exited 0. The return took one command printed in the packet.",
+      "response": "Served. Deploy 0Afaj00000oAEksCAG succeeded with 7 components, all of allowed types. The assign exited 1 as a duplicate and the confirm exited 0. The working-tree-return was verified. Effect and identity were recorded separately.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": []
+    },
+    {
+      "tag": "51-release-verify",
+      "purpose": "Observe the released result where consumers use it, run the consumer checks, record consumer cases this host cannot observe as open items, and write the run's lessons.",
+      "directive": 2,
+      "directive_evidence": "236 s, 50 calls. The context was reset mid-stage (SAY 'The run is still on release-verify. I'll reload the current packet'). It made 19 ShipLoop-source reads and 10 guide reads, mostly to choose the open item's consumer: THINK 'Setting the consumer to operations settles A1 via its done result ... could remove the open item before handoff ... The best consumer is handoff.' It followed item 6 and did not block: 'The run is unattended, so blocking the release was avoided.' The packet quoted A1 five times (from verify, carry-forward, system-test-author, system-test and release-plan) plus A9.",
+      "response": "It met the unattended contract. The confirm passed in the clean consumer copy. Source sync, identity, receipt and behaviour were kept as four separate facts. SYS-BOARD (S4, S15, S20, S21) is not-run, recorded as A1 with consumer handoff. The lessons are concrete: validate needs --source-dir, a duplicate assign exits 1, and .sf forced the working-tree-return. Chess's release-verify, by contrast, blocked twice (369 s + 3,402 s) and never finished. Was the person's ask answerable? Partly. A Salesforce user can follow App Launcher, SLBattle, SLBattle Board and the boardClick steps in docs/shiploop/architecture.md, which was returned to the checkout. But the ask gives no URL path, lists 'six observations' that do not match the 5-step boardClick procedure (which also checks the New game reset, the repeat-click error and that unfired cells stay blank), forbids the person the easiest route ('Do not run sf org open' is the agent's credential rule), names a conditional owner, and gives no yes/no form or reply channel. Its consumer is handoff, which settles it simply by finishing.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": [
+        "Item 6 does not name the consumer for an open item only a person can act on, so the model read stage_spec and assumptions source to pick handoff over operations. Fix: 'record it with consumer handoff'. Generated at shiploop_prompts.py:1794-1802.",
+        "The fill-in form ('step 1 reaches the consumer entry (menu entry or URL path) ...; report is a fill-in list, one yes/no line per case') applies only to a blocked/awaiting ask. A person-owned open item gets free text with no reply route. Fix: require the same entry line and yes/no lines in every person-owned open item's check, carry them into report.html as a checklist, and drop agent-only prohibitions from asks addressed to a person. Generated at shiploop_prompts.py:1794-1802; open-row fields in shiploop_assumptions.py _FIELDS.",
+        "Every stage re-listed the same open item, so release-verify's packet quotes A1 five times. Fix: dedupe by id and text in the packet, and tell stages 'an open item already recorded for a later consumer stays open; do not re-list it'. Generated at shiploop_navigator.py:5640-5652 (_source_lines for assumptions) and in the open-item duties (shiploop_prompts.py:1608, 1641, 1724).",
+        "The opposite case appears at 43 and 47: 'open items: none open' was printed while A1 and A2 were open for later stages. The list is filtered to this stage's consumer, but the label does not say so. Fix: 'open items due here: none (N open for later stages)'. Generated at shiploop_navigator.py:5644."
+      ]
+    },
+    {
+      "tag": "52-operations",
+      "purpose": "Confirm the release can be monitored, recovered and supported, with an observed check or a justified N/A for each, and write the locators to environment.md.",
+      "directive": 5,
+      "directive_evidence": "61 s, 13 calls, no source reads; it reused knowledge from earlier stages ('Operations is not in the STAGES list, so assumptions are disallowed there'). It observed the running system with 'sf project deploy report --job-id 0Afaj00000oAEksCAG' (Succeeded). Following item 3's wording, it recorded the unopened Setup logs as 'an evidence gap rather than proof of no logging'.",
+      "response": "Served. Every area is evidenced or N/A with a reason, recovery owners are named, and the unrun board click is carried with its owner.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": []
+    },
+    {
+      "tag": "53-handoff",
+      "purpose": "Write the final handoff: status per area with evidence, a classification of every case, and every open item with who does what and reports what; verify the return receipt.",
+      "directive": 4,
+      "directive_evidence": "103 s, 19 calls, no source reads. It verified the receipt (head c1e49a0e) and the knowledge links. It changed its mind four times about which narratives to paste, e.g. 'I will paste only the current handoff narrative ...' and later 'I will paste five packet narratives in order'. After 'Run complete' its last THINK was 'The ShipLoop run is complete. I will present the final narrative and summarize the outcome, including the commit request.' Its final SAY gave the narrative, the report link and the board ask, and ended with 'Commit the returned files with this message so the next run can find the lessons', addressed to a user who is absent in an unattended run.",
+      "response": "The handoff summary is complete and honest: the rendered board is not-run, S5 is observed, the links resolve, and it says where the consumer check ran. The model then ended its turn: Grok logged shell.handle_prompt.done ok:true at 06:47:23Z, and the keepalive Stop hook logged 'allow: run is done'. The Grok process (1.0.62, headless --prompt-file) then sat idle for 30 min 23 s until the harness killed it (rc 143 at 07:17:47Z). The idle came from the host process not exiting. It was not a model loop and not ShipLoop holding the session.",
+      "step_by_step": "n/a (outer stage)",
+      "improve": "",
+      "gaps": [
+        "The done packet says 'Ask the user to commit the returned files' even in an unattended run; this follows from the working-tree-return (see 49). Fix: repair commit_leftovers upstream. For unattended runs, record the uncommitted return as an open item in report.html rather than a question nobody will answer. Generated at shiploop_navigator.py:4426.",
+        "The narrative rule 'Show the user this narrative exactly as written' does not say whether narratives missed before a context reset must be replayed, and the model went back and forth. Fix: 'show only this packet's narrative'. Generated at shiploop_navigator.py:2261.",
+        "Harness, not directive: the Grok host did not exit after handle_prompt.done. The E2E runner should end the session on the done packet or the turn end instead of waiting for its timeout."
+      ]
+    }
+  ],
+  "run_level": {
+    "step_by_step": "This group has no implement or step stages (outer stages 43-53). The outer stages ran strictly in graph order, one stage per packet, each submitted with check-only and then complete. There were zero refusals in 11 steps and no replan, repeat or blocked outcome. The release half took 23 min of wall time (2 h 18 min to 2 h 41 min on the pace line, two Improve reviews included). The nine non-Improve stages used 1,324 model seconds; chess's same stages used 5,541 s and stopped blocked at release-verify.",
+    "improve": "There were two Improve reviews; each was trivial, took one pass and made no edits. 44 (40 s, 9 calls) was correct because nothing was wrong. 48 (107 s, 14 calls) was a partial rubber stamp: it probed the confirm query (exit 0) but skipped the planned validate as 'deployment-like'. Release-check caught that 'sf project deploy validate' was missing --source-dir (exit 2) one stage later. 48 also waved off the consumer check's failure to observe the app or tab, a limit the run's lessons still carry. Neither review found a real problem; release-check's own dry run was the effective check in this half.",
+    "directive": "Scale 1-5: 5 = executed from the packet alone; 3 = right method but had to read ShipLoop source for a shape or rule; 1 = guessed or misled. Scores: 43:3, 44:4, 45:5, 46:2, 47:3, 48:3, 49:4, 50:5, 51:2, 52:5, 53:4. There were 66 ShipLoop-source reads (43:7, 46:19, 47:21, 51:19), all in the four stages that write an open-item or hand-off list whose row shape and allowed consumers the packet does not print. Two context resets (46, 51) forced re-learning. Stages whose packet carried the whole contract (system-test, release, operations) took 42-73 s with no source reads. Release-plan: stating the gates worked partly. It took 318 s (5.3 min per index.json; the brief's 3 min does not match), 41 calls, 21 source reads and 0 refusals, against chess's 748 s, 64 calls and 34 reads. The reads that remain target what Checked-by names but does not define: allowed consumers, the open-row shape, 'shaped like test_commands', and whether ## Commands must name the confirm command.",
+    "after_done": "Last THINK: 'The ShipLoop run is complete. I will present the final narrative and summarize the outcome, including the commit request.' The final SAY ended with a request that the absent user commit the working-tree return. The turn ended at 06:47:23Z and keepalive allowed the stop ('run is done'). The Grok process then idled 30 min 23 s until it was killed (rc 143). The idle was the host not exiting, not the model."
+  },
+  "best": [
+    "system-test: complete reused the check-only rerun ('That complete takes this test run ... instead of running the commands again'), so the stage took 41.7 s and 4 calls with no reasoning detours.",
+    "release-verify item 6 plus the Unattended rule: the unobservable board was recorded as an open item instead of a block. The stage finished in 236 s; chess blocked twice (3,771 s) and never finished.",
+    "The packet prints the return route and copy-ready rollback recipes with SHAs. Release-plan copied them without searching, release returned in one command, and handoff verified the receipt.",
+    "Checked-by gate lists plus complete --check-only: zero refusals across all 11 steps.",
+    "release-check items 3-4 ('run the dry-run form ... once'; 'fixed now ... and rerun') caught and fixed the plan's broken validate command before the real deploy."
+  ],
+  "worst": [
+    "OUTER open-item stages get \"assumptions\": [] with no row shape and no list of allowed consumers (shiploop_navigator.py:4135-4136), and the gate is worded as a double negative (shiploop_navigator.py:5934). Together they cost 66 ShipLoop-source reads in 43, 46, 47 and 51, and one misread ('The packet forbids open items whose consumer is a later outer stage').",
+    "commit_leftovers (shiploop_workspace.py:1294) committed untracked .sf/ tracking files at release-check, and review-return then excluded them. The result was a working-tree-return with no commit on main: the E2E 'committed' check failed (HEAD 45e3cc53, 0 files, 18 uncommitted) and the done packet asked an absent user to commit.",
+    "The Improve handoff's 'does not execute or replay a release effect (a deployment ...)' (shiploop_prompts.py:2765) does not exempt dry runs, so the release-plan review skipped validate and missed its exit 2.",
+    "The person-only board ask is not ready for a reply. It gives no URL path, lists 'six observations' against a 5-step boardClick procedure, forbids the person 'sf org open' (an agent-only rule), and has no yes/no form and no consumer to receive an answer (handoff settles it by finishing).",
+    "The same open item A1 was re-listed by five stages and quoted five times at release-verify. Meanwhile 43 and 47 printed 'open items: none open' while A1 and A2 were open for later stages (shiploop_navigator.py:5640-5652)."
+  ]
+}

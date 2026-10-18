@@ -1,0 +1,109 @@
+{
+ "title": "Chess Run Analysis",
+ "eyebrow": "ShipLoop live run \u00b7 chess-salesforce \u00b7 2026-10-17",
+ "h1": "Chess in Salesforce: how the prompts and the model did",
+ "lede": "Grok 4.7 at medium effort built a chess rules engine in Apex with a Lightning board in the owner's Developer Edition org, on ShipLoop 1.5.0 plus the first efficiency wave. The run ended blocked at release-verify waiting for six itemized board observations. Every prompt ShipLoop wrote is below with the model's reasoning, words, tool calls and outputs, its result, the earlier packet review's scores, and each Improve review, judged against three questions. Many of the fixes it led to are already in the Battleship run.",
+ "figures": [
+  [
+   "blocked",
+   "at release-verify after 26 accepted stages; the app works and is kept"
+  ],
+  [
+   "4 / 4",
+   "case checks pass in the org (project, deployed, tests, rules 28/28)"
+  ],
+  [
+   "3 \u2192 1",
+   "planned steps collapsed into one after an item-wide check failed S1"
+  ],
+  [
+   "5",
+   "ShipLoop refusals"
+  ],
+  [
+   "11",
+   "Improve reviews, 21 passes, about 51 minutes"
+  ],
+  [
+   "8",
+   "context compactions"
+  ]
+ ],
+ "links": [
+  [
+   "Play the game",
+   "https://orgfarm-547c9f5ada-dev-ed.develop.lightning.force.com/lightning/n/SLChess_Board"
+  ],
+  [
+   "Battleship run analysis",
+   "https://claude.ai/artifact/4dwjgqaNCzRCCj5tzUr5ey"
+  ]
+ ],
+ "packet_reviews": [
+  "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/packet-review-2026-10-17/A-preparation.json",
+  "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/packet-review-2026-10-17/B-build-1.json",
+  "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/packet-review-2026-10-17/C-build-2.json",
+  "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/packet-review-2026-10-17/D-verify.json",
+  "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/packet-review-2026-10-17/E-system-test.json",
+  "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/packet-review-2026-10-17/F-release.json"
+ ],
+ "answers": {
+  "step_by_step": {
+   "label": "No",
+   "tone": "b",
+   "text": "Step-plan cut three steps (engine, controller, board), but the only check row was S3's board grep and ShipLoop ran every check after every step, so S1 could not finish. The step-plan Improve review, not implement, then merged all three into one step; it saw the right fix (a regression test) but guessed the gate would reject it. One 17-minute implement built all 11 files and one review covered the whole item. Fixed since: each step now has its own proof and runs only that."
+  },
+  "improve": {
+   "label": "Mixed",
+   "tone": "w",
+   "text": "Planning reviews found real oracle defects that held through the org tests (FEN fields, castling, deploy-then-TAP). They also passed an impossible promotion line and missed the tab-visibility prerequisite, both of which reached the owner; the implement review found the AuraHandledException message issue and then talked itself out of it, and verify had to fix it. Of the outer-stage reviews, 1 in 4 found something real."
+  },
+  "directive": {
+   "label": "Weak where gates lived in code",
+   "tone": "b",
+   "text": "Where the stage method was in the packet the model read nothing else (research, spec, release). Where a rule lived only in ShipLoop's code the model read the code: 26 times in preparation and 109 times in the release half, 34 of them at release-plan to learn the delivery contract. Release-verify had no rule for a partial person reply and blocked twice."
+  }
+ },
+ "fixes": [
+  {
+   "issue": "Item-wide checks ran after every step and collapsed three steps into one",
+   "fix": "Done: each step has its own proof; checks scoped to their step",
+   "where": "integration branch 603a709c, 672973ae"
+  },
+  {
+   "issue": "release-plan learned the delivery contract from source (34 reads, 12.5 min)",
+   "fix": "Done: the gate and template field are in the packet (Battleship release-plan 5.3 min, 21 reads)",
+   "where": "integration U6"
+  },
+  {
+   "issue": "Tab hidden from the owner; no stage checked access",
+   "fix": "Done: prepare and release-check probe entry access; the Battleship case ships a permission set",
+   "where": "integration U7, battleship-salesforce case"
+  },
+  {
+   "issue": "An impossible person procedure (promotion blocked by a pawn) passed three reviews",
+   "fix": "Done: the procedure walk in the shared review focus; a live reviewer still has to apply it",
+   "where": "integration W2-C"
+  },
+  {
+   "issue": "Partial person reply re-blocked release-verify",
+   "fix": "Decided (D6): a narrower second ask; open: write person-only behaviour as one-line outcomes at release-plan",
+   "where": "DUTIES['release-verify'] item 6, release-plan item 6"
+  },
+  {
+   "issue": "Open-item consumers and row shape not printed",
+   "fix": "Open (same as Battleship)",
+   "where": "_CONSUMER_PLACEHOLDER"
+  },
+  {
+   "issue": ".sf/ files committed by the return made a fast-forward impossible",
+   "fix": "Open (same as Battleship)",
+   "where": "shiploop_workspace.commit_leftovers"
+  },
+  {
+   "issue": "Improve probe vs 'No push, deploy' sent a review to documentation and it dropped a real finding",
+   "fix": "Open: state how a review may probe",
+   "where": "implement focus; Improve authority line"
+  }
+ ]
+}
