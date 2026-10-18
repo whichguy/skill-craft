@@ -152,9 +152,8 @@ For example, a material first cycle might report:
 Candidate abc123 plus scoped parser.py/test_parser.py; read seven full messages.
 Found blank input violated the documented fallback, changed those two files, and
 ran `python -m unittest test_parser` (0). Committed def456 with the required
-review/plan/validation/learning record. The repair changed the content, so the pass is
-non-trivial; no remaining observed parser failure, but a fresh review that leaves the
-content unchanged is still required.
+review/plan/validation/learning record. Material repair resets the streak; no
+remaining observed parser failure, but two fresh qualifying reviews are still required.
 ```
 
 A later qualifying no-change review might report:
@@ -204,8 +203,7 @@ return. A receipt locator alone does not convey what was learned or improved.
 
 ## Boundaries and incomplete work
 
-The script stores the latest report, a numeric trivial-review streak (gates 0 and 1) and the
-last measured content tree (the unchanged gate, which Improve uses). It
+The script stores the latest report and a numeric trivial-review streak. It
 checks the report's shape, action identity, transition order, and configured
 gate. It cannot prove the host read history, ran a command, preserved unrelated
 work, or made a valid semantic classification.

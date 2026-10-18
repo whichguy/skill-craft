@@ -1,6 +1,6 @@
 # Improve stop rule: one pass that leaves the content unchanged (journal, 2026-10-16)
 
-Status: **implemented on branch `feat/shiploop-eff-stop-6afcbc`, unreleased.** Owner decision 2026-10-16; SPEC S-10 carve-out of that
+Status: **superseded 2026-10-18, never released.** The owner kept main's Improve 0.4.4 runtime, which vendors upstream Until Loop 0.10.0 byte-identical, and its rule: an Improve review ends after two consecutive trivial passes, or after a first pass that is trivial and leaves the workspace unchanged (2be7906b). The one-unchanged-pass rule below (60018152), its scope by stage kind (c374549f, 94ac8d00, b0a15267) and the lean returns (aa6b1914) were removed from the integration branch with their ShipLoop and Improve consumers; the SPEC S-10 carve-out of 2026-10-16 and the 2026-10-17 proposal are withdrawn (a dated note in S-10 says so). The evidence and the replay below stay as the record of what was measured; the 21-to-15 saving does not ship. Earlier status, kept: **implemented on branch `feat/shiploop-eff-stop-6afcbc`, unreleased.** Owner decision 2026-10-16; SPEC S-10 carve-out of that
 date ([test/shiploop_e2e/SPEC.md](../test/shiploop_e2e/SPEC.md)). Edit this page rather than deleting from it; mark a claim
 superseded with its date and reason.
 

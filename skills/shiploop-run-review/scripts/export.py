@@ -1014,17 +1014,9 @@ def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order
              else _owner(name, loop_start, text, actions))
     required = progress.get("required_trivial_reviews")
     required = required if isinstance(required, int) and not isinstance(required, bool) and required >= 0 else None
-    unchanged_gate = "last_pass_changed_tree" in progress  # the unchanged-content gate counts nothing: no streak target
-    if unchanged_gate:
-        required = 0
     passes_text = str(len(passes) if passes else count) if passes or count else "unknown"
     facts = [{"k": "Passes", "v": passes_text},
              {"k": "Final status", "v": str(receipt.get("status") or "unknown")}]
-    if unchanged_gate:
-        changed = progress.get("last_pass_changed_tree")
-        facts.append({"k": "Review gate", "v": "unchanged content: " + (
-            "the last pass changed the content" if changed is True else
-            "the last pass left the content unchanged" if changed is False else "the last pass was not measured")})
     if "trivial_streak" in progress:
         facts.append({"k": "Trivial streak",
                       "v": "no trivial-streak requirement on this loop" if required == 0

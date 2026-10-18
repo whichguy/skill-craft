@@ -88,7 +88,7 @@ class Synthetic(unittest.TestCase):
     def runtime(self, args: list, stdin: str) -> dict:
         done = subprocess.run([sys.executable, self.cli, *args], input=stdin, text=True, capture_output=True,
                               timeout=60)
-        return support.full_packet(json.loads(done.stdout))  # a receipt run prints a lean return (U21)
+        return json.loads(done.stdout)
 
     def start(self, stage: str) -> tuple[dict, Path]:
         """Write the stage's contract and start it under the real runtime; returns (state, receipt)."""
@@ -144,12 +144,8 @@ class ContractTests(Synthetic):
                 writes = self.write(state)
                 value = loops.contract(self.root, state, action)
                 # The runtime's own validator returns the contract unchanged: no field added, dropped or normalised.
-                # The 0.8.0 runtime normalizes a contract without exit checks to an empty list, and the bundled runtime
-                # one without candidate paths (the stop rule's optional list) to an empty list; nothing else changes.
-                # The stage loops never write candidate_paths: the published until-loop plugin refuses an unknown field.
-                self.assertNotIn("candidate_paths", value)
-                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True),
-                                 {**value, "exit_checks": [], "candidate_paths": []})
+                # The 0.8.0 runtime normalizes a contract without exit checks to an empty list; nothing else changes.
+                self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
                 self.assertEqual(json.loads(writes[loops.contract_path(action)]), value)
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
                 self.assertEqual(value["required_trivial_reviews"], 1 if stage == "verify" else 0)
@@ -179,10 +175,8 @@ class ContractTests(Synthetic):
         state = dict(self.state_for("implement"), delegation="ask-agent")
         writes = self.write(state)
         value = loops.contract(self.root, state, "A-implement")
-        # The runtime normalises the two optional lists a stage loop does not write (exit_checks, and since the stop rule
-        # candidate_paths, which only an Improve child lists): both come back empty.
-        self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True),
-                         {**value, "exit_checks": [], "candidate_paths": []})
+        # The runtime normalises the optional list a stage loop does not write (exit_checks): it comes back empty.
+        self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
         lines = value["exit_condition"].splitlines()
         self.assertEqual(len(lines), len(stage_spec.stage("implement").done_when))
         self.assertEqual(lines[0], "1. only the paths of steps S1 to S2 (src/a.py, src/b.py, src/c.py) changed since the "
@@ -357,7 +351,7 @@ class InvokeLinesTests(Synthetic):
                 self.assertEqual(block.field("Receipt: "), str(receipt))
                 self.assertFalse(receipt.exists())
                 with tempfile.TemporaryDirectory(prefix="shiploop-cwd-") as elsewhere:
-                    started = support.full_packet(block.run(Path(elsewhere)))
+                    started = block.run(Path(elsewhere))
                 self.assertEqual(started["status"], "active", started)
                 self.assertEqual(started["receipt"], str(receipt))
                 self.assertEqual(json.loads(receipt.read_text()), started)
@@ -627,7 +621,6 @@ class NavigatorLoopTests(fx.RunDriver):
             self.assertEqual(packet["status"], "active")
             packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(report), text=True,
                                                capture_output=True, check=True, timeout=30).stdout)
-        packet = support.full_packet(packet)  # the receipt holds the full packet behind the lean print (U21)
         self.assertEqual(json.loads(self.receipt().read_text()), packet)
         return packet
 

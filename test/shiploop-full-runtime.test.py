@@ -25,7 +25,7 @@ import unittest
 import package_build
 import shiploop_knowledge_support as knowledge_support
 from shiploop_packet_view import head_packet_path
-from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt
+from shiploop_loop_support import finish_loop, with_receipt
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,9 +38,6 @@ GENERATED_IMPROVE = PLUGINS / "skill-craft" / "skills" / "improve"
 # This expectation is intentionally independent of the prompt catalog and
 # navigator implementation.  A changed graph must update this public-contract
 # test deliberately instead of silently changing its own oracle.
-# The Improve reviews of code (the child after each implement step and after the last carry-forward) run at the two-pass
-# gate (D-6 / R1, SPEC S-10 proposal of 2026-10-17); every other Improve child runs at the one-pass gate.
-TWO_PASS_IMPROVE_STAGES = ("implement", "carry-forward")
 EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
@@ -276,8 +273,6 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             self.fail(f"Until Loop did not return JSON: {detail}\n{exc}")
         self.assertIsInstance(packet, dict)
-        if set(packet) == LEAN_KEYS:  # a receipt run prints a lean return; its receipt holds the full packet (U21)
-            return Path(packet["receipt"]).read_bytes(), full_packet(packet)
         return result.stdout, packet
 
     def _git(self, repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -383,7 +378,6 @@ class FullRuntimeCompositionTests(unittest.TestCase):
     def _start_direct(self, label: str, shiploop: Path, improve: Path) -> tuple[Path, Path]:
         repo = self.base / label / "ordinary repository"
         repo.mkdir(parents=True)
-        self._git(repo, "init", "-q")  # the Improve review's unchanged-content gate measures a Git worktree
         run = self.base / label / "run"
         self._run(
             self._script(shiploop),
@@ -475,12 +469,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(packet["status"], "active")
         binding = context["binding"]
         contract = json.loads((packet_path.parent / "start.json").read_text(encoding="utf-8"))
-        # The frozen contract is ShipLoop's: the binding line, workspace, the unchanged-content gate (2, or 3 for the
-        # code reviews) and its locators.
+        # The frozen contract is ShipLoop's: the binding line, workspace, two required reviews and its locators.
         self.assertEqual(packet["context"], contract["context"])
         self.assertEqual(packet["context"]["request"].splitlines()[0], binding["contract_marker"])
-        self.assertEqual(packet["progress"]["required_trivial_reviews"],
-                         3 if context["stage"] in TWO_PASS_IMPROVE_STAGES else 2)
+        self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
         resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
         self.assertEqual(resources["latest child packet receipt"], str(packet_path))
         self.assertEqual(resources["ShipLoop parent state"], str(context["run"] / "state.md"))
@@ -507,7 +499,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         _raw, packet = self._run_child_argv(
             [sys.executable, "-B", str(self._until(context["improve_skill"])), "start", "--directory",
              str(scratch / "state"), "--receipt", str(scratch / "packet.json")], contract)
-        for classification, exit_assessment in (("non-trivial", "unsatisfied"), ("trivial", "satisfied")):
+        for classification, exit_assessment in (("non-trivial", "unsatisfied"), ("trivial", "unsatisfied"),
+                                                ("trivial", "satisfied")):
             raw, packet = self._run_child_argv(packet["done_argv"], {
                 "classification": classification, "exit_assessment": exit_assessment,
                 "continuation_assessment": "allowed", "evidence": "Synthetic foreign child; no review claim.",
@@ -551,20 +544,18 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             }
 
         packet = child["packet"]
-        two_pass = context["stage"] in TWO_PASS_IMPROVE_STAGES
         for classification, exit_assessment, label in (
             ("non-trivial", "unsatisfied", "material finding"),
-            ("trivial", "satisfied", "qualifying review that changed nothing"),
-            *((("trivial", "satisfied", "second qualifying review that changed nothing"),) if two_pass else ()),
+            ("trivial", "unsatisfied", "first qualifying review"),
+            ("trivial", "satisfied", "second qualifying review"),
         ):
             raw, packet = self._run_child_argv(
                 packet["done_argv"], report(classification, exit_assessment, label)
             )
             context["packet_path"].write_bytes(raw)
         self.assertEqual(packet["status"], "complete")
-        self.assertEqual(packet["progress"], {"action_number": 3 if two_pass else 2,
-                                              "required_trivial_reviews": 3 if two_pass else 2,
-                                              "last_pass_changed_tree": False})
+        self.assertEqual(packet["progress"]["trivial_streak"], 2)
+        self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
         self.assertIsNone(packet["next_argv"])
         self.assertIsNone(packet["done_argv"])
         self.assertFalse(child["state_file"].exists())

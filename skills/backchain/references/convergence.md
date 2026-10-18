@@ -54,13 +54,6 @@ requiring two consecutive distinct complete trivial/no-change dependency reviews
 final candidate-specific domain evidence, a repeat condition covering useful authorized
 planning repair or required distinct review, and `required_trivial_reviews: 2`.
 
-The bundled Until Loop runtime no longer counts reviews at `required_trivial_reviews: 2`: it ends the loop
-on a trivial, satisfied pass after which it measures the workspace content unchanged from the previous pass (in a
-directory that is not a Git worktree too, through a throwaway repository). The bundled card also accepts an optional `candidate_paths` list of plan files outside the
-worktree to measure; the published until-loop plugin refuses that field, so send it only to the bundled card.
-The exit condition above still asks, by default, for two consecutive distinct reviews; the
-runtime's measurement is an additional necessary condition, not a replacement for those reviews.
-
 With `Backchain passes: one` beside the binding marker, supply instead the same repeat
 condition, `required_trivial_reviews: 0` and this exit condition: One complete dependency
 review/fix/check cycle has run; every finding of that cycle is repaired within the edit

@@ -87,7 +87,9 @@ Live round still owed: whether a Claude model refused by the gate follows the na
 - Per-step measurements (offline, node-fix-bug): PK1 +12,643 characters over 48 packets, PK3 -12,101, net +542 (+0.1%); whole inline renders -2.9%; printed heads grow.
 
 ## Decisions waiting for the owner
-1. Stop-rule scope (F1): planning stages only, or all Improve children.
+1. Stop-rule scope (F1): planning stages only, or all Improve children. **Resolved 2026-10-18 by the owner: neither.**
+   Main's Improve 0.4.4 runtime (upstream Until Loop 0.10.0, byte-identical) and its rule stand; the stop rule, its
+   scope by stage kind (U2) and the lean returns (U21) are dropped (row 2026-10-18 INT at the end of this journal).
 2. Callback placement (line 4 after the owner lines, or after the callback line).
 3. The step-plan head over the host cut: trim about 500 characters, reorder the head (put the block before the lines a cut can take), or raise nothing (the plan's D-27).
 4. Whether OpenCode needs the same inherited-marker exemption (its environment marker is unknown here).
@@ -650,3 +652,16 @@ Related commits: `da9e2e75` (base), `a7c1fdb2` (baseline row of the audit-fix ru
 - change: `shiploop_navigator.step_checks` splits the item's checks into those due at the step (no criteria, or every criterion's last listing step at or before it) and those due later (named on the packet with their step); the step-plan check duty and the implement exit condition say so.
 - tests: new `shiploop-delegation` case `test_a_check_runs_from_the_step_that_finishes_its_criteria` (a 3-step plan: the board check is due only at S3, lint at every step); fail-first: on the previous navigator it reports the board check due at all three steps, the run's failure. Suites run once after the last edit, all OK: shiploop-delegation (59), -head-order (33, the fixture's expected check list now uses `step_checks`), -packet-recut (30, after raising three head values by 18 to 117 characters in head_table.json), -loops (51), -navigator-contract (110), -callback-contract (72), -step-packets (9), -packet-completeness (62), -packet-obligations (15), -reference (8), -reference-routing (4), -test-loop.
 - open: the gate does not yet refuse a step plan whose check cannot be satisfied by any prefix of the steps; a live run with a multi-step plan should show one implement and one Improve per step in order (owner TODO, memory todo-step-series-order).
+
+### 2026-10-18 INT merge with main's Improve 0.4.4: the stop rule, its scope by stage kind and the lean returns dropped
+- status: firm
+- snapshot: fe02651e (the merge of origin/main 17ddec36 into INT, before this change)
+- fixture: the hermetic suites named in the commit message (no model, no live run); the offline render of node-fix-bug at inline and ask-agent, run directory 83 and 163, CLI 96
+- run-dir length: n/a
+- unit: INT
+- evidence: `docs/shiploop-improve-stop-rule-journal-2026-10-16.md`, `test/shiploop_e2e/SPEC.md`, `test/improve_route_ledger.json`, `test/shiploop_e2e/packet_head_table.json`
+- question: main shipped Improve 0.4.4 with the upstream Until Loop 0.10.0 runtime vendored byte-identical; INT had adapted the older vendored runtime (60018152 the one-unchanged-pass stop rule and `candidate_paths`; c374549f, 94ac8d00 and b0a15267 gate 3 for code reviews; aa6b1914 the lean returns) and built ShipLoop and Improve consumers on it. The owner kept main's runtime and rule and dropped those adaptations; what must change for INT to be green on main's runtime?
+- change: ShipLoop starts every Improve child at `required_trivial_reviews: 2` with main's exit and repeat conditions and no `candidate_paths` (the stage table has no per-stage gate again); the import takes the last two review files, or one for an unchanged first pass, and accepts main's progress keys (`trivial_streak`, `unchanged_first_pass`); the change gate and the restart route key on `unchanged_first_pass` again (IMP-2's restart of a review the skill never ran is kept). The Improve router (U18) stays, with main's description and `start --isolated` text; the ShipLoop route and the standalone route state main's rule and read full returns; the ledger follows upstream's ADAPTER.md. Tests that pinned the dropped behaviour were deleted or rewritten to main's (list in the commit message); suite selection by the runtime path (U2's F2) is kept.
+- result: printed packet heads unchanged at all four renders (render_diff.py --emit-table equals packet_head_table.json; head_table.json re-measured, no change). The Improve handoff and the child contract (files, not printed packets) carry main's two-pass text again.
+- cost the owner should know: a ShipLoop Improve child's runtime `start` and `done` print the full packet again (U21 measured 11,515 and 22,709 characters against 2,733 and 2,778 lean on a live-shaped step-plan loop), and a review now needs a second clean pass after any material pass (the study's 21 passes: 21 under main's rule against 15 under the dropped one; an edit to a run-directory result file is no longer part of the first-pass unchanged check).
+- key learning: an adaptation of a vendored runtime spreads into every consumer that reads its packet shape (progress keys, printed keys, gate values, receipt counts); keeping upstream byte-identical keeps that surface to one place, and the release guard still needs a note for every leaf a dropped commit touched (Backchain gets a no-change note).

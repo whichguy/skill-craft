@@ -60,14 +60,12 @@ original learnings with selective references to prior commits in one account.
   Before `done`, summarize those observations truthfully in its concise
   `evidence` field and retain complete continuation facts in `handoff`, as
   described in [callback evidence](callback-evidence.md). The
-  script retains only its current contract, latest report, trivial-review
-  counter and the last measured content tree; it cannot turn a callback claim
-  into proof.
+  script retains only its current contract, latest report, and trivial-review
+  counter; it cannot turn a callback claim into proof.
 - **Commit policy:** after required checks pass, commit authorized scoped files
   changed by a completed iteration with the required learning-oriented record.
   Its body must include Review, Plan, Changes, Validation, Key learnings, and
-  Remaining work, including the classification and whether the pass changed the
-  content. Explain
+  Remaining work, including the classification and resulting streak. Explain
   the consequential influences, how they shaped decisions, and what was newly
   learned within those sections. Cite prior commits when they materially
   informed a decision; explain original learnings fully when none did. A
@@ -98,16 +96,13 @@ original learnings with selective references to prior commits in one account.
   `unresolved` if work, evidence, required commit, or assessment is incomplete.
   Report the substantive exit assessment and whether continuation is allowed,
   blocked, or cancelled.
-- **Exit rule:** repeat until one pass makes no changes. "No changes" needs
-  more than the report: the pass is `trivial` (nothing material found, at most
-  trivial polish) and satisfied with its checks passing, and the runtime
-  measures from Git that the workspace content (tracked and untracked files;
-  ignored and runtime files aside, plus any result file outside the worktree
-  the contract names in `candidate_paths`) is exactly what the previous pass
-  left (for the first pass, what it was at `start`). A pass that changed the
-  content never ends the loop, however it is labelled, so a material pass is
-  always followed by another pass; there is no pass count and no timer. Report
-  a pass that edited anything as `non-trivial`. Only the runtime can
+- **Exit rule:** repeat until two consecutive passes make no changes, or the
+  first pass completes with no change. "No changes" means a `trivial` pass:
+  nothing material found, at most trivial polish. A material or unresolved
+  pass resets the count. The one-pass exit needs more than the report: the
+  runtime checks from Git that the workspace content (tracked and untracked
+  files; ignored and runtime files aside) is exactly what it was at `start`,
+  and only then ends the loop after that first pass. Only the runtime can
   accept a terminal transition. A blocker, requested stop, exhausted budget,
   failed required commit, stale check, or unresolved evidence remains
   incomplete rather than satisfying the review policy.
@@ -150,7 +145,7 @@ does not require the user to reapprove already authorized actions.
 Keep the launch context immutable and continue the same runtime; reconcile it
 with received later decisions on recovery. If those loop conditions must change,
 return the conflict through the parent's supported route; do not independently
-replace the child or carry an unchanged-pass observation across changed criteria.
+replace the child or carry a qualifying streak across changed criteria.
 An unresolved conflict or unknown
 delivery/effect blocks the affected operation, not unrelated authorized work.
 Name the selected Improve card, bound Until Loop card, review policy and any
@@ -196,7 +191,7 @@ HEAD and scoped edits, all still-relevant changes and decisions, actual check
 results, commit receipts or why no commit exists, pending issues, and evidence
 locators. Copy necessary findings from earlier cycles forward; never assume the
 next executor can read earlier conversation. The script's returned progress
-remains the authority for the review gate, not a model-written number in the handoff.
+remains the authority for the streak, not a model-written number in the handoff.
 The task record can still hold detailed output; essential continuity facts belong
 in the packet, without introducing another state file or requiring a new log.
 
@@ -210,7 +205,7 @@ unresolved and stop incomplete when it prevents useful authorized progress.
 
 Include preparing a cumulative summary in the standalone execution contract.
 Before each `done`, retain the key implemented changes and still-relevant lessons
-from the whole run in the existing `handoff`; the final no-change review must
+from the whole run in the existing `handoff`; the last two no-change reviews must
 not reduce that account to “nothing changed.” After the runtime returns
 `complete`, return a self-contained summary to the caller; inside an
 [agent-run invocation](../SKILL.md#agent-run-invocation), return it inline in the native
@@ -275,8 +270,8 @@ context.
 Preserve the shared policy and every standalone binding above in the interpreted
 contract, including conditional commit overrides and negative constraints. The
 execution condition must contain the complete ordered review cycle; the exit
-condition must include current evidence and the exit rule (a pass with no
-changes, which the runtime measures);
+condition must include current evidence and the exit rule (two consecutive
+passes with no changes, or a first pass that completes with no change);
 and the continuation condition must retain useful authorized work and incomplete
 stops. Before start, check that required exit outcomes can be achieved during
 execution. If the task requires an authorized deployment or other external

@@ -233,8 +233,6 @@ class NavigatorContractTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name) / "project"
         self.repo.mkdir()
-        # The Improve review's unchanged-content gate measures a Git worktree; ShipLoop starts the child at the transition.
-        subprocess.run(["git", "-C", str(self.repo), "init", "-q"], check=True, capture_output=True)
         self.requirements_policy = (
             SCRIPTS.parent / "references" / "project-knowledge.md"
         ).resolve()
@@ -1725,7 +1723,7 @@ class NavigatorContractTests(unittest.TestCase):
                 with self.subTest(render_state=render_state):
                     normalized_packet = " ".join(packet.split())
                     self.assertIn("Child workspace: " + str(self.repo), normalized_packet)
-                    self.assertIn("complete command imports the final pass (the last review file)", normalized_packet)
+                    self.assertIn("complete command imports the last two passes", normalized_packet)
                     # The review files print as the handoff's CHILD symbol, defined once with the child's directory (on
                     # the handoff's top line beside ROUTE, plan U18).
                     self.assertIn("CHILD = " + str(child_dir) + " · ROUTE = ", normalized_packet)
@@ -3771,7 +3769,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "names the consumers of a note that exist; promises none",
         ("references/state-files.md", "An Improve handoff receives that same source plus"):
             "says what an Improve handoff that runs receives; the stages listed are the source's owners",
-        ("references/testing-and-documentation.md", "for review, plan, apply, check and unchanged-content assessment"):
+        ("references/testing-and-documentation.md", "for review, plan, apply, check and two-trivial assessment"):
             "`plan` is a verb of the Until Loop here, not the stage",
     }
 

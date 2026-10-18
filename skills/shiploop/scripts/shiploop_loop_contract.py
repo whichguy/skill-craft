@@ -16,15 +16,9 @@ import shiploop_stage_spec as stage_spec
 
 def contract(*, workspace: str, work: str, exit_condition: str, repeat_condition: str,
              required_trivial_reviews: int, request: str, scope: str, authority: str, environment: str,
-             resources: Sequence[Mapping[str, str]], candidate_paths: Sequence[str] = ()) -> Dict[str, Any]:
-    """A complete Until Loop start contract; every field but ``candidate_paths`` is required.
-
-    ``required_trivial_reviews`` is the runtime's review gate: 0 and 1 for the stage loops, 2 or 3 (the unchanged-content
-    gates, ``stage_spec.improve_gate``) for an Improve child.  ``candidate_paths`` are the files outside the worktree whose bytes those gates also
-    compares between passes (a stage result under the run directory).  The key is written only when there are some:
-    the stage loops' contracts must stay valid for the published until-loop plugin, which refuses an unknown field.
-    """
-    value: Dict[str, Any] = {
+             resources: Sequence[Mapping[str, str]]) -> Dict[str, Any]:
+    """A complete Until Loop start contract; every field is required."""
+    return {
         "workspace": workspace,
         "work": work,
         "exit_condition": exit_condition,
@@ -33,9 +27,6 @@ def contract(*, workspace: str, work: str, exit_condition: str, repeat_condition
         "context": {"request": request, "scope": scope, "authority": authority, "environment": environment,
                     "resources": [dict(resource) for resource in resources]},
     }
-    if candidate_paths:
-        value["candidate_paths"] = [str(path) for path in candidate_paths]
-    return value
 
 
 def dumps(value: Mapping[str, Any]) -> str:

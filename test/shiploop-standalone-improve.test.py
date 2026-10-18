@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Contract tests for the read-only standalone Improve import bridge.
-
-Stop rule (owner 2026-10-16): the bound runtime ends an Improve review on ONE trivial, satisfied pass after which it
-measures the content tree unchanged from the previous pass, so the bridge imports exactly one review (the final pass)
-and refuses a packet from any other gate or from the older runtime that counted a trivial streak.
-"""
+"""Contract tests for the read-only standalone Improve import bridge."""
 
 from __future__ import annotations
 
@@ -28,10 +23,6 @@ import shiploop_navigator as navigator  # noqa: E402
 
 
 
-def git(repo: Path, *args: str) -> None:
-    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
-
-
 def _receipt(binding):
     """The child receipt path ShipLoop prints; the runtime writes every packet there itself."""
     path = bridge.receipt_path(binding)
@@ -39,28 +30,11 @@ def _receipt(binding):
     return path
 
 
-
-def _full(stdout: str) -> tuple[dict[str, object], str]:
-    """The full packet and its exact text: a run started with --receipt prints a lean return from start and done
-    (vendored runtime adaptation U21) and keeps the full packet, byte for byte, in its receipt."""
-    printed = json.loads(stdout)
-    if "report_fields" not in printed:
-        return printed, stdout
-    raw = Path(printed["receipt"]).read_text(encoding="utf-8")
-    return json.loads(raw), raw
-
 class StandaloneImproveBridgeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-standalone-improve-")
         self.workspace = Path(self.temp.name) / "workspace"
         self.workspace.mkdir()
-        # The unchanged-content gate measures a Git worktree; the runtime refuses to start without one.
-        git(self.workspace, "init", "-q")
-        git(self.workspace, "config", "user.email", "s@example.invalid")
-        git(self.workspace, "config", "user.name", "S")
-        (self.workspace / "candidate.py").write_text("x = 1\n")
-        git(self.workspace, "add", "-A")
-        git(self.workspace, "commit", "-qm", "base")
         self.state = {"run_id": "run01", "repo": str(self.workspace)}
         self.parent = "nav-test"
         self.ephemeral_skill = bridge.resolve_skill(str(IMPROVE))
@@ -74,7 +48,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
     def receipt(self) -> dict[str, object]:
         return {
             "summary": "The actual Improve child completed.",
-            "review_refs": ["review-b.md"],
+            "review_refs": ["review-a.md", "review-b.md"],
             "check_refs": ["check.md"],
             "lessons": "Keep the focused test before implementation.",
         }
@@ -84,7 +58,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         contract = {
             "workspace": str(self.workspace),
             "work": "Perform one complete Improve review and applicable checks.",
-            "exit_condition": "A trivial review that leaves the content unchanged and current evidence establish completion.",
+            "exit_condition": "Two qualifying trivial reviews and current evidence establish completion.",
             "repeat_condition": "Continue while an authorized improvement or evidence gap remains.",
             "required_trivial_reviews": required_reviews,
             "context": {
@@ -106,7 +80,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        return _full(completed.stdout)
+        return json.loads(completed.stdout), completed.stdout
 
     def ephemeral_done(self, packet: dict[str, object], report: dict[str, str]) -> tuple[dict[str, object], str]:
         argv = packet["done_argv"]
@@ -116,18 +90,21 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        return _full(completed.stdout)
+        return json.loads(completed.stdout), completed.stdout
 
     def terminal_ephemeral(self, *, required_reviews: int = 2) -> tuple[dict[str, object], str]:
-        """A run that completes on its first report: gate 2 because that pass leaves the content unchanged."""
         packet, _raw = self.ephemeral_start(required_reviews=required_reviews)
-        packet, raw = self.ephemeral_done(packet, {
-            "classification": "trivial",
-            "exit_assessment": "satisfied",
-            "continuation_assessment": "allowed",
-            "evidence": "the review found no material issue and changed nothing",
-            "handoff": "Objective and scope remain unchanged; check.md is the current check record.",
-        })
+        for index in range(required_reviews):
+            packet, raw = self.ephemeral_done(packet, {
+                "classification": "trivial",
+                "exit_assessment": "satisfied" if index == required_reviews - 1 else "unsatisfied",
+                "continuation_assessment": "allowed",
+                "evidence": f"distinct qualifying review {index + 1} found no material issue",
+                "handoff": (
+                    "Objective and scope remain unchanged; review " + str(index + 1)
+                    + " found no material issue; check.md is the current check record."
+                ),
+            })
         self.assertEqual(packet["status"], "complete")
         self.assertFalse(Path(packet["state_file"]).exists(), "terminal runtime state must be deleted")
         return packet, raw
@@ -164,43 +141,30 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.assertEqual((record, writes), bridge.complete(self.ephemeral_binding, self.receipt()))
         self.assertEqual(packet["last_report"]["classification"], "trivial")
 
-    def test_a_trivial_pass_that_left_the_content_unchanged_imports_with_its_one_review(self) -> None:
-        report = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
-                  "evidence": "One full review found nothing worth changing.", "handoff": "Nothing remains."}
-        packet, raw = self.ephemeral_start()
-        packet, raw = self.ephemeral_done(packet, report)
-        self.assertEqual(packet["status"], "complete")
-        self.assertEqual(packet["progress"], {"action_number": 1, "required_trivial_reviews": 2,
-                                              "last_pass_changed_tree": False})
-        self.save_terminal_packet(raw)
-        self.write_evidence()
-        record, _writes = bridge.complete(self.ephemeral_binding, self.receipt())
-        self.assertEqual(record["runtime_phase"], "complete")
-        for refs in (["review-a.md", "review-b.md"], []):
-            with self.subTest(refs=refs), self.assertRaisesRegex(bridge.StandaloneImproveError,
-                                                                  "one review reference of the final pass"):
-                bridge.complete(self.ephemeral_binding, dict(self.receipt(), review_refs=refs))
-        # The navigator's change gate reads the same receipt: a completion on the first pass is the one it cross-checks.
-        self.assertTrue(navigator._ended_on_first_pass(self.ephemeral_binding))
-
-    def test_a_completion_after_an_editing_pass_is_not_a_first_pass_completion(self) -> None:
+    def test_an_unchanged_first_pass_imports_with_its_one_review(self) -> None:
+        for args in (("init", "-q"), ("config", "user.email", "s@example.invalid"), ("config", "user.name", "S")):
+            subprocess.run(["git", "-C", str(self.workspace), *args], check=True, capture_output=True)
+        (self.workspace / "candidate.py").write_text("x = 1\n")
+        subprocess.run(["git", "-C", str(self.workspace), "add", "-A"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(self.workspace), "commit", "-qm", "base"], check=True, capture_output=True)
         packet, _raw = self.ephemeral_start()
-        (self.workspace / "candidate.py").write_text("x = 2\n")
-        packet, _raw = self.ephemeral_done(packet, {
-            "classification": "non-trivial", "exit_assessment": "unsatisfied", "continuation_assessment": "allowed",
-            "evidence": "Fixed a value.", "handoff": "Review again."})
-        self.assertEqual((packet["status"], packet["progress"]["last_pass_changed_tree"]), ("active", True))
         packet, raw = self.ephemeral_done(packet, {
             "classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
-            "evidence": "Nothing more to change.", "handoff": "Nothing remains."})
-        self.assertEqual((packet["status"], packet["progress"]["action_number"]), ("complete", 2))
+            "evidence": "One full review found nothing worth changing.", "handoff": "Nothing remains."})
+        self.assertEqual(packet["status"], "complete")
+        self.assertTrue(packet["progress"]["unchanged_first_pass"])
         self.save_terminal_packet(raw)
         self.write_evidence()
-        record, _writes = bridge.complete(self.ephemeral_binding, self.receipt())
+        one = dict(self.receipt(), review_refs=["review-a.md"])
+        record, _writes = bridge.complete(self.ephemeral_binding, one)
         self.assertEqual(record["runtime_phase"], "complete")
-        self.assertFalse(navigator._ended_on_first_pass(self.ephemeral_binding))
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "ended on one unchanged trivial pass"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+        # The navigator's change gate reads the same receipt; it used to hit a NameError that
+        # an except-everything swallowed, so the cross-check never ran.
+        self.assertTrue(navigator._unchanged_first_pass(self.ephemeral_binding))
 
-    def test_created_plans_wait_for_an_unchanged_review_after_material_repair(self) -> None:
+    def test_created_plans_wait_for_two_reviews_after_material_repair(self) -> None:
         """Real callback/import mechanics; review judgments are synthetic, not LLM quality evidence."""
         for stage, successor in (("plan", "prepare"), ("step-plan", "test-spec")):
             with self.subTest(stage=stage):
@@ -236,26 +200,26 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
                 self.addCleanup(Path(packet["state_file"]).unlink, missing_ok=True)
                 self.write_evidence()
 
-                # A trivial label cannot end the loop on a pass that edited the plan; only an unchanged pass can.
-                sequence = (("non-trivial", True, True), ("trivial", True, True), ("trivial", False, False))
-                for index, (classification, edits, changed) in enumerate(sequence):
-                    if edits:
+                # An early clean review cannot survive an intervening material repair.
+                sequence = (("trivial", 1), ("non-trivial", 0), ("trivial", 1), ("trivial", 2))
+                for index, (classification, streak) in enumerate(sequence):
+                    if classification == "non-trivial":
                         plan_path.write_text(
-                            f"Revised {index}: create prerequisite, then implement feature, then verify.\n",
+                            "Revised: create prerequisite, then implement feature, then verify.\n",
                             encoding="utf-8",
                         )
                     packet, raw = self.ephemeral_done(packet, {
                         "classification": classification,
+                        # Even a declared pass cannot bypass the consecutive-review gate.
                         "exit_assessment": "satisfied" if classification == "trivial" else "unsatisfied",
                         "continuation_assessment": "allowed",
                         "evidence": f"Synthetic review {index + 1} of {plan_path.name}: {classification}.",
                         "handoff": "Retain planning-only scope and review the current plan again if pending.",
                     })
-                    if index < 2:
-                        self.assertEqual(packet["status"], "active")
-                        self.assertIs(packet["progress"]["last_pass_changed_tree"], changed)
+                    self.assertEqual(packet["progress"]["trivial_streak"], streak)
                     self.save_terminal_packet(raw)
-                    if index < 2:
+                    if index < 3:
+                        self.assertEqual(packet["status"], "active")
                         with self.assertRaisesRegex(bridge.StandaloneImproveError, "not complete"):
                             bridge.complete(self.ephemeral_binding, self.receipt())
                         self.assertEqual(navigator.apply(waiting, action["id"], seed), before)
@@ -331,45 +295,12 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.assertNotEqual(bridge.receipt_path(first).parent, bridge.receipt_path(second).parent)
         self.assertTrue(all("/" not in name and name == name.strip(".") for name in names))
 
-    def test_ephemeral_terminal_requires_the_unchanged_content_gate_even_when_the_runtime_gate_is_one(self) -> None:
+    def test_ephemeral_terminal_requires_two_review_minimum_even_when_runtime_gate_is_one(self) -> None:
         packet, raw = self.terminal_ephemeral(required_reviews=1)
         self.assertEqual(packet["progress"]["required_trivial_reviews"], 1)
         self.write_evidence()
         self.save_terminal_packet(raw)
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "not run at Improve's unchanged-content review gate"):
-            bridge.complete(self.ephemeral_binding, self.receipt())
-
-    def test_a_two_pass_terminal_from_the_real_runtime_is_imported_and_another_gate_is_not(self) -> None:
-        """Gate 3 (an implement step's or the last carry-forward's review): the runtime ends it on two unchanged passes in a
-        row once a pass has edited, and the bridge imports that terminal packet like gate 2's; gates 1 and 4 are refused."""
-        packet, _raw = self.ephemeral_start(required_reviews=3)
-        self.assertEqual(packet["progress"]["required_trivial_reviews"], 3)
-        (self.workspace / "candidate.py").write_text("x = 2\n")
-        review = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
-                  "evidence": "the review found nothing more", "handoff": "Scope unchanged; check.md is current."}
-        packet, _raw = self.ephemeral_done(packet, dict(review, classification="non-trivial", evidence="fixed a defect"))
-        packet, _raw = self.ephemeral_done(packet, review)
-        self.assertEqual(packet["status"], "active")  # one unchanged pass after an edit is not enough at this gate
-        terminal, raw = self.ephemeral_done(packet, review)
-        self.assertEqual(terminal["status"], "complete")
-        self.assertEqual(terminal["progress"], {"action_number": 3, "required_trivial_reviews": 3,
-                                                "last_pass_changed_tree": False})
-        self.write_evidence()
-        path = self.save_terminal_packet(raw)
-        record, _archive = bridge.complete(self.ephemeral_binding, self.receipt())
-        self.assertEqual(record["runtime_phase"], "complete")
-        for gate in (1, 4):
-            with self.subTest(gate=gate):
-                other = copy.deepcopy(terminal)
-                other["progress"]["required_trivial_reviews"] = gate
-                path.write_text(json.dumps(other), encoding="utf-8")
-                with self.assertRaisesRegex(bridge.StandaloneImproveError,
-                                            "not run at Improve's unchanged-content review gate"):
-                    bridge.complete(self.ephemeral_binding, self.receipt())
-        older = copy.deepcopy(terminal)
-        older["progress"]["trivial_streak"] = 2  # the older runtime's streak at gate 3 is refused by name, like gate 2's
-        path.write_text(json.dumps(older), encoding="utf-8")
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "written by an older Until Loop"):
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "two-review minimum"):
             bridge.complete(self.ephemeral_binding, self.receipt())
 
     def test_ephemeral_terminal_rejects_wrong_status_context_and_progress(self) -> None:
@@ -396,31 +327,16 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
             bridge.complete(self.ephemeral_binding, self.receipt())
 
         bad_counter = copy.deepcopy(packet)
-        bad_counter["progress"]["action_number"] = True
+        bad_counter["progress"]["trivial_streak"] = True
         path.write_text(json.dumps(bad_counter), encoding="utf-8")
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "integer"):
             bridge.complete(self.ephemeral_binding, self.receipt())
 
-        # The stop rule's evidence is the runtime's own measurement: a packet that does not show the final pass leaving
-        # the content unchanged (a labelled-trivial pass that changed it, or an unmeasured one) is not imported.
-        for measured, message in ((True, "does not show the final pass leaving the content unchanged"),
-                                  (None, "does not show the final pass leaving the content unchanged"),
-                                  ("no", "boolean or null")):
-            with self.subTest(measured=measured):
-                changed = copy.deepcopy(packet)
-                changed["progress"]["last_pass_changed_tree"] = measured
-                path.write_text(json.dumps(changed), encoding="utf-8")
-                with self.assertRaisesRegex(bridge.StandaloneImproveError, message):
-                    bridge.complete(self.ephemeral_binding, self.receipt())
-
-        # One supported version: a packet from the older runtime (streak or unchanged_first_pass) is refused by name.
-        for key, value in (("trivial_streak", 2), ("unchanged_first_pass", True)):
-            with self.subTest(old_key=key):
-                older = copy.deepcopy(packet)
-                older["progress"][key] = value
-                path.write_text(json.dumps(older), encoding="utf-8")
-                with self.assertRaisesRegex(bridge.StandaloneImproveError, "written by an older Until Loop"):
-                    bridge.complete(self.ephemeral_binding, self.receipt())
+        incoherent = copy.deepcopy(packet)
+        incoherent["progress"]["trivial_streak"] = incoherent["progress"]["action_number"] + 1
+        path.write_text(json.dumps(incoherent), encoding="utf-8")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "incoherent"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
 
         malformed = copy.deepcopy(packet)
         malformed.pop("last_report")
@@ -512,13 +428,13 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         packet_path = self.save_terminal_packet(raw)
         self.assertEqual(packet_path.parent.parent.parent, alias)
         receipt = self.receipt()
-        receipt["review_refs"] = [str(alias / "review-b.md")]
+        receipt["review_refs"] = [str(alias / "review-a.md"), str(alias / "review-b.md")]
         receipt["check_refs"] = [str(alias / "check.md")]
         record, _writes = bridge.complete(self.ephemeral_binding, receipt)
         self.assertEqual(record["workspace"], str(self.workspace.resolve()))
         bad = self.receipt()
         bad["review_refs"] = ["review-a.md", "review-a.md"]
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "one review reference of the final pass"):
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "distinct"):
             bridge.complete(self.ephemeral_binding, bad)
 
 

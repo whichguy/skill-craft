@@ -150,9 +150,12 @@ decision 2026-10-10); every inner stage's Until Loop and the Backchain child are
 and their rules stand. The option's default is a separate owner decision: until
 a later dated SPEC commit states it, the code default is `stage`. Every Improve
 child that starts is unchanged (a contract the script writes, the same
-two-review or unchanged-first-pass exit (amended 2026-10-16: one unchanged pass, see the carve-out of that date),
-no iteration cap), so S-10 holds for
-each loop that runs. In `none` a planning result is accepted without a review
+two-review or unchanged-first-pass exit, no iteration cap), so S-10 holds for
+each loop that runs. (2026-10-18: a 2026-10-16 carve-out that ended an Improve
+loop on one unchanged pass, and its 2026-10-17 proposal of a stricter gate for
+code reviews, were withdrawn before any release by the owner's decision to keep
+Improve's upstream Until Loop runtime and rule byte for byte; this exit stands.
+Record: docs/shiploop-improve-stop-rule-journal-2026-10-16.md.) In `none` a planning result is accepted without a review
 loop. What stands in for the loop is what S-9 can name: ShipLoop's gates at
 `complete` (cited files exist; the plan's assumption list; the step plan's
 commands, criteria, paths and dependency order; the knowledge home's required
@@ -218,51 +221,6 @@ unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
   2026-10-10 packet-concision review flagged them as possibly conflicting with this clause, and the owner chose
   to keep them as gate bounds at the higher values. Record: docs/shiploop-packet-concision-2026-10-10.md
   ("Open").
-
-**S-10 carve-out, owner decision 2026-10-16** (anchor: the owner's request to implement the Improve stop rule after the
-Improve-value study of the live Salesforce-chess run, not a clause this serves; it replaces the exit of every Improve child
-and says so). An Improve loop ends on ONE pass that the report calls trivial and satisfied, whose checks passed, and after
-which the runtime measures the content tree equal to the tree after the previous pass (the first pass: the tree at start).
-The content tree is the worktree's Git tree (tracked and untracked files, not ignored ones, the runtime's own files aside)
-plus the bytes of the stage result file under the run directory, which ShipLoop lists in the child's contract as
-`candidate_paths`. A pass that changed the tree never ends the loop, however it is labelled, so a material pass is always
-followed by at least one more pass. This is the 2026-09-26 unchanged-first-pass rule generalised from the first pass to any
-pass, and it replaces the two consecutive trivial passes the 2026-10-05 carve-out names. S-10's other terms stand: the
-contract is the script's, the exit is measured by the script (the report's label is necessary, never sufficient), and there
-is no iteration cap, no timer and no ceiling the model reads. The rule only ever completes a loop earlier: no stage ends
-cancelled or stopped with its exit unmet because of it. Every other loop is unchanged: the inner stages' Until Loops keep
-gates 0 and 1, and the Backchain child keeps its `required_trivial_reviews` values. Basis: 21 Improve passes over five
-stages of the live run, 8 material, 10 with no change; three polish edits classed non-trivial reset the two-pass streak and
-forced two more passes each. Replayed through the new runtime (test/improve-runtime.test.py, StopRuleReplayTests), the
-stages stop after pass 7 of 8 (spec), 2 of 5 (test-strategy), 3 of 4 (plan), 1 of 1 (step-plan) and 2 of 3 (test-spec),
-15 passes in all, every material pass before its stop. Limits: one run and one case; the saved minutes (about 4 of the
-40 Improve minutes) are an estimate. Record: docs/shiploop-improve-stop-rule-journal-2026-10-16.md.
-(Scope proposed to narrow on 2026-10-17: see the next paragraph, which is not yet an owner decision.)
-
-**S-10 carve-out, scope of the 2026-10-16 rule: PROPOSED 2026-10-17, awaiting the owner's approval of this text** (anchor:
-D-6 / R1 of the ShipLoop efficiency plan; this paragraph is a proposal written with the code that implements it, not an
-owner decision, and a release that ships the code waits for the owner to approve, amend or reject it). The study behind the
-2026-10-16 carve-out measured five planning stages and said not to extend the rule to code; the live run has an
-implement-step review whose pass 3 found a real defect (a case-insensitive string comparison) that a rule ending at pass 2
-would have stopped before. So the one-pass rule above applies to the Improve children after the seven stages of the Improve rule `always`, whose
-Until Loop runs at `required_trivial_reviews: 2`: the five planning stages the study measured (`spec`, `test-strategy`, `plan`,
-`step-plan`, `test-spec`) and two it did not, which are unmeasured (`release-plan`, a plan document, and `system-test-author`,
-which writes end-to-end test code). The child after each accepted `implement` step and the one after the last
-`carry-forward` (rules `step` and `last-item`), which review code, run at `required_trivial_reviews: 3`: a first pass that is
-trivial, satisfied and leaves the content as it started still ends the review (the 2026-09-26 rule, 2be7906b); once any pass
-has changed the content, two consecutive trivial, satisfied passes that each leave it unchanged are needed. At both gates a
-pass that changed the tree never ends the loop, however it is labelled, the runtime measures the tree (the label is necessary,
-never sufficient), and there is no iteration cap, no timer and no ceiling the model reads; the two-pass rule is a stop
-condition the script measures, not a limit on iterations. Replayed through the runtime, the same 21 study passes stop where
-the run stopped under the two-pass rule (test/improve-runtime.test.py, StopRuleReplayTests), so the saving above is claimed
-for the five measured planning stages only. Open question for the owner: should the child after `system-test-author` run at 3
-like the other reviews of code? As written it runs at 2, because the gate follows the Improve rule and not what a stage edits;
-running it at 3 needs a per-stage override in `stage_spec` (a mapping by `edits` would also move `carry-forward`, which edits
-documentation and needs 3 as the last item's review). If the owner rejects this text, both gates are set to the rule of 2be7906b (a trivial first pass
-that leaves the content unchanged ends the review, otherwise two consecutive trivial passes) and the rest of the stop-rule
-branch stays. The Git requirement the 2026-10-16 text implies is lifted the same day: a directory that is not a worktree is
-measured through a throwaway bare repository, so an in-place run outside Git ends its Improve review by the same rules.
-Record: docs/shiploop-improve-stop-rule-journal-2026-10-16.md (2026-10-17 update).
 
 **S-11 Knowledge is retained in the repository.** Planning knowledge (living
 spec, environment, test strategy, architecture with its numbered decisions,

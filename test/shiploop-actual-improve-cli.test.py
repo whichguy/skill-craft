@@ -27,13 +27,13 @@ import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
-from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt  # noqa: E402
+from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
 from shiploop_improve_route import with_route  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
-from shiploop_loop_support import LEAN_KEYS, finish_loop, full_packet, with_receipt  # noqa: E402
+from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
 
 
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
@@ -109,8 +109,6 @@ class ImproveCliFixture(unittest.TestCase):
             "GIT_CONFIG_GLOBAL": os.devnull,
         }
         self.repo.mkdir()
-        # The Improve review's unchanged-content gate measures a Git worktree; ShipLoop starts the child at the transition.
-        subprocess.run(["git", "-C", str(self.repo), "init", "-q"], check=True, capture_output=True, env=self.environment)
         self.product_contract = self.repo / "product/contracts/cold-recovery.md"
         self.product_contract.parent.mkdir(parents=True)
         self.product_contract.write_text("# Product contract\n\n## child-contract-transfer\n", encoding="utf-8")
@@ -300,14 +298,9 @@ class ImproveCliFixture(unittest.TestCase):
         return self.child_contract()["context"]
 
     def save_packet(self, result):
-        """Check that the runtime's own receipt is the packet it printed (for a lean start or done return: the packet
-        whose lean fields it printed, U21); the test never writes a receipt."""
+        """Check that the runtime's own receipt is the packet it printed; the test never writes a receipt."""
         path = bridge.receipt_path(self.bound)
-        printed = json.loads(result.stdout)
-        if set(printed) == LEAN_KEYS:
-            self.assertEqual(full_packet(printed), json.loads(path.read_bytes()))
-        else:
-            self.assertEqual(path.read_bytes(), result.stdout)
+        self.assertEqual(path.read_bytes(), result.stdout)
         self.packet_path = path
         return path
 
@@ -338,17 +331,10 @@ class ImproveCliFixture(unittest.TestCase):
             ),
         }
 
-    def commit_repo(self, message="review edit"):
-        """Commit the review's edits the way improve-commit would, so the import's commit gate has nothing owed."""
-        for args in (("add", "-A"), ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
-                                       "commit", "-qm", message)):
-            subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True,
-                           env=self.environment)
-
     def done_ephemeral(self, packet, report):
-        result, _printed = self.invoke_argv(packet["done_argv"], report)
-        raw = self.save_packet(result).read_bytes()  # the full packet behind the lean print
-        return types.SimpleNamespace(stdout=raw, stderr=result.stderr, returncode=result.returncode), json.loads(raw)
+        result, successor = self.invoke_argv(packet["done_argv"], report)
+        self.save_packet(result)
+        return result, successor
 
     def finish_ephemeral(self, first=None):
         if first is None:
@@ -376,9 +362,8 @@ class ImproveCliFixture(unittest.TestCase):
         self.notes_path.write_text(lessons + "\n", encoding="utf-8")
         flags = ["--notes", str(self.notes_path)]
         receipt = {
-            "summary": "Improve reviewed the " + self.bound["stage"] + " result; it ended on pass 3, a trivial pass "
-                       "that left the content unchanged.",
-            "review_refs": [str(review_two)],  # the one pass the runtime ended on (stop rule, 2026-10-16)
+            "summary": "Improve reviewed the " + self.bound["stage"] + " result; it ended on 2 trivial passes.",
+            "review_refs": [str(review_one), str(review_two)],
             "check_refs": [str(checks)],
             "lessons": lessons,
         }
@@ -556,7 +541,6 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         updated = self.product_contract.read_text(encoding="utf-8") + "\nRetained candidate improvement.\n"
         self.product_contract.write_text(updated, encoding="utf-8")
         terminal_raw, terminal = self.finish_ephemeral()
-        self.commit_repo()  # improve-commit's job; the import is refused while a review edit is uncommitted
         completion, _receipt = self.completion_receipt()
         self.assertEqual(terminal["status"], "complete")
         self.assertEqual((self.run / "state.md").read_bytes(), before)
@@ -861,23 +845,18 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         cumulative = "\n## Key implemented changes\n" + changes + "\n## Current learnings\n" + lessons
         material_report = self.child_report("non-trivial", "unsatisfied", "allowed", "material finding")
         material_report["handoff"] += cumulative
-        with result_file.open("a", encoding="utf-8") as handle:  # the review edits the stage result (a candidate file)
-            handle.write("\nMaterial review edit.\n")
         _raw, second = self.done_ephemeral(cold, material_report)
-        self.assertEqual(second["progress"], {"action_number": 2, "required_trivial_reviews": 2,
-                                              "last_pass_changed_tree": True})
-        first_review = self.child_report("trivial", "unsatisfied", "allowed", "unchanged review, exit not yet met")
+        self.assertEqual(second["progress"]["trivial_streak"], 0)
+        first_review = self.child_report("trivial", "unsatisfied", "allowed", "first qualifying review")
         first_review["handoff"] = second["last_report"]["handoff"]
         _raw, third = self.done_ephemeral(second, first_review)
-        self.assertEqual(third["status"], "active")  # unchanged, but the exit is unsatisfied: nothing ends the loop
-        self.assertEqual(third["progress"]["last_pass_changed_tree"], False)
+        self.assertEqual(third["progress"]["trivial_streak"], 1)
         self.assertIn(json.dumps(self._parent_import_argv()), third["last_report"]["handoff"])
-        final_review = self.child_report("trivial", "satisfied", "allowed", "qualifying review that changed nothing")
+        final_review = self.child_report("trivial", "satisfied", "allowed", "second qualifying review")
         final_review["handoff"] = third["last_report"]["handoff"]
         terminal_raw, terminal = self.done_ephemeral(third, final_review)
         self.assertEqual(terminal["status"], "complete")
-        self.assertEqual(terminal["progress"], {"action_number": 3, "required_trivial_reviews": 2,
-                                                "last_pass_changed_tree": False})
+        self.assertEqual(terminal["progress"], {"action_number": 3, "trivial_streak": 2, "required_trivial_reviews": 2})
         self.assertFalse(state_file.exists())
         self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
         self.assertEqual(terminal["context"], self.child_context())
@@ -905,20 +884,6 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertNotEqual(before, after)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         self.assertEqual(after, (self.run / "state.md").read_bytes())
-
-    def test_an_edit_to_the_stage_result_alone_keeps_the_review_going_until_a_pass_leaves_it_unchanged(self):
-        """The file ShipLoop lists as the child's candidate path is the one the review edits (plan, step-plan, test-spec)."""
-        result_file = self.run / "inbox" / (self.action + ".md")
-        _raw, first = self.start_ephemeral_child()
-        with result_file.open("a", encoding="utf-8") as handle:  # the worktree is untouched; only the result changes
-            handle.write("\nTightened a check.\n")
-        _raw, second = self.done_ephemeral(
-            first, self.child_report("trivial", "satisfied", "allowed", "labelled trivial, but it edited the result"))
-        self.assertEqual((second["status"], second["progress"]["last_pass_changed_tree"]), ("active", True))
-        self.assertIn("cannot end the loop however it was labelled", second["instruction"])
-        _raw, terminal = self.done_ephemeral(
-            second, self.child_report("trivial", "satisfied", "allowed", "nothing left to change"))
-        self.assertEqual((terminal["status"], terminal["progress"]["action_number"]), ("complete", 2))
 
     def test_inline_improve_packet_states_every_remaining_obligation_once(self):
         """P5 (SPEC S-6, S-7): script-owned steps are gone; each obligation the model keeps is stated once."""
@@ -977,13 +942,6 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         contract = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
         self.assertEqual(contract["workspace"], self.bound["workspace"])
         self.assertEqual(contract["required_trivial_reviews"], 2)
-        # Stop rule (2026-10-16): one pass that leaves the content unchanged ends the review, and the stage result file
-        # (outside the worktree, in the run directory) is part of that content.
-        self.assertEqual(contract["candidate_paths"], [str(self.run / "inbox" / (self.bound["action_id"] + ".md"))])
-        self.assertIn("exactly as the previous pass left it", contract["exit_condition"])
-        self.assertNotIn("Two consecutive", contract["exit_condition"])
-        self.assertIn("the latest pass changed the content", contract["repeat_condition"])
-        self.assertNotIn("qualifying review remains", contract["repeat_condition"])
         owner = str(receipt.with_name("host-owner.md"))
         locators = [row["locator"] for row in contract["context"]["resources"]]
         # The delegated route's worker coordinates through the owner record; inline has none.
@@ -1238,9 +1196,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(terminal["context"], context)
 
         completion, _receipt = self.completion_receipt()
-        # The files stay untracked on purpose (the scope under test), so the import records the instruction not to commit.
-        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion,
-                    "--no-commit", "Fixture: leave the selected untracked files uncommitted.")
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         archive = self.run / "improve" / self.action / "terminal.json"
         archived = json.loads(archive.read_text(encoding="utf-8"))
         self.assertEqual(archive.read_bytes(), terminal_raw.stdout)
@@ -1762,8 +1718,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                                         "evidence_refs": self.parent_evidence_refs})
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", input_path)
         self.assertEqual(store.read_record(self.run / "state.md")["status"], "done")
-        self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on pass 3, a trivial pass "
-                                             "that left the content unchanged.")
+        self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on 2 trivial passes.")
 
 
 class LoopContractShapeTests(unittest.TestCase):
@@ -1797,8 +1752,7 @@ class LoopContractShapeTests(unittest.TestCase):
     def test_the_runtime_accepts_a_large_contract_with_non_ascii_text(self):
         runtime = self.runtime()
         with tempfile.TemporaryDirectory() as workspace, tempfile.TemporaryDirectory() as state_dir:
-            # the runtime requires an existing absolute workspace directory, and gate 2 a Git worktree it can measure
-            subprocess.run(["git", "-C", workspace, "init", "-q"], check=True, capture_output=True)
+            # the runtime requires an existing absolute workspace directory
             for text in ("plain ascii", "日本語の環境", "em dash \u2014 and \u201cquotes\u201d", "emoji \U0001f600 text"):
                 with self.subTest(text=text):
                     contract = self.contract(request=text * 4000, environment=text * 400)
@@ -1806,8 +1760,7 @@ class LoopContractShapeTests(unittest.TestCase):
                     self.assertGreater(len(json.dumps(contract, separators=(",", ":"), sort_keys=True).encode()), 20_000)
                     normalized = runtime._validate_contract(contract, input_contract=True)
                     self.assertEqual(normalized.pop("exit_checks"), [])
-                    self.assertEqual(normalized.pop("candidate_paths"), [])  # the optional lists default to empty
-                    self.assertEqual(normalized, contract)  # nothing else added, dropped or normalised
+                    self.assertEqual(normalized, contract)  # nothing added, dropped or normalised
                     self.assertEqual(runtime.start(contract, state_dir)["status"], "active")
 
     def test_the_backchain_guidance_states_no_byte_limit_at_any_stage(self):
@@ -1902,8 +1855,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.begin()
         _raw, first = self.start_ephemeral_child()
         _raw, terminal = self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
-        self.assertEqual(terminal["progress"], {"action_number": 1, "required_trivial_reviews": 2,
-                                                "last_pass_changed_tree": False})
+        self.assertTrue(terminal["progress"]["unchanged_first_pass"])
         self.edit()  # a fix made after the bind, then committed through improve-commit
         self.write("docs: fix the example\n\nKey learnings: none\n")
         self.invoke(*self.commit_args)
@@ -1948,8 +1900,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         restarted = json.loads(receipt.read_text(encoding="utf-8"))
         # the second review reads the committed tree and finds nothing: one honest unchanged pass
         _raw, done = self.done_ephemeral(restarted, self.child_report("trivial", "satisfied", "allowed", "nothing more"))
-        self.assertEqual(done["progress"], {"action_number": 1, "required_trivial_reviews": 2,
-                                            "last_pass_changed_tree": False})
+        self.assertTrue(done["progress"]["unchanged_first_pass"])
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])

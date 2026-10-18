@@ -12,7 +12,7 @@ by the owner at about 48 minutes in the spec stage and gave no loop evidence.
 | `report-pass-value-and-cost.txt` | per-pass minutes and what each pass changed (warranted, marginal, churn), the savings table, and a per-call latency model from 2,919 Codex responses |
 | `report-planning-prompts.txt` | the planning packets and reads per stage, and which cuts the evidence supports |
 | `attack-quality-kiss.json`, `attack-engine-correctness.json` | the two adversarial reviews of the first draft, with what the revision accepted or rejected |
-| `gate_experiment.py`, `gate_experiment.out` | runs the vendored Until Loop at gate 0, 1 and 2 on scratch repositories; the output is the evidence that gate 0 completes on the first `satisfied` report and the runtime has no pass ceiling field. Amended 2026-10-16: gate 2 is the unchanged-content gate and prints `changed=` where it counted a streak; `gate_experiment.before-2026-10-16.out` keeps the 2026-10-04 output (superseded for gate 2, still true for gates 0 and 1) |
+| `gate_experiment.py`, `gate_experiment.out` | runs the vendored Until Loop at gate 0, 1 and 2 on scratch repositories; the output is the evidence that gate 0 completes on the first `satisfied` report and the runtime has no pass ceiling field |
 
 Labels in the reports: [M] read or run by the investigator, [I] inferred, [M-prior] read from an earlier journal
 entry. Numbers are from one run; stage times vary about 2x between runs of the same model.

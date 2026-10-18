@@ -48,27 +48,26 @@ For each distinct review cycle, preserve the following ordered obligations:
    tests merely to manufacture a review result.
 3. **Apply.** Apply the accepted bounded plan while preserving unrelated user
    work and the owner's explicit constraints. A material finding or material
-   edit makes the pass non-trivial and means another pass follows, even when
-   repaired in the same cycle.
+   edit resets the clean-review streak to zero, even when repaired in the
+   same cycle.
 4. **Checks.** Establish relevant cases during planning, then use learned code
    context to author or refine meaningful tests where needed. Retain adequate
    existing tests when they cover the intended behavior. Judge failures against
    that behavior; correct an invalid test with an explicit basis and never
    weaken assertions merely to obtain a passing result. Failed, stale, blocked,
-   or incomplete checks never end the loop.
+   or incomplete checks never advance the streak.
 5. **Record.** Retain evidence for the resulting candidate: scope and identity,
    findings and classification, plan or no-change reason, applied changes,
    checks and results, concrete review-material locators, reviewer or fallback
-   rationale, learnings, any owner-required commit receipt, and whether the
-   pass changed the content. Material changes invalidate affected evidence and require current
+   rationale, learnings, any owner-required commit receipt, and streak before
+   and after. Material changes invalidate affected evidence and require current
    evidence for the changed candidate.
 6. **Assess.** Count a pass only after a fully completed, distinct review
    cycle with current evidence. A callback, retry, diagnostic step,
    verification run, repeated claim, or recovery action is not another review.
-   Final convergence requires one fully completed review cycle with only
-   trivial findings and no changes, whose content the runtime measures
-   unchanged from the previous pass, no unresolved material finding, and
-   current relevant checks. This practical
+   Final convergence requires two distinct, consecutive, fully completed
+   review cycles with only trivial findings and fixes, or no changes, no
+   unresolved material finding, and current relevant checks. This practical
    stopping rule is not proof that no possible defect remains. A blocker,
    requested stop, or exhausted budget remains incomplete and never
    substitutes for convergence.

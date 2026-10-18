@@ -78,7 +78,7 @@ class NavigatorV4Tests(unittest.TestCase):
     def synthetic_improve(stage: str) -> dict:
         return {
             "summary": f"Synthetic Improve result for {stage}.",
-            "review_refs": [f"synthetic://review/{stage}/final"],
+            "review_refs": [f"synthetic://review/{stage}/one", f"synthetic://review/{stage}/two"],
             "check_refs": [f"synthetic://check/{stage}"],
             "lessons": f"Keep the current conclusion from {stage}.",
         }
@@ -148,7 +148,6 @@ class NavigatorV4Tests(unittest.TestCase):
                 "resources": [],
             },
         }
-        subprocess.run(["git", "-C", binding["workspace"], "init", "-q"], check=True)  # gate 2 measures a Git worktree
         started = subprocess.run(
             [sys.executable, "-B", self.skill["runtime_cli"], "start", "--receipt", str(_receipt(binding))],
             input=json.dumps(contract), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -171,10 +170,10 @@ class NavigatorV4Tests(unittest.TestCase):
         stopped = json.loads(terminal.stdout)
         self.assertEqual(stopped["status"], "stopped")
         self.assertFalse(Path(stopped["state_file"]).exists())
-        # The runtime wrote the full terminal packet to the receipt itself; stdout is its lean return (U21).
         packet_path = bridge.receipt_path(binding)
-        self.assertEqual(json.loads(packet_path.read_text(encoding="utf-8"))["status"], "stopped")
-        return packet_path.read_text(encoding="utf-8")
+        packet_path.parent.mkdir(parents=True, exist_ok=True)
+        packet_path.write_text(terminal.stdout, encoding="utf-8")
+        return terminal.stdout
 
     def reconciliation_input(self, action: str, *, target: str = "research") -> tuple[dict, Path, Path]:
         evidence = self.repo / f"reconciliation-{action}.md"

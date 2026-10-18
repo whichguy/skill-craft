@@ -620,9 +620,9 @@ passed. Reserve the detailed test matrix for behavior/spec and the test phases.
 Do not grow an unselected optional feature just to make its research exhaustive.
 
 Each review distinguishes **new discoveries** from **unchanged blockers**.
-Open/blocked questions still keep the review going even if this
-pass found nothing new. A quiet review with a missing owner decision is not
-a successful trivial pass. Use the existing gates, result records and
+Open/blocked questions still reset the current convergence streak even if this
+pass found nothing new. Two quiet reviews with a missing owner decision are not
+two successful trivial passes. Use the existing gates, result records and
 carry-forward route; do not add a nested investigation engine.
 
 ## Evidence and freshness

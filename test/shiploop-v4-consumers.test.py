@@ -60,7 +60,6 @@ class V4ConsumersTests(unittest.TestCase):
         }
         receipt = bridge.receipt_path(binding)
         receipt.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(['git', '-C', binding['workspace'], 'init', '-q'], check=True)  # gate 2 measures a Git worktree
         started = subprocess.run([sys.executable, '-B', skill['runtime_cli'], 'start', '--receipt', str(receipt)],
                                  input=json.dumps(contract), text=True, capture_output=True, check=True)
         packet = json.loads(started.stdout)
@@ -72,7 +71,7 @@ class V4ConsumersTests(unittest.TestCase):
         self.assertEqual(json.loads(stopped.stdout)['status'], 'stopped')
         packet_path = bridge.receipt_path(binding)
         packet_path.parent.mkdir(parents=True, exist_ok=True)
-        # the runtime wrote the full stopped packet to this receipt itself; stdout is its lean return (U21)
+        packet_path.write_text(stopped.stdout)
         evidence = self.f.repo / ('experiment-' + action + '.md')
         evidence.write_text('Observed premise contradiction; synthetic observation for protocol test.\n')
         receipt = {'summary': 'An experiment invalidated the ' + target + ' premise.',
@@ -103,7 +102,7 @@ class V4ConsumersTests(unittest.TestCase):
         contract = {
             'workspace': binding['workspace'],
             'work': 'Review the frozen plan and its registered experiment decision.',
-            'exit_condition': 'A synthetic trivial review that leaves the content unchanged preserves the plan decision.',
+            'exit_condition': 'Two synthetic trivial reviews preserve the plan decision.',
             'repeat_condition': 'Continue while the fixture has a remaining synthetic review.',
             'required_trivial_reviews': 2,
             'context': {
@@ -116,14 +115,13 @@ class V4ConsumersTests(unittest.TestCase):
         }
         receipt = bridge.receipt_path(binding)
         receipt.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(['git', '-C', binding['workspace'], 'init', '-q'], check=True)  # gate 2 measures a Git worktree
         started = subprocess.run(
             [sys.executable, '-B', skill['runtime_cli'], 'start', '--receipt', str(receipt)],
             input=json.dumps(contract), text=True, capture_output=True, check=True, timeout=30,
         )
         packet_path = bridge.receipt_path(binding)
         packet_path.parent.mkdir(parents=True, exist_ok=True)
-        # the runtime writes every full packet to this receipt itself; stdout is its lean return (U21)
+        packet_path.write_text(started.stdout, encoding='utf-8')
         packet = json.loads(started.stdout)
 
         for index, assessment in enumerate(('unsatisfied', 'satisfied'), start=1):
@@ -141,6 +139,7 @@ class V4ConsumersTests(unittest.TestCase):
                 }),
                 text=True, capture_output=True, check=True, timeout=30,
             )
+            packet_path.write_text(completed.stdout, encoding='utf-8')
             packet = json.loads(completed.stdout)
         self.assertEqual(packet['status'], 'complete')
 
@@ -154,7 +153,7 @@ class V4ConsumersTests(unittest.TestCase):
         final_result['evidence_refs'].append(str(note.resolve()))
         receipt = {
             'summary': 'Synthetic runtime mechanics completed; no semantic review claim.',
-            'review_refs': [str(reviews[-1].resolve())],  # the one pass the runtime ended on
+            'review_refs': [str(path.resolve()) for path in reviews],
             'check_refs': [str(check.resolve())],
             'lessons': 'The note is registered only through the accepted final result.',
             'final_result': final_result,

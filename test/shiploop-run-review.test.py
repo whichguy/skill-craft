@@ -1012,18 +1012,6 @@ class BackchainLoopRecordsTest(unittest.TestCase):
         self.assertNotIn("trivialRequired", none)
         self.assertNotIn("Trivial streak", self.facts_of(none))
 
-    def test_the_unchanged_content_gate_has_no_streak_target_and_names_what_the_last_pass_did(self):
-        """Stop rule (2026-10-16): a gate-2 receipt carries last_pass_changed_tree instead of a streak."""
-        for changed, said in ((False, "the last pass left the content unchanged"),
-                              (True, "the last pass changed the content"), (None, "the last pass was not measured")):
-            with self.subTest(changed=changed):
-                receipt = dict(RECEIPT_1_21, progress={"action_number": 2, "required_trivial_reviews": 2,
-                                                       "last_pass_changed_tree": changed})
-                doc = self.export(self.run_out(option="converge", receipt=receipt))[0][self.PLAN]
-                self.assertEqual(doc["trivialRequired"], 0)  # nothing counts, so the page draws no streak target
-                self.assertEqual(self.facts_of(doc)["Review gate"], "unchanged content: " + said)
-                self.assertNotIn("Trivial streak", self.facts_of(doc))
-
     def test_a_loop_of_several_passes_with_no_per_pass_record_is_one_span_not_invented_passes(self):
         many = dict(RECEIPT_1_21, progress={"action_number": 3, "trivial_streak": 2, "required_trivial_reviews": 2})
         doc = self.export(self.run_out(option="converge", receipt=many))[0][self.PLAN]

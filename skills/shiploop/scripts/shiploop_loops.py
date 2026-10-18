@@ -642,8 +642,9 @@ _PACKET_KEYS = frozenset({
     "status_semantics", "last_report", "instruction", "next_argv", "done_argv", "report_schema",
     "receipt", "exit_checks", "last_check_results", "check_repairs", "verify_script",
 })
-# The stage loops run gate 0 or 1, whichever runtime the host uses (the published plugin or the bundled copy).
-_PROGRESS_KEYS = frozenset({"action_number", "trivial_streak", "required_trivial_reviews"})
+_PROGRESS_KEYS = (frozenset({"action_number", "trivial_streak", "required_trivial_reviews"}),
+                  frozenset({"action_number", "trivial_streak", "required_trivial_reviews",
+                             "unchanged_first_pass"}))
 
 
 def _read_json(path: Path, label: str) -> Any:
@@ -686,7 +687,7 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
           "the terminal packet was not written by a run started with --receipt " + str(path))
     conditions, progress = packet.get("conditions"), packet.get("progress")
     _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping)
-          and frozenset(progress) == _PROGRESS_KEYS,
+          and frozenset(progress) in _PROGRESS_KEYS,
           "the Until Loop terminal packet lacks its conditions or progress")
     _need(packet.get("workspace") == expected["workspace"]
           and packet.get("work") == expected["work"]
