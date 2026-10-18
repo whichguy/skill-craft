@@ -59,7 +59,7 @@ def _with_packet_file(stdout: str) -> str:
     # The Improve packet is two instructions (re-cut 2026-10-11); everything else it used to say is in the handoff file
     # its first instruction names, which the improve skill reads.  A test that asserts "the packet says X" asserts it
     # over the packet plus that file.
-    named = re.search(r"/improve " + re.escape(navigator.IMPROVE_ARGUMENT_PREFIX) + r"(\S+)", text)
+    named = re.search(r"(?m)^ {7}" + re.escape(navigator.IMPROVE_ARGUMENT_PREFIX) + r"(\S+)", text)
     if named is not None and Path(named.group(1)).is_file():
         text += "\n" + Path(named.group(1)).read_text(encoding="utf-8")
     return text
@@ -1588,6 +1588,28 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
 
+    def test_notes_given_as_text_are_refused_naming_the_file_and_the_file_the_handoff_names_is_accepted(self):
+        """Refusal 1 of the 2026-10-17 run (packet review A9-1): the model read `complete --help`, whose --notes help said
+        "optional plain-text lessons", and passed the lessons as the value; the refusal said only "must be a regular
+        file".  The handoff names the file, the help says it takes a path, and the refusal names the file to write."""
+        self.finish_ephemeral()
+        completion, receipt = self.completion_receipt()
+        handoff = navigator.improve_handoff_path(self.bound).read_text(encoding="utf-8")
+        self.assertIn("lessons in a plain-text file passed as --notes " + str(self.notes_path), handoff)
+        usage = self.invoke(CLI, "complete", "--help").stdout
+        self.assertIn("--notes FILE", usage)
+        self.assertIn("the path of a plain-text file (not the text itself)", " ".join(usage.split()))
+        text = "Loop command deploys the tree under test, then runs one class."
+        refused_flags = [text if flag == str(self.notes_path) else flag for flag in completion]
+        before = (self.run / "state.md").read_bytes()
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *refused_flags, status=2)
+        self.assertIn("Improve notes (--notes) take the path of a regular plain-text file, not the text", refused.stderr)
+        self.assertIn("write the text to " + str(self.notes_path) + " with a file tool and pass that path", refused.stderr)
+        self.assertEqual(before, (self.run / "state.md").read_bytes())
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(state["improve_results"][self.action]["receipt"]["lessons"], receipt["lessons"])
+
     def test_completion_names_the_review_files_it_needs(self):
         self.finish_ephemeral()
         evidence = bridge.receipt_path(self.bound).parent / "reviews"
@@ -1624,7 +1646,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         # ShipLoop bound the recorded card itself at the transition (re-cut 2026-10-11): from any directory the cold
         # packet is the two instructions, with no bind step to run.
         self.assertNotIn("improve-bind", cold.stdout)
-        self.assertIn("/improve " + navigator.IMPROVE_ARGUMENT_PREFIX, cold.stdout)
+        self.assertIn("       " + navigator.IMPROVE_ARGUMENT_PREFIX, cold.stdout)
         bound_at_transition = store.read_record(run / "state.md")["active_improve"]["skill"]
         self.assertEqual(bound_at_transition["skill_card"], str(CARD.resolve()))
         self.assertEqual(bound_at_transition["runtime_cli"], str(EPHEMERAL.resolve()))

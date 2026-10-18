@@ -165,7 +165,7 @@ class ImproveScheduleTests(unittest.TestCase):
         # stage's complete (it is its own stage with its own id since 2026-10-11).
         lines = packet.splitlines()
         self.assertTrue(lines[0].startswith("ShipLoop navigator | improve | revision "), lines[0])
-        self.assertIn("       /improve " + nav.IMPROVE_ARGUMENT_PREFIX + str(handoff_path), lines)
+        self.assertIn("       " + nav.IMPROVE_ARGUMENT_PREFIX + str(handoff_path), lines)
         callback = assert_top_block(self, lines)["callback"]
         self.assertTrue(callback.startswith("2. When the improve skill has completed, run:"), callback)
         self.assertIn(" complete ", callback)
@@ -705,7 +705,7 @@ class InstalledCardCliTests(CliRunCase):
             self.assertNotIn("/absolute/path/to", text)
             self.assertNotIn(nav.IMPROVE_CARD_BLANK, text)
             self.assertNotIn("improve-bind", text)
-        self.assertIn("/improve " + nav.IMPROVE_ARGUMENT_PREFIX, full)
+        self.assertIn("       " + nav.IMPROVE_ARGUMENT_PREFIX, full)
 
     def test_an_explicit_improve_skill_wins_over_the_installed_card(self):
         """GUARD (passes on the unchanged tree): the flag is recorded as given, and the transition binds that card."""

@@ -186,15 +186,17 @@ class RealCliCase(unittest.TestCase):
         """Run a command line exactly as a packet printed it."""
         return self.run_argv(shlex.split(command))
 
-    def new_run(self, stage: str = "intake", *, entered: bool = False, **init: str) -> tuple[Path, str]:
+    def new_run(self, stage: str = "intake", *, entered: bool = False, flags: tuple[str, ...] = (),
+                results: dict | None = None, **init: str) -> tuple[Path, str]:
         """A run positioned at ``stage``; returns its directory and the head the CLI prints there.
 
         ``entered`` positions the run one stage earlier and completes that stage through the CLI, so the files a
-        transition writes (a loop's contract) exist, as they do in a real run.
+        transition writes (a loop's contract) exist, as they do in a real run.  ``flags`` are bare ``init`` flags
+        (``--delivery-contract``); ``results`` adds fields, by stage, to the results the positioning accepts.
         """
         if entered:
             earlier = EXPECTED_STAGES[EXPECTED_STAGES.index(stage) - 1]
-            run, head = self.new_run(earlier, **init)
+            run, head = self.new_run(earlier, flags=flags, results=results, **init)
             command, path, _ = printed_callback(head)
             if earlier == "implement":
                 (self.repo_of(run) / "built.txt").write_text("hello\n")  # the work implement's step did
@@ -215,7 +217,7 @@ class RealCliCase(unittest.TestCase):
         repo = self.repo = self.make_repo()
         run = self.base / ("run" + repo.name.removeprefix("repo"))
         started = self.cli("init", "--repo", str(repo), "--run-dir", str(run), "--prompt=add hello",
-                           "--improve-skill", str(CARD), *(f"--{k}={v}" for k, v in init.items()))
+                           "--improve-skill", str(CARD), *flags, *(f"--{k}={v}" for k, v in init.items()))
         self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
         state = store.read_record(run / "state.md")
         if stage == "intake":
@@ -230,7 +232,7 @@ class RealCliCase(unittest.TestCase):
                 for relative, text in writes.items():
                     (run / relative).parent.mkdir(parents=True, exist_ok=True)
                     (run / relative).write_text(text, encoding="utf-8")
-            state = nav.apply(state, action, {**DONE, **RESULTS.get(here, {})})
+            state = nav.apply(state, action, {**DONE, **RESULTS.get(here, {}), **(results or {}).get(here, {})})
             if state.get("active_improve") is not None:
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         nav.save(run, state)
@@ -319,7 +321,7 @@ class RealCliCase(unittest.TestCase):
     @staticmethod
     def handoff_of(out: str) -> str:
         """The handoff file an Improve packet's first instruction names (the improve skill reads it)."""
-        named = re.search(r"/improve " + re.escape(nav.IMPROVE_ARGUMENT_PREFIX) + r"(\S+)", out)
+        named = re.search(r"(?m)^ {7}" + re.escape(nav.IMPROVE_ARGUMENT_PREFIX) + r"(\S+)", out)
         assert named is not None, out
         return Path(named.group(1)).read_text(encoding="utf-8")
 
@@ -540,7 +542,8 @@ class RefusalRouteTests(RealCliCase):
         full = full_packet_text(head)
         checked = next(row for row in full.splitlines() if row.startswith("Checked by: "))
         self.assertIn("a HOME file this stage must have written, missing or empty", checked)
-        self.assertIn("reruns every recorded test command", checked)  # the run the line used to name alone
+        # the run the line used to name alone, by its list and count (packet review 2026-10-17, F-14)
+        self.assertIn("reruns the 1 command in release-plan's consumer_checks", checked)
         done = full[full.index("Done when"):full.index("Checked by: ")]
         for word in ("environment.md", "lessons"):
             self.assertIn(word, done)
@@ -1815,7 +1818,7 @@ class EveryStageRouteTests(RealCliCase):
             if stage in CHECKPOINTS:
                 # The accepted result starts an Improve child: ShipLoop binds its recorded card at the transition, so
                 # the first packet is the two instructions with no bind command (re-cut 2026-10-11).
-                self.assertIn("/improve " + nav.IMPROVE_ARGUMENT_PREFIX, result.stdout)
+                self.assertIn("       " + nav.IMPROVE_ARGUMENT_PREFIX, result.stdout)
                 self.assertNotIn("improve-bind", result.stdout)
                 state = self.state(run)
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
@@ -1883,6 +1886,159 @@ class EveryStageRouteTests(RealCliCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             problems = [p for p in pool.map(lambda pair: self.one_outcome(*pair), pairs) if p]
         self.assertEqual(problems, [])
+
+
+# A delivery contract as intake declares it before the release decision: the authority writes no target or operation of its
+# own (the contract's are its), and necessity stays unresolved until release-plan settles it.
+DELIVERY_FIELDS = {"consumer": "the person using the page", "target": "the staging site", "behavior": "the page opens",
+                   "candidate": "the built tree", "operation": "deploy the built tree to the staging site",
+                   "basis": "the request names the staging site"}
+DELIVERY_AUTHORITY = {"status": "approved", "kind": "request", "reference": "the request names the staging site"}
+UNRESOLVED_CONTRACT = {"kind": "contract", "contract": {**DELIVERY_FIELDS, "necessity": "unresolved", "exclusions": [],
+                                                       "obligations": [], "authority": DELIVERY_AUTHORITY}}
+
+
+def printed_template(head: str) -> dict:
+    """The done template a producer head prints."""
+    return store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+
+
+class PacketReviewRefusalRouteTests(RealCliCase):
+    """The five refusals of the 2026-10-17 run (docs/experiments/packet-review-2026-10-17/refusals.txt) and the gate the
+    model met only by reading ShipLoop's scripts (release-plan's delivery necessity, reviewer E G33-1).
+
+    Each test submits the refused input through the real gate, asserts the packet line that states the rule before the gate
+    does, and submits what that line says through the same command.  The Improve notes refusal is in
+    test/shiploop-actual-improve-cli.test.py (it needs a finished Improve child).
+    """
+
+    def test_the_intake_authority_takes_the_contracts_target_and_operation_and_a_differing_copy_is_refused(self) -> None:
+        # Refusals 3 and 4: the model wrote the authority's target and operation in other words than the contract's.
+        run, head = self.new_run(flags=("--delivery-contract",))
+        command, path, action = printed_callback(head)
+        template = printed_template(head)["delivery_assessment"]["contract"]
+        # The packet line that prevents both: the template writes the target and the operation once, in the contract.
+        self.assertNotIn("target", template["authority"])
+        self.assertNotIn("operation", template["authority"])
+        contract = {**template, **DELIVERY_FIELDS, "authority": {**template["authority"], **DELIVERY_AUTHORITY}}
+        block = {**self.done_fields(), "delivery_assessment": {"kind": "contract", "contract": contract}}
+        for field, other in (("operation", "deploy the project's files"), ("target", "the staging site's account")):
+            with self.subTest(field=field):
+                restated = {**contract, "authority": {**contract["authority"], "target": contract["target"],
+                                                      "operation": contract["operation"], field: other}}
+                write_block(path, {**block, "delivery_assessment": {"kind": "contract", "contract": restated}})
+                reply = self.refused(command, run)
+                self.assertIn("delivery authority " + field + " does not match contract", reply)
+                self.assertIn("leave the authority's " + field + " out and ShipLoop takes the contract's", reply)
+        write_block(path, block)
+        self.accepted(command)
+        authority = self.recorded(run, action)["delivery_assessment"]["contract"]["authority"]
+        self.assertEqual((authority["target"], authority["operation"]),
+                         (DELIVERY_FIELDS["target"], DELIVERY_FIELDS["operation"]))
+
+    def test_check_only_without_a_result_names_the_file_and_the_verify_duty_writes_it_first(self) -> None:
+        # Refusal 5: after a compaction the model ran verify's check-only before writing any result, met "navigator result
+        # is unavailable" and read ShipLoop's scripts for 55 s to learn why (reviewer D, D-8/D-9).
+        run, head = self.new_run("verify", entered=True)
+        command, path, _ = printed_callback(head)
+        duty = " ".join(head.split())
+        one = duty[duty.index("1. **Run.**"):duty.index("2. **Confirm.**")]
+        self.assertIn("write the result (the Result template below) to RUN/inbox/<action>.md", one)
+        self.assertLess(one.index("write the result"), one.index("--check-only"))
+        self.assertFalse(path.exists())
+        reply = self.refused(command + " --check-only", run)
+        self.assertIn("no result file at " + str(path), reply)
+        self.assertIn("the packet's Result template, filled in", reply)
+        write_block(path, self.fill_done(head))
+        self.assertIn("ShipLoop check-only: every script gate for verify accepts this result",
+                      self.accepted(command + " --check-only"))
+
+    def test_a_failing_recorded_command_refuses_verify_and_check_only_reports_it_first(self) -> None:
+        # Refusal 2 was a real defect: a recorded command failed.  The packet routes it through check-only (duty 1, the
+        # result written first) and names the rerun on its Checked-by line, so the refusal comes before done is claimed.
+        run, head = self.new_run("verify", entered=True)
+        command, path, _ = printed_callback(head)
+        checked = next(row for row in head.splitlines() if row.startswith("Checked by: "))
+        self.assertIn("reruns every recorded test command and refuses done unless each passes", checked)
+        duty = " ".join(head.split())
+        self.assertIn("then run the Callback command with `--check-only`, which reads that file", duty)
+        built = self.repo_of(run) / "built.txt"
+        built.unlink()
+        write_block(path, self.fill_done(head))
+        for submitted in (command + " --check-only", command):
+            with self.subTest(submitted=submitted[-12:]):
+                reply = self.refused(submitted, run)
+                self.assertIn("ShipLoop test run: verify is not done", reply)
+                self.assertIn("did not pass", reply)
+        built.write_text("hello\n")
+        self.assertIn("accepts this result", self.accepted(command + " --check-only"))
+        self.accepted(command)
+
+    def write_knowledge(self, run: Path) -> None:
+        """The living knowledge files an outer close requires, as the earlier stages of a real run leave them."""
+        for name in ("spec.md", "environment.md", "architecture.md"):
+            path = self.repo_of(run) / knowledge.HOME / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("What this file records.\n", encoding="utf-8")
+
+    def test_release_plan_names_the_necessity_gate_and_its_printed_template_settles_it(self) -> None:
+        # Not a refusal of the run: its model read the delivery script 7 times (34 reads of ShipLoop's source, 8.2 min)
+        # to learn this gate, because Checked-by did not name it and the template had no field for it (reviewer E, G33-1).
+        run, head = self.new_run("release-plan", flags=("--delivery-contract",),
+                                 results={"intake": {"delivery_assessment": UNRESOLVED_CONTRACT}})
+        self.write_knowledge(run)
+        command, path, action = printed_callback(head)
+        checked = next(row for row in head.splitlines() if row.startswith("Checked by: "))
+        self.assertIn("a delivery contract whose necessity is still unresolved, or required with its authority not "
+                      "approved: settle both in the template's delivery_assessment", checked)
+        settle = printed_template(head)["delivery_assessment"]
+        intake = next(row["action"] for row in self.state(run)["history"] if row["stage"] == "intake")
+        self.assertEqual((settle["kind"], settle["supersedes"]), ("contract", intake))
+        self.assertEqual(sorted(row["kind"] for row in settle["contract"]["obligations"]),
+                         ["behavior", "effect", "identity"])
+        base = {**self.done_fields(), **RESULTS["release-plan"]}
+        write_block(path, base)
+        self.assertIn("delivery necessity is unresolved; submit blocked with the needed decision",
+                      self.refused(command, run))
+        write_block(path, {**base, "delivery_assessment": settle})  # copied without deciding
+        self.assertIn("delivery necessity is invalid: write not-required, required, unresolved",
+                      self.refused(command, run))
+        decided = json.loads(json.dumps(settle).replace('"..."', '"the page opens for its user"'))
+        decided["contract"]["necessity"] = "required"
+        decided["correction"]["reference"] = "the request asks for the deploy to the staging site"
+        write_block(path, {**base, "delivery_assessment": decided})
+        self.accepted(command)
+        recorded = self.recorded(run, action)["delivery_assessment"]["contract"]
+        self.assertEqual((recorded["necessity"], recorded["authority"]["target"]), ("required", DELIVERY_FIELDS["target"]))
+        # The Improve import runs the whole release gate on the same result, and it accepts it too.
+        imported = nav.finish_improve(self.state(run), action, {"summary": "Synthetic receipt; no review claim."})
+        self.assertEqual(nav.current_stage(imported), "release-check")
+
+    def test_the_outer_reruns_name_the_list_they_rerun_and_how_many_and_an_empty_list_runs_nothing(self) -> None:
+        # Reviewer F's worst inaccuracy (F-14): release-verify's Checked-by said "every recorded test command" while its
+        # rerun ran release-plan's consumer_checks, empty in that run.
+        cases = (
+            ("release-verify", None,
+             "reruns the 1 command in release-plan's consumer_checks and refuses done unless each passes"),
+            ("system-test", {"system-test-author": {"system_commands": [{"command": "true", "suite": "check"},
+                                                                        {"command": "test -f built.txt", "suite": "check"}]}},
+             "reruns the 2 commands in system-test-author's system_commands and refuses done unless each passes"),
+            ("release-verify", {"release-plan": {"consumer_checks": [], "consumer_checks_na": "Nothing to run after it."}},
+             "reruns the commands in release-plan's consumer_checks: none recorded, so none runs"),
+        )
+        for stage, results, expected in cases:
+            with self.subTest(stage=stage, expected=expected[:40]):
+                run, head = self.new_run(stage, results=results)
+                checked = next(row for row in head.splitlines() if row.startswith("Checked by: "))
+                self.assertIn(expected, checked)
+                self.assertNotIn("every recorded test command", checked)
+        command, path, action = printed_callback(head)  # the empty list: done is accepted with no command run
+        write_block(path, self.fill_done(head))
+        self.accept_after_the_knowledge_files(command, run)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+
+    def accept_after_the_knowledge_files(self, command: str, run: Path) -> None:
+        RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
 
 
 if __name__ == "__main__":

@@ -154,7 +154,9 @@ class RepeatPacketTests(KeepaliveTestCase):
         guidance = lines.index("Current stage guidance:")
         self.assertLess(callback, guidance)
         self.assertLess(guidance, contract)
-        self.assertEqual(lines[contract + 1], "# ShipLoop navigator result")
+        # The template is the fence alone (owner decision D4, 2026-10-17): no "# ShipLoop navigator result" heading.
+        self.assertEqual(lines[contract + 1], "```shiploop-state")
+        self.assertNotIn("# ShipLoop navigator result", self.packet)
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
         self.assertEqual(sum(line == "Result template:" for line in lines), 1)
         self.assertEqual(sum(line.startswith("Allowed outcomes: ") for line in lines), 1)

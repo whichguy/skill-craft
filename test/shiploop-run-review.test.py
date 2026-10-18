@@ -8874,6 +8874,18 @@ R23B_COMPACT_PACKET = "\n".join((
     "Keepalive marker: shiploop-run-review run=run-a1 rev=11 dir=/tmp/run folder",
     "",
 ))
+# The host-neutral invocation (packet review 2026-10-17, A5-1/D-17): the argument on its own line, no host named first.
+R23B_COMPACT_NEUTRAL_PACKET = "\n".join((
+    "ShipLoop navigator | improve | revision 11 | the plan result",
+    "1. Run the improve skill on the plan result with this argument, at every Improve stage and not from memory of an "
+    "earlier one:",
+    "       ShipLoop Improve: /tmp/run folder/handoff.md",
+    "   (through the host's skill call for skill \"improve\": the Skill tool, or /improve, where the host has one; "
+    "otherwise open /skills/improve/SKILL.md and follow it with the argument)",
+    "2. When the improve skill has completed, run: python3 shiploop complete --action=nav-a1",
+    "Keepalive marker: shiploop-run-review run=run-a1 rev=11 dir=/tmp/run folder",
+    "",
+))
 
 
 def r23b_write_improve_packets(out: Path, text: str, names=None) -> None:
@@ -8929,6 +8941,11 @@ class R23bImprovePacketExportTests(unittest.TestCase):
 
     def test_the_compact_handoff_marker_requires_both_actions_and_the_run_bound_keepalive(self):
         self.assertEqual(export.improve_packet_mode(R23B_COMPACT_PACKET), "compact-handoff")
+        self.assertEqual(export.improve_packet_mode(R23B_COMPACT_NEUTRAL_PACKET), "compact-handoff")
+        for omitted in ("1. Run the improve skill on the plan result with this argument, ",
+                        "       ShipLoop Improve: /tmp/run folder/handoff.md"):
+            with self.subTest(neutral_omitted=omitted):
+                self.assertIsNone(export.improve_packet_mode(R23B_COMPACT_NEUTRAL_PACKET.replace(omitted, "")))
         self.assertIsNone(export.improve_packet_mode(R23B_NEW_PACKET))
         self.assertEqual(export.improve_carried_markers(R23B_COMPACT_PACKET), {key: False for key in R23B_IMPROVE_KEYS})
         for omitted in (
@@ -9029,10 +9046,10 @@ class R23bImprovePacketExportTests(unittest.TestCase):
             self.assertEqual(row["improveCarried"], {key: False for key in R23B_IMPROVE_KEYS}, row["stage"])
             packet = docs["packets"][f"real--{row['action']}-improve"]["text"]
             self.assertIn("1. Run the improve skill on the ", packet)
-            self.assertRegex(packet, r"(?m)^\s+/improve ShipLoop Improve: .+/handoff\.md$")
+            self.assertRegex(packet, r"(?m)^\s+ShipLoop Improve: .+/handoff\.md$")
             self.assertIn("2. When the improve skill has completed, run:", packet)
             self.assertIn("Keepalive marker:", packet)
-            handoff_path = re.search(r"(?m)^\s+/improve ShipLoop Improve: (.+/handoff\.md)$", packet).group(1)
+            handoff_path = re.search(r"(?m)^\s+ShipLoop Improve: (.+/handoff\.md)$", packet).group(1)
             handoff = Path(handoff_path).read_text(encoding="utf-8")
             self.assertIn("# ShipLoop Improve handoff:", handoff)
             self.assertIn("## What the reviewed stage worked from", handoff)

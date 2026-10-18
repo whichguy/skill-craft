@@ -261,8 +261,8 @@ Two pointer lines follow the header (`ShipLoop navigator | stage | revision N`) 
 packet, whether printed whole, as a head or read from its file: `Lost context, or unsure? Run
 <CLI> next --run-dir=<RUN> (it reprints this step).` and `Full packet: <RUN>/packets/<id>.md - ...`,
 which says to open the packet file with a file tool when a print was cut (a complete print ends
-with the line `=== end ShipLoop head ===`) or the duties or the template are needed, and that the
-file's References block lists the other references (the run's `reference.md` and `context-index.md`
+with the line `=== end ShipLoop head ===`; every head carries the duties and the result template),
+and that the file's References block lists the other references (the run's `reference.md` and `context-index.md`
 among them) and what each holds. The one legal callback for the current owner is the third line
 after the header, labelled `Callback for this stage` and giving the reason to run it exactly as
 printed (an Improve child's packet labels it `Next command (` or

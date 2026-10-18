@@ -32,9 +32,9 @@ Interactions, UI or service state changing: a Design basis paragraph or exact se
 design guide's matching subsections and, for services, Service discovery guidance; copy no prior plan. Give baseline and
 delta; actors, events, connections and state owner; planned recovery checks; for UI the component, interaction and skin
 premises, design guidance identity and version or digest (or named fallback), and the rich interactions planned (a
-human-facing UI defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard
-paths, animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning ownership
-guide); locators of sources and checks.
+human-facing UI takes the ambition the request states, and with none stated defaults to ambitious and highly interactive:
+direct manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any scaled
+back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
 
 Interaction design guide:
 [actors, channels and state ownership](behavioral-requirements.md#actors-channels-and-state-ownership).

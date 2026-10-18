@@ -418,7 +418,7 @@ class InteractionGuidanceTests(unittest.TestCase):
                     self.assertIn(case["decision"], packet)
                 if case.get("design_basis"):
                     self.assertIn(case["design_basis"], producer_packet)
-                self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(recovered_bound["active_improve"])),
+                self.assertIn("       ShipLoop Improve: " + str(navigator.improve_handoff_path(recovered_bound["active_improve"])),
                               bound_packet)
                 improve_id = recovered_bound["active_improve"]["improve_action"]
                 self.assertIn("complete --run-dir=" + str(run_root) + " --action=" + improve_id, bound_packet)

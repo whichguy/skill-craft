@@ -98,10 +98,11 @@ an open investigation. Resolve it and define the required checks before release
 readiness; it is not evidence that no delivery work is needed.
 
 `authority` has `status` (`approved`, `not-required`, `unresolved`), `kind`
-(`request`, `user-decision`, `repo-policy`), `reference`, `target`, and `operation`.
+(`request`, `user-decision`, `repo-policy`) and `reference`; its `target` and `operation`
+are the contract's, so leave them out and ShipLoop fills them in (given, they must match).
 For `repo-policy`, also supply `approval_ref` identifying the user instruction
 that approved it. Optional `scope` is `run` (a plain yes covers this run only) or
-`standing`; `standing` requires `kind: repo-policy` with its `approval_ref`. Its target/operation must match the contract. Agent-authored
+`standing`; `standing` requires `kind: repo-policy` with its `approval_ref`. Agent-authored
 policy cannot authorize itself; a nonempty reference is not authentication.
 Correction sources use the same kind/reference/approval convention.
 
@@ -151,6 +152,11 @@ an automatic repeated write. Old-anchor submissions are rejected.
 `plan` (after its Improve return) needs a contract. `system-test` needs current required prechecks.
 `release-plan` needs resolved necessity and scoped authority for necessary
 activation, plus current prechecks; its deliverable is a **plan**, not an upload.
+While the accepted contract's necessity is unresolved (or required with authority
+not approved), the release-plan template prints the replacement contract that
+settles it, prefilled from the accepted one (supersedes, correction, a required
+effect, identity and behavior row for each missing kind); decide its placeholders,
+or report blocked with the decision needed.
 `release` needs effect and identity observations. `release-verify` needs required
 behavior observations and still-current earlier checks. `handoff` cannot discard a recorded pending requirement.
 Declared local checks remain required even when activation is N/A.

@@ -94,7 +94,7 @@ RULES: tuple[Rule, ...] = (
     # packet starts with the no-card notice and the improve-bind command, then the recovery command for the instruction.
     _r("callback", r"^(No Improve card is recorded|Then run the recovery command for the Improve instruction)"),
     _r("callback", r"^(1\. Run the improve skill on the|2\. When the improve skill has completed|ShipLoop could not start this review)"),
-    _r("callback", r"^( {7}/improve | {3}\(the Skill tool, skill \"improve\")"),
+    _r("callback", r"^( {7}/improve | {7}ShipLoop Improve: | {3}\(the Skill tool, skill \"improve\"| {3}\(through the host's skill call)"),
     _r("goal", r"^(Goal:|Reviewing the returned .*Goal:)"),
     _r("done-when", r"^Done when", "bullets"),
     _r("checked-by", r"^Checked by:"),

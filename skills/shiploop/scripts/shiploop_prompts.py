@@ -132,7 +132,7 @@ def packet_pointer(path: object, head_end: str) -> str:
     rule (open only the section a step needs, never a whole reference file, do not re-read the skill card) is said here once.
     """
     return (PACKET_POINTER_PREFIX + str(path) + " - open it with a file tool, not the shell, when this print was cut (a "
-            "complete print ends with the line " + head_end + ") or you need the duties or the template; it also holds the "
+            "complete print ends with the line " + head_end + "); it also holds the "
             "original request, the knowledge files quoted whole and the hand-offs. Its References block lists the other "
             "references and what each holds; open only the section a step needs, never a whole reference file, and do not "
             "re-read the ShipLoop skill card.")
@@ -827,9 +827,10 @@ _PLAN_RECORD_INTERACTIONS = """\
      Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
      plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
      component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     and the rich interactions planned (a human-facing UI defaults to ambitious and highly interactive: direct
-     manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any
-     scaled back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
+     and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
+     defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths,
+     animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning
+     ownership guide); locators of sources and checks.
 """
 
 # Words that mark a request or work item as one that may change interactions, UI or service state.  Deliberately
@@ -1116,9 +1117,10 @@ DUTIES = {
    state, event and connection agreements with planned recovery checks (including a crash after acknowledgment but
    before processing); deployment fit; source and check locators. UI: component, interaction and skin premises, the
    design guidance locator with identity, version or digest (or the named fallback), each async cue with purpose and
-   reduced-motion alternative or an explicit static choice. A human-facing UI defaults to an ambitious, highly
-   interactive design: name the rich interactions planned (direct manipulation, inline editing, live preview,
-   keyboard paths, animated transitions) and any scaled back, with the reason. A consequential UI choice gives the
+   reduced-motion alternative or an explicit static choice. A human-facing UI takes the ambition the request states
+   (a simple one when it asks for simple); one that states none defaults to an ambitious, highly interactive design:
+   name the rich interactions planned (direct manipulation, inline editing, live preview, keyboard paths, animated
+   transitions) and any scaled back, with the reason. A consequential UI choice gives the
    guide's ambition, the reuse, evolve or upgrade decision, effort and benefit, and the compatibility check.
    Allocate each UI decision to the item that owns it (UI planning ownership guide) and put it, with planned check
    locators, in that item's `context` and `evidence_refs`. Reuse accepted choices for unaffected scope. Start no
@@ -1145,8 +1147,9 @@ DUTIES = {
     documentation work for knowledge that exists only in run notes.
 12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
     UI, logging, test and operator files, as needed (Service discovery guidance), ordering prerequisites and checks.
-13. Each item's `context` states the module format its files use (CommonJS or ESM, with or without package.json) and
-    the loadable seam its tests import, so a test loads before the implementation exists.
+13. Each item's `context` states the loadable seam its tests import, so a test loads before the implementation exists,
+    and, where the language has more than one module format (CommonJS or ESM, with or without package.json), the one
+    its files use.
 14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
     prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
     fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
@@ -1397,8 +1400,9 @@ preparatory commit); a mismatch there is a revise.
 This is item acceptance, not a claim that integration or release has happened. Each review iteration does items 1-7
 in order; """ + _VERIFY_ONCE + """
 
-1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded
-   command into RUN/tests/<action>-check-only.md: copy no exit code.
+1. **Run.** After your last edit, write the result (the Result template below) to RUN/inbox/<action>.md, then run the
+   Callback command with `--check-only`, which reads that file; fix each refusal. It reruns every recorded command
+   into RUN/tests/<action>-check-only.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
    this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report revise.
@@ -1555,8 +1559,8 @@ in order; """ + _VERIFY_ONCE + """
    locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as repeat,
    blocked or replan; never guess a command or drop a required case.
 2. Before running check prerequisites, fixtures, execution location, target, identity, authorization, remote
-   framework availability, and the deployed or test revision. Deploy not to unblock a test; use production only with
-   authority.
+   framework availability, and the deployed or test revision. Add no deploy to unblock a test (a recorded command's
+   own deploy step runs as recorded); use production only with authority.
 3. Run the due cases on the intended candidate and boundary (System-test placement guidance, Real-boundary test
    guidance). Substitute no planned case or local mock for a required system observation. A local pass replaces no
    blocked or unrun required remote check and establishes no combined full-suite pass; keep that check's owner and

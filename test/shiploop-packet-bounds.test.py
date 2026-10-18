@@ -199,7 +199,7 @@ class PacketBoundsTests(unittest.TestCase):
         # Bound at the transition or by hand, the first packet is the two instructions: run the improve skill, then
         # improve-complete; there is no improve-bind step left in it (packet re-cut, 2026-10-11).
         started = start.read_text()
-        self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(bound["active_improve"])), started)
+        self.assertIn("       ShipLoop Improve: " + str(navigator.improve_handoff_path(bound["active_improve"])), started)
         self.assertIn(" complete --run-dir=", started)
         self.assertIn("--action=" + navigator.improve_id(bound), started)
         self.assertNotIn("improve-complete", started)
