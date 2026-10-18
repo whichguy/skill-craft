@@ -224,6 +224,11 @@ def _epoch(text: object) -> float | None:
         return None
 
 
+# Flags that make the operation's command change nothing: its help, or a rehearsal of it (live release slice 2026-10-18 counted
+# `project deploy start --help` as a deploy outside the release stage).
+NOT_AN_OPERATION = frozenset({"--help", "-h", "--dry-run"})
+
+
 def operation_calls(log: Path, argv: list[str], skip: list[tuple[int, int]] = ()) -> list[dict]:
     """The allowed calls of the guard log whose argv starts with ``argv``, in log order, outside the harness's own preflights
     (``skip``: [from, to) line ranges). Each is {"line", "ts", "t", "call", "exit"}; ``t`` is None for a time that cannot be read,
@@ -245,7 +250,7 @@ def operation_calls(log: Path, argv: list[str], skip: list[tuple[int, int]] = ()
             ends[record.get("call")] = record.get("exit")
         elif (not any(first <= number < last for first, last in skip) and record.get("decision") == "allowed"
               and record.get("name", "sf") == "sf" and isinstance(record.get("argv"), list)
-              and record["argv"][:len(argv)] == argv):
+              and record["argv"][:len(argv)] == argv and not set(record["argv"]) & NOT_AN_OPERATION):
             found.append({"line": number, "ts": record.get("ts"), "t": _epoch(record.get("ts")), "call": record.get("call")})
     for call in found:
         call["exit"] = ends.get(call["call"])

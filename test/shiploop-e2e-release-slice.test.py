@@ -418,6 +418,15 @@ class GradeTest(unittest.TestCase):
         self.assertIn("deploy outside the release stage: 1 before release-check was accepted (of 2)", graded["operation"]["reason"])
         self.assertIsNone(graded["stopped"])  # every stage was accepted: only the deploy is wrong
 
+    def test_a_help_or_dry_run_of_the_deploy_command_is_not_a_deploy(self) -> None:
+        """Live release slice 2026-10-18 (bs-release-update-436528): `sf project deploy start --help` during release-check was
+        counted as a deploy outside the release stage, though the one real deploy fell inside it."""
+        self.log(guard_line(15, ["project", "deploy", "start", "--help"], call="help"),
+                 guard_line(16, [*DEPLOY, "--dry-run"], call="dry"), guard_line(25, DEPLOY, call="b2"))
+        graded = self.grade(self.finished())
+        self.assertTrue(graded["operation"]["pass"], graded["operation"])
+        self.assertEqual([call["call"] for call in graded["operation"]["calls"]], ["b2"])
+
     def test_a_deploy_after_release_was_accepted_fails(self) -> None:
         self.log(guard_line(25, DEPLOY, call="b2"), guard_line(45, DEPLOY, call="late"))
         graded = self.grade(self.finished())

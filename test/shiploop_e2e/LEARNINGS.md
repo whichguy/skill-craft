@@ -2453,3 +2453,14 @@ Grok 4.7 medium on `battleship-salesforce` against the owner's Developer Edition
 - **Release-verify, no delivery contract:** it recorded the rendered-board check (SYS-BOARD) as an open item with steps for a person and closed, rather than blocking (U7); the handoff carries it. The tab was visible to the owner by the permission set from the start (chess F9 lesson).
 
 Evidence: `/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/` (+ `.log`, `-resume1.log`, `review-export/`); `docs/e2e-salesforce-battleship-journal.md`.
+
+## The Salesforce release slice, live run 1: the deploy path passes end to end (2026-10-18, skill-craft 2.6.0 from the marketplace) — status: interim (n=1)
+
+`run.py --case battleship-salesforce --seed-at release-plan --platform-existing update --keep-platform`, Grok 4.7 medium, over the owner's kept app in org `de` (7 SLBattle items as the baseline).
+
+- **ShipLoop done; release slice PASS:** release-plan, release-check, release, release-verify, operations and handoff all accepted, 0 refusals, about 24 minutes (release-plan 11.6 min with its Improve review, release-check 8.2, release 1.4, release-verify 1.9, operations 0.9). One real `sf project deploy start --target-org de`, inside the release stage, exit 0.
+- **All five case checks PASS** (project, deployed, tests, access, rules) and **committed PASS**: the fixture's `.gitignore` for `.sf/` and `.sfdx/` kept tool state out of the return, so the return committed (run 1 of the full case failed here). The app stays in the org.
+- **Harness fix:** the deploy-timing verdict counted `sf project deploy start --help` (release-check looking up the command) as a deploy outside the release stage; help and dry-run calls are now not operations (fail-first test). Regraded: PASS.
+- **Still open (L2):** the Grok host idled after the done packet until the 45-minute timeout (`process FAIL rc=-9`); not killed by hand, so `--keep-platform` held.
+
+Evidence: `/Users/dadleet/e2e-runs/20261018/bs-release-update-436528/` (+ `.log`, `-regrade.log`, `result.json`).
