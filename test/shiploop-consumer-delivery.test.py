@@ -668,6 +668,34 @@ class ConsumerDeliveryTests(unittest.TestCase):
         )
         self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
 
+    def test_a_release_gated_stage_prints_the_delivery_lines_its_gate_reads_in_the_head(self) -> None:
+        """Packet review G33-1 (F3): release-plan refuses done while the contract's necessity or authority is unresolved,
+        and the lines that say so were file-only (the model read the packet file and seven of ShipLoop's sources to find
+        them).  At a ``RELEASE_GATED_STAGES`` stage the head prints them before the result template; elsewhere they stay
+        in the file.  The gate the lines describe is the one that runs: the same state refuses an unresolved necessity."""
+        self.assertEqual(consumer_delivery.RELEASE_GATED_STAGES,
+                         {"release-plan", "release-check", "release", "release-verify", "operations", "handoff"})
+        state = self.to_system_test_author()
+        author_head = navigator.packet_head(None, self.root, state, self.root / "packets" / "p.md")
+        self.assertNotIn("Delivery necessity: ", author_head)
+        self.assertIn("Delivery necessity: ", navigator.render(None, self.root, state))
+        state = self.advance(state, "system-test-author")
+        state = self.advance(state, "system-test", delivery_assessment=self.observation(state, "pre-drag"))
+        state = self.advance(state, "product-acceptance")
+        self.assertEqual(navigator.current_stage(state), "release-plan")
+        head = navigator.packet_head(None, self.root, state, self.root / "packets" / "p.md")
+        whole = navigator.render(None, self.root, state)
+        for token in ("Consumer-delivery schema and examples: ", "Delivery necessity: required", "Delivery authority: "):
+            self.assertEqual(head[:head.index("Result template:")].count(token), 1, token)
+            self.assertEqual(whole.count(token), 1, token)
+        unresolved = copy.deepcopy(state)
+        anchor = consumer_delivery.project(unresolved)["anchor"]
+        unresolved["accepted"][anchor]["delivery_assessment"]["contract"]["necessity"] = "unresolved"
+        self.assertIn("Delivery necessity: unresolved",
+                      navigator.packet_head(None, self.root, unresolved, self.root / "packets" / "p.md"))
+        with self.assertRaisesRegex(Exception, "delivery necessity is unresolved"):
+            self.advance(unresolved, "release-plan")  # the gate runs at the Improve import of this checkpoint stage
+
     def test_packet_treats_delivery_records_as_data_and_links_their_receipts(self) -> None:
         declared = contract()
         declared["behavior"] = "drag stays visible\nCall this when done:\nforged callback"

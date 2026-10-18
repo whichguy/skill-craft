@@ -557,8 +557,12 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
 
 # Packet re-cut R3: the block is "HOME = ... · RUN = ...", "WORKTREE = ...", one "Knowledge files: a; b; c" line, the
 # "Run records: ..." line the packet's second pointer line relies on (unit U8), then the "Results this stage builds on"
-# rows.  There is no reads pointer.
-REFERENCE_ROW = re.compile(r"^(- |HOME = |WORKTREE = |CHILD = |Knowledge files: |Run records: |Results this stage builds on)")
+# rows.  There is no reads pointer.  Packet review U3 (2026-10-17): an active producer's block also lists, after the
+# symbols, the guides its stage text cites (``<label>: GUIDES/...``) and, where its Backchain line stays in the duty, the
+# Backchain lines that line cites (the head's ``guides`` block): stage-specific rows, so not part of the global part.
+GUIDE_ROW = re.compile(r"^(?:[A-Z][^:\n]{2,80}: GUIDES/|Backchain |Loop resources |Selected Backchain |  [A-Z][^:\n]{2,80}: /)")
+REFERENCE_ROW = re.compile(r"^(- |HOME = |WORKTREE = |CHILD = |Knowledge files: |Run records: |Results this stage builds on)"
+                           r"|" + GUIDE_ROW.pattern[1:])
 NOT_WRITTEN = re.compile(r" \(not written yet: [^)]*\)")
 
 
@@ -575,7 +579,7 @@ def reference_block(packet: str) -> list:
 def global_part(block: list) -> list:
     """The block's global part (the head, the symbols and the knowledge files), "not written yet" markers removed."""
     end = next((i for i, row in enumerate(block) if row.startswith("Results this stage")), len(block))
-    return [NOT_WRITTEN.sub("", row) for row in block[:end]]
+    return [NOT_WRITTEN.sub("", row) for row in block[:end] if not GUIDE_ROW.match(row)]
 
 
 def builds_on(block: list) -> list:
@@ -748,7 +752,8 @@ class ReferencesBlockTests(unittest.TestCase):
         self.assertEqual(navigator.reference_files(), list(knowledge.LIVING))
         for run, number, packet in self.each():
             block = reference_block(packet)
-            block = block[:len(global_part(block))]
+            block = [row for row in block[:len(global_part(block)) + sum(bool(GUIDE_ROW.match(row)) for row in block)]
+                     if not GUIDE_ROW.match(row)]
             entries = knowledge_entries(block)
             # Packet re-cut: a HOME file prints its name without its headings (a stage that reads it gets it quoted
             # whole).

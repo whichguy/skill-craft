@@ -649,6 +649,11 @@ def validate_settled(state: Mapping[str, Any], action_id: str, stage: str, resul
         _require_settled(contract)
 
 
+# The stages whose done ``validate_transition`` refuses on the contract's necessity and authority
+# (``_require_release_ready``): their packets print the delivery lines in the head, where the gate's input is.
+RELEASE_GATED_STAGES = frozenset(("release-plan", "release-check", "release", "release-verify", "operations", "handoff"))
+
+
 def validate_transition(
     state: Mapping[str, Any], action_id: str, stage: str, result: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -663,10 +668,9 @@ def validate_transition(
     elif stage == "system-test":
         _need(not _pending(projection, phase="system-test"),
               "required pre-update obligations are not current")
-    elif stage == "release-plan":
-        _require_release_ready(projection)
-    elif stage in {"release-check", "release", "release-verify", "operations", "handoff"}:
-        _need(projection["replan_required"] is None, projection["replan_required"])
+    elif stage in RELEASE_GATED_STAGES:
+        if stage != "release-plan":
+            _need(projection["replan_required"] is None, projection["replan_required"])
         _require_release_ready(projection)
         if stage == "release":
             _need(not _pending(projection, phase="release"),
