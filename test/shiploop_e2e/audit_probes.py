@@ -33,6 +33,8 @@ AUDIT_ROOT_LENGTH = len("/Users/dadleet/src/skill-craft")
 # The audit's context_probe.py kept its run and repository under /tmp/shiploop-audit-20261016-analysis.
 AUDIT_RUN_LENGTH = len("/tmp/shiploop-audit-20261016-analysis/fixture-run")
 AUDIT_REPO_LENGTH = len("/tmp/shiploop-audit-20261016-analysis/fixture-repo")
+# The dry run prints the interpreter's path; the audit ran Homebrew's Python 3.14 (a CI runner's toolcache path is longer).
+AUDIT_PYTHON_LENGTH = len("/opt/homebrew/opt/python@3.14/bin/python3.14")
 # The audit's figures at 2686b427, to read a measurement against.
 AUDITED = {"delivery_packet_chars": 375_278, "bound_handoff_chars": 276_270, "entry_card_chars": 79_647}
 
@@ -78,7 +80,8 @@ def delivery_packet_chars(root: Path) -> dict:
     prompts = [event["prompt"] for event in delivery["events"]]
     counts = [len(p) for p in prompts]
     return {"packets": len(counts), "characters": sum(counts), "max": max(counts), "over_16000": sum(c > 16_000 for c in counts),
-            "root_mentions": sum(p.count(str(root)) for p in prompts)}
+            "root_mentions": sum(p.count(str(root)) for p in prompts),
+            "python_excess": sum(p.count(sys.executable) for p in prompts) * (len(sys.executable) - AUDIT_PYTHON_LENGTH)}
 
 
 def bound_handoff_chars(root: Path) -> dict:
@@ -102,11 +105,12 @@ def entry_card_chars(root: Path) -> int:
 def measure(root: Path = DEFAULT_ROOT, root_length: int | None = None) -> dict:
     """The three figures for the checkout at ``root``, beside the audited ones. With ``root_length`` the two packet figures are
     those of a root that long (each mention of ``root`` in a packet counts ``root_length`` characters), and the handoffs' temporary run and
-    repository paths count as long as the audit's were."""
+    repository paths and the interpreter path the dry run prints count as long as the audit's were."""
     root = Path(root).resolve()
     delivery, handoffs, card = delivery_packet_chars(root), bound_handoff_chars(root), entry_card_chars(root)
     shrink = 0 if root_length is None else len(str(root)) - root_length
-    found = {"delivery_packet_chars": delivery["characters"] - shrink * delivery["root_mentions"],
+    found = {"delivery_packet_chars": delivery["characters"] - shrink * delivery["root_mentions"]
+             - (0 if root_length is None else delivery["python_excess"]),
              "bound_handoff_chars": handoffs["characters"] - shrink * handoffs["root_mentions"]
              - (0 if root_length is None else handoffs["run_excess"] + handoffs["repo_excess"]), "entry_card_chars": card}
     return {"root": str(root), "root_length": len(str(root)), "adjusted_to_root_length": root_length, "figures": found,

@@ -74,7 +74,9 @@ def state_of(run_dir: str | Path) -> dict:
 
 
 def shiploop(*args: str, check: bool = True) -> subprocess.CompletedProcess:
-    done = subprocess.run([sys.executable, str(CLI), *args], capture_output=True, text=True)
+    # A CI runner's system config declares Git LFS filters, which a managed workspace refuses; the case's own Git config only.
+    done = subprocess.run([sys.executable, str(CLI), *args], capture_output=True, text=True,
+                          env={**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"})
     if check and done.returncode:
         raise AssertionError(f"shiploop {' '.join(args[:2])} exited {done.returncode}:\n{done.stderr[-1500:]}{done.stdout[-1500:]}")
     return done
