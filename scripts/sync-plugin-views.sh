@@ -14,7 +14,7 @@
 #
 # A sync removes any other plugins/<name> directory and any entry of the view
 # that generation does not produce; --check reports them.
-# Copy and --check ignore __pycache__/, *.pyc and .DS_Store at every depth.
+# Copy and --check ignore __pycache__/, *.pyc, .ruff_cache/ and .DS_Store at every depth.
 # Running a skill script is not plugin-view drift. Other content diffs still
 # fail --check.
 set -euo pipefail
@@ -101,12 +101,12 @@ copy_skill_package_deref() {
   rm -rf "$dest"
   if command -v rsync >/dev/null 2>&1; then
     mkdir -p "$dest"
-    rsync -aL --exclude '__pycache__/' --exclude '*.pyc' --exclude '.DS_Store' "$sot"/ "$dest"/
+    rsync -aL --exclude '__pycache__/' --exclude '*.pyc' --exclude '.ruff_cache/' --exclude '.DS_Store' "$sot"/ "$dest"/
   else
     mkdir -p "$(dirname "$dest")"
     # shellcheck disable=SC2086
     cp -R -L "$sot" "$dest"
-    find "$dest" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find "$dest" -type d \( -name __pycache__ -o -name .ruff_cache \) -exec rm -rf {} + 2>/dev/null || true
     find "$dest" \( -name '*.pyc' -o -name '.DS_Store' \) -delete 2>/dev/null || true
   fi
   local leftover
@@ -130,10 +130,10 @@ skill_package_matches_view() {
   fi
   if command -v rsync >/dev/null 2>&1; then
     mkdir -p "$tmp/norm"
-    rsync -aL --exclude '__pycache__/' --exclude '*.pyc' --exclude '.DS_Store' "$sot"/ "$tmp/norm"/
+    rsync -aL --exclude '__pycache__/' --exclude '*.pyc' --exclude '.ruff_cache/' --exclude '.DS_Store' "$sot"/ "$tmp/norm"/
   else
     cp -R -L "$sot" "$tmp/norm"
-    find "$tmp/norm" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find "$tmp/norm" -type d \( -name __pycache__ -o -name .ruff_cache \) -exec rm -rf {} + 2>/dev/null || true
     find "$tmp/norm" \( -name '*.pyc' -o -name '.DS_Store' \) -delete 2>/dev/null || true
   fi
   if find "$dest" -type l 2>/dev/null | grep -q .; then
@@ -141,7 +141,7 @@ skill_package_matches_view() {
     rm -rf "$tmp"
     return 1
   fi
-  if diff -rq -x __pycache__ -x '*.pyc' -x .DS_Store "$tmp/norm" "$dest" >/dev/null 2>&1; then
+  if diff -rq -x __pycache__ -x '*.pyc' -x .ruff_cache -x .DS_Store "$tmp/norm" "$dest" >/dev/null 2>&1; then
     rm -rf "$tmp"
     return 0
   fi
@@ -154,7 +154,7 @@ skill_package_matches_view() {
 view_entries() {
   local dir="$1"
   [[ -d "$dir" ]] || return 0
-  find "$dir" -mindepth 1 -maxdepth 1 ! -name '.DS_Store' ! -name '__pycache__' ! -name '*.pyc' \
+  find "$dir" -mindepth 1 -maxdepth 1 ! -name '.DS_Store' ! -name '__pycache__' ! -name '*.pyc' ! -name '.ruff_cache' \
     -exec basename {} \; | LC_ALL=C sort
 }
 

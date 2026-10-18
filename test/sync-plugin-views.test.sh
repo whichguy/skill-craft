@@ -58,20 +58,23 @@ set -e
 [[ "$rc_leafarg" -eq 64 ]] || fail "a leaf argument should be refused with exit 64: rc=$rc_leafarg out=$out_leafarg"
 printf '%s\n' "$out_leafarg" | grep -Fq 'unknown argument shiploop' || fail "leaf-argument refusal message missing: $out_leafarg"
 
-# Bytecode anywhere under a bundled skill is not plugin-view drift (.gitignore
-# already ignores it).
+# Bytecode and a lint cache anywhere under a bundled skill are not plugin-view
+# drift (.gitignore already ignores them). A local .ruff_cache once made
+# release.py --dry-run plan an output-only release of unchanged source.
 pyc_pin="skills/shiploop/scripts/__pycache__"
-cleanup_pyc_pin() { rm -rf "$pyc_pin"; }
+ruff_pin="skills/shiploop/scripts/.ruff_cache"
+cleanup_pyc_pin() { rm -rf "$pyc_pin" "$ruff_pin"; }
 trap cleanup_pyc_pin EXIT
-mkdir -p "$pyc_pin"
+mkdir -p "$pyc_pin" "$ruff_pin"
 printf 'x' >"$pyc_pin/pin.pyc"
+printf 'x' >"$ruff_pin/CACHEDIR.TAG"
 set +e
 out_pyc="$(bash scripts/sync-plugin-views.sh --check 2>&1)"
 rc_pyc=$?
 set -e
 cleanup_pyc_pin
 trap - EXIT
-[[ "$rc_pyc" -eq 0 ]] || fail "__pycache__ should not fail --check: $out_pyc"
+[[ "$rc_pyc" -eq 0 ]] || fail "__pycache__ or .ruff_cache should not fail --check: $out_pyc"
 
 # Check mode must pass after regenerating
 bash scripts/sync-plugin-views.sh --check || fail "plugin view out of sync or still symlinked"
