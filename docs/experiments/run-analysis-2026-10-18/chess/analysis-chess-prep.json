@@ -1,183 +1,162 @@
 {
-  "group": "chess-prep",
-  "scale": "directive 1-5: 5 = the packet stated method, order, what to read, what done means and how it is checked, and the model needed nothing else; 3 = it guessed one or two rules or drew refusals; 1 = it read ShipLoop's own source to learn the rules and still misread one that later failed. Packet concise/accurate/effective findings are reused from docs/experiments/packet-review-2026-10-17/A-preparation.json and B-build-1.json (ids A*/B*), not redone.",
-  "steps": [
-    {
-      "tag": "01-intake",
-      "purpose": "Map each request sentence to an outcome, boundary or open question and record the delivery contract.",
-      "directive": 3,
-      "directive_evidence": "Duties 1-8 and Done-when gave the method; the result maps S1-S22 one clause each. Two template rules had to be found by refusal: 'delivery authority target does not match contract', then THINK 'Authority operations may need to match contract operations.' Intake writes nothing, yet the template asks for files written; THINK 'I am checking whether an empty evidence_refs list is acceptable, or if I must point it to a durable record.' It then wrote run/notes/environment-lifecycle.md to have a reference. It opened delivery-authority.md (named by duty 4) and environment-lifecycle.md (not named).",
-      "response": "Served: every sentence mapped, one owned open question (org identity, discovery, sf org list), visibility stated. Cost: 2 refusals and an invented note.",
-      "step_by_step": "n/a",
-      "improve": "n/a",
-      "gaps": [
-        "Template authority placeholders ('kind': 'user-decision', 'status': 'unresolved', 'operation': '...', 'target': '...') do not say they must equal the contract's operation and target, and a request that names the target is 'request'/'approved' per duty 4. Write '<same text as contract.operation>' / '<same text as contract.target>' and a request-grant example. Source: skills/shiploop/scripts/shiploop_consumer_delivery.py template_assessment and _contract (A1-1; not yet changed in the integration branch).",
-        "EVIDENCE_PLACEHOLDER ('<absolute path of each file this stage wrote, or of the check output it recorded>') fits no intake: duty 8 says 'each source used'. At intake print '<RUN/request.md and each source used>'. Source: shiploop_navigator.py EVIDENCE_PLACEHOLDER."
-      ]
-    },
-    {
-      "tag": "02-discovery",
-      "purpose": "Run the existing baseline (or record missing coverage), resolve intake's open question and record environment facts in HOME/environment.md.",
-      "directive": 2,
-      "directive_evidence": "The baseline and org-identity duties were clear and done in the first call. The model then read 14 guide sections and 2 ShipLoop-source locations to learn the file layout: THINK 'I need the SECTIONS from environment.md in shiploop_reference.py starting at line 25.' and 'I need to find knowledge home sections for environment.md.' (grep of skills/shiploop/scripts). The duties name 5 of environment.md's 7 headings across items 3, 6 and 12, and nothing says the other two belong to test-strategy, so it wrote 'none yet' placeholders for Harnesses and suites and ID convention. It also created the host's index: 'A short SHIPLOOP.md will be created in the worktree as the project index'.",
-      "response": "Served: empty-repo baseline classified as missing coverage, alias de resolved without sf org display, no-hook return route recorded. The self-made SHIPLOOP.md stayed untracked and every later Improve review had to reason about it ('I cannot control staging if improve-commit stages all changes automatically').",
-      "step_by_step": "n/a",
-      "improve": "n/a",
-      "gaps": [
-        "A not-yet-written living file is listed without its headings or who adds which ('HOME/environment.md: environment (not written yet: discovery writes it)'), so the model searched ShipLoop's source for knowledge_home.SECTIONS. Print the file's SECTIONS and say 'write the sections your duties name; later stages add theirs (Harnesses and suites, ID convention: test-strategy)'. Source: shiploop_navigator.py reference-block entry() and reads_lines (the 'not written yet' branch), shiploop_knowledge_home.py SECTIONS.",
-        "Nothing says not to create WORKTREE/SHIPLOOP.md; the line says only 'host-authored, if present'. Add 'do not create it; ShipLoop never commits it'. Source: shiploop_navigator.py (the 'Repository knowledge index (host-authored, if present)' line) and DUTIES['discovery'] item 6.",
-        "Items 9 and 11 (connected knowledge, service discovery; 1.7 KB) applied to nothing in an empty repo, and the guide-label paths are only in the file (A2-1, A2-2)."
-      ]
-    },
-    {
-      "tag": "03-research",
-      "purpose": "Resolve the consequential unknowns with evidence and probe access to the delivery target.",
-      "directive": 5,
-      "directive_evidence": "The model needed no guide and no source: 0 guide reads, 3 web searches, 1 org probe. Duty 2 ('A recalled fact is not evidence') shows in THINK: 'I will fetch exact perft counts from the Chess Programming Wiki rather than recall them.' Duty 4's probe changed a fact: 'The heap limit is 10 MB, not 6 MB.'",
-      "response": "Served: oracles 20/48/14/6/44, the KQkq and en-passant conventions, CPU 10,000 ms and heap 10,000,000 probed, two open items with owners.",
-      "step_by_step": "n/a",
-      "improve": "n/a",
-      "gaps": [
-        "Duty 4 probes 'access to each delivery target'. The model probed the CLI's anonymous Apex and concluded 'Anonymous Apex and AuraEnabled methods are callable by Salesforce System Administrators without permission sets, so no profile modifications are needed', which conflates Apex access with tab visibility. Release-verify later met 'Page does not exist' until a permission set. The integration branch moved a consumer-access probe to prepare (duty 6) and added tab visibility to platforms/salesforce.md; research duty 4 could cite that guide's probe too. Source: shiploop_prompts.py DUTIES['research'] item 4."
-      ]
-    },
-    {
-      "tag": "04-spec",
-      "purpose": "Write R-<n> requirements with replayable acceptance criteria and assessed non-functional requirements in HOME/spec.md.",
-      "directive": 4,
-      "directive_evidence": "Duties 1-12 gave method and done; 5 calls, no guide or source reads. Duty 10 ('cannot be replayed exactly: name the concrete inputs') was obeyed by deriving FENs mentally, with no tool: THINK 'Fool's mate FENs are now fully computed through checkmate.' It caught one of its own errors ('The 35-ply example line may be illegal. The spec requires a replayable step or expected result.'), but not four-field FENs or R-7's contradictory reason, which Improve then fixed.",
-      "response": "Served: R-1..R-16 covering every outcome, NFRs R-13..R-16, open gaps owned. Three replay defects reached Improve.",
-      "step_by_step": "n/a",
-      "improve": "n/a",
-      "gaps": [
-        "The replay rule asks for named inputs, not checked ones. Add 'check each example mechanically (parse every FEN, replay every move line with a script) and record the output'. That is the check Improve then ran (python field counts). Source: shiploop_prompts.py _REVIEW_FOCUS_ITEMS[0] (shared by DUTIES['spec'] item 10 and PLANNING_REVIEW_FOCUS).",
-        "Item 11's Backchain mechanics (1 KB) went unused (A4-1)."
-      ]
-    },
-    {
-      "tag": "05-improve-spec",
-      "purpose": "Review the spec result, fix what is warranted, and end on an unchanged pass.",
-      "directive": 4,
-      "directive_evidence": "The minimal packet plus handoff sufficed. The model read improve SKILL.md, the 24 KB handoff, shiploop-route.md (46 KB) and improve-child.md. Two decisions it had to work out: whether improve-commit would sweep the untracked SHIPLOOP.md ('I cannot control staging if improve-commit stages all changes automatically') and whether to pass --final-result ('Omitting `--final-result` is the safer default.').",
-      "response": "Served: 3 passes, 2 commits, ended trivial.",
-      "step_by_step": "n/a",
-      "improve": "Real: pass 1 made Kiwipete and position-3 FENs six-field (a strict parser rejected four fields), removed R-5's self-contradicting stale-castle text and added the position 4 (6) and 5 (44) oracles; pass 2 fixed R-7's two incompatible reasons why e7g8q is absent. Cost 5.24 min, 36 calls, 3 passes (107/47/47 s). Held: the test stage (step 24) passed sizes 48/14/6/44 and the mate FENs. Pass 3 was a genuine trivial pass; nothing later failed on spec text. Left open and recorded: 'mate and castling result FENs are still unchecked by a chess engine'.",
-      "gaps": [
-        "When to pass --final-result is not stated in the packet or parent-return. It is in ROUTE#return-and-final_result and the last lines of an 80 KB handoff. Put the one rule ('pass --final-result <path> when this review changed a decision or evidence the result's summary states') in parent-return.md and packet line 2. Source: shiploop_navigator.py improve_packet and the parent-return text."
-      ]
-    },
-    {
-      "tag": "06-test-strategy",
-      "purpose": "Map each criterion to a check, select the harness, write focused/smoke/full commands and the ID convention, and probe host tools.",
-      "directive": 3,
-      "directive_evidence": "Item 11's stand-in probe was followed exactly (headless Chrome on a RUN/scratch page). The Salesforce reporter rule came only from the model's own grep of references/: THINK 'ShipLoop requires `--result-format tap` for Apex test commands.', from platforms/salesforce.md, which the packet never names. Item 10's ID rule left the Class.method separator open: 'I am checking whether Salesforce TAP output includes the full class name or just the method name. This determines how ShipLoop will match test IDs', and it then read shiploop_test_counts.py. It noted the deploy issue ('The acceptance test command must deploy the source tree first, or the result will be marked red_na') but wrote TAP fences without deploy.",
-      "response": "Served: one org-native harness, three classes, TAP for the loop and human for R-11, opt-in browser case. Two defects passed on: TAP commands that test the stale org copy (found at plan Improve), and an unsourced per-testMethod CPU claim (found at its Improve).",
-      "step_by_step": "n/a",
-      "improve": "n/a",
-      "gaps": [
-        "Duty 9 asks for focused commands but neither names the platform card nor says the loop reads only a pass/fail mark on the line that names the test (TAP for Apex). Step-plan duty 5 points to 'GUIDES/platforms/' but test-strategy, where commands are first written, does not. Add 'use the reporter GUIDES/platforms/<target>.md names'. Source: shiploop_prompts.py DUTIES['test-strategy'] items 9-10.",
-        "ID_WORD_RULE's example covers a suffix (TC-4a) but not a dotted Class.method, so the model read shiploop_test_counts.py. Add 'a dot, space or bracket ends a word: SLChessRulesTest.foolsMate shows foolsMate'. Source: shiploop_prompts.py ID_WORD_RULE.",
-        "Nothing tells test-strategy that the test stage runs each focused command on a mutated temporary copy, so a remote-resident command must deploy the tree it starts from. Plan Improve found this one review later. Add it to duty 9 for remote-resident runners. Source: shiploop_prompts.py DUTIES['test-strategy'] item 9; platforms/salesforce.md already says it."
-      ]
-    },
-    {
-      "tag": "07-improve-test-strategy",
-      "purpose": "Review the test strategy, fix what is warranted, and end on an unchanged pass.",
-      "directive": 3,
-      "directive_evidence": "The review focus drove real finds ('a title-only test', 'no primary-documentation source'). Two reasoning failures trace to the loop rules. The trivial-pass exit invited a deliberate skip: 'I decided not to add the exact-list-equality note... This keeps pass 2 trivial and avoids resetting the required-trivial review count.' 'Replayable' was judged by reading, not by replay: 'The a6a7-to-a8 promotion is confirmed legal.' It is not: a black pawn stands on a7 and a black rook on a8.",
-      "response": "Partly served: real fixes committed, plus an impossible click sequence and a skipped warranted fix.",
-      "step_by_step": "n/a",
-      "improve": "Real: the board has no load-FEN control, so page checks became click sequences; castlingBothSides was white-only, so black e8g8/e8c8 and h1h2 oracles were added; a primary source was cited for per-testMethod limits. Cost 3.6 min, 26 calls, 2 passes (126/62 s). Held: step 24 asserts e8g8, e8c8 and h1h2 and the per-method split. Introduced and missed: 'a2 a4, h7 h6, a4 a5, h6 h5, a5 a6, h5 h4, a6 a7, h4 h3, a7 a8' cannot be played (a6-a7 is blocked by the a7 pawn and a8 is occupied). Its python check tested FEN shape only. The sequence went to test-spec, verify and release-verify, and was handed to the owner (step 38: 'a-file queen, a-file knight ... are not-run'). Rubber stamp: pass 2 knowingly left the count-only C1 weakness, which step-plan Improve had to fix ('C1 could pass on a count of 20'), and did not see that the TAP fences test the stale org copy.",
-      "gaps": [
-        "'a pass that finds none of them is trivial' lets a reviewer label a pass trivial by not acting on what it found. Add 'a pass that sees a warranted fix and leaves it is not trivial: make it or record why not under Found'. Source: shiploop_navigator.py improve_handoff_text (the 'a pass that finds none of them is trivial' sentence) and improve/references/shiploop-route.md review cycle.",
-        "The replay focus accepts named inputs. Require mechanical replay for move or click sequences (a script or the product's own rules) with its output in checks.md. Source: shiploop_prompts.py _REVIEW_FOCUS_ITEMS[0]."
-      ]
-    },
-    {
-      "tag": "08-plan",
-      "purpose": "Plan the ordered work items, load-bearing assumptions and structure decisions.",
-      "directive": 2,
-      "directive_evidence": "A cut head made it search the packet file: 'The packet head was cut before the backchain and until-loop resources... I will search the packet file' (grep, then read at line 706). The item split was settled by a guessed test-stage rule: 'W2 contains only Lightning Web Component code... LWC metadata files make the test stage mandatory', which folded the engine and board into one item. The assumption schema forced a drop: 'Release verification cannot be the consumer because the schema requires a work item ID.' and then 'Tab visibility is a release-verify observation, not an open assumption.'",
-      "response": "Partly served: a coherent one-item plan with AD-8/AD-9 and A4/A7 open on W1. The consumer-visibility assumption was dropped. The summary says 'Tab visibility, if it fails, is recorded at release-verify', and release-verify was blocked on 'Page does not exist' until a permission set the request forbids.",
-      "step_by_step": "Set the granularity: one item W1 (engine, controller, tests, LWC, tab, app), 'If combined into one item, the inner loop implements everything in steps.' No step proof was planned here; proof was left to step-plan.",
-      "improve": "n/a",
-      "gaps": [
-        "An open assumption's consumer must be a work_items ID (duty 16, enforced at done), so an assumption only a prepare, consumer-access or release check can settle has no legal form and gets dropped. Allow consumer 'prepare' (now home of the consumer-access duty) or a release stage, and make that stage's packet list the assumption. Source: shiploop_prompts.py DUTIES['plan'] item 16; shiploop_navigator.py refusal 'open assumption without a consumer work item in this plan'.",
-        "Duty 14 says to split work with independent implementation and checks, but not what an item gets when its code has no local runner (the LWC here). Add 'such an item still gets a test stage; step-plan gives it a check command or test_commands_na with the reason'. Source: shiploop_prompts.py DUTIES['plan'] item 14.",
-        "The 80 KB packet printed a head without the Backchain/Until Loop resource block and guide paths (AX-2, A8-4; since reduced by the outline change)."
-      ]
-    },
-    {
-      "tag": "09-improve-plan",
-      "purpose": "Review the plan result, fix what is warranted, and end on an unchanged pass.",
-      "directive": 2,
-      "directive_evidence": "The 80 KB handoff was not reopened (A9-2). The producer's uncommitted AD-8/AD-9 forced a manufactured edit: 'I will add a one-line note to architecture.md under AD-7... This makes the file a review edit.' The return rules were looked up in ShipLoop source: `complete --help`, a grep of skills/shiploop, a read of shiploop_navigator.py, then THINK 'The `--final-result` parameter is optional and only required when a review changes a decision.' --notes was given text and refused ('Improve notes must be a regular file').",
-      "response": "Served on the main defect; one refusal and one bookkeeping pass.",
-      "step_by_step": "n/a",
-      "improve": "Real: 'a TAP command that only ran sf apex run test would execute the last org copy. A mutation check on a temporary tree would not fail.' Every loop command became 'deploy && one-class TAP'. Held: step 24 ran 'ls ... && sf project deploy start --target-org de && sf apex run test ... --result-format tap' and was accepted. Cost 5.34 min, 35 calls, 3 passes (83/41/31 s), 1 refusal. Pass 2 was bookkeeping (committing the producer's AD-8/AD-9), not a finding. Rubber stamp: pass 3 says 'assumptions are evidenced or open on W1' without asking what the plan had dropped. The tab-visibility case was removed in this very plan and blocked release-verify.",
-      "gaps": [
-        "Producer HOME edits at a non-close stage stay uncommitted when Improve binds, and improve-commit takes only 'files this review changed', so a pass is spent on manufacturing an edit. Commit the producer's HOME delta at bind, or tell the handoff 'the producer's HOME edits are uncommitted; your first improve-pass commits them'. Source: shiploop_knowledge_home.py stage_lines ('ShipLoop checks and commits it when the stage is accepted') and shiploop_navigator.py improve_handoff_text (A9-3). Check whether U19 covers edits made before the bind.",
-        "--notes help said text (A9-1; the integration branch now has metavar FILE). The --final-result rule is still only at the handoff's tail."
-      ]
-    },
-    {
-      "tag": "10-prepare",
-      "purpose": "Start each planned runner in no-op form and record readiness without deploying.",
-      "directive": 4,
-      "directive_evidence": "Duties 1-6 were followed in order with no source reads: help-only runner starts saved to RUN/scratch, return route rechecked ('Confirmed no ordering conflict between source return and org Apex checks.'). It read environment-lifecycle.md and workspace-lifecycle.md, which the duties name. The host wrapper replaced --help output ('The wrapper intercepted `--help` and printed an allowlist'), and the model handled it.",
-      "response": "Served for runners. Prepare had no duty to probe the consumer's access, so tab visibility stayed unchecked. The integration branch's prepare duty 6 and the salesforce.md tab-visibility note now cover this.",
-      "step_by_step": "n/a",
-      "improve": "n/a",
-      "gaps": [
-        "(Fixed in the integration branch) consumer-access probe at prepare: shiploop_prompts.py DUTIES['prepare'] item 6 and references/platforms/salesforce.md tab-visibility section. The chess run's guide was 135 lines without it."
-      ]
-    },
-    {
-      "tag": "11-step-plan",
-      "purpose": "Cut W1 into ordered behaviour-level steps with criteria, test commands, a check command, expectations and paths.",
-      "directive": 1,
-      "directive_evidence": "16 calls into ShipLoop source (shiploop_test_counts.py x3, shiploop_test_loop.py x3, shiploop_expectations.py x3, shiploop_navigator.py x2, item_scope, mutation, scripts grep x3): 'Checking test file detection around lines 2270-2320 to avoid misclassifying the engine as tests.' It misread the check row as a per-criterion inspection: 'This replaces check_na because the packet allows a command check for docs or coverage terms.' It also misread when the check runs: 'It runs after implementation so all files are present.' It overrode the split rule because no step can be proven before the test stage: 'Splitting the engine into multiple steps would leave an incomplete class that cannot compile or be verified until the end.'",
-      "response": "Did not serve: the gate accepted a plan whose only check row (C12, board grep) fails on S1 and S2, so step 16 had to revise. Criteria and expectations were otherwise sound.",
-      "step_by_step": "S1 engine (C1-C9, 3 paths), S2 controller (C10-C11), S3 board/tab/app (C12), in order with deps. No step could be proven at its own implement: focused Apex tests are written at the test stage after S3, and the only check row was the S3-only grep, which implement ran from S1. Review was the Improve below. The plan's step granularity existed on paper only, and was collapsed into one step at step 17.",
-      "improve": "n/a",
-      "gaps": [
-        "Duty 3's 'A docs or coverage criterion gets a command check' overloads 'check', which duty 5 uses for the lint/type/build suite. Say 'an inspection command, placed on the step that creates the file (not in suite: check)'. Source: shiploop_prompts.py DUTIES['step-plan'] item 3.",
-        "When check rows run was missing; the integration branch added 'The test and verify stages run these; implement runs only each step's own check' to item 5 and the review-focus clause 'a check that needs a later step's work' (B1-1, B2-1). Still missing: a gate refusal for a check row whose criteria belong only to a later step (B1-3). Source: shiploop_navigator.py step-plan result validator; shiploop_stage_spec.py step-plan checked-by.",
-        "The split rule ('Split a step with two separately confirmable behaviours') conflicts with 'Tests are not a step', since a step has no proof until the test stage. State the per-step proof: each step names the check or Proof command it can pass alone. The Battleship branch's per-step Proof does this. Source: shiploop_prompts.py DUTIES['step-plan'] item 4.",
-        "The scorer facts the model dug out of source (TAP pass line, stderr is captured, the 30-min stage and 10-min command budget, the test-file pattern used to classify paths) are not in the packet. Give one line each beside item 5. Source: shiploop_prompts.py DUTIES['step-plan'] item 5; values from shiploop_test_loop.py and shiploop_item_scope.py."
-      ]
-    },
-    {
-      "tag": "12-improve-step-plan",
-      "purpose": "Review the step plan, fix what is warranted, and end on an unchanged pass.",
-      "directive": 2,
-      "directive_evidence": "6 calls into shiploop_test_loop.py ('Checking whether the command runner captures stderr output.'; 'The stage budget is 30 minutes, with each command limited to 10 minutes.'). It skipped a required instruction: 'Decided against running next_argv to avoid wasting a turn and flooding the output.' It saw the oversize step and kept it: 'S1 is too large for a single step. The sizing rule suggests splitting it, but the engine must be tested after all steps are complete. Splitting would delay validation.'",
-      "response": "Served for oracles; missed the run-order defect it was best placed to catch.",
-      "step_by_step": "Kept S1 to S3 unchanged, made the S3-only C12 grep stricter (turn words, four status words, queen), and never asked whether a check row can pass after S1.",
-      "improve": "Real: C4/C6/C7 lacked the FENs to assert; C11 cited foolsMate as AuraHandledException proof; C1 'could pass on a count of 20'; C5/C8/C10 lacked their FENs and move cycle; the full TAP suite was missing from test_commands. All fixed. Held: step 24 asserts the exact start list a2a3..h2h4, a repeated list, and sizes 48/14/6/44. Cost 5.25 min, 48 calls, 3 passes (183/70/37 s). Missed, with consequence: the C12 row blocked S1 at step 16 (exit 2), forcing a revise, a re-plan to one step (17-20) and a 17.2-min single implement with a compaction. Rubber stamp: pass 3 'The check grep names the board words.'",
-      "gaps": [
-        "(Fixed in the integration branch) _REVIEW_FOCUS_STEPS now names 'a check that needs a later step's work or passes by skipping a missing artifact'. Source: shiploop_prompts.py _REVIEW_FOCUS_STEPS.",
-        "The 76 KB 'read this whole file' handoff copies producer quotes (B2-2; since replaced by outlines)."
-      ]
-    }
-  ],
-  "run_level": {
-    "step_by_step": "No, by construction before any code. Plan folded engine and board into one item. Step-plan cut S1 engine (C1-C9), S2 controller (C10-C11) and S3 board (C12), but no step had a proof it could pass alone: Apex tests are written only after the last step, and the single check row was the S3-only board grep, which the model believed 'runs after implementation'. Its Improve saw S1 was oversize ('Splitting would delay validation') and made the grep stricter. Both choices led to step 16's revise and the collapse to one step.",
-    "improve": "4 reviews, 11 passes, about 19.4 min (5.24/3.6/5.34/5.25), 145 calls. Real finds that held through the step-24 org tests: six-field FENs and the 6/44 oracles (spec); black castling oracles, the per-testMethod source and click-only board checks (test-strategy); deploy-then-TAP so mutants reach the org (plan); exact-list, FEN and move-cycle oracles for C1/C4-C8/C10 (step-plan). Rubber stamps: test-strategy pass 2 approved an impossible a-file promotion line ('The a6a7-to-a8 promotion is confirmed legal'), which reached the owner unrun at release-verify, and skipped a fix to stay trivial. Plan pass 3 approved an assumption list missing the tab visibility that blocked release-verify. Step-plan pass 3 approved the S1-failing C12 row. Every review checked the content of its result; none checked how ShipLoop would run it (step order, scorer, consumer access).",
-    "directive": "Mean 2.9 of 5. Where the stage method was in the packet, the model read nothing else: research 5 (0 guide reads), spec 4, prepare 4, Improve spec 4. Where a rule lived only in ShipLoop's code, the model read the code: step-plan 1 (16 source calls), Improve step-plan 2 (6), discovery 2 (2 source, 14 guide), test-strategy 3 (platform card found by its own grep, test_counts read), Improve plan 2 (navigator.py read for --final-result). Total: 26 calls into skills/shiploop/scripts across 6 of 12 steps, 2 refusals at intake, 1 at Improve plan. The rules it had to dig for: environment.md headings, the reporter/ID-word rule, when check rows run, the scorer's stderr/budget, the --final-result/--notes return, and the assumption consumer form."
+ "group": "chess-prep",
+ "evidence_limits": "Judged from DIR/in/<tag>.actions.md (SAY, CALL and clipped OUT), the packets, the results and the Improve review files. No transcript and no model reasoning were used. The export clips tool output, so why the model read ShipLoop's source is inferred from the file names and the read offsets, not observed. Guide sizes come from the export's '[N more characters]' markers. Later-stage outcomes (steps 16-38) are cited from their result files only.",
+ "steps": [
+  {
+   "tag": "01-intake",
+   "purpose": "Map every request sentence (S1-S22) to an outcome, boundary or open question with its owner, and record the delivery grant.",
+   "directive": 4,
+   "directive_evidence": "The prompt gave the method and what done means: 'one clause each, cited S<n>' and 'a request that names the target is the grant'. The template wrote authority as '\"kind\": \"user-decision\", \"operation\": \"...\", ... \"target\": \"...\"' and never said these must equal the contract's. Calls: two refusals, 'delivery authority target does not match contract' and then 'delivery authority operation does not match contract', each fixed with one search_replace. SAY: 'The request already names the Developer Edition org `de` as the delivery target, so I am recording that grant and mapping every sentence before discovery.' It also opened delivery-authority.md and environment-lifecycle.md from line 1 (about 16 KB).",
+   "response": "Served its purpose in 126 s. S1-S22 each map to one clause, with one open question that has an owner (the org identity). It recorded 'tab plus app is enough to open the board' as an assumption to revisit. That assumption failed at release-verify.",
+   "gaps": [
+    "The authority placeholders in the template carried no equality rule, which cost 2 refusals (packet review A1-1). Fixed on the integration branch: shiploop_consumer_delivery.py template_assessment now omits authority target and operation, with the comment 'ShipLoop fills them in (_authority)'."
+   ]
   },
-  "best": [
-    "Research duty 2 'A recalled fact is not evidence' plus duty 4's safe probe: 'I will fetch exact perft counts... rather than recall them' and 'The heap limit is 10 MB, not 6 MB' (3 web searches, 1 anonymous-Apex run, 0 guide reads).",
-    "Review focus 'an expected result or check that a weaker stand-in would pass': step-plan Improve found 'C1 could pass on a count of 20' and C11's wrong exception proof; step 24 then asserted the exact start list.",
-    "Review focus 'a claim about what the runtime... can do... with no primary-documentation source': test-strategy Improve web-searched and cited the per-testMethod limit that the three-class perf split depends on.",
-    "Test-strategy duty 11 'probe it now by doing the case's first step... probe a stand-in': headless Chrome read a RUN/scratch page title before the product existed.",
-    "Callback line 'run it exactly as printed... no pipe, redirect': every producer complete call in 01-12 was literal; the only chain was an improve-pass && done at Improve plan."
-  ],
-  "worst": [
-    "Step-plan check-row semantics (duty 3 'command check' vs duty 5 'check'; no statement of when check rows run): 'This replaces check_na because the packet allows a command check for docs or coverage terms... It runs after implementation'. The result was 16 source reads, then step 16's revise and the collapse from 3 steps to 1.",
-    "Plan assumption consumer must be a work item: 'Release verification cannot be the consumer because the schema requires a work item ID' became 'Tab visibility... is recorded at release-verify', and release-verify was blocked on 'Page does not exist'.",
-    "Improve trivial-pass exit read as a goal: 'This keeps pass 2 trivial and avoids resetting the required-trivial review count.' A warranted fix was skipped and redone one review later.",
-    "Replay judged by reading: 'The a6a7-to-a8 promotion is confirmed legal' (it is blocked). The impossible line went into four later packets and to the owner.",
-    "Improve return rules (--final-result, --notes) only at the tail of an 80 KB handoff and in ROUTE: Improve plan read `complete --help` and shiploop_navigator.py and drew a refusal; Improve spec chose 'Omitting --final-result is the safer default.'"
-  ]
+  {
+   "tag": "02-discovery",
+   "purpose": "Run or record the baseline suite on the unchanged checkout, and write org identity, conventions and the delivery route to HOME/environment.md.",
+   "directive": 2,
+   "directive_evidence": "The prompt has 15 duties that cite guides by label ('Baseline first (Initial repository baseline guide)'). The label paths sit only in the file part of a 24 KB packet. The pointer line says 'open only the section a step needs, never a whole reference file'. Calls: the first two calls grep guide-map.md and execution-planning.md for the labels. Eight guides were then opened from line 1, about 171 KB in all (research-loop.md 44 KB, project-knowledge.md 46 KB, execution-planning.md 22 KB, workspace-lifecycle.md 22 KB, service-discovery.md 17 KB and three more). It also grepped skills/shiploop/scripts and read scripts/shiploop_reference.py, ShipLoop's own source. The actual work took 2 shell calls (git state, find, sf version and sf org list; then git show, hooks and the source listing). SAY: 'The checkout has no product or tests. Alias `de` is one connected Developer Edition org, so I am recording that baseline and the non-secret org identity.'",
+   "response": "Served its purpose. The empty baseline is recorded as missing coverage, org 00Daj000018BzO3EAK is identified without `sf org display`, and environment.md and current-system-baseline.md are written. It took 28 calls for an empty repo, and intake's tab-plus-app assumption was not revisited.",
+   "gaps": [
+    "The printed head showed guide labels without their paths (A2-1/AX-2). Fixed on the branch: shiploop_navigator.py:_cited_guides now prints each cited guide with its path in the head (from 2026-10-17).",
+    "Guide anchors carry no line span, so on Grok the only cheap route is a whole-file read: 8 whole reads against 'never a whole reference file'. Fix: shiploop_navigator.py:_stage_guide_lines prints '<label>: <path>#<anchor> (lines a-b)', computed from the reference's headings, so a ranged read takes one call. Open.",
+    "Duties 9 and 11 (MCP, service, cache and async discovery, 1.7 KB) apply to nothing in an empty repo (A2-2). Fix: gate them on request or intake words in shiploop_prompts.py DUTIES['discovery']. Open."
+   ]
+  },
+  {
+   "tag": "03-research",
+   "purpose": "Resolve the consequential unknowns with evidence (rules oracles, CPU budget, access) and record load-bearing assumptions.",
+   "directive": 4,
+   "directive_evidence": "Prompt duty 4: 'Confirm access to each delivery target with a safe non-mutating probe (Access-readiness policy)'. Duty 11: '## Assumptions: each load-bearing assumption ... marked evidenced (locator), probed ... or open'. Calls: 3 web searches, then `sf apex run --target-org de --file .../scratch/cpu_limit.apex`, which printed CPU_LIMIT_MS=10000 and HEAP_LIMIT=10000000. It wrote notes and made one complete with no refusal. It read no guide and not the packet file (12 calls, 204 s). No SAY.",
+   "response": "Served its purpose: the best-directed stage. It fixed the oracles (20/400, 48/2039, 14, 6, 44) and probed the 10 s CPU and 10 MB heap limits. Assumption A-7 covered only whether the admin can call a deployed class, not whether a deployed tab or app is visible to the person.",
+   "gaps": [
+    "Duty 4 names 'each delivery target' (the org), not the consumer entry that S4 requires ('so that the board opens in the org'). The probe therefore proved only anonymous Apex. Addressed on the branch by DUTIES['prepare'] item 6 ('The consumer's access ... Check it read-only, with the probe the target's platform guide names', commit b4c9677c) and by the Salesforce card's 'Consumer entry access (read-only probe)'. Research duty 4 in shiploop_prompts.py could name the consumer entry as well."
+   ]
+  },
+  {
+   "tag": "04-spec",
+   "purpose": "Write R-1..R-n with replayable acceptance criteria and non-functional requirements in HOME/spec.md.",
+   "directive": 4,
+   "directive_evidence": "The prompt gives the structure (positive, failure and boundary, plus 'how it is confirmed'). Duty 10 says 'Before you submit, fix any of these ... a step, example or expected result that cannot be replayed exactly'. Calls: one write of spec.md, two search_replace edits of the 35-ply line, the result, then complete. No check ran between the write and the submit. The next Improve's edits show what shipped: old_string '(white king on e1 is not this FEN; king is on e1 wait)', and four-field Kiwipete FENs. Duty 4, 'Mark each unresolved prerequisite or user decision as an open gap under its R-<n>', produced R-2's 'Open gap: if the deployed tab is invisible without a profile change ... Record it at release verification.' SAY: 'Next I will write the living spec so each outcome has a check that can be replayed.'",
+   "response": "Mostly served its purpose: R-1..R-16 map the request after 379 s. But the producer skipped duty 10's self-check, which left thinking-aloud text and FENs that could not be replayed for Improve to fix. It also parked tab visibility at release verification.",
+   "gaps": [
+    "Duty 10's self-check has no evidence obligation, so the model skipped it (0 check calls). Fix: in shiploop_prompts.py:_duty_focus, add 'run one check per condition you can (a parse, a search, the command once) and cite its output in evidence_refs'. Open.",
+    "Duty 4 sends an unresolved prerequisite to 'an open gap under its R-<n>' but names no stage that must resolve it. R-2 deferred a gap that can stop a request outcome (the board opening) to the last stage. Fix in shiploop_prompts.py DUTIES['spec'] item 4: '... name the earliest stage that can check it read-only (prepare at the latest) and what a person must grant'. Partly addressed by prepare item 6 (b4c9677c)."
+   ]
+  },
+  {
+   "tag": "05-improve-spec",
+   "purpose": "Review and fix the spec result until a full pass changes nothing.",
+   "directive": 4,
+   "directive_evidence": "The packet says '1. Run the improve skill on the spec result. For example, on Claude Code: /improve ...', with the Grok route only in a parenthesis. The handoff focus says 'a step, example or expected result that cannot be replayed exactly'. Calls: it read the improve SKILL.md, the handoff, packet.json and shiploop-route.md. After each edit it ran a python FEN field check ('six-field fens 27', 'bad []'). It ran improve-pass 3 times, and complete was accepted with no refusal. At the end it read parent-return.md and improve-child.md to find out how to finish. SAY: 'The spec review is complete: the last pass changed nothing. I'll read the receipt and return the result to ShipLoop.'",
+   "response": "Served its purpose: 2 passes that fixed defects and 1 trivial confirming pass. The spec became replayable.",
+   "improve": "Real findings. Pass 1 made the Kiwipete and position-3 FENs six-field, removed R-5's self-contradicting stale-castle text, and added the 6- and 44-move oracles. Pass 2 fixed R-7's impossible absence reason ('6r1' puts a rook on g8, which the spec called empty). Cost: 3 passes, 201 s (107/47/47), 36 calls, 2 commits. The fixes held: the test stage asserts sizes 48, 14, 6 and 44 (step 24), and implement's org probes matched the mate, castle, en-passant and promotion oracles (step 22). Missed: R-2's open gap that parks tab visibility at release verification. Release-verify (37, 38) then met 'Page does not exist' until the owner added a permission set.",
+   "gaps": [
+    "The Improve packet gives a Claude Code example on a Grok run (A5-1): shiploop_navigator.py:improve_packet.",
+    "The planning review focus has no condition for a deferred gap that can stop a request outcome. Fix: add to shiploop_prompts.py:_REVIEW_FOCUS_ITEMS 'an open gap or assumption that can stop the request's outcome being reached or seen, parked at a later stage without a read-only check'. Open."
+   ]
+  },
+  {
+   "tag": "06-test-strategy",
+   "purpose": "Map every criterion to a check, select the harness, write fenced commands, and probe each host tool now.",
+   "directive": 3,
+   "directive_evidence": "Prompt duty 11: 'probe a stand-in: a one-line page in RUN/scratch opened by `file:` URL ... its title read back'. Duty 13: 'a documented command ... run it once and record the exit code'. The calls follow both literally. Headless Chrome --dump-dom on browser-standin.html printed 'chrome_headless_title SLChess stand-in'. `sf apex run test ... --class-names SLChessStrategyProbeTest` exited 1 with INVALID_INPUT, and the org metadata listings showed the SLChess names free. Before that it opened 5 guides from line 1 (about 123 KB; testing-and-documentation.md 55 KB, repeatable-test-suites.md twice). After reading platforms/salesforce.md, which already says to use `--result-format tap`, it read ShipLoop's scripts/shiploop_test_counts.py. SAY: 'I'll confirm the test command, check that the `SLChess` names are free, and see whether a browser can open a page.'",
+   "response": "Served its purpose for the harness: one org-native harness, TAP for scoring and human output for R-11, fenced commands, all marked planned. The browser probe proved that local Chrome works, not that the deployed tab opens for the user.",
+   "gaps": [
+    "Duty 11's prescribed stand-in (a file: page) proves the host tool, not the gate on the target side that the real case passes first (sign-in, entry visibility, permission). Fix in shiploop_prompts.py DUTIES['test-strategy'] item 11: 'also name the target-side gate the real case meets first and check it read-only, or record it under ## Real-boundary checks with who can grant it'. Partly addressed by prepare item 6 (b4c9677c).",
+    "Which runner lines ShipLoop scores is stated only in the platform card and in shiploop_test_counts.py, and the model read the source. Fix: add one clause to duty 9 in shiploop_prompts.py DUTIES['test-strategy']: 'ShipLoop scores an ID from the runner's own pass or fail line that names it; GUIDES/platforms/ names the reporter'. Open.",
+    "A 19.6 KB quote of spec.md in the 46 KB packet fell out of the printed head (A6-1). The model read spec.md and environment.md again."
+   ]
+  },
+  {
+   "tag": "07-improve-test-strategy",
+   "purpose": "Review and fix the test strategy until a full pass changes nothing.",
+   "directive": 4,
+   "directive_evidence": "Handoff focus: 'a claim about what the runtime, platform or a library can do ... with no primary-documentation source or probe result: check it'. Calls: one web search (per-testMethod governor limits), a placement check of the new castling FENs, 2 improve-pass runs, then complete with --final-result, accepted with no refusal. SAY: 'The board steps were not something a person could replay, and castling coverage was only White's. I'll pin those checks to exact moves and cite Salesforce's per-test limit rule.'",
+   "response": "Served its purpose: 1 pass that fixed defects and 1 trivial pass.",
+   "improve": "Real findings. The board procedure started from a FEN the component cannot load (it has no load-FEN control), so it became click sequences from the start: e2e4, the illegal e2e5, fool's mate, and an a-pawn promotion to queen and to knight. castlingBothSides covered only White, so it gained e8g8, e8c8 and the h1h2 rights FEN. The per-testMethod limit got a primary source. Cost: 2 passes, 188 s (126/62), 26 calls, 1 commit. The fixes held: step 24 asserts e8g8, e8c8 and h1h2, and the click list became release-verify's ask to the person (step 38). Missed: pass 2 accepted the file: stand-in as the host-tool probe ('no failed probe is recorded as a gap'), so the entry on the org side stayed unprobed.",
+   "gaps": [
+    "The same focus gap as at 05: no condition for a deferred gap that stops an outcome (shiploop_prompts.py:_REVIEW_FOCUS_ITEMS)."
+   ]
+  },
+  {
+   "tag": "08-plan",
+   "purpose": "Define the work items with context, assumptions and a dependency audit.",
+   "directive": 3,
+   "directive_evidence": "The prompt is an 82 KB packet with 13 KB of duties. They include 'A human-facing UI defaults to an ambitious, highly interactive design' and '13. Each item's `context` states the module format its files use (CommonJS or ESM...' on an Apex and LWC request. It quotes spec R-2's 'Open gap: if the deployed tab is invisible without a profile change, do not add a permission set. Record it at release verification.' Calls: a grep and read of research.md ## Assumptions, backchain-planning.md read from line 1, its own packet file read from line 690 (the request), then complete --check-only and complete (12 calls, no refusal). No SAY.",
+   "response": "Served its purpose: one item W1, 7 assumptions, AD-8 and AD-9, and a dependency audit in a note instead of a Backchain child. It carried the tab-visibility deferral forward ('if it fails, is recorded at release-verify').",
+   "gaps": [
+    "Duties 8 (ambitious UI by default) and 13 (JS module format) do not fit this request (A8-1, A8-2), and W1's context received 'Module format: LWC ES modules, no package.json' as filler. Source: shiploop_prompts.py DUTIES['plan']. Open per the packet review."
+   ]
+  },
+  {
+   "tag": "09-improve-plan",
+   "purpose": "Review and fix the plan until a full pass changes nothing.",
+   "directive": 3,
+   "directive_evidence": "The handoff (80 KB, 'Read this whole file') says 'lessons in a plain-text file passed as --notes <run>/inbox/...-improve-notes.md'. Calls: `shiploop complete --help`, which prints '--notes NOTES optional plain-text lessons from the review'. Then a grep of skills/shiploop and a read of scripts/shiploop_navigator.py at _queue_lines ('A done final_result must list the complete intended queue in work_items'). complete with --notes given as text was refused ('Improve notes must be a regular file'), and writing the file fixed it. SAY: 'The review changed the loop command to deploy then test, so I am recording that in the parent result before continuing.'",
+   "response": "Served its purpose: it found the stale-org-copy defect. It drew 1 refusal and needed a source read to learn the final_result rule.",
+   "improve": "Real finding. Pass 1 found that `sf apex run test` alone runs the copy already in the org, so a fresh edit or a mutant is never tested. Every TAP command became `sf project deploy start --target-org de && sf apex run test ...`. Pass 2 was half housekeeping: it committed the plan's uncommitted AD-8 and AD-9 (A9-3) plus one AD-7 sentence. Cost: 3 passes, 155 s (83/41/31), 35 calls, 1 refusal. The fix held: every later org command deploys first. Missed: 'Tab visibility, if it fails, is recorded at release-verify' went unchallenged. Review-3 judged A-4 and A-7 'open only because the class does not exist', and tab visibility was not an assumption at all.",
+   "gaps": [
+    "Notes given as text instead of a file: fixed on the branch (shiploop_protocol.py: --notes now has metavar FILE and the help 'the path of a plain-text file (not the text itself)').",
+    "The final_result and work_items rule lives in an 80 KB handoff that the model did not read, so it read shiploop_navigator.py instead (A9-2). The parent-return file (shiploop_navigator.py, '# Parent return for Improve child') still says nothing about when to pass --final-result or what it must hold. Fix: add one line there. Open."
+   ]
+  },
+  {
+   "tag": "10-prepare",
+   "purpose": "Ready the environment: start each planned runner in no-op form, recheck the return route, and record readiness.",
+   "directive": 4,
+   "directive_evidence": "Prompt duty 3: 'Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help that proves it starts, not the suite)'. Duty 2 lists 'access' without naming whose. SAY: 'The runners are already named. I will start each one in a no-op form and record that the project is not deployed yet.' Calls: one shell block that wrote sf --version, deploy --help, apex run test --help, Chrome --version and the git state to RUN/scratch, then check-only and complete. It opened environment-lifecycle.md and workspace-lifecycle.md from line 1 again, after reading them whole at intake and discovery. It was the only stage of the 12 whose SAY showed the narrative that every packet asks for.",
+   "response": "Served its purpose for the runners: 100 s, no install, no deploy. It did not check whether the person could reach the tab.",
+   "gaps": [
+    "This version has no consumer-access duty at prepare. Fixed on the branch: DUTIES['prepare'] item 6, plus the Salesforce card's PermissionSetAssignment and PermissionSetTabSetting probe (b4c9677c)."
+   ]
+  },
+  {
+   "tag": "11-step-plan",
+   "purpose": "Plan W1's criteria, ordered steps, test_commands, expectations, paths and follows inside an Until Loop.",
+   "directive": 2,
+   "directive_evidence": "Prompt duty 5: 'test_commands ... run from the repository root; the test and verify stages run exactly these' and 'check: the lint, type and build commands ... None: `check_na`'. Until Loop exit 4: 'at least one check command (lint, type or build), with check_na giving the reason'. The template example is {\"command\": \"<exit-code check command>\", \"criteria\": [\"C2\"], \"suite\": \"check\"}, and the packet says 'RUN the Until Loop now, once, before any work'. Calls: 16 of 26 went to ShipLoop's own scripts (test_counts x3, test_loop x3, expectations x3, mutation, navigator x2, item_scope, 3 grep calls on the scripts directory), all before the loop start. The loop state landed in /var/folders/.../T/innerloop-9t1g71k2.json. The loop ran one self-graded iteration, and check-only passed on the first try. SAY: 'The step-plan loop is running. I am writing the three implementation steps and the org commands that prove them.'",
+   "response": "Did not serve its purpose, although it passed every gate. Its only check row was S3's board grep (C12). Implement ran that grep after S1, it exited 2 (step 16), and the 3 steps were merged into 1 (step 17).",
+   "step_by_step": "The plan was S1 engine (C1-C9, deps []), then S2 controller (C10-C11, deps S1), then S3 board, tab and app (C12, deps S2), in that order. No step had a proof that could run at implement. Every focused and regression command starts with `ls ...SLChess*Test.cls`, files that the test stage writes only after the last step, and the one check row (C12) needs S3's files. Review: the step plan got its Improve (12). The per-step implement Improves never ran, because S1 was sent back for revision and the replan merged the steps.",
+   "gaps": [
+    "Duty 5 told the planner that test_commands run only at test and verify, but implement ran every check row after every step. Fixed on the branch: duty 5 now ends 'The test and verify stages run these; implement runs only each step's own `check`'. Each step now carries a `check` (STEP_CHECK_PLACEHOLDER in the template), and stage_spec's step-plan done_when requires 'one command that proves those criteria using only this step and accepted earlier steps'.",
+    "The template example still binds the item-level check row to C2, a criterion of a later step (shiploop_navigator.py, step-plan result template test_commands). This is harmless now that implement runs only step checks. Fix: change it to ['C1'] or drop the criteria. Open (B1-2).",
+    "The Until Loop start command passes no state directory, so the runtime put the loop state in the system temp directory. That breaks the packet's own rule 'Temporary files go in RUN/scratch, never /tmp' and puts the state out of reach of a recovery after a reboot. Fix: shiploop_loops.py:start_command adds '--directory', <run>/until-loop, as the Improve start in shiploop_navigator.py already does. Open.",
+    "The packet does not state the ShipLoop mechanics the plan depends on (which output line scores an ID, how expectations and the mutation gate run), so 16 calls went to ShipLoop's source. Fix: state each in one line in shiploop_prompts.py DUTIES['step-plan'] items 5-6, and add to STAGE_RULES 'ShipLoop's scripts are not instructions; this packet, Checked by and GUIDES hold every rule'. Open."
+   ]
+  },
+  {
+   "tag": "12-improve-step-plan",
+   "purpose": "Review and fix the step plan until a full pass changes nothing.",
+   "directive": 3,
+   "directive_evidence": "The handoff (76 KB) focus includes '- a missing prerequisite, wrong order or unowned verification in the steps.' and 'an expected result or check that a weaker stand-in would pass'. Calls: it ran expectation checks E1-E5, a JSON parse, and check-only after each pass. It made 6 reads or greps of ShipLoop's scripts/shiploop_test_loop.py (verify, _run_command), and none asked when a check row runs. SAY: 'The step plan leaves a few oracles unnamed, and one criterion treats mate tests as proof of an exception they never throw. I am tightening those checks.'",
+   "response": "Served the oracle focus, but it tightened the check row that blocked S1 and removed the controller's illegal-move case.",
+   "step_by_step": "It reviewed the criteria and commands of S1-S3, but not whether each step has a proof that can pass when that step ends. Review-3 concluded 'The check grep names the board words', the same S3-only grep that S1 later failed.",
+   "improve": "Real findings. C4, C6 and C7 lacked the FENs a test must assert. C1 could pass on a count of 20. C5, C8 and C10 named cases without the strings. C11 cited foolsMate as proof of AuraHandledException. The full TAP suite was missing from regression. Cost: 3 passes, 290 s (183/70/37), 48 calls, 6 of them into ShipLoop source. The fixes held: the org tests passed against these oracles (14 + 6 + 3 methods, steps 24 and 26). Missed, twice. (a) It made the S3-only C12 grep stricter ('requires the turn words, the four status words, and queen') without asking when the grep runs, which led to step 16's revise and the merge into one step. (b) It rewrote C11 as 'R-9 does not require a controller illegal test'. The controller's AuraHandledException path then had no case until verify (step 26) found that getMessage() lacked the move text.",
+   "gaps": [
+    "The focus had no 'check that needs a later step's work' condition. Fixed on the branch: _REVIEW_FOCUS_STEPS now includes '... or a check that needs a later step's work or passes by skipping a missing artifact'.",
+    "The focus has no condition for a behaviour that a criterion states but that no command exercises (C11's 'the controller throws AuraHandledException' after the fix). Fix: extend _REVIEW_FOCUS_STEPS in shiploop_prompts.py from 'unowned verification' to '... or a behaviour a criterion states that no listed command exercises'. Open."
+   ]
+  }
+ ],
+ "run_level": {
+  "step_by_step": "Preparation ran strictly in graph order: intake, discovery, research, spec, Improve, test-strategy, Improve, plan, Improve, prepare, step-plan, Improve. Each planning result got one Improve, no stage was revisited, and there were 3 refusals in all. W1 was planned as S1, S2, S3 with deps, but none of the three had a proof that could run when it ended: tests are written after the last step, and the only check row (C12) needed S3's files. The plan was shaped as steps but could not be proven step by step. That set up the collapse at steps 16-17, and the step-plan text ('the test and verify stages run exactly these') hid the cause.",
+  "improve": "4 reviews, 11 passes, 834 s of pass time and 145 calls. Every review ended with one trivial confirming pass of 31-62 s. Each review found real, specific defects: FENs that could not be replayed, contradictory squares, a board procedure that needed a control the board does not have, white-only castling, a test command that ignored the local tree, and oracles a stand-in could pass. Every fix that a later stage exercised held (steps 22, 24, 26). None was a pure rubber stamp, but three were blind on the same point. The spec, test-strategy and plan Improves let the tab-visibility gap ride to release-verify, which blocked twice (37, 38). The step-plan Improve both hardened the check that broke S1 and dropped the controller illegal-move case that verify later had to add.",
+  "directive": "Directives were sufficient where a duty named an action with a visible output: research's probe, test-strategy's stand-in and run-it-once, and the review focus bullets. They fell short where the model needed ShipLoop's own mechanics: how test_commands run at each stage, which output lines score, and the final_result rules. 26 calls in 5 of the 12 steps read skills/shiploop/scripts, including 16 of step-plan's 26 calls. Guide labels without paths in the head, and anchors without line spans, led to about 360 KB of whole-guide reads in 5 producer stages, against 'never a whole reference file'. The 'Show the user this narrative' line was obeyed in 1 of 12 packets."
+ },
+ "best": [
+  "Planning review focus 'a step, example or expected result that cannot be replayed exactly' and 'a weaker stand-in would pass'. It drove every real fix in the 4 Improves: six-field FENs, the g8 square, click sequences instead of a load-FEN control, black castling, and C1's count of 20. All held through steps 22-26.",
+  "Research duty 4 'Confirm access ... with a safe non-mutating probe' with duty 11 assumptions. One `sf apex run` measured CPU 10000 ms and heap 10000000 in a 12-call stage that read no guide, and the numbers set R-13's guards.",
+  "Test-strategy duty 13 'run it once and record the exit code'. The missing-class probe (exit 1, INVALID_INPUT) proved the exact test-command shape before any code existed.",
+  "Plan Improve focus 'a documented command that does not run what it claims on the target runtime'. It caught that an org test without a deploy runs the stale org copy, and every later command deploys first.",
+  "'complete --check-only prints the first refusal without accepting'. Plan, prepare and step-plan ran check-only first and were accepted on the first submit."
+ ],
+ "worst": [
+  "Step-plan duty 5 'the test and verify stages run exactly these', exit 4 'at least one check command' and the template's check row on C2. The planner made S3's board grep the only check; implement ran it after S1 (exit 2), and 3 steps were merged into 1. Fixed on the branch.",
+  "No directive tied the tab-visibility gap (intake assumption, spec R-2 open gap, plan summary) to a check before release. Three Improves passed it, and release-verify blocked twice (37, 38; 3,402 s in step 38). Partly fixed by prepare item 6 on the branch.",
+  "ShipLoop's mechanics existed only in its source: 26 calls in 5 steps read skills/shiploop/scripts (step-plan 16 of 26 calls, 625 s).",
+  "Whole-guide reads: about 360 KB of reference text opened from line 1 in 5 producer stages, against 'never a whole reference file'. Discovery alone read about 171 KB for an empty repo.",
+  "Spec duty 10's self-check was not enforced: 0 check calls, and the thinking-aloud text 'king is on e1 wait' shipped to Improve."
+ ]
 }
