@@ -63,6 +63,8 @@ BASE_STAGES = stage_spec.with_complete_run("test-base")
 # Stages that can edit code after the test stage: on done ShipLoop reruns every recorded command (no loop of its own).
 RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
 VERIFY_STAGES = STAGES + RERUN_STAGES
+# The stage whose inline step action runs its step plan's Proof (``step_proof``): implement.
+STEP_PROOF_STAGES = stage_spec.with_complete_run("step-proof")
 # Product failures per action (base and candidate runs together) before done is no longer accepted (then the stage's
 # remedy outcome, or blocked).  Attempts that only failed to run do not count: see UNAVAILABLE and refused_runs.
 MAX_REFUSED_RUNS = 11
@@ -124,6 +126,16 @@ def red_check_path(action: str) -> str:
 def check_only_path(action: str) -> str:
     """The candidate run ``complete --check-only`` asks for: replaced on each call, never counted, never a floor."""
     return "tests/" + action + "-check-only.md"
+
+
+def step_proof_path(action: str, number: int) -> str:
+    """ShipLoop's run number ``number`` of an inline implement step's Proof (``step_proof``)."""
+    return "tests/" + action + "-step-proof" + str(number) + ".md"
+
+
+def step_proof_check_only_path(action: str) -> str:
+    """The Proof run ``complete --check-only`` asks for: replaced on each call, never counted."""
+    return "tests/" + action + "-step-proof-check-only.md"
 
 
 def mutation_path(action: str, number: int) -> str:
@@ -272,9 +284,16 @@ def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, An
 def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, Any]], str]:
     """This stage's commands and, when there are none, why.
 
-    The outer stages run what their recording stage recorded (``OUTER_SOURCES``); every item stage runs every command
-    the latest accepted step plan recorded.  The base run takes the focused and regression ones (``base_commands``).
+    The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An inline implement step and its
+    Improve review run only that step's Proof, the step plan's ``check`` for it (``step_command``: the implement-step
+    fix plan's section 4.1); the item's commands stay with the test stage and verify.  Every other item stage, and the
+    ask-agent route's one implement action for every step, runs every command the latest accepted step plan recorded.
+    The base run takes the focused and regression ones (``base_commands``).
     """
+    if stage in STEP_PROOF_STAGES:
+        step = step_command(state, work_item)
+        if step is not None:
+            return [step[1]], ""
     if stage in OUTER_SOURCES:
         source, field = OUTER_SOURCES[stage]
         result = _latest_root_result(state, source)
@@ -287,6 +306,23 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
     if commands:
         return commands, ""
     return [], str(result.get("test_commands_na") or "")
+
+
+def step_command(state: Mapping[str, Any], work_item: str) -> Optional[Tuple[Mapping[str, Any], Dict[str, Any]]]:
+    """(the step, its Proof as a ``check`` row) for the inline implement step the item is on, or None: another stage or
+    route (the ask-agent action builds every step), no step left, or a step whose plan records no check."""
+    import shiploop_loops as loops  # imported where used: the loops module imports this one late
+
+    found = loops.cursor(state)
+    if found is None or found[0] not in STEP_PROOF_STAGES or found[2] != work_item:
+        return None
+    if loops._route(state, found[1]) != guidance.INLINE:
+        return None
+    step = loops.current_step(state, work_item)
+    check = step.get("check") if step is not None else None
+    if not isinstance(check, str) or not check.strip():
+        return None
+    return step, {"command": check.strip(), "suite": "check"}
 
 
 def base_commands(state: Mapping[str, Any], work_item: str) -> List[Dict[str, Any]]:
@@ -1301,6 +1337,99 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
     return lines
 
 
+# ---------------------------------------------------------------- the step Proof (inline implement, unit W2-A)
+
+def _proof_records(root: Path, action: str) -> List[Tuple[str, Mapping[str, Any]]]:
+    """(run-relative path, record) of this action's readable Proof records: the check-only one, then the numbered ones."""
+    found: List[Tuple[str, Mapping[str, Any]]] = []
+    paths = [step_proof_check_only_path(action)] + [step_proof_path(action, n)
+                                                     for n in range(1, _count(root, action, step_proof_path) + 1)]
+    for relative in paths:
+        try:
+            record = store.read_record(Path(root) / relative) if (Path(root) / relative).is_file() else None
+        except (OSError, store.StorageError):
+            record = None
+        if isinstance(record, Mapping):
+            found.append((relative, record))
+    return found
+
+
+def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str, *, count: bool = True,
+               phase: str = "complete", runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
+               clock: Optional[Callable[[], float]] = None, command_timeout: float = COMMAND_TIMEOUT_SECONDS,
+               budget: float = STAGE_BUDGET_SECONDS) -> Tuple[Dict[str, str], str, List[str]]:
+    """Run the inline implement step's Proof on the candidate; return (record writes, refusal body, summary lines).
+
+    The Proof is the step plan's ``check`` for the step (``step_command``), judged as a check (``judge``: exit 0, and a
+    runner summary that shows no test ran is no pass), with the test loop's timeout, budget and capture.  Its record
+    (``step_proof_path``, or ``step_proof_check_only_path`` for ``count=False``) is bound to the action, the step, the
+    command and the candidate: the working trees the run started on and left (``_tree``).  A passed record of this
+    action for the same step and command whose trees include today's is taken instead of running again, so an
+    unchanged candidate reuses its receipt; at complete that writes a numbered record that says so, and at the Improve
+    import (``phase`` "improve-import") nothing is written.  An empty refusal means the Proof passed.  A step with no
+    check is refused: the step plan gate requires one, so only a run positioned another way lacks it.
+    """
+    root = Path(root)
+    found = step_command(state, work_item)
+    if found is None:
+        return {}, ("ShipLoop step proof: the step this action builds records no check (its Proof) in the accepted step "
+                    "plan, so ShipLoop cannot confirm it. Report revise so the step plan records one."), []
+    step, row = found
+    step_id = str(step.get("id"))
+    repo = Path(str(state["repo"]))
+    tree = _tree(root, repo)
+    number = _count(root, action, step_proof_path) + 1
+    matched = next(((relative, record) for relative, record in reversed(_proof_records(root, action))
+                    if record.get("passed") is True and record.get("step") == step_id
+                    and record.get("command") == row["command"] and tree and tree in (record.get("trees") or ())),
+                   None) if count else None
+    created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if matched is not None:
+        line = ("step-proof: reused the passed " + ("check-only run" if "check-only" in matched[0] else "run") + " of "
+                + str(matched[1].get("created_at")) + " (" + matched[0] + "): the candidate is unchanged")
+        if phase != "complete":
+            return {}, "", [line]
+        record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": STEP_PROOF_STAGES[0],
+                  "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
+                  "created_at": created, "cwd": str(repo), "passed": True, "disposition": "passed",
+                  "runs": list(matched[1].get("runs") or ()), "trees": [tree],
+                  "reused": {"path": matched[0], "created_at": matched[1].get("created_at"), "tree": tree}}
+        return {step_proof_path(action, number): store.dumps(record, "ShipLoop step proof")}, "", [line]
+    runner = runner or lint.run_argv
+    clock = clock or time.monotonic
+    environment = dict(os.environ if env is None else env)
+    deadline = clock() + budget
+    left = deadline - clock()
+    if left <= 1.0:
+        run: Dict[str, Any] = _skipped(row, budget)
+    else:
+        fields, output = _run_command(runner, row["command"], repo, min(command_timeout, left), environment, clock)
+        run = {**row, **fields}
+        if "status" not in run:
+            run.update(judge(row, run["exit"], output))
+    disposition = _disposition([run], PASSING)
+    record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": STEP_PROOF_STAGES[0],
+              "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
+              "created_at": created, "cwd": str(repo), "passed": disposition == "passed", "disposition": disposition,
+              "runs": [run], "trees": [found_tree for found_tree in dict.fromkeys([tree, _tree(root, repo)]) if found_tree]}
+    if not count:
+        record["counted"] = False
+    relative = step_proof_path(action, number) if count else step_proof_check_only_path(action)
+    writes = {relative: store.dumps(record, "ShipLoop step proof")}
+    summary = ["step-proof: [check] " + row["command"] + " -> " + run["status"]]
+    if record["passed"]:
+        return writes, "", summary
+    tail = (str(run.get("stdout") or "") + "\n" + str(run.get("stderr") or "")).strip().splitlines()[-15:]
+    headline = ("the review changed step " + step_id + " and its Proof did not pass, so the step is not accepted"
+                if phase == "improve-import" else
+                "step " + step_id + "'s Proof did not pass, so its " + STEP_PROOF_STAGES[0] + " is not done")
+    lines = ["ShipLoop step proof: " + headline + ". ShipLoop ran it from " + str(repo) + ":",
+             "- " + row["command"] + " -> " + _explain(run, STEP_PROOF_STAGES[0]),
+             *("    | " + line for line in tail),
+             "Full output: " + str(root / relative) + "."]
+    return writes, "\n".join(lines), summary
+
+
 # ---------------------------------------------------------------- the base run (test stage, before the candidate run)
 
 def _item_changes(root: Path, base: Mapping[str, Any]) -> List[Tuple[str, str]]:
@@ -1712,6 +1841,7 @@ __all__ = (
     "REFUSED_TALLY",
     "RERUN_STAGES",
     "STAGES",
+    "STEP_PROOF_STAGES",
     "UNAVAILABLE",
     "VERIFY_STAGES",
     "TestLoopError",
@@ -1746,6 +1876,10 @@ __all__ = (
     "reuse_note",
     "rule_lines",
     "stage_commands",
+    "step_command",
+    "step_proof",
+    "step_proof_check_only_path",
+    "step_proof_path",
     "verify",
     "verify_path",
 )

@@ -60,7 +60,7 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/notes/", "your notes; notes/<action>.md is the optional pass log", "after a reset, if the log exists"),
     ("RUN/scratch/", "your temporary files, in place of /tmp", "you need one"),
     ("RUN/loops/", "each inner stage's Until Loop contract and receipt", "a loop is interrupted"),
-    ("RUN/tests/", "ShipLoop's test runs: base and verify", "test and verify"),
+    ("RUN/tests/", "ShipLoop's test runs: base, verify and each implement step's Proof", "implement, test and verify"),
     ("RUN/lint/", "lint output for the item's changes", "a lint verdict is cited"),
     ("RUN/improve/", "per reviewed action: receipt, review files, lessons", "an Improve stage"),
     ("RUN/expectations/", "validate-existing's check results", "validate-existing"),
@@ -245,6 +245,9 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     runs = sorted(root.glob(f"tests/{action_id}-verify*.md"))
     if runs:
         lines.append(f"- ShipLoop test runs for this action: {len(runs)}, latest {runs[-1]}")
+    proofs = sorted(root.glob(f"tests/{action_id}-step-proof[0-9]*.md"))
+    if proofs:
+        lines.append(f"- ShipLoop runs of this step's Proof: {len(proofs)}, latest {proofs[-1]}")
     item = action.get("workitem")
     if item and state.get("revisions", {}).get(item):
         lines.append(f"- {item} has gone back to step-plan {state['revisions'][item]} of "

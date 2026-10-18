@@ -110,7 +110,8 @@ class PacketCompletenessTests(unittest.TestCase):
             if kind != "producer":
                 continue
             flat = " ".join(packet.split())
-            duty = " ".join(prompts.DUTIES[stage].split())[:60]
+            # the walk is inline: the inline duty (implement swaps in its step scope, implement-step fix plan D3)
+            duty = " ".join(prompts.duty(stage, delegation=prompts.INLINE).split())[:60]
             with self.subTest(stage):
                 self.assertIn("Goal: ", packet)                       # what the stage is for
                 self.assertIn("Done when", packet)

@@ -44,6 +44,7 @@ COMPLETE_RUNS = frozenset({
     "test-base",           # run the item's tests on the base checkout: no new test ID passes; sets the floor
     "test-loop",           # run every recorded command on the candidate: each passes, every ID, the floor
     "test-rerun",          # run every recorded test command and require each to pass
+    "step-proof",          # run the inline implement step's Proof (its step plan `check`) on the candidate
 })
 EDITS = frozenset({"code", "tests", "docs"})
 PHASES = ("prelude", "inner", "outer")
@@ -70,6 +71,13 @@ IMPROVE_GATES = MappingProxyType({"always": ONE_PASS_GATE, "step": TWO_PASS_GATE
 # decides (blocked, blocked_by user).
 REVISE_TO = "step-plan"
 MAX_REVISES = 2
+# The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
+# of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
+STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied and none of the others is broken, shown "
+                           "by a command or file after the last edit, and no later step's work is in the change")
+# Implement's second exit condition on both routes (one step inline, every step on the ask-agent route): each step's Proof
+# is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
+STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its check in the step plan) exited 0"
 # The step exit criteria's stopping rule (SPEC S-10 carve-out, owner decision 2026-10-10): the same check still failing
 # after this many genuine fix attempts ends the stage as revise. No script counts the attempts; the model applies it, and
 # test/shiploop-stage-spec.test.py pins every prose copy to this value.
@@ -322,8 +330,9 @@ _ROWS = (
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
             "steps lists every implementation step in the order to do them",
-            "each step declares deps, the criteria it satisfies and the paths it changes, every criterion is satisfied "
-            "by a step, and no step only changes test files (unless the whole item is tests)",
+            "each step declares deps, the criteria it satisfies and its check, one command that proves those criteria "
+            "using only this step and accepted earlier steps, every criterion is satisfied by a step, and no step only "
+            "changes test files (unless the whole item is tests)",
             "test_commands records focused, regression and at least one check command (lint, type or build), with "
             "check_na giving the reason when there is no check command, or test_commands_na giving the reason there "
             "are no commands",
@@ -382,11 +391,13 @@ _ROWS = (
     ),
     Stage(
         "implement", "inner",
-        goal="Make this step's change on its paths in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`.",
+        goal="Make this step's change in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`.",
         short_goal='implement this step',
+        # The step's criteria are the unit of completion and every requirement stays binding (implement-step fix plan
+        # D4/D7); ``shiploop_loops.worded_stage`` appends the step's criterion IDs to the first condition.
         done_when=(
-            "only the step's paths changed since the step began, and no later step's work is in them",
-            "after the last edit, every check command on the Step lines exited 0",
+            STEP_CRITERIA_CONDITION,
+            STEP_PROOF_CONDITION,
             "after the last edit, the lint gate reports no unwaived new finding on a line this step changed",
             "the result lists each behaviour the change added that no test-spec case covers (or none), and whether "
             "each of the step's skills was used",
@@ -398,18 +409,19 @@ _ROWS = (
         steps_done_when=(
             "only the paths of steps {steps} ({paths}) changed since the first of them began, and no work outside "
             "those steps is in them",
-            "after the last edit, every check command on the Step lines exited 0",
+            STEP_PROOF_CONDITION,
             "after the last edit, the lint gate reports no unwaived new finding on a line these steps changed",
             "the result lists each behaviour the changes added that no test-spec case covers (or none), and whether "
             "each step's skills were used",
         ),
         develop="Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",
-        test="After each edit, rerun the check commands; change the work, never the check. Tests are written in the "
-             "test stage.",
+        test="After each meaningful change, run the step's Proof; change the work, never the Proof or what it "
+             "expects. Tests are written in the test stage.",
         tools="Run `shiploop lint --action` after each edit; the lint gate runs at complete, on every step.",
         edits=frozenset({"code"}),
         entry_runs=("loop-contract",),
-        complete_runs=("loop-terminal", "lint-gate"),
+        # step-proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
+        complete_runs=("loop-terminal", "lint-gate", "step-proof"),
         improve="step",
         reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:validate-existing"),
         blocks=frozenset({"code-craft"}),

@@ -316,9 +316,12 @@ class ReviseTests(unittest.TestCase):
             nav.validate(old)
         # A run saved by the 17-stage inner loop (state version 4) is refused with its own reason.
         # A run saved before the consumer contract's hand-off fields (state version 5) is refused by the version check.
-        for version, reason in ((3, "state version 3 is not the supported version 6"),
+        # T17 (implement-step fix plan): a run saved before each step recorded its Proof (state version 6) has its own
+        # reason too; no Proof is ever made up for it.
+        for version, reason in ((3, "state version 3 is not the supported version 7"),
                                 (4, "seventeen-stage inner loop \\(state version 4\\)"),
-                                (5, "state version 5 is not the supported version 6")):
+                                (5, "state version 5 is not the supported version 7"),
+                                (6, "before each implementation step recorded its Proof \\(state version 6\\)")):
             wrong_version = deepcopy(state)
             wrong_version["version"] = version
             with self.subTest(version=version), self.assertRaisesRegex(

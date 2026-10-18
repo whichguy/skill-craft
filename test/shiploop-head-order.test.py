@@ -11,7 +11,7 @@ two-item run with multi-step plans through every stage of the graph (test/shiplo
   second and third line of the top block, in every print and in the file) ends before character 19,500: what follows is what
   the packet file repeats whole;
 - a head holds every token the stage needs, at 83 and at the 163 characters of a live run: the P0 tokens (what to do and how it
-  is checked) and the P1 tokens (the stage's own input: the work item, the step with its paths, skills and check commands, the
+  is checked) and the P1 tokens (the stage's own input: the work item, the Step block with its task, Proof and skills, the
   test floors and base-run rule, the rerun list and lint mode, the queue rule, the mismatch rows, the Improve lessons);
 - Grok keeps the first and last ~10,000 characters of a print over 20,000 and drops the middle: whatever it drops holds no
   required token;
@@ -109,13 +109,12 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
     if stage == "implement" and delegation == "inline":
         index = seen.get((item, "implement"), 0)
         step = plan["steps"][index]
-        p1 += [f"Step {step['id']} ({index + 1} of {len(plan['steps'])}), the only work for this packet: "
-               + step["task"], "Step paths (change only these): " + ", ".join(step["paths"]),
-               "Step skills (use each; the summary says whether you did): "
+        # The Step block (implement-step fix plan 3.1, unit W2-B): its loop line, task, Proof and skills; no path fence.
+        p1 += [navigator.STEP_LOOP_LINE,
+               f"Step {step['id']} ({index + 1} of {len(plan['steps'])}), the only work for this packet: "
+               + step["task"], "  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + step["check"],
+               "  Skills (use each; the summary says whether you did): "
                + (", ".join(skill["name"] for skill in step["skills"]) or "none"),
-               "Check commands (run each after every edit; exit codes to RUN/notes/<action>.md)",
-               *(f"  {number}. {row_['command']}" for number, row_ in enumerate(
-                   navigator.step_checks(plan["steps"], index, plan["test_commands"])[0], 1)),
                "Lint each implementation step (report-only): "]
     if stage == "test":
         p1 += ["Pass: exit 0 and at least one test run", "Floor of each focused and regression command: the larger of",
@@ -306,12 +305,21 @@ class OrderTests(unittest.TestCase):
                     self.assertIsNone(hook._verb("R=" + str(Path(following.split("--run-dir=")[1])) + "; " + following))
 
     def test_the_loop_block_sits_between_the_goal_and_the_status_in_a_looped_stage(self) -> None:
+        """An inline implement step is the one exception (implement-step fix plan D4, unit W2-B): its Step block takes
+        that place and its packet, head and file alike, ends with the loop."""
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 if plans.stage_of(key) not in loops.STAGES:
                     continue
                 with self.subTest(route=delegation, packet=key):
                     text = row["printed"]
+                    if plans.stage_of(key) == "implement" and delegation == "inline":
+                        self.assertLess(text.index("\nChecked by: "), text.index("\n" + navigator.STEP_LOOP_LINE))
+                        self.assertLess(text.index("\nStep S"), text.index("Keepalive marker: "))
+                        for form in (text, row["whole"]):
+                            tail = form.replace(navigator.HEAD_END + "\n", "").rstrip().split("\n\n")[-1]
+                            self.assertTrue(tail.startswith(loops.BLOCK_HEADING), tail[:80])
+                        continue
                     self.assertLess(text.index("\nChecked by: "), text.index("Until Loop (no iteration limit"))
                     self.assertLess(text.index(loops.ARGUMENT_END), text.index("Keepalive marker: "))
                     # the start command follows the argument: the layout the Until Loop unit changes (its position test
@@ -479,7 +487,7 @@ class CitationTests(unittest.TestCase):
                    if label in text and label not in located and "\n" + label + ": " not in printed]
         missing += [token for phrase, token in CitationTests.PACKET_LINES if phrase in text and token not in printed]
         item = item_of(state)
-        if "packet's Step lines" in text and item and navigator.implement_progress(state, item)[1] \
+        if "packet's Step block" in text and item and navigator.implement_progress(state, item)[1] \
                 and "\nStep S" not in printed:
             missing.append("\nStep S")
         if "GUIDES/" in printed and "GUIDES = " not in printed:
@@ -510,7 +518,7 @@ class CitationTests(unittest.TestCase):
         self.assertEqual(open_gaps, self.BUDGET_GAPS)  # a gap that closed is removed from the list
 
     def test_an_inline_implement_head_prints_its_steps_criteria_by_value_and_the_hand_off_names_them(self) -> None:
-        """B6-2: the step's criteria print with the Step line (the hand-off held them only, and a head over the cut left
+        """B6-2: the step's criteria print in the Step block (the hand-off held them only, and a head over the cut left
         them out); the hand-off names them by ID, so the text is printed once."""
         seen = 0
         for key, row in renders("inline", INSTALL_RUN_DIR).items():
@@ -523,13 +531,13 @@ class CitationTests(unittest.TestCase):
             wanted = [row_ for row_ in plan["criteria"] if row_["id"] in steps[done]["criteria"]]
             with self.subTest(packet=key):
                 for text in (row["printed"], row["whole"]):
-                    self.assertIn("\nStep criteria (this step satisfies each, in the step plan's words):", text)
+                    self.assertIn("\n  Serves (each criterion this step satisfies, in the step plan's words):", text)
                     for criterion in wanted:
                         self.assertEqual(text.count(criterion["text"]), 1, criterion["id"])
                         self.assertLess(text.index("\nStep " + steps[done]["id"]), text.index(criterion["text"]))
                     if navigator.HANDOFF_HEAD in text:  # the head may leave the hand-offs out; the file has them
                         self.assertIn("criteria (" + item + " step-plan): " + ", ".join(c["id"] for c in wanted)
-                                      + " (printed under the Step line above)", text)
+                                      + " (printed in the Step block above)", text)
                 self.assertIn(navigator.HANDOFF_HEAD, row["whole"])
                 seen += 1
         self.assertGreaterEqual(seen, 3)

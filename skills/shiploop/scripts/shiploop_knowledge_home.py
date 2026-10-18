@@ -161,8 +161,9 @@ _RETAINED = (("spec.md", _REQUIREMENT_ID, "living spec", "requirement", "Retired
              (ARCHITECTURE, _DECISION_ID, "architecture", "decision", "Superseded"))
 
 
-def _ids(text: str) -> List[str]:
-    """The requirement IDs a text names, each once, in numeric order (the one reader of the ID syntax)."""
+def requirement_ids(text: str) -> List[str]:
+    """The requirement IDs a text names, each once, in numeric order (the one reader of the ID syntax; an inline
+    implement step's Work names the ones its criteria name, ``shiploop_loops.step_anchors``)."""
     return sorted(set(_REQUIREMENT_ID.findall(text)), key=lambda value: int(value.split("-")[1]))
 
 
@@ -856,6 +857,7 @@ __all__ = ("ARCHITECTURE",
            "recent_commits",
            "record_baseline",
            "required_earlier",
+           "requirement_ids",
            "run_label",
            "section_notices",
            "spec_diff",

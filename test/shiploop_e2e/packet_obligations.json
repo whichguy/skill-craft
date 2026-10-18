@@ -105,6 +105,14 @@
     {"id": "verify-summary", "obligation": "verify: the summary placeholder lists what duty 11 used to (entry points traced, issues and fixes, commands with exit codes, checks not run, limitations) (unit U25)", "kinds": ["producer"], "surface": "head",
      "when": {"file_has": "ShipLoop navigator | verify |"},
      "anchors": [{"any": ["entry points traced; each trace's issue and fix"], "source": "skills/shiploop/scripts/shiploop_prompts.py"},
-                 {"any": ["**Summary:** as the template says"], "source": "skills/shiploop/scripts/shiploop_prompts.py"}]}
+                 {"any": ["**Summary:** as the template says"], "source": "skills/shiploop/scripts/shiploop_prompts.py"}]},
+    {"id": "step-proof", "obligation": "an inline implement step's printed head carries its Step block, with the step's Proof (the command ShipLoop runs at done) and the line that says the stage runs inside the /until-loop at the end of the packet (implement-step fix plan 3.1 and 4.1, unit w2-proof)", "kinds": ["producer"], "surface": "head",
+     "when": {"file_has": "the only work for this packet"},
+     "anchors": [{"any": ["Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "], "source": "skills/shiploop/scripts/shiploop_navigator.py"},
+                 {"any": ["Do this stage inside the /until-loop invocation at the end of this packet"], "source": "skills/shiploop/scripts/shiploop_navigator.py"}]},
+    {"id": "step-plan-check", "obligation": "step-plan asks each step for its check, the one command that proves the step's criteria with only that step and accepted earlier ones, which needs no later step and does not pass by skipping a missing file (implement-step fix plan 4.1, unit w2-proof)", "kinds": ["producer"], "surface": "head",
+     "when": {"file_has": "ShipLoop navigator | step-plan |"},
+     "anchors": [{"any": ["`check`: the one command, from the repository root, that proves the step's criteria"], "source": "skills/shiploop/scripts/shiploop_prompts.py"},
+                 {"any": ["skipping a missing file"], "source": "skills/shiploop/scripts/shiploop_prompts.py"}]}
   ]
 }

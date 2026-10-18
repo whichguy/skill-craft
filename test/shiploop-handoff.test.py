@@ -417,13 +417,14 @@ class HandoffShapeTests(unittest.TestCase):
             canonical(value, stage)
         return str(caught.exception)
 
-    def test_the_state_version_is_six_and_a_version_five_run_is_refused_with_the_fresh_run_hint(self) -> None:
-        self.assertEqual(navigator.STATE_VERSION, 6)
-        state = navigator.new_state("/tmp/repo", "add hello")
-        state["version"] = 5
-        with self.assertRaises(navigator.NavigatorError) as caught:
-            navigator.validate(state)
-        self.assertIn(navigator.FRESH_RUN_HINT, str(caught.exception))
+    def test_the_state_version_is_seven_and_older_runs_are_refused_with_the_fresh_run_hint(self) -> None:
+        self.assertEqual(navigator.STATE_VERSION, 7)
+        for version in (5, 6):
+            state = navigator.new_state("/tmp/repo", "add hello")
+            state["version"] = version
+            with self.subTest(version=version), self.assertRaises(navigator.NavigatorError) as caught:
+                navigator.validate(state)
+            self.assertIn(navigator.FRESH_RUN_HINT, str(caught.exception))
 
     def test_each_key_is_accepted_only_on_a_done_result_of_its_stage(self) -> None:
         for key, (stage, value) in GOOD.items():
@@ -1764,7 +1765,7 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         seed = {"outcome": "done", "summary": "A step plan without follows.", "evidence_refs": [],
                 "test_commands": [], "test_commands_na": "Synthetic fixture; no test commands.", "paths": ["src/**"],
                 "steps": [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [],
-                           "skills": []}],
+                           "check": "true", "skills": []}],
                 "expectations": [{"id": "E1", "state": "absent", "statement": "src/ does not exist yet.",
                                   "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]}
         before = state
@@ -1842,7 +1843,7 @@ class ReportTests(RepoCase):
                 extra.setdefault("assumptions", [])
             if here == "step-plan":
                 extra.setdefault("steps", [{"id": "S1", "task": "Make it.", "paths": ["src/**"], "criteria": ["C1"],
-                                            "skills": []}])
+                                            "check": "true", "skills": []}])
                 extra.setdefault("criteria", [{"id": "C1", "text": "It works. Confirm by: the focused command"}])
                 extra.setdefault("test_commands", [{"command": "node --test", "suite": "focused", "ids": ["TC-1"],
                                                     "criteria": ["C1"]}])
@@ -2066,9 +2067,10 @@ def scoped_cases() -> dict:
         for n in range(1, STEP_CRITERIA + 1)]}
 
 
-TWO_STEPS = [{"id": "S1", "task": "Round the page count up.", "deps": [], "criteria": ["C1"], "paths": ["src/a.js"]},
+TWO_STEPS = [{"id": "S1", "task": "Round the page count up.", "deps": [], "criteria": ["C1"], "paths": ["src/a.js"],
+              "check": "true"},
              {"id": "S2", "task": "Serve the rest.", "deps": ["S1"],
-              "criteria": ["C" + str(n) for n in range(2, STEP_CRITERIA + 1)], "paths": ["src/b.js"]}]
+              "criteria": ["C" + str(n) for n in range(2, STEP_CRITERIA + 1)], "paths": ["src/b.js"], "check": "true"}]
 
 
 def drop_entries(lines: list, idents: set) -> list:
@@ -2167,7 +2169,12 @@ class StepScopeTests(RepoCase):
         self.assertEqual(reviewed[2], "- Hand-offs, quoted there by value: follows, test_cases.")
         criteria = producer[producer.index("criteria (W1 step-plan):"):]
         criteria = criteria[:next(i for i, line in enumerate(criteria) if i and not line.startswith("- "))]
-        self.assertEqual(reviewed[3:], criteria)                         # the step's cut criteria, as the producer had them
+        # One home in the hand-off (unit W2-B): its Step block prints the step's cut criteria by value, word for word as
+        # the producer had them, so the reviewed inputs name them by ID.
+        self.assertEqual(reviewed[3:], ["criteria (W1 step-plan): C1 (printed in the Step block above)"])
+        block = navigator.step_block(state, "W1")
+        for line in criteria[1:]:
+            self.assertIn("    " + line[2:], block)
         self.assertNotIn("test_cases (W1 test-spec):", reviewed)
         source = Path(navigator.__file__).read_text(encoding="utf-8")
         handoff = source[source.index("def improve_handoff_text"):source.index("def ", source.index("def improve_handoff_text") + 4)]

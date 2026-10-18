@@ -62,7 +62,8 @@ def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[
                 {'command': 'python3 -m unittest discover -s tests', 'suite': 'focused'},
             ]
             # One synthetic step, so implement's packet names it as a run's does.
-            producer['steps'] = [{'id': 'S1', 'task': 'Synthetic step; no work executed.', 'deps': []}]
+            producer['steps'] = [{'id': 'S1', 'task': 'Synthetic step; no work executed.', 'deps': [],
+                                  'check': 'python3 -m unittest discover -s tests'}]
         if stage == 'plan' and two:
             producer['work_items'] = [
                 {'id': 'W1', 'title': 'First fixture'},

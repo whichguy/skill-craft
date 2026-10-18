@@ -373,13 +373,19 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
             else:
                 _need(present, "expectation " + row["id"] + " is " + row["state"] + ", but " + rule
                       + " does not exist on " + where + ". A new path needs an absent expectation.")
+    # A step's paths are optional (implement-step fix plan D3): when a step names none, the item's own paths that are
+    # not test files stand for what the steps change (implement writes no test; the test stage writes them).
+    changed: List[tuple[str, str]] = [(str(path), "step " + str(step.get("id"))) for step in steps
+                                      for path in step.get("paths") or ()]
+    if any(not step.get("paths") for step in steps):
+        changed += [(str(path), "item paths") for path in result.get("paths") or ()
+                    if item_scope.classify(str(path)) != "test"]
     missing: List[str] = []
-    for step in steps:
-        for path in step.get("paths") or ():
-            states = EXISTING_STATES if _exists(repo, files, path) else NEW_STATES
-            if not any(row["state"] in states and any(_covers(rule, path) or rule == path for rule in row["paths"])
-                       for row in rows):
-                missing.append(path + " (step " + str(step.get("id")) + ", needs " + " or ".join(states) + ")")
+    for path, owner in dict.fromkeys(changed):
+        states = EXISTING_STATES if _exists(repo, files, path) else NEW_STATES
+        if not any(row["state"] in states and any(_covers(rule, path) or rule == path for rule in row["paths"])
+                   for row in rows):
+            missing.append(path + " (" + owner + ", needs " + " or ".join(states) + ")")
     _need(not missing, "these step paths have no expectation listing them in paths: " + "; ".join(missing)
           + ". Every path a step changes that exists on " + where + " needs a works or broken expectation, and every "
           "new path an absent one.")
@@ -443,7 +449,7 @@ def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]
         for key in ("id", "criterion"):
             _need(row[key] == CASE_PLACEHOLDERS[key] or not any(character.isspace() for character in row[key]),
                   label + "." + key + " has no spaces" + tail)
-        _need(row["requirement"] == CASE_PLACEHOLDERS["requirement"] or knowledge._ids(row["requirement"]),
+        _need(row["requirement"] == CASE_PLACEHOLDERS["requirement"] or knowledge.requirement_ids(row["requirement"]),
               label + ".requirement names no R-<n>: write the ID of the requirement the case proves" + said)
         rows.append(row)
     ids = [row["id"] for row in rows if row["id"] != CASE_PLACEHOLDERS["id"]]
@@ -501,7 +507,7 @@ def case_skeleton(state: Mapping[str, Any]) -> Optional[List[Dict[str, str]]]:
     rows = []
     for ident, names in listed.items():
         criterion = names[0] if len(names) == 1 else CASE_PLACEHOLDERS["criterion"]
-        named = [found for found in knowledge._ids(text.get(criterion, "")) if found in held]
+        named = [found for found in knowledge.requirement_ids(text.get(criterion, "")) if found in held]
         rows.append({**CASE_PLACEHOLDERS, "id": ident, "criterion": criterion,
                      "requirement": named[0] if len(named) == 1 else CASE_PLACEHOLDERS["requirement"]})
     return rows
@@ -574,7 +580,7 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
     entries = knowledge.entries(Path(str(state["repo"])), "spec.md")
     unknown = []
     for case in cases:
-        absent = [ident for ident in knowledge._ids(case["requirement"]) if ident not in entries]
+        absent = [ident for ident in knowledge.requirement_ids(case["requirement"]) if ident not in entries]
         if absent:
             unknown.append(case["id"] + " names " + ", ".join(absent))
     if unknown:

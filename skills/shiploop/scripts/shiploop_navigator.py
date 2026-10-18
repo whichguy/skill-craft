@@ -53,7 +53,7 @@ import shiploop_store as store
 
 # 5 since 2026-10-10: the inner loop has eight stages (stage_spec); a version-4 run is refused by retired_run_reason.
 # 6 since 2026-10-11: consumer contract hand-off fields (follows, test_cases, not_covered, lessons, open items).
-STATE_VERSION = 6
+STATE_VERSION = 7
 # Navigator protocol 4 is the only protocol; saved runs from earlier protocols
 # are refused by retired_run_reason.
 PROTOCOL_VERSION = 4
@@ -167,6 +167,10 @@ DEFAULT_PLANNING_REVIEW = stage_spec.DEFAULT_PLANNING_REVIEW
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
+# A run saved before each implementation step recorded its Proof (the implement-step fix plan's step `check`): its step
+# plans have none, implement now runs one at done, and ShipLoop never makes one up for an old run.
+V6_REASON = ("this run was saved before each implementation step recorded its Proof (state version 6): its step plans "
+             "name no check for implement to run at done, and ShipLoop does not make one up. " + FRESH_RUN_HINT)
 _MANAGED_MARKER = "managed_improve_protocol_version"
 _EPHEMERAL_IMPROVE_RUNTIME = "until_loop_ephemeral.py"
 # Printed for a saved run whose bound Improve child names a durable runtime; the
@@ -276,6 +280,8 @@ def retired_run_reason(state: Any) -> str | None:
         if state.get("version") == 4:
             return ("this run was saved with ShipLoop's seventeen-stage inner loop (state version 4); the inner loop "
                     "now has eight stages and cannot resume it. " + FRESH_RUN_HINT)
+        if state.get("version") == 6:
+            return V6_REASON
         for old, new in _RENAMED_STAGES.items():
             if _names(state, old):
                 return (f"this run was saved with the stage name {old!r}, which ShipLoop renamed to {new!r}. "
@@ -1236,7 +1242,10 @@ def new_state(
 
 
 def _validate_action(action: Any, stage: str, label: str) -> str:
-    _need(isinstance(action, Mapping) and set(action) == {"id", "stage"},
+    # An implement action may carry the tree its step began from (``_step_entry``), its Improve review's diff base.
+    _need(isinstance(action, Mapping) and (set(action) == {"id", "stage"} or (
+        stage == "implement" and set(action) == {"id", "stage", "base"} and isinstance(action.get("base"), str)
+        and re.fullmatch(r"[0-9a-f]{40,64}", action["base"]) is not None)),
           f"{label} is invalid")
     action_id = action.get("id")
     _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
@@ -1267,6 +1276,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
               "unexpected: " + ", ".join(unexpected) if unexpected else "",
               "missing: " + ", ".join(missing) if missing else "") if part)
           + "); a run saved by an older ShipLoop cannot be loaded. " + FRESH_RUN_HINT)
+    _need(state.get("version") != 6, V6_REASON)
     _need(state.get("version") == STATE_VERSION,
           "navigator state version " + repr(state.get("version")) + " is not the supported version "
           + str(STATE_VERSION) + ". " + FRESH_RUN_HINT)
@@ -1753,6 +1763,10 @@ PRINT_LIMIT = 16_000
 # (measured 2026-10-17).  The required blocks of a head (tiers P0, which carries the pointer lines, and P1) are never left out; the
 # lookups, the chrome and the quoted files are, from the end of the list backwards, when the head would pass it.
 HEAD_LIMIT = 20_000
+# Where the required text of a head ends at the latest (test/shiploop-head-order.test.py, REQUIRED_BOUND).  A head whose
+# last block is required (an inline implement step ends with its Until Loop, implement-step fix plan D4) fills its
+# lookups, chrome and quoted blocks only while that last block still ends before it.
+HEAD_REQUIRED_END = 19_500
 
 
 def scratch_dir(root: Path) -> Path:
@@ -1873,11 +1887,14 @@ def _select_head(blocks: list[_Block], measure: Callable[[str], int] = len) -> l
     """
     chosen = [block for block in blocks if block.tier in HEAD_REQUIRED]
     used = measure(_text_of(chosen, head=True)) + 1 + len(HEAD_END) + 1
+    optional = [position for position, block in enumerate(blocks) if block.tier in HEAD_OPTIONAL]
+    trailing = bool(optional) and any(block.tier in HEAD_REQUIRED for block in blocks[optional[0]:])
+    limit = min(HEAD_LIMIT, HEAD_REQUIRED_END + 1 + len(HEAD_END) + 1) if trailing else HEAD_LIMIT
     kept: set[str] = set()
     for block in blocks:
         if block.tier in HEAD_OPTIONAL:
             size = measure(_text_of([block], head=True)) + 1
-            if used + size > HEAD_LIMIT:
+            if used + size > limit:
                 break  # a prefix: nothing after a block that does not fit is kept
             kept.add(block.name)
             used += size
@@ -1968,7 +1985,6 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     if stage in inner and workitem is not None:
         blocks.append(_work_item_block(root, state))
     blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem)))
-    blocks.append(_Block("step", P1, _step_lines(state, stage, workitem)))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
@@ -2028,7 +2044,12 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else [])]))
     blocks.append(_Block("goal", P0, _goal_lines(state, stage, root)))
     loop = _loop_lines(root, state, stage, action_id, workitem)
-    if loop:
+    # An inline implement step's packet puts its Step block right after Done when and ends with its loop, in the file and
+    # in the head (implement-step fix plan D4 and section 3.1); every other looped stage keeps its loop here.
+    step = _step_lines(state, stage, workitem)
+    if step:
+        blocks.append(_Block("step", P1, [*step, ""]))
+    elif loop:
         blocks.append(_Block("loop", P0, [*loop, ""]))
     blocks.append(_Block("status", P0, [
         # Keepalive hooks bind a host session to this run from this exact line.
@@ -2086,6 +2107,8 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("lint-records", FILE_ONLY, _lint_lines(core, root, state, stage, action_id, commands=False)))
     if stage == quality.STAGE:
         blocks.append(_Block("change-inventory", FILE_ONLY, quality.inventory_lines(root, state, workitem or "", action_id)))
+    if step and loop:
+        blocks.append(_Block("loop", P0, loop))  # its leading blank line parts it from the block before
     return [block._replace(
         lines=_symbolic_lines(block.lines, core, root, state),
         head=None if block.head is None else _symbolic_lines(block.head, core, root, state))
@@ -2320,18 +2343,20 @@ def _check_submitted_recorded_commands(stage: str, result: Any) -> None:
 def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     """A step plan's implementation steps, in the order ShipLoop issues them.
 
-    ``[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "paths": ["src/a.js"]}]``. On the inline
+    ``[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "check": "<command>"}]``. On the inline
     route each step is its own ``implement`` action; a step that does not depend on the one before it is
-    simply the next entry. ``criteria`` and ``paths`` are required for a new step plan by the submit gate
-    (``_check_step_sizing``); here they are shape-checked when present, so saved plans still load.
+    simply the next entry. ``criteria`` and ``check`` (the step's Proof, which implement runs at done) are
+    required for a new step plan by the submit gate (``_check_step_sizing``); here they are shape-checked when
+    present.  ``paths`` is optional: the ask-agent chain reads it, the inline route never does.
     """
     _need(isinstance(value, list) and value, "steps must be a nonempty list; one step is fine")
     rows = []
     for entry in value:
         _need(isinstance(entry, Mapping)
-              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "paths", "skills"},
+              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "check", "paths", "skills"},
               "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": [], \"criteria\": [\"C1\"], "
-              "\"paths\": [\"<repository-relative file>\"], \"skills\": [{\"name\": \"...\", \"why\": \"...\"}]}")
+              "\"check\": \"<command that proves the step's criteria>\", \"skills\": [{\"name\": \"...\", "
+              "\"why\": \"...\"}]}, and optionally \"paths\" (the files it changes)")
         step_id = _text(entry["id"], "step id")
         _need(not any(character.isspace() for character in step_id), "a step id has no spaces")
         row = {"id": step_id, "task": _text(entry["task"], "step task")}
@@ -2346,6 +2371,11 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
             _need(isinstance(criteria, list) and all(isinstance(c, str) and c for c in criteria)
                   and len(set(criteria)) == len(criteria), "step criteria must be a list of unique criterion IDs")
             row["criteria"] = list(criteria)
+        if "check" in entry:
+            check = entry["check"]
+            _need(isinstance(check, str) and check.strip() != "" and "\n" not in check and "\0" not in check,
+                  "step " + step_id + "'s check must be one nonblank command line, run from the repository root")
+            row["check"] = check.strip()
         if "skills" in entry:
             # Helper skills chosen at step-plan for this step (owner, 2026-10-10); the implement packet prints them.
             try:
@@ -2421,26 +2451,28 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
     """Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).
 
-    Every step names the criteria it satisfies and the paths it changes (a subset of the item's paths); every
-    criterion is satisfied by some step; and no step only changes test files, unless the whole item is tests
-    (the test stage writes the tests after the last implement step, so a test-only step would be a no-op).
+    Every step names the criteria it satisfies and its ``check``, the command that proves them (implement-step fix
+    plan section 4.1); every criterion is satisfied by some step; a step's optional paths are a subset of the item's;
+    and no step only changes test files, unless the whole item is tests (the test stage writes the tests after the
+    last implement step, so a test-only step would be a no-op).
     """
     steps = result.get("steps") or []
     known = [str(row.get("id")) for row in result.get("criteria") or () if isinstance(row, Mapping)]
     item_paths = list(result.get("paths") or ())
-    shape = ('[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "paths": ["<file this step changes>"]}]')
+    shape = ('[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "check": "<command that proves C1>"}]')
     for step in steps:
         if not isinstance(step, Mapping):
             continue
         name = str(step.get("id"))
-        _need(step.get("paths"), "step " + name + " must list paths: the files it changes, from the item's paths. "
-              "Steps are " + shape)
+        _need(step.get("check"), "step " + name + " must record its check: the one command, run from the repository "
+              "root, that proves the criteria it satisfies using only this step and accepted earlier steps (ShipLoop "
+              "runs it when the step reports done). Steps are " + shape)
         if known:
             _need(step.get("criteria"), "step " + name + " must list criteria: the IDs of the criteria it satisfies ("
                   + ", ".join(known) + "). A step no check can confirm on its own belongs in the step it serves.")
             unknown = [c for c in step["criteria"] if c not in known]
             _need(not unknown, "step " + name + " names criteria the result does not list: " + ", ".join(unknown))
-        outside = [path for path in step["paths"]
+        outside = [path for path in step.get("paths") or ()
                    if not any(path == item or fnmatch.fnmatchcase(path, item) for item in item_paths)]
         _need(not outside, "step " + name + " changes paths the item does not declare: " + ", ".join(outside)
               + ". Add them to the result's paths, or move that work to the step that owns them.")
@@ -3470,6 +3502,7 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     """
     after, writes = _validate_existing_entry(root, before, after)
     after = _document_entry(root, after)
+    after = _step_entry(root, before, after)
     after, bind_writes = _improve_entry(root, after)
     writes = {**writes, **bind_writes}
     for relative, text in bind_writes.items():
@@ -3478,6 +3511,28 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     _improve_stage_start(core, root, after)
     lint_writes, payload = _lint_transition(core, root, before, after)
     return after, {**writes, **lint_writes}, payload
+
+
+def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """Record the tree an inline implement step begins from in its action record (``base``), when the run newly enters
+    the step: the diff base its Improve review names (``_review_base_line``; implement-step fix plan section 2.2).
+
+    The tree is the working content, untracked files included (``improve_changes.snapshot_tree``, the bind snapshot's
+    own reader), because the item's earlier steps stay uncommitted until verify.  Outside a Git checkout, or when the
+    snapshot fails, nothing is recorded and the hand-off says so."""
+    stage, action, workitem = _active_cursor(after)
+    if (stage != "implement" or not isinstance(action, Mapping) or "base" in action or after.get("active_improve")
+            or after.get("status") != "active" or delegation(after) != guidance.INLINE):
+        return after
+    prior = _active_cursor(before)[1] if before.get("status") == "active" else None
+    if isinstance(prior, Mapping) and prior.get("id") == action["id"]:
+        return after
+    tree = improve_changes.snapshot_tree(Path(root), Path(after["repo"]))
+    if not tree:
+        return after
+    advanced = deepcopy(after)
+    advanced["inner_loops"][workitem]["action"] = {**action, "base": tree}
+    return advanced
 
 
 def _improve_stage_start(core: Any, root: Path, after: Mapping[str, Any]) -> None:
@@ -3696,6 +3751,36 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
         raise NavigatorError(str(exc)) from exc
 
 
+def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, workitem: str | None,
+                     submitted: Any, *, check_only: bool = False) -> list[str]:
+    """Accept an inline implement step's done only after ShipLoop runs the step's Proof on the candidate (implement-step
+    fix plan section 4.1, unit W2-A); return its ``Gates:`` line.
+
+    The whole-plan ask-agent action is not gated (its chain runs the steps and the item's checks stay its own).  A
+    refusal names both routes through the loop with its literal start command: fix the work and report done, or, when
+    the Proof cannot assess the step as planned, stop the loop blocked and report revise.  ``check_only`` runs the Proof
+    without counting it (``test_loop.step_proof(count=False)``)."""
+    if (not isinstance(submitted, Mapping) or submitted.get("outcome") != "done"
+            or step_view(state, workitem) is None):
+        return []
+    writes, refusal, lines = test_loop.step_proof(root, state, workitem or "", action_id, count=not check_only)
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    if refusal:
+        try:
+            start = loops.start_command(loops.runtime(state), loops.receipt_path(root, action_id),
+                                        root / loops.contract_path(action_id))
+        except loops.LoopError:
+            start = ""
+        route = ("Start the Until Loop again with: " + start + "  (it replaces the receipt), then either "
+                 if start else "In the stage's Until Loop, either ")
+        raise NavigatorError(refusal + "\n" + route + "fix the work until the Proof passes (never the Proof or what it "
+                             "expects) and report done, or, for a Proof that needs a later step, a test the test stage "
+                             "has not written, or a tool, access or authority that is absent, stop the loop blocked and "
+                             "report revise naming the Proof.")
+    return ["Gates: " + line for line in lines]
+
+
 def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
                      workitem: str | None, submitted: Any, *, check_only: bool = False) -> None:
     """Accept done at a stage that can edit code only after ShipLoop reruns every recorded test command.
@@ -3810,6 +3895,21 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
                              + _callback(core, root, "improve-start", action=improve_id(state))
                              + " --restart-stopped, run the improve skill on it, then run: "
                              + _callback(core, root, "complete", action=improve_id(state)))
+    if child.get("stage") == "implement" and step_view(state, _current_work_item(state)) is not None:
+        # The step's Proof passed at implement's done; a review that changed the candidate must pass it again before
+        # the step is accepted, and an unchanged candidate reuses that record (implement-step fix plan section 2.1).
+        writes, refusal, _lines = test_loop.step_proof(root, state, _current_work_item(state) or "", action_id,
+                                                       phase="improve-import")
+        for relative, text in writes.items():
+            store.atomic_write_text(root / relative, text)
+        if refusal:
+            message_path = improve_commit_message_path(child)
+            raise NavigatorError(
+                refusal + "\nFix it within the review's scope, commit the fix (write the message to " + str(message_path)
+                + " with a file tool, then run: " + _callback(core, root, "improve-commit", action=improve_id(state),
+                                                               message=str(message_path))
+                + "), then run the complete command again: " + _callback(core, root, "complete", action=improve_id(state)))
+        return
     if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
         return
     commands = improve_changes.rerun_commands(state)
@@ -3976,6 +4076,9 @@ HANDOFF_SHAPES: dict[str, Any] = {
 }
 
 
+STEP_CHECK_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
+
+
 def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None = None) -> str:
     """Render a current-action template without making the host track anchors.
 
@@ -3992,11 +4095,13 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
-        result["steps"] = [{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"],
-                            "paths": ["<repository-relative file this step changes>"],
-                            "skills": [{"name": "<helper skill>", "why": "<its use in this step>"}]},
-                           {"id": "S2", "task": "...", "deps": ["S1"], "criteria": ["C2"],
-                            "paths": ["<repository-relative file this step changes>"], "skills": []}]
+        # A step's paths are for the ask-agent chain only (implement-step fix plan D3): the inline template asks none.
+        step_paths = ({"paths": ["<repository-relative file this step changes>"]}
+                      if "delegation" in state and delegation(state) != guidance.INLINE else {})
+        result["steps"] = [{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "check": STEP_CHECK_PLACEHOLDER,
+                            **step_paths, "skills": [{"name": "<helper skill>", "why": "<its use in this step>"}]},
+                           {"id": "S2", "task": "...", "deps": ["S1"], "criteria": ["C2"], "check": "<the command that proves C2>",
+                            **step_paths, "skills": []}]
         result["expectations"] = [
             {"id": "E1", "state": "works", "statement": "<what exists and works today>", "steps": ["S1"],
              "paths": ["<existing file a step changes>"],
@@ -5122,6 +5227,8 @@ _CHECK_TEXT = {
                  "below), then mutates a sample of the changed product lines and refuses when the focused tests catch "
                  "none, so a test that only loads the code is refused",
     "test-rerun": "reruns every recorded test command and refuses done unless each passes",
+    "step-proof": ("runs the step's Proof on the candidate and refuses done unless it exits 0 having run what it "
+                   "asserts; it runs it again before importing a review that changed the step"),
 }
 # What a rerun adds at an inner stage (verify), which is held to the item's floors; the outer reruns are not.
 _INNER_RERUN_TEXT = (", runs every listed ID and reaches its floor; ShipLoop's run record is the evidence, so a "
@@ -5155,8 +5262,8 @@ _COMMON_GATES = "no outcome or summary, or an absolute evidence_refs path that d
 _RECORDED_GATES = {
     "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
                      "command naming an unlisted one, deps that are not earlier steps, a step without its criteria "
-                     "or paths, a step path the item does not declare, a criterion no step satisfies, a step that "
-                     "only changes test files)",
+                     "or its check, a step path the item does not declare, a criterion no step satisfies, a step "
+                     "that only changes test files)",
     "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
     "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
                        "consumer_entry whose sources are not files in the repository",
@@ -5872,7 +5979,9 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     raises at the first fault it finds, so a result with two faults needs two runs).
     """
     extra = _stage_gates(row.name, state)
-    runs = "; then ".join(_check_text(run, row.name, state) for run in row.complete_runs)
+    # The step Proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
+    runs = "; then ".join(_check_text(run, row.name, state) for run in row.complete_runs
+                          if run != "step-proof" or step_view(state, _current_work_item(state)) is not None)
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
             + "; ".join([*extra, "the usual faults (" + _COMMON_GATES + ")"])
             + ". It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause "
@@ -6055,102 +6164,126 @@ def _against_plan(paths: Sequence[str], declared: Sequence[str]) -> str:
             + (", plus " + ", ".join(extra) if extra else ""))
 
 
-def step_checks(steps: Sequence[Mapping[str, Any]], index: int,
-                commands: Sequence[Mapping[str, Any]]) -> tuple[list[Mapping[str, Any]], list[tuple[str, Mapping[str, Any]]]]:
-    """Split the item's check commands into those due at ``steps[index]`` and those due at a later step.
-
-    A check with no criteria (lint, type, build) is due at every step.  A check naming criteria is due from the step
-    that finishes the last of them (the last step listing it), so an early step is never asked to pass a check on work
-    a later step builds.  A criterion no step lists keeps its check due now, as before.
-    """
-    last: dict[str, int] = {}
-    for position, step in enumerate(steps):
-        for criterion in step.get("criteria") or ():
-            last[str(criterion)] = position
-    due: list[Mapping[str, Any]] = []
-    later: list[tuple[str, Mapping[str, Any]]] = []
-    for row in commands:
-        if row.get("suite") != "check":
-            continue
-        finish = max((last.get(str(criterion), -1) for criterion in row.get("criteria") or ()), default=-1)
-        if finish <= index:
-            due.append(row)
-        else:
-            later.append((str(steps[finish].get("id")), row))
-    return due, later
+class StepView(NamedTuple):
+    """The inline implement step an item is on (the one under review while its Improve child runs): ``step_view``."""
+    step: Mapping[str, Any]                       # the step plan's entry
+    number: int                                   # its position, from 1
+    steps: list[Mapping[str, Any]]                # every step of the plan, in order
+    plan_action: str                              # the accepted step plan's action
+    plan: Mapping[str, Any]                       # its result
+    accepted: list[tuple[Mapping[str, Any], Mapping[str, Any]]]   # (earlier step, its accepted implement history row)
 
 
-def _step_criteria(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[tuple[str, str]]:
-    """``[(id, text)]`` of the criteria the current inline implement step lists, in plan order, as the step plan wrote
-    them; [] where ``_step_lines`` prints no step (another stage, route or packet) or the step lists none."""
-    if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
-            or delegation(state) != guidance.INLINE or work_item is None):
-        return []
+def step_view(state: Mapping[str, Any], work_item: str | None) -> StepView | None:
+    """The inline implement step ``work_item`` is on, or None: another route (the ask-agent action builds every step),
+    no step plan, or no step left.  Read from state alone, so the packet, its head and the step's Improve hand-off name
+    the same step: while the child runs the step's result is not yet accepted, so the step under review is still the
+    current one."""
+    if work_item is None or delegation(state) != guidance.INLINE:
+        return None
     done, steps = implement_progress(state, work_item)
-    if done >= len(steps):
+    plan_action, plan = test_loop._step_plan(state, work_item)
+    if plan_action is None or done >= len(steps):
+        return None
+    history = [row for row in state["history"]
+               if row.get("stage") == "implement" and row.get("workitem") == work_item
+               and row.get("outcome") == "done"][-done:] if done else []
+    return StepView(steps[done], done + 1, steps, plan_action, plan, list(zip(steps[:done], history)))
+
+
+STEP_LOOP_LINE = ("Do this stage inside the /until-loop invocation at the end of this packet; everything between is its "
+                  "material.")
+STEP_FILES_LINE = ("Files: ShipLoop commits the item's declared paths (its step plan's result: RUN/results/{plan}.md); a "
+                   "file this step needs outside them is a revise, so the step plan declares it.")
+
+
+def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
+    """The one Step block of an inline implement step (implement-step fix plan section 3.1, trimmed to what state holds):
+    the task, the criteria it serves by value with their test cases, what it depends on, its Proof, its skills, the
+    accepted earlier steps and the later ones by their first sentence.  ``render``, ``packet_head`` and
+    ``improve_handoff_text`` print these lines word for word (packet review F15: the head and the Improve hand-off lacked
+    them).  No path fence (the fix plan's D3): the item's declared paths bound the change.  [] outside an inline step.
+    """
+    view = step_view(state, work_item)
+    if view is None:
         return []
-    listed = {str(ident) for ident in steps[done].get("criteria") or ()}
-    _action, plan = test_loop._step_plan(state, work_item)
-    return [(str(row.get("id")), _one_line(row.get("text"))) for row in plan.get("criteria") or ()
-            if isinstance(row, Mapping) and str(row.get("id")) in listed]
+    step = view.step
+    listed = [str(ident) for ident in step.get("criteria") or ()]
+    criteria = [(str(row.get("id")), _one_line(row.get("text"))) for row in view.plan.get("criteria") or ()
+                if isinstance(row, Mapping) and str(row.get("id")) in listed]
+    action = planning_revision.current_actions(state).get((work_item, "test-spec"))
+    spec = (state.get("accepted") or {}).get(action) if action else None
+    cases = [str(case.get("id")) for case in (spec.get("test_cases") or () if isinstance(spec, Mapping) else ())
+             if isinstance(case, Mapping) and str(case.get("criterion")) in listed]
+    accepted = {str(earlier.get("id")): row for earlier, row in view.accepted}
+    deps = [str(dep) for dep in step.get("deps") or ()]
+    check = str(step.get("check") or "").strip()
+    lines = [f"Step {step['id']} ({view.number} of {len(view.steps)}), the only work for this packet: "
+             + _one_line(step.get("task")),
+             *(["  Serves (each criterion this step satisfies, in the step plan's words):",
+                *("    " + ident + ": " + text for ident, text in criteria)] if criteria else []),
+             *(["  Test cases of these criteria (the test stage writes them later; their oracles: the test-spec result): "
+                + ", ".join(cases)] if cases else []),
+             "  Depends on: " + ("; ".join(dep + (" (accepted: RUN/results/" + str(accepted[dep]["action"]) + ".md)"
+                                                  if dep in accepted else "") for dep in deps) or "none"),
+             ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + check) if check else
+             "  Proof: none recorded in the step plan; report revise so the step plan records the step's check.",
+             "  Skills (use each; the summary says whether you did): "
+             + (", ".join(str(skill.get("name")) for skill in step.get("skills") or () if isinstance(skill, Mapping))
+                or "none")]
+    for earlier, row in view.accepted:
+        lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
+    later = view.steps[view.number:]
+    if later:
+        lines.append("Later steps (ShipLoop issues each after this one; do not start them): "
+                     + "; ".join(str(row.get("id")) + " " + _first_sentence(row.get("task"), 200).rstrip(".")
+                                 for row in later))
+    return lines + [STEP_FILES_LINE.format(plan=view.plan_action)]
 
 
 def _without_step_criteria(lines: list[str], state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """A producer's quoted block with the step's criteria hand-off named by ID where the step block prints them by value
-    (``_step_criteria``): one home per surface.  The Improve handoff, which prints no step block, quotes them whole."""
-    printed = _step_criteria(state, stage, work_item)
+    """A quoted block with the step's criteria hand-off named by ID where the Step block prints them by value: one home
+    per surface (the producer's quoted hand-offs, the Improve hand-off's reviewed inputs)."""
+    view = step_view(state, work_item) if stage == "implement" else None
     label = "criteria (" + str(work_item) + " step-plan):"
-    if not printed or label not in lines:
+    if view is None or label not in lines:
         return lines
     start = end = lines.index(label)
     end += 1
     while end < len(lines) and lines[end].startswith("- "):
         end += 1
-    return [*lines[:start], label[:-1] + ": " + ", ".join(ident for ident, _text in printed)
-            + " (printed under the Step line above)", *lines[end:]]
+    printed = [str(ident) for ident in view.step.get("criteria") or ()]
+    return [*lines[:start], label[:-1] + ": " + (", ".join(printed) or "none") + " (printed in the Step block above)",
+            *lines[end:]]
 
 
 def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """Name the one step this inline implement packet is for, its criteria, and what is already done.
+    """The producer packet's Step block: the loop line, then ``step_block`` ([] outside an inline implement step)."""
+    if stage != "implement" or state["status"] != "active" or state.get("active_improve"):
+        return []
+    block = step_block(state, work_item)
+    return [STEP_LOOP_LINE, *block] if block else []
 
-    The one source of the step block: ``_stage_input_blocks`` puts it in the P1 ``step`` block, which the printed head
-    and the packet file both take (``_producer_blocks``).  The criteria print here by value (packet review B6-2: in the
-    hand-offs only, a head that left them out sent the model to the packet file), and the hand-off names them by ID.
-    """
-    if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
-            or delegation(state) != guidance.INLINE):
+
+def _review_base_line(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """The step-entry diff base the step's Improve review starts from: the tree the transition recorded in the action
+    record (``_step_entry``) and the tree ShipLoop snapshotted when it bound this review, as one runnable diff."""
+    if child.get("stage") != "implement" or step_view(state, _current_work_item(state)) is None:
         return []
-    done, steps = implement_progress(state, work_item)
-    if done >= len(steps):
-        return []
-    step = steps[done]
-    history = [row for row in state["history"]
-               if row.get("stage") == "implement" and row.get("workitem") == work_item
-               and row.get("outcome") == "done"][-done:] if done else []
-    criteria = _step_criteria(state, stage, work_item)
-    lines = [f"Step {step['id']} ({done + 1} of {len(steps)}), the only work for this packet: {step['task']}",
-             *(["Step criteria (this step satisfies each, in the step plan's words):",
-                *("  " + ident + ": " + text for ident, text in criteria)] if criteria else []),
-             "Step paths (change only these): " + (", ".join(str(path) for path in step.get("paths") or ())
-                                                   or "none declared"),
-             "Step skills (use each; the summary says whether you did): "
-             + (", ".join(str(skill.get("name")) for skill in step.get("skills") or () if isinstance(skill, Mapping))
-                or "none")]
-    due, later = step_checks(steps, done, test_loop.stage_commands(state, "test", work_item or "")[0])
-    lines.append("Check commands (run each after every edit; exit codes to RUN/notes/<action>.md)"
-                 + (":" if due else ": none due at this step"))
-    lines.extend("  " + str(number) + ". " + str(row["command"]) for number, row in enumerate(due, 1))
-    if later:
-        lines.append("Checks due at a later step (do not run them here; their criteria finish there): "
-                     + "; ".join(f"{step_id}: {row['command']}" for step_id, row in later))
-    for earlier, row in zip(steps[:done], history):
-        lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
-    if done + 1 < len(steps):
-        # The id and the paths the step owns: where this step must not reach.  The task is in the step plan's result.
-        lines.append("Later steps (ShipLoop issues each one after this callback; do not start them): "
-                     + "; ".join(str(later["id"]) + " " + (", ".join(str(path) for path in later.get("paths") or ())
-                                                         or "(no paths declared)") for later in steps[done + 1:]))
-    return lines
+    action = current_action(state)
+    base = action.get("base") if isinstance(action, Mapping) else None
+    bound = None
+    try:
+        record = store.read_record(Path(root) / improve_changes.bind_path(child["action_id"]))
+        bound = record.get("tree") if isinstance(record, Mapping) else None
+    except (OSError, store.StorageError):
+        bound = None
+    if not base or not bound:
+        return ["Review base: not recorded when the step began (outside a Git checkout, or its snapshot failed): review "
+                "the change the step's result names against the Accepted step lines above."]
+    return ["Review base (the step's change since it began, untracked files included): git -C " + str(state["repo"])
+            + " diff " + str(base) + " " + str(bound) + " (" + str(base)[:12] + ": the working tree when the step "
+            "began; " + str(bound)[:12] + ": when this review was bound; your own edits since then show in git status)."]
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -6272,6 +6405,9 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         *([f"Work item: {workitem} — " + str(state["work_items"][state["work_index"]].get("title", "")),
            "Work item context: " + str(state["work_items"][state["work_index"]].get("context", ""))]
           if workitem is not None else []),
+        # The step under review: the producer's own Step block, word for word, and the diff base it began from (W2-B).
+        *(step_block(state, workitem) if stage == "implement" else []),
+        *_review_base_line(root, state, child),
         *_test_context_lines(state, root),
         *_reviewed_input_lines(root, state, stage, workitem),
         # An Improve review never mentions Backchain (owner, 2026-10-11), so its guides are left out here.
@@ -6313,7 +6449,7 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
     if "criteria" in CONSUMES.get(stage, ()):
         for source in handoff_sources(root, state, stage):
             if source.key == "criteria":
-                lines += _source_lines(root, state, source)
+                lines += _without_step_criteria(_source_lines(root, state, source), state, stage, workitem)
     sent = _sent_back_results(state, stage, workitem)
     if sent is not None:
         previous = ("the previous accepted " + stage + " result: RUN/results/" + sent.previous + ".md; "
@@ -8125,6 +8261,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             elif cursor_stage in test_loop.RERUN_STAGES:
                 _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted,
                                  check_only=check_only)
+            if cursor_stage in test_loop.STEP_PROOF_STAGES:
+                gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, cursor_item, submitted,
+                                                           check_only=check_only)
             if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
@@ -8136,6 +8275,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             # The gates above ran in check-only form; nothing is accepted, saved or committed.
             # Owner decision D5 (2026-10-17): the real complete takes this test run while nothing changes.
             reuse = test_loop.reuse_note(root, str(action_id)) if cursor_stage in test_loop.VERIFY_STAGES else ""
+            if cursor_stage in test_loop.STEP_PROOF_STAGES and any("step-proof:" in line for line in gate_lines):
+                reuse = ("That complete takes this Proof run while the candidate stays as it is now; any edit makes it "
+                         "run the Proof again.")
             print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "
                   "Until Loop receipt is checked only on the real complete). The action is not completed; run the "
                   "same complete command without --check-only to submit it." + (" " + reuse if reuse else ""))

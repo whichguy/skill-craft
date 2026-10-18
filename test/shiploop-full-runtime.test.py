@@ -765,7 +765,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                                                                 "command; pass when it exits 0"}])
             result.setdefault("paths", [DELIVERED])
             result.setdefault("steps", [{"id": "S1", "task": "Make the planned change.", "paths": [DELIVERED],
-                                         "criteria": ["C1"], "skills": []}])
+                                         "criteria": ["C1"], "check": "test -f " + DELIVERED, "skills": []}])
             # delivered.txt is new to W1 and on the base of every later item (verify committed it).
             exists = (repo / DELIVERED).exists()
             result.setdefault("expectations", [{
