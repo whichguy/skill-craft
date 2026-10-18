@@ -150,3 +150,6 @@ consistent prompt surfaces, measured concision) matches this plan's findings F1,
 
 Order: wave 1 (U1-U10) merges and is verified; wave 2 builds W2-A, W2-B and W2-C in parallel; W2-D after a measurement;
 then the live checkers run checks the per-step series (one implement, one step Proof and one Improve per planned step).
+
+**D6 (owner, 2026-10-17, from U7):** a partial person report does not close a delivery-contract run with a required
+behaviour unobserved. The stage asks again for only the unanswered lines; the delivery gate stays as it is.
