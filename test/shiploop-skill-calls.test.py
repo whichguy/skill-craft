@@ -537,6 +537,15 @@ class ImprovePassGateTests(GateFixture):
         self.environment.update({"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": self.SESSION,
                                  "SHIPLOOP_KEEPALIVE_HOME": str(self.keepalive_home)})
         self.handoff = navigator.improve_handoff_path(self.bound)
+        # The shared fixture's repository is not a Git worktree (main's Improve runtime would otherwise end a review on
+        # its first unchanged pass); improve-pass needs a measured tree to see that this review changed nothing, so this
+        # test makes one and records the review's starting snapshot again.
+        import shiploop_improve_changes as improve_changes
+        for args in (("init", "-q"), ("add", "-A"), ("-c", "user.name=Fixture", "-c", "user.email=f@example.invalid",
+                                                      "commit", "-qm", "fixture")):
+            subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True, env=self.environment)
+        for relative, text in improve_changes.bind_writes(self.run, self.repo, self.bound["action_id"]).items():
+            store.atomic_write_text(Path(self.run) / relative, text)
         reviews = bridge.receipt_path(self.bound).parent / "reviews"
         (reviews / "review-1.md").write_text(
             "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: the result.\n"
