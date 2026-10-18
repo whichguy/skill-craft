@@ -1,0 +1,273 @@
+{
+  "group": "D-verify",
+  "steps": [
+    {
+      "tag": "24-test",
+      "concise": 2,
+      "accurate": 4,
+      "effective": 4,
+      "one_line": "Wrote 22 org tests and passed check-only first try, but the packet sends the model to run every recorded command itself before check-only reruns them all, and the 22.1 KB head was cut on Grok.",
+      "findings": [
+        {
+          "id": "D-1",
+          "kind": "redundant",
+          "quote": "7. [regression] ls sfdx-project.json force-app/main/default/classes/SLChessRulesTest.cls && sf project deploy start --target-org de && sf apex run test ... --result-format tap --code-coverage (must run: foolsMate, ...",
+          "evidence": "Rows 7-9 are byte-identical to focused rows 1-3. The step plan copied environment.md's 'Focused' and 'Full suite, TAP' fences, which are the same three commands. ShipLoop runs all 10: tests/nav-a5e7...-verify1.md and nav-ce15...-verify1.md each show rows 7-9 re-deploying and re-running at 7.5-27.6 s each (about 40 s per full run). The verify refusal says 'ran the 10 listed commands ... 3 did not pass': two of those three were the same command. The carry-forward 'Commands that passed at verify' list already dedupes them (it shows 6 plus the grep).",
+          "proposal": "In normalise_commands, merge rows whose command string is identical. Keep the first row's suite label, the union of their ids and the larger min_tests, and say once 'also the regression command'. The head then lists 7 rows, not 10.",
+          "source": "skills/shiploop/scripts/shiploop_test_loop.py:normalise_commands (listing via _listing)",
+          "chars_saved_per_packet": 1245,
+          "applies_to_stages": ["test", "verify", "system-test-author", "system-test"],
+          "risk": "None to obligations: the same IDs and floor are checked on the same command. A floor kept per suite must take the larger of the two."
+        },
+        {
+          "id": "D-2",
+          "kind": "misordered",
+          "quote": "4. **Run and fix.** After each change run every recorded command, the red-check command and the lint command.",
+          "evidence": "Between 5041 and 5113 s the model ran all 9 org commands itself in 5 calls (each deploys again), then ran lint (5158). Then check-only (5177 to 5486 s, 309 s) ran the base run, the 10 candidate commands and the mutation check over again. Its Until Loop Work line already says check-only 'runs the base run, the candidate run and the mutation check without counting'. The model never ran red-check: check-only covers it.",
+          "proposal": "Rewrite as: '4. **Run and fix.** After each change run the Callback with `--check-only` (it runs every recorded command, the base run and the mutation check, uncounted). Run one recorded command yourself only to diagnose a failure.' Drop the red-check line from 'Where and floors', or mark it 'diagnosis only'.",
+          "source": "skills/shiploop/scripts/shiploop_prompts.py:DUTIES['test'] item 4; red-check line from shiploop_test_loop.py:loop_lines",
+          "chars_saved_per_packet": 150,
+          "applies_to_stages": ["test"],
+          "risk": "Low. Check-only is heavier per iteration than one command, so the targeted run stays allowed for diagnosis. About 2 min of org time saved per test visit on this platform."
+        },
+        {
+          "id": "D-3",
+          "kind": "inaccurate",
+          "quote": "a sub-case of the closest quoted case ... titled `<ID> (<letter>)`",
+          "evidence": "Apex method names cannot contain spaces or parentheses. HOME/environment.md ## ID convention already says so ('Hyphens are illegal in Apex identifiers'). In verify the model added an extension test as `controllerIllegalMove`, a new name in no case's ID list, so no gate tied it to illegalEngineMove.",
+          "proposal": "Use '`<ID> (<letter>)`, or the form HOME/environment.md ## ID convention gives where the platform's test names cannot hold it' here and in DUTIES['verify'] item 4.",
+          "source": "skills/shiploop/scripts/shiploop_prompts.py:DUTIES['test'] item 3 and DUTIES['verify'] item 4",
+          "chars_saved_per_packet": -90,
+          "applies_to_stages": ["test", "verify"],
+          "risk": "None. It points at the platform's recorded convention."
+        },
+        {
+          "id": "D-4",
+          "kind": "oversize",
+          "quote": "Full packet: <run>/packets/nav-a5e7....md - open it with a file tool ... when this print was cut (a complete print ends with the line === end ShipLoop head ===)",
+          "evidence": "The printed head was 22.1 KB, over Grok's 20,000-character whole-print limit (transcript: 'truncated: showing first/last ... of 21.6 KB'). The model opened the 95.7 KB packet file at 4993 s. That one read did carry everything the 7 writes at 5032 s needed. The head is printed and then read again from the file.",
+          "proposal": "Bring the head under 20,000 characters on Grok: D-1 (-1.2 KB), plus one-line pass rules (D-9, -0.45 KB), plus the 'Full packet' line cut to 'Full packet (duties, template, request, knowledge, hand-offs): <path>; open it with a file tool when this print lacks === end ShipLoop head ===.' (-0.25 KB).",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:_producer_blocks (head assembly; HEAD_END)",
+          "chars_saved_per_packet": 1900,
+          "applies_to_stages": ["test", "document", "verify"],
+          "risk": "None to obligations. The full-packet pointer and the end marker stay."
+        }
+      ]
+    },
+    {
+      "tag": "25-document",
+      "concise": 2,
+      "accurate": 4,
+      "effective": 5,
+      "one_line": "Done in 1.5 min with no refusal. The 73.6 KB packet quotes whole the files the stage then reopens to edit, and prints the same path list twice.",
+      "findings": [
+        {
+          "id": "D-5",
+          "kind": "redundant",
+          "quote": "Knowledge files this stage reads, each quoted whole and uncut ... HOME/environment.md (source: HOME/environment.md, whole file):",
+          "evidence": "The packet quotes environment.md (15.7 KB) and architecture.md (13.6 KB) whole, plus a 20.0 KB spec diff. Together that is 49 KB of 73.6 KB. The model read 4 files at 5867 s (the packet, plus the knowledge files it edits) and then made 16 search_replace edits on environment.md, architecture.md and SHIPLOOP.md. Grok's search_replace needs the file's current text, so the quoted copies were read twice. The same thing happened at carry-forward (reads at 6769-6786 s, then 6 edits) and at verify (two reads of environment.md, then 4 edits).",
+          "proposal": "For each knowledge file the stage edits (its 'keeps these up to date' list, or a file its duties name), print the one-line pointer form already used for new-file diffs (_new_file_pointer: path, bytes, section list) instead of the whole text. Keep files the stage only reads quoted whole.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py: the reads_lines quoting (Knowledge files block) with _new_file_pointer",
+          "chars_saved_per_packet": 29000,
+          "applies_to_stages": ["document", "carry-forward"],
+          "risk": "Main tenet: the file on disk is the authority, and the stage must open it to edit it anyway, so a reader after context loss still reaches the text. Keep the spec quoted, because document and carry-forward judge changes against it."
+        },
+        {
+          "id": "D-6",
+          "kind": "redundant",
+          "quote": "Step plan paths: sfdx-project.json, force-app/main/default/classes/SLChessEngine.cls, ... Changed since the item base (script-derived): .sf/orgs/..., docs/shiploop/architecture.md, ...",
+          "evidence": "The two lists share 17 of their 17 and 21 paths (959 + 1,159 chars). Verify prints the same pair again as 'Step plan paths' and 'Changed, ShipLoop will commit' (959 + 1,047). The model used neither list beyond the extras: in document it touched SHIPLOOP.md and docs, and in verify it removed .sf.",
+          "proposal": "Print the step-plan paths once. Then print only the difference: 'Changed since the item base: every step-plan path, plus docs/shiploop/architecture.md, docs/shiploop/environment.md; not committed: .sf/** (generated by sf deploy)'. Name step-plan paths that did not change, if any.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:_commit_scope_lines (CHANGED_SINCE_BASE)",
+          "chars_saved_per_packet": 1000,
+          "applies_to_stages": ["document", "verify"],
+          "risk": "None. The same paths are still named."
+        },
+        {
+          "id": "D-7",
+          "kind": "ambiguous",
+          "quote": "Delete generated output the product does not need.",
+          "evidence": "Every sf deploy recreates .sf/orgs/.../localSourceTracking. The model ran rm -rf .sf at 5158 and 5498 (test), 6583 (verify) and 6838 (carry-forward). The packet already says 'Changed, ShipLoop will not commit: .sf/...', and the return excludes .sf/. The deletes are repeated busywork with no effect.",
+          "proposal": "Where the not-commit list names a generated path, add '(generated; ShipLoop leaves it out; no need to delete)'. Or have the platform reference say sf deploy writes .sf/ and the project's .gitignore should list it.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:_commit_scope_lines; references/platforms/ (Salesforce)",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["test", "document", "verify", "carry-forward"],
+          "risk": "Low. It only applies to paths ShipLoop already withholds."
+        }
+      ]
+    },
+    {
+      "tag": "26-verify",
+      "concise": 2,
+      "accurate": 3,
+      "effective": 3,
+      "one_line": "Item accepted with a real fix (controller illegal-move test plus setMessage). Two refusals and three full 10-command org runs. The first refusal came from duty 1 telling the model to run check-only before any result existed.",
+      "findings": [
+        {
+          "id": "D-8",
+          "kind": "misordered",
+          "quote": "1. **Run** the Callback command with `--check-only` after your last edit; fix each refusal. It reruns every recorded command into RUN/tests/<action>-check-only.md",
+          "evidence": "Refusal 1 (terminal log call-512565ff-...-17.log, 15:28): after the compaction at verify, the model followed duty 1 and ran check-only at 6177 s. There was no inbox file yet: the first write is at 6239 s. The refusal said 'ShipLoop navigator: navigator result is unavailable'. The model then spent 55 s and 17 calls (6184-6239 s) reading ShipLoop's own scripts (shiploop_navigator.py, several times) before it concluded: 'Check-only needs a draft result before it will rerun the org tests.' The step-plan Work line says 'writing the result at {run}/inbox/{action}.md; then run ... --check-only'. The verify Work line and duty 1 leave that out.",
+          "proposal": "Duty 1: '1. **Run.** Write the result (template below) to the inbox path, then run the Callback with `--check-only` after your last edit; fix each refusal. ...'. WORK['verify']: 'Do duty items {items} of ...; write the result at {run}/inbox/{action}.md before each check-only; ...'.",
+          "source": "skills/shiploop/scripts/shiploop_prompts.py:DUTIES['verify'] item 1; skills/shiploop/scripts/shiploop_loops.py:WORK['verify']",
+          "chars_saved_per_packet": -80,
+          "applies_to_stages": ["verify", "test", "test-spec", "document", "carry-forward"],
+          "risk": "None. It states a precondition the gate already enforces."
+        },
+        {
+          "id": "D-9",
+          "kind": "inaccurate",
+          "quote": "ShipLoop navigator: navigator result is unavailable",
+          "evidence": "The refusal names neither the missing file nor the fix. The trailer 'fix the result and resubmit' does not say a result file must exist first. The cost was the 17-call source read in D-8.",
+          "proposal": "Raise NavigatorError('no result file at ' + str(expected) + ': write it from the packet\\'s Result template, then run the same command') in place of the bare message.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:_submitted_result",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["every producer stage"],
+          "risk": "None. The refusal fires on the same condition; only its wording changes."
+        },
+        {
+          "id": "D-10",
+          "kind": "effective-line",
+          "quote": "ShipLoop test run: verify is not done. ShipLoop ran the 10 listed commands from <worktree> and 3 did not pass: ... # Class.SLChessRulesTest.controllerIllegalMove: line 151",
+          "evidence": "Refusal 2 (call-cb8eae37-...-40.log, 15:31) was a real defect. Verify added controllerIllegalMove, and AuraHandledException.getMessage() did not return the constructor text. The TAP rows carried the failing assertion line. The model probed with anonymous Apex (6354 s), fixed it with setMessage (6385 s), and the next check-only passed (6402 to 6524 s). Each failing row's excerpt is the last 15 lines of stdout+stderr: 6 to 8 of them are 'NO_COLOR ... FORCE_COLOR' and the deploy source-tracking deprecation warning. For the human row the excerpt shows only the coverage table, not the failing method.",
+          "proposal": "Build the tail as (stderr + '\\n' + stdout), so the runner's result lines end the excerpt. Or drop lines matching '^\\(node:\\d+\\) Warning|^\\(Use `node --trace-warnings' before taking the last 15.",
+          "source": "skills/shiploop/scripts/shiploop_test_loop.py:verify (the failing-row tail)",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["test", "verify", "system-test"],
+          "risk": "Low. The full output path is still printed."
+        },
+        {
+          "id": "D-11",
+          "kind": "missing",
+          "quote": "ShipLoop check-only: every script gate for verify accepts this result ... run the same complete command without --check-only to submit it.",
+          "evidence": "After the passing check-only, the model wrote two python3 parsers of tests/<action>-check-only.md (6530 s failed on the Markdown wrapper, 6540 s worked) just to get 'Rules 14, Counts 6, Perf 3' and the coverage for its summary. Then the real complete (6645 s) reran all 10 commands: verify1.md is stamped 22:38:20, 4 minutes after check-only at 22:34:23, about 104 s of org time. Between the two, only run records changed (notes, inbox) plus rm .sf.",
+          "proposal": "(a) The accept line prints the counts: 'every recorded command passed (10/10; tests: SLChessRulesTest 14, SLChessCountsTest 6, SLChessPerfTest 3)'. (b) Owner decision: complete reuses a passed check-only record when the candidate snapshot (the lint inventory snapshot) is unchanged.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:dispatch (check-only message); shiploop_test_loop.py:verify",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["test", "verify"],
+          "risk": "(a) None. (b) Stale evidence only if the snapshot misses a change; it touches the gate, so it needs the owner's approval (test economy policy)."
+        },
+        {
+          "id": "D-12",
+          "kind": "oversize",
+          "quote": "A command passes only when it exits 0 and actually ran tests: ShipLoop reads the runner's summary, refuses a run of zero tests, and checks that every listed ID appears ...",
+          "evidence": "The verify head printed 24.2 KB (call-50675b34-...-85.log), over Grok's 20,000 limit. The transcript shows 'showing first/last 19.6 KB of 23.6 KB'. The cut fell in the stage guidance, and the model opened the 102 KB packet file at 5960 s and again at 6143 s after compaction (context peak 202 K). The pass-rule paragraph (650 chars) and the floor paragraph (313) are rules in long form.",
+          "proposal": "One line: 'Pass = exit 0, at least 1 test ran, each listed ID printed as its own word (`TC-4 (a)`, not `TC-4a`), and a count at or above the floor (the most an accepted run of this command ran since the step plan); a runner must print test names (GUIDES/platforms/).' Together with D-1 and D-6 this cuts about 3.3 KB, which brings the verify head to about 20.9 KB. Also trim _required_excerpt's limit for inner stages after step-plan to reach 20 K.",
+          "source": "skills/shiploop/scripts/shiploop_test_loop.py:rule_lines and _floor_lines; shiploop_navigator.py:_required_excerpt",
+          "chars_saved_per_packet": 700,
+          "applies_to_stages": ["test", "verify", "system-test"],
+          "risk": "Every obligation stays (exit, count, ID word rule, floor). The refusal texts still quote the long form."
+        }
+      ]
+    },
+    {
+      "tag": "27-carry-forward",
+      "concise": 3,
+      "accurate": 4,
+      "effective": 5,
+      "one_line": "Done in 3.6 min with no refusal. The 'Commands that passed at verify' list and the tailored skill duty worked. Open items show A1 twice, and the Backchain block is dead text for a one-item run.",
+      "findings": [
+        {
+          "id": "D-13",
+          "kind": "redundant",
+          "quote": "- A1: R-10 board play has no focused ID. ... | from test-spec W1\n- A1: R-10 board play is still unrun. ... | from verify W1",
+          "evidence": "The same ID appears twice with near-identical text (952 and 942 chars). The model kept one A1, using the verify wording. A4 and A7 (consumer W1) were correctly closed by being left out.",
+          "proposal": "In the open-items hand-off, keep the latest row per id (verify supersedes test-spec) and mark it '(replaces the test-spec row)'.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:_source_lines (assumptions branch)",
+          "chars_saved_per_packet": 900,
+          "applies_to_stages": ["carry-forward", "system-test-author", "release-plan", "release-verify"],
+          "risk": "Low. Two rows with the same id but different meanings would merge. Keep both when the assumption texts differ beyond wording, or key on id plus consumer."
+        },
+        {
+          "id": "D-14",
+          "kind": "dead-text",
+          "quote": "Optional: for a material prerequisite ambiguity or acceptance gap, request one read-only Backchain review/audit ... Backchain graph check: python3 ... backchain-check --run-dir <run> --candidate <your candidate file>",
+          "evidence": "Six lines (about 800 chars, absolute paths included). Duty 2 says 'No item follows W1: omit work_items', and duty 3 says the run had 1 step in 1 item. There is no queue to audit, and the model never opened the Backchain material.",
+          "proposal": "Print the Backchain option only when work_items has a pending item or the result may add one: when one_step_run holds, drop it.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py (carry-forward Backchain option lines; one_step_run)",
+          "chars_saved_per_packet": 800,
+          "applies_to_stages": ["carry-forward"],
+          "risk": "Low. A corrective item can still be added without Backchain."
+        },
+        {
+          "id": "D-15",
+          "kind": "effective-line",
+          "quote": "Commands that passed at verify and are not named in HOME/environment.md: `ls sfdx-project.json ... --result-format tap --code-coverage`; ...",
+          "evidence": "The result summary says the recorded verify commands, including the ls prefix, the human deploy rows and the C12 grep, are now under environment.md ## Commands. This 3.2 KB line was acted on in full.",
+          "proposal": "Keep it. It is the deduped form D-1 asks for in the test runner.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:_unnamed_command_lines",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["carry-forward"],
+          "risk": "none"
+        }
+      ]
+    },
+    {
+      "tag": "28-improve-carry-forward",
+      "concise": 3,
+      "accurate": 4,
+      "effective": 4,
+      "one_line": "One trivial pass in 78 s, as the packet asked. The 2.5 KB packet leads with a Claude Code example on a Grok host, and the 68.7 KB handoff re-quotes 43.8 KB of the carry-forward packet the same context had just used.",
+      "findings": [
+        {
+          "id": "D-16",
+          "kind": "oversize",
+          "quote": "Read this whole file with a file-reading tool, not the shell ... ## What the reviewed stage worked from",
+          "evidence": "In the handoff, 'What the reviewed stage worked from' is 43.8 KB of 68.7 KB (lines 73-458). It is mostly the carry-forward packet's spec and architecture diffs and references, which the inline route had read minutes earlier. The model read the handoff (read_file at 6878 s, twice). The review's Read: line used only the result, spec status, environment Commands, AD-8 and three source files.",
+          "proposal": "Replace that section with the Goal and Done-when lines it already starts with, plus 'Everything else the stage worked from: RUN/packets/<producer action>.md (open the section you need)'. Change 'Read this whole file' to 'Read this whole file (about 25 KB)'.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:improve_handoff_text; IMPROVE_READ_SENTENCE",
+          "chars_saved_per_packet": 42000,
+          "applies_to_stages": ["improve (all 11 children)"],
+          "risk": "Main tenet: the producer's packet file persists in RUN/packets, so a fresh or compacted child still reaches every source by path. The obligations (Done when, focus, commit and evidence rules) stay inline."
+        },
+        {
+          "id": "D-17",
+          "kind": "inaccurate",
+          "quote": "1. Run the improve skill on the carry-forward result. For example, on Claude Code:\n       /improve ShipLoop Improve: ...\n   (the Skill tool, skill \"improve\" ... on another host, open .../SKILL.md",
+          "evidence": "The host is Grok: the paths sit under .grok/installed-plugins, and the receipt notes the 'improve skill call not enforced (... this is not a Claude Code session)'. The packet leads with the Claude Code form, and the Grok form sits in a parenthesis.",
+          "proposal": "Print the bound host's form only. On Grok: '1. Open <skill_card> and run it with the argument: ShipLoop Improve: <handoff>'. On Claude Code: the /improve line.",
+          "source": "skills/shiploop/scripts/shiploop_navigator.py:improve_packet",
+          "chars_saved_per_packet": 200,
+          "applies_to_stages": ["improve"],
+          "risk": "None, if the host is known from state (delegation or host record). Otherwise keep both."
+        }
+      ]
+    }
+  ],
+  "cross_cutting": [
+    {
+      "id": "DX-1",
+      "pattern": "The printed head is over Grok's 20,000-character limit at test (22.1 KB), document (22.3 KB) and verify (24.2 KB). The middle, which holds the stage guidance, is cut, and the model reads the 74-102 KB packet file every time.",
+      "evidence": "Terminal logs call-4cbf7d40-30, call-d9bfefe6-52 and call-50675b34-85. The transcript reports '[truncated: showing first/last 19.6 KB of 23.6 KB'. Packet-file reads came at 4993 s (test), 5867 s (document), and 5960 s and 6143 s (verify, before and after compaction). Each read is about 25 k tokens, and verify reached a 202 K context peak and compacted. Carry-forward's head (19.2 KB) fit.",
+      "proposal": "Target 19 KB on Grok: D-1, D-6, D-12, and the 'Full packet' line in D-4. Also print RUN-relative paths in prose lines (Work, notes, contract and receipt mentions), keeping commands literal: the 107-char run directory appears 11-15 times per head.",
+      "source": "skills/shiploop/scripts/shiploop_navigator.py:_producer_blocks; shiploop_test_loop.py:_listing and rule_lines",
+      "est_chars_saved_run": 30000,
+      "risk": "The Callback, start and recovery commands must stay literal and absolute (the status hook and the 'run exactly as printed' rule depend on them)."
+    },
+    {
+      "id": "DX-2",
+      "pattern": "The same org suite runs three or four times per stage: the model's own runs, check-only, and the real complete after a passed check-only on an unchanged tree. Duplicate recorded rows multiply each run.",
+      "evidence": "Test: manual runs at 5041-5113 s, check-only for 309 s, then the final complete. Verify: check-only failed (103 s), check-only passed (122 s), then complete reran all 10 (about 104 s, verify1.md at 22:38:20). Rows 7-9 repeat 1-3 in every one of those runs.",
+      "proposal": "D-1 (dedupe), D-2 (check-only as the run), and D-11(b) (reuse a passed check-only record on an unchanged snapshot, owner decision).",
+      "source": "skills/shiploop/scripts/shiploop_test_loop.py:normalise_commands and verify; shiploop_prompts.py:DUTIES['test']",
+      "est_chars_saved_run": 0,
+      "risk": "D-11(b) changes the gate's evidence freshness. D-1 and D-2 do not."
+    },
+    {
+      "id": "DX-3",
+      "pattern": "The 'ShipLoop navigator' prefix (owner question). It is read by code, and dropping it saves under 30 chars per packet.",
+      "evidence": "Header 'ShipLoop navigator | <stage> | revision N': shiploop_status_hook.py HEADER ('if not body.startswith(HEADER): return None', the status display gate); shiploop-run-review/scripts/export.py and template/index.html (locate the packet head); tests: shiploop-actual-improve-cli.test.py, shiploop-callback-contract.test.py, installed-skill-invocation.test.py and test/experiments/*. The keepalive binds on the separate 'Keepalive marker:' line. Template heading '# ShipLoop navigator result': shiploop_store.loads reads only the shiploop-state fence and ignores the heading, so it is safe to drop from the Result template (store.dumps still titles its own records). Refusal prefix 'ShipLoop navigator: ': shiploop_protocol.py prints it; test/shiploop_e2e/metrics.py REFUSAL_LINE '^ShipLoop (?:navigator|blocked|workspace blocked): ' counts refusals (this review's refusals.txt comes from it), and flow.py and the tests assert it.",
+      "proposal": "Drop '# ShipLoop navigator result' from the Result template now. Leave the header and the refusal prefix alone, or rename each in one change together with HEADER, REFUSAL_LINE, run-review's head finder and the tests.",
+      "source": "shiploop_navigator.py (_compact_record title in the Result template); shiploop_status_hook.py:HEADER; test/shiploop_e2e/metrics.py:REFUSAL_LINE",
+      "est_chars_saved_run": 700,
+      "risk": "A header or prefix rename without lockstep edits blinds the status hook and the refusal metrics."
+    }
+  ],
+  "best_lines": [
+    "Test, 'Base run: ... No listed test ID may pass there: each must fail, or be missing because a file this item adds cannot be loaded.' Combined with the step plan's `ls <file> &&` prefix, every base row went red in 6 ms (tests/nav-a5e7...-base1.md) with no org deploy, and check-only accepted on the first try.",
+    "Verify refusal 'ShipLoop ran the 10 listed commands ... 3 did not pass' with the assertion line 'Class.SLChessRulesTest.controllerIllegalMove: line 151'. The model probed AuraHandledException with anonymous Apex, fixed it with setMessage, and passed the next check-only within 3 minutes. This caught a real product defect.",
+    "Carry-forward, 'Commands that passed at verify and are not named in HOME/environment.md: ...'. All of them were written to environment.md ## Commands (result summary).",
+    "Carry-forward duty 3, the tailored skill decision ('this run has 1 step in 1 item ... list them in evidence_refs, then record `none`'). Followed exactly: decision none with a reason, and the host SKILL.md listed in evidence_refs.",
+    "Test duty 1, 'Write no case due at a later stage', plus the not_covered hand-off. The R-10 board clicks stayed open as A1 for release-verify through test, verify and carry-forward, never claimed as passed."
+  ]
+}

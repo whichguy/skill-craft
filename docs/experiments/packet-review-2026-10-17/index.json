@@ -1,0 +1,720 @@
+[
+ {
+  "n": 1,
+  "tag": "01-intake",
+  "action": "nav-a9cb2bb08d9f40b99a7baca012090e95",
+  "stage": "intake",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 18,
+  "model_seconds": 126.2,
+  "minutes": 1.6,
+  "packet_chars": 15650,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 15,
+   "peak": 55344
+  }
+ },
+ {
+  "n": 2,
+  "tag": "02-discovery",
+  "action": "nav-e33f9862bb49498e9a3271011c562034",
+  "stage": "discovery",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 27,
+  "model_seconds": 111.6,
+  "minutes": 2.1,
+  "packet_chars": 22721,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 9,
+   "peak": 111260
+  }
+ },
+ {
+  "n": 3,
+  "tag": "03-research",
+  "action": "nav-2f55edce79324aa680c1daebb37df02a",
+  "stage": "research",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 13,
+  "model_seconds": 204.3,
+  "minutes": 3.4,
+  "packet_chars": 19628,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 8,
+   "peak": 240174
+  }
+ },
+ {
+  "n": 4,
+  "tag": "04-spec",
+  "action": "nav-28f080a883aa4c11a155f1e0b321d43c",
+  "stage": "spec",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 41,
+  "model_seconds": 379.2,
+  "minutes": 8.4,
+  "packet_chars": 22601,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 23.9,
+   "toolCalls": 6
+  },
+  "improve": {
+   "min": 5.24,
+   "passes": 3
+  },
+  "context": {
+   "calls": 29,
+   "peak": 204127
+  }
+ },
+ {
+  "n": 5,
+  "tag": "05-improve-spec",
+  "action": "nav-d530f522517e44258f89c7c6232dfcbd",
+  "stage": "improve",
+  "reviews": "spec",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2360,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 6,
+  "tag": "06-test-strategy",
+  "action": "nav-2f0bf6d638b343cf85a7a691350e6124",
+  "stage": "test-strategy",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 58,
+  "model_seconds": 434.7,
+  "minutes": 7.4,
+  "packet_chars": 43433,
+  "fresh_start": null,
+  "improve": {
+   "min": 3.6,
+   "passes": 2
+  },
+  "context": {
+   "calls": 30,
+   "peak": 167177
+  }
+ },
+ {
+  "n": 7,
+  "tag": "07-improve-test-strategy",
+  "action": "nav-7375104e71a44b2983591e219f5b2a50",
+  "stage": "improve",
+  "reviews": "test-strategy",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2565,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 8,
+  "tag": "08-plan",
+  "action": "nav-56b8edae47f24f1598919d35dd599a1a",
+  "stage": "plan",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 47,
+  "model_seconds": 406.7,
+  "minutes": 7.2,
+  "packet_chars": 80046,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 66.7,
+   "toolCalls": 13
+  },
+  "improve": {
+   "min": 5.34,
+   "passes": 3
+  },
+  "context": {
+   "calls": 28,
+   "peak": 204637
+  }
+ },
+ {
+  "n": 9,
+  "tag": "09-improve-plan",
+  "action": "nav-30f47509d08e46d5bfa5f33204f52405",
+  "stage": "improve",
+  "reviews": "plan",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2579,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 10,
+  "tag": "10-prepare",
+  "action": "nav-5b49a272fed644ca92d8338b78abe7be",
+  "stage": "prepare",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 20,
+  "model_seconds": 99.9,
+  "minutes": 1.9,
+  "packet_chars": 31765,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 10,
+   "peak": 85259
+  }
+ },
+ {
+  "n": 11,
+  "tag": "11-step-plan",
+  "action": "nav-a3afbe1dec1b4a90a12a30636b6eb4c7",
+  "stage": "step-plan",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 74,
+  "model_seconds": 625.2,
+  "minutes": 10.5,
+  "packet_chars": 80058,
+  "fresh_start": null,
+  "improve": {
+   "min": 5.25,
+   "passes": 3
+  },
+  "context": {
+   "calls": 50,
+   "peak": 201359
+  }
+ },
+ {
+  "n": 12,
+  "tag": "12-improve-step-plan",
+  "action": "nav-a662fedd3c9547e98cf7cb2a6726e195",
+  "stage": "improve",
+  "reviews": "step-plan",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2582,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 13,
+  "tag": "13-test-spec",
+  "action": "nav-86142bd60dd44e5bb138f592aefc1fa0",
+  "stage": "test-spec",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 58,
+  "model_seconds": 473.1,
+  "minutes": 8.0,
+  "packet_chars": 81242,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 381.2,
+   "toolCalls": 58
+  },
+  "improve": {
+   "min": 3.72,
+   "passes": 2
+  },
+  "context": {
+   "calls": 40,
+   "peak": 201606
+  }
+ },
+ {
+  "n": 14,
+  "tag": "14-improve-test-spec",
+  "action": "nav-75c8d85431c64e0e9a526c4c294d5077",
+  "stage": "improve",
+  "reviews": "test-spec",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 1865,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 15,
+  "tag": "15-validate-existing",
+  "action": "nav-2897d559755d4c39b07e1e589cb3e00d",
+  "stage": "validate-existing",
+  "reviews": null,
+  "outcome": "done",
+  "calls": null,
+  "model_seconds": null,
+  "minutes": 0.0,
+  "packet_chars": 0,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 16,
+  "tag": "16-implement",
+  "action": "nav-fbfbbd6dcb644e67a8432a21989e7f1f",
+  "stage": "implement",
+  "reviews": null,
+  "outcome": "revise",
+  "calls": 18,
+  "model_seconds": 117.7,
+  "minutes": 2.0,
+  "packet_chars": 86840,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 16,
+   "peak": 184710
+  }
+ },
+ {
+  "n": 17,
+  "tag": "17-step-plan",
+  "action": "nav-82a9b917377e4fa38fcda612b59b7997",
+  "stage": "step-plan",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 54,
+  "model_seconds": 571.5,
+  "minutes": 9.5,
+  "packet_chars": 80699,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 304.0,
+   "toolCalls": 40
+  },
+  "improve": {
+   "min": 8.34,
+   "passes": 2
+  },
+  "context": {
+   "calls": 39,
+   "peak": 203495
+  }
+ },
+ {
+  "n": 18,
+  "tag": "18-improve-step-plan",
+  "action": "nav-5bdc0d6c0ffd440db12af424462f3b4c",
+  "stage": "improve",
+  "reviews": "step-plan",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 1865,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 19,
+  "tag": "19-test-spec",
+  "action": "nav-028b79b175b94afea0f996f61009c356",
+  "stage": "test-spec",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 18,
+  "model_seconds": 145.5,
+  "minutes": 2.5,
+  "packet_chars": 81147,
+  "fresh_start": null,
+  "improve": {
+   "min": 0.93,
+   "passes": 1
+  },
+  "context": {
+   "calls": 16,
+   "peak": 142067
+  }
+ },
+ {
+  "n": 20,
+  "tag": "20-improve-test-spec",
+  "action": "nav-cc31cd31655e4fd6b7cf56fafadb4b55",
+  "stage": "improve",
+  "reviews": "test-spec",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 1865,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 21,
+  "tag": "21-validate-existing",
+  "action": "nav-f09b899d63c244c3a14b0afa8322b96f",
+  "stage": "validate-existing",
+  "reviews": null,
+  "outcome": "done",
+  "calls": null,
+  "model_seconds": null,
+  "minutes": 0.0,
+  "packet_chars": 0,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 22,
+  "tag": "22-implement",
+  "action": "nav-ecfd76ec79644f3aac3d8e34ecbf2af2",
+  "stage": "implement",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 67,
+  "model_seconds": 1029.5,
+  "minutes": 17.2,
+  "packet_chars": 99141,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 255.6,
+   "toolCalls": 31
+  },
+  "improve": {
+   "min": 5.95,
+   "passes": 1
+  },
+  "context": {
+   "calls": 39,
+   "peak": 204175
+  }
+ },
+ {
+  "n": 23,
+  "tag": "23-improve-implement",
+  "action": "nav-46ee0326178e40cb8f9f770452ed1150",
+  "stage": "improve",
+  "reviews": "implement",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2656,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 24,
+  "tag": "24-test",
+  "action": "nav-a5e7147fad99419ebf19525b94299a13",
+  "stage": "test",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 22,
+  "model_seconds": 559.4,
+  "minutes": 15.1,
+  "packet_chars": 95686,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 15,
+   "peak": 168582
+  }
+ },
+ {
+  "n": 25,
+  "tag": "25-document",
+  "action": "nav-595c0ce079ff45dc887252381391b0fd",
+  "stage": "document",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 33,
+  "model_seconds": 73.0,
+  "minutes": 1.5,
+  "packet_chars": 73642,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 9,
+   "peak": 190971
+  }
+ },
+ {
+  "n": 26,
+  "tag": "26-verify",
+  "action": "nav-ce15bf337a7f4882ba7303e3d65c7fc7",
+  "stage": "verify",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 73,
+  "model_seconds": 690.1,
+  "minutes": 13.6,
+  "packet_chars": 102152,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 545.5,
+   "toolCalls": 68
+  },
+  "improve": null,
+  "context": {
+   "calls": 45,
+   "peak": 202412
+  }
+ },
+ {
+  "n": 27,
+  "tag": "27-carry-forward",
+  "action": "nav-652d822e4520442e9abaf44abd2a199b",
+  "stage": "carry-forward",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 44,
+  "model_seconds": 194.0,
+  "minutes": 3.6,
+  "packet_chars": 65461,
+  "fresh_start": null,
+  "improve": {
+   "min": 1.56,
+   "passes": 1
+  },
+  "context": {
+   "calls": 22,
+   "peak": 177608
+  }
+ },
+ {
+  "n": 28,
+  "tag": "28-improve-carry-forward",
+  "action": "nav-3fff84fe813445ef9b73fef12a963900",
+  "stage": "improve",
+  "reviews": "carry-forward",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2541,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 29,
+  "tag": "29-system-test-author",
+  "action": "nav-c500a1241d2b407d97be09660e8dd189",
+  "stage": "system-test-author",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 50,
+  "model_seconds": 559.5,
+  "minutes": 9.4,
+  "packet_chars": 90520,
+  "fresh_start": {
+   "kind": "fresh",
+   "seconds": 233.0,
+   "toolCalls": 32
+  },
+  "improve": {
+   "min": 7.23,
+   "passes": 1
+  },
+  "context": {
+   "calls": 29,
+   "peak": 204042
+  }
+ },
+ {
+  "n": 30,
+  "tag": "30-improve-system-test-author",
+  "action": "nav-e680d3e2203d4c2382715be984413810",
+  "stage": "improve",
+  "reviews": "system-test-author",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2626,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 31,
+  "tag": "31-system-test",
+  "action": "nav-4084430da445482298532da37fbfe56a",
+  "stage": "system-test",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 11,
+  "model_seconds": 135.1,
+  "minutes": 5.3,
+  "packet_chars": 62301,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 10,
+   "peak": 130530
+  }
+ },
+ {
+  "n": 32,
+  "tag": "32-product-acceptance",
+  "action": "nav-6e6bb65de52c45a1930fde8e8bfe55ad",
+  "stage": "product-acceptance",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 14,
+  "model_seconds": 98.9,
+  "minutes": 2.0,
+  "packet_chars": 87146,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 9,
+   "peak": 153392
+  }
+ },
+ {
+  "n": 33,
+  "tag": "33-release-plan",
+  "action": "nav-b892fc273eef4c0d838677c4ca941068",
+  "stage": "release-plan",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 107,
+  "model_seconds": 747.7,
+  "minutes": 12.5,
+  "packet_chars": 54864,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 480.0,
+   "toolCalls": 70
+  },
+  "improve": {
+   "min": 4.32,
+   "passes": 2
+  },
+  "context": {
+   "calls": 57,
+   "peak": 204688
+  }
+ },
+ {
+  "n": 34,
+  "tag": "34-improve-release-plan",
+  "action": "nav-443b3bc898ff44448f4c7e6e6597562f",
+  "stage": "improve",
+  "reviews": "release-plan",
+  "outcome": "done",
+  "calls": 0,
+  "model_seconds": null,
+  "minutes": null,
+  "packet_chars": 2886,
+  "fresh_start": null,
+  "improve": null,
+  "context": null
+ },
+ {
+  "n": 35,
+  "tag": "35-release-check",
+  "action": "nav-f577e285597f436e89b3c533fcae3697",
+  "stage": "release-check",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 23,
+  "model_seconds": 172.8,
+  "minutes": 3.2,
+  "packet_chars": 49585,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 15,
+   "peak": 191076
+  }
+ },
+ {
+  "n": 36,
+  "tag": "36-release",
+  "action": "nav-2ee60e7d9c8f483fb4b59df146ba7881",
+  "stage": "release",
+  "reviews": null,
+  "outcome": "done",
+  "calls": 9,
+  "model_seconds": 56.5,
+  "minutes": 1.3,
+  "packet_chars": 51103,
+  "fresh_start": null,
+  "improve": null,
+  "context": {
+   "calls": 8,
+   "peak": 202704
+  }
+ },
+ {
+  "n": 37,
+  "tag": "37-release-verify",
+  "action": "nav-fc95df3a7fc4432d83e7bb4d4a125c6d",
+  "stage": "release-verify",
+  "reviews": null,
+  "outcome": "blocked",
+  "calls": 51,
+  "model_seconds": 369.0,
+  "minutes": 6.3,
+  "packet_chars": 66335,
+  "fresh_start": {
+   "kind": "compaction",
+   "seconds": 268.0,
+   "toolCalls": 51
+  },
+  "improve": null,
+  "context": {
+   "calls": 20,
+   "peak": 202966
+  }
+ },
+ {
+  "n": 38,
+  "tag": "38-release-verify",
+  "action": "nav-0afed279f34041859e8421c8f0f518bf",
+  "stage": "release-verify",
+  "reviews": null,
+  "outcome": "blocked",
+  "calls": 59,
+  "model_seconds": 3401.7,
+  "minutes": 56.5,
+  "packet_chars": 69051,
+  "fresh_start": {
+   "kind": "fresh",
+   "seconds": 453.0,
+   "toolCalls": 52
+  },
+  "improve": null,
+  "context": {
+   "calls": 32,
+   "peak": 124918
+  }
+ }
+]

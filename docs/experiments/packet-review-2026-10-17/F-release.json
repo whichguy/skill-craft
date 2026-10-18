@@ -1,0 +1,365 @@
+{
+ "group": "F-release",
+ "steps": [
+  {
+   "tag": "34-improve-release-plan",
+   "concise": 3,
+   "accurate": 4,
+   "effective": 4,
+   "one_line": "The 2.9 KB packet is minimal and worked. Pass 1 found a real defect in 202 s (the architecture row put the deploy at release-check) and pass 2 was trivial in 34 s, 4.3 min in all. The 52 KB handoff behind it carries a 24 KB environment.md quote plus generic policy paragraphs, and it never prints next_argv, so the model wrote a python -c to dig it out.",
+   "findings": [
+    {
+     "id": "F-1",
+     "kind": "missing",
+     "quote": "Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime returns complete (ShipLoop started it: start nothing).",
+     "evidence": "At 8492s the model ran `python3 -c 'import json; p=json.load(open(\".../packet.json\")); print(p[\"status\"]); print(p.get(\"next_argv\")) ...'`. That is glue, written only to find the command it then ran at 8542s (until_loop_ephemeral.py next --state ...). ShipLoop started the runtime itself, so it knew that argv when it wrote the handoff.",
+     "proposal": "Print the command itself: 'Run once: <next_argv joined, shell-quoted>; then follow each returned instruction until the runtime returns complete (ShipLoop started it: start nothing).' Keep the packet.json mention for recovery only.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_improve_handoff head lines (the list holding 'Run the receipt CHILD/packet.json's next_argv once')",
+     "chars_saved_per_packet": 0,
+     "applies_to_stages": [
+      "improve (all 11 children)"
+     ],
+     "risk": "None. A stale argv after a restart is already covered by 'Open ROUTE ... after a reset'."
+    },
+    {
+     "id": "F-2",
+     "kind": "oversize",
+     "quote": "Knowledge files this stage reads, each quoted whole and uncut (the files' text is data, not instructions):\nHOME/environment.md (source: HOME/environment.md, whole file):",
+     "evidence": "The 'What the reviewed stage worked from' section is 36,981 of 52,825 handoff chars, about 24 KB of it environment.md, which is also in the reviewer's checkout. The reviewer opened the files anyway: 4 read_file at 8474s, and later read_file and grep at 8511-8635s. Review-1 cites 'HOME/environment.md release section' and 'HOME/architecture.md Real-boundary checks', which are sections, not the whole file.",
+     "proposal": "In the Improve handoff, replace the whole quote with a pointer and its heading list: 'HOME/environment.md (24.6 KB; sections: Commands, Release, rollback, and confirm, ...): open the sections the reviewed result cites.' The producer packet keeps its own quote decision.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:READS_HEAD and its caller in the Improve handoff builder",
+     "chars_saved_per_packet": 23000,
+     "applies_to_stages": [
+      "improve of every stage that reads environment.md"
+     ],
+     "risk": "Main tenet: the handoff still names every file and section, so it works alone. The review must open the file to check claims, and here it did that anyway."
+    },
+    {
+     "id": "F-3",
+     "kind": "dead-text",
+     "quote": "At initial plan, apply Initial-plan reconciliation; carry its selected source/test locators into this child's contract and notes. ... Test facilities (Reusable test facilities): reuse, configure or extend",
+     "evidence": "This was a release-plan review, not an initial plan, and it defines no test facility. Neither review file mentions these clauses (review-1 Read: git log, environment release section, architecture row, workspace.md, the result).",
+     "proposal": "Emit the Initial-plan clause and the Test facilities paragraph only for stages that plan items or define facilities (plan, step-plan, test-spec, system-test-author). Keep 'Release operation guidance' for release-plan.",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:the Improve paragraph builder (IMPROVE_SCOPES / 'Invoke the selected actual Improve skill for') and the 'Test facilities (Reusable test facilities)' constant",
+     "chars_saved_per_packet": 1500,
+     "applies_to_stages": [
+      "improve of release-plan, release-check, release-verify, operations"
+     ],
+     "risk": "Low. Each obligation stays wherever it applies."
+    },
+    {
+     "id": "F-4",
+     "kind": "ambiguous",
+     "quote": "Invoke the selected actual Improve skill for target/authority/recovery/check plan without executing release.",
+     "evidence": "This is slash-joined jargon. The useful half is 'without executing release', which the Release operation paragraph below already says at length ('does not execute or replay a release effect').",
+     "proposal": "'Review the release plan's target, authority, rollback and checks; perform no release effect.' Delete the duplicated sentence in the long paragraph.",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:IMPROVE_SCOPES['release-plan']",
+     "chars_saved_per_packet": 300,
+     "applies_to_stages": [
+      "improve of release-plan"
+     ],
+     "risk": "None."
+    }
+   ]
+  },
+  {
+   "tag": "35-release-check",
+   "concise": 2,
+   "accurate": 3,
+   "effective": 5,
+   "one_line": "Good work: 23 calls in 3.2 min. It ran the dry run into the named notes file, ran plan-return and review-return, and found that the return was now a working-tree return (not the fast-forward planned), then corrected environment.md. The packet is 49.6 KB, though: the 24 KB environment.md quote sits exactly in Grok's cut middle, and the 'not-there-yet' condition does not fit a target that earlier stages already deployed to.",
+   "findings": [
+    {
+     "id": "F-5",
+     "kind": "oversize",
+     "quote": "HOME/environment.md (source: HOME/environment.md, whole file):",
+     "evidence": "The quote runs from char 9,054 to 33,445 of 49,585. Grok shows only chars 0-10,000 and 39,585-49,585, so about 23.3 KB of the quote never reached the model through the print. The model edited environment.md with search_replace at 8784, 8841 and 8879s, which needs the file's real text, so it read the file anyway (read_file at 8744, 8763, 8784 and 8810s).",
+     "proposal": "For a stage that edits a knowledge file, give a pointer and its headings instead of the quote: 'HOME/environment.md: this stage updates it; sections: ...'. The same file is quoted unchanged in release-check and in release (24.2 KB then 24.7 KB).",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:READS_HEAD block (stage_spec reads for release-check)",
+     "chars_saved_per_packet": 24000,
+     "applies_to_stages": [
+      "release-check",
+      "release",
+      "release-plan"
+     ],
+     "risk": "Main tenet: a pointer is a readable reference, and the stage must open the file to edit it in any case. No obligation is lost."
+    },
+    {
+     "id": "F-6",
+     "kind": "inaccurate",
+     "quote": "each post-release confirm command ran once and recorded its not-there-yet output",
+     "evidence": "The system-test stage had already deployed SLChess to alias de three times (review-1: 'alias de already holds the SLChess metadata'), so no 'not there yet' state exists. The model had to invent 'the historical absent side is the pre-run Chess inventory'. consumer_checks was also empty, so the condition held vacuously: 'consumer_checks is empty, so no confirm command ran'.",
+     "proposal": "Done-when: 'each post-release confirm command ran once and recorded its pre-release output (absent, or the earlier version when earlier stages deployed); none recorded: say why no command can confirm the release'. Guidance 4 should match.",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('release-check').done_when; skills/shiploop/scripts/shiploop_prompts.py:release-check guidance item 4",
+     "chars_saved_per_packet": 0,
+     "applies_to_stages": [
+      "release-check"
+     ],
+     "risk": "None. It adds an obligation for the empty case, which this run hit."
+    },
+    {
+     "id": "F-7",
+     "kind": "missing",
+     "quote": "the target and prerequisites, required approvals, rollback readiness, the execution owner's readiness",
+     "evidence": "The consumer entry (the SLChess_Board tab) was hidden for the System Administrator because nothing granted tab visibility. The owner found this at 9378-12325s with a read-only PermissionSetTabSetting query. Planning had already predicted it ('If the tab is invisible without a profile edit, record that'). Release-check could have run that read-only query 60 min earlier and turned it into a yes/no `answer` question.",
+     "proposal": "Add to guidance 2: 'and that the consumer entry is reachable for the consumer (visibility, access), by a read-only check; an access gap the request forbids fixing is a question for the person now, not at release-verify.'",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:release-check guidance item 2",
+     "chars_saved_per_packet": -180,
+     "applies_to_stages": [
+      "release-check"
+     ],
+     "risk": "Low. The check is read-only, so no authority changes."
+    },
+    {
+     "id": "F-8",
+     "kind": "ambiguous",
+     "quote": "open items: none open",
+     "evidence": "release-check and release both print 'none open', while release-verify (packet 37) lists 6 open items (A1 x3, SYS-BOARD x3) whose consumer is release-verify. The line is filtered by consumer stage, but it reads as if the run has nothing open.",
+     "proposal": "'open items: none for this stage (2 open for release-verify: A1, SYS-BOARD)'.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:the assumptions renderer (label = 'open items' ... 'none open')",
+     "chars_saved_per_packet": -40,
+     "applies_to_stages": [
+      "all outer stages"
+     ],
+     "risk": "None."
+    },
+    {
+     "id": "F-9",
+     "kind": "effective-line",
+     "quote": "Run the dry-run form of the planned deploy ... once; save the output in RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.",
+     "evidence": "At 8753s the model ran `sf project deploy start --target-org de --dry-run > <run>/notes/nav-f577...-release-check.md`, exactly as named, and cited it first in evidence_refs. Step 5 was followed too: plan-return (8789s), review-return (8823s), then plan-return again (8843s) after correcting environment.md.",
+     "proposal": "Keep it. It is the model for the other stage guidance: one command, one named output file, one citation.",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:release-check guidance item 3",
+     "chars_saved_per_packet": 0,
+     "applies_to_stages": [
+      "release-check"
+     ],
+     "risk": "n/a"
+    }
+   ]
+  },
+  {
+   "tag": "36-release",
+   "concise": 2,
+   "accurate": 4,
+   "effective": 5,
+   "one_line": "The best stage in the group: 9 calls in 1.3 min. It ran one deploy into the named receipt file, then plan-return and return, filled delivery observations O-effect and O-identity from the pre-filled template, and had no refusals. Half of its 51 KB packet is an environment.md quote it never needed.",
+   "findings": [
+    {
+     "id": "F-10",
+     "kind": "oversize",
+     "quote": "HOME/environment.md (source: HOME/environment.md, whole file):",
+     "evidence": "24,745 quoted chars sit at offsets 9,755-34,670, inside Grok's cut (10,000-41,103). It is unchanged from release-check. The model made no environment.md edit and one read_file (8931s), and the stage used only the deploy command and the return commands from the tail.",
+     "proposal": "Same as F-5. Release does not update HOME, so a pointer line is enough: 'HOME/environment.md ## Release, rollback, and confirm holds the planned commands.'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:READS_HEAD block (stage_spec reads for release)",
+     "chars_saved_per_packet": 24500,
+     "applies_to_stages": [
+      "release"
+     ],
+     "risk": "Main tenet: the release-plan result (listed under 'Results this stage builds on') and the delivery contract in the tail carry the exact command, so the packet still works alone."
+    },
+    {
+     "id": "F-11",
+     "kind": "effective-line",
+     "quote": "\"delivery_assessment\": {\"contract_anchor\": \"nav-b892fc...\", \"kind\": \"observation\", \"observations\": [{\"candidate\": \"Branch shiploop/run-d026152a685ba294. ...\"",
+     "evidence": "The script pre-fills the anchor, candidate and target in the template. Release submitted O-effect and O-identity with the exact strings and was accepted on the first complete. Earlier in the run, hand-written authority fields drew 'delivery authority operation does not match contract' and 'delivery authority target does not match contract' (refusals.txt).",
+     "proposal": "Keep it. Pre-fill every exact-match field the gate compares.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:result template rendering for delivery_assessment",
+     "chars_saved_per_packet": 0,
+     "applies_to_stages": [
+      "release",
+      "release-verify"
+     ],
+     "risk": "n/a"
+    }
+   ]
+  },
+  {
+   "tag": "37-release-verify",
+   "concise": 1,
+   "accurate": 3,
+   "effective": 3,
+   "one_line": "Blocking was the right outcome, with a good 'no_default'. But the 66 KB packet spends 35 KB on a 'diff' that is just the two new files, repeats the board click sequence 8 times across 6 near-duplicate open items, and its ask had 7 prose steps plus a report that restates them. That form drew a non-itemized reply. A compaction cost 268 s of the 369 s stage.",
+   "findings": [
+    {
+     "id": "F-12",
+     "kind": "oversize",
+     "quote": "Spec and architecture changes since the run began (baseline 7271a130c4b2), nothing cut that is not printed in this packet:\n  | diff --git a/docs/shiploop/architecture.md ... new file mode 100644",
+     "evidence": "The baseline was empty, so both chunks are 'new file' diffs (@@ -0,0 +1,150 @@ and @@ -0,0 +1,175 @@): 35,150 chars of '+' lines that are the whole files. They sit at offsets 11.5K-54.3K, entirely inside Grok's cut (10,000-56,335), so none of it reached the model. _spec_diff_lines already prints a pointer for a new file, but only when the same packet also quotes that file whole, which release-verify does not.",
+     "proposal": "Print a pointer for every new-file chunk, quoted or not: 'HOME/architecture.md and HOME/spec.md are new in this run (150 and 175 lines; sections: ...): open the R-n clauses and the Real-boundary checks this stage verifies.' Keep the real diff for files that existed at the baseline.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_spec_diff_lines / _is_pointer_chunk (spec_diff source rendering)",
+     "chars_saved_per_packet": 34500,
+     "applies_to_stages": [
+      "release-verify",
+      "any stage with a spec_diff source on a first run"
+     ],
+     "risk": "Main tenet: the pointer plus its section list keeps the packet self-sufficient. Grok already lost this block to the cut, and Claude and Codex readers lose nothing they would not open anyway."
+    },
+    {
+     "id": "F-13",
+     "kind": "redundant",
+     "quote": "- A1: R-10 board play has no focused ID. After deploy, App Launcher SLChess opens the SLChess_Board tab. ... (and two more A1 rows, three SYS-BOARD rows)",
+     "evidence": "The open items block is 5,132 chars: 3 A1 rows (952/942/912 chars) restated by successive stages, and 3 SYS-BOARD rows (866/859/595). The same click sequence also appears in 'Request outcomes product-acceptance listed' (1,063) and in O-behavior (606): 'fool' occurs 8 times in the packet.",
+     "proposal": "Keep the latest row per open-item ID and drop superseded restatements, or show them as 'A1 (restated by implement, verify; latest below)'. The stage then reads one A1, one SYS-BOARD and the O-behavior obligation.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:assumptions source rendering (label 'open items') and _followed_lines",
+     "chars_saved_per_packet": 3400,
+     "applies_to_stages": [
+      "release-verify",
+      "handoff",
+      "any stage receiving carried open items"
+     ],
+     "risk": "Low, if rows with the same ID but different checks are both kept. Here the rows differ only in wording ('no focused ID' and 'still unrun')."
+    },
+    {
+     "id": "F-14",
+     "kind": "inaccurate",
+     "quote": "Checked by: at done ShipLoop reruns every recorded test command and refuses done unless each passes",
+     "evidence": "For release-verify, test_loop.stage_commands uses OUTER_SOURCES['release-verify'] = ('release-plan', 'consumer_checks'), which was empty in this run. 'Every recorded test command' reads like system_commands, and each of those starts with `sf project deploy start --target-org de`. The model worked out that nothing runs ('consumer_checks is empty, so no confirm command ran') only by reading other records.",
+     "proposal": "For outer stages, make _check_text name the source and count: 'at done ShipLoop reruns release-plan's consumer_checks (0 recorded: no command runs) and refuses done unless each passes'.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_CHECK_TEXT['test-rerun'] / _check_text",
+     "chars_saved_per_packet": 0,
+     "applies_to_stages": [
+      "release-verify",
+      "system-test"
+     ],
+     "risk": "None. It is more exact, and it shows when the gate checks nothing."
+    },
+    {
+     "id": "F-15",
+     "kind": "ambiguous",
+     "quote": "6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Record an open item in `assumptions` with the steps for that person ... and what they report back",
+     "evidence": "The model's awaiting had 7 imperative steps with expected values embedded ('Confirm Black to move and FEN rnbqkbnr/...'), a `report` that restated all of them, and the tab-hidden contingency at step 7, although a hidden tab blocks steps 2-6. The owner answered with a summary: 'It loads and I can play it.' The owner also said 'The owner did not itemize each click sequence'.",
+     "proposal": "See X-1. Ask for a fill-in list: step 1 is the entry and what to answer if the page is missing (stop there), and `report` has one yes/no line per case.",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:release-verify guidance item 6",
+     "chars_saved_per_packet": -150,
+     "applies_to_stages": [
+      "release-verify"
+     ],
+     "risk": "See X-1."
+    },
+    {
+     "id": "F-16",
+     "kind": "inaccurate",
+     "quote": "Any other outcome keeps headline and evidence_refs and drops the other fields:\n...\nblocked: {\"outcome\": \"blocked\", \"blocked_by\": ..., \"summary\": ...}",
+     "evidence": "The blocked result 37 kept delivery_assessment (O-behavior blocked), and ShipLoop imported it: packet 38 shows 'O-behavior ... blocked at release-verify; record results/nav-fc95...'. Result 38 followed the template literally and dropped delivery_assessment, while its summary says 'O-behavior stays unrun', so the record and the summary disagree.",
+     "proposal": "'Any other outcome keeps headline, evidence_refs and delivery_assessment (when the template has one) and drops the other fields'.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:result template 'Fill the template' / allowed-outcomes lines",
+     "chars_saved_per_packet": -30,
+     "applies_to_stages": [
+      "release",
+      "release-verify"
+     ],
+     "risk": "None."
+    },
+    {
+     "id": "F-17",
+     "kind": "redundant",
+     "quote": "Do not record a front-door URL and do not run sf org display.",
+     "evidence": "The model copied the run's own exclusions into a person's steps ('do not run sf org display', 'Do not add a permission set'). The person is the owner, who did add SLChess_Access outside the run and reported it. An exclusion binds the run, not the person who has the authority.",
+     "proposal": "Add half a line to guidance 6: 'the run's exclusions bind the run, not the person: ask them to say what they changed instead.'",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:release-verify guidance item 6",
+     "chars_saved_per_packet": -90,
+     "applies_to_stages": [
+      "release-verify"
+     ],
+     "risk": "Low. Credential rules stay on the run."
+    }
+   ]
+  },
+  {
+   "tag": "38-release-verify",
+   "concise": 1,
+   "accurate": 3,
+   "effective": 2,
+   "one_line": "After a 49 min wait for the owner, a fresh context spent 453 s re-grounding, re-ran identity queries that guidance says not to recheck, probed for Chrome, and then blocked again. It asked for itemized clicks although the reply said to record them as not individually confirmed. The run ended blocked at release-verify, and operations and handoff never ran.",
+   "findings": [
+    {
+     "id": "F-18",
+     "kind": "ambiguous",
+     "quote": "Act on this reply; it is the user's decision, recorded verbatim.",
+     "evidence": "The reply ended: 'record those as not individually confirmed.' The model re-blocked ('O-behavior needs those sequences'), following guidance 4 ('claim no requirement met while a required observation is unrun') over the reply and over guidance 6 ('do not loop on it'). The run ended blocked, and the facts list the verdicts as 'shiploop fail, committed fail'. A required observation still unrun is allowed at done (consumer_delivery keeps it open, and the handoff guidance says it 'stays open, named in summary').",
+     "proposal": "Append to the reply block: 'Cases the reply leaves unconfirmed: record them not-run with the reply quoted, keep their obligation open for handoff, and continue; block again only if the reply answers none of the asked cases.' The same rule goes in guidance 6 (X-1).",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:the user-reply renderer ('The user's reply to the question this stage waited on')",
+     "chars_saved_per_packet": -200,
+     "applies_to_stages": [
+      "any stage resumed from a blocked awaiting"
+     ],
+     "risk": "A release can reach handoff with a required behavior unconfirmed. It is still named open and never claimed passed, which matches owner rule 'report blocked only when nothing can proceed without a person'."
+    },
+    {
+     "id": "F-19",
+     "kind": "redundant",
+     "quote": "the person's report resumes the run and only the blocked cases are rechecked against the same release.",
+     "evidence": "The model re-ran the Tooling API identity queries (12666s and 12684s: rv2-apex/lwc/app/tab and a PermissionSet query) that step 37 had already recorded (rv-*.json), and git diff --stat. Re-grounding before the first query took 12347-12655s (about 30 read_file and grep calls). It also ran `which sf; ls \"/Applications/Google Chrome.app/...\"` at 12600s to check for a browser the packet never mentions.",
+     "proposal": "In the resumed packet's head, under the reply, add: 'Already observed at nav-fc95... (reuse unless the candidate changed): identity rv-*.json, receipt 0Afaj00000o9HknCAE. Browser: none declared for this run.' The script knows both facts.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:the user-reply renderer; the release-verify guidance item 3 browser clause",
+     "chars_saved_per_packet": -250,
+     "applies_to_stages": [
+      "release-verify resumed"
+     ],
+     "risk": "Low. Reuse is allowed by guidance 9 'with identity and relevance stated'."
+    },
+    {
+     "id": "F-20",
+     "kind": "redundant",
+     "quote": "(the whole 69 KB packet; 94% of non-quoted lines equal packet 37)",
+     "evidence": "The only differences from packet 37 are the revision and action IDs, the Done line, the O-behavior status, the last summary, the evidence refs and the 2.1 KB reply block. The 35 KB spec diff and 5 KB of open items are repeated unchanged.",
+     "proposal": "With F-12 and F-13 applied, the resumed packet drops to about 31 KB. Put the reply block straight after 'Current stage guidance' in the head: today it is at offset ~67K, visible only because it falls in the last 10K.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:block order (the user-reply lines are appended after the delivery declarations)",
+     "chars_saved_per_packet": 38000,
+     "applies_to_stages": [
+      "release-verify resumed",
+      "any resumed stage"
+     ],
+     "risk": "Moving the reply into the head makes it survive any print cut, which is safer for the tenet."
+    }
+   ]
+  }
+ ],
+ "cross_cutting": [
+  {
+   "id": "X-1",
+   "pattern": "A person-only observation is asked as prose and resolved by re-blocking. This is the owner's question about release-verify.",
+   "evidence": "Judgment on 37 and 38. The packet was clear that a person must observe the board, and it stopped the model looping on the browser. It was not clear on two points. (a) What makes an ask answerable: guidance 6 says only 'the steps for that person ... and what they report back'. (b) What to do with a partial reply. Ask 1 had 7 steps with FEN strings to read off and the tab-hidden contingency at step 7, which drew 'It loads and I can play it'. Ask 2 was still free-form ('Report the turn and whether...'), and the run ended on it. A hidden tab was predicted in planning but checked only at release-verify, by the owner.",
+   "proposal": "Rewrite guidance 6: '6. A case only a person can observe (signed-in browser, physical action): do not loop on it; verify every other case first. Ask once (`awaiting` kind `present`): step 1 reaches the entry and says what to answer if it is missing (stop there); `report` is a fill-in list, one line per case, answerable yes/no/not done, e.g. \"3. after e2 then e4, Black to move: yes/no\". The run's exclusions bind the run, not the person: ask what they changed. Block only when the release cannot be accepted without it. On the reply, record each case as answered (unanswered: not-run, quoted), recheck only those, and continue.' Also add F-7 at release-check, so access gaps become a yes/no `answer` question before release.",
+   "source": "skills/shiploop/scripts/shiploop_prompts.py:release-verify guidance item 6 (and release-check item 2)",
+   "est_chars_saved_run": 0,
+   "risk": "Adds about 250 chars. It could let handoff proceed with O-behavior not-run. That is allowed: it stays a named open obligation and is never claimed passed. It satisfies the 'unattended: block only when nothing can proceed' rule."
+  },
+  {
+   "id": "X-2",
+   "pattern": "Knowledge quoted whole lands in Grok's cut middle.",
+   "evidence": "In 35, 36, 37 and 38 the quoted knowledge (24.2K, 24.7K, 35.2K, 35.2K) starts after the guidance, rules and template, about 9-11.5K in, and ends before the tail, so it fills the 10,000..len-10,000 band that Grok never prints. In this group that is about 119 KB of print that reached no model. The models reopened the files with read_file regardless.",
+   "proposal": "Replace whole quotes with pointer plus heading lines for files the stage edits or that are new on a first run (F-5, F-10, F-12), and for Improve handoffs (F-2). Packets in this group fall from 50-69 KB to about 25-31 KB.",
+   "source": "skills/shiploop/scripts/shiploop_navigator.py:READS_HEAD block and spec_diff rendering",
+   "est_chars_saved_run": 142000,
+   "risk": "Main tenet: pointers are readable references (rule 2), and stage rules stay in each packet. The risk is a model that never opens the file, but it opened the files every time here."
+  },
+  {
+   "id": "X-3",
+   "pattern": "The navigator header and prefixes are load-bearing, and the result heading is not.",
+   "evidence": "'ShipLoop navigator | <stage> | revision N' is read by shiploop_status_hook.py (HEADER gate before extracting the status block), skills/shiploop-run-review/scripts/export.py and SCHEMA.md (where the packet document starts), test/shiploop_e2e/{clear,counters,flow,metrics,packet_anatomy}.py regexes, and asserts in about 10 test/*.test.py. 'ShipLoop navigator: ' (shiploop_protocol.py main stderr) is asserted in shiploop-actual-improve-cli and callback-contract tests and in the metrics fixtures. '# ShipLoop navigator result' in the template is never parsed: shiploop_store.loads reads only the shiploop-state fence.",
+   "proposal": "Drop the template heading or shorten it to '# Result': this is safe now. Shorten the header to 'ShipLoop | <stage> | rev N' only together with one shared constant that the hook, run-review and E2E regexes import. It saves about 10 chars per packet, so it is not worth doing alone. Keep the refusal prefix: it tells the model which tool refused.",
+   "source": "skills/shiploop/scripts/shiploop_navigator.py:header block (_Block('header')); shiploop_status_hook.py:HEADER; test/shiploop_e2e/counters.py:HEAD_START",
+   "est_chars_saved_run": 700,
+   "risk": "Changing the header without changing its readers would break status display and E2E counters silently."
+  },
+  {
+   "id": "X-4",
+   "pattern": "Status and narrative blocks with 'Show the user this narrative exactly as written' in every packet, including the Improve packet.",
+   "evidence": "About 1.6-1.9 KB per packet (lines 13-45). In the Improve packet (34) it is half of the 2.9 KB, so the 'minimal' Improve packet is half display text.",
+   "proposal": "In the Improve packet, keep the Where/Next status rows and drop the narrative: the narrative repeats at the next producer packet.",
+   "source": "skills/shiploop/scripts/shiploop_navigator.py:Improve packet builder (the list starting 'ShipLoop navigator | improve | revision')",
+   "est_chars_saved_run": 12000,
+   "risk": "Low. The user sees progress one packet later."
+  }
+ ],
+ "best_lines": [
+  "release-check guidance 3 ('Run the dry-run form ... once; save the output in RUN/notes/<action>-release-check.md'): followed exactly at 8753s, with the file cited first in evidence_refs.",
+  "release guidance 3 ('Run the planned release operation once; save the provider's receipt in RUN/notes/<action>-release.md'): one deploy at 8922s into exactly that file. The stage took 9 calls and 1.3 min.",
+  "release-check guidance 5 ('Compare review-return's expected return with the procedure in HOME/environment.md; if they differ, correct the procedure and rerun plan-return'): the model found the fast-forward had become a working-tree return (its .sf files had been committed), corrected environment.md and reran plan-return at 8843s.",
+  "The script pre-fills contract_anchor, candidate and target in the delivery_assessment template: release and release-verify had no 'does not match contract' refusals, while earlier stages that typed those fields by hand had two.",
+  "Release-verify guidance 4 ('source, HTTP or DOM structure alone cannot close a rendered interaction'): the model did not count Tooling API names or Apex passes as board evidence ('Apex passes and Tooling API names do not render the page').",
+  "The Improve handoff 'What this review looks for' list: review-1's finding (the deploy assigned to the wrong stage) is the 'wrong order or unowned verification' item, found in one 202 s pass."
+ ]
+}

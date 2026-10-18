@@ -1,0 +1,367 @@
+{
+ "group": "C-build-2",
+ "steps": [
+  {
+   "tag": "17-step-plan",
+   "concise": 2,
+   "accurate": 3,
+   "effective": 4,
+   "one_line": "Revisit file is 80.7 KB and diff-identical to step 11 except ids, one 'Also:' line and a FILE_ONLY revise block; the amend instruction never reaches the ~20 KB printed head. The work itself took 71 s / 8 calls (3180-3251 s) and passed on the first callback, but it copied the revise's weak conditional-grep fix, which Improve pass 1 reversed in 337 s.",
+   "findings": [
+    {
+     "id": "C2-1",
+     "kind": "misordered",
+     "quote": "W1 has gone back to step-plan 1 of 2 times; this packet asks for an amended plan, not a new one. The result that sent it back (... the evidence to act on): RUN/results/nav-fbfb…",
+     "evidence": "These lines sit at offset 79,713 of 80,699 (packet line ~710), in the `deltas` block, which has tier FILE_ONLY in _producer_blocks. packet_head prints only P0/P1 plus whatever fits HEAD_LIMIT=20,000, and FILE_ONLY never prints. The head shows only the truncated status line 'Done: W1 implement (sent back to step-plan): The implement packet runs every suite:check command after every step.', which drops the real failure ('grep exits 2 because slChessBoard.html does not exist'), plus an 'Also:' line naming 'the previous step plan' with no path. _revise_delta_lines' own docstring says 'a model holding only this packet could not find the plan it is asked to amend'. The model got by only because the context was still warm: it opened results/nav-a3afbe… at 3218 s, 38 s after the callback.",
+     "proposal": "Move _revise_delta_lines out of the FILE_ONLY `deltas` block into _stage_input_blocks as a P1 block named 'revise', placed before 'step'. Also print the sent-back result's summary there, capped at 600 chars, so the failure itself is in the head.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_producer_blocks / _stage_input_blocks / _revise_delta_lines",
+     "chars_saved_per_packet": -1100,
+     "applies_to_stages": [
+      "step-plan (revisit)"
+     ],
+     "risk": "None to obligations. This fixes a main-tenet violation: after a clear, the head alone must carry the revisit's input. To stay under HEAD_LIMIT, pay for it with C2-3 and C2-4."
+    },
+    {
+     "id": "C2-2",
+     "kind": "missing",
+     "quote": "The result that sent it back (accepted host report, untrusted; the evidence to act on)",
+     "evidence": "Implement's revise summary asked for a check that 'runs the C12 grep only when slChessBoard.html exists'. Step 17 adopted that literally (opening of step 18: 'Changed: the suite check... runs the C12 board grep only when slChessBoard.html exists'). Improve review-1 found 'the conditional check exits 0 when slChessBoard.html is absent... also lets a finished tree with no board pass... That is a weaker stand-in', folded S1-S3 into one step, and spent 337 s doing it.",
+     "proposal": "Rewrite as: 'The result that sent it back (untrusted): <path>. Act on the failure it shows; its proposed fix is a suggestion, so adopt it only if every criterion's check still fails on a tree that lacks the criterion's work.'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_revise_delta_lines",
+     "chars_saved_per_packet": -110,
+     "applies_to_stages": [
+      "step-plan (revisit)"
+     ],
+     "risk": "Low. Improve still reviews the result. The line only saves a non-trivial Improve pass."
+    },
+    {
+     "id": "C2-3",
+     "kind": "inaccurate",
+     "quote": "open it with a file tool, not the shell, when this print was cut (... === end ShipLoop head ===) or you need the duties or the template; it also holds the original request, the knowledge files quoted whole and the hand-offs.",
+     "evidence": "Since 2026-10-16 the duties and the result template are P0 blocks, so they always print (packet_head docstring). What the head actually leaves out is the knowledge files, the hand-offs, the deltas, the last accepted summary and the original request. Every revisit print ends with HEAD_END, so 'when this print was cut' never fires, yet its main input is still file-only.",
+     "proposal": "Rewrite as: 'Full packet: <path> (open with a file tool). The print is the head; the file adds the knowledge files, hand-offs, the last accepted summary and the original request.' That is ~230 chars instead of 504.",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:packet_pointer",
+     "chars_saved_per_packet": 270,
+     "applies_to_stages": [
+      "every producer stage"
+     ],
+     "risk": "test/shiploop-packet-recut.test.py and test/shiploop-e2e-packet-anatomy.test.py assert this sentence, and the U8 note says the E2E harness reads HEAD_END quoted in line B. Update the regexes and keep HEAD_END as the final line."
+    },
+    {
+     "id": "C2-4",
+     "kind": "redundant",
+     "quote": "Checked by: at done ShipLoop checks the Until Loop receipt ... a criterion no command names, a command naming an unlisted one, deps that are not earlier steps, ... (1,300 chars)",
+     "evidence": "For step-plan, 9 of the ~14 refusal clauses restate Until Loop exit conditions 3-7 printed 15 lines below. Step 17 hit no refusal (one check-only at 3236 s, accepted at 3251 s).",
+     "proposal": "Keep only the gate-only clauses: 'Checked by: the receipt; follows IDs exist in HOME; no template placeholder; the step/criteria/command/path fit in exit conditions 3-7; a step skill locator exists; no R-<n>/AD-<n> lost from HOME. Refusals do not advance: fix and rerun; --check-only previews.' That is ~420 chars.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_checked_line (stage_spec checked-by row for step-plan)",
+     "chars_saved_per_packet": 880,
+     "applies_to_stages": [
+      "step-plan"
+     ],
+     "risk": "Every gate clause stays named and the loop conditions carry the detail, so there is no obligation loss. The main tenet still holds because both texts are in the same packet."
+    },
+    {
+     "id": "C2-5",
+     "kind": "inaccurate",
+     "quote": "Item plan: Ready when the accepted spec (docs/shiploop/spec.md R-1 through R-16), architecture AD-1 through AD-9, and environment.md commands are the …",
+     "evidence": "On the revisit the plan was sent back, so 'Item plan:' falls back to the work-item context. In step 19 the same row shows the plan headline. The label misnames the text.",
+     "proposal": "Print 'Item plan: sent back (see revise block)' when _sent_back_results is set, else the plan headline. If neither exists, label the row 'Item:'.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:status_block",
+     "chars_saved_per_packet": 100,
+     "applies_to_stages": [
+      "step-plan (revisit)"
+     ],
+     "risk": "None. The status hook reads only the block bounds."
+    }
+   ]
+  },
+  {
+   "tag": "18-improve-step-plan",
+   "concise": 5,
+   "accurate": 4,
+   "effective": 4,
+   "one_line": "The 1,880-char Improve packet is ideal and identical to step 12 apart from ids. The 76 KB handoff re-quotes all three knowledge files but names neither the previous plan nor the revise result, even though its focus says to compare 'with the prior accepted version'. Two passes (337 s non-trivial, then 109 s trivial) caught the weak check.",
+   "findings": [
+    {
+     "id": "C2-6",
+     "kind": "missing",
+     "quote": "- a required requirement, test ID or case dropped or weakened compared with the prior accepted version;",
+     "evidence": "grep finds 0 occurrences of nav-a3afbe1d (previous plan) or nav-fbfbbd6d (revise result) in 18's handoff. Review-1 still read 'the previous strict grep in results/nav-a3afbe1dec…' from warm context. The facts file records 'compaction at step-plan: re-grounded in 40 calls, 304 s, with the Improve runtime's next'. A cleared reviewer has no locator for the comparison its own focus requires.",
+     "proposal": "Add *_revise_delta_lines(root, state, stage, workitem) to `context` in improve_handoff_text (under '## What the reviewed stage worked from'). Generalized per X2, it also names the previous accepted result for test-spec.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:improve_handoff_text",
+     "chars_saved_per_packet": -700,
+     "applies_to_stages": [
+      "improve of step-plan/test-spec revisits"
+     ],
+     "risk": "None. It adds locators only."
+    },
+    {
+     "id": "C2-7",
+     "kind": "dead-text",
+     "quote": "Review the actual steps after their creation, including any linked execution graph. Carry the plan/graph locators ... joins, resource exclusions ...",
+     "evidence": "The run is inline, and step-plan duty 11 says 'Execution graph. Record none: an inline run issues the steps one at a time.' No review mentions a graph.",
+     "proposal": "In the plan_guard branch, print this paragraph only when route != INLINE. For inline, replace it with one line: 'Recheck deps, criteria coverage and verification ownership after any repair.'",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:improve_prompt (plan_guard)",
+     "chars_saved_per_packet": 480,
+     "applies_to_stages": [
+      "improve of plan/step-plan"
+     ],
+     "risk": "Low. The inline replacement keeps the obligation to recheck dependencies."
+    }
+   ]
+  },
+  {
+   "tag": "19-test-spec",
+   "concise": 2,
+   "accurate": 3,
+   "effective": 4,
+   "one_line": "The 81.2 KB revisit is diff-identical to step 13 apart from ids, two re-quoted spec rows and the Improve lesson line, and it says nothing about being a revisit. The model searched for its own previous test spec (3794 s glob results/*86142*, 3807 s), copied it, and submitted test_cases byte-identical to step 13 in 18 calls / 2.5 min.",
+   "findings": [
+    {
+     "id": "C2-8",
+     "kind": "missing",
+     "quote": "(no revisit line; _sent_back_results returns None because stage != stage_spec.REVISE_TO)",
+     "evidence": "At 3794 s the call ran `cands=list(root.glob(\"results/*86142*\"))+list(root.glob(\"inbox/*86142*\"))` and scanned every result for foolsMate test_cases, then read inbox/nav-86142…-final-result.md at 3807 s. A json compare of steps 13 and 19 shows test_cases, assumptions and headline equal. The stage was 'carry over unless the plan diff touches a row', and the packet never said so.",
+     "proposal": "Generalize _sent_back_results and _revise_delta_lines to every inner stage re-entered after a revise (test-spec, implement), printed as P1: 'Re-entry after step-plan revise <n>. Your previous accepted <stage> result: RUN/results/<id>.md. The plan changed: <steps/criteria/test-command ids added, removed or changed>. Keep every row the change does not touch, with its id; the summary says what is carried over and what changed.'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_sent_back_results / _revise_delta_lines; _goal_lines ('Also:' line)",
+     "chars_saved_per_packet": -500,
+     "applies_to_stages": [
+      "test-spec (revisit)",
+      "implement (revisit)",
+      "improve handoffs of both"
+     ],
+     "risk": "Low. The script can diff the two accepted plans by id. The rule keeps every test_cases obligation (one row per focused ID)."
+    },
+    {
+     "id": "C2-9",
+     "kind": "oversize",
+     "quote": "Knowledge files this stage reads, each quoted whole and uncut ... HOME/spec.md ... HOME/environment.md ... HOME/architecture.md (49,188 chars)",
+     "evidence": "The quoted knowledge is 49.2 KB of 81.2 KB. It is never printed (the head stops at ~16.6 KB) and was never opened in 19: there is no read of the packet file or HOME/*.md before the copy at 3826 s. Versus step 13 the files differ only by two spec table rows.",
+     "proposal": "In the file, list the knowledge files by path and add 'changed since your previous visit: spec.md (2 table rows)'. Drop the whole quotes on a revisit. This is the already-measured 53% item, applied to revisits first.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_consumer_lines (quoted tier)",
+     "chars_saved_per_packet": 48000,
+     "applies_to_stages": [
+      "step-plan",
+      "test-spec",
+      "implement (revisits)"
+     ],
+     "risk": "Main tenet: a cleared model opens 3 small stable files on disk instead of one large file. That is the same number of reads, since the head never carried them."
+    }
+   ]
+  },
+  {
+   "tag": "20-improve-test-spec",
+   "concise": 5,
+   "accurate": 4,
+   "effective": 5,
+   "one_line": "Minimal packet, one trivial 45 s pass: a Python compare found the 22 cases byte-identical. The reviewer had to know the prior spec lived at inbox/…-final-result.md because the handoff names no previous result (0 hits for nav-86142).",
+   "findings": [
+    {
+     "id": "C2-10",
+     "kind": "missing",
+     "quote": "## What the reviewed stage worked from (no previous accepted test-spec locator)",
+     "evidence": "Review-1: 'Read: ... the prior accepted cases in inbox/nav-86142bd60dd44e5bb138f592aefc1fa0-final-result.md'. That is a file the model itself made at step 13 and not a ShipLoop record. Handoff grep finds 0 hits for 86142bd6.",
+     "proposal": "Covered by C2-6 plus X2: the handoff names RUN/results/<previous test-spec>.md.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:improve_handoff_text",
+     "chars_saved_per_packet": -250,
+     "applies_to_stages": [
+      "improve of test-spec revisit"
+     ],
+     "risk": "None."
+    }
+   ]
+  },
+  {
+   "tag": "21-validate-existing",
+   "concise": 5,
+   "accurate": 5,
+   "effective": 5,
+   "one_line": "ShipLoop recorded it with no packet and no model calls (0.0 min). The same as step 15, it reran E1-E5 on the unchanged tree. No change needed.",
+   "findings": []
+  },
+  {
+   "tag": "22-implement",
+   "concise": 2,
+   "accurate": 3,
+   "effective": 4,
+   "one_line": "The file is 99.2 KB (the largest so far) because the one-step plan pulls in every R-n and 14.5 KB of test_cases for a stage that 'Write[s] no tests'. The head keeps the 3.7 KB Code craft prose but leaves the step's criteria text (C1-C12, 4.9 KB) file-only. The model was accepted on its first callback after 10 file writes, 2 deploys and 3 anonymous-Apex oracle probes (17.2 min, 276 s silent before the loop start).",
+   "findings": [
+    {
+     "id": "C2-11",
+     "kind": "misordered",
+     "quote": "Satisfy C1 through C12. ... criteria (W1 step-plan): - C1: startFen() equals ... (quoted tier, file only)",
+     "evidence": "head_upto_quoted is 22,169 chars, so the quoted block (criteria, R-n cut, test_cases) is the first thing _select_head drops. The step line gives only ids. The criteria hold the exact FENs and counts the code must meet. The model wrote all 10 files at 4240-4376 s without opening the packet file (warm context). After a clear, it would get ids only.",
+     "proposal": "Add a P1 block 'step-criteria' to _stage_input_blocks with the text of only the current step's criteria (here 4.9 KB). Pay for it by moving Code craft to a one-liner per rule (C2-12).",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_stage_input_blocks / _step_lines",
+     "chars_saved_per_packet": -4900,
+     "applies_to_stages": [
+      "implement"
+     ],
+     "risk": "Head size: needs C2-12 to stay under 20,000. It fixes a main-tenet gap for the stage's core input."
+    },
+    {
+     "id": "C2-12",
+     "kind": "oversize",
+     "quote": "Code craft. Write for the next maintainer, a person or a model, who opens one file cold with no run history. Every rule serves that reader. 1. Match the house. ... 9. Compose before you build. (3,690 chars)",
+     "evidence": "Owner rule 2 says 'rules and code craft as one-liners'. This block is 9 paragraphs of prose, printed in every implement head and again in the Improve handoff's '## Code craft'. Review 23 cited only 'Code craft 2' (argument checks) and rules 3-4 by number.",
+     "proposal": "Print 9 one-liners (~900 chars), each the rule's bold title plus its test, e.g. '2. Fail at the door: an externally reachable function checks its arguments before any effect and rejects with the house error naming the argument.' Link GUIDES/coding-practices.md#code-craft for the long form.",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:CODE_CRAFT (text at 'Code craft. Write for the next maintainer')",
+     "chars_saved_per_packet": 2800,
+     "applies_to_stages": [
+      "implement",
+      "test",
+      "improve handoffs of implement/test"
+     ],
+     "risk": "Conflict check: this applies owner rule 2 and keeps all 9 obligations. Re-run the composable-design experiment cue (rule 9 had a measured effect) to confirm that the one-liner keeps it."
+    },
+    {
+     "id": "C2-13",
+     "kind": "oversize",
+     "quote": "test_cases (W1 test-spec): - foolsMate (criterion C7, requirement R-8) ... (22 rows, 14,529 chars)",
+     "evidence": "Duty 1 is 'Write no tests'. The criteria already carry each oracle FEN. The model never opened the file.",
+     "proposal": "In implement, list the test case ids per criterion on one line and point to the test-spec result. Do not quote the rows.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_consumer_lines (hand-off of test_cases to implement)",
+     "chars_saved_per_packet": 14000,
+     "applies_to_stages": [
+      "implement"
+     ],
+     "risk": "Low. not_covered still needs the case list, and ids per criterion are enough to decide it."
+    },
+    {
+     "id": "C2-14",
+     "kind": "missing",
+     "quote": "(no line on the earlier implement attempt or that S1 now replaces S1-S3)",
+     "evidence": "The step line reads 'Step S1 (1 of 1)' and the 'Later steps' line disappeared. Nothing says an implement attempt (nav-fbfb…) was sent back or that the tree might hold its edits. Harmless here, because step 16 made no product edit.",
+     "proposal": "Via X2, one P1 line: 'Re-entry: implement nav-<id> was sent back (<headline>); the amended plan replaces its steps; git status shows what it left.'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_revise_delta_lines (generalized)",
+     "chars_saved_per_packet": -200,
+     "applies_to_stages": [
+      "implement (revisit)"
+     ],
+     "risk": "None."
+    },
+    {
+     "id": "C2-15",
+     "kind": "ambiguous",
+     "quote": "5. **Services.** Apply the accepted contract ...; revalidate target state and authority before any effect",
+     "evidence": "The implement packet does not say whether a step may deploy to the remote target. The model deployed to alias de at 4412 s and 4434 s (the first deploy needed a fix) and ran 3 anonymous Apex probes. That was useful evidence ('Kiwipete 48 moves in 8 ms, depth-2 sum 2039'), but it also had to `rm -rf <worktree>/.sf` at 4557 s to keep exit condition 1 (only the step's paths changed).",
+     "proposal": "In the platform reference (references/platforms/salesforce), not the generic packet, add: 'implement may deploy to the request's org to probe; delete .sf/ before check-only, or list it as excluded'. Per the ShipLoop generic-focus rule, nothing goes in the stage text.",
+     "source": "skills/shiploop/references/platforms/ (Salesforce card)",
+     "chars_saved_per_packet": 0,
+     "applies_to_stages": [
+      "implement on remote-resident platforms"
+     ],
+     "risk": "Keep it out of generic packets (owner: platform detail only in references/platforms/)."
+    }
+   ]
+  },
+  {
+   "tag": "23-improve-implement",
+   "concise": 5,
+   "accurate": 5,
+   "effective": 4,
+   "one_line": "The 2,737-char packet is correct. One trivial 345 s pass followed the focus lines visibly: a probe of case-sensitive String.equals, and a web search at 4848 s for AuraHandledException primary docs. 256 s of re-grounding after compaction included a git log run in the wrong cwd (4712 s, redone with -C at 4718 s). The handoff is 98 KB.",
+   "findings": [
+    {
+     "id": "C2-16",
+     "kind": "oversize",
+     "quote": "Read this whole file with a file-reading tool, not the shell ... (handoff 98,017 chars, quoting spec/environment/architecture whole and the test_cases)",
+     "evidence": "After compaction the reviewer re-read the files at 4685-4731 s (6 read_file, 1 grep). The facts file records 'compaction at implement: re-grounded in 31 calls, 256 s, with the Improve runtime's next'. The review used the step task, C1-C12, the diff and the notes, and none of the quoted environment.md.",
+     "proposal": "In improve_handoff_text, reference the knowledge files by path (as the opening's Scope already does) instead of _consumer_lines quotes. Keep the reviewed step's criteria quoted.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:improve_handoff_text (_consumer_lines)",
+     "chars_saved_per_packet": 45000,
+     "applies_to_stages": [
+      "every Improve handoff"
+     ],
+     "risk": "A cleared reviewer opens HOME files itself, which the handoff 'Environment' section already tells it to do. No obligation is lost."
+    },
+    {
+     "id": "C2-17",
+     "kind": "ambiguous",
+     "quote": "Checkout: <worktree>. Commands, harnesses and suites: ...",
+     "evidence": "At 4712 s, `git log -7 ...` ran from the wrong directory, so it was redone at 4718 s as `git -C <worktree> log -7`. The history step does not say where to run.",
+     "proposal": "In the Improve route or handoff top line, add: 'Run git as git -C WORKTREE.' This matches the owner's global git rule.",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_improve_handoff_top",
+     "chars_saved_per_packet": -30,
+     "applies_to_stages": [
+      "every Improve handoff"
+     ],
+     "risk": "None."
+    }
+   ]
+  }
+ ],
+ "cross_cutting": [
+  {
+   "id": "X1",
+   "pattern": "Revisit packets print the same head as the first visit. The only revisit-specific text is FILE_ONLY (deltas, last-accepted).",
+   "evidence": "diff 11 vs 17: only ids, one 'Also:' line, the narrative dropped, and the FILE_ONLY 'W1 has gone back...' block at offset 79,713. diff 13 vs 19 and 16 vs 22: only ids, plan text and quoted rows. _producer_blocks puts `last-accepted` and `deltas` in FILE_ONLY.",
+   "proposal": "A revisit packet should carry in P1, right after the status block: (1) why it is back, using the sent-back result's summary (≤600 chars) and path; (2) the previous accepted result of this same stage (path); (3) what changed upstream, as id-level adds, removes and changes computed by the script; (4) the rule 'keep untouched rows with their ids; the summary says what is carried over and what changed; a proposed fix in the evidence is a suggestion'. It can omit the knowledge quotes (path plus 'changed since last visit: <files>'). Keep the duties, rules, loop and template whole: they are the stage's own operating rules (main tenet).",
+   "source": "skills/shiploop/scripts/shiploop_navigator.py:_producer_blocks, _stage_input_blocks, _revise_delta_lines, _sent_back_results",
+   "est_chars_saved_run": 150000,
+   "risk": "Head grows ~1.2 KB on revisits. Pay for it with X3 and C2-4. The estimate counts the knowledge quotes dropped from 3 revisit files (~49 KB each)."
+  },
+  {
+   "id": "X2",
+   "pattern": "Only step-plan learns it is a revisit. test-spec, implement and their Improve handoffs do not.",
+   "evidence": "_sent_back_results returns None unless stage == stage_spec.REVISE_TO. 19 searched for its own prior spec (3794 s, 3807 s). 18, 20 and 23 handoffs have 0 hits for the previous-result ids. 20's reviewer used a model-made inbox copy.",
+   "proposal": "Make _sent_back_results(stage) return the previous accepted result of `stage` for any inner stage after the item's latest revise, and feed it to both _producer_blocks and improve_handoff_text.",
+   "source": "skills/shiploop/scripts/shiploop_navigator.py:_sent_back_results",
+   "est_chars_saved_run": 0,
+   "risk": "Low. It adds locators and keeps all obligations."
+  },
+  {
+   "id": "X3",
+   "pattern": "Stale pointer line: it says duties and template live only in the file.",
+   "evidence": "Packet line 7 in every producer packet. Duties and template have been P0 since 2026-10-16 (packet_head docstring).",
+   "proposal": "See C2-3: name what the file adds (knowledge, hand-offs, last accepted summary, request).",
+   "source": "skills/shiploop/scripts/shiploop_prompts.py:packet_pointer",
+   "est_chars_saved_run": 6700,
+   "risk": "Update the packet-recut and packet-anatomy test regexes."
+  },
+  {
+   "id": "X4",
+   "pattern": "Root cause of the whole revise loop (steps 16-21): the step-plan check guidance does not say checks run after every implement step.",
+   "evidence": "Step-plan duty 5 says 'check: the lint, type and build commands ... each safe to repeat locally.' Plan 11 made the whole-item C12 grep the only check. Implement 16 revised in 2 min ('On the S1 tree that grep exits 2'). The loop cost 16 (2.0) + 17 (9.5) + 19 (2.5) min of stage time, plus two Improve children (8.3 and 0.9 min) and a compaction.",
+   "proposal": "Append to duty 5's check bullet: 'Implement runs every check after every step, so each must exit 0 on S1's tree; a check that needs a later step's file means one step, or a per-step check in that step's criteria.'",
+   "source": "skills/shiploop/scripts/shiploop_prompts.py step-plan duty 5 ('each safe to repeat locally')",
+   "est_chars_saved_run": 0,
+   "risk": "None. It states a mechanic the gate already enforces. It would likely have saved ~14 min in this run."
+  },
+  {
+   "id": "X5",
+   "pattern": "The quoted knowledge and test_cases are in packet files and handoffs that the model never opens, and they double in each Improve handoff.",
+   "evidence": "Quoted knowledge per file: 49.2 KB (17, 19), 29.5 KB (22). Handoffs: 76.3 KB (18), 79.7 KB (20), 98.0 KB (23), each requiring 'Read this whole file'. Implement quotes 14.5 KB of test_cases.",
+   "proposal": "Reference by path in revisit files (C2-9), in all Improve handoffs (C2-16) and for implement test_cases (C2-13).",
+   "source": "skills/shiploop/scripts/shiploop_navigator.py:_consumer_lines, improve_handoff_text",
+   "est_chars_saved_run": 600000,
+   "risk": "The main tenet holds because each reference is a stable on-disk file named in the head. Estimate: 11 handoffs × ~45 KB plus 3 revisit files."
+  },
+  {
+   "id": "X6",
+   "pattern": "The 'ShipLoop navigator' prefixes (owner question).",
+   "evidence": "Readers of the header 'ShipLoop navigator | <stage> | revision N': shiploop_status_hook.py HEADER (gate for the status hook), test/shiploop_e2e/clear.py HEADER, counters.py HEAD_START/HEADER, flow.py HEAD, metrics.py KEPT_REPLY/PACKET_STAGE, packet_anatomy.py, skills/shiploop-run-review/scripts/export.py, and template/index.html (first line starting 'ShipLoop navigator |'). The result heading '# ShipLoop navigator result' is not parsed: shiploop_store.loads reads only the shiploop-state fence. store.dumps writes it as the title of results/ records, and 10 tests assert it (e.g. test/shiploop-navigator-contract.test.py). The refusal prefix 'ShipLoop navigator: ' is written once at shiploop_protocol.py main (print(f\"ShipLoop navigator: {exc}\")), and test/shiploop_e2e/metrics.py counts failures by it (README §failures).",
+   "proposal": "Drop the template heading line from the Result template (safe; the model may write any heading). Shorten the header to 'ShipLoop | <stage> | rev N' and the refusal prefix to 'ShipLoop: ' only in one change that updates the 8 header readers and the metrics failure regex together. Saving is ~10-30 chars per packet, so do it for clarity, not size.",
+   "source": "skills/shiploop/scripts/shiploop_navigator.py:_producer_blocks('header'), _result_contract_lines, improve_packet; shiploop_protocol.py main",
+   "est_chars_saved_run": 700,
+   "risk": "Breaking the status hook or E2E counters if readers are not changed in the same commit. Run-review older exports keep the old header, so readers would need to accept both forms for old runs, which conflicts with the one-supported-version rule. Accept only the new form and re-export."
+  },
+  {
+   "id": "X7",
+   "pattern": "Code craft is printed whole (3.7 KB) despite owner rule 2.",
+   "evidence": "Lines 98-127 of 22 and '## Code craft' in the 23 handoff.",
+   "proposal": "See C2-12.",
+   "source": "skills/shiploop/scripts/shiploop_prompts.py:CODE_CRAFT",
+   "est_chars_saved_run": 11000,
+   "risk": "Verify the rule-9 composition cue survives as a one-liner."
+  }
+ ],
+ "best_lines": [
+  "'Also: the summary says which rows are new or changed and which are carried over from the previous step plan.' Result 17's summary: 'Carried over: criteria C1-C12, expectations E1-E5, paths, follows, and every Apex test command. Changed: the three implement steps are one step'.",
+  "Improve planning focus 'an expected result or check that a weaker stand-in would pass'. Review 18-1: 'the conditional check exits 0 when slChessBoard.html is absent ... That is a weaker stand-in', which restored the strict C12 grep.",
+  "Improve implement focus 'a language or library behaviour ... (comparison and case rules ...): run a one-line probe or read its primary documentation'. Review 23: 'String.equals is case-sensitive, so K and k stay distinct', plus a web search at 4848 s for AuraHandledException docs.",
+  "P1 'Prior Improve evidence and lessons' line in 19: it carried step 18's decision ('The suite check is the strict C12 grep. Do not skip that grep when slChessBoard.html is absent'), and 19 kept C12 strict without re-deciding.",
+  "Minimal Improve packet (1.9-2.7 KB). In 18, 20 and 23 every improve-pass and complete ran in order, with no refusal and no stray work.",
+  "Implement 'Check commands (run each after every edit ...)' with the exact grep printed. The model ran it at 4399 s and 4521 s, and the gate accepted on the first callback (4577 s)."
+ ]
+}

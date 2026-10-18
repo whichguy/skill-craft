@@ -1,0 +1,5 @@
+  failed    shiploop complete exit 2: ShipLoop navigator: Improve notes must be a regular file: Loop command deploys the tree under test, then runs one class in TAP. Human coverage runs after that deploy. Open A-4 and A-7 settle in W1.
+  failed    shiploop complete exit 2: ShipLoop navigator: ShipLoop test run: verify is not done. ShipLoop ran the 10 listed commands from /Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-707
+  failed    shiploop complete exit 2: ShipLoop navigator: delivery authority operation does not match contract
+  failed    shiploop complete exit 2: ShipLoop navigator: delivery authority target does not match contract
+  failed    shiploop complete exit 2: ShipLoop navigator: navigator result is unavailable

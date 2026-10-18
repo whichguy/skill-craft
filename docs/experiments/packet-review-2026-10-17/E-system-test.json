@@ -1,0 +1,346 @@
+{
+  "group": "E-system-test",
+  "method_note": "Printed text was taken from the host's tool results in <out>/events.jsonl (the tool_call_update rawOutput of each complete/next), not from PR/in/*.packet.md. The packet files are 90.5 / 62.3 / 87.1 / 54.9 KB, but ShipLoop printed only a head of 13.3 / 15.6 / 13.2 / 13.7 KB (shiploop_navigator.py:packet_head, HEAD_LIMIT 20,000). Every head ended with '=== end ShipLoop head ===' and Grok passed each one whole (output_for_prompt is the same length as stdout). So no host cut happened in steps 29-33. What the model never saw is ShipLoop's own FILE_ONLY/QUOTED tiers: the knowledge files, the run-context (stage guide links, original request, delivery contract, return route), the last-accepted summary and the Backchain loop-resource lines. _select_head stops at the first optional block that does not fit, and the quoted knowledge block never fits, so everything after it is dropped as well. Timings are calls.txt seconds from run start.",
+  "steps": [
+    {
+      "tag": "29-system-test-author",
+      "concise": 3,
+      "accurate": 3,
+      "effective": 4,
+      "one_line": "The stage itself took 2 min (6965-7094 s) and was accepted on the first try. But the duties cite open items 'quoted below' and named guides whose locators exist only in the packet file, so the model grepped the packet and read ShipLoop's source to find the gate's rules.",
+      "findings": [
+        {
+          "id": "G29-1",
+          "kind": "inaccurate",
+          "quote": "Gather: the test strategy (...), every item's test cases (the `test_cases` hand-off), and the open items quoted below (the system-test obligations).",
+          "evidence": "Nothing is quoted below in the printed head (13,278 chars). The test_cases block and its 'open items: none open' line are in the QUOTED/FILE_ONLY tiers. The model's thought at 6978 s: 'The packet file still needs to be checked for the complete open items and system catalog guidance.' Next calls: grep of packets/nav-c500….md for 'A1 |open item|System-test' (16897) and read_file of the packet at offset 700, limit 80 (16908).",
+          "proposal": "Print one P1 line in the head with the open items as they stand: 'Open items for this stage: none' or '<id> (<consumer>)' for each. If not, reword the duty to 'the open items (packet file, line \"open items:\")'.",
+          "source": "shiploop_prompts.py:DUTIES['system-test-author'] item 1; shiploop_navigator.py:_producer_blocks (quoted block tier)",
+          "chars_saved_per_packet": -60,
+          "applies_to_stages": ["system-test-author", "system-test", "product-acceptance"],
+          "risk": "None. It adds one line the stage acts on."
+        },
+        {
+          "id": "G29-2",
+          "kind": "missing",
+          "quote": "Write the catalog in `summary`, one row per case in the System-test catalog guidance shape (...) Reuse the existing harness (Repeatable test-suite guide, Reusable test facilities)",
+          "evidence": "The duties cite four guides by label. Their locators (GUIDES/system-tests.md#catalog-shape and the others) come from STAGE_REFERENCES, which _run_context_lines renders as FILE_ONLY, so the head has none of them. The model grepped the packet for 'System-test' (16897), then grepped system-tests.md for headings (16906) and read lines 20-90 (16915).",
+          "proposal": "Render guidance.STAGE_REFERENCES[stage] as a LOOKUP block right after 'reference-files' in _producer_blocks. It is 4-7 lines, about 350 chars for this stage, and the file keeps it as well.",
+          "source": "shiploop_navigator.py:_producer_blocks / _run_context_lines (STAGE_REFERENCES loop); shiploop_prompts.py:STAGE_REFERENCES",
+          "chars_saved_per_packet": -350,
+          "applies_to_stages": ["all producer stages"],
+          "risk": "The head grows about 350 chars, still well under HEAD_LIMIT. It saves 1-3 lookup calls per stage."
+        },
+        {
+          "id": "G29-3",
+          "kind": "missing",
+          "quote": "\"assumptions\": [],  /  Checked by: ... an open item whose consumer is not a later outer stage",
+          "evidence": "The template shows no row shape. The gate requires {id, assumption, disposition} plus check, reason and consumer when the row is open (shiploop_assumptions._SHAPE). Item 7 lists assumption/check/owner/reason/consumer but leaves out id and disposition. The model got the row right only from memory of earlier stages. To confirm what the gate takes, it grepped shiploop_navigator.py for system_commands/host_dependent (16899) and read lines 2145-2185 (16917). At system-test it read shiploop_navigator.py 2565-2715 and shiploop_assumptions.py 1-180 (18131, 18141) just to learn that release-verify is an allowed consumer.",
+          "proposal": "Template, for stages in OPEN_ITEM_STAGES: '\"assumptions\": [] or [{\"id\": \"<ID>\", \"assumption\": \"...\", \"disposition\": \"open\", \"check\": \"<who does what, reports what>\", \"owner\": \"...\", \"reason\": \"...\", \"consumer\": \"<one of: system-test | product-acceptance | release-plan | ... | handoff>\"}]'. The consumer list comes from assumptions.allowed_consumers(stage). In Checked by, replace 'not a later outer stage' with that literal list.",
+          "source": "shiploop_navigator.py:_result_contract_lines and _stage_gates; shiploop_assumptions.py:allowed_consumers",
+          "chars_saved_per_packet": -220,
+          "applies_to_stages": ["system-test-author", "system-test", "release-plan", "release-verify", "test-spec", "verify", "carry-forward"],
+          "risk": "The text grows, but a context-cleared model gets the shape right on the first try. This follows the main tenet. It also removes the source reads seen in 29, 31 and 33."
+        },
+        {
+          "id": "G29-4",
+          "kind": "ambiguous",
+          "quote": "3. Write the catalog in `summary`, one row per case ...  vs template: \"summary\": \"<decisions, defaults, open questions and owners only this result records; no restatement>\"",
+          "evidence": "The model put the catalog table in RUN/notes/nav-c500….md, and its summary says only 'Catalog in run/notes/nav-c500….md'. ShipLoop accepted that. System-test (18045 head) and product-acceptance both used the note and cited it. The duty and the template disagree about where the catalog goes. The model chose the file.",
+          "proposal": "Item 3: 'Write the catalog (one row per case: ID, phase, requirement, expected outcome, target, prerequisites, executable reference, owner) in this action's pass log RUN/notes/<action>.md, and cite it in `summary` and `evidence_refs`.' Item 8: 'the integrated test plan goes under the catalog in that note and in HOME/environment.md ## Harnesses and suites'.",
+          "source": "shiploop_prompts.py:DUTIES['system-test-author'] items 3 and 8",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["system-test-author"],
+          "risk": "This keeps the obligation and names the file that worked. Later stages read the note's path from 'Done:' and from the summary."
+        },
+        {
+          "id": "G29-5",
+          "kind": "missing",
+          "quote": "6. `system_commands`: one row per runnable command, shaped like test_commands ...",
+          "evidence": "Each of the 3 recorded commands starts with 'sf project deploy start --target-org de'. The author ran 3 deploys (7024 s), the system-test model ran 3 (7590 s) and ShipLoop's rerun ran 3 more. That is 9 deploys of unchanged metadata. The model's thought at system-test: 'The total cost is six deploys and six test runs.' Nothing in the packet says how to share a prerequisite between commands.",
+          "proposal": "Low priority; check first. If the system-test rerun (shiploop_test_loop) runs rows in the listed order and stops on the first failure, add to item 6: 'A prerequisite shared by several rows (a deploy) goes in the first row only; ShipLoop runs the rows in order.' If it does not run them in order, leave the text as it is.",
+          "source": "shiploop_prompts.py:DUTIES['system-test-author'] item 6; shiploop_test_loop.py rerun ordering",
+          "chars_saved_per_packet": -110,
+          "applies_to_stages": ["system-test-author"],
+          "risk": "If the rerun is not in order, a row without its deploy could test stale org code. Do this only with a verified ordering."
+        }
+      ]
+    },
+    {
+      "tag": "30-improve-system-test-author",
+      "concise": 3,
+      "accurate": 3,
+      "effective": 2,
+      "one_line": "The Improve packet itself is minimal (2.7 KB), as the owner rule asks. But the review took 7.2 min for a trivial no-change pass: a compaction right after improve-pass made the model redo pass 1 from scratch, and the 91.7 KB handoff left out that the producer's HOME/ edit is waiting for ShipLoop's commit.",
+      "findings": [
+        {
+          "id": "G30-1",
+          "kind": "missing",
+          "quote": "2. When the improve skill has completed, run: python3 .../shiploop complete --run-dir=<run> --action=nav-e680d…",
+          "evidence": "improve-pass recorded pass 1 at 7122 s. Auto-compaction started at 80% at event 17125. 'shiploop next' (7305 s) reprinted the same 3,225-char Improve packet, with no word that pass 1 was already recorded. The model re-read shiploop SKILL.md, improve SKILL.md, improve-child.md, shiploop-route.md, handoff.md (91.7 KB) and packet.json, then ran the until-loop next (15.4 KB output). It thought 'A review-1.md was written but never submitted', rewrote review-1.md and re-ran improve-pass (7513 s). That cost about 390 s of rework. improve-passes.md shows one pass of 417 s.",
+          "proposal": "In improve_packet, when RUN/improve/<action>/pass-<n>.json exists and the runtime has not completed, add one line: 'Pass <n> is recorded (CHILD/reviews/review-<n>.md, <time>). If that review stands, run the done command improve-pass printed: <until_loop done argv>.'",
+          "source": "shiploop_navigator.py:improve_packet",
+          "chars_saved_per_packet": -250,
+          "applies_to_stages": ["improve"],
+          "risk": "It shows only in that one state. It states a script-recorded fact and changes no obligation. Applying the main tenet, recovery should come from the packet, not from the model's memory."
+        },
+        {
+          "id": "G30-2",
+          "kind": "oversize",
+          "quote": "Read this whole file with a file-reading tool, not the shell: a shell cuts a long file.",
+          "evidence": "The handoff is 91,752 chars. 571 of its lines are knowledge files quoted whole ('  |' lines, about 65 KB), copied from the producer packet. After compaction the model read the whole file (event 17405). The opening already scopes 'The knowledge files it worked from, under <worktree>/docs/shiploop', which are the same files on disk that the review checks.",
+          "proposal": "In improve_handoff_text, replace each quoted knowledge body with its path: 'Knowledge files (review the live files): HOME/spec.md, HOME/environment.md, HOME/architecture.md'. Keep the request, the done-when, the review focus and the test cases.",
+          "source": "shiploop_navigator.py:improve_handoff_text (reuses _consumer_lines)",
+          "chars_saved_per_packet": 65000,
+          "applies_to_stages": ["improve (all 11 children)"],
+          "risk": "The reviewer then reads the live HOME files, which are the review target, rather than a snapshot taken at bind. Measure the other 10 handoffs before claiming the run total."
+        },
+        {
+          "id": "G30-3",
+          "kind": "missing",
+          "quote": "Changes: ... The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted).",
+          "evidence": "The model saw ' M docs/shiploop/environment.md' (7420 s) and ran git diff (7427 s). For about 60 s of thoughts it weighed committing the producer's paragraph ('an uncommitted knowledge change could be lost before release return'). It then grepped ShipLoop scripts for 'commits HOME|commit.*knowledge' (17783) before it concluded 'ShipLoop commits knowledge on accept'. The producer packet's line 'If this stage changes HOME/, ShipLoop checks and commits it when the stage is accepted' is FILE_ONLY, and the handoff does not say it.",
+          "proposal": "Append to the Changes line: 'The reviewed stage's own HOME/ edits stay uncommitted until ShipLoop commits HOME/ after this import; leave them as they are and do not count them as this review's change.'",
+          "source": "shiploop_navigator.py:_render_improve ('Changes:' sentence)",
+          "chars_saved_per_packet": -170,
+          "applies_to_stages": ["improve"],
+          "risk": "None. It states the existing commit timing."
+        },
+        {
+          "id": "G30-4",
+          "kind": "missing",
+          "quote": "Checkout: <worktree>. Commands, harnesses and suites: ...",
+          "evidence": "'git log -7 ... && git status' ran three times (7368, 7380, 7420 s). The run at 7368 executed in the source checkout and returned the empty baseline commit 7271a130. The model's thought: 'The git command ran in the source checkout rather than the worktree.' The cwd of the host shell is not the child workspace.",
+          "proposal": "Environment line: 'Checkout: WORKTREE; run git as git -C WORKTREE (the shell starts elsewhere).'",
+          "source": "shiploop_navigator.py:_render_improve / improve opening 'Environment' section",
+          "chars_saved_per_packet": -50,
+          "applies_to_stages": ["improve"],
+          "risk": "None."
+        },
+        {
+          "id": "G30-5",
+          "kind": "dead-text",
+          "quote": "Invoke the selected actual Improve skill for whole-product/system test cases and fixtures.",
+          "evidence": "This line sits between the import rules and the OUTER test-plan paragraph. The packet's step 1 already says to run the improve skill, and nothing in the model's thoughts or calls refers to this line.",
+          "proposal": "Delete it from the handoff body. The packet's step 1 already carries the instruction.",
+          "source": "shiploop_prompts.py:2729 (paragraphs = [f\"Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.\"])",
+          "chars_saved_per_packet": 90,
+          "applies_to_stages": ["improve"],
+          "risk": "None: the obligation remains in the packet."
+        }
+      ]
+    },
+    {
+      "tag": "31-system-test",
+      "concise": 3,
+      "accurate": 3,
+      "effective": 4,
+      "one_line": "11 calls and 135 s of model time. The model ran the four recorded commands verbatim and the stage was accepted on the first try. Its only detour was reading ShipLoop's source to confirm release-verify was an allowed consumer, plus one duty line that contradicts the recorded commands.",
+      "findings": [
+        {
+          "id": "G31-1",
+          "kind": "inaccurate",
+          "quote": "Before running check prerequisites, fixtures, ... Deploy not to unblock a test; use production only with authority.",
+          "evidence": "Three of the four recorded commands that ShipLoop reruns (the 'Test rerun' block in the same head) contain 'sf project deploy start --target-org de'. The model had to reason it out: 'The recorded commands authorize the deployment. I will run them.'",
+          "proposal": "'Add no deploy to unblock a test (a recorded command's own deploy step runs as recorded); use production only with authority.'",
+          "source": "shiploop_prompts.py:DUTIES['system-test'] item 2",
+          "chars_saved_per_packet": -50,
+          "applies_to_stages": ["system-test"],
+          "risk": "None. It removes a contradiction and keeps the no-unblock-deploy rule."
+        },
+        {
+          "id": "G31-2",
+          "kind": "missing",
+          "quote": "Record it as an open item in `assumptions`: case ID, who does what, what they report, owner (a person), due stage (...) as `consumer`.",
+          "evidence": "Before running anything the model spent about 20 s and 5 calls on ShipLoop source: grep of shiploop_navigator.py for 'assumption.*consumer' (18123), grep of references (18125), read of shiploop_navigator.py 2565-2715 (18131) and of shiploop_assumptions.py 1-180 (18141). It concluded: 'The release-verify stage is a later outer stage after system-test.'",
+          "proposal": "Same fix as G29-3: name the allowed consumers literally (assumptions.allowed_consumers('system-test')) in Checked by and in the template row.",
+          "source": "shiploop_navigator.py:_stage_gates; shiploop_assumptions.py:allowed_consumers",
+          "chars_saved_per_packet": -120,
+          "applies_to_stages": ["system-test"],
+          "risk": "None."
+        },
+        {
+          "id": "G31-3",
+          "kind": "inaccurate",
+          "quote": "Knowledge files this stage reads, each quoted whole and uncut: HOME/environment.md ... HOME/architecture.md",
+          "evidence": "Item 8 says 'Reconcile each affected requirement clause with its case'. The requirements live in HOME/spec.md, which is not in this stage's READS (only the spec stage result is listed under builds-on). The model relied on its context. A context-cleared run would have to discover spec.md on its own.",
+          "proposal": "Add spec.md to knowledge.READS['system-test'] as a path in the References block. Do not quote it: see C-3.",
+          "source": "shiploop_knowledge_home.py READS table for system-test",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["system-test"],
+          "risk": "None if it is listed by path."
+        }
+      ]
+    },
+    {
+      "tag": "32-product-acceptance",
+      "concise": 3,
+      "accurate": 2,
+      "effective": 4,
+      "one_line": "2 min and 14 calls, accepted on the first try with one correct unverified entry. But the printed Backchain paragraph cites a 'Loop resources' line and a backchain-check command that only the packet file holds, and the model inferred, wrongly, that Backchain repair was blocked.",
+      "findings": [
+        {
+          "id": "G32-1",
+          "kind": "inaccurate",
+          "quote": "the loop resources named in the planning guide's Source-aware native caller section (the packet's \"Loop resources\" line reports them) ... Run the printed `backchain-check` after each candidate revision",
+          "evidence": "The head (12,048 chars) prints the backchain-route LOOKUP paragraph. 'Loop resources ...: all present' and 'Backchain graph check: python3 ... backchain-check' are FILE_ONLY (packet file lines 692-693). The model's thought: 'The printed packet lacks a Loop resources line, so repair is blocked but review may still proceed.' That is false: the resources were all present.",
+          "proposal": "Move the 'Backchain planning guide', 'Backchain audit resource', 'Loop resources' and 'Backchain graph check' lines into the backchain-route LOOKUP block, so the paragraph and the lines it cites print together.",
+          "source": "shiploop_navigator.py:_producer_blocks ('backchain-route' block) and _run_context_lines (Backchain lines)",
+          "chars_saved_per_packet": -450,
+          "applies_to_stages": ["product-acceptance", "plan", "any stage with a backchain route"],
+          "risk": "The head grows about 450 chars and an accuracy bug goes away."
+        },
+        {
+          "id": "G32-2",
+          "kind": "ambiguous",
+          "quote": "7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: request a Backchain `review` / `audit`",
+          "evidence": "The model spent a long run of thoughts on whether the owned, post-release SYS-BOARD case was an 'acceptance gap' that item 7 made mandatory: 'Item 7 of the stage guidance makes Backchain mandatory for acceptance gaps, but deferred cases stay pending with owner and prerequisites'. It decided against requesting one. Item 4 of the same duties says a not-yet-due case stays pending.",
+          "proposal": "'7. A material prerequisite ambiguity, a pending or corrective dependency, or an acceptance gap with no owner or due stage: request a Backchain review/audit (...). An owned case not yet due (item 4) is not such a gap.'",
+          "source": "shiploop_prompts.py:DUTIES['product-acceptance'] item 7",
+          "chars_saved_per_packet": -60,
+          "applies_to_stages": ["product-acceptance"],
+          "risk": "This narrows when a Backchain audit is requested to the case the owner intends. No other obligation changes."
+        },
+        {
+          "id": "G32-3",
+          "kind": "oversize",
+          "quote": "Follow the packet's Backchain planning guide for this stage's scoped outcome, prerequisite and consumer review. ... (about 1,400 chars)",
+          "evidence": "The full Backchain route paragraph prints in every product-acceptance head and is used only when item 7 fires. It did not fire here. The duties already carry the stub 'Backchain: the route's paragraph follows the result template.'",
+          "proposal": "In the head, print one line: 'Backchain (only when item 7 applies): GUIDES/backchain-planning.md#navigator-planning; loop resources: <present|missing>; check: <backchain-check command>.' Keep the paragraph in the packet file.",
+          "source": "shiploop_prompts.py:prompt_split (backchain paragraph); shiploop_navigator.py:_producer_blocks 'backchain-route'",
+          "chars_saved_per_packet": 1100,
+          "applies_to_stages": ["product-acceptance", "other stages with a backchain route"],
+          "risk": "Owner rule 1 says repeated operating rules ground a context-cleared stage. Here the trigger and the route stay in the head and only the conditional procedure moves. Flagged for the owner's decision."
+        },
+        {
+          "id": "G32-4",
+          "kind": "missing",
+          "quote": "{\"check\": \"<what the owner does and reports>\", \"due_stage\": \"handoff\", ...}  /  Checked by: ... or a due_stage that is not a later stage",
+          "evidence": "To learn the allowed due_stage values, the model grepped shiploop_unverified.py for 'due_stage|REQUIRED' (18697) and read lines 1-100 (18714).",
+          "proposal": "Template placeholder: '\"due_stage\": \"<one of: release-plan, release-check, release, release-verify, operations, handoff>\"', with the list computed from the stage graph.",
+          "source": "shiploop_navigator.py:_result_contract_lines (unverified template); shiploop_unverified.py",
+          "chars_saved_per_packet": -90,
+          "applies_to_stages": ["product-acceptance"],
+          "risk": "None."
+        }
+      ]
+    },
+    {
+      "tag": "33-release-plan",
+      "concise": 3,
+      "accurate": 1,
+      "effective": 1,
+      "one_line": "Worst step of the group: 8.2 min to submit (7968-8457 s), 64 calls, 34 reads of ShipLoop's Python source, and a compaction in the middle that repeated the same reading. The Checked by line omits the consumer-delivery gate that refuses an unresolved delivery necessity, and the template has no delivery_assessment field.",
+      "findings": [
+        {
+          "id": "G33-1",
+          "kind": "inaccurate",
+          "quote": "Checked by: at done ShipLoop refuses a missing assumptions list (...); a missing consumer_checks list, or an empty one without consumer_checks_na, or a consumer_entry whose sources are not files in the repository; a HOME file ...",
+          "evidence": "shiploop_consumer_delivery.validate_transition calls _require_release_ready, which refuses release-plan with 'delivery necessity is unresolved; submit blocked with the needed decision'. The contract said 'Delivery necessity: unresolved', but only in a FILE_ONLY line. The model found that line by reading the packet at offset 320 (18961). It then reverse-engineered the gate: shiploop_consumer_delivery.py was read 7 times (lines 1-740, events 18989-19095, again at 19657-19685 after compaction), plus shiploop_navigator.py 50-130, 740-810, 820-950, 2325-2365 and 4700-4780, shiploop_assumptions.py, shiploop_test_loop.py and shiploop_knowledge_home.py. Its thought: 'The packet template omits delivery_assessment, though the guide says release planning needs a contract.' It submitted a 3,653-char delivery_assessment correction, and check-only accepted it.",
+          "proposal": "(a) In _stage_gates, for the stages validate_transition guards (plan, system-test, release-plan through handoff), when a delivery contract exists add: 'while the delivery contract's necessity is unresolved or its authority is not approved, done is refused: settle it in `delivery_assessment` (shape: GUIDES/consumer-delivery.md) or report blocked'. (b) When necessity is unresolved at release-plan, give the two Delivery lines (necessity, authority) P1 tier in the head and add a '\"delivery_assessment\": {...}' row to the template.",
+          "source": "shiploop_navigator.py:_stage_gates and _result_contract_lines; shiploop_consumer_delivery.py:packet_lines (tier), _require_release_ready",
+          "chars_saved_per_packet": -650,
+          "applies_to_stages": ["release-plan", "release-check", "release", "release-verify", "operations", "handoff", "plan", "system-test"],
+          "risk": "None to any obligation: it states a gate that exists. Estimated saving is about 6 min and about 50 calls at this stage. The upstream fix is separate: intake or discovery should set necessity once the identity is closed (org 00Daj000018BzO3EAK was known since discovery)."
+        },
+        {
+          "id": "G33-2",
+          "kind": "misordered",
+          "quote": "4. ... Isolated run: write it for the source return the packet states (return route and rollback recipes come from workspace.md) ...",
+          "evidence": "The return route, the 'Rollback of the return' recipes and the plan-return/review-return commands (about 2.9 KB, packet file lines 389-405) are FILE_ONLY. The printed head has none of them. The model's thought: 'The full packet may have additional content beyond what was visible.' It then read the packet at offset 320, limit 80 (18961), and grepped workspace.md headings twice (18939, 18963).",
+          "proposal": "Give the workspace-return lines (Execution checkout, Return route, Rollback of the return, plan-return and review-return commands) P1 tier through _stage_input_blocks at release-plan, release and handoff. The head goes from 13.7 to about 16.6 KB, still under HEAD_LIMIT 20,000.",
+          "source": "shiploop_navigator.py:_run_context_lines (workspace lines) -> _stage_input_blocks; shiploop_workspace.py:rollback_lines",
+          "chars_saved_per_packet": -2900,
+          "applies_to_stages": ["release-plan", "release", "handoff"],
+          "risk": "The head grows but stays inside Grok's 20,000-char whole-print limit. Recheck the measured head size with real absolute paths, since <run> and <out> stand for paths of 83 and 96 chars or more."
+        },
+        {
+          "id": "G33-3",
+          "kind": "ambiguous",
+          "quote": "Rollback of the return (... write the plan's rollback as plain `git` commands run from the repository root with these values, never this run's absolute paths): `git -C <out>/work reset --keep 7271a130…`",
+          "evidence": "Each recipe embeds an absolute 'git -C <source checkout>' path, while the line above it forbids absolute paths. The model rewrote them by hand: its summary has 'Rollback after return, from the repo root: git reset --keep 7271a130…'.",
+          "proposal": "In rollback_lines, print the recipes copy-ready without '-C <path>' (for example 'git reset --keep <head>'), and shorten the lead-in to 'Rollback of the return (run from the repository root; SHAs from workspace.md):'.",
+          "source": "shiploop_workspace.py:rollback_lines",
+          "chars_saved_per_packet": 200,
+          "applies_to_stages": ["release-plan", "release", "handoff"],
+          "risk": "The recipe docstring says each call 'runs in the source repository' through -C. The plan's audience is a person at the repo root, so this is safe there. Keep -C if a script executes these strings: check first."
+        },
+        {
+          "id": "G33-4",
+          "kind": "redundant",
+          "quote": "- delivery authority is recorded before the plan is accepted",
+          "evidence": "The contract already held 'Delivery authority: approved request ... this run only' from intake, but in a FILE_ONLY line. The model re-derived the authority shape from shiploop_consumer_delivery.py and restated it in the summary and in HOME/environment.md ('Release authority, recorded at release-plan ...').",
+          "proposal": "Done-when: 'delivery authority is cited from the contract (status approved, or a pending approval named now)'. Print the Delivery authority line in the head (as in G33-1b).",
+          "source": "shiploop_stage_spec.py release-plan done-when; shiploop_consumer_delivery.py:packet_lines",
+          "chars_saved_per_packet": 0,
+          "applies_to_stages": ["release-plan"],
+          "risk": "None. The obligation is still to record authority. Only the source is named."
+        }
+      ]
+    }
+  ],
+  "cross_cutting": [
+    {
+      "id": "C-1",
+      "pattern": "The printed head's duties cite inputs that live only in the packet file's FILE_ONLY run-context: stage guide links, open items, the return route, the delivery contract, Backchain loop resources and the HOME-commit rule. They sit after 24-67 KB of quoted knowledge.",
+      "evidence": "Packet-file reads in this group targeted only those lines, never the knowledge: 29 grep plus read at offset 700 (open items and guide links); 33 read at offset 320 (return route and delivery necessity). At 32 the model drew a false inference from the missing Loop resources line. At 30 the HOME-commit rule was missing and cost a deliberation plus a source grep.",
+      "proposal": "Promote by need. STAGE_REFERENCES becomes a LOOKUP block (G29-2). The workspace return becomes P1 at release stages (G33-2). The delivery lines become P1 when a gate reads them (G33-1). The Backchain resource lines join the backchain-route block (G32-1). In the file, put the run-context ahead of the quoted knowledge.",
+      "source": "shiploop_navigator.py:_producer_blocks, _run_context_lines, _select_head",
+      "est_chars_saved_run": -5000,
+      "risk": "The heads grow (each stays under 20 KB) and the file reads and source dives go away. This follows the main tenet: what a stage acts on is in the text it is given."
+    },
+    {
+      "id": "C-2",
+      "pattern": "The model treats ShipLoop's Python source as the gate's contract.",
+      "evidence": "46 read_file/grep calls on skills/shiploop/scripts/*.py across steps 29-33 (29: 2, 30: 3, 31: 5, 32: 2, 33: 34). Each answered a 'what will complete accept' question the packet left implicit: allowed consumers, allowed due_stage values, the system_commands shape, the delivery_assessment gate, and when HOME is committed.",
+      "proposal": "Checked by and the template state the literal accepted values and every gate that can refuse at this stage (G29-3, G32-4, G33-1). One RULES line: 'Do not read ShipLoop's scripts to learn a gate; use `complete --check-only`, whose refusal quotes the needed shape.'",
+      "source": "shiploop_navigator.py:_stage_gates, _result_contract_lines; RULES block in shiploop_prompts.py",
+      "est_chars_saved_run": -2000,
+      "risk": "The RULES line is safe only once Checked by is complete. Without G33-1 it would push the model into blind refusals."
+    },
+    {
+      "id": "C-3",
+      "pattern": "The packet file and the Improve handoff quote whole knowledge files that the head never prints and the model never reads from the packet.",
+      "evidence": "Knowledge quoted in the packet files: 67.0 / 34.2 / 54.5 / 24.2 KB in steps 29, 31, 32 and 33, against heads of 13.2-15.6 KB. When the model needed knowledge it read HOME/environment.md directly by offset (33: events 19488-19496, 19700). The 30 handoff quotes about 65 KB of the same files.",
+      "proposal": "In the file and in the handoff, replace the quoted bodies with 'Knowledge files this stage reads: HOME/spec.md, HOME/environment.md (open the section a step needs)'. Keep the deltas line (new since baseline / changed sections).",
+      "source": "shiploop_navigator.py:_consumer_lines (QUOTED block) and improve_handoff_text",
+      "est_chars_saved_run": 860000,
+      "risk": "The quote is a snapshot taken at emit. The live file may differ if the stage edits it, and the live file is what the stage should read anyway. The main tenet holds because the files are committed on disk at HOME. The run-review packet-anatomy counters (where/inputs) would need updating."
+    },
+    {
+      "id": "C-4",
+      "pattern": "A stale clause in the pointer line that every packet prints.",
+      "evidence": "'... when this print was cut (...) or you need the duties or the template; it also holds the original request, the knowledge files quoted whole and the hand-offs.' Since 2026-10-16 the duties and template are P0 and always printed (packet_head docstring). The model also re-read SKILL.md after both compactions (17158, 19608), despite 'do not re-read the ShipLoop skill card'. That re-read is host-driven, and this line cannot prevent it.",
+      "proposal": "'Full packet: <path> - open it with a file tool, not the shell, for the original request, the delivery contract and the hand-offs, or when this print lacks its last line === end ShipLoop head ===. Open only the section a step needs; do not re-read the ShipLoop skill card.'",
+      "source": "shiploop_prompts.py:packet_pointer",
+      "est_chars_saved_run": 4000,
+      "risk": "None: every obligation stays."
+    },
+    {
+      "id": "C-5",
+      "pattern": "The status block and the narrative say the same thing in every head.",
+      "evidence": "Status is 519-617 chars and the narrative 815-1031 chars per head. The status hook's compact() reads only the Where, Done, Next, 'Waiting on you' and Stopped rows. Run:, Stages: and Completed: repeat the narrative's progress bar, Ahead and Achieved lines.",
+      "proposal": "Drop the Run:, Stages: and Completed: rows from the packet's status block and keep them in status.md and the status command. Check shiploop_status_hook.compact and test/shiploop-head-order first.",
+      "source": "shiploop_navigator.py:status_block; shiploop_status_hook.py:compact",
+      "est_chars_saved_run": 7500,
+      "risk": "Low. Confirm that no keepalive or progress reader parses Stages: from stdout."
+    },
+    {
+      "id": "C-6",
+      "pattern": "Owner question: the 'ShipLoop navigator' prefix. Who reads it, and is removing it safe?",
+      "evidence": "'ShipLoop navigator | <stage> | revision N' is read by shiploop_status_hook.py (HEADER = 'ShipLoop navigator | '; the status hook shows nothing unless the stdout body starts with it), by shiploop-run-review scripts/export.py ('where' field) and template/index.html (packet head start; SCHEMA.md documents this), and by about 20 test files (shiploop-head-order, -keepalive, -narrative, e2e-packet-anatomy and others). The Improve variant '| the <stage> result' is matched by the same HEADER. '# ShipLoop navigator result' is not parsed: shiploop_store reads only the ```shiploop-state fence, and ShipLoop also writes that heading into results/ records (store.dumps). The refusal prefix 'ShipLoop navigator: ' comes from shiploop_protocol.py main(). Its readers are docs/experiments scripts (cut_margin.py PREFIX, run-review-r22c collect.py regex) and about 89 test assertions. Keepalive does not read it; keepalive binds on 'Keepalive marker: SHIPLOOP-RUN'.",
+      "proposal": "The template heading can go now, or become '# Result': no parser reads it. The header line should stay. It is the stage identity line and the hook's trigger. Shortening it to 'ShipLoop | <stage> | revision N' needs a coordinated change of HEADER, export.py, index.html, SCHEMA.md and the tests, for about 10 chars per packet, so it is not worth doing alone. The refusal prefix can be shortened to 'ShipLoop: ' when the tests are next touched. That saves 10 chars per refusal (5 per run).",
+      "source": "shiploop_status_hook.py:HEADER; shiploop_navigator.py:_producer_blocks 'header' and improve_packet; shiploop_protocol.py main error print; shiploop_navigator.py:_result_contract_lines",
+      "est_chars_saved_run": 900,
+      "risk": "Dropping the header outright breaks the status hook and run-review packet anatomy. Owner rule 'one supported version' means no dual matching, so old exports would stop matching."
+    }
+  ],
+  "best_lines": [
+    "29 item 7, 'A case that cannot run here ... is unachievable. Leave its command out of `system_commands` ... Record it as an open item in `assumptions` ... `consumer` = the due stage': SYS-BOARD was recorded once at 29 and carried word for word through 31, 32 (as unverified) and 33, with no refusal and no attempt to fake a browser check.",
+    "29 item 6, the suite rules ('a non-runner (shell pipeline, grep, curl probe) is `check`, judged by exit code, no ids or min_tests'): the allow-list grep was recorded as a check row with no ids, and ShipLoop's rerun accepted all 4 rows on the first try.",
+    "31 'Test rerun' block, which lists each recorded command with its must-run IDs: the model ran the four commands verbatim (7590 s) and the stage was accepted on the first complete (7663 s). It was the cheapest stage in the group: 135 s of model time.",
+    "33 Checked by tail, '`complete --check-only` prints the first refusal without accepting': used at 8446 s, accepted, then the real complete at 8457 s. Zero refusals in steps 29-33.",
+    "32 item 3, the unverified entry shape (outcome, reason, check, owner, due_stage): one entry, accepted on the first try, 2.0 min for the stage.",
+    "30 handoff 'Review passes: ... The runtime ends the review on a pass you report trivial and satisfied ...': accurate. The runtime completed after one trivial pass. The model's surprise came from packet.json's required_trivial_reviews: 2, not from the handoff."
+  ]
+}
