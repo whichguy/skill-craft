@@ -697,22 +697,38 @@ def _revise_delta_lines(root: Path, state: Mapping[str, Any], stage: str, workit
 
 
 def _answered_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
-    """After a resume, the user's recorded reply to the wait this stage last blocked on."""
+    """After a resume, the user's recorded reply to the wait this stage last blocked on (the stage's own input: P1).
+
+    A reply to steps a person took (``present``) may answer only some of the cases asked.  In the reviewed run the
+    person answered "It loads and I can play it", left the itemized cases unconfirmed, and the stage blocked again on
+    the same ask (packet review 2026-10-17, F X-1, F-18); the last line says what such a reply settles and when
+    blocking again is right.
+    """
     history = state.get("history") or ()
     if not history or history[-1].get("outcome") != "blocked":
         return []
     action = history[-1]["action"]
-    if not isinstance(state["accepted"].get(action, {}).get("awaiting"), Mapping):
+    wait = state["accepted"].get(action, {}).get("awaiting")
+    if not isinstance(wait, Mapping):
         return []
     path = root / decision_path(action)
     try:
         decision = store.read_record(path)
     except Exception:  # noqa: BLE001 - a missing record renders as no reply
         return []
-    return ["", "The user's reply to the question this stage waited on (" + str(path) + "):",
-            "  Asked: " + str(decision.get("asked", "")),
-            "  Reply: " + str(decision.get("reply", "")),
-            "Act on this reply; it is the user's decision, recorded verbatim."]
+    lines = ["", "The user's reply to the question this stage waited on (" + str(path) + "):",
+             "  Asked: " + _bounded_packet_text(str(decision.get("asked", "")), limit=2000),
+             "  Reply: " + _bounded_packet_text(str(decision.get("reply", "")), limit=4000),
+             "Act on this reply; it is the user's decision, recorded verbatim."]
+    if wait.get("kind") == "present":
+        where = ("an open item in `assumptions` (consumer handoff, the reply quoted in its reason)"
+                 if history[-1]["stage"] in assumptions.OPEN_ITEM_STAGES else "not-run in `summary`, the reply quoted")
+        marked = state.get("delivery_contract_version") == consumer_delivery.DELIVERY_CONTRACT_VERSION
+        lines.append("Cases the reply leaves unanswered: record each as " + where + " and continue with the rest of "
+                     "this stage; block again only if the reply answers none of the asked cases"
+                     + (", or a required delivery obligation still has no passed observation (ask then for only its "
+                        "unanswered lines)" if marked else "") + ".")
+    return lines
 
 
 def _awaiting_text(wait: Mapping[str, Any]) -> str:
@@ -1905,6 +1921,9 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         "",
         *narrative_lines(state, timeline)]))
     blocks.append(_Block("duties", P0, ["Current stage guidance:", duties, ""]))
+    # The reply a resumed stage acts on is its own input, so a head prints it (file-only until 2026-10-17: the reviewed
+    # run's resumed release-verify found it only by opening the packet file, F-20).
+    blocks.append(_Block("answered", P1, _answered_lines(root, state)))
     blocks.extend(_stage_input_blocks(core, root, state, stage, action_id, workitem, inner))
     blocks.append(_Block("result", P0, [
         *_result_contract_lines(root, state, stage, action_id, workitem), ""]))
@@ -1940,7 +1959,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
             + "#recursive-discovery-and-experiments",
             "Navigator adapter: " + str(_reference_dir(core) / "research-loop.md") + "#navigator-execution-mode-adapter"]))
     blocks.append(_Block("deltas", FILE_ONLY, [
-        *_answered_lines(root, state), *_replan_delta_lines(root, state, stage),
+        *_replan_delta_lines(root, state, stage),
         *_revise_delta_lines(root, state, stage, workitem), *_knowledge_lines(root, state, stage)]))
     blocks.append(_Block("lint-records", FILE_ONLY, _lint_lines(core, root, state, stage, action_id, commands=False)))
     if stage == quality.STAGE:
@@ -6040,13 +6059,46 @@ def _improve_pass_line(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             "CHILD/reviews/review-<n>.md, then run: " + _callback(core, root, "improve-pass", action=improve_id(state)))
 
 
+def _improve_recovery_lines(core: Any, root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """What this review has already recorded and the one next command, for a model that lost its context mid-review.
+
+    Packet review 2026-10-17, E step 30: a compaction after improve-pass recorded pass 1 reprinted this packet with no
+    word of it; the model took review-1.md for unsubmitted, rewrote it and redid the pass (about 390 s).  The line is
+    built from the names of the files in the review directory alone (a render reads no host file): improve-pass's
+    ``pass-<n>.json`` and the review files.  Its next command is improve-pass, which is safe after any of the states a
+    compaction leaves: it prints a recorded pass's runtime done again when that has not run, and otherwise its refusal
+    names the next step (the next pass's review file, or the stage's complete once the loop has ended).  Empty before
+    the first review file, so the packet a review begins with is unchanged.
+    """
+    reviews = improve_reviews_dir(child)
+    if not reviews.is_dir():
+        return []
+    names = [path.name for path in reviews.iterdir()]
+    passes = {int(match.group(1)) for name in names if (match := re.fullmatch(r"pass-([1-9][0-9]*)\.json", name))}
+    files = {int(match.group(1)) for name in names if (match := REVIEW_FILE.fullmatch(name))}
+    recorded, written = sorted(passes), sorted(files - passes)
+    if not recorded and not written:
+        return []
+    command = _callback(core, root, "improve-pass", action=improve_id(state))
+    parts = []
+    if recorded:
+        parts.append(("passes " + ", ".join(map(str, recorded)) + " are" if len(recorded) > 1 else
+                      "pass " + str(recorded[0]) + " is") + " recorded by improve-pass: do not redo a recorded pass")
+    if written:
+        parts.append(", ".join("review-" + str(number) + ".md" for number in written)
+                     + " is written but not recorded (finish it if needed)")
+    return ["Review progress (from this review's files): " + "; ".join(parts) + ". Next command: " + command
+            + " (it prints a recorded pass's done again if that has not run; otherwise it names the next step)."]
+
+
 def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
                    timeline: Mapping[str, Any] | None = None) -> str:
     """An Improve packet: invoke the improve skill, then run the done command (plus the hooks' machine lines).
 
     The bound packet is its two instructions and carries no owner rule and no pointer (D-26: it was followed exactly, 4 of
     4); a packet that asks for a bind or a restart keeps the ``next`` pointer, because its model has no instruction yet to
-    come back to.
+    come back to.  Once the review has written a file, one review-progress line follows the two instructions
+    (``_improve_recovery_lines``).
     """
     child = state["active_improve"]
     action_id, stage = child["action_id"], child["stage"]
@@ -6074,7 +6126,8 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
                   "   After each review pass, write its review-<n>.md (form: the handoff's Evidence line), then run: "
                   + _callback(core, root, "improve-pass", action=improve_id(state)),
                   "2. When the improve skill has completed, run: "
-                  + _callback(core, root, "complete", action=improve_id(state))]
+                  + _callback(core, root, "complete", action=improve_id(state)),
+                  *_improve_recovery_lines(core, root, state, child)]
     lines += [
         # Keepalive hooks bind a host session to this run from this exact line.
         f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",

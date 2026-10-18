@@ -986,6 +986,77 @@ def allowed_outcomes(head: str) -> list[str]:
     return [part.strip().split(" ", 1)[0].rstrip(".") for part in line.removeprefix("Allowed outcomes: ").split(" | ")]
 
 
+class PersonObservationRouteTests(RealCliCase):
+    """A check only a person can make, asked once as a fill-in list; a partial reply lets the stage continue.
+
+    Packet review 2026-10-17, F X-1 and F-18 (the chess run, steps 37-38): release-verify asked seven prose steps; the
+    person replied "It loads and I can play it", left the itemized cases unconfirmed, and the resumed stage blocked again
+    on the same ask, so operations and handoff never ran.  The resumed print now carries the reply and what it settles;
+    the route it names (the unanswered cases recorded not-run as open items for handoff, then done) is submitted through
+    the real gate here and reaches the handoff packet.
+    """
+
+    WAIT = {"kind": "present",
+            "steps": ["Open the app's board at the path /app/board. If it is missing or says the page does not exist, "
+                      "answer '1. missing' and stop there."],
+            "report": "1. the board opens: yes/no; 2. after one move, the other side is to move: yes/no; "
+                      "3. after a finished game, the result shows and a further click changes nothing: yes/no",
+            "no_default": "Only a signed-in person can play the released board; this host has no session."}
+    REPLY = "1. yes. It loads and I can play it. I did not go through lines 2 and 3; record those as not confirmed."
+
+    def open_item(self, ident: str, line: str) -> dict:
+        return {"id": ident, "assumption": "Board line " + line + " holds in the released board.", "disposition": "open",
+                "check": "the person plays line " + line + " on /app/board and reports yes or no",
+                "reason": "not-run: the reply left it unanswered: " + json.dumps(self.REPLY),
+                "consumer": "handoff", "owner": "the user"}
+
+    def test_a_partial_reply_completes_release_verify_with_the_unanswered_cases_open_for_handoff(self) -> None:
+        run, head = self.new_run("release-verify")
+        command, path, blocked = printed_callback(head)
+        guidance = " ".join(head.split())
+        for words in ("step 1 reaches the consumer entry", "one yes/no line per case",
+                      "The run's exclusions bind the run, not the person", "an unanswered case is not-run"):
+            self.assertIn(words, guidance)  # the ask's shape and the partial-reply rule, before the person is asked
+        write_block(path, {"outcome": "blocked", "blocked_by": "user", "headline": "A person must play the board.",
+                           "summary": "Every other case passed; the board needs a signed-in person.",
+                           "evidence_refs": [str(self.evidence)], "awaiting": self.WAIT})
+        self.accepted(command)
+        self.assertEqual(self.state(run)["status"], "blocked")
+        resumed = self.cli("resume", "--run-dir", str(run), "--observed", self.REPLY)
+        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+        printed = resumed.stdout  # what the host prints: the head when the packet passes the print limit
+        # The reply and what it settles are in the print itself, not only in the packet file (F-20).
+        self.assertIn("  Reply: " + self.REPLY, printed)
+        rule = next(row for row in printed.splitlines() if row.startswith("Cases the reply leaves unanswered: "))
+        self.assertIn("an open item in `assumptions` (consumer handoff, the reply quoted in its reason)", rule)
+        self.assertIn("block again only if the reply answers none of the asked cases", rule)
+        self.assertNotIn("delivery obligation", rule)  # this run has no delivery contract
+        self.assertLess(printed.index(rule), printed.index("Result template:"))
+        command, path, action = printed_callback(printed)
+        self.assertNotEqual(action, blocked)
+        # Follow the rule: line 1 passed on the reply, lines 2 and 3 not-run, then done (no second ask).
+        home = self.repo_of(run) / knowledge.HOME
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "environment.md").write_text("# Environment\n\nThe board's entry is /app/board.\n", encoding="utf-8")
+        done = {**self.fill_done(printed),
+                "summary": "Case 1 passed on the person's reply (decision record); cases 2 and 3 are not-run, open for "
+                           "handoff with the reply quoted; no requirement they cover is claimed met.",
+                "evidence_refs": [str(run / nav.decision_path(blocked))],
+                "assumptions": [self.open_item("CASE-2", "2"), self.open_item("CASE-3", "3")]}
+        write_block(path, done)
+        out = self.accepted(command)
+        state = self.state(run)
+        self.assertEqual((state["status"], nav.current_stage(state)), ("active", "operations"))
+        self.assertEqual([row["id"] for row in self.recorded(run, action)["assumptions"]], ["CASE-2", "CASE-3"])
+        command, path, _ = printed_callback(out)
+        write_block(path, self.fill_done(out))
+        handoff = " ".join(full_packet_text(self.accepted(command)).split())
+        self.assertIn("ShipLoop navigator | handoff | ", handoff)
+        for ident in ("CASE-2", "CASE-3"):
+            self.assertIn(ident, handoff)  # carried to handoff as open items, not dropped
+        self.assertIn("not-run: the reply left it unanswered", handoff)
+
+
 class StepSizingRouteTests(RealCliCase):
     """The step-sizing gate (owner, 2026-10-10): each refusal names its fault, and the sized plan is accepted.
 

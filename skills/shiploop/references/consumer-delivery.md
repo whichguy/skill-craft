@@ -199,10 +199,15 @@ the steps for the person (the entry point, for example a URL or menu entry, and
 the action) and what they should report back, and verify every other case. When
 the release cannot be accepted without that observation, report `release-verify`
 blocked with `awaiting` kind `present` and its `no_default`; the person's report
-(`resume --observed "<their words>"`) resumes it. Then resume verification of the
-same candidate. The feature remains unverified; do not automatically repush
-or upload again just to create a fresh receipt. If the candidate/target changes
-instead, follow the replanning boundary.
+(`resume --observed "<their words>"`) resumes it. Ask once and answerably: step 1
+reaches the consumer entry and says what to answer if it is missing or hidden,
+and the report is one yes/no line per case. Then resume verification of the
+same candidate. A reply that leaves a case unanswered records it not-run and
+open for handoff, but closes no required behavior obligation: while one still
+has no passed observation, ask again for only its unanswered lines. The feature
+remains unverified; do not automatically repush or upload again just to create a
+fresh receipt. If the candidate/target changes instead, follow the replanning
+boundary.
 
 ## Evidence and limits
 

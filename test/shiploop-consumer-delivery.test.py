@@ -1242,5 +1242,44 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(state, "handoff")
         self.assertEqual((state["stage"], state["status"]), ("done", "done"))
 
+    def test_a_partial_person_reply_closes_no_required_behavior_and_the_ask_again_it_names_is_accepted(self) -> None:
+        """Packet review 2026-10-17 (F X-1): a reply that leaves cases unanswered lets a stage continue with them open,
+        but in a marked run it closes no required behavior obligation.  The resumed packet says so; done with the
+        obligation unrun is refused by the delivery gate, and the route the line names (ask again, for only the
+        unanswered lines) is accepted."""
+        state = self.to_release(self.accepted_contract(self.new_state()))
+        state = self.advance(state, "release",
+                             delivery_assessment=self.observation(state, "update-effect", "update-identity"))
+        asked = navigator.current_action(state)["id"]
+        wait = {"kind": "present", "steps": ["Open the board's entry; if it is missing, answer '1. missing' and stop."],
+                "report": "1. the board opens: yes/no; 2. a drag moves the piece: yes/no",
+                "no_default": "Only a signed-in person can drag on the released board."}
+        state = navigator.apply(state, asked, self.result(
+            outcome="blocked", blocked_by="user", summary="The drag needs a person.", awaiting=wait,
+            delivery_assessment=self.observation(state, "visual-drag", status="blocked")))
+        reply = "1. yes. I did not try the drag."
+        state = navigator.control(state, "resume", observed=reply)
+        # What dispatch records on resume (decisions/<action>.md), which the resumed packet quotes.
+        navigator.store.atomic_write_text(self.root / navigator.decision_path(asked), navigator.store.dumps(
+            {"action": asked, "kind": "present", "asked": navigator._awaiting_text(wait), "reply": reply,
+             "recorded_at": "2026-10-17T00:00:00Z"}, "ShipLoop user decision"))
+        packet = " ".join(navigator.render(None, self.root, state).split())
+        self.assertIn("Reply: " + reply, packet)
+        self.assertIn("or a required delivery obligation still has no passed observation (ask then for only its "
+                      "unanswered lines)", packet)
+        self.refused_at_apply(
+            state, "required release-verify behavior obligations are not current",
+            delivery_assessment=self.observation(state, "visual-drag", status="unrun"),
+            assumptions=[{"id": "CASE-2", "assumption": "A drag moves the piece.", "disposition": "open",
+                          "check": "the person drags a piece and reports yes or no",
+                          "reason": "not-run: the reply left it unanswered: " + reply, "consumer": "handoff",
+                          "owner": "the user"}])
+        again = dict(wait, steps=["Open the board's entry and drag one piece."], report="2. a drag moves the piece: yes/no")
+        state = navigator.apply(state, navigator.current_action(state)["id"], self.result(
+            outcome="blocked", blocked_by="user", summary="Line 1 passed; the drag is still unanswered.",
+            awaiting=again, delivery_assessment=self.observation(state, "visual-drag", status="unrun")))
+        self.assertEqual((state["status"], navigator.awaiting(state)[1]["report"]),
+                         ("blocked", "2. a drag moves the piece: yes/no"))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
