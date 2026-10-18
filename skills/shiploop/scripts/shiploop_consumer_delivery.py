@@ -841,6 +841,13 @@ def _exclusions_line(contract: Mapping[str, Any]) -> str:
     return "Delivery exclusions: " + ("; ".join(_packet_text(value) for value in contract["exclusions"]) or "none declared")
 
 
+def exclusions_lines(state: Mapping[str, Any]) -> list[str]:
+    """The accepted contract's exclusions line, for a text that names the request by its file and prints no delivery block
+    (the Improve handoff; owner decision D2, 2026-10-17); [] when the run has no accepted contract."""
+    projection = project(state)
+    return [_exclusions_line(projection["contract"])] if projection["enabled"] and projection["contract"] else []
+
+
 def anchor_lines(projection: Mapping[str, Any]) -> list[str]:
     """What every stage outside ``WHOLE_BLOCK_STAGES`` prints of an accepted contract: where it is, the obligations it
     still holds the run to (ids with their phase) and the standing exclusions.  The rest is in the record the anchor names."""

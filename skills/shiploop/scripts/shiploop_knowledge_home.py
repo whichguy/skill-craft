@@ -9,7 +9,8 @@ message after every accepted stage that changed it.
     docs/shiploop/environment.md     targets, commands, harnesses and suites, the ID convention, platform facts
     docs/shiploop/architecture.md    stack, structure, conventions, interfaces, real-boundary checks; stable decision IDs
 
-Every packet quotes the files its stage reads (``READS``) whole.  A run's per-stage records are result fields in its
+Every packet lists the files its stage reads (``READS``) by path, size and table of contents (``outline``; owner decision
+D1, 2026-10-17), and quotes by value only the entries its stage follows.  A run's per-stage records are result fields in its
 state, quoted to their consumers (consumer contract 2026-10-11); release-verify's ``lessons`` become the body of that
 stage's knowledge commit, which the next run's intake and discovery quote (``last_lessons``).
 
@@ -45,7 +46,7 @@ ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), t
 # real-boundary checks); README.md was an index nothing read.  An old repository's copies are left in place, unnamed.
 LIVING = ("spec.md", "environment.md", ARCHITECTURE)
 # The named sections of the living files, as the headings the section notice (``section_notices``) looks for: a counted nudge,
-# never a refusal, and no quote depends on one (packets quote whole files, ``READS``).  A heading is the text after the ``#``
+# never a refusal, and no listing depends on one (a packet lists every heading, ``outline``).  A heading is the text after the ``#``
 # marks; a spec's acceptance criteria stay inside each requirement, with no heading of their own.  ARCHITECTURE_HOLDS above
 # says what the architecture file holds in prose; a test pins that every heading it names is here.  ``Skills`` is the
 # repository's local skill directory; ``Harnesses and suites`` holds each suite with its files and command, and the system-test
@@ -94,9 +95,10 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "release-verify": ("environment.md",),
 }
 
-# What each stage's packet quotes from the living files (consumer contract 0A, owner decision D1, 2026-10-11): whole files,
-# never a section, because heading matching missed most real homes and the files are small.  Every stage has a row; an empty
-# row quotes nothing.  The inner-loop renderer prints ``reads_quotes`` for it.
+# The living files each stage's packet lists by contents (consumer contract 0A; owner decisions D1 2026-10-11 and D1
+# 2026-10-17): every whole file, never a section, as its path, size and table of contents (``outline``), not its text: the
+# models reopened the files anyway, and the whole quotes were 53% of a run's packet text.  Every stage has a row; an empty
+# row lists nothing.  The renderer reads each file with ``reads_quotes``.
 _S, _E, _A = "spec.md", "environment.md", ARCHITECTURE
 READS: Dict[str, Tuple[str, ...]] = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
@@ -109,10 +111,8 @@ READS: Dict[str, Tuple[str, ...]] = {
 
 
 class Quote(NamedTuple):
-    """One living file quoted whole into a packet: its name, absolute path and text (None when absent, blank or
-    unreadable).
-    """
-    file: str             # the living file's name under HOME, as READS names it
+    """One living file a packet lists: its name, absolute path and text (None when absent, blank or unreadable)."""
+    file: str            # the living file's name under HOME, as READS names it
     path: Path            # absolute, in the execution checkout
     text: Optional[str]   # the whole file, uncut; None when it is absent, blank or cannot be read
 
@@ -599,6 +599,56 @@ def entry_text(repo: Path, ident: str) -> Optional[str]:
     return found.text if found else None
 
 
+class Section(NamedTuple):
+    """One line of a living file's table of contents (``outline``)."""
+    level: int                              # the heading's marks (1-4); 0 for the text before the first heading
+    title: str                              # the heading's text ("" for level 0)
+    entries: Tuple[Tuple[str, str], ...]    # (ID, heading text) of each entry under it, in file order; the text is ""
+                                            # for an entry that starts on a line that is not a heading
+
+
+def outline(text: str, name: str) -> List[Section]:
+    """The table of contents of living file ``name`` (owner decision D1, 2026-10-17): each heading outside fenced code that
+    is not an entry, in order, with the entries that start under it.
+
+    The entries are spec.md's R-<n> or architecture.md's AD-<n> (``_ENTRY_FILES``), each at its first start (the
+    ``_entries`` rule).  An entry that is a heading (``### R-3 Castling``) belongs to the section above it, with its heading
+    text, and a heading inside its span (``#### Acceptance``) is part of the entry, not a section.  Entries before the
+    first heading form a level-0 section; a file with neither gives [].  Text only: no file, no Git.
+    """
+    prefix = next((key for key, (file, _) in _ENTRY_FILES.items() if file == name), None)
+    lines = text.splitlines()
+    fenced = _fenced(lines)
+    headings = {index: (level, title) for index, level, title in _outline(lines)}
+    sections: List[Section] = []
+    level, title, entries, seen = 0, "", [], set()
+    inside = 0  # the level of the entry heading whose span this line is in; 0 outside one
+    for index, line in enumerate(lines):
+        found = _ENTRY_START.match(line) if prefix and not fenced[index] else None
+        ident = found.group(1) if found and found.group(1).startswith(prefix + "-") else None
+        if index in headings:
+            mark = headings[index][0]
+            if inside and mark > inside:
+                continue                                     # a heading inside an entry's span
+            inside = 0
+            if ident is not None:                            # an entry that is a heading
+                inside = mark
+                if ident not in seen:
+                    seen.add(ident)
+                    entries.append((ident, headings[index][1]))
+                continue
+            if level or entries:
+                sections.append(Section(level, title, tuple(entries)))
+            (level, title), entries = headings[index], []
+            continue
+        if ident is not None and ident not in seen:
+            seen.add(ident)
+            entries.append((ident, ""))
+    if level or entries:
+        sections.append(Section(level, title, tuple(entries)))
+    return sections
+
+
 def knowledge_subject(state: Mapping[str, Any], stage: str) -> str:
     """The subject of the commit that records this run's knowledge at (a close) or after (any other) ``stage``."""
     return ("docs(shiploop): record " + run_label(state) + " knowledge "
@@ -788,6 +838,7 @@ __all__ = ("ARCHITECTURE",
            "RUN_BASELINE",
            "SECTIONS",
            "STAGE_FILES",
+           "Section",
            "check",
            "command_notices",
            "commit",
@@ -800,6 +851,7 @@ __all__ = ("ARCHITECTURE",
            "lessons_body",
            "lessons_lines",
            "next_close",
+           "outline",
            "reads_quotes",
            "recent_commits",
            "record_baseline",

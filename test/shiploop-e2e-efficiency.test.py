@@ -328,6 +328,14 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(set(found), {"spec.md", "environment.md", "handoffs"})
         self.assertTrue(100 < found["spec.md"] < 200 and 50 < found["environment.md"] < 150 and 30 < found["handoffs"] < 150)
         self.assertEqual(metrics.quote_regions("ShipLoop navigator | step-plan | revision 1\nGoal: g\n"), {})
+        # A packet since 2026-10-17 lists each file by contents; the region of each is its listing.
+        listed = (navigator.READS_HEAD + "\nHOME/spec.md (16027 bytes, 188 lines), contents:\n  ## Requirements: R-1..R-6\n"
+                  "HOME/environment.md: not written yet (discovery writes it)\n"
+                  "HOME/architecture.md (6114 bytes, 69 lines), contents:\n  ## Stack\n"
+                  + navigator.HANDOFF_HEAD + "\nfollows (W1 step-plan): none\n" + navigator.REQUEST_POINTER + "\n")
+        found = metrics.quote_regions(listed)
+        self.assertEqual(set(found), {"spec.md", "architecture.md", "handoffs"})
+        self.assertTrue(70 < found["spec.md"] < 160 and 40 < found["architecture.md"] < 70 and 100 < found["handoffs"] < 200)
 
     def test_grok_result_shapes_are_read_for_every_tool(self) -> None:
         def update(**raw) -> dict:
@@ -699,10 +707,13 @@ class HomeFixtureTests(unittest.TestCase):
                 self.assertNotIn(word, text.lower())
         self.assertIn("R-1:", home_fixtures.document("spec.md", 500))
 
-    def test_a_long_home_makes_the_packets_larger_and_a_small_one_barely(self) -> None:
+    def test_a_long_home_adds_only_its_contents_lists_to_the_packets(self) -> None:
+        """Packets list the knowledge files by contents (owner decision D1, 2026-10-17): a 36 KB home adds its tables of
+        contents, not its text (the walk's packet files were 2.1 times the empty home's while they quoted it whole)."""
         empty, small, long = (home_fixtures.sizes(kind) for kind in ("empty", "small", "long"))
         self.assertEqual(empty["packets"], 33)
-        self.assertGreater(long["file_chars"], 1.8 * empty["file_chars"])
+        self.assertGreater(long["file_chars"], empty["file_chars"])
+        self.assertLess(long["file_chars"], 1.1 * empty["file_chars"])
         self.assertLess(small["file_chars"], 1.1 * empty["file_chars"])
 
     def test_a_small_homes_packets_have_the_same_fingerprints_on_every_walk(self) -> None:

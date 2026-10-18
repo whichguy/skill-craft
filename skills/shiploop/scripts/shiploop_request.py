@@ -1,7 +1,8 @@
 """The run's request as a file: verbatim, then split into sentences S1..Sn (efficiency plan U17, rev 4 Step 4.2a).
 
 ``RUN/request.md`` is derived from ``state["prompt"]`` at every save.  The split is a display index a stage cites
-(``S<n>``); the verbatim text governs, and every packet still quotes the request whole (decision D-2).  Intake's summary
+(``S<n>``); the verbatim text governs.  The intake, spec and plan packets quote the request whole; every other packet
+names this file (owner decision D2, 2026-10-17; ``shiploop_navigator.REQUEST_WHOLE_STAGES``).  Intake's summary
 is measured against the index: a sentence it does not cite gets a counted notice, never a refusal.
 """
 from __future__ import annotations
@@ -56,8 +57,8 @@ def render(prompt: str) -> str:
         "# Request",
         "",
         "ShipLoop writes this file from the run's request: the request verbatim, then the same text split into "
-        "sentences S1..Sn. The split is a display index for citing a sentence (S<n>); the verbatim text governs, and "
-        "every packet quotes it too.",
+        "sentences S1..Sn. The split is a display index for citing a sentence (S<n>); the verbatim text governs. The "
+        "intake, spec and plan packets quote it too; every other packet names this file.",
         "",
         "## Verbatim",
         "",

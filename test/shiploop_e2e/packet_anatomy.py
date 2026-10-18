@@ -162,6 +162,8 @@ RULES: tuple[Rule, ...] = (
        r"Give the executing agent only the current action packet)"),
     # --- the original request (_request_block)
     _r("original-request", r"^Original request \(", "until", r"^Only the END marker carrying tag"),
+    # Outside intake, spec and plan the request is named by its file (owner decision D2, 2026-10-17).
+    _r("original-request", r"^Original request: "),
     # --- workspace / return block (render(): navigator-worktree)
     _r("workspace-return", r"^(Execution checkout|Workspace authority and original branch|Return plan|Return receipt|"
        r"Current workspace return|Historical host reports in accepted|All product work happens|"
@@ -210,6 +212,9 @@ RULES: tuple[Rule, ...] = (
     _r("carried-sources", r"^(Knowledge files this stage reads|Handed off by earlier stages)"),
     _r("carried-sources", r"^HOME/\S+: not written yet"),
     _r("carried-sources", r"^HOME/\S+ \(source: HOME/\S+, whole file\):$", "indent"),
+    # Since 2026-10-17 (owner decision D1) a file is listed by contents, and a new file's diff is a pointer with them.
+    _r("carried-sources", r"^HOME/\S+ \(\d+ bytes, \d+ lines?\)(, contents:|, no headings)$", "indent"),
+    _r("carried-sources", r"^HOME/\S+: new since the baseline, so its diff is the whole file", "indent"),
     _r("carried-sources", r"^open items for \S+:$", "listing"),
     _r("carried-sources", r"^(open items( for \S+)?: none open|[a-z_]+ \([^)]*\):( not recorded.*)?$)", "listing"),
     _r("carried-sources", r"^If a carried decision is missing"),

@@ -278,8 +278,8 @@ command and the packet file's path), the callback, the owner rule, the goal and
 done-when, the Until Loop block, the progress block, the stage's duties and rules, the stage's own input (the work item,
 the step with its paths, skills and check commands, the test floors, the rerun list, the queue rule), the result
 template and allowed outcomes; then, while the head fits 20,000
-characters, the References block, the pass log, the progress view and the pause command; and the quoted knowledge
-files and hand-offs when the head stays within 16,000. Every print, whole or head, ends with the line
+characters, the References block, the pass log, the progress view and the pause command; and the knowledge files'
+contents (each file's size and headings; open the file for its text) and the hand-offs. Every print ends with the line
 `=== end ShipLoop head ===`: a print without it was cut (by the host, or by a pipe such as `head -N`), so run the
 command again with no pipe or read the packet file. Read the packet file with a file-reading tool for what the
 head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps the first and last 10 KB of

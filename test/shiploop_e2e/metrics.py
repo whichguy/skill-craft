@@ -1913,13 +1913,17 @@ READER = re.compile(r"\b(?:cat|head|tail|sed|grep|egrep|awk|less|more|rg|nl|wc|j
 SLICING_COMMAND = re.compile(r"\|\s*(?:head|tail|sed|grep|awk)\b|^\s*(?:head|tail|sed|grep|awk)\b|\b(?:sed -n|grep)\b")
 SHELL_VARIABLE_ANY = re.compile(r"\$[\w{(]")
 SKILL_TOOLS = ("Skill",)
-# Where the quoted knowledge of a packet sits (shiploop_navigator._consumer_lines): a header, then one block per file.
-QUOTE_START = re.compile(r"^Knowledge files this stage reads, each quoted whole and uncut", re.M)
-QUOTE_FILE = re.compile(r"^(?P<name>\S+) \(source: [^)\n]*\):[ \t]*$", re.M)
+# Where the knowledge of a packet sits (shiploop_navigator._consumer_lines): a header, then one block per file: the file
+# quoted whole ("HOME/spec.md (source: ..., whole file):", before 2026-10-17) or listed by contents ("HOME/spec.md (16027
+# bytes, 188 lines), contents:", owner decision D1).  The request is quoted whole at intake, spec and plan, and named by its
+# file elsewhere ("Original request: RUN/request.md ...", decision D2), which quotes nothing.
+QUOTE_START = re.compile(r"^Knowledge files this stage reads", re.M)
+QUOTE_FILE = re.compile(r"^(?P<name>\S+) \((?:source: [^)\n]*|\d+ bytes, \d+ lines?)\)(?::|, contents:|, no headings)[ \t]*$",
+                        re.M)
 QUOTE_HANDOFFS = re.compile(r"^Handed off by earlier stages, quoted by value", re.M)
 QUOTE_REQUEST = re.compile(r"^Original request \(", re.M)
-QUOTE_STOPS = re.compile(r"^(?:Recovery command|Original request \(|Last accepted transition|Work item:|Current stage guidance:|"
-                         r"Evidence references|Handed off by earlier stages)", re.M)
+QUOTE_STOPS = re.compile(r"^(?:Recovery command|Original request[ (:]|Last accepted transition|Work item:|"
+                         r"Current stage guidance:|Evidence references|Handed off by earlier stages)", re.M)
 
 
 def file_class(path: str) -> str | None:
@@ -2243,7 +2247,7 @@ def reading_path(out: Path, run_dir: Path | None = None, *, limit_events: int | 
                 continue  # Grok repeats an update for one call; Codex's reused ids were discarded in ToolLog.call
             chars[call_id] = len(shown)
             seen_at[call_id] = number
-            if PACKET_STAGE.search(shown) or "quoted whole and uncut" in shown or "Original request (" in shown:
+            if PACKET_STAGE.search(shown) or QUOTE_START.search(shown) or "Original request (" in shown:
                 kept[call_id] = unnumbered(shown)
     order = list(tools.calls)
     classes = {key: classify_call(*args.get(key, ("", {})), kept.get(key, "")) for key in order}

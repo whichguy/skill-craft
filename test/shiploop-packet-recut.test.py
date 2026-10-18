@@ -321,7 +321,7 @@ class PrintedHeadTests(unittest.TestCase):
                 continue  # the file (a whole print's text) and the Improve packets have no head to check
             with self.subTest(packet=key):
                 self.assertNotIn("in the full packet, each quoted whole", text)  # nothing stands in for what was left out
-                self.assertIn("the knowledge files quoted whole and the hand-offs", text)  # line B says the file holds them
+                self.assertIn("the hand-offs, the knowledge files' contents and the request or its file", text)  # line B says the file holds them
                 self.assertIn("Current stage guidance:", text)
                 self.assertIn("Run ShipLoop commands in the foreground", text)  # the rules' own text, not a pointer line
 
@@ -343,7 +343,7 @@ class OwnerLinesTests(unittest.TestCase):
     POINTER = re.compile(r"^Lost context, or unsure\? Run (python3 \S+ next --run-dir=\S+) \(it reprints this step\)\.$")
     PACKET = re.compile(r"^Full packet: (/\S+\.md) - open it with a file tool, not the shell, when this print was cut \(a complete "
                         r"print ends with the line === end ShipLoop head ===\); it also "
-                        r"holds the original request, the knowledge files quoted whole and the hand-offs\. Its References block "
+                        r"holds the hand-offs, the knowledge files' contents and the request or its file\. Its References block "
                         r"lists the other references and what each holds; open only the section a step needs, never a whole "
                         r"reference file, and do not re-read the ShipLoop skill card\.$")
 
@@ -390,8 +390,8 @@ class OwnerLinesTests(unittest.TestCase):
                          "Lost context, or unsure? Run python3 /i/shiploop next --run-dir=/r/run (it reprints this step).")
         self.assertEqual(prompts.packet_pointer("/r/run/packets/a.md", navigator.HEAD_END),
                          "Full packet: /r/run/packets/a.md - open it with a file tool, not the shell, when this print was cut "
-                         "(a complete print ends with the line === end ShipLoop head ===); it also holds the original "
-                         "request, the knowledge files quoted whole and the hand-offs. "
+                         "(a complete print ends with the line === end ShipLoop head ===); it also holds the hand-offs, the "
+                         "knowledge files' contents and the request or its file. "
                          "Its References block lists the other references and what each holds; open only the section a step "
                          "needs, never a whole reference file, and do not re-read the ShipLoop skill card.")
         scripts = ROOT / "skills/shiploop/scripts"

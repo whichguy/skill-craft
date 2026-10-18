@@ -346,8 +346,12 @@ class HandoffTests(unittest.TestCase):
                     # what stays beside the action: the per-run facts and the exact commands
                     for kept in ("Selected Improve skill: ", "Child workspace: ", "Optional, for later steps: lessons in",
                                  "Pause parent without losing child: python3 shiploop pause --run-dir=",
-                                 "--restart-stopped", "Original request (preserve user scope"):
+                                 "--restart-stopped"):
                         self.assertIn(kept, text)
+                    # The request whole where the reviewed stage quotes it (owner decision D2, 2026-10-17), else its file.
+                    whole = stage in nav.REQUEST_WHOLE_STAGES
+                    self.assertEqual("Original request (preserve user scope" in text, whole)
+                    self.assertEqual(nav.REQUEST_POINTER in text, not whole)
 
     def test_the_implement_handoff_is_within_pilot_a(self):
         for route, handoffs in self.walks.items():
