@@ -624,7 +624,9 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                              help="run this stage's script gates on the result and report, without completing the "
                                   "action (an Until Loop's way to observe its exit conditions before done)")
         if name == "complete":
-            sub.add_argument("--notes", help="optional plain-text lessons from the review, for later steps")
+            sub.add_argument("--notes", metavar="FILE",
+                             help="optional: the path of a plain-text file (not the text itself) holding the review's "
+                                  "lessons for later steps; the handoff names the file to write")
             sub.add_argument("--final-result", dest="final_result",
                              help="optional step-result record, only when the review changed a decision")
             sub.add_argument("--no-commit", dest="no_commit",

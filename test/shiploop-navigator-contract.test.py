@@ -291,7 +291,7 @@ class NavigatorContractTests(unittest.TestCase):
         route that exists, improve-start --restart-stopped, and no other improve-start form."""
         self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "), packet.splitlines()[0])
         self.assertIn("1. Run the improve skill on the ", packet)
-        self.assertIn("/improve ShipLoop Improve: ", packet)
+        self.assertIn("       ShipLoop Improve: ", packet)
         self.assertIn("2. When the improve skill has completed, run: ", packet)
         self.assertRegex(packet, r"(?m)^2\. .* complete --run-dir=\S+ --action=nav-\S+$")
         self.assertNotIn("improve-complete", packet)

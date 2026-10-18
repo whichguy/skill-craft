@@ -144,8 +144,8 @@ class PacketCompletenessTests(unittest.TestCase):
                 # started the child at the transition).
                 self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "), stage)
                 self.assertIn("the " + stage + " result\n", packet.splitlines()[0] + "\n")
-                self.assertIn("1. Run the improve skill on the " + stage + " result.", packet)
-                self.assertIn("/improve ShipLoop Improve: ", packet)
+                self.assertIn("1. Run the improve skill on the " + stage + " result with this argument", packet)
+                self.assertIn("       ShipLoop Improve: ", packet)
                 self.assertIn("2. When the improve skill has completed, run: ", packet)
                 self.assertRegex(packet, r"(?m)^2\. .* complete --run-dir=\S+ --action=nav-\S+$")
                 reviewed_id, stage_id = self.found[(stage, "improve-ids")]
@@ -613,7 +613,7 @@ def symbol_paths(block: list) -> dict:
 # the loop runtime read.  The loop's start command (its own line) is a command too.
 LITERAL_LINES = re.compile(
     r"^(?:Start \(the card runs exactly this|Keepalive marker: |Full packet: |Progress view: |\s*\"evidence_refs\": \[|"
-    r"\s*/improve ShipLoop Improve: |Lost context, or unsure\? Run |"
+    r"\s*(?:/improve )?ShipLoop Improve: |Lost context, or unsure\? Run |"
     r"python3 .+ start --receipt )")
 
 
@@ -625,7 +625,7 @@ def prose_lines(packet: str) -> list:
     the Until Loop start command or its Start line; (2) the /until-loop argument, which the packet says to pass verbatim:
     the lines from the BEGIN marker to the END marker (``loops.ARGUMENT_BEGIN``, ``ARGUMENT_END``), so its Work,
     Exit, Contract and Receipt lines; (3) the Keepalive marker, the "Full packet:" line, the Progress view link, the
-    evidence_refs example, the `/improve ShipLoop Improve: ...` line and the index pointer line.  Every other line that
+    evidence_refs example, the Improve argument line (`ShipLoop Improve: ...`) and the index pointer line.  Every other line that
     holds a HOME, RUN, WORKTREE or GUIDES path is prose and is returned.
     """
     lines = packet.splitlines()
@@ -1093,7 +1093,7 @@ class ProseSymbolsTests(unittest.TestCase):
             '  "evidence_refs": ["' + str(self.RUN / "loops/nav-a-terminal.json") + '"],',
             "    Contract: " + str(self.RUN / "loops/nav-a-contract.json"),
             "    Work: Do duty items 1-4 of " + str(self.RUN / "packets/nav-a.md") + ", writing " + str(self.RUN / "inbox/nav-a.md"),
-            "       /improve ShipLoop Improve: " + str(self.RUN / ".shiploop-improve/nav-a/handoff.md"),
+            "       ShipLoop Improve: " + str(self.RUN / ".shiploop-improve/nav-a/handoff.md"),
             prompts.recovery_pointer(cli + " next --run-dir=" + str(self.RUN)),
             prompts.packet_pointer(self.RUN / "packets/nav-a.md", navigator.HEAD_END),
             "red-check: " + cli + " red-check --run-dir=" + str(self.RUN) + " --action=nav-a",

@@ -2723,8 +2723,10 @@ IMPROVE_CARRIED_RX = tuple((key, re.compile(rx, re.M)) for key, _, rx in IMPROVE
 # The compact Improve packet is recognized only when it carries both current actions and the run-bound keepalive marker.
 # Its detailed review context is in the separate handoff file named by the invocation line; this flag only distinguishes layout.
 IMPROVE_COMPACT_HANDOFF_RX = (
-    re.compile(r"^1\. Run the improve skill on the .+ result\. For example, on Claude Code:$", re.M),
-    re.compile(r"^\s+/improve ShipLoop Improve: .+/handoff\.md$", re.M),
+    # The invocation line up to the 2026-10-17 packet review ("result. For example, on Claude Code:" with "/improve <argument>"
+    # under it), and the host-neutral line after it ("result with this argument, ..." with the argument alone).
+    re.compile(r"^1\. Run the improve skill on the .+ result(?:\. For example, on Claude Code:| with this argument, )", re.M),
+    re.compile(r"^\s+(?:/improve )?ShipLoop Improve: .+/handoff\.md$", re.M),
     # `improve-complete` up to the release before the Improve stage became an action of its own; its `complete` after it.
     re.compile(r"^2\. When the improve skill has completed, run: .*(?:improve-complete| complete )", re.M),
     re.compile(r"^Keepalive marker: .* run=\S+ rev=\d+ dir=.+$", re.M),

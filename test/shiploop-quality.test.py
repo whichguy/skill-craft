@@ -201,11 +201,15 @@ class PromptTests(unittest.TestCase):
     def test_ui_work_defaults_to_a_rich_interactive_interface(self):
         self.assertIn("or the rich UI interaction the plan calls for", " ".join(prompts.CODE_CRAFT.split()))
         self.assertIn("a plain interaction where the plan called for a rich one", VERIFY_REVIEW)
-        self.assertIn("A human-facing UI defaults to an ambitious, highly interactive design",
+        # The request's stated ambition governs; rich is the default only when it states none (packet review
+        # 2026-10-17, A8-1: a "simple" request had to argue against the default).
+        self.assertIn("A human-facing UI takes the ambition the request states (a simple one when it asks for simple); "
+                      "one that states none defaults to an ambitious, highly interactive design",
                       " ".join(prompts.prompt("plan").split()))
         # step-plan: the interactions topic moved to the Plan record guide (U7); the duty names its trigger
         self.assertIn("changes interactions, UI or service state", " ".join(prompts.prompt("step-plan").split()))
-        self.assertIn("a human-facing UI defaults to ambitious and highly interactive", PLAN_RECORD)
+        self.assertIn("a human-facing UI takes the ambition the request states, and with none stated defaults to "
+                      "ambitious and highly interactive", PLAN_RECORD)
 
     def test_supporting_stages_carry_their_code_quality_duties(self):
         expected = {

@@ -136,20 +136,23 @@ def _correction_source(value: Any, label: str) -> dict[str, str]:
     return result
 
 
-def _authority(value: Any) -> dict[str, str]:
-    """Check a delivery authority mapping and return a dict of its fields; text is not stripped. ``approval_ref``
-    is returned only for ``repo-policy``, where it is required, and ``scope`` only when given. Raises
-    ``ConsumerDeliveryError`` for a non-mapping, unknown or missing field, invalid value, or non-null
-    ``approval_ref`` or ``standing`` scope on another kind.
+def _authority(value: Any, target: Any = None, operation: Any = None) -> dict[str, str]:
+    """Check a delivery authority mapping and return a dict of its fields; text is not stripped. ``target`` and
+    ``operation`` are the contract's: an authority that leaves its own out takes them (one value, written once: the
+    2026-10-17 run was refused twice for an authority whose copy differed from the contract's), and one that gives them
+    must match (``_contract``); without them the authority must give its own. ``approval_ref`` is returned only for
+    ``repo-policy``, where it is required, and ``scope`` only when given. Raises ``ConsumerDeliveryError`` for a
+    non-mapping, unknown or missing field, invalid value, or non-null ``approval_ref`` or ``standing`` scope on another
+    kind.
     """
     _need(isinstance(value, Mapping), "delivery authority must be an object")
     allowed = {"status", "kind", "reference", "approval_ref", "target", "operation", "scope"}
-    required = {"status", "kind", "reference", "target", "operation"}
+    required = {"status", "kind", "reference"}
     _need(set(value) <= allowed and required <= set(value),
           "delivery authority has unsupported or missing fields")
     status = value.get("status")
     _need(isinstance(status, str) and status in _AUTHORITY_STATUSES,
-          "delivery authority status is invalid")
+          "delivery authority status is invalid: write " + ", ".join(sorted(_AUTHORITY_STATUSES)))
     source = _correction_source(
         {key: value[key] for key in ("kind", "reference", "approval_ref") if key in value},
         "delivery authority",
@@ -157,8 +160,8 @@ def _authority(value: Any) -> dict[str, str]:
     result = {
         "status": status,
         **source,
-        "target": _text(value.get("target"), "delivery authority target"),
-        "operation": _text(value.get("operation"), "delivery authority operation"),
+        "target": _text(value.get("target", target), "delivery authority target"),
+        "operation": _text(value.get("operation", operation), "delivery authority operation"),
     }
     if "scope" in value:
         # A plain yes covers this run; standing needs the user's own words, kept as a repo policy.
@@ -224,13 +227,14 @@ def _contract(value: Any) -> dict[str, Any]:
     _need(set(value) == required, "delivery contract has unsupported or missing fields")
     necessity = value.get("necessity")
     _need(isinstance(necessity, str) and necessity in _NECESSITIES,
-          "delivery necessity is invalid")
-    authority = _authority(value.get("authority"))
+          "delivery necessity is invalid: write " + ", ".join(sorted(_NECESSITIES)))
     target = _text(value.get("target"), "delivery target")
     operation = _text(value.get("operation"), "delivery operation")
-    _need(authority["target"] == target, "delivery authority target does not match contract")
-    _need(authority["operation"] == operation,
-          "delivery authority operation does not match contract")
+    authority = _authority(value.get("authority"), target, operation)
+    _need(authority["target"] == target, "delivery authority target does not match contract; leave the authority's "
+          "target out and ShipLoop takes the contract's")
+    _need(authority["operation"] == operation, "delivery authority operation does not match contract; leave the "
+          "authority's operation out and ShipLoop takes the contract's")
     obligations = _obligations(value.get("obligations"))
     result = {
         "consumer": _text(value.get("consumer"), "delivery consumer"),
@@ -612,19 +616,37 @@ def _late_unrepairable_rows(
     return [row for row in _pending(projection) if row["kind"] in earlier_kinds]
 
 
+def _require_settled(contract: Mapping[str, Any]) -> None:
+    """Refuse a contract whose necessity is unresolved, or required with its authority not approved (``_unsettled``)."""
+    _need(contract["necessity"] != "unresolved",
+          "delivery necessity is unresolved; submit blocked with the needed decision")
+    if contract["necessity"] == "required":
+        _need(contract["authority"]["status"] == "approved",
+              "delivery authority is unresolved; submit blocked with the needed approval")
+
+
 def _require_release_ready(projection: Mapping[str, Any]) -> None:
     contract = projection.get("contract")
     _need(isinstance(contract, Mapping), "delivery contract is required before release planning")
-    if contract["necessity"] == "not-required":
-        _need(not _pending(projection, phase="system-test"),
-              "required pre-update obligations are not current")
-        return
-    _need(contract["necessity"] == "required",
-          "delivery necessity is unresolved; submit blocked with the needed decision")
-    _need(contract["authority"]["status"] == "approved",
-          "delivery authority is unresolved; submit blocked with the needed approval")
+    _require_settled(contract)
     _need(not _pending(projection, phase="system-test"),
           "required pre-update obligations are not current")
+
+
+def validate_settled(state: Mapping[str, Any], action_id: str, stage: str, result: Mapping[str, Any]) -> None:
+    """release-plan's done, at its own complete: refuse a result that leaves the contract unsettled (``_require_settled``).
+
+    release-plan is an Improve checkpoint, so ``validate_transition`` runs only when its Improve review is imported; the
+    necessity and authority are the stage's decision, not the review's, so they are refused here, before a review of a
+    result that cannot be accepted (and ``complete --check-only`` reports them).  Pre-update observations stay at the
+    import: the review may refresh them.  No-op for a run without the delivery guard and for any other stage or outcome.
+    """
+    if (stage != "release-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done"
+            or state.get("delivery_contract_version") != DELIVERY_CONTRACT_VERSION):
+        return
+    contract = _project_submission(state, action_id, stage, result).get("contract")
+    if isinstance(contract, Mapping):
+        _require_settled(contract)
 
 
 def validate_transition(
@@ -713,12 +735,11 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
                 "necessity": "unresolved",
                 "basis": "...",
                 "exclusions": [],
+                # The authority's target and operation are the contract's: ShipLoop fills them in (``_authority``).
                 "authority": {
                     "status": "unresolved",
                     "kind": "user-decision",
                     "reference": "...",
-                    "target": "...",
-                    "operation": "...",
                 },
                 # This is a valid minimal early declaration.  When necessity
                 # becomes required, add required effect, identity, and
@@ -726,6 +747,8 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
                 "obligations": [],
             },
         }
+    if stage == "release-plan" and _unsettled(contract):
+        return _settling_template(projection)
     permitted = _OBSERVABLE_AT.get(stage, frozenset())
     rows = [row for row in contract["obligations"] if row["kind"] in permitted]
     if not rows:
@@ -744,6 +767,74 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
             for row in rows
         ],
     }
+
+
+def _unsettled(contract: Mapping[str, Any]) -> bool:
+    """Whether ``_require_release_ready`` refuses this contract for its necessity or authority (not its observations)."""
+    return contract["necessity"] == "unresolved" or (
+        contract["necessity"] == "required" and contract["authority"]["status"] != "approved")
+
+
+# The decisions a settling template leaves to the stage: the gate refuses the placeholder itself (an invalid necessity or
+# status), so a template copied without deciding is refused, never accepted as a decision.
+SETTLE_NECESSITY = "<required or not-required>"
+SETTLE_STATUS = "<approved: cite the grant in reference; with no grant report blocked>"
+SETTLE_REFERENCE = "<the request sentence or user decision that settles necessity and authority>"
+
+
+def _settling_template(projection: Mapping[str, Any]) -> dict[str, Any]:
+    """release-plan's delivery_assessment while the accepted contract is unsettled (``_unsettled``): the full replacement
+    contract that ``_require_release_ready`` accepts, prefilled from the accepted one.
+
+    The 2026-10-17 run read the consumer-delivery script 7 times at release-plan to learn this shape (packet review E,
+    G33-1): it supersedes the current anchor, carries the correction source a changed necessity needs, and adds a required
+    effect, identity and behavior row for each kind the contract lacks (effect and identity bound to the authority's
+    target).  The necessity, an unapproved status and the correction's reference are placeholders the gate refuses.
+    """
+    contract = projection["contract"]
+    authority = {key: value for key, value in contract["authority"].items() if key not in ("target", "operation")}
+    if authority["status"] != "approved":
+        authority["status"] = SETTLE_STATUS
+    correction = {"kind": authority["kind"], "reference": SETTLE_REFERENCE}
+    if "approval_ref" in authority:
+        correction["approval_ref"] = authority["approval_ref"]
+    rows = [dict(row) for row in contract["obligations"]]
+    required = {row["kind"] for row in rows if row["required"] is True}
+    ids = {row["id"] for row in rows}
+    for kind in ("effect", "identity", "behavior"):
+        if kind in required:
+            continue
+        identifier, number = "O-" + kind, 2
+        while identifier in ids:
+            identifier, number = f"O-{kind}-{number}", number + 1
+        ids.add(identifier)
+        rows.append({"id": identifier, "consumer": contract["consumer"],
+                     "target": contract["target"] if kind != "behavior" else "...", "kind": kind,
+                     "phase": _PHASE_FOR_KIND[kind], "expected": "...", "required": True})
+    settled = {key: deepcopy(value) for key, value in contract.items() if key not in ("authority", "obligations")}
+    return {"kind": "contract", "supersedes": projection["anchor"], "correction": correction,
+            "contract": {**settled, "necessity": SETTLE_NECESSITY, "authority": authority, "obligations": rows}}
+
+
+def checked_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """The delivery refusals of ``stage``'s done, in a packet's words, for its Checked-by line.
+
+    release-plan only (``_require_release_ready``; the later stages it guards meet a contract release-plan settled): the
+    2026-10-17 run met this gate only by reading the script, because Checked-by did not name it (packet review E, G33-1).
+    """
+    if stage != "release-plan":
+        return []
+    projection = project(state)
+    if not projection["enabled"]:
+        return []
+    contract = projection["contract"]
+    lines = []
+    if contract is not None and _unsettled(contract):
+        lines.append("a delivery contract whose necessity is still unresolved, or required with its authority not "
+                     "approved: settle both in the template's delivery_assessment (not-required drops the effect and "
+                     "identity rows), or report blocked with the decision needed")
+    lines.append("when the Improve review is imported, a required pre-update delivery obligation that is not current")
+    return lines
 
 
 def _exclusions_line(contract: Mapping[str, Any]) -> str:
@@ -933,10 +1024,12 @@ __all__ = [
     "ConsumerDeliveryError",
     "DELIVERY_CONTRACT_VERSION",
     "canonical_assessment",
+    "checked_lines",
     "html_section",
     "packet_lines",
     "project",
     "template_assessment",
+    "validate_settled",
     "validate_terminal",
     "validate_transition",
 ]

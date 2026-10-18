@@ -482,7 +482,7 @@ class PlanRecordTests(unittest.TestCase):
         "confirm an external oracle (golden file, fixture, snapshot) agrees with the task",
         "a Design basis paragraph or exact section links, rechecking the Interaction design guide's matching subsections",
         "copy no prior plan",
-        "a human-facing UI defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths, animated transitions",
+        "a human-facing UI takes the ambition the request states, and with none stated defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths, animated transitions",
         "give the reason for any scaled back",
         "the UI decisions this step owns (UI planning ownership guide); locators of sources and checks",
     )

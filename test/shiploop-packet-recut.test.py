@@ -124,8 +124,8 @@ class ImprovePacketTests(unittest.TestCase):
             handoff = navigator.improve_handoff_path(child)
             improve_id = navigator.improve_id(state)
             self.assertTrue(packet.startswith("ShipLoop navigator | improve | revision "), packet.splitlines()[0])
-            self.assertIn("1. Run the improve skill on the spec result.", packet)
-            self.assertIn("       /improve " + navigator.IMPROVE_ARGUMENT_PREFIX + str(handoff), packet)
+            self.assertIn("1. Run the improve skill on the spec result with this argument,", packet)
+            self.assertIn("       " + navigator.IMPROVE_ARGUMENT_PREFIX + str(handoff) + "\n", packet)
             self.assertRegex(packet, r"(?m)^2\. When the improve skill has completed, run: .* complete .*--action="
                              + re.escape(improve_id))
             self.assertNotIn("improve-complete", packet)
@@ -337,7 +337,7 @@ class OwnerLinesTests(unittest.TestCase):
 
     POINTER = re.compile(r"^Lost context, or unsure\? Run (python3 \S+ next --run-dir=\S+) \(it reprints this step\)\.$")
     PACKET = re.compile(r"^Full packet: (/\S+\.md) - open it with a file tool, not the shell, when this print was cut \(a complete "
-                        r"print ends with the line === end ShipLoop head ===\) or you need the duties or the template; it also "
+                        r"print ends with the line === end ShipLoop head ===\); it also "
                         r"holds the original request, the knowledge files quoted whole and the hand-offs\. Its References block "
                         r"lists the other references and what each holds; open only the section a step needs, never a whole "
                         r"reference file, and do not re-read the ShipLoop skill card\.$")
@@ -385,8 +385,8 @@ class OwnerLinesTests(unittest.TestCase):
                          "Lost context, or unsure? Run python3 /i/shiploop next --run-dir=/r/run (it reprints this step).")
         self.assertEqual(prompts.packet_pointer("/r/run/packets/a.md", navigator.HEAD_END),
                          "Full packet: /r/run/packets/a.md - open it with a file tool, not the shell, when this print was cut "
-                         "(a complete print ends with the line === end ShipLoop head ===) or you need the duties or the "
-                         "template; it also holds the original request, the knowledge files quoted whole and the hand-offs. "
+                         "(a complete print ends with the line === end ShipLoop head ===); it also holds the original "
+                         "request, the knowledge files quoted whole and the hand-offs. "
                          "Its References block lists the other references and what each holds; open only the section a step "
                          "needs, never a whole reference file, and do not re-read the ShipLoop skill card.")
         scripts = ROOT / "skills/shiploop/scripts"
@@ -474,9 +474,13 @@ class ImproveInvocationTests(unittest.TestCase):
             run, state = self._started_state(temp)
             packet = navigator.render(CORE, run, state)
         self.assertIn("at every Improve stage and not from memory of an earlier one", packet)
-        # the lines the readers match on are unchanged
-        self.assertRegex(packet, r"(?m)^1\. Run the improve skill on the .+ result\. For example, on Claude Code:$")
-        self.assertRegex(packet, r"(?m)^\s+/improve ShipLoop Improve: .+/handoff\.md$")
+        # the lines the readers match on (run-review's export, the E2E anatomy): host-neutral since 2026-10-17 (packet
+        # review A5-1/D-17): the argument on its own line, each host's route on equal terms, no host named first
+        self.assertRegex(packet, r"(?m)^1\. Run the improve skill on the .+ result with this argument, ")
+        self.assertRegex(packet, r"(?m)^ {7}ShipLoop Improve: .+/handoff\.md$")
+        self.assertNotIn("For example, on Claude Code", packet)
+        self.assertRegex(packet, r"the Skill tool, or /improve, where the host has one; otherwise open /\S+SKILL\.md and "
+                                 r"follow it with the argument")
         self.assertRegex(packet, r"(?m)^2\. When the improve skill has completed, run: ")
 
 

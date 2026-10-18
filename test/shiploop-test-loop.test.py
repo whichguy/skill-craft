@@ -681,7 +681,9 @@ class TestLoopTests(unittest.TestCase):
         on the ask-agent route only."""
         for route in prompts.DELEGATIONS:
             duty = prompts.duty("verify", delegation=route)
-            self.assertIn("1. **Run** the Callback command with `--check-only` after your last edit", duty)
+            # The result is written first: check-only reads it (packet review 2026-10-17, D-8).
+            self.assertIn("1. **Run.** After your last edit, write the result (the Result template below) to "
+                          "RUN/inbox/<action>.md, then run the Callback command with `--check-only`", " ".join(duty.split()))
             self.assertIn("RUN/" + test_loop.check_only_path("<action>"), duty)
             summary = next(row for row in duty.splitlines() if row.startswith("11. **Summary:**"))
             self.assertNotIn("exit code", summary)

@@ -594,7 +594,7 @@ class NavigatorV4Tests(unittest.TestCase):
 
         waiting, action, _child = self.bound_plan_child(state)
         packet = navigator.render(None, root, waiting)
-        self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(_child)), packet)
+        self.assertIn("       ShipLoop Improve: " + str(navigator.improve_handoff_path(_child)), packet)
         # ShipLoop starts the Improve stage; here no runtime has started, so the packet also prints the restart route.
         self.assertIn("complete --run-dir=" + str(root) + " --action=" + _child["improve_action"], packet)
         self.assertNotIn("improve-complete", packet)

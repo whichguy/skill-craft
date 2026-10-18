@@ -590,6 +590,15 @@ def _normalise_awaiting(value: Any) -> dict[str, Any]:
     return present
 
 
+def _check_submitted_delivery(state: Mapping[str, Any], action_id: str, stage: str, result: Any) -> None:
+    """A marked run's release-plan done that leaves the delivery contract unsettled, refused at the stage's own complete
+    and check-only (``consumer_delivery.validate_settled``), not only when its Improve review is imported."""
+    try:
+        consumer_delivery.validate_settled(state, action_id, stage, result)
+    except consumer_delivery.ConsumerDeliveryError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
 def _check_submitted_awaiting(result: Any) -> None:
     """Refuse a new wait on a person that does not say why a recorded default would not do (S-14)."""
     wait = result.get("awaiting") if isinstance(result, Mapping) else None
@@ -3567,11 +3576,18 @@ def improve_reviews_dir(child: Mapping[str, Any]) -> Path:
     return standalone.receipt_path(child).parent / "reviews"
 
 
-def _optional_text_file(value: Any, label: str) -> str:
+def _optional_text_file(value: Any, label: str, expected: Path | None = None) -> str:
+    """The text of the file ``value`` names ('' for None); ``expected`` is the path the packet names for it.
+
+    The value is a path, never the text itself: a run passed its lessons as the value and was refused with only "must be
+    a regular file" (packet review 2026-10-17, A9-1), so the refusal says so and names the file to write.
+    """
     if value is None:
         return ""
     path = Path(str(value))
-    _need(path.is_file() and not path.is_symlink(), label + " must be a regular file: " + str(path))
+    _need(path.is_file() and not path.is_symlink(),
+          label + " take the path of a regular plain-text file, not the text; no such file: " + str(path)
+          + ("; write the text to " + str(expected) + " with a file tool and pass that path" if expected else ""))
     return path.read_text(encoding="utf-8", errors="replace").strip()
 
 
@@ -3598,7 +3614,8 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any, root: Path | N
         "review_refs": [str(found[-1][1])],
         "check_refs": [str(checks)],
     }
-    lessons = _optional_text_file(getattr(args, "notes", None), "Improve notes")
+    lessons = _optional_text_file(getattr(args, "notes", None), "Improve notes (--notes)",
+                                  improve_notes_path(root, child) if root is not None else None)
     if lessons:
         receipt["lessons"] = lessons
     final = getattr(args, "final_result", None)
@@ -3892,7 +3909,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         skeleton = expectations.case_skeleton(state)
         if skeleton is not None:
             result["test_cases"] = skeleton[:expectations.SKELETON_ROWS]
-    return _compact_record(result, "ShipLoop navigator result")
+    return _compact_record(result)
 
 
 def _required_handoff_keys(stage: str) -> list[str]:
@@ -3903,11 +3920,14 @@ def _required_handoff_keys(stage: str) -> list[str]:
     return keys
 
 
-def _compact_record(obj: Mapping[str, Any], title: str) -> str:
-    """``store.dumps`` laid out densely: one top-level key per line, one list element per line.
+def _compact_record(obj: Mapping[str, Any]) -> str:
+    """The result template's record: ``store.dumps`` laid out densely (one top-level key per line, one list element per
+    line), with no heading.
 
-    The same JSON object and fence (store.loads reads it unchanged); the indented layout spent a line on every
-    bracket and scalar, 115 lines for step-plan's template (2026-10-11 dedupe).
+    The same JSON object and fence (store.loads reads only the fence, so it reads this unchanged); the indented layout
+    spent a line on every bracket and scalar, 115 lines for step-plan's template (2026-10-11 dedupe).  The template's
+    ``# ShipLoop navigator result`` heading is gone (owner decision D4, 2026-10-17): no reader parsed it.  Records
+    ShipLoop writes itself (``results/<action>.md``) keep ``store.dumps``'s heading.
     """
     def one(value: Any) -> str:
         """``value`` as canonical JSON: sorted keys, no NaN, non-ASCII kept."""
@@ -3920,7 +3940,7 @@ def _compact_record(obj: Mapping[str, Any], title: str) -> str:
             rows.append("  " + one(key) + ": [\n" + inner + "\n  ]")
         else:
             rows.append("  " + one(key) + ": " + one(value))
-    return "# " + title + "\n\n```shiploop-state\n{\n" + ",\n".join(rows) + "\n}\n```\n"
+    return "```shiploop-state\n{\n" + ",\n".join(rows) + "\n}\n```\n"
 
 
 def _bounded_packet_text(value: str, *, limit: int = 1200) -> str:
@@ -4747,9 +4767,8 @@ def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, act
                      "in state.md accepted/history and the Consumer-delivery schema before adding the "
                      "required delivery_assessment to the minimal result below. A partial template "
                      "does not waive any required observation.")
-        result_template = store.dumps({"outcome": "done", "headline": HEADLINE_PLACEHOLDER, "summary": "...",
-                                       "evidence_refs": [EVIDENCE_PLACEHOLDER]},
-                                      "ShipLoop navigator result").rstrip()
+        result_template = _compact_record({"outcome": "done", "headline": HEADLINE_PLACEHOLDER, "summary": "...",
+                                           "evidence_refs": [EVIDENCE_PLACEHOLDER]}).rstrip()
     return [
         *lines,
         "Result template:",
@@ -4863,8 +4882,21 @@ _INNER_RERUN_TEXT = (", runs every listed ID and reaches its floor; ShipLoop's r
                      "criterion is confirmed by its passing command, not by the result's summary")
 
 
-def _check_text(run: str, stage: str) -> str:
-    """One complete-time run in a stage's Checked-by line: the one home of what that run refuses."""
+def _check_text(run: str, stage: str, state: Mapping[str, Any] | None = None) -> str:
+    """One complete-time run in a stage's Checked-by line: the one home of what that run refuses.
+
+    An outer stage's rerun runs only the list its recording stage kept (``test_loop.OUTER_SOURCES``), so with ``state``
+    the line names that list and how many commands it holds: "every recorded test command" read as the system commands at
+    release-verify, whose rerun ran release-plan's empty consumer_checks (packet review 2026-10-17, F-14).
+    """
+    if run == "test-rerun" and stage in test_loop.OUTER_SOURCES and state is not None:
+        source, field = test_loop.OUTER_SOURCES[stage]
+        count = len(test_loop.stage_commands(state, stage, "")[0])
+        where = source + "'s " + field
+        if not count:
+            return "reruns the commands in " + where + ": none recorded, so none runs"
+        return ("reruns the " + str(count) + " command" + ("s" if count > 1 else "") + " in " + where
+                + " and refuses done unless each passes")
     return _CHECK_TEXT[run] + (_INNER_RERUN_TEXT if run == "test-rerun" and stage in stage_spec.INNER else "")
 
 
@@ -4961,7 +4993,7 @@ def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None, 
 # backchain-check, improve-start, improve-commit, improve-bind), the Keepalive marker, the "Full packet:" line, the
 # Progress view link, the evidence_refs example in the result template, the Until Loop block's argument (the lines
 # between its two marker lines) and its start command, the
-# `/improve ShipLoop Improve: ...` line and the "Lost context" pointer line.  A test lists the paths left in a packet's lines and
+# Improve packet's argument line (`ShipLoop Improve: ...`) and the "Lost context" pointer line.  A test lists the paths left in a packet's lines and
 # fails on any that is neither listed here nor one of those.
 PROSE_PATH_LINES = re.compile(
     r"^(?:This action's pass log \(|Full ordered work queue: |Prior Improve evidence and lessons: |"
@@ -5542,8 +5574,9 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
 def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     """Return the stage-specific refusal phrases for ``stage`` that ``_checked_line`` lists before
     ``_COMMON_GATES``, or an empty list when none apply. They come from ``stage`` and module-level stage tables
-    read at call time; ``state`` is not read. Raises ``KeyError`` if a ``RECORDED_COMMANDS`` field owned by
-    ``stage`` has no ``_RECORDED_GATES`` entry.
+    read at call time; ``state`` is read only for the consumer-delivery gate (``consumer_delivery.checked_lines``: a
+    marked run's release-plan names the necessity and authority it refuses while they are unsettled). Raises
+    ``KeyError`` if a ``RECORDED_COMMANDS`` field owned by ``stage`` has no ``_RECORDED_GATES`` entry.
     """
     gates = []
     if stage == "plan":
@@ -5571,6 +5604,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         # A close that also requires files earlier stages wrote (prepare, release-plan) did not write them all.
         gates.append("a HOME file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
                      else "a HOME file this stage must have written, missing or empty")
+    gates.extend(consumer_delivery.checked_lines(state, stage))
     return gates
 
 
@@ -5598,7 +5632,7 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     raises at the first fault it finds, so a result with two faults needs two runs).
     """
     extra = _stage_gates(row.name, state)
-    runs = "; then ".join(_check_text(run, row.name) for run in row.complete_runs)
+    runs = "; then ".join(_check_text(run, row.name, state) for run in row.complete_runs)
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
             + "; ".join([*extra, "the usual faults (" + _COMMON_GATES + ")"])
             + ". It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause "
@@ -5904,6 +5938,12 @@ def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 IMPROVE_ARGUMENT_PREFIX = "ShipLoop Improve: "
 
 
+def improve_notes_path(root: Path, child: Mapping[str, Any]) -> Path:
+    """The plain-text file the handoff names for the review's lessons (the Improve stage's complete takes its path as
+    --notes)."""
+    return Path(root) / "inbox" / (str(child["action_id"]) + "-improve-notes.md")
+
+
 def improve_handoff_path(child: Mapping[str, Any]) -> Path:
     """The file the improve skill reads for this child, beside its opening and receipt."""
     return improve_opening_path(child).with_name("handoff.md")
@@ -6066,11 +6106,13 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
             lines += [_recovery_pointer_line(core, root),
                       "ShipLoop could not start this review; start it again first: "
                       + _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped"]
-        lines += ["1. Run the improve skill on the " + stage + " result. For example, on Claude Code:",
-                  "       /improve " + argument,
-                  "   (the Skill tool, skill \"improve\", with that argument, at every Improve stage and not from "
-                  "memory of an earlier one; on another host, open "
-                  + child["skill"]["skill_card"] + " and pass the same argument)",
+        # Host-neutral (packet review 2026-10-17, A5-1/D-17): the argument on a line of its own, then each host's route
+        # on equal terms; the run does not record which host renders the packet.
+        lines += ["1. Run the improve skill on the " + stage + " result with this argument, at every Improve stage and "
+                  "not from memory of an earlier one:",
+                  "       " + argument,
+                  "   (through the host's skill call for skill \"improve\": the Skill tool, or /improve, where the host "
+                  "has one; otherwise open " + child["skill"]["skill_card"] + " and follow it with the argument)",
                   "   After each review pass, write its review-<n>.md (form: the handoff's Evidence line), then run: "
                   + _callback(core, root, "improve-pass", action=improve_id(state)),
                   "2. When the improve skill has completed, run: "
@@ -6187,7 +6229,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ])
         return "\n".join(lines) + "\n"
     skill = child["skill"]
-    notes_path = root / "inbox" / (action_id + "-improve-notes.md")
+    notes_path = improve_notes_path(root, child)
     final_path = root / "inbox" / (action_id + "-final-result.md")
     inline = delegation(state) == guidance.INLINE
     planning_reconcile = child["stage"] == "plan"
@@ -6779,7 +6821,10 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "", state: Mapping
     try:
         metadata = path.lstat()
     except OSError as exc:
-        raise NavigatorError("navigator result is unavailable") from exc
+        # Name the file and the fix: the bare "navigator result is unavailable" cost a run 17 calls of reading ShipLoop's
+        # scripts to learn that --check-only needs the result written first (packet review 2026-10-17, D-8/D-9).
+        raise NavigatorError("no result file at " + str(expected) + ": write the result there (the packet's Result "
+                             "template, filled in) with a file tool, then run the same command again") from exc
     _need(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1,
           "navigator result must be a regular single-link non-symlink Markdown file")
     for parent in path.parents:
@@ -7715,6 +7760,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)
+            _check_submitted_delivery(state, action_id, current_stage(state), submitted)
             _knowledge_gate(state, current_stage(state), submitted)
             _handoff_gate(root, state, current_stage(state), submitted, "complete",
                           next_step=_next_step(root, action_id, "complete"))

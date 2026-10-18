@@ -538,7 +538,8 @@ class ReturnRouteTests(ReturnReviewCase):
         self.assertIn("Nothing is undecided; run: ", replanned)
 
     def sh(self, command: str) -> None:
-        result = subprocess.run(["sh", "-c", command], cwd=self.base, text=True, capture_output=True, env=self.env)
+        # From the source repository's root, as the recipes say (they name no checkout path since 2026-10-17).
+        result = subprocess.run(["sh", "-c", command], cwd=self.repo, text=True, capture_output=True, env=self.env)
         self.assertEqual(result.returncode, 0, command + "\n" + result.stdout + result.stderr)
 
     @staticmethod
@@ -657,11 +658,16 @@ class ReturnRouteTests(ReturnReviewCase):
             self.assertIn(part, line)
         self.assertLess(lines.index(line), next(index for index, item in enumerate(lines) if "apply -R" in item))
 
-    def test_the_rollback_names_no_absolute_run_path_but_the_source_checkout_for_its_git_calls(self) -> None:
+    def test_the_rollback_names_no_absolute_path_and_runs_from_the_repository_root(self) -> None:
+        # Packet review 2026-10-17 (G33-3): a `git -C <checkout>` recipe beside "never this run's absolute paths" was
+        # rewritten by hand; the recipes are copy-ready plain git, run from the repository root (the tests above run
+        # them there).
         root, worktree = self.prepare("rb-paths")
         text = "\n".join(workspace.rollback_lines(root))
         self.assertNotIn(str(root), text)  # the worktree and run directory never appear in a durable plan
-        self.assertIn("git -C " + shlex.quote(str(self.repo.resolve())), text)
+        self.assertNotIn(str(self.repo.resolve()), text)
+        self.assertNotIn("git -C", text)
+        self.assertIn("run from the repository root", text)
         for token in ("{", "}"):
             self.assertNotIn(token, text)
 

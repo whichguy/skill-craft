@@ -729,11 +729,11 @@ class PacketContractTests(DelegationStateTests):
                         # D-26: the bound Improve packet carries neither the next pointer nor the owner rule
                         self.assertNotIn("pointer", view)
                         self.assertNotIn("owner", view)
-                        first, _instruction = view.find("1. Run the improve skill on the " + stage + " result.")
+                        first, _instruction = view.find("1. Run the improve skill on the " + stage + " result with this argument")
                         self.assertLess(view.index("header"), first)     # the two instructions follow the header ...
                         self.assertLess(first, view.index("callback"))   # ... and the callback is the second of them
                         argument = view.text_after(first)               # the improve skill's one argument line
-                        self.assertTrue(argument.lstrip().startswith("/improve ShipLoop Improve: "), argument)
+                        self.assertTrue(argument.lstrip().startswith("ShipLoop Improve: "), argument)
                         self.assertTrue(argument.rstrip().endswith("/handoff.md"), argument)
                         callback = view["callback"]
                         self.assertTrue(callback.startswith("2. When the improve skill"), callback)
@@ -1023,8 +1023,8 @@ class DelegationCliTests(unittest.TestCase):
         # The bound child keeps its inline route; later actions use ask-agent.
         # The Improve packet is two instructions (re-cut 2026-10-11): the route text is in the handoff file it names,
         # and the "Delegation change" line (REPORTED) is no longer printed on Improve packets; the hold is on the state.
-        self.assertIn("1. Run the improve skill on the spec result.", switched.stdout)
-        handoff = Path(re.search(r"/improve ShipLoop Improve: (\S+)", switched.stdout).group(1))
+        self.assertIn("1. Run the improve skill on the spec result with this argument", switched.stdout)
+        handoff = Path(re.search(r"(?m)^ {7}ShipLoop Improve: (\S+)", switched.stdout).group(1))
         self.assertIn(" · Route: inline", handoff.read_text(encoding="utf-8"))
         self.assertNotIn(" · Route: ask-agent", handoff.read_text(encoding="utf-8"))
         self.assertNotIn("Prefer a native fresh worker", switched.stdout + handoff.read_text(encoding="utf-8"))

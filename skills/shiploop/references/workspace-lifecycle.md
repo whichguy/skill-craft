@@ -281,10 +281,10 @@ than getting overwritten or silently accepted as a new baseline.
 inherit, so it must name the route the return really takes. The `release-plan` and
 `release-check` packets print recipes from `workspace.md` (its `source_head`,
 `baseline_commit` and run branch, never a receipt's `source_before`, which is the
-previous result after a follow-up). Write the plan's rollback with those SHAs and
-branch names as plain `git` commands run from the repository root, not this run's
-absolute paths. Every call runs in the source repository, so the recipes work after
-the execution worktree is removed.
+previous result after a follow-up) as plain `git` commands run from the repository
+root, copy-ready: they name no absolute path. Write the plan's rollback with those
+SHAs and branch names, not this run's absolute paths. Every call runs in the source
+repository, so the recipes work after the execution worktree is removed.
 
 - **Fast-forward, nothing committed on top:** with the original branch checked out,
   `git reset --keep <source_head>` moves it back and refuses to overwrite local
