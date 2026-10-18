@@ -1942,6 +1942,139 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
         self.assertFalse((self.run_dir / test_loop.base_path(action, 1)).exists())
 
+    # -- one run per command (U9, packet review 2026-10-17 D-1, DX-2, D-11b; owner decision D5) ------------------------
+
+    def counting_runner(self, calls: list):
+        """``run_argv`` that runs each command and records the ones it runs in the checkout (the candidate run or a
+        rerun; the base run and the mutation check run elsewhere)."""
+        real = test_loop.lint.run_argv
+
+        def run(argv, cwd, timeout, **kw):
+            if Path(cwd).resolve() == self.repo:
+                calls.append(argv[-1])
+            return real(argv, cwd, timeout, **kw)
+        return run
+
+    def dispatch(self, result: dict, *, check_only: bool = False) -> str:
+        """The stdout of the real ``complete`` (``--check-only`` too) for ``result`` as it stands."""
+        state = self.state()
+        action = nav.current_action(state)["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(store.dumps(result, "result"))
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
+                command="complete", action=action, result=str(path), **({"check_only": True} if check_only else {})))
+        return buffer.getvalue()
+
+    def verify_checked(self) -> tuple:
+        """At verify, the loop ended and a passing ``complete --check-only``: (action, done result, its output)."""
+        self.start()
+        self.drive_to("verify")
+        action = self.action()
+        self.run_loop([TRIVIAL])
+        done = inner.fill(self.state(), "verify", dict(DONE, evidence_refs=[str(self.terminal())]), self.run_dir)
+        output = self.dispatch(done, check_only=True)
+        self.assertTrue((self.run_dir / test_loop.check_only_path(action)).is_file())
+        return action, done, output
+
+    def test_a_command_recorded_twice_is_one_row_and_runs_once_per_run(self):
+        """D-1: the chess step plan copied the Focused and Full-suite fences, so rows 7-9 were rows 1-3 again and every
+        run deployed and ran them twice.  A regression row that repeats a focused row folds into it, and verify runs it
+        once."""
+        twice = [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"]},
+                 {"command": "test -f retained.txt", "suite": "regression"},
+                 {"command": "sh check.sh fixed.txt", "suite": "regression"}]
+        self.start()
+        self.drive_to("verify", step_plan={"test_commands": twice, "paths": ["a.py"],
+                                           "criteria": [{"id": "C1", "text": "The item's focused check passes."}]})
+        self.assertEqual(test_loop.stage_commands(self.state(), "verify", self.item())[0],
+                         [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"], "regression": True},
+                          {"command": "test -f retained.txt", "suite": "regression"}])
+        self.assertIn("1. [focused] sh check.sh fixed.txt (also recorded as regression)", self.packet())
+        calls: list = []
+        self.run_loop([TRIVIAL])
+        with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
+            self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        self.assertEqual(calls, ["sh check.sh fixed.txt", "test -f retained.txt"])
+
+    def test_complete_after_a_passing_check_only_on_an_unchanged_tree_takes_that_run_and_says_so(self):
+        """D5 (D-11b): after a passing check-only the real complete reran all ten org commands (about 104 s) on a tree
+        that had not changed.  It now takes the check-only run, and its counted record names which one."""
+        action, done, output = self.verify_checked()
+        self.assertIn("That complete takes this test run (" + str(self.run_dir / test_loop.check_only_path(action))
+                      + ") instead of running the commands again", " ".join(output.split()))
+        checked = store.read_record(self.run_dir / test_loop.check_only_path(action))
+        with mock.patch.object(test_loop.lint, "run_argv") as runner:
+            self.complete(done, loop=False)
+            runner.assert_not_called()
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        self.assertEqual((record["passed"], record["disposition"]), (True, "passed"))
+        self.assertEqual(record["reused"]["path"], test_loop.check_only_path(action))
+        self.assertEqual(record["reused"]["created_at"], checked["created_at"])
+        self.assertIn(record["reused"]["tree"], checked["trees"])
+        self.assertEqual([run["command"] for run in record["runs"]], [run["command"] for run in checked["runs"]])
+        self.assertNotEqual(nav.current_stage(self.settle()), "verify")
+
+    def test_a_one_byte_edit_or_another_command_list_after_check_only_runs_the_commands_again(self):
+        for change in ("tree", "commands"):
+            with self.subTest(change=change):
+                self.restart()
+                action, done, _output = self.verify_checked()
+                if change == "tree":
+                    (self.repo / "a.py").write_text("x = 2\n")  # one byte
+                else:
+                    path = self.run_dir / test_loop.check_only_path(action)
+                    record = store.read_record(path)
+                    record["commands"] = record["commands"][:1]
+                    path.write_text(store.dumps(record, "ShipLoop test-loop verification"))
+                calls: list = []
+                with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
+                    self.complete(done, loop=False)
+                self.assertEqual(calls, ["sh check.sh fixed.txt", "test -f retained.txt"])
+                self.assertNotIn("reused", store.read_record(self.run_dir / test_loop.verify_path(action, 1)))
+
+    def test_the_test_stage_takes_a_passing_check_only_candidate_run_held_to_the_new_base_floor(self):
+        """At the test stage the base run and the mutation check still run at complete; the candidate run is the
+        check-only one, held to the floor the base run sets then, and a Gates line says so."""
+        self.start()
+        self.ran(3)
+        self.drive_to("test", step_plan=self.floor_item())
+        action = self.action()
+        self.ran_here(3)
+        done = self.loop_done()
+        self.complete_output(done, check_only=True)
+        self.assertNotIn("accepted_ran", store.read_record(self.run_dir / test_loop.check_only_path(action))["runs"][0])
+        calls: list = []
+        with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
+            output = self.complete_output(done)
+        self.assertEqual(calls, [])
+        lines = self.gate_lines_of(output)
+        self.assertTrue(lines[2].startswith("Gates: candidate: reused the passed check-only run of "), lines)
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        self.assertEqual(record["reused"]["path"], test_loop.check_only_path(action))
+        self.assertEqual((record["runs"][0]["accepted_ran"], record["runs"][0]["floor_from"]), (3, "3 on the base"))
+        self.assertTrue((self.run_dir / test_loop.base_path(action, 1)).is_file())
+        self.assertTrue((self.run_dir / test_loop.mutation_path(action, 1)).is_file())
+
+    def test_a_check_only_run_below_the_floor_the_base_run_sets_at_complete_is_run_again_not_taken(self):
+        """A refusal always comes from a run made now: the check-only run of 2 tests passed before any base run set a
+        floor; at complete the base run counts 3, so the candidate commands run again and that run is refused."""
+        self.start()
+        self.ran(3)
+        self.drive_to("test", step_plan=self.floor_item())
+        action = self.action()
+        self.ran_here(2)
+        done = self.loop_done()
+        self.complete_output(done, check_only=True)
+        calls: list = []
+        with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
+            with self.assertRaisesRegex(nav.NavigatorError, r"ran fewer tests than its floor \(at least 3: 3 on the base\)"):
+                self.complete(done, loop=False)
+        self.assertEqual(len(calls), 2)
+        self.assertNotIn("reused", store.read_record(self.run_dir / test_loop.verify_path(action, 1)))
+
     def test_the_test_packet_prints_the_refused_runs_only_above_zero_and_never_the_cap(self):
         self.start()
         self.drive_to("test", step_plan=self.id_item())

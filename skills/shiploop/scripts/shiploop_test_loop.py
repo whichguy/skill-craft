@@ -70,7 +70,9 @@ MAX_REFUSED_RUNS = 11
 # code alone.
 SUITES = ("focused", "regression", "check")
 COUNTED_SUITES = ("focused", "regression")
-COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent"})
+# ``regression`` (true, on a focused row only) is what a regression row folded into a byte-identical focused one leaves
+# (``normalise_commands``): the drift check at system-test still runs that command as the default suite.
+COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent", "regression"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not recognised) is allowed only for a
 # regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
@@ -143,6 +145,10 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
     ``host_dependent`` (true: its cases need a host tool, so no default suite may
     run them; see ``default_suite_drift``).  A ``check`` is judged by its exit
     code, so it takes no ids or min_tests.
+
+    Rows that record the same command string are folded into the first of them
+    when one row can check exactly what they did (``_fold``), so ShipLoop runs
+    each command once per run and the packets list it once.
     """
     _need(isinstance(value, list), "test_commands must be a list")
     commands: List[Dict[str, Any]] = []
@@ -179,8 +185,60 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
         if "host_dependent" in entry:
             _need(entry["host_dependent"] is True, "a test command's host_dependent must be true when given")
             row["host_dependent"] = True
+        if "regression" in entry:
+            _need(entry["regression"] is True and row["suite"] == "focused",
+                  "a test command's regression is true, on a focused command that is also the regression command")
+            row["regression"] = True
         commands.append(row)
-    return commands
+    # Fold until nothing folds: one pass can make two rows foldable that were not, and the result must be canonical
+    # (normalising it again changes nothing).  Each pass that changes the list shortens it.
+    while True:
+        folded: List[Dict[str, Any]] = []
+        for row in commands:
+            for index, kept in enumerate(folded):
+                merged = _fold(kept, row)
+                if merged is not None:
+                    folded[index] = merged
+                    break
+            else:
+                folded.append(row)
+        if folded == commands:
+            return commands
+        commands = folded
+
+
+def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    """``first`` and ``row`` as one row, or None when they differ or one row cannot check what both did.
+
+    They fold when they record the same command string and host_dependent, and either share a suite, or one is focused
+    and the other a regression row whose ids are all ids of the focused one (a regression ID is not new, so it must not
+    come under the base run's rule that a focused ID fails on the base).  The one row keeps ``first``'s place, the union
+    of the ids and criteria and the larger min_tests: the same output is judged against both rows' terms.  A check and
+    a counted row are judged differently and never fold.  A regression row folded into a focused one leaves
+    ``regression: true``.
+    """
+    if first["command"] != row["command"] or first.get("host_dependent") != row.get("host_dependent"):
+        return None
+    suites = {first["suite"], row["suite"]}
+    if len(suites) > 1:
+        if suites != {"focused", "regression"}:
+            return None
+        focused, regression = (first, row) if first["suite"] == "focused" else (row, first)
+        if not set(regression.get("ids") or ()) <= set(focused.get("ids") or ()):
+            return None
+    merged: Dict[str, Any] = {"command": first["command"], "suite": "focused" if "focused" in suites else first["suite"]}
+    for key in ("ids", "criteria"):
+        values = list(dict.fromkeys([*(first.get(key) or ()), *(row.get(key) or ())]))
+        if values:
+            merged[key] = values
+    minimum = max(int(first.get("min_tests") or 0), int(row.get("min_tests") or 0))
+    if minimum:
+        merged["min_tests"] = minimum
+    if first.get("host_dependent"):
+        merged["host_dependent"] = True
+    if len(suites) > 1 or first.get("regression") or row.get("regression"):
+        merged["regression"] = True
+    return merged
 
 
 def _step_plan(state: Mapping[str, Any], work_item: str) -> Tuple[Optional[str], Mapping[str, Any]]:
@@ -253,6 +311,8 @@ def _listing(row: Mapping[str, Any], floor: Optional[int] = None) -> str:
         text += " (must run: " + ", ".join(row["ids"]) + ")"
     if row.get("min_tests"):
         text += " (at least " + str(row["min_tests"]) + " tests)"
+    if row.get("regression"):
+        text += " (also recorded as regression)"
     if floor:
         text += " (floor: " + str(floor) + " tests)"
     return text
@@ -930,7 +990,7 @@ def default_suite_drift(state: Mapping[str, Any], rows: List[Dict[str, Any]], ru
     for item in state.get("work_items", ()):
         _action, result = _step_plan(state, str(item.get("id")))
         for row in result.get("test_commands") or ():
-            if row["suite"] != "regression" or row["command"] in seen:
+            if not (row["suite"] == "regression" or row.get("regression")) or row["command"] in seen:
                 continue
             seen.append(row["command"])
             ran = run_one(row["command"])
@@ -968,6 +1028,73 @@ def _skipped(row: Mapping[str, Any], budget: float) -> Dict[str, Any]:
                       "command started"}
 
 
+def _tree(root: Path, repo: Path) -> str:
+    """The repository's working content as a Git tree (tracked plus untracked, never ignored, without the run directory
+    or ShipLoop's runtime files: ``lint.snapshot_tree``), or "" when there is none (not a Git checkout, Git failed)."""
+    index = Path(root) / "lint" / "tmp" / ("test-reuse-" + os.urandom(8).hex() + ".index")
+    try:
+        top = lint.git_toplevel(repo)
+        if top is None:
+            return ""
+        return lint.snapshot_tree(top, Path(root), index, prefix=lint.scope_prefix(top, repo))
+    except (lint.LintError, OSError):
+        return ""
+    finally:
+        if index.exists():
+            index.unlink()
+
+
+def _reused(root: Path, action: str, stage: str, work_item: str, commands: Sequence[Mapping[str, Any]], repo: Path,
+            held: Mapping[str, Mapping[str, Any]]) -> Optional[Tuple[List[Dict[str, Any]], Dict[str, Any]]]:
+    """The runs of this action's passed check-only record, held to today's floors, when ``complete`` takes them instead
+    of running every command again (owner decision D5, 2026-10-17); else None.
+
+    It takes them when that record passed at this stage and item, lists exactly ``commands``, and the repository's
+    working content (``_tree``) is now a tree the check-only run started on or left.  A run the floor now refuses is
+    not taken: the commands run again, so a refusal always comes from a run made now.  Returns (runs, the ``reused``
+    entry the counted record carries: which check-only record and the tree).
+    """
+    path = Path(root) / check_only_path(action)
+    if not path.is_file():
+        return None
+    try:
+        record = store.read_record(path)
+    except (OSError, store.StorageError):
+        return None
+    if not (isinstance(record, Mapping) and record.get("passed") is True and record.get("stage") == stage
+            and record.get("work_item") == work_item and record.get("commands") == list(commands)
+            and record.get("trees")):
+        return None
+    tree = _tree(root, repo)
+    if not tree or tree not in record["trees"]:
+        return None
+    runs: List[Dict[str, Any]] = []
+    for run in record.get("runs") or ():
+        run = {key: value for key, value in run.items() if key not in ("accepted_ran", "floor_from")}
+        floor = held.get(run.get("command"))
+        if floor:
+            run["accepted_ran"] = floor["floor"]
+            run["floor_from"] = floor["from"]
+            if run.get("status") == "passed" and run.get("counts") and run["counts"]["ran"] < floor["floor"]:
+                return None
+        runs.append(run)
+    return runs, {"path": check_only_path(action), "created_at": record.get("created_at"), "tree": tree}
+
+
+def reuse_note(root: Path, action: str) -> str:
+    """What ``complete --check-only`` prints about its test run when the real ``complete`` can take it (``_reused``),
+    else ""."""
+    path = Path(root) / check_only_path(action)
+    try:
+        record = store.read_record(path) if path.is_file() else None
+    except (OSError, store.StorageError):
+        return ""
+    if not (isinstance(record, Mapping) and record.get("passed") is True and record.get("trees")):
+        return ""
+    return ("That complete takes this test run (" + str(path) + ") instead of running the commands again while the "
+            "tree and the recorded commands stay as they are now; any edit makes it run them again.")
+
+
 def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str, *,
            runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
            clock: Optional[Callable[[], float]] = None,
@@ -986,6 +1113,10 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
 
     ``count=False`` (``complete --check-only``) runs the same commands and judgement, ignores the refused-run cap and
     writes ``check_only_path`` instead of a numbered record, so the run never counts toward the cap or sets a floor.
+    Where the commands run in the repository (every stage but release-verify, whose place can change with a return), it
+    also records the command list and the working trees the run started on and left; a counted run (``complete``) then
+    takes a passed check-only run whose command list and tree are unchanged instead of running again (``_reused``), and
+    its record says so under ``reused``.
     """
     root = Path(root)
     if commands is None:
@@ -1015,7 +1146,6 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             failure = str(exc)
     elif observed and observed["where"] == "unknown":
         failure = str(observed["reason"])
-    deadline = clock() + budget
     if stage in STAGES:
         held = floor_detail(root, state, work_item, action, result)
     elif stage in OUTER_SOURCES or not work_item:
@@ -1023,6 +1153,17 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     else:
         held = {command: {"floor": ran, "from": "an earlier run of this command that ShipLoop accepted for this item"}
                 for command, ran in accepted_counts(root, state, work_item).items()}
+    reused = _reused(root, action, stage, work_item, commands, repo, held) if count and observed is None else None
+    if reused is not None:
+        record = {
+            "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "cwd": str(cwd), "passed": True, "disposition": "passed", "runs": reused[0],
+            "attempt": _next_attempt(root, action), "reused": reused[1],
+        }
+        return {verify_path(action, number): store.dumps(record, "ShipLoop test-loop verification")}, ""
+    trees = [_tree(root, repo)] if not count and observed is None else []
+    deadline = clock() + budget
     runs: List[Dict[str, Any]] = []
     for row in commands:
         if failure:
@@ -1071,6 +1212,11 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         record["attempt"] = _next_attempt(root, action)
     else:
         record["counted"] = False
+        if trees:
+            # What a later ``complete`` compares before it takes this run (``_reused``): the trees it started on and
+            # left (a command may write an untracked file; the model may remove one) and the exact command list.
+            record["commands"] = [dict(row) for row in commands]
+            record["trees"] = [tree for tree in dict.fromkeys([*trees, _tree(root, repo)]) if tree]
     if observed is not None:
         record["observed"] = observed
     relative = verify_path(action, number) if count else check_only_path(action)
@@ -1144,6 +1290,9 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
         path = check_only_path(action_id)
     if path and (Path(root) / path).is_file():
         record = store.read_record(Path(root) / path)
+        if record.get("reused"):
+            lines.append("candidate: reused the passed check-only run of " + str(record["reused"]["created_at"])
+                         + " (" + str(record["reused"]["path"]) + "): the tree and the recorded commands are unchanged")
         for run in record.get("runs") or ():
             tally = run.get("counts") or {}
             lines.append("candidate: [" + run["suite"] + "] " + run["command"] + " -> " + run["status"]
@@ -1595,6 +1744,7 @@ __all__ = (
     "refused_runs",
     "remedy_open",
     "rerun_lines",
+    "reuse_note",
     "rule_lines",
     "stage_commands",
     "verify",

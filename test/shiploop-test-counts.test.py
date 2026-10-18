@@ -494,6 +494,31 @@ class HostDependentDriftTests(unittest.TestCase):
             _writes, refusal = test_loop.verify(root, state, "", "a-run", "system-test", runner=runner)
         self.assertEqual(state_calls, [self.SYSTEM["command"]])
 
+    def test_a_regression_command_folded_into_a_focused_row_is_still_run_as_the_default_suite(self) -> None:
+        """U9: a regression row that repeats a focused row's command folds into it (``regression: true``); the drift
+        check must still run that command as the default suite."""
+        import tempfile
+        calls = []
+
+        def runner(argv, cwd, timeout, input_bytes=b"", env=None):
+            calls.append(argv[-1])
+            if argv[-1] == self.SYSTEM["command"]:
+                return "ok", 0, node("pass-spec.txt").replace("TC-1 ", "TC-4 ").replace("TC-2 ", "TC-15 ").encode(), b""
+            return "ok", 0, "✔ TC-4 opens the page in Chrome (30ms)\nℹ tests 1\nℹ pass 1\nℹ fail 0\n".encode(), b""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "tests").mkdir()
+            state = self.state(root)
+            focused = {"command": "node --test", "suite": "focused", "ids": ["TC-9"]}
+            state["accepted"]["a-plan"]["test_commands"] = test_loop.normalise_commands(
+                [focused, dict(self.REGRESSION, ids=["TC-9"])])
+            self.assertEqual(state["accepted"]["a-plan"]["test_commands"],
+                             [dict(focused, min_tests=2, regression=True)])
+            _writes, refusal = test_loop.verify(root, state, "", "a-run", "system-test", runner=runner)
+        self.assertEqual(calls, [self.SYSTEM["command"], "node --test"])
+        self.assertIn("host-dependent", refusal)
+
     def test_host_dependent_is_a_boolean_true_and_nothing_else(self) -> None:
         row = {"command": "x", "suite": "focused", "ids": ["TC-1"], "host_dependent": True}
         self.assertTrue(test_loop.normalise_commands([row])[0]["host_dependent"])
@@ -514,6 +539,52 @@ class CommandSchemaTests(unittest.TestCase):
                     {"min_tests": True}, {"other": 1}):
             with self.subTest(bad=bad), self.assertRaises(test_loop.TestLoopError):
                 test_loop.normalise_commands([dict({"command": "x", "suite": "focused"}, **bad)])
+
+    def test_byte_identical_commands_fold_into_one_row_that_checks_what_both_did(self):
+        """U9 (packet review 2026-10-17, D-1): the step plan copied two fences of the same command, so rows 7-9 repeated
+        rows 1-3 and every run ran them twice.  Rows with the same command fold into the first: the union of ids and
+        criteria, the larger min_tests; a regression row folded into a focused one leaves regression: true."""
+        rows = test_loop.normalise_commands([
+            {"command": "run unit", "suite": "focused", "ids": ["T1", "T2"], "min_tests": 2, "criteria": ["C1"]},
+            {"command": "run all", "suite": "regression"},
+            {"command": "run unit", "suite": "regression", "ids": ["T2"], "min_tests": 3},
+            {"command": "lint", "suite": "check", "criteria": ["C1"]},
+            {"command": "lint", "suite": "check", "criteria": ["C2"]},
+            {"command": "run all", "suite": "regression", "ids": ["OLD-1"]},
+        ])
+        self.assertEqual(rows, [
+            {"command": "run unit", "suite": "focused", "ids": ["T1", "T2"], "min_tests": 3, "criteria": ["C1"],
+             "regression": True},
+            {"command": "run all", "suite": "regression", "ids": ["OLD-1"]},
+            {"command": "lint", "suite": "check", "criteria": ["C1", "C2"]},
+        ])
+        self.assertEqual(test_loop.normalise_commands(rows), rows)
+        self.assertEqual(test_loop._listing(rows[0]), "[focused] run unit (must run: T1, T2) (at least 3 tests) "
+                                                      "(also recorded as regression)")
+
+    def test_rows_that_one_row_cannot_check_stay_apart_and_folding_is_canonical(self):
+        """A check is judged by its exit code alone, a regression ID must not come under the base run's rule for a
+        focused one, and host_dependent marks cases no default suite may run: such pairs keep both rows.  Folding
+        repeats until nothing folds, so normalising the result again changes nothing (``validate`` requires it)."""
+        apart = [
+            [{"command": "x", "suite": "focused", "ids": ["T1"]}, {"command": "x", "suite": "check"}],
+            [{"command": "x", "suite": "focused", "ids": ["T1"]}, {"command": "x", "suite": "regression", "ids": ["T9"]}],
+            [{"command": "x", "suite": "focused", "ids": ["T1"]},
+             {"command": "x", "suite": "focused", "ids": ["T2"], "host_dependent": True}],
+        ]
+        for pair in apart:
+            with self.subTest(pair=pair):
+                self.assertEqual(len(test_loop.normalise_commands(pair)), 2)
+        chained = test_loop.normalise_commands([
+            {"command": "x", "suite": "regression", "ids": ["A", "B"]},
+            {"command": "x", "suite": "focused", "ids": ["A"]},
+            {"command": "x", "suite": "focused", "ids": ["B"]},
+        ])
+        self.assertEqual(chained, [{"command": "x", "suite": "focused", "ids": ["A", "B"], "regression": True}])
+        self.assertEqual(test_loop.normalise_commands(chained), chained)
+        for bad in ({"suite": "regression", "regression": True}, {"suite": "focused", "regression": False}):
+            with self.subTest(bad=bad), self.assertRaises(test_loop.TestLoopError):
+                test_loop.normalise_commands([dict({"command": "x"}, **bad)])
 
 
 if __name__ == "__main__":

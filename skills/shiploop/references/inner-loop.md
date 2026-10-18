@@ -71,7 +71,12 @@ its first iteration whose exit assessment holds. There is no iteration limit.
 
 `complete --check-only` runs the stage's script gates on a result without
 completing the action or saving anything, and prints each refusal as `complete`
-would. The step-plan loop runs it on every draft.
+would. The step-plan loop runs it on every draft. A passed check-only test run
+in the repository is taken by the next `complete` instead of running the
+recorded commands again while the working tree (tracked and untracked files,
+not ignored ones) and the command list are unchanged; that record names it
+under `reused`. A command recorded twice with the same text, in one suite or as
+a regression row that repeats a focused one, is kept as one row and runs once.
 
 ## Expectations and validate-existing
 
