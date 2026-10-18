@@ -1,0 +1,93 @@
+{
+  "_comment": "Generic acceptance-procedure faults (implement-step fix plan 2026-10-17 section 4.2, T25; packet-review unit W2-C). Each fault is written in the two forms a run records a procedure in: an automated test-spec case (the six test_cases fields, no other key) and an opt-in consumer check under HOME/architecture.md ## Real-boundary checks, which is not a focused ID. `procedure` is the same procedure in a form a script can replay; `fixed` is a valid procedure for the same requirement. test/shiploop-guidance.test.py (ProcedureFixtureTests) checks the deterministic part: replayed against the independent reference model below, each fault shows at `fault_at` and each fixed form holds, while the six-field shape gate accepts the faulty case (only a review can see the fault). Whether a model reviewer reading the printed review focus asks for the revision is a live qualification (a reviewer pilot), not proven by these fixtures. The live run behind them: a release check asked for one more action after the state that allows it had ended (docs/experiments/packet-review-2026-10-17/rows/w2-procedure.md).",
+  "requirement": {
+    "id": "R-1",
+    "text": "A key/value store. create(key, value) adds a missing key; get(key) returns its value; update(key, value) changes an existing key; delete(key) removes it. get, update and delete of a missing key raise NotFound. Each successful create, update or delete adds 1 to the store's revision. The page shows only a status line (the number of keys) and the enabled controls; the API returns a key's value and the revision."
+  },
+  "observers": {
+    "api": ["value", "revision", "error"],
+    "page": ["status", "controls"]
+  },
+  "faults": [
+    {
+      "id": "impossible-transition",
+      "fault": "an action the preceding state forbids, expected to succeed",
+      "fault_at": 2,
+      "automated": {
+        "id": "TC-update",
+        "criterion": "C1",
+        "requirement": "R-1",
+        "oracle": "Start: an empty store and a client with test access. Procedure: create sample=1; delete sample; update sample=2; get sample. Observe the API result: get returns 2.",
+        "red": "a store that drops updates returns 1",
+        "green": "get returns 2 after the update"
+      },
+      "architecture": "### RB-1 Update a removed key\n\nStart: an empty store, a person on the page with test access.\nActions: 1. create sample=1. 2. delete sample. 3. update sample=2. 4. read sample.\nExpected: the value shown is 2.\nOwner: release verification.",
+      "procedure": {
+        "observer": "api",
+        "steps": [
+          {"action": ["create", "sample", 1], "expect": {}},
+          {"action": ["delete", "sample"], "expect": {}},
+          {"action": ["update", "sample", 2], "expect": {}},
+          {"action": ["get", "sample"], "expect": {"value": 2}}
+        ]
+      },
+      "fixed": {
+        "observer": "api",
+        "steps": [
+          {"action": ["create", "sample", 1], "expect": {}},
+          {"action": ["get", "sample"], "expect": {"value": 1}},
+          {"action": ["update", "sample", 2], "expect": {}},
+          {"action": ["get", "sample"], "expect": {"value": 2}},
+          {"action": ["delete", "sample"], "expect": {}},
+          {"action": ["update", "sample", 3], "expect": {"error": "NotFound"}}
+        ]
+      }
+    },
+    {
+      "id": "invisible-observation",
+      "fault": "internal state asserted through an observer that cannot show it",
+      "fault_at": 1,
+      "automated": {
+        "id": "TC-revision",
+        "criterion": "C2",
+        "requirement": "R-1",
+        "oracle": "Start: an empty store and a person on the page. Procedure: create sample=1; update sample=2. Observe on the page: the store's revision is 2.",
+        "red": "a store that does not count updates shows revision 1",
+        "green": "the page shows revision 2"
+      },
+      "architecture": "### RB-2 Revision after an update\n\nStart: an empty store, a person on the page.\nActions: 1. create sample=1. 2. update sample=2.\nExpected on the page: revision 2.\nOwner: release verification.",
+      "procedure": {
+        "observer": "page",
+        "steps": [
+          {"action": ["create", "sample", 1], "expect": {}},
+          {"action": ["update", "sample", 2], "expect": {"revision": 2}}
+        ]
+      },
+      "fixed": {
+        "observer": "api",
+        "steps": [
+          {"action": ["create", "sample", 1], "expect": {"revision": 1}},
+          {"action": ["update", "sample", 2], "expect": {"revision": 2, "value": 2}}
+        ]
+      }
+    },
+    {
+      "id": "existence-guarded-pass",
+      "fault": "a guarded command that exits 0 having run nothing",
+      "fault_at": 0,
+      "automated": {
+        "command": "test ! -e build/app || ./run-tests",
+        "suite": "check"
+      },
+      "architecture": "### RB-3 Built entry point answers\n\nStart: the built candidate.\nConfirm: `test ! -e build/app || ./run-tests`, judged by exit code.\nOwner: release verification.",
+      "procedure": {
+        "command": "test ! -e build/app || ./run-tests",
+        "absent": "build/app"
+      },
+      "fixed": {
+        "command": "./run-tests",
+        "absent": "build/app"
+      }
+    }
+  ]
+}

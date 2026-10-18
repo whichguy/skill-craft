@@ -731,6 +731,29 @@ _VERIFY_ONCE = "items 8-9 once, before you report the exit satisfied."
 _VERIFY_ONCE_INLINE = "item 9 once, before you report the exit satisfied."
 
 
+# Procedure validity (implement-step fix plan 2026-10-17 section 4.2, unit W2-C): an ordered procedure can name
+# repeatable actions and still be impossible.  A live run's release check asked for one more action after the state
+# that allows it had ended, and passed every review handoff on the way.  The walk is worded once: the shared focus item
+# below carries it to the spec and test-strategy duties and to every planning review, and test-spec's duty applies it to
+# the cases that stage owns.
+PROCEDURE_WALK = ("Walk it from its stated start: can the actor reach that start under recorded authority, can each "
+                  "action occur in the state the preceding actions leave, can the chosen observer see the expected "
+                  "result?")
+_PROCEDURE_ITEM = textwrap.fill(
+    "an ordered procedure (calls, commands, interactions) that cannot happen as written. " + PROCEDURE_WALK
+    + " Use an existing local check where one fits. Record an unreachable start as an open prerequisite, revise an "
+    "invalid action or oracle, claim no execution from a plan, and treat an observation made before its setup changed "
+    "as stale", width=80, initial_indent="- ", subsequent_indent="  ", break_on_hyphens=False)[2:]
+# Test-spec's duty item 4: the walk applied to the cases that stage owns, and where a procedure's locator rides, so the
+# stages that quote the case or the open item (implement and its Improve, test, verify, system-test-author, the open
+# item's consumer) run that one procedure rather than a copy.
+_TEST_SPEC_PROCEDURE = textwrap.fill(
+    "4. A case's setup and actions are an ordered procedure. " + PROCEDURE_WALK + " An unreachable start is an open "
+    "prerequisite (item 7); an impossible action or unobservable oracle is revised here (a forbidden action is its own "
+    "failure case). A procedure another record holds (HOME/architecture.md ## Real-boundary checks): its locator in "
+    "`oracle` or the open item's `check`. A plan is not a run; a setup change makes an earlier observation stale.",
+    width=117, subsequent_indent="   ", break_on_hyphens=False) + "\n"
+
 # The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
 # test-strategy duties hold the ones that apply to them, so a producer reads in its own packet what its result must
 # meet (SPEC S-6).  One source: the child's list is the producers' list plus the condition on steps, which a spec or
@@ -738,6 +761,7 @@ _VERIFY_ONCE_INLINE = "item 9 once, before you report the exit satisfied."
 _REVIEW_FOCUS_ITEMS = (
     "a step, example or expected result that cannot be replayed exactly: name the\n"
     "  concrete inputs, values, identifiers and sample interactions",
+    _PROCEDURE_ITEM,
     "an expected result or check that a weaker stand-in would pass: a hardcoded\n"
     "  value, a missing assertion, a title-only test, or an absent required name",
     "a documented command that does not run what it claims on the target runtime:\n"
@@ -1056,8 +1080,9 @@ DUTIES = {
     default test command passes without the tool.
 12. A request naming a page or screen people use: plan a case driving it through its interface (browser or device)
     with its actions, expected visible outcomes, and tool named and probed as in item 11 (Consumer testing guide).
-    Otherwise record the outcome unverified with owner and due stage (handoff, or the stage whose external effect it
-    gates). An HTTP response alone is neither.
+    Write it under ## Real-boundary checks as an ordered procedure from its start (actor, entry route, initial state),
+    with an ID later stages cite. Otherwise record the outcome unverified with owner and due stage (handoff, or the
+    stage whose external effect it gates). An HTTP response alone is neither.
 """ + _duty_focus(13, "HOME/environment.md or HOME/architecture.md", "strategy") + """\
 14. `evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.
 """,
@@ -1280,14 +1305,15 @@ Write no test code in this stage.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. RED: how it fails on the item's base, or "characterisation" if it
    already passes.
-4. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
+""" + _TEST_SPEC_PROCEDURE + """\
+5. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
    (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state.
-5. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
+6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
    it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
-6. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
+7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
    `assumption`; `check`; `consumer` = that outer stage; owner). Confirmed only by a check command or inspection: no
    case; list it with its command in the summary. Untestable as written: report revise naming it.
-7. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
+8. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
 """,
     "validate-existing": """\
 1. ShipLoop ran each expectation's check, and each open plan assumption this item settles, on the unchanged item
@@ -1811,11 +1837,11 @@ IMPROVE_SCOPES = {
     "discovery": "repository/environment facts, initial-baseline evidence and classification, conventions, reuse findings, and material gaps",
     "research": "source-backed conclusions, uncertainty, and reuse recommendations",
     "spec": "behavior, acceptance, non-functional criteria, existing-spec reconciliation, failure boundaries, and consumer outcomes",
-    "test-strategy": "independent test/risk strategy and required test boundaries",
+    "test-strategy": "independent test/risk strategy, required test boundaries and their procedures",
     "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
     "step-plan": "the newly created bounded steps and any parallel or serial execution graph, criteria, test commands, expectations, step skills, conventions and diagnostic obligations",
-    "test-spec": "the test cases, their independent oracles, RED/GREEN definitions and command IDs",
+    "test-spec": "the test cases, their procedures, independent oracles, RED/GREEN definitions and command IDs",
     "validate-existing": "the expectation checks, preparatory fixes and environment repairs",
     "implement": "one implementation step's diff: its task and criteria, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use",
     "test": "the item's executable tests, their oracles and suite registration, and the passing command evidence",
