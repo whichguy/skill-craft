@@ -112,3 +112,61 @@ Four anonymous Apex runs; the Apex only records, Python decides:
 
 ## 2026-10-18 · live run 1 (interim)
 See `test/shiploop_e2e/LEARNINGS.md` "The Salesforce Battleship case, live run 1". Findings to fix: the keep rule for a done-but-uncommitted run (harness), the idle host after done (harness), the mutation gate for remote-resident test commands and the test-command-only revise restarting every step (ShipLoop).
+
+## 2026-10-18 · the release slice: deployment tested from a built product (harness only, fake org, no real `sf`) — status: interim
+
+Owner request: an end-to-end test focused on deploying into the owner's Salesforce org, starting at ShipLoop's release stages with an
+already-built product instead of building the app from intake. Built on `feat/e2e-release-slice-ef1f39` from main 7580fb9a. Nothing
+here called the real `sf` or read `~/.sf`: every suite ran with `env -i HOME=<empty> PATH=<a folder holding only python3 and node>:/usr/bin:/bin:/usr/sbin:/sbin`,
+where no `sf` resolves. The runbook is `test/shiploop_e2e/README.md` "The release slice"; the code is `test/shiploop_e2e/release_slice.py`
+(no platform word in it or in the run.py additions) and the case's `seed_product`, `seed_home`, `seed_release` and `platform.existing` keys.
+
+### Decisions
+
+| Question | Answer and why |
+|---|---|
+| Where does the seed stop, and what does it record? | `--seed-at release-plan` (and `system-test-author`, which fell out for free: the same machinery with an earlier stop and three more graded stages). The existing `SEED_SCRIPT` walks the navigator through every stage before it; it now also takes `records` ({stage: fields}) merged into each synthetic result. A first experiment showed the walk already reaches release-plan on the real navigator, so no engine change (no `skills/` file touched, no change note). |
+| Where is the product committed? | In the run's **worktree**, on the run branch, after the item's base was recorded (the seed stops once at step-plan, commits, then continues). So the item reads as built after its base, `workspace plan-return` sees exactly the product's files as the delta (17 paths, `.gitignore` included), and the source checkout holds only the baseline until the run's own return. Committing it into the source baseline instead would have left the return nothing to return. |
+| What of the fixture is the product? | `battleship-salesforce-reference` minus its README (it documents the harness: checks, self-test; `seed_release.product_exclude`), plus a new `.gitignore` for the CLI's `.sf/` and `.sfdx/`. Live run 1 committed two `.sf` tracking files at the return, which forced a working-tree return and failed `committed` (finding 4 of its entry); a standard SFDX project has that `.gitignore`. The reference README now says the one place its files reach a run. |
+| The knowledge home | `battleship-salesforce-home/{spec,environment,architecture}.md`, written by hand from the request and the reference: R-1..R-12, AD-1..AD-4, the deploy, validate (`--source-dir force-app`: the bare command exits 2, seen in run 1), assign and test commands with `--target-org de`, the access the request grants. Committed in the baseline like the neutral home. No grader, fixture or oracle word in any of it (a test greps the worktree). `records.json` beside them (not copied) holds the work item and the fields the skipped stages leave: step-plan criteria, test commands and paths; system-test-author `system_commands` (the org suite **without** a deploy: the deploy is the release stage's) and an open item A1 for release-plan ("the suite has not run: it runs after the deploy"). |
+| Input gates of the outer stages | Checked on the checkout's own CLI: `next` prints the release-plan packet with the system commands, A1 and the three knowledge files; a model-shaped release-plan result passes `complete --check-only`, and one without `consumer_checks` does not. Later stages' gates need accepted results and an Improve child; the rehearsal drives them with the navigator. No delivery contract (unmarked run, as in run 1). |
+| Delegation | inline for a release slice (a real run of the case is inline); step-plan seeds keep Ask-Agent. |
+| Chain verdict | not computed for a release slice (it has no implementation chain; the old rule would have failed every such run). |
+| Grading | New `release_slice` block and verdict (also in the printed report and `mismatch.md`): which stages from the seed point ShipLoop accepted, where and why it stopped, and the deploy. The deploy verdict reads the guard log: every allowed `sf project deploy start` (outside the harness's own preflight lines) must fall between the acceptance of release-check and of release, and at least one must have exited 0. The exit is required because in update mode the kept app answers `deployed`, `tests` and `rules` by itself: a failed deploy over it would pass every check. `project` (reads the source checkout) runs only once any file of the product is in it; before that it is left out and named in `skipped_checks`. |
+| Platform modes | `--platform-existing fresh` (default, unchanged) or `update`, listed per case in `platform.existing`. The harness sets `$E2E_PLATFORM_EXISTING` for the preflight and before commands only when it is not fresh. `update`: preflight accepts the prefixed items and names them; the snapshot records them and the assignments of the baseline permission set; the cleanup (reading the mode from the snapshot, not the environment) removes only what the run added, including assignments added to a baseline permission set; a baseline class or bundle whose LastModifiedDate changed is reported as deployed over in place (`compare(..., updated=)`), every other difference still fails; a snapshot without the baseline assignments is unusable and deletes nothing. A resume keeps its run's mode. |
+
+### Tests
+
+| Suite | Before | After | Notes |
+|---|---|---|---|
+| `shiploop-e2e-release-slice` (new, registered in `suite_catalog.py`, pinned in `test-groups`) | - | 43 tests, 31 to 37 s | the seed on the real CLI (release-plan, system-test-author), the case keys and their refusals, the release verdict on run folders made by hand, the mode rules, and 8 whole-run rehearsals: `run.main` with a fake Grok that drives the navigator and calls the guarded `sf` (the case's own `sf_guard.py`, preflight, snapshot and cleanup commands) against `fake_sf.py`: fresh pass, fresh refusal of a kept app, update + keep, update + cleanup, early stop, early deploy, failed deploy over the kept app, resume mode |
+| `shiploop-e2e-battleship-salesforce` | 52 | 63 | +11 update-mode tests on the fake org |
+| `shiploop-e2e-chess-salesforce` | 192 | 192 | the library changes are default-preserving |
+| `shiploop-e2e` | 429 | 429 | 4 `FanoutGradeTest` errors under `env -i` until a `node` link was added to the sanitized PATH (they spawn `node`; not related) |
+| `-environment` / `-platform` / `-sf-guard` / `-slice` | 133 / 161 / 108 / 58 | same | |
+| `test-groups` | 38 | 38 | catalog pin 95 -> 96 ShipLoop suites, 150 -> 151 suites, the family list gains the new id |
+| the rest of the E2E family (runrecord, fidelity, reorientation, baseline, quality, packet-anatomy, render-diff, commit-counters, efficiency, owner-page) | | all pass | render-diff fails one test under `env -i` with no `TMPDIR` on the unchanged tree too (checked with `git stash`); it passes with `TMPDIR` set |
+
+Fail-first: run against the unchanged check scripts, 8 of the 11 update-mode tests fail (the other 3 pin what must not change: a fresh
+snapshot's file, the default cleanup, the case's key). Mutations of the new code, each caught by the test named for it: the deploy
+window always "in" (GradeTest), "returned" always true (the split-checks and the early-stop rehearsal), the chain graded for a release
+slice (the fresh rehearsal).
+
+### Not verified against the real org (unverified)
+
+1. Update mode's queries (the assignments of a permission set by Id, the changed LastModifiedDate on a redeploy) run only against the fake. Whether the real org
+   changes LastModifiedDate on a redeploy of identical source is not known; either way the cleanup passes (`updated` or unchanged).
+2. A real model's release-plan..handoff results through `complete`: only release-plan's gates were run (`--check-only`); the rest of the walk is the
+   fake host applying results with the navigator, so Improve children, the return (`workspace execute-return`), the `release-verify` consumer-check
+   rerun and the knowledge closes are not exercised. The return is emulated with a fast-forward merge.
+3. Whether the seeded home steers a model well (the records are accurate to the reference and to run 1's observations, nothing more).
+4. `committed` after a real return: with the `.gitignore` the return should be able to fast-forward; not shown.
+5. The idle-host gap below.
+
+### Known limits that this entry does not fix
+
+- The host stays open after ShipLoop is done (run 1, finding 3) until `--timeout` ends it; a host something else kills (rc 143) is a failed
+  process, so `--keep-platform` is not honoured (`keep_refusal`). Use a `--timeout` a little above the expected run and do not kill the host.
+- `committed` fails for a return that applies only the kept files to the working tree (run 1, finding 4).
+
+Related commits: 7580fb9a (main at the start), fef544f4 (the case), 0d6d781e (live run 1 learnings). Commit: see `git log` of the branch.

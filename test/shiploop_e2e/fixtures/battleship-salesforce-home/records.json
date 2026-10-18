@@ -1,0 +1,74 @@
+{
+  "about": "What the E2E release-slice seed records for the stages it does not run (test/shiploop_e2e/run.py seed_run). Not part of the knowledge home: only spec.md, environment.md and architecture.md are copied into docs/shiploop. 'work_item' is the plan's only item; each key of 'results' is a stage and its entries are merged into that stage's synthetic done result (a 'summary' there replaces the default sentence).",
+  "work_item": {
+    "id": "W1",
+    "title": "Build and prove the Battleship game",
+    "context": "The Apex engine, the controller, the Lightning board, the tab, the app, the permission set and the Apex tests are built and committed in the run's worktree. Nothing is deployed to the org yet."
+  },
+  "results": {
+    "step-plan": {
+      "summary": "Synthetic: recorded by the E2E seed without doing it. The item is the prebuilt Battleship product; its criteria are confirmed by the Apex tests in the org, which exist there only after the release deploy, so the commands below were not run.",
+      "paths": ["sfdx-project.json", "force-app/**"],
+      "follows": ["R-1", "R-2", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9", "R-10", "R-11", "R-12", "AD-1", "AD-2", "AD-3", "AD-4"],
+      "criteria": [
+        {"id": "C1", "text": "The engine's seeded placement and shot rules pass the org tests in SLBattleEngineTest (R-3, R-4, R-5, R-6)."},
+        {"id": "C2", "text": "A whole game of 100 shots through SLBattleController ends with gameOver true, and an invalid shot reaches the caller as an AuraHandledException (R-7, R-10)."},
+        {"id": "C3", "text": "The project holds the board component, the tab, the app and the permission set that R-2 and R-8 name (R-1, R-2, R-8)."}
+      ],
+      "test_commands": [
+        {
+          "command": "sf apex run test --target-org de --class-names SLBattleEngineTest --synchronous --result-format human --code-coverage",
+          "suite": "focused",
+          "ids": ["aNewGameHasTheStandardFleetAndNoShotYet", "everyShipIsStraightInsideTheGridAndSharesNoCell", "theSameSeedGivesTheSameFleetAndAnotherSeedAnotherOne", "aShotAtWaterIsAMiss", "aHitAndThenTheSinkingShotOfTheDestroyer", "theGameIsOverExactlyWhenTheLastShipSinks", "aCellFiredAtTwiceIsRefused", "aShotOutsideTheGridIsRefused"],
+          "min_tests": 8,
+          "criteria": ["C1"]
+        },
+        {
+          "command": "sf apex run test --target-org de --class-names SLBattleGameTest --synchronous --result-format human --code-coverage",
+          "suite": "focused",
+          "ids": ["aWholeGameThroughTheControllerSinksTheStandardFleet", "theControllerReportsAnInvalidShotAsAnAuraHandledException"],
+          "min_tests": 2,
+          "criteria": ["C2"]
+        },
+        {
+          "command": "test -f sfdx-project.json && test -f force-app/main/default/lwc/slBattleBoard/slBattleBoard.js && test -f force-app/main/default/tabs/SLBattle_Board.tab-meta.xml && test -f force-app/main/default/applications/SLBattle.app-meta.xml && test -f force-app/main/default/permissionsets/SLBattle_Access.permissionset-meta.xml",
+          "suite": "check",
+          "criteria": ["C3"]
+        }
+      ]
+    },
+    "system-test-author": {
+      "summary": "Synthetic: recorded by the E2E seed without doing it. The system suite is the two Apex test classes, run in the org with the commands below. They exist in the org only after the release deploy, so nothing was run before release (open item A1).",
+      "system_commands": [
+        {
+          "command": "sf apex run test --target-org de --class-names SLBattleEngineTest --synchronous --result-format human --code-coverage",
+          "suite": "regression",
+          "ids": ["aNewGameHasTheStandardFleetAndNoShotYet", "everyShipIsStraightInsideTheGridAndSharesNoCell", "theSameSeedGivesTheSameFleetAndAnotherSeedAnotherOne", "aShotAtWaterIsAMiss", "aHitAndThenTheSinkingShotOfTheDestroyer", "theGameIsOverExactlyWhenTheLastShipSinks", "aCellFiredAtTwiceIsRefused", "aShotOutsideTheGridIsRefused"],
+          "min_tests": 8
+        },
+        {
+          "command": "sf apex run test --target-org de --class-names SLBattleGameTest --synchronous --result-format human --code-coverage",
+          "suite": "regression",
+          "ids": ["aWholeGameThroughTheControllerSinksTheStandardFleet", "theControllerReportsAnInvalidShotAsAnAuraHandledException"],
+          "min_tests": 2
+        }
+      ],
+      "assumptions": [
+        {
+          "id": "A1",
+          "assumption": "SYS-ORG-SUITE: both Apex test classes pass in the org once the product is deployed (10 methods in all).",
+          "disposition": "open",
+          "check": "After the release deploy and the permission set assignment, run the two commands in system_commands (HOME/environment.md ## Commands).",
+          "reason": "The test classes exist in the org only after the release deploy; the earlier stages were recorded by the harness without running them.",
+          "consumer": "release-plan"
+        }
+      ]
+    },
+    "system-test": {
+      "summary": "Synthetic: recorded by the E2E seed without doing it. The prebuilt product is not deployed, so no system command ran; they run after the release deploy (open item A1)."
+    },
+    "product-acceptance": {
+      "summary": "Synthetic: recorded by the E2E seed without doing it. The product is accepted for release planning; its behaviour in the org is checked after the release deploy (open item A1)."
+    }
+  }
+}

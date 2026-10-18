@@ -280,6 +280,19 @@
       "python3 \"$E2E_CHECKS/battleship_salesforce.py\" rules --org de"
     ],
     "checks_source": "the request: each check tests a sentence of the prompt; rules uses the standard fleet (5, 4, 3, 3 and 2 cells, with their names) and the geometry of the hit cells as the independent oracle, never the candidate's own answers",
+    "seed_product": "battleship-salesforce-reference",
+    "seed_home": "battleship-salesforce-home",
+    "seed_release": {
+      "source_checks": ["project"],
+      "product_exclude": ["README.md"],
+      "operation": {
+        "name": "deploy",
+        "stage": "release",
+        "log": "platform/sf-calls.jsonl",
+        "argv": ["project", "deploy", "start"]
+      },
+      "source": "owner request 2026-10-18: an end-to-end test focused on deployment into the owner's Salesforce org, starting at the release stages with an already-built product. seed_product is the prebuilt project (the known-good reference the case's own checks pass on); seed_home holds the knowledge home and the records the skipped stages leave; source_checks are the checks that read the source checkout, run only once the product has been returned to it; product_exclude are the fixture's own files (its README), never committed into the run; operation is the platform change whose timing the release-stage verdict reads from the guard log"
+    },
     "platform": {
       "kind": "salesforce",
       "org": "de",
@@ -309,6 +322,7 @@
         "tests",
         "rules"
       ],
+      "existing": ["update"],
       "source": "owner request 2026-10-17: \"run the proper prompt with 'developing a battleship game' in my Salesforce org\"; modelled on chess-salesforce (owner go 2026-10-16: the Developer Edition org `de`, everything prefixed and removed afterwards; owner 2026-10-17: with --keep-platform the app stays in the org to be played when the org checks deployed, tests and rules pass, recorded NOT a pass), prefix SLBattle, plus the permission set the chess run lacked (its finding F9: the app's tab was hidden because no permission set or profile granted it), which the guard allows with --permission-sets"
     },
     "budget": {

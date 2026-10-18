@@ -1,0 +1,7 @@
+# What `sf project generate` writes, trimmed: the CLI's local caches and source-tracking files are never part of the project.
+.sf/
+.sfdx/
+.localdevserver/
+deploymentPlans/
+node_modules/
+coverage/

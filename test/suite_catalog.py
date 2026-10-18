@@ -159,6 +159,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-e2e-chess-salesforce.test.py",
     "test/shiploop-e2e-battleship-salesforce.test.py",
+    "test/shiploop-e2e-release-slice.test.py",
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-sf-guard.test.py",
     "test/shiploop-e2e-efficiency.test.py",
@@ -326,10 +327,16 @@ _DURATION_SECONDS = {
     # seconds, 2026-10-16: 105 to 123 s at load average about 5 (the platform and guard suites ran beside it in some of those).
     # Just under QUICK_MAX_SECONDS; the E2E apparatus runs in the full tier anyway.
     "test/shiploop-e2e-chess-salesforce.test.py": 115.0,
-    # The battleship-salesforce case's checks against the fake `sf`: 52 tests, most a check run as a subprocess against the fake, plus a
+    # The battleship-salesforce case's checks against the fake `sf`: 63 tests, most a check run as a subprocess against the fake, plus a
     # Python copy of the reference engine and the Apex subset that runs the grader's scripts against it. Local wall seconds,
-    # 2026-10-17: 29 s at load average about 6, one serial run. Under QUICK_MAX_SECONDS.
-    "test/shiploop-e2e-battleship-salesforce.test.py": 30.0,
+    # 2026-10-17: 29 s at load average about 6, one serial run (52 tests); 2026-10-18, with the 11 update-mode tests: 44 s, four
+    # suites side by side. Under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-battleship-salesforce.test.py": 45.0,
+    # The release slice (run.py --seed-at release-plan, release_slice.py): 43 tests. Seeds on the checkout's own ShipLoop CLI (two seeds,
+    # one reused by ten tests), the release verdict on run folders made by hand, and 8 whole-run rehearsals (run.main over a fake Grok
+    # that drives the navigator and calls the guarded `sf` of the fake org; about 4 s each, one sleeps 1.2 s). Local wall seconds,
+    # 2026-10-18: 31 to 37 s, four suites side by side. Under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-release-slice.test.py": 37.0,
     # The case `platform` hooks (preflight, before, home_links, model_bin, always-run cleanup, scrub): 40 tests, most of them a whole
     # run.main over a fake host and one tiny platform command. 135 tests since the model_bin pin, resolution, bypass-detector, keep-platform
     # and resume additions. Local wall seconds, 2026-10-16: 43 to 59 s at load average about 5. Under QUICK_MAX_SECONDS.
@@ -636,10 +643,10 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 # Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
 # ShipLoop-family suite its name does not select (the leaf-name rule skips that family).  A new leaf's
 # package build is its release gate, so the Run Review leaf also selects marketplace-package.  Each family
-# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: the 17 family suites
-# sum to about 616 s of the estimates in _DURATION_SECONDS on 2026-10-17 (shiploop-e2e 100, -chess-salesforce 115,
-# -slice 81, -platform 75, -environment 65, -quality 43, -battleship-salesforce 30, -baseline 25, -commit-counters 24.5,
-# -sf-guard 20, the other seven 38 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
+# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: the 18 family suites
+# sum to about 668 s of the estimates in _DURATION_SECONDS on 2026-10-18 (shiploop-e2e 100, -chess-salesforce 115,
+# -slice 81, -platform 75, -environment 65, -battleship-salesforce 45, -quality 43, -release-slice 37, -baseline 25,
+# -commit-counters 24.5, -sf-guard 20, the other seven 38 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
 _PREFIX_SUITE_IDS = {
     "test/fixtures/backchain-chunks/": ("backchain-chunks",),
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),

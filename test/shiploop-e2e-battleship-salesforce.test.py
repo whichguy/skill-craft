@@ -961,6 +961,184 @@ class TestSelftest(FakeOrg):
         self.baseline_again()
 
 
+class TestUpdateMode(FakeOrg):
+    """`--existing update` (run.py --platform-existing update): a run that deploys over work an earlier run kept. What is in the org
+    at the snapshot is the baseline; the cleanup removes only what the run adds beyond it, and the app that was kept stays."""
+
+    CLEAN = ("cleanup", "--org", "de", "--prefix", "SLBattle")
+    UPDATE = ("--org", "de", "--prefix", "SLBattle", "--existing", "update")
+    KEPT = ["SLBattle", "SLBattle_Board", "slBattleBoard", "SLBattle_Access", *REF_CLASSES]
+
+    def kept_app(self, assigned: bool = True) -> None:
+        """An earlier run's kept app: the reference deployed (and assigned), with the dates of an earlier day."""
+        self.deploy_reference()
+        if assigned:
+            self.assign()
+        state = self.state()
+        state["dates"] = {kind: {n: d for n, d in names.items() if not n.startswith(("SLBattle", "slBattle"))}
+                          for kind, names in state["dates"].items()}
+        self.set_state(state)
+
+    def snapshot_update(self) -> subprocess.CompletedProcess:
+        proc = self.run_check("snapshot", *self.UPDATE)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        return proc
+
+    def before(self) -> dict:
+        return json.loads((self.platform / "before.json").read_text())
+
+    def extra_class(self) -> Path:
+        """A project that also holds one class the baseline does not."""
+        project = self.project("rerun")
+        classes = project / "force-app" / "main" / "default" / "classes"
+        (classes / "SLBattleExtra.cls").write_text("public class SLBattleExtra {}\n")
+        (classes / "SLBattleExtra.cls-meta.xml").write_text((classes / "SLBattleEngine.cls-meta.xml").read_text())
+        return project
+
+    def redeploy(self, project: Path) -> None:
+        code, doc = self.sf("project", "deploy", "start", "--source-dir", "force-app", "--target-org", "de", cwd=project)
+        self.assertEqual((code, doc["status"]), (0, 0), doc)
+
+    def test_preflight_refuses_a_kept_app_by_default_and_accepts_it_in_update_mode(self) -> None:
+        self.kept_app()
+        proc = self.run_check("preflight", "--org", "de", "--prefix", "SLBattle")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("is not clean", proc.stdout)
+        proc = self.run_check("preflight", "--org", "de", "--prefix", "SLBattle", "--existing", "update")
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("update mode:", proc.stdout)
+        self.assertIn("PermissionSet SLBattle_Access", proc.stdout)
+        # The mode also comes from the environment the harness sets, and a clean org passes in update mode as well.
+        proc = self.run_check("preflight", "--org", "de", "--prefix", "SLBattle", env={"E2E_PLATFORM_EXISTING": "update"})
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.set_state(dict(fk.default_state(), alias="de"))
+        proc = self.run_check("preflight", "--org", "de", "--prefix", "SLBattle", "--existing", "update")
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("no SLBattle*/slBattle* item", proc.stdout)
+
+    def test_the_snapshot_refuses_a_kept_app_by_default_and_records_it_as_the_baseline_in_update_mode(self) -> None:
+        self.kept_app()
+        proc = self.run_check("snapshot", "--org", "de", "--prefix", "SLBattle")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("refusing to snapshot a dirty org", proc.stdout)
+        self.assertFalse((self.platform / "before.json").exists())
+        proc = self.snapshot_update()
+        before = self.before()
+        self.assertEqual(before["existing"], "update")
+        self.assertEqual(sorted(before["baseline_prefixed"]),
+                         sorted(["ApexClass " + n for n in REF_CLASSES] + ["LightningComponentBundle slBattleBoard", "CustomTab SLBattle_Board",
+                                                                         "CustomApplication SLBattle", "PermissionSet SLBattle_Access"]))
+        self.assertEqual(list(before["permset_assignments"]), ["SLBattle_Access"])
+        self.assertEqual(len(before["permset_assignments"]["SLBattle_Access"]), 1)
+        self.assertIn("update mode: 8 prefixed item(s) are the baseline", proc.stdout)
+        self.assertIn("baseline permission sets SLBattle_Access with 1 assignment(s)", proc.stdout)
+
+    def test_a_fresh_snapshot_keeps_the_file_it_has_always_had(self) -> None:
+        self.snapshot()
+        before = self.before()
+        self.assertNotIn("existing", before)
+        self.assertNotIn("permset_assignments", before)
+        self.assertNotIn("baseline_prefixed", before)
+
+    def test_the_cleanup_keeps_the_kept_app_removes_what_the_run_added_and_reports_what_it_deployed_over(self) -> None:
+        self.kept_app(assigned=False)
+        self.snapshot_update()
+        self.assertEqual(self.before()["permset_assignments"], {"SLBattle_Access": []})
+        project = self.extra_class()
+        self.redeploy(project)  # the release stage: the baseline classes again, and one the baseline lacks
+        self.assign()  # and the permission set assigned to the logged-in user
+        self.assertIn("SLBattleExtra", self.state()["apex_classes"])
+        self.assertEqual(len(self.state()["assignments"]), 1)
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        state = self.state()
+        self.assertNotIn("SLBattleExtra", state["apex_classes"])  # only what the run added went
+        self.assertEqual(sorted(n for n in state["apex_classes"] if n.startswith("SLBattle")), sorted(REF_CLASSES))
+        self.assertIn("slBattleBoard", state["lwc"])
+        self.assertIn("SLBattle_Access", state["types"]["PermissionSet"])
+        self.assertIn("SLBattle", state["types"]["CustomApplication"])
+        self.assertEqual(state["assignments"], [])  # the assignment the run added to a baseline permission set went too
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertTrue(record["verified"])
+        self.assertEqual(record["existing"], "update")
+        self.assertEqual([r["name"] for r in record["removed"]], ["SLBattleExtra"])
+        self.assertEqual(record["unassigned"], [{"permission_set": "SLBattle_Access", "assignments": 1, "baseline_permission_set": True}])
+        self.assertEqual(sorted(record["updated"]), ["ApexClass", "LightningComponentBundle"])
+        self.assertEqual(record["modified"], {})
+        self.assertEqual(len(record["baseline_kept"]), 8)
+        self.assertIn("update mode: 8 baseline item(s) kept; deployed over in place (not restorable):", proc.stdout)
+
+    def test_a_baseline_assignment_stays_and_a_cleanup_with_nothing_added_removes_nothing(self) -> None:
+        self.kept_app(assigned=True)
+        self.snapshot_update()
+        start = len(self.calls())
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertEqual([c for c in self.calls()[start:] if c["argv"][:3] == ["data", "delete", "record"] or "destructive" in c], [])
+        self.assertEqual(len(self.state()["assignments"]), 1)
+        self.assertEqual(json.loads((self.platform / "cleanup.json").read_text())["removed"], [])
+
+    def test_the_default_cleanup_of_the_same_org_would_have_removed_the_kept_app(self) -> None:
+        """What update mode protects: a fresh snapshot of an org without the app, then the app deployed, is all removed."""
+        self.snapshot()
+        self.deploy_reference()
+        self.assign()
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.baseline_again()
+
+    def test_a_baseline_item_the_run_removed_or_a_non_prefixed_one_it_changed_still_fails_the_cleanup(self) -> None:
+        self.kept_app()
+        self.snapshot_update()
+        state = self.state()
+        state["apex_classes"].remove("SLBattleGameTest")  # the run deleted a baseline class
+        state.setdefault("dates", {}).setdefault("ApexClass", {})["DeveloperEditionUtils"] = fk.DEPLOY_DATE  # and changed one it does not own
+        self.set_state(state)
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("missing since the snapshot: ApexClass SLBattleGameTest", proc.stdout)
+        self.assertIn("modified since the snapshot: ApexClass DeveloperEditionUtils", proc.stdout)
+        self.assertNotIn("SLBattleEngine (", proc.stdout)
+
+    def test_an_assignment_the_run_added_to_a_baseline_permission_set_that_cannot_be_removed_fails_loudly(self) -> None:
+        self.kept_app(assigned=False)
+        self.snapshot_update()
+        self.assign()
+        proc = self.run_check(*self.CLEAN, env={"FAKE_SF_NOOP_DELETE": "1"})
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("PermissionSetAssignment", proc.stdout)
+        self.assertEqual(len(self.state()["assignments"]), 1)
+
+    def test_an_update_snapshot_without_its_baseline_assignments_is_not_usable_and_nothing_is_deleted(self) -> None:
+        self.kept_app(assigned=False)
+        self.snapshot_update()
+        before = self.before()
+        del before["permset_assignments"]
+        (self.platform / "before.json").write_text(json.dumps(before))
+        self.redeploy(self.extra_class())
+        self.assign()
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("no usable", proc.stdout)
+        self.assertEqual([c for c in self.calls() if c["argv"][:3] == ["data", "delete", "record"] or "destructive" in c], [])
+        self.assertIn("SLBattleExtra", self.state()["apex_classes"])
+
+    def test_the_mode_is_the_snapshots_not_the_environment_s_when_the_cleanup_runs(self) -> None:
+        self.kept_app(assigned=False)
+        self.snapshot_update()
+        self.redeploy(self.extra_class())
+        proc = self.run_check(*self.CLEAN, env={"E2E_PLATFORM_EXISTING": "fresh"})
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("SLBattle_Access", self.state()["types"]["PermissionSet"])  # the baseline stayed whatever the environment said
+
+    def test_the_case_lists_the_mode_its_commands_support(self) -> None:
+        case = json.loads((E2E / "cases.json").read_text())["battleship-salesforce"]
+        self.assertEqual(case["platform"]["existing"], ["update"])
+        self.assertEqual(run.validate_platform("battleship-salesforce", case["platform"])["existing"], ["update"])
+        for command in ("preflight", "before", "cleanup"):
+            self.assertIn("battleship_salesforce.py", case["platform"][command])
+
+
 class TestModelThroughTheGuard(FakeOrg):
     """What a model does, through the case's own `sf` wrapper (sf_guard.py --permission-sets): deploy, assign, and nothing else."""
 

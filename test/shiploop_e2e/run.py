@@ -24,7 +24,13 @@ recorded without doing them (the case prompt is the specification), so a host
 reaches the implementation chain in minutes instead of hours of planning. The
 host then follows ShipLoop's own packets from step-plan. A seeded run is also
 graded on `chain` (every step accepted and at least two workers in flight
-together) and writes no baseline row, since it does not start from intake. The seed also records the item's base snapshot
+together) and writes no baseline row, since it does not start from intake.
+--seed-at release-plan (or system-test-author) starts a RELEASE SLICE: the build is recorded without doing it and the case's prebuilt
+product is committed in the run's worktree, so the host plans, checks, performs and verifies the release in minutes
+(test/shiploop_e2e/release_slice.py, README "The release slice"). It is graded on `release_slice` instead of `chain`: which stages
+ShipLoop accepted from the seed point on, where it stopped, and whether the case's platform change (the deploy) happened in its own
+stage. --platform-existing update lets such a run deploy over work an earlier run kept: the items already in the platform are the
+baseline and the cleanup removes only what the run adds beyond it. The seed also records the item's base snapshot
 and commits a neutral knowledge home (spec R-1 = the request, environment ## Commands = the case's checks), so the gates that
 read them run; --seed-without-home leaves the home out (run.seed_run, test/shiploop_e2e/README.md "The seed").
 
@@ -91,6 +97,7 @@ median and max of cost, turns, minutes and planning minutes (README, "The baseli
   python3 test/shiploop_e2e/run.py --case battleship-scoring --continue-from <battleship output>
   python3 test/shiploop_e2e/run.py --case hello --host claude
   python3 test/shiploop_e2e/run.py --case temperature-report --host codex --effort xhigh --seed-at step-plan
+  python3 test/shiploop_e2e/run.py --case battleship-salesforce --seed-at release-plan --host grok --keep-platform --output <folder>
   python3 test/shiploop_e2e/run.py --prompt "..." --check "python3 -m unittest"
 """
 
@@ -130,6 +137,7 @@ import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
 import quality  # noqa: E402
+import release_slice  # noqa: E402
 import runrecord  # noqa: E402
 import sessionlog  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
@@ -917,6 +925,8 @@ def resume_command(out: Path, args) -> str:
         parts += ["--source", "checkout", *(["--plugin-dir", str(args.plugin_dir)] if args.plugin_dir else [])]
     if getattr(args, "keep_platform", False):
         parts.append("--keep-platform")  # a resume keeps the platform only if it is told to again
+    if getattr(args, "platform_existing", None) == "update":
+        parts += ["--platform-existing", "update"]  # accepted on a resume only if it names the run's own mode
     return shlex.join(parts)
 
 
@@ -1096,7 +1106,10 @@ def grade_shiploop(out: Path) -> dict:
             "worktree": str(worktree) if worktree.is_dir() else None}
 
 
-SEED_STAGES = ("step-plan",)
+# The stage a seeded run starts at. step-plan opens an item's inner loop (the stages before it are recorded). A stage in
+# release_slice.DELIVERED starts a release slice: the inner loop is recorded too and the case's product is committed in the worktree.
+SEED_STAGES = ("step-plan", *release_slice.DELIVERED)
+DEFAULT_SEED_ITEM = {"id": "seeded-request", "title": "The whole request"}
 # Runs in a separate interpreter on the installed plugin's own navigator, so the
 # seeded state is exactly what that version's CLI reads back.
 # When an item enters its inner loop it records the item's base snapshot, as shiploop_lint.on_transition does on a real run
@@ -1109,12 +1122,14 @@ sys.path.insert(0, sys.argv[1])
 import shiploop_lint as lint, shiploop_navigator as nav, shiploop_store as store
 run_dir, stop = Path(sys.argv[2]), sys.argv[3]
 item = json.loads(sys.argv[4]) if len(sys.argv) > 4 else {"id": "seeded-request", "title": "The whole request"}
+records = json.loads(sys.argv[5]) if len(sys.argv) > 5 else {}  # {stage: fields merged into that stage's synthetic result}
 state = store.read_record(run_dir / "state.md")
 skipped, bases = [], []
 while nav.current_stage(state) != stop:
     stage, action = nav.current_stage(state), str(nav.current_action(state)["id"])
     result = {"outcome": "done", "summary": "Synthetic: recorded by the E2E seed without doing it; "
               "the request is the specification."}
+    result.update(records.get(stage) or {})
     if stage == "plan":
         result["work_items"] = [item]
     entering = set(state.get("inner_loops") or {})
@@ -1164,21 +1179,34 @@ def seed_home(work: Path, prompt: str, checks: list[str] | None = None) -> list[
 
 
 def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixture: Path | None = None,
-             work_item: dict | None = None, delegation: str = "ask-agent", checks: list[str] | None = None,
-             home: bool = True) -> dict:
+             work_item: dict | None = None, delegation: str | None = None, checks: list[str] | None = None,
+             home: bool = True, product: Path | None = None, home_fixture: Path | None = None,
+             records: dict | None = None, exclude: list[str] | tuple = ()) -> dict:
     """Start a run and record its stages before `stop` as synthetic.
 
     ShipLoop refuses a repository without a commit, so the seed commits a README first, or the whole `fixture`
     directory when one is given (a step slice starts on an existing product). `work_item` is the plan's only item
-    (default: the whole request); `delegation` is the run's route (default Ask-Agent, which the chain cases need).
+    (default: the whole request); `delegation` is the run's route (default Ask-Agent, which the chain cases need, and inline
+    for a release slice, as a real run of such a case is). `records` ({stage: fields}) are merged into the synthetic result of
+    each stage the seed records (SEED_SCRIPT).
     The seed records the item's base snapshot (SEED_SCRIPT) and, unless `home` is false (the flagged no-home variant:
     `--seed-without-home`), commits a neutral knowledge home built from `prompt` and `checks` (seed_home).
+
+    A stop in release_slice.DELIVERED starts a RELEASE SLICE: the item's whole inner loop is recorded too, `home_fixture` is
+    the knowledge home (release_slice.copy_home) instead of the neutral one, and `product` (a folder, less `exclude`) is
+    committed in the run's worktree after the item's base was recorded, so the item reads as delivered: built after its base,
+    not part of it. The source checkout holds only the baseline until the run's own return.
     """
+    delivered = release_slice.delivered(stop)
+    if delivered and (product is None or home_fixture is None):
+        raise SystemExit(f"seed: a seed at {stop} needs the case's product and knowledge home (seed_product, seed_home)")
+    delegation = delegation or ("inline" if delivered else "ask-agent")
+    item = work_item or DEFAULT_SEED_ITEM
     if fixture is not None:
         shutil.copytree(fixture, work, dirs_exist_ok=True)
     else:
         (work / "README.md").write_text("# Seeded ShipLoop E2E case\n")
-    written = seed_home(work, prompt, checks) if home else []
+    written = (release_slice.copy_home(work, home_fixture) if delivered else seed_home(work, prompt, checks)) if home else []
     # The seed must not depend on the machine's Git config: a global or system filter (for example git-lfs on a
     # CI runner) would make ShipLoop's workspace refuse the repository.
     git_env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -1194,19 +1222,47 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
     if started.returncode:
         raise SystemExit(f"seed: workspace start failed: {(started.stderr or started.stdout)[-2000:]}")
     run_dir = root / "run"
-    advanced = subprocess.run([sys.executable, "-c", SEED_SCRIPT, str(cli.parent), str(run_dir), stop,
-                               *([json.dumps(work_item)] if work_item else [])],
-                              capture_output=True, text=True, env=git_env)
-    if advanced.returncode:
-        raise SystemExit(f"seed: could not advance the run to {stop}: {advanced.stderr[-2000:]}")
-    return {"stage": stop, "run_dir": str(run_dir), "start_head": head, "home": written, **json.loads(advanced.stdout)}
+
+    def advance(to: str) -> dict:
+        done = subprocess.run([sys.executable, "-c", SEED_SCRIPT, str(cli.parent), str(run_dir), to, json.dumps(item),
+                               json.dumps(records or {})], capture_output=True, text=True, env=git_env)
+        if done.returncode:
+            raise SystemExit(f"seed: could not advance the run to {to}: {done.stderr[-2000:]}")
+        return json.loads(done.stdout)
+
+    # A release slice stops at the item's first stage once: the item's base is recorded there (what it started from is the
+    # baseline), and only then is the built product committed on top of it.
+    reached = advance(stage_spec.INNER[0] if delivered else stop)
+    built = None
+    if delivered:
+        worktree = Path(store.read_record(run_dir / "state.md")["repo"])
+        built = release_slice.commit_product(worktree, product, list(exclude), item, git_env, identity)
+        later = advance(stop)
+        reached = {**later, "skipped": reached["skipped"] + later["skipped"], "item_bases": reached["item_bases"]}
+    return {"stage": stop, "run_dir": str(run_dir), "start_head": head, "home": written, **reached,
+            **({"product": built, "home_fixture": home_fixture.name} if built else {})}
 
 
-def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent") -> str:
+def seed_materials(name: str, stage: str | None) -> dict | None:
+    """What a release-slice seed at ``stage`` takes from the case (release_slice.materials), or None for no seed and for a seed that
+    is not a release slice. A custom --prompt has no built product to start from."""
+    if not release_slice.delivered(stage):
+        return None
+    if name == "custom":
+        raise SystemExit(f"--seed-at {stage} starts after the build and needs a case that declares its built product "
+                         "(seed_product, seed_home and seed_release in cases.json): a custom --prompt has none")
+    return release_slice.materials(name, json.loads(CASES.read_text()).get(name) or {}, stage)
+
+
+def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent", stage: str = "step-plan") -> str:
     route = "Ask-Agent" if delegation == "ask-agent" else "inline"
-    return (f"A ShipLoop run for the request below is already active, with {route} delegation. The test "
-            "harness recorded its stages before step-plan without doing them, so the request itself is the "
-            f"specification. Continue the run now: run `python3 \"{cli}\" next --run-dir \"{run_dir}\"` and "
+    recorded = (f"The test harness recorded its stages before {stage} without doing them: the product the request describes is "
+                "already built and committed in the run's worktree, and the request itself is the specification."
+                if release_slice.delivered(stage) else
+                "The test harness recorded its stages before step-plan without doing them, so the request itself is the "
+                "specification.")
+    return (f"A ShipLoop run for the request below is already active, with {route} delegation. {recorded} "
+            f"Continue the run now: run `python3 \"{cli}\" next --run-dir \"{run_dir}\"` and "
             "follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command "
             f"is still running.\n\nThe request: {prompt}")
 
@@ -1626,6 +1682,9 @@ def validate_platform(name: str, spec) -> dict:
     timeout = spec.get("check_timeout", CHECK_TIMEOUT)
     if not (isinstance(timeout, int) and 60 <= timeout <= 3600):
         problems.append("check_timeout must be an integer number of seconds from 60 to 3600")
+    modes = spec.get("existing", [])
+    if not (isinstance(modes, list) and set(modes) <= set(PLATFORM_EXISTING_MODES) and len(set(modes)) == len(modes)):
+        problems.append("existing must be a list of the extra modes the case's commands support (" + ", ".join(PLATFORM_EXISTING_MODES) + ")")
     if spec.get("before") and not spec.get("cleanup"):
         problems.append("before without cleanup: nothing would remove what the run makes")
     links = spec.get("home_links", [])
@@ -1654,8 +1713,31 @@ def refuse_unmatched_keep_checks(name: str, spec: dict | None, checks: list) -> 
                          + ", ".join(f"{word!r} names {count}" for word, count in bad.items()))
 
 
-def platform_env(base: dict, platform_dir: Path) -> dict:
-    return dict(base, E2E_CHECKS=str(HERE / "checks"), E2E_PLATFORM_DIR=str(platform_dir))
+# What a run does about items already in the platform under the case's prefix (--platform-existing). "fresh" is how every case has
+# always run: none may be there. A case lists the extra modes its commands support in platform.existing; the harness hands the mode
+# to the preflight and snapshot commands as $E2E_PLATFORM_EXISTING (set only for a mode other than fresh), and the case's cleanup
+# reads it back from the snapshot it compares with.
+PLATFORM_EXISTING_MODES = ("update",)
+
+
+def platform_existing_mode(asked: str | None, name: str, spec: dict | None, earlier: str | None = None) -> str:
+    """The --platform-existing mode a run uses. ``asked`` is the flag (None: not given), ``earlier`` the mode the run being resumed
+    started in (None: a new run). A resume keeps its run's mode, because the snapshot it compares with was taken under it. A mode
+    other than fresh needs a case with a platform that lists it (``platform.existing``): a case whose commands do not know it would
+    treat the items already there as a platform that is not clean, or ignore the flag and remove them."""
+    mode = asked or earlier or "fresh"
+    if earlier is not None and asked and asked != earlier:
+        raise SystemExit(f"--platform-existing {asked}: this run started in {earlier} mode, and a resume keeps its run's mode")
+    if mode != "fresh" and mode not in ((spec or {}).get("existing") or []):
+        raise SystemExit(f"--platform-existing {mode}: case {name!r} " + (
+            "has no platform, so there is nothing for the mode to apply to" if not spec else
+            f"does not list {mode!r} in its platform.existing, so its commands do not know that mode"))
+    return mode
+
+
+def platform_env(base: dict, platform_dir: Path, existing: str = "fresh") -> dict:
+    return dict(base, E2E_CHECKS=str(HERE / "checks"), E2E_PLATFORM_DIR=str(platform_dir),
+                **({"E2E_PLATFORM_EXISTING": existing} if existing != "fresh" else {}))
 
 
 def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
@@ -2137,7 +2219,7 @@ def link_homes(names: list[str], env: dict) -> list[dict]:
     return records
 
 
-def platform_preflight(spec: dict, host_env: dict, out: Path, skip_command: str | None = None) -> dict:
+def platform_preflight(spec: dict, host_env: dict, out: Path, skip_command: str | None = None, existing: str = "fresh") -> dict:
     """Make the home links and the model_bin wrappers, then run the case's preflight command with the host's environment;
     {home_links, preflight} (plus, where the case has a model_bin: model_bin {name: wrapper path}, shell_path_pinned,
     model_bin_resolution {ok, problems}). With a model_bin it also appends [from, to], the guard-log lines the case's preflight
@@ -2150,6 +2232,8 @@ def platform_preflight(spec: dict, host_env: dict, out: Path, skip_command: str 
     HOME's startup files, and shell_resolution_problems checks each shell. Any problem makes ``preflight`` a failing record and
     the case's own preflight command is not run, so both callers refuse the run (a host on the real HOME is not pinned, so it
     is refused when a login shell reorders its PATH: refused rather than run unguarded).
+
+    ``existing`` is the run's --platform-existing mode, handed to the command as $E2E_PLATFORM_EXISTING.
 
     ``skip_command`` (a reason) leaves the case's own preflight command unrun and records it as skipped, ok: the resume of a run
     whose earlier segment kept an unfinished platform, which the command would refuse as not clean. The links, the wrappers and
@@ -2174,7 +2258,7 @@ def platform_preflight(spec: dict, host_env: dict, out: Path, skip_command: str 
     try:
         state["preflight"] = ({"command": command, "returncode": None, "ok": True, "skipped": skip_command, "output": ""}
                               if command and skip_command
-                              else run_platform_command(command, out, platform_env(host_env, platform_dir)) if command else None)
+                              else run_platform_command(command, out, platform_env(host_env, platform_dir, existing)) if command else None)
     finally:
         if spec.get("model_bin"):
             # Recorded here, not with the invocation record: a resume can be refused after its preflight (the version gate), and
@@ -2403,6 +2487,13 @@ def parser() -> argparse.ArgumentParser:
                         "a live host makes this a mid-run snapshot, and for a run with a platform whose cleanup never "
                         "succeeded it is cleaned now, which a model still running in it (a host outlives a killed "
                         "harness) can undo or race.")
+    p.add_argument("--platform-existing", choices=("fresh", "update"),
+                   help="a case with a platform that lists the mode (platform.existing in cases.json): what the run does about "
+                        "items already in the platform under the case's prefix. fresh (the default): none may be there, the "
+                        "preflight refuses when one is, and the cleanup restores that. update: the run deploys over work an earlier "
+                        "run kept (--keep-platform): the items already there are the baseline, the snapshot records them, and the "
+                        "cleanup removes only what the run adds beyond it (with --keep-platform nothing is removed). A resume keeps "
+                        "its run's mode. Not with --suite")
     p.add_argument("--keep-platform", action="store_true",
                    help="a case with a platform: when the run ends normally with a finished delivery (ShipLoop done, every "
                         "case check passed), do not run the platform cleanup; keep what the run made there for a person to "
@@ -2417,8 +2508,12 @@ def parser() -> argparse.ArgumentParser:
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--seed-at", choices=SEED_STAGES,
-                   help="start an Ask-Agent run at this stage, with the earlier stages recorded without doing "
-                        "them, to reach the implementation chain without hours of planning; also grades the chain")
+                   help="start a run at this stage, with the earlier stages recorded without doing them. step-plan: an "
+                        "Ask-Agent run that reaches the implementation chain without hours of planning, graded on the chain. "
+                        "system-test-author or release-plan: a RELEASE SLICE of a case that declares seed_product, seed_home and "
+                        "seed_release: an inline run whose built product is committed in its worktree, so only the release "
+                        "stages run; graded on which of them ShipLoop accepted and whether the platform change (the deploy) "
+                        "happened in the release stage (test/shiploop_e2e/README.md, \"The release slice\")")
     p.add_argument("--seed-without-home", action="store_true",
                    help="with --seed-at: do not commit the neutral knowledge home (docs/shiploop/spec.md with R-1, "
                         "environment.md with the case's checks) into the seed repository. The item base is recorded either way. "
@@ -3569,6 +3664,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.keep_platform and not args.output and not args.resume_run:  # a resume reuses its run's folder; --output is ignored there
         raise SystemExit("--keep-platform needs --output <a durable folder>: the snapshot the later cleanup needs must not live in "
                          "$TMPDIR, which macOS purges after days")
+    if args.platform_existing and (args.suite or args.baseline_report):
+        raise SystemExit("--platform-existing is the mode of one run of a case with a platform: it does not go with --suite or "
+                         "--baseline-report")
     if args.baseline_report:
         return baseline_report_main(args)
     if args.runs or args.json:
@@ -3581,6 +3679,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             print(f"refused: {line}", flush=True)
         refused = bool(problems)
         spec = None if args.prompt else case_platform(args.case)  # the case's platform checks run here too
+        existing = platform_existing_mode(args.platform_existing, args.case, spec)
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
             args.host = name
             check = out / name
@@ -3588,7 +3687,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             host_env = the_host(args).env(check / "home")
             _, _, versions = marketplace_preflight(args, check, host_env)
             if spec:
-                versions["platform"] = platform_preflight(spec, host_env, check)
+                versions["platform"] = platform_preflight(spec, host_env, check, existing=existing)
                 found = versions["platform"]["preflight"]
                 print(f"platform preflight ({name}): " + ("no command" if found is None else
                       ("OK" if found["ok"] else "REFUSED: ") + (found["output"].strip()[-1500:] if not found["ok"] else "")), flush=True)
@@ -3624,7 +3723,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
         planning_review = planning_review_choice(args.planning_review, earlier)
         # The platform the run started with (invocation.json), not whatever cases.json says now: its cleanup is what undoes it.
+        seed_built = None  # a resume continues the run the seed made
         platform_spec = validate_platform(name, (earlier.get("platform") or {})["spec"]) if (earlier.get("platform") or {}).get("spec") else None
+        existing = platform_existing_mode(args.platform_existing, name, platform_spec,
+                                          earlier=(earlier.get("platform") or {}).get("existing") or "fresh")
         if args.keep_platform and not platform_spec:
             raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
         refuse_unmatched_keep_checks(name, platform_spec, checks)
@@ -3689,7 +3791,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
         name, prompt, checks, follows = load_case(args)
+        seed_built = seed_materials(name, args.seed_at)  # refused here, before the folder, the install and the platform
         platform_spec = case_platform(name)
+        existing = platform_existing_mode(args.platform_existing, name, platform_spec)
         if args.keep_platform and not platform_spec:
             raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
         refuse_unmatched_keep_checks(name, platform_spec, checks)
@@ -3703,6 +3807,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
         record_preexisting_runs(out)  # a follow-on's copy can bring an earlier run's state along: never this run's
+    args.platform_existing = existing  # resume_command reads it: a resume keeps its run's mode
     stop_file = out / "stop"  # a person (or a watcher) creates it to end the run; main consumes it
     # This harness is alive while main runs: a launch elsewhere reads the lock to tell a sibling's server from a leftover.
     # The kernel also drops it on any death, SIGKILL included, which is why a lock and not a pid file.
@@ -3774,7 +3879,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # refuses a platform that is not clean) would refuse. The links, the wrappers and their proof still run (platform_preflight).
         kept_unfinished_before = bool(resumed and (earlier_cleanup or {}).get("kept_unfinished"))
         platform_state = platform_preflight(platform_spec, env, out, skip_command=(
-            "the earlier segment kept this run's own unfinished work in the platform" if kept_unfinished_before else None))
+            "the earlier segment kept this run's own unfinished work in the platform" if kept_unfinished_before else None),
+            existing=existing)
         if kept_unfinished_before and not args.quiet:
             print(f"resume: the earlier segment kept an unfinished {platform_spec.get('kind') or 'platform'}: the case's own preflight "
                   "is skipped, because what this run deployed is still there and that preflight would refuse it", flush=True)
@@ -3861,7 +3967,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
             start_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
     if args.seed_at and not resumed:
-        seeded = seed_run(the_cli, work, out, prompt, args.seed_at, checks=checks, home=not args.seed_without_home)
+        seeded = seed_run(the_cli, work, out, prompt, args.seed_at, checks=checks, home=not args.seed_without_home,
+                          **({"product": seed_built["product"], "home_fixture": seed_built["home_fixture"],
+                              "work_item": seed_built["work_item"], "records": seed_built["records"],
+                              "exclude": seed_built["exclude"]} if seed_built else {}))
         record_run_identity(out, run_dir=str(Path(seeded["run_dir"]).resolve()), basis="seeded by the harness")
         if not args.quiet:
             print(f"seeded: {', '.join(seeded['skipped'])} recorded without doing them; host starts at "
@@ -3870,7 +3979,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     host_allow = tuple((platform_spec or {}).get("host_allow") or ())
     # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
     opening = (resume_prompt(resumed["run_dir"], the_cli, resume_platform_note(platform_spec, note_platform, regrade)) if resumed
-               else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt)) if seeded
+               else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt, seeded["delegation"],
+                                                        seeded["stage"])) if seeded
                else host.invoke(args.skill, prompt))
     stamp = launch_stamp(out, host.name) if resumed else None
     cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
@@ -3915,7 +4025,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
                                           **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
     if platform_spec:
-        invocation["platform"] = {"spec": platform_spec, "dir": str(out / "platform"), **platform_state}
+        invocation["platform"] = {"spec": platform_spec, "dir": str(out / "platform"), **platform_state,
+                                  **({"existing": existing} if existing != "fresh" else {})}
         invocation["keep_platform"] = args.keep_platform  # this invocation's own: a resume keeps the platform only if told again
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
@@ -3933,7 +4044,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             print(f"resume: {resume_command(out, args)}", flush=True)
             if platform_spec:
                 linked = [link["name"] for link in platform_state["home_links"] or [] if link["linked"]]
-                guarded = f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else ""
+                guarded = (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else "") + (
+                    "; update mode: items already there are the baseline, the cleanup removes only what the run adds"
+                    if existing == "update" else "")
                 cleanup_runs = ("cleanup runs after grading unless --keep-platform keeps a finished delivery"
                                 + (f", or an unfinished one whose keep checks ({', '.join(platform_spec['keep_checks'])}) pass"
                                    if platform_spec.get("keep_checks") else "") if args.keep_platform
@@ -3958,7 +4071,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             platform_before = (json.loads(before_record_file.read_text()) if before_record_file.is_file()
                                else {"ran": False, "reason": "the earlier invocation recorded no snapshot"})
         elif platform_spec.get("before"):
-            platform_before = run_platform_command(platform_spec["before"], out, platform_env(dict(os.environ), platform_dir))
+            platform_before = run_platform_command(platform_spec["before"], out, platform_env(dict(os.environ), platform_dir, existing))
             before_record_file.write_text(json.dumps(platform_before, indent=2) + "\n")
             if not platform_before["ok"]:
                 (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "output": str(out), "platform": {
@@ -4102,11 +4215,18 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
+    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    # A release slice starts without the product in the source checkout: the checks that read it wait for the return.
+    sliced = bool(seeded) and release_slice.delivered(seeded.get("stage"))
+    release_spec = release_slice.release_spec(case)
+    to_run, skipped_checks = (release_slice.split_checks(
+        checks, release_spec.get("source_checks", []), work, release_slice.FIXTURES / case["seed_product"],
+        release_spec.get("product_exclude", [])) if sliced else (checks, []))
     # A regrade of a platform run that was cleaned cannot ask the platform again: it restates the checks the run made while the
     # work was deployed, rather than replace a pass with checks that find nothing there.
     restated = bool(regrade and platform_spec and (earlier_cleanup or {}).get("ok") and earlier_result.get("checks"))
     check_results = (earlier_result["checks"] if restated else
-                     run_checks(work, checks, timeout=(platform_spec or {}).get("check_timeout", CHECK_TIMEOUT), env=check_env,
+                     run_checks(work, to_run, timeout=(platform_spec or {}).get("check_timeout", CHECK_TIMEOUT), env=check_env,
                                 scrubbed=bool(platform_spec)))
     engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     try:
@@ -4149,7 +4269,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if resumed and not regrade and earlier_platform.get("cleanup"):
             earlier_cleanups.append(earlier_platform["cleanup"])
         platform_block = {"spec": platform_spec, "dir": str(platform_dir), **platform_state, "before": platform_before,
-                          "cleanup": cleanup, **({"kept_unfinished": True} if cleanup.get("kept_unfinished") else {}),
+                          **({"existing": existing} if existing != "fresh" else {}), "cleanup": cleanup, **({"kept_unfinished": True} if cleanup.get("kept_unfinished") else {}),
                           **({"earlier_cleanups": earlier_cleanups} if earlier_cleanups else {}),
                           **({"guard_log_preflight_ranges": [list(item) for item in ranges]} if ranges else {}),
                           **({"guard_coverage": coverage} if coverage else {}),
@@ -4158,9 +4278,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     invalid_trial = bool(platform_block and (platform_block.get("guard_coverage") or {}).get("bypassed"))
     left = (earlier_result.get("left_behind") if regrade
             else listeners.merge_left_behind([earlier_result.get("left_behind") if resumed else None, *left_behind]))
-    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
     expect = case.get("chain")
-    chain = chain_facts(out, expect) if (seeded or interrupt_at or expect) else None
+    # An inner-loop seed is graded on its chain; a release slice has none (its items are recorded, not built).
+    chain = chain_facts(out, expect) if ((seeded and not sliced) or interrupt_at or expect) else None
+    release = release_slice.grade(
+        seeded=seeded, run_dir=Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None, state=engine, out=out, case=case,
+        skipped_checks=skipped_checks, preflights=preflight_ranges(out)) if sliced else None
     if chain is not None:
         chain["source"] = (expect or {}).get("source") or "the harness default: a fanned-out chain (seeded or interrupted run)"
     recovery = None
@@ -4174,12 +4297,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         **({"retention": case["retention_source"]} if case.get("retention_source") else {}),
         **({"chain": {k: v for k, v in chain["expect"].items()} | {"source": chain["source"]}} if chain else {}),
         **({"recovery": RECOVERY_SOURCE} if recovery else {}),
+        **({"release_slice": release["source"] or "the case's seed_release"} if release else {}),
         **({"budget": {"seeded_minutes": budget["expected_minutes"], "level": "should",
                        "source": budget["source"]}} if budget else {}),
     }
     verdicts = [invoked["pass"], plugin["pass"], *([] if process["pass"] is None else [process["pass"]]),
                 shiploop["pass"], committed["pass"],
                 *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
+                *([release["pass"]] if release else []),
                 *(c["pass"] for c in check_results),
                 *([bool(platform_block["cleanup"].get("ok"))] if platform_block else []),  # a platform left dirty is a failed run
                 *([not platform_block.get("kept_unfinished")] if platform_block else []),  # a kept unfinished platform is NOT a pass
@@ -4240,6 +4365,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
+              **({"release_slice": release} if release else {}),
               "expectations": expectations,
               **({"product_at_stop": at_stop} if at_stop is not None else {}),
               "metrics": {k: run_metrics[k] for k in ("claude_code_version", "turns", "model_calls", "window_tokens",
@@ -4326,6 +4452,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 + "".join(f", {key} {binding[key]}" for key in ("out_of_order", "integrated_twice", "not_integrated")
                           if binding.get(key))
                 if binding.get("steps") is not None else binding.get("error") or "no chain bound"))
+    if release is not None:
+        shown = release_slice.lines(release)
+        print(f"  release   {mark(release['pass'])}  {shown[0]}")
+        for line in shown[1:]:
+            print(f"            {line}")
     if recovery is not None:
         stop = recovery["interrupt"]
         print(f"  recovery  {mark(recovery['pass'])}  " + (
@@ -4439,6 +4570,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             failed.append(("chain", f">= {want['min_steps']} steps all accepted, >= {want['min_in_flight']} in "
                            f"flight, depth >= {want['min_depth']}, in dependency order, each merged once "
                            f"(source: {chain['source']})", got))
+        if release is not None and not release["pass"]:
+            shown = release_slice.lines(release)
+            failed.append(("release_slice", f"ShipLoop accepts every stage from {release['from']} on"
+                           + (f" and the {release['operation']['name']} happens in the {release['operation']['stage']} stage"
+                              if release.get("operation") else "") + f" (source: {release['source'] or 'the case'})",
+                           "; ".join(shown[1:] or shown)))
         if recovery is not None and not recovery["pass"]:
             failed.append(("recovery", f"a fresh session finishes the chain after the kill (source: {RECOVERY_SOURCE})",
                            "never interrupted" if not recovery["interrupt"] else "the chain did not finish"))

@@ -264,7 +264,14 @@ def org_status(org: str) -> str | None:
     return None
 
 
-def do_preflight(org: str, prefix: str) -> tuple[bool, str]:
+# How a run treats prefixed metadata that is already in the org. "fresh" (the default): none may be there, the run starts from an
+# org without it and the cleanup restores that. "update": a run that deploys over an earlier run's kept work (the release slice,
+# `run.py --platform-existing update`): what is there at the snapshot is the baseline, so the cleanup removes only what the run
+# adds beyond it. The harness hands the mode to a case's commands as $E2E_PLATFORM_EXISTING.
+EXISTING_MODES = ("fresh", "update")
+
+
+def do_preflight(org: str, prefix: str, existing: str = "fresh") -> tuple[bool, str]:
     status = org_status(org)
     if status is None:
         return False, "org alias %r is not in `sf org list`" % org
@@ -279,6 +286,9 @@ def do_preflight(org: str, prefix: str) -> tuple[bool, str]:
         else:
             found[spec[0]] = names
     dirty = with_prefix(found, prefix)
+    if dirty and existing == "update":
+        return True, "org %r connected; update mode: %d %s*/%s* item(s) already there are the baseline, kept by the cleanup: %s" % (
+            org, len(dirty), prefix, lwc_prefix(prefix), ", ".join(dirty))
     if dirty:
         return False, "org %r is not clean: found %s before the run; nothing was deployed" % (org, ", ".join(dirty))
     return True, "org %r connected; no %s*/%s* item in %d metadata types%s" % (
@@ -304,21 +314,25 @@ def read_org(org: str) -> dict:
     return {"names": names, "dates": dates, "unavailable": unavailable}
 
 
-def do_snapshot(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
+def do_snapshot(org: str, prefix: str, directory: Path, existing: str = "fresh") -> tuple[bool, str]:
     check_prefix(prefix)
     seen = read_org(org)
     clash = with_prefix(seen["names"], prefix)
-    if clash:
+    if clash and existing != "update":
         return False, "org %r already holds prefixed metadata (%s); refusing to snapshot a dirty org" % (org, ", ".join(clash))
     names = seen["names"]
     directory.mkdir(parents=True, exist_ok=True)
+    # The mode is recorded only for "update": a fresh snapshot keeps the file it has always had, and the cleanup reads the mode
+    # from the snapshot it compares with, so a snapshot and its cleanup cannot disagree about what the baseline is.
+    update = {"existing": "update", "baseline_prefixed": clash} if existing == "update" else {}
     (directory / "before.json").write_text(json.dumps({
         "org": org, "prefix": prefix, "apex_classes": names["ApexClass"], "lightning_component_bundles": names["LightningComponentBundle"],
         "last_modified": seen["dates"], "other_types": {kind: found for kind, found in names.items() if kind not in OWN_TYPES},
         "unavailable": seen["unavailable"], "counts": {kind: len(found) for kind, found in names.items()},
-        "tool_versions": {"sf": sf_version()}}, indent=2) + "\n")
-    return True, "snapshot of org %r: %s%s -> %s" % (
-        org, ", ".join("%d %s" % (len(found), kind) for kind, found in names.items()),
+        "tool_versions": {"sf": sf_version()}, **update}, indent=2) + "\n")
+    return True, "snapshot of org %r%s: %s%s -> %s" % (
+        org, " (update mode: %d prefixed item(s) are the baseline)" % len(clash) if update else "",
+        ", ".join("%d %s" % (len(found), kind) for kind, found in names.items()),
         "; unavailable: " + ", ".join(seen["unavailable"]) if seen["unavailable"] else "", directory / "before.json")
 
 
@@ -452,11 +466,15 @@ def destructive_deploy(org: str, members: dict[str, list[str]], order: tuple[str
         shutil.rmtree(work, ignore_errors=True)
 
 
-def compare(before: dict, now: dict) -> dict:
+def compare(before: dict, now: dict, updated: dict[str, str] | None = None) -> dict:
     """The org now against the snapshot. extra, missing and modified are {type: [...]}; unverified is a recorded type that cannot be
-    queried now (fail closed); not_covered are the types the snapshot could not query (skipped); covered is {type: count}."""
-    diff = {"extra": {}, "missing": {}, "modified": {}, "unverified": {}, "covered": {}, "not_covered": dict(before["unavailable"]),
-            "dates_checked": 0}
+    queried now (fail closed); not_covered are the types the snapshot could not query (skipped); covered is {type: count}.
+
+    ``updated`` ({type: exact name prefix}, update mode only) names baseline items a run is expected to deploy over: a changed
+    LastModifiedDate on one of those is reported under ``updated`` and not under ``modified``, because a cleanup cannot restore the
+    earlier version and the run's job was to replace it. Every other changed date is ``modified`` as always."""
+    diff = {"extra": {}, "missing": {}, "modified": {}, "updated": {}, "unverified": {}, "covered": {},
+            "not_covered": dict(before["unavailable"]), "dates_checked": 0}
     recorded = {"ApexClass": before["apex_classes"], "LightningComponentBundle": before["lightning_component_bundles"],
                 **before["other_types"]}
     for kind, was in recorded.items():
@@ -474,7 +492,9 @@ def compare(before: dict, now: dict) -> dict:
             if name in current:
                 diff["dates_checked"] += 1
                 if current[name] != date:
-                    diff["modified"].setdefault(kind, []).append("%s (%s -> %s)" % (name, date, current[name]))
+                    expected = (updated or {}).get(kind)
+                    bucket = "updated" if expected and name.startswith(expected) else "modified"
+                    diff[bucket].setdefault(kind, []).append("%s (%s -> %s)" % (name, date, current[name]))
     return diff
 
 

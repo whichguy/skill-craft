@@ -1147,6 +1147,7 @@ nothing about any platform; it runs the shell commands the case names, in this o
 | `resume_note_kept` | on a resume (not a regrade) of a run whose earlier invocation KEPT an unfinished platform (`platform.cleanup.kept_unfinished`, below) | not a command: a string appended to the resume prompt in place of `resume_note`, which would be false (nothing was reset). The case's own `preflight` command is not run on such a resume (recorded `platform.preflight.skipped`): it refuses a platform that is not clean, and the platform holds this run's own work. A case without a kept note gets the unchanged prompt | refused at load if it is not a non-empty string |
 | `keep_checks` | when `--keep-platform` decides at the end of a run | not a command: a list of words, each one whole word of exactly one of the case's own checks (the verb of a check command, for example `deployed`); refused before any model starts if a word names none or several of them. They are the checks that prove the platform works, see "Keeping what a run made" | refused at load if it is not a non-empty list of distinct one-word strings |
 | `check_timeout` | when the case's own checks run (once the host has ended, and in a regrade that asks the platform again) | not a command: an integer number of seconds, 60 to 3600, the ceiling of each of the case's own checks in that case's run, in place of the default 180. For a check that asks the platform many times and cannot be run again once the cleanup has reset it (the Salesforce chess `rules` check makes about 19 sequential `sf apex run` calls, two of them whole games, so a timeout there loses the verdict for good). It applies to that case's checks only: a case without one keeps 180, and so does the product-at-stop run (information only; a check that runs out there is `timed_out`, never a product failure) | refused at load if it is not an integer from 60 to 3600 |
+| `existing` | when `--platform-existing` names a mode other than the default `fresh` | not a command: a list of the extra modes the case's own preflight, before and cleanup commands support (only `update` is defined). The harness hands the chosen mode to the preflight and before commands as `$E2E_PLATFORM_EXISTING` (set only for a mode other than fresh) and refuses the flag, before anything starts, for a case that does not list the mode. The case's snapshot records the mode, and its cleanup reads the mode from the snapshot it compares with, so a cleanup run by hand follows the run it undoes. `update` means: prefixed items already in the platform are the baseline, not a refusal, and the cleanup removes only what the run adds beyond them (the Salesforce Battleship case, "The release slice") | refused at load if it is not a list of distinct known modes |
 | `host_allow` | when the host is launched (the first session and every resume) | not a command: a list of permission rules the harness hands to the host as its own allow flags (Grok `--allow`, Claude `--allowedTools`; Codex runs with approval policy `never` and ignores them). For a case whose model must run an action the host's classifier would judge unrequested: Grok's auto mode blocked `sf project deploy start --target-org de` three times ("not requested by the user", "not authorized by the live continue-shiploop request") once a restart left it only the generic resume prompt, and the run ended blocked. The chess case allows `Bash(sf *)` (the guarded wrapper) and the `cd`, `tail`, `head`, `tee` and `grep` segments that chain with it; Grok approves a chained command only when every segment matches. A run can also be launched with `--permission-mode bypassPermissions` (Grok's always-approve) when the owner wants no restriction; the guard, the cleanup and the org-equals-baseline check stay. |
 
 `result.json` gets a `platform` block (`spec`, `home_links`, `preflight`, `before`, `cleanup` as `{ran, ok, returncode, output}`,
@@ -1451,6 +1452,9 @@ stages would have left (X-2, TD-5, SP-7a):
 - `--seed-without-home` (slice.py, and run.py with `--seed-at`) is the flagged variant that commits no home, to see which
   refusals a run with no spec hits. The item base is recorded either way.
 
+`--seed-at release-plan` and `--seed-at system-test-author` (run.py) seed further: the whole inner loop is recorded too and the
+case's built product is committed in the worktree, so a run starts at the release stages. See "The release slice", below.
+
 **The stop.** `slice.py` polls every 2 s. Each poll archives every distinct packet ShipLoop has emitted, because
 `run/packets/<action>.md` is rewritten on each `next`. The poll ends the host once the item's inner loop is over:
 the run moved past item W1, left the inner loop, or stopped being active. A completed slice is never resumed.
@@ -1613,6 +1617,103 @@ builds from them. None starts a host or a model, and all but `arms.py` decide no
 | `audit_probes.py [--repo ROOT] [--root-length]` | The audit's three size probes (delivery packets, bound Improve handoffs, entry card) on any checkout, with path lengths adjusted to the audit's, which reproduces its 375,278 / 276,270 / 79,647 characters at 2686b427 exactly. |
 
 The two saved-run extracts the tests read are `test/fixtures/efficiency/` (`extract.py` there says how they were cut).
+
+## The release slice: deployment tested from a built product
+
+A full run of a hosted-platform case spends most of its time building the app; the question "does ShipLoop release it into my org
+correctly" is answered only at the end. A release slice starts at the release stages with the product already built: the
+harness records every stage before the seed point without doing it (as `--seed-at step-plan` does), commits the case's prebuilt
+project in the run's worktree as the delivered candidate of its only work item, and the host then plans, checks, performs and
+verifies the release with ShipLoop's own packets. It is `run.py --case battleship-salesforce --seed-at release-plan`.
+
+```sh
+# 0. Read-only, no model: is the org ready? (--existing update is what --platform-existing update tells the same command)
+python3 test/shiploop_e2e/checks/battleship_salesforce.py preflight --org de --prefix SLBattle
+python3 test/shiploop_e2e/checks/battleship_salesforce.py preflight --org de --prefix SLBattle --existing update
+
+# 1. The org holds nothing SLBattle*: deploy it, grade the deployed result, keep the app to play (--keep-platform)
+python3 test/shiploop_e2e/run.py --case battleship-salesforce --seed-at release-plan --host grok --model grok-4.7 \
+  --effort medium --source marketplace --keep-platform --output ~/e2e-runs/<day>/bs-release-1 --timeout 1500
+
+# 2. The org already holds a kept SLBattle* app (from step 1 or a full run): deploy over it
+python3 test/shiploop_e2e/run.py --case battleship-salesforce --seed-at release-plan --platform-existing update --host grok \
+  --model grok-4.7 --effort medium --source marketplace --keep-platform --output ~/e2e-runs/<day>/bs-release-2 --timeout 1500
+```
+
+`--source checkout` tests this checkout's build instead of the published one. Launch it as a Desktop background task like any long
+run ("Launching long runs"); a release slice takes the time of the release stages, not of the build, and `--timeout` is a ceiling a
+little above that. `--seed-at system-test-author` starts one stage earlier (the three system-test stages are then run and graded too).
+The run is inline, as a real run of the case is. `--seed-without-home` leaves the case's knowledge home out as well. Nothing here changes the case's guard: the host's `sf` is the guarded wrapper, the
+org is `de`, the scope is `SLBattle*`, and every call is in `<output>/platform/sf-calls.jsonl`.
+
+**What the seed gives the run.** All of it comes from the case (`cases.json`: `seed_product`, `seed_home`, `seed_release`) and from
+folders under `fixtures/`; `run.py` and `release_slice.py` hold no Salesforce word.
+
+| piece | what | where it comes from |
+|---|---|---|
+| stages before the seed point | recorded done without doing them, each with the sentence "Synthetic: recorded by the E2E seed without doing it" | `SEED_SCRIPT`, on the plugin's own navigator |
+| the item base | `lint/items/W1.md` is the baseline commit: the product was built after it | the seed records it when W1 enters its inner loop, before the product is committed |
+| the product | the project's files, committed on the run branch in the worktree as `feat: W1 ...` (explicit paths); the source checkout holds only the baseline until the run's own return | `seed_product` (a folder), minus `seed_release.product_exclude` (the fixture's README documents the harness and is never committed), including its `.gitignore` (the CLI's `.sf/` and `.sfdx/` caches, which would otherwise be committed at the return and force a working-tree return) |
+| the knowledge home | `docs/shiploop/spec.md` (R-1..R-12 from the request), `architecture.md` (AD-1..AD-4) and `environment.md` (`--target-org de`, the deploy, validate, assign and test commands, the access the request grants), committed in the baseline | `seed_home` |
+| step-plan | criteria C1..C3, the two org test commands (focused) and a file check, `follows` (every R and AD entry), `paths` | `seed_home/records.json` |
+| system-test-author | `system_commands` (the same two test commands, without a deploy: the deploy is the release stage's) and the open item A1 ("the org suite has not run: it runs after the deploy"), consumer release-plan, which release-plan's packet quotes | `seed_home/records.json` |
+| system-test, product-acceptance | a done record that says nothing ran | `seed_home/records.json` |
+
+The gates the release stages read are the real ones: `shiploop next` prints the release-plan packet with the system commands and
+A1 quoted and the three knowledge files listed, and a model-shaped release-plan result passes `complete --check-only`
+(`test/shiploop-e2e-release-slice.test.py`). No delivery contract is declared (an unmarked run, as the first live run was).
+
+**The org, by mode** (`--platform-existing`, default `fresh`; the case lists `update` in `platform.existing`, and a case that does not
+refuses the flag before anything starts). The harness hands the mode to the case's commands as `$E2E_PLATFORM_EXISTING`, and the
+snapshot records it, so the cleanup (even run by hand) follows the snapshot it compares with.
+
+| | `fresh` (default) | `update` |
+|---|---|---|
+| preflight | refuses when any `SLBattle*` / `slBattle*` item is in the org (a kept app from an earlier run) | accepts it and names the items |
+| snapshot (`<output>/platform/before.json`) | the org as it is, with no prefixed item | the org with them: those items are the baseline, and the assignments of the baseline permission set |
+| the run | deploys the product, assigns `SLBattle_Access` | deploys over the baseline (a class or bundle whose date changes is "deployed over in place") |
+| cleanup, no `--keep-platform` | removes everything the run added (assignments first, then the permission set, then the rest) and verifies the org equals the snapshot | removes only what the run added beyond the baseline: new items, and the assignments the run added to a baseline permission set. A baseline item stays; one the run deployed over is reported and not restored (its earlier version is gone, replacing it was the run's job). A baseline item the run deleted, or any other difference, fails the cleanup |
+| `--keep-platform` honoured (a finished delivery, or an unfinished one whose `keep_checks` pass) | nothing is removed; the by-hand command is printed | nothing is removed; the by-hand command is printed |
+| `--keep-platform` not honoured (a failed check, a stop, an invalid trial) | cleaned as above | cleaned as above: only what the run added |
+
+A resume keeps its run's mode (`--platform-existing` with the other value is refused); the `resume:` line carries the flag.
+
+**The verdicts.** The five of every run (invoked, plugin, process, shiploop, committed), the platform's (cleanup ok, guard not
+bypassed), the case's checks, and a new one, `release_slice` in `result.json`:
+
+- `stages`: for each stage from the seed point on (`release-plan`, `release-check`, `release`, `release-verify`, `operations`,
+  `handoff`; with `system-test-author` the first three too) whether ShipLoop accepted it, and when. `stopped` names the first one
+  it did not accept, the engine's status and stage, and why (a blocked run's reason; otherwise "ShipLoop was active at <stage>").
+- `operation`: every allowed `sf project deploy start` of the guard log, outside the harness's own preflight lines, must fall in
+  the release stage's window, from the acceptance of `release-check` to the acceptance of `release` (whole seconds, both ends
+  inside), and at least one of them must have exited 0 (the call's end line). One deploy before the window, or after it (a redeploy
+  at release-verify), fails the verdict and is named; so does none, and so does a deploy that failed or was cut off: in update mode
+  the kept app answers `deployed`, `tests` and `rules` by itself, so only the deploy's own exit says whether the run's deploy worked.
+  A denied call changed nothing and does not count; `project deploy validate` is a different command and is the release-check's.
+- `skipped_checks`: the checks that read the source checkout (`seed_release.source_checks`: `project`) run only once the product has
+  been returned to it (any file of the product folder is there, committed or not: the return puts them all there at once). Before that there is nothing for them to read, so
+  they are left out and named, and a run that never returned the product shows it in `committed` and in the stages, not as a
+  second failure. The other checks (`deployed`, `tests`, `access`, `rules`) read the org and always run.
+- No `chain` verdict: a release slice has no implementation chain, so the one a step-plan seed is graded on is not computed.
+
+The run prints `release   PASS|FAIL  <n>/6 stages accepted ...` with the stop and deploy lines, and a failing verdict is listed in
+`mismatch.md` as `release_slice`. A seeded run writes no baseline row.
+
+**Known limits, all pre-existing.** (1) `committed` still passes only when the return moved the source checkout's HEAD and left no
+product path uncommitted; a return that applies only the kept files to the working tree (the policy when a committed path is
+excluded) fails it, as the first live Battleship run did. The product's `.gitignore` keeps the CLI's `.sf/` files from forcing that. (2) The
+host stays open after ShipLoop is done (first live run, finding 3) until `--timeout` ends it. A host the harness ends by timeout is an
+unfinished run: with `--keep-platform` and passing `keep_checks` the app is kept and the run is recorded NOT a pass; a host something
+else kills (rc 143) is a failed process, and the keep is then not honoured. Set `--timeout` a little above the expected length,
+and do not kill the host from outside. (3) The fake org (`fake_sf.py`) models the update mode; nothing here has run against the real org.
+
+**By hand.** The cleanup command is printed at the start of the run, in the kept block, and in the failure banner:
+`env E2E_PLATFORM_DIR=<output>/platform E2E_CHECKS=<repo>/test/shiploop_e2e/checks sh -c '<the case's cleanup>'`, from any
+directory. It compares the org with that run's own `before.json`. So a fresh run's command removes the whole app it made; an
+update run's command removes only what that run added and never the baseline. To take a kept app out of the org entirely, run the
+command printed by the run that first deployed it (its snapshot is the org without the app). After any run that ended by timeout or
+stop, look at Setup > Deployment Status in the org: a deploy the host started can outlive its command. Hermetic checks (no real
+org): `bash test/run-all.sh --group quick`, the suites `shiploop-e2e-release-slice`, `-battleship-salesforce`, `-platform`.
 
 ## Review one run
 

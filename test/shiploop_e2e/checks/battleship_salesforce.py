@@ -14,6 +14,14 @@ Subcommands (all exit 0 on success, 1 otherwise, and print scrubbed one-line rea
              <prefix>* permission set (`sf data delete record`, one Id at a time), then those permission sets (one destructive
              deploy), then the new <prefix>* items of the other removable types (a second destructive deploy, chess's order); then
              verify the org against the snapshot exactly as the chess case does
+
+preflight and snapshot also take --existing fresh|update (default: $E2E_PLATFORM_EXISTING, which `run.py --platform-existing` sets;
+else fresh). `update` is for a run that deploys over work an earlier run kept (the release slice, run.py --seed-at release-plan):
+the <prefix>* items already in the org are the baseline instead of a refusal, the snapshot also records the assignments of the
+baseline <prefix>* permission sets, and the cleanup (which reads the mode from the snapshot) removes only what the run added beyond
+that baseline: new items as always, plus the assignments the run added to a baseline permission set. A baseline <prefix>* class or
+bundle the run deployed over is reported as updated in place, not as modified: its earlier version cannot be restored and replacing
+it was the run's job. Everything else still has to equal the snapshot.
   project    the Salesforce DX project in the current directory has the files the request names (classes, component, tab, app and
              permission set, all prefixed), the permission set grants what the request says, and nothing else is there
   deployed   the org holds the engine, the controller, a test class, the component, the tab, the app and the permission set
@@ -479,6 +487,35 @@ def do_rules(org: str, raw_dir: Path | None = None) -> tuple[bool, list[str]]:
 
 # ------------------------------------------------------------------------------------------------------------- cleanup
 
+def do_snapshot(org: str, prefix: str, directory: Path, existing: str = "fresh") -> tuple[bool, str]:
+    """chess_salesforce.do_snapshot; in update mode also the Ids of the assignments the baseline <prefix>* permission sets already
+    have, which the cleanup must not remove."""
+    ok, message = sfc.do_snapshot(org, prefix, directory, existing)
+    if not ok or existing != "update":
+        return ok, message
+    path = directory / "before.json"
+    before = json.loads(path.read_text())
+    names = [n for n in sfc.recorded_names(before, "PermissionSet") or [] if n.startswith(prefix)]
+    before["permset_assignments"] = {name: assignment_ids(org, name) for name in sorted(names)}
+    path.write_text(json.dumps(before, indent=2) + "\n")
+    held = sum(len(ids) for ids in before["permset_assignments"].values())
+    return True, "%s; baseline permission sets %s with %d assignment(s)" % (message, ", ".join(sorted(names)) or "-", held)
+
+
+def unassign(org: str, name: str, notes: list[str], keep=()) -> int:
+    """Delete every assignment of one permission set except the Ids in ``keep``; returns how many went. A failure is a note."""
+    removed = 0
+    for rid in assignment_ids(org, name):
+        if rid in keep:
+            continue
+        doc = sfc.sf(["data", "delete", "record", "--sobject", "PermissionSetAssignment", "--record-id", rid], org)
+        if doc.get("status") == 0:
+            removed += 1
+        else:
+            notes.append("could not remove an assignment of %s: %s" % (name, tail(str(doc.get("message") or doc.get("name") or doc), 200)))
+    return removed
+
+
 def assignment_ids(org: str, permset: str) -> list[str]:
     """The Ids of every PermissionSetAssignment of one permission set (named exactly), whoever it is assigned to."""
     ps = permission_set_id(org, permset)
@@ -504,9 +541,15 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
         if not (all(isinstance(before[key], dict) for key in ("last_modified", "other_types", "unavailable"))
                 and all(isinstance(before[key], list) for key in ("apex_classes", "lightning_component_bundles"))):
             raise TypeError("before.json is not a snapshot of this version")
+        # An update snapshot is only usable with the baseline assignments it was to record: without them the assignments the run
+        # added cannot be told from the ones that were there, and nothing is unassigned.
+        if before.get("existing") == "update" and not (isinstance(before.get("permset_assignments"), dict) and all(
+                isinstance(ids, list) for ids in before["permset_assignments"].values())):
+            raise TypeError("an update snapshot without its baseline assignments")
     except (OSError, ValueError, KeyError, TypeError):
         return finish(False, "no usable %s: refusing to delete anything because the run's new metadata cannot be told apart"
                       % (directory / "before.json"), error="missing before.json")
+    update = before.get("existing") == "update"
     apex_found, lwc_found = sfc.loose(org, prefix)
     found = {"ApexClass": apex_found, "LightningComponentBundle": lwc_found}
     for kind in REMOVABLE:
@@ -524,14 +567,17 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
     # 1. The assignments: a permission set that is assigned to a user cannot be deleted.
     for name in plan["PermissionSet"]:
         try:
-            removed = 0
-            for rid in assignment_ids(org, name):
-                doc = sfc.sf(["data", "delete", "record", "--sobject", "PermissionSetAssignment", "--record-id", rid], org)
-                if doc.get("status") == 0:
-                    removed += 1
-                else:
-                    notes.append("could not remove an assignment of %s: %s" % (name, tail(str(doc.get("message") or doc.get("name") or doc), 200)))
-            record["unassigned"].append({"permission_set": name, "assignments": removed})
+            record["unassigned"].append({"permission_set": name, "assignments": unassign(org, name, notes)})
+        except SfError as exc:
+            notes.append("assignments of %s: %s" % (name, exc))
+    # Update mode: a baseline permission set stays, so only the assignments the run added to it go.
+    baseline_assignments = before["permset_assignments"] if update else {}
+    for name, was in sorted(baseline_assignments.items()):
+        if not name.startswith(sfc.removal_prefix("PermissionSet", prefix)):
+            continue
+        try:
+            record["unassigned"].append({"permission_set": name, "assignments": unassign(org, name, notes, keep=set(was)),
+                                         "baseline_permission_set": True})
         except SfError as exc:
             notes.append("assignments of %s: %s" % (name, exc))
     # 2. The permission sets, which name the app, the tab and the classes; 3. everything else, in the chess case's order.
@@ -547,11 +593,25 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
         now = sfc.read_org(org)
     except SfError as exc:
         return finish(False, "%s; could not verify afterwards: %s" % ("; ".join(notes) or "cleanup ran", exc), error=str(exc))
-    diff = sfc.compare(before, now)
+    diff = sfc.compare(before, now, {kind: sfc.removal_prefix(kind, prefix) for kind in sfc.OWN_TYPES} if update else None)
     for r in record["refused"]:
         if r["reason"] == sfc.NOT_QUERYABLE:
             diff["extra"].setdefault(r["type"], []).append(r["name"])
+    for name, was in sorted(baseline_assignments.items()):  # the baseline permission sets' assignments must be the baseline's again
+        try:
+            held = set(assignment_ids(org, name))
+        except SfError as exc:
+            diff["unverified"]["PermissionSetAssignment " + name] = str(exc)
+            continue
+        if held - set(was):
+            diff["extra"].setdefault("PermissionSetAssignment", []).extend(sorted(held - set(was)))
+        if set(was) - held:
+            diff["missing"].setdefault("PermissionSetAssignment", []).extend(sorted(set(was) - held))
     record.update({key: diff[key] for key in ("extra", "missing", "modified", "unverified", "covered", "not_covered")})
+    if update:
+        record["existing"] = "update"
+        record["updated"] = diff["updated"]
+        record["baseline_kept"] = [{"type": r["type"], "name": r["name"]} for r in record["refused"] if r["reason"] == "was already in the before snapshot"]
     if notes:
         record["notes"] = notes
     if any(diff[key] for key in ("extra", "missing", "modified", "unverified")):
@@ -570,6 +630,8 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
         return finish(False, "%sorg differs from the before snapshot: %s" % ("; ".join(notes) + "; " if notes else "", "; ".join(parts)))
     removed = ["%s %s" % (r["type"], r["name"]) for r in record["removed"]]
     unassigned = sum(r["assignments"] for r in record["unassigned"])
+    kept = ("; update mode: %d baseline item(s) kept%s" % (len(record["baseline_kept"]), "; deployed over in place (not restorable): " + ", ".join(
+        "%s %s" % (kind, n) for kind, names in diff["updated"].items() for n in names) if diff["updated"] else "")) if update else ""
     return finish(True, "cleanup verified: org %r matches the before snapshot by name on %s; LastModifiedDate unchanged on %d baseline "
                   "ApexClass and LightningComponentBundle items; removes when new and prefixed (%s*, %s* for bundles), in this order: "
                   "the assignments of a new permission set, then %s; only compares, never removes: %s%s; unassigned %d; removed %s" % (
@@ -577,7 +639,7 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
                       prefix, lwc_prefix(prefix), ", ".join(REMOVABLE),
                       ", ".join(kind for kind in diff["covered"] if kind not in REMOVABLE) or "-",
                       "; not covered (query failed at the snapshot): " + ", ".join(diff["not_covered"]) if diff["not_covered"] else "",
-                      unassigned, ", ".join(removed) or "nothing"))
+                      unassigned, ", ".join(removed) or "nothing") + kept)
 
 
 # ------------------------------------------------------------------------------------------------------------ selftest
@@ -734,6 +796,8 @@ def main(argv: list[str]) -> int:
         p.add_argument("--org", required=name not in ("project",))
         p.add_argument("--prefix", default=PREFIX)
         p.add_argument("--platform-dir")
+        if name in ("preflight", "snapshot"):
+            p.add_argument("--existing", choices=sfc.EXISTING_MODES, default=os.environ.get("E2E_PLATFORM_EXISTING") or "fresh")
         if name == "deployed":
             for option in ("classes", "lwc", "tabs", "apps", "permsets"):
                 p.add_argument("--" + option)
@@ -749,9 +813,9 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     try:
         if args.cmd == "preflight":
-            ok, msg = sfc.do_preflight(args.org, args.prefix)
+            ok, msg = sfc.do_preflight(args.org, args.prefix, args.existing)
         elif args.cmd == "snapshot":
-            ok, msg = sfc.do_snapshot(args.org, args.prefix, sfc.platform_dir(args.platform_dir))
+            ok, msg = do_snapshot(args.org, args.prefix, sfc.platform_dir(args.platform_dir), args.existing)
         elif args.cmd == "cleanup":
             ok, msg = do_cleanup(args.org, args.prefix, sfc.platform_dir(args.platform_dir))
             if not ok:

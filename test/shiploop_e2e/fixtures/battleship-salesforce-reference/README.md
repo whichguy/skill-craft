@@ -4,10 +4,15 @@ The known-good answer to the `battleship-salesforce` E2E case (`test/shiploop_e2
 `@AuraEnabled` controller, Apex tests, a Lightning web component board, a Lightning tab, a Lightning app and the permission set that
 grants them, all carrying the case prefix (`SLBattle` / `slBattle`).
 
-**Nothing in this folder is ever shown to a model.** It is the harness's own fixture: the case prompt is all a model sees, and a model's
-working directory never contains this folder. Do not copy it into a case workspace, a prompt or a packet.
+**This folder is never shown to a model as an answer to the build.** It is the harness's own fixture: in a full run the case prompt is all a
+model sees, and a model's working directory never contains this folder. Do not copy it into a case workspace, a prompt or a packet.
 Known limit: a host with file access could still read it from the checkout; grep the run's commands for
 `battleship-salesforce-reference` to see whether one did.
+
+The one place its project files reach a run is the **release slice** (`run.py --case battleship-salesforce --seed-at release-plan`,
+`test/shiploop_e2e/README.md` "The release slice"): that run tests the deployment, not the build, so the harness commits these files
+(never this README, which documents the harness: `seed_release.product_exclude` in `cases.json`) into the run's worktree as the
+already-built product. It is never started from this folder for a run that is graded on building the game.
 
 ## What it is for
 
@@ -42,6 +47,7 @@ the first real deploy is the proof. If the compiler objects, look first at the p
 ## Files
 
 ```
+.gitignore                                                the CLI's caches (.sf/, .sfdx/), so a deploy's source-tracking files are never committed or returned
 sfdx-project.json                                         sourceApiVersion 68.0, package directory force-app
 force-app/main/default/
   classes/SLBattleEngine.cls                              the rules (public, static methods, InvalidShotException inside)
