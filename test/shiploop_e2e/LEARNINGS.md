@@ -2441,3 +2441,15 @@ Grok 4.7 medium on `chess-salesforce` against the owner's Developer Edition org,
   refusing a resume on a checkout build (fixed, `--source checkout`).
 
 Evidence and details: `docs/e2e-salesforce-chess-journal.md` F9. Run folder (not committed): `sfchess/live2` under the session scratchpad.
+
+## The Salesforce Battleship case, live run 1: done end to end, one step per step, the app kept by hand (2026-10-18, integration branch with the packet-review units) — status: interim (n=1, one host)
+
+Grok 4.7 medium on `battleship-salesforce` against the owner's Developer Edition org, `--source checkout` at the integration branch (packet-review U1-U10, step Proof, procedure walk), two segments (the first hit the 2-hour host timeout at document), 720 turns (lower bound).
+
+- **Result: ShipLoop done (`shiploop PASS done`); all five case checks pass** (project, deployed, tests 10 Apex methods, access, rules 19 of 19 on two seeded 100-shot games). Outcome FAILED on two harness verdicts, neither a product defect: `committed` (the return was a working-tree return with no commit on main, as in the chess runs) and `process` (rc=143, the integrator ended the Grok host, idle 35+ min after "Run complete").
+- **The per-step series held** (owner TODO, step-scoped checks and the step Proof): step-plan planned S1 engine, S2 controller, S3 board, S4 tab/app/permission set; each ran implement, a ShipLoop-run step Proof (passed) and its own Improve, in order, twice (8 implements, 8 Improves). The chess run had collapsed three steps into one.
+- **Faster where the packets changed:** preparation 43 min (chess 51); release-plan 3 min (chess 12.5, 34 source reads); verify 3 min (chess 13.6); refusals 2 (chess 5); planning window 62.6 min with 21.2 min of Improve in 5 children.
+- **New generic findings:** (1) the mutation gate mutates a local copy while the focused commands test the copy already in the org, so it killed 0 of 8 mutants and refused test; the model's revise put `sf project deploy start` in front of each focused command (each mutant now deploys to the org). The gate should know a remote-resident command (or the step plan should be told to deploy in its test commands). (2) A revise that changed only the test commands restarted all four implement steps and their Improves (about 14 min extra). (3) The Grok host stayed open after the done packet until the 2-hour timeout would end it. (4) Harness bug: `--keep-platform` keeps "a finished delivery, or an unfinished one whose keep checks pass", so a run that is done but uncommitted fell between the two and its cleanup removed the app; restored by hand (deploy 7/7, assign, deployed/access/rules re-checked PASS).
+- **Release-verify, no delivery contract:** it recorded the rendered-board check (SYS-BOARD) as an open item with steps for a person and closed, rather than blocking (U7); the handoff carries it. The tab was visible to the owner by the permission set from the start (chess F9 lesson).
+
+Evidence: `/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/` (+ `.log`, `-resume1.log`, `review-export/`); `docs/e2e-salesforce-battleship-journal.md`.

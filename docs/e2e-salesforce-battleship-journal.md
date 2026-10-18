@@ -109,3 +109,6 @@ Four anonymous Apex runs; the Apex only records, Python decides:
 - `selftest --org de --reference`: every rules marker PASS on both seeded games (17 hits, the standard fleet sunk,
   gameOver at the fifth sink, counts, straight non-overlapping fleet), seed.same, seed.different and the three invalid
   shots; cleanup back to the snapshot. The reference Apex and the grader's anonymous scripts compile on the real org.
+
+## 2026-10-18 · live run 1 (interim)
+See `test/shiploop_e2e/LEARNINGS.md` "The Salesforce Battleship case, live run 1". Findings to fix: the keep rule for a done-but-uncommitted run (harness), the idle host after done (harness), the mutation gate for remote-resident test commands and the test-command-only revise restarting every step (ShipLoop).
