@@ -317,6 +317,38 @@ The consolidated fix plan (§2.2, §5) puts the step block and the closing `/unt
 6. **Test-spec quotes only the focused IDs**, so 7 of the 10 required methods had no oracle, and implement listed them
    as `not_covered`.
 
-**Next.** Owner decision: port this branch's W2-D-only parts (considerations, evidence, static files, Code craft 10–14,
-anchors, cards, match, recent commits) onto the integration branch and drop this branch's W2-A/B duplicate. Then fix
-items 2–4 above, then measure.
+**Next (superseded the same day, see "Grounding" below).** ~~Owner decision: port this branch's W2-D-only parts onto
+the integration branch and drop this branch's W2-A/B duplicate; then fix items 2–4; then measure.~~
+
+**Grounding, 2026-10-18.** Rebased onto main 17ddec36 (clean), then checked each claim against code, not the run
+analysis's wording.
+- Items 2–6 hold in the integration branch at 29407b46.
+  - `prompts`: "Remote-only target: the recorded test route only".
+  - `implement_progress` counts from the latest accepted step plan.
+  - The step review focus's Code craft 2 line has no "received value".
+  - The Improve authority line reads "No push, deploy, install or credential access".
+  - Test-spec writes one row per focused ID.
+- Items 3–6 hold identically on this branch. Item 2 differs: this branch forbids any remote effect in a step check but
+  allows a dry-run validation. For Salesforce that permits a compile-level Proof, still not behaviour.
+
+Two plans already own these fixes, so this journal does not add a third:
+1. **The integration branch's run-insights plan** (`docs/shiploop-run-insights-plan-2026-10-18.md` on
+   `feat/shiploop-eff-int-c5f79b`, owner-accepted 2026-10-18 07:03).
+   - It catalogues the gaps: B1–B5 (behavioural Proofs, after A3), D1 (keep accepted steps), F2 (Improve authority),
+     F4 (cite Code craft by rule number) and E7 (test-spec coverage).
+   - Its A0 ports this branch's code, and its decision B lands the integration branch on main first.
+   - Its decision 18 puts Code craft one clause per rule in the implement head. That conflicts with this chat's D13
+     (the full prompt is sent).
+2. **The canonical, untracked copy of the fix plan** (`/Users/dadleet/src/skill-craft/docs/shiploop-implement-step-fix-plan-2026-10-17.md`,
+   1,622 lines, revised 2026-10-18 under owner decisions D14–D16).
+   - It anchors on main 17ddec36 (D16) and treats the integration branch as historical evidence.
+   - It lists this branch's mechanisms as proposed work on main. Its field names differ: `criterion_evidence` versus
+     this branch's `evidence`, and `shiploop_reference.static_text` versus `shiploop_static.static_text`.
+
+This branch's committed copy of the fix plan is the older version. The canonical checkout holds untracked files at the
+same paths (plan, journal, evidence, mock), so merging this branch there would collide with them. **Owner decisions
+needed:**
+- which base, main (D16) or the integration branch first (decision B);
+- which Code craft head form, D13 or decision 18.
+
+Then reconcile the naming with the canonical plan.
