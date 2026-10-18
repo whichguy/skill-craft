@@ -17,6 +17,9 @@ stub), and no real org, real `sf` or model is ever reached. What these prove, on
           flag there, not a boolean; a manifest with a DOCTYPE or ENTITY declaration is refused; a deploy that would not wait
           (--async, --wait under 5 or not plain digits) is refused; a file named exactly `.gitkeep` (git's placeholder for an
           empty folder) is not judged, every other name is
+  permset with --permission-sets (the battleship case) a deploy may also carry PermissionSet named SLBattle*, and `org assign permset`
+          passes only with every --name/-n prefixed, the org pinned and no --on-behalf-of, a bare word or an unknown flag; without the
+          flag (the chess case) both stay refused
   pass    the build's own commands (deploy --source-dir, apex run test --synchronous, data query, --version, org list), --help
           anywhere on an allowed command, and the local generate families reach sf
   log     a decision line before the call and an end line after it (same call id) in $E2E_PLATFORM_DIR/sf-calls.jsonl, no stdout, no
@@ -553,11 +556,11 @@ class WrapperTest(GuardCase):
 
     def test_the_fixed_flags_come_first_and_the_model_s_flags_are_its_own(self):
         self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "--", "data", "query", "--org", "x"]),
-                         ("de", "P", False, "sf", ["data", "query", "--org", "x"]))
+                         ("de", "P", False, "sf", ["data", "query", "--org", "x"], False))
         self.assertEqual(sf_guard.parse_fixed(["--prefix", "P", "--org", "de", "--deny-all", "--name", "open", "--", "--"]),
-                         ("de", "P", True, "open", ["--"]))
+                         ("de", "P", True, "open", ["--"], False))
         self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "org", "list"]),
-                         ("de", "P", False, "sf", ["org", "list"]))
+                         ("de", "P", False, "sf", ["org", "list"], False))
 
 
 class FlagsDirTest(GuardCase):
@@ -1476,6 +1479,156 @@ class InterruptTest(GuardCase):
             if state["proc"] is not None and state["proc"].poll() is None:
                 state["proc"].kill()
         self.assertEqual(result["code"], 143)
+
+
+PS_GUARD = f"{shlex.quote(sys.executable)} \"$E2E_CHECKS/sf_guard.py\" --org {ORG} --prefix SLBattle --permission-sets --"
+
+
+class PermissionSetTest(GuardCase):
+    """`--permission-sets` (the battleship-salesforce case): a deploy may also carry PermissionSet named <prefix>*, and
+    `org assign permset` is allowed only when every --name/-n starts with the prefix, the org is pinned and nothing assigns to
+    another user. Without the flag (the chess case) both stay refused, as before."""
+
+    D = "force-app/main/default/"
+    FILES = {
+        "classes/SLBattleEngine.cls": "public class SLBattleEngine {}",
+        "lwc/slBattleBoard/slBattleBoard.js": "export default class SlBattleBoard {}",
+        "tabs/SLBattle_Board.tab-meta.xml": "<CustomTab/>",
+        "applications/SLBattle.app-meta.xml": "<CustomApplication/>",
+        "permissionsets/SLBattle_Access.permissionset-meta.xml": "<PermissionSet/>",
+    }
+
+    def setUp(self):
+        super().setUp()
+        run.write_model_bin({"sf": PS_GUARD}, self.platform_dir, self.real_home)  # the case's own sf wrapper, flag included
+        (self.work / "sfdx-project.json").write_text(json.dumps({"packageDirectories": [{"path": "force-app", "default": True}]}))
+        for rel, text in self.FILES.items():
+            path = self.work / (self.D + rel)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+
+    def decide(self, *argv: str, permission_sets: bool = True) -> tuple[bool, str]:
+        return sf_guard.decide(list(argv), ORG, prefix="SLBattle", cwd=str(self.work), permission_sets=permission_sets)
+
+    def test_the_fixed_flag_is_read_with_the_others(self):
+        self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "--permission-sets", "--", "org", "list"]),
+                         ("de", "P", False, "sf", ["org", "list"], True))
+        self.assertEqual(sf_guard.parse_fixed(["--org", "de", "--prefix", "P", "--", "org", "list"])[5], False)
+
+    def test_a_prefixed_permission_set_deploys_with_the_flag_in_every_form(self):
+        ps = self.D + "permissionsets/SLBattle_Access.permissionset-meta.xml"
+        (self.work / "package.xml").write_text(
+            "<Package><types><members>SLBattle_Access</members><name>PermissionSet</name></types>"
+            "<types><members>SLBattleEngine</members><name>ApexClass</name></types></Package>")
+        for flags in (["--source-dir", "force-app"], [], ["-d", self.D + "permissionsets"], ["--source-dir", ps],
+                      ["--metadata", "PermissionSet:SLBattle_Access"], ["--manifest", "package.xml"]):
+            allowed, reason = self.decide("project", "deploy", "start", *flags, "--target-org", ORG)
+            self.assertTrue(allowed, (flags, reason))
+        done = self.assert_reaches_sf("project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG, "--json")
+        self.assertEqual(json.loads(done.stdout)["status"], 0, done.stdout)
+
+    def test_without_the_flag_a_permission_set_deploy_and_the_assignment_stay_refused(self):
+        allowed, reason = self.decide("project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG, permission_sets=False)
+        self.assertFalse(allowed)
+        self.assertIn("SLBattle_Access.permissionset-meta.xml", reason)
+        allowed, reason = self.decide("project", "deploy", "start", "--metadata", "PermissionSet:SLBattle_Access", "--target-org", ORG,
+                                      permission_sets=False)
+        self.assertFalse(allowed)
+        self.assertIn("--metadata", reason)
+        allowed, reason = self.decide("org", "assign", "permset", "--name", "SLBattle_Access", "--target-org", ORG, permission_sets=False)
+        self.assertFalse(allowed)
+        self.assertIn("not in the allow list", reason)
+        self.assertNotIn("org assign permset", sf_guard.allowed_commands())
+
+    def test_a_permission_set_outside_the_prefix_is_refused_even_with_the_flag(self):
+        (self.work / (self.D + "permissionsets/Admin_Extra.permissionset-meta.xml")).write_text("<PermissionSet/>")
+        allowed, reason = self.decide("project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG)
+        self.assertFalse(allowed)
+        self.assertIn("Admin_Extra.permissionset-meta.xml", reason)
+        self.assertIn("permission set", reason)
+        for entry in ("PermissionSet:Admin_Extra", "PermissionSet:slBattle_Access", "PermissionSet:*"):
+            allowed, reason = self.decide("project", "deploy", "start", "--metadata", entry, "--target-org", ORG)
+            self.assertFalse(allowed, entry)
+            self.assertIn("PermissionSet:SLBattle<name>", reason)
+
+    def test_assigning_a_prefixed_permission_set_to_the_logged_in_user_passes_in_every_spelling(self):
+        for flags in (["--name", "SLBattle_Access"], ["-n", "SLBattle_Access"], ["--name=SLBattle_Access"], ["-nSLBattle_Access"],
+                      ["-n=SLBattle_Access"], ["--name", "SLBattle_Access", "--name", "SLBattle_Extra"]):
+            for org in (["--target-org", ORG], ["-o", ORG], [f"--target-org={ORG}"]):
+                allowed, reason = self.decide("org", "assign", "permset", *flags, *org, "--json")
+                self.assertTrue(allowed, (flags, org, reason))
+        allowed, reason = self.decide("org:assign:permset", "--name", "SLBattle_Access", "--target-org", ORG)
+        self.assertTrue(allowed, reason)
+        self.assert_reaches_sf("org", "assign", "permset", "--name", "SLBattle_Access", "--target-org", ORG, "--json")
+        self.assertEqual(self.reached()[-1]["argv"][:3], ["org", "assign", "permset"])
+        self.assertIn("org assign permset", sf_guard.allowed_commands(permission_sets=True))
+        help_call = self.sf("org", "assign", "permset", "--help")
+        self.assertEqual(self.calls()[-1]["decision"], "allowed", help_call.stderr)
+
+    def test_another_permission_set_name_is_refused(self):
+        for flags in (["--name", "Admin_Extra"], ["-n", "slBattle_Access"], ["--name", "SLBattle_Access", "--name", "Other"],
+                      ["--name=Other"], ["-nOther"], ["--name", "SLBattle_Access,Other"], ["--name", "SLBattle Access"]):
+            allowed, reason = self.decide("org", "assign", "permset", *flags, "--target-org", ORG)
+            self.assertFalse(allowed, flags)
+            self.assertIn("must start with SLBattle", reason)
+        self.assert_denied("org", "assign", "permset", "--name", "Admin_Extra", "--target-org", ORG, "--json", reason="must start with SLBattle")
+
+    def test_assigning_on_behalf_of_another_user_is_refused(self):
+        for flags in (["--on-behalf-of", "someone@example.invalid"], ["--on-behalf-of=someone@example.invalid"], ["-b", "someone"],
+                      ["-bsomeone"]):
+            allowed, reason = self.decide("org", "assign", "permset", "--name", "SLBattle_Access", *flags, "--target-org", ORG)
+            self.assertFalse(allowed, flags)
+            self.assertIn("--on-behalf-of", reason)
+        self.assert_denied("org", "assign", "permset", "--name", "SLBattle_Access", "--on-behalf-of", "x@example.invalid",
+                           "--target-org", ORG, reason="--on-behalf-of")
+
+    def test_an_assignment_without_a_name_is_refused(self):
+        for flags in ([], ["--name"], ["-n"], ["--name", ""], ["--name="]):
+            allowed, reason = self.decide("org", "assign", "permset", "--target-org", ORG, *flags)
+            self.assertFalse(allowed, flags)
+            self.assertIn("must carry --name", reason)
+        self.assert_denied("org", "assign", "permset", "--target-org", ORG, "--json", reason="must carry --name")
+
+    def test_a_wrapper_without_a_prefix_assigns_nothing_and_a_name_is_plain_ascii(self):
+        allowed, reason = sf_guard.decide(["org", "assign", "permset", "--name", "Anything", "--target-org", ORG], ORG, permission_sets=True)
+        self.assertFalse(allowed)
+        self.assertIn("no --prefix", reason)
+        allowed, reason = self.decide("org", "assign", "permset", "--name", "SLBattle_Acc\u00e9s", "--target-org", ORG)
+        self.assertFalse(allowed)
+        self.assertIn("must start with SLBattle", reason)
+
+    def test_an_assignment_must_be_pinned_and_takes_no_word_or_flag_the_guard_cannot_read(self):
+        allowed, reason = self.decide("org", "assign", "permset", "--name", "SLBattle_Access")
+        self.assertFalse(allowed)
+        self.assertIn("must carry --target-org", reason)
+        allowed, reason = self.decide("org", "assign", "permset", "--name", "SLBattle_Access", "--target-org", "other")
+        self.assertFalse(allowed)
+        self.assertIn("--target-org must be", reason)
+        # oclif reads the bare words after a repeatable flag as more values: `--name A Other` would assign Other too.
+        for flags in (["--name", "SLBattle_Access", "Other"], ["--name=SLBattle_Access", "Other"],
+                      ["--loglevel", "--name=Other", "--name", "SLBattle_Access"], ["--name", "SLBattle_Access", "--verbose"]):
+            allowed, reason = self.decide("org", "assign", "permset", *flags, "--target-org", ORG)
+            self.assertFalse(allowed, flags)
+            self.assertIn("not accepted on `org assign permset`", reason)
+        self.assertEqual(self.reached(), [])
+
+    def test_the_scope_line_names_the_permission_set_kind_and_the_assignment(self):
+        line = sf_guard.scope_line("sf", ORG, "SLBattle", permission_sets=True)
+        self.assertIn("PermissionSet named SLBattle*", line)
+        self.assertIn("org assign permset", line)
+        self.assertNotIn("PermissionSet", sf_guard.scope_line("sf", ORG, "SLChess"))
+        done = self.sf("totally-unknown")
+        self.assertIn("org assign permset", done.stderr)
+        self.assertIn("PermissionSet named SLBattle*", done.stderr)
+
+    def test_the_battleship_case_wrapper_carries_the_flag_and_the_chess_case_wrapper_does_not(self):
+        cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        battle = cases["battleship-salesforce"]["platform"]["model_bin"]
+        self.assertEqual(set(battle), {"sf", "sfdx", "osascript", "open"})
+        self.assertIn("--prefix SLBattle --permission-sets --", battle["sf"])
+        for name in ("sfdx", "osascript", "open"):
+            self.assertIn(f"--deny-all --name {name} --", battle[name])
+        self.assertNotIn("--permission-sets", json.dumps(cases["chess-salesforce"]["platform"]["model_bin"]))
 
 
 if __name__ == "__main__":

@@ -268,5 +268,52 @@
       "seeded_minutes": 90,
       "source": "owner (2026-09-27): a small request should not take hours; a hosted-platform build gets 90"
     }
+  },
+  "battleship-salesforce": {
+    "style": "hosted-platform",
+    "prompt": "Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLBattle...` (for example `SLBattleEngine`) and the component `slBattleBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLBattle`, so that the board opens in the org for the user the CLI is logged in as and the work can still be removed afterwards: a custom tab `tabs/SLBattle_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slBattleBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLBattle.app-meta.xml` (standard navigation, containing that tab) and a permission set `permissionsets/SLBattle_Access.permissionset-meta.xml` that grants the app (`<applicationVisibilities>` with `<visible>true</visible>`), the tab (`<tabSettings>` with `<visibility>Visible</visibility>`) and the `SLBattleEngine` and `SLBattleController` classes (`<classAccesses>` with `<enabled>true</enabled>`). A new tab is hidden from every user until a permission set or profile grants it, so after you deploy, assign the permission set to the logged-in user with `sf org assign permset --name SLBattle_Access --target-org de`. Create no other metadata (no custom objects, fields, other permission sets, static resources, triggers, profiles, labels, flows or app pages), and do not change profiles or any other permission set. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. The game: the computer places a fleet on a 10x10 grid (rows and columns 0 to 9) and the player fires at it. The fleet is the standard one: `carrier` (5 cells), `battleship` (4), `cruiser` (3), `submarine` (3) and `destroyer` (2); every ship lies straight along one row or one column, entirely inside the grid, and no two ships share a cell. A ship is sunk when all of its cells have been hit, and the game is over when the last ship is sunk. `SLBattleEngine` is a public class with static methods only; a game is a JSON string. `newGame(Integer seed)` returns a new game whose fleet is placed at random from the seed: the same seed always gives the same fleet, in any transaction and however many games came before, and two different seeds give different fleets (Apex has no seeded random number generator, so write a small one). `fire(String game, Integer row, Integer col)` returns the game after one shot at that cell. The game JSON is an object with at least these keys: `shots` (the number of shots fired so far), `shipsLeft` (the number of ships not yet sunk), `gameOver` (`false` until the shot that sinks the last ship, `true` from that shot on) and `lastShot`, which is `null` in a new game and after a shot is an object `{\"row\": r, \"col\": c, \"result\": \"miss\" | \"hit\" | \"sunk\", \"ship\": name, \"size\": cells}`: `result` is `sunk` (not `hit`) for the shot that sinks a ship, and `ship` and `size` give that ship's name and number of cells on that shot only (they are `null` on a miss or a hit). Where the ships are and which cells were fired at is up to you; the board must not show a ship cell before it is hit. A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBattleEngine.InvalidShotException` (a public exception class you define inside `SLBattleEngine`). After the game is over, a shot at a cell not yet fired at is still accepted: it is a `miss` and `gameOver` stays `true`. `SLBattleController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`, each returning the game JSON as a `String`, so that the board and the grader can call them. The grader calls `SLBattleController` only with valid shots and calls `SLBattleEngine.fire` directly for an invalid one, so the controller may report an invalid shot however suits the board (for example by throwing an `AuraHandledException`). The component `slBattleBoard` renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button. It calls `SLBattleController` and renders what comes back. The work will be graded by playing whole games through `SLBattleController`: `newGame` with a seed, then `fire` once at each of the 100 cells, each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLBattle...Test` that run in the org, at least 8 Apex test methods in all: include the fleet (names, sizes, straight, inside the grid, no shared cell, the same seed twice), a miss, a hit, a sink, game over, a shot after game over and both kinds of invalid shot. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that a whole game of 100 shots played through `SLBattleController` (`newGame`, then `fire` at every cell) runs inside one transaction. Do not stop until the tests pass in the org.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/battleship_salesforce.py\" project --org de",
+      "python3 \"$E2E_CHECKS/battleship_salesforce.py\" deployed --org de --prefix SLBattle",
+      "python3 \"$E2E_CHECKS/battleship_salesforce.py\" tests --org de --prefix SLBattle --min-tests 8",
+      "python3 \"$E2E_CHECKS/battleship_salesforce.py\" access --org de --prefix SLBattle",
+      "python3 \"$E2E_CHECKS/battleship_salesforce.py\" rules --org de"
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt; rules uses the standard fleet (5, 4, 3, 3 and 2 cells, with their names) and the geometry of the hit cells as the independent oracle, never the candidate's own answers",
+    "platform": {
+      "kind": "salesforce",
+      "org": "de",
+      "prefix": "SLBattle",
+      "preflight": "python3 \"$E2E_CHECKS/battleship_salesforce.py\" preflight --org de --prefix SLBattle",
+      "before": "python3 \"$E2E_CHECKS/battleship_salesforce.py\" snapshot  --org de --prefix SLBattle",
+      "cleanup": "python3 \"$E2E_CHECKS/battleship_salesforce.py\" cleanup   --org de --prefix SLBattle",
+      "model_bin": {
+        "sf": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLBattle --permission-sets --",
+        "sfdx": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLBattle --deny-all --name sfdx --",
+        "osascript": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLBattle --deny-all --name osascript --",
+        "open": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLBattle --deny-all --name open --"
+      },
+      "check_timeout": 900,
+      "host_allow": [
+        "Bash(sf *)",
+        "Bash(cd *)",
+        "Bash(tail *)",
+        "Bash(head *)",
+        "Bash(tee *)",
+        "Bash(grep *)"
+      ],
+      "resume_note": "The platform was reset to its baseline when your last session ended, so anything you deployed to the org was removed, and the permission set assignment with it. Deploy again from your source and assign the permission set again before you rely on it or run tests in the org.",
+      "resume_note_kept": "Your last session's work was kept: what you deployed is still in the org; check it before you deploy again.",
+      "keep_checks": [
+        "deployed",
+        "tests",
+        "rules"
+      ],
+      "source": "owner request 2026-10-17: \"run the proper prompt with 'developing a battleship game' in my Salesforce org\"; modelled on chess-salesforce (owner go 2026-10-16: the Developer Edition org `de`, everything prefixed and removed afterwards; owner 2026-10-17: with --keep-platform the app stays in the org to be played when the org checks deployed, tests and rules pass, recorded NOT a pass), prefix SLBattle, plus the permission set the chess run lacked (its finding F9: the app's tab was hidden because no permission set or profile granted it), which the guard allows with --permission-sets"
+    },
+    "budget": {
+      "seeded_minutes": 90,
+      "source": "owner (2026-09-27): a small request should not take hours; a hosted-platform build gets 90"
+    }
   }
 }

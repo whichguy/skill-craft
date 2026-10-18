@@ -4,7 +4,7 @@
 The harness writes an executable `sf` into <output>/platform/bin and puts that directory first on the model's PATH. The script
 runs this file with the real HOME (so the real CLI can reach its login in the macOS keychain, which a throwaway HOME hides):
 
-    sf_guard.py --org de --prefix SLChess [--deny-all [--name <command>]] [--] <the model's argv...>
+    sf_guard.py --org de --prefix SLChess [--permission-sets] [--deny-all [--name <command>]] [--] <the model's argv...>
 
 Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is what keeps the model to the one org):
 
@@ -32,6 +32,12 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
     project, or an unreadable manifest is refused with what to change. The tab, app and app page name check is on the file name, the
     --metadata entry and the manifest member only, never on the file's content. A file named exactly `.gitkeep` (git's placeholder
     for an empty folder; it names no component) and an empty folder are not judged.
+  * PERMISSION SETS (`--permission-sets`, a case whose request asks for one; the chess case does not pass it): the deploy scope also
+    takes PermissionSet named <prefix>* (`permissionsets/<prefix>*.permissionset-meta.xml`, `PermissionSet:<prefix>*`, a manifest
+    type PermissionSet), and `org assign permset` is PINNED and allowed only with at least one --name/-n, every one of them
+    <prefix> followed by letters, digits or underscores, and no --on-behalf-of/-b (it would assign to another user). The command takes
+    only --name, --target-org, --api-version and --json: any other flag or a bare word is refused, because oclif reads the bare words
+    after a repeatable flag as more names (`--name SLBattle_Access Other`). Without the flag both stay outside the allow list.
   * LOCAL commands (`--version`, `--help`, `help`, `project generate`, `lightning generate`, `apex generate`, `template generate`,
     `org list`) pass unchanged. `--help` or `-h` after an allowed command, or a group of allowed commands, passes too, without
     `--target-org`: the CLI prints help and runs nothing. A denied command stays denied with `--help`.
@@ -115,6 +121,10 @@ LOCAL = {("version",), ("help",), ("project", "generate"), ("lightning", "genera
          ("org", "list")}
 PREFIX_OK = {("help",), ("project", "generate"), ("lightning", "generate"), ("apex", "generate"),
              ("template", "generate")}  # these take sub-words (`project generate manifest`)
+# Pinned only with --permission-sets: assigns a permission set of the case to the logged-in user (assign_problem judges the rest).
+PERMSET_COMMANDS = {("org", "assign", "permset")}
+# The flags `org assign permset` may carry: the ones that take a value, and the boolean --json (help is decided before).
+ASSIGN_VALUE_FLAGS = {"--name": "-n", "--target-org": "-o", "--api-version": None}
 HELP_ONLY = {("--version",), ("-v",), ("--help",), ("-h",)}  # the one flag-first form that passes: nothing else follows it
 HELP_FLAGS = ("--help", "-h")
 HELP_REASONS = ("no arguments (the CLI's own help)", "help for a group of allowed commands", "help")  # decide()'s help verdicts
@@ -141,6 +151,7 @@ FLAT_TYPES = {
     "FlexiPage": ("flexipages", (".flexipage-meta.xml",)),
 }
 FLAT_FOLDERS = {folder: suffixes for folder, suffixes in FLAT_TYPES.values()}
+PERMSET_TYPE = {"PermissionSet": ("permissionsets", (".permissionset-meta.xml",))}  # added to FLAT_TYPES by --permission-sets
 BUNDLE_TYPE = "LightningComponentBundle"
 LWC_CONFIG_FILES = ("jsconfig.json", ".eslintrc.json")  # the two files sf generates next to the bundles in lwc/
 # The folders the CLI types a file by when ANY of them is above it (strictDirectoryName in source-deploy-retrieve's registry of the
@@ -239,25 +250,74 @@ def has_short(argv: list[str], letter: str) -> bool:
     return False
 
 
-def allowed_commands() -> str:
-    return ", ".join(sorted(" ".join(words) + (" ..." if words in PREFIX_OK else "") for words in PINNED | LOCAL))
+def pinned_commands(permission_sets: bool = False) -> set:
+    return PINNED | (PERMSET_COMMANDS if permission_sets else set())
+
+
+def allowed_commands(permission_sets: bool = False) -> str:
+    return ", ".join(sorted(" ".join(words) + (" ..." if words in PREFIX_OK else "")
+                            for words in pinned_commands(permission_sets) | LOCAL))
+
+
+def flat_types(permission_sets: bool = False) -> dict:
+    """The approved flat metadata types of this run: FLAT_TYPES, and PermissionSet with --permission-sets."""
+    return {**FLAT_TYPES, **(PERMSET_TYPE if permission_sets else {})}
 
 
 def denied_line(name: str, reason: str) -> str:
     return f"{name}: denied by this run's guard: {reason}"
 
 
-def scope_line(name: str, org: str, prefix: str, reason: str = "") -> str:
+def scope_line(name: str, org: str, prefix: str, reason: str = "", permission_sets: bool = False) -> str:
     """What this run allows, printed after a denial and after help: the org pin, the deploy scope and the allowed commands (left
     out when the reason already lists them)."""
-    deploys = approved_text(prefix, lwc_prefix(prefix)) if prefix else "none (no deploy scope is defined)"
-    commands = "" if "allowed: " in reason else f"; commands: {allowed_commands()}"
+    deploys = approved_text(prefix, lwc_prefix(prefix), flat_types(permission_sets)) if prefix else "none (no deploy scope is defined)"
+    commands = "" if "allowed: " in reason else f"; commands: {allowed_commands(permission_sets)}"
     return (f"{name}: this run allows only `sf`, only on org {org!r} (every command that talks to an org carries --target-org "
             f"{org}); deploys: {deploys}{commands}")
 
 
-def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) -> tuple[bool, str]:
-    """(allowed, reason) for the model's argv. `prefix` and `cwd` scope a deploy (see deploy_scope_problems)."""
+def assign_problem(rest: list[str], prefix: str) -> str | None:
+    """Why an `org assign permset` is refused, or None. Every token is read the way oclif reads it: a value flag takes the next word
+    whatever it starts with, and a bare word left over would be another --name value (the flag repeats and reads bare words after
+    it), so only --name/-n, --target-org/-o, --api-version and --json are accepted (the org pin is checked before)."""
+    if not prefix:
+        return "the wrapper has no --prefix, so no permission set may be assigned"
+    names, i = [], 0
+    while i < len(rest):
+        token = rest[i]
+        i += 1
+        if token == "--json":
+            continue
+        if token.startswith("--on-behalf-of") or (token.startswith("-b") and not token.startswith("--")):
+            return ("`org assign permset --on-behalf-of` (-b) is denied: it assigns the permission set to another user; leave it out, "
+                    "the permission set goes to the logged-in user")
+        name, eq, inline = token.partition("=")
+        long = next((flag for flag, short in ASSIGN_VALUE_FLAGS.items()
+                     if name == flag or (short and not token.startswith("--") and token[:2] == short)), None)
+        if long is None:
+            return (f"{clip(token, 40)!r} is not accepted on `org assign permset` (only --name, --target-org, --api-version and "
+                    "--json: a bare word after --name would be read as another permission set)")
+        if eq and name == long:
+            value = inline
+        elif not token.startswith("--") and len(token) > 2:
+            value = token[2:].removeprefix("=")
+        else:
+            value, i = (rest[i], i + 1) if i < len(rest) else ("", i)
+        if long == "--name":
+            names.append(value)
+    if not any(names):
+        return f"`org assign permset` must carry --name {prefix}<name> (the case's permission set)"
+    for value in names:
+        if not re.fullmatch(re.escape(prefix) + r"[A-Za-z0-9_]*", value):
+            return (f"`org assign permset` permission set name {clip(value)!r} must start with {prefix} and hold only letters, digits "
+                    "and underscores (only the case's own permission sets are assigned)")
+    return None
+
+
+def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None, permission_sets: bool = False) -> tuple[bool, str]:
+    """(allowed, reason) for the model's argv. `prefix` and `cwd` scope a deploy (see deploy_scope_problems); `permission_sets` adds
+    PermissionSet to that scope and allows `org assign permset` (see assign_problem)."""
     if not argv:
         return True, "no arguments (the CLI's own help)"
     if "--" in argv:
@@ -280,14 +340,15 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
     for denied, why in DENY_REASONS:
         if words[:len(denied)] == denied:
             return False, f"`{' '.join(denied)}` is denied: it {why}"
-    known = PINNED | LOCAL
+    pinned = pinned_commands(permission_sets)
+    known = pinned | LOCAL
     match = next((w for w in sorted(known, key=len, reverse=True)
                   if words == w or (w in PREFIX_OK and words[:len(w)] == w)), None)
     helping = any(token in HELP_FLAGS for token in rest)
     if match is None:
         if helping and words and any(w[:len(words)] == words for w in known):
             return True, "help for a group of allowed commands"
-        return False, f"`{' '.join(words) or argv[0]}` is not in the allow list (default deny); allowed: {allowed_commands()}"
+        return False, f"`{' '.join(words) or argv[0]}` is not in the allow list (default deny); allowed: {allowed_commands(permission_sets)}"
     if helping:
         return True, "help"
     deploying = match[:2] == ("project", "deploy")
@@ -295,8 +356,12 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
     wrong = [value for value in given if value != org]
     if wrong:
         return False, f"--target-org must be {org!r} on every command (got {wrong[0]!r})"
-    if match in PINNED and not given:
+    if match in pinned and not given:
         return False, f"`{' '.join(match)}` must carry --target-org {org} (no default-org fallback)"
+    if match in PERMSET_COMMANDS:
+        problem = assign_problem(rest, prefix)
+        if problem:
+            return False, problem
     if match == ("org", "list") and has_flag(rest, "--clean"):
         return False, "`org list --clean` edits the CLI's stored orgs"
     if match in PREFIX_OK and match != ("help",):
@@ -315,9 +380,9 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None) 
             no_wait = deploy_no_wait(rest)
             if no_wait:
                 return False, f"deploy {no_wait[0]} is denied: the deploy can keep running in the org after the command returns; {no_wait[1]}"
-            problems = deploy_scope_problems(rest, cwd or os.getcwd(), prefix)
+            problems = deploy_scope_problems(rest, cwd or os.getcwd(), prefix, permission_sets)
             if problems:
-                scope = f" (approved: {approved_text(prefix, lwc_prefix(prefix))})" if prefix else ""
+                scope = f" (approved: {approved_text(prefix, lwc_prefix(prefix), flat_types(permission_sets))})" if prefix else ""
                 return False, f"deploy is outside the approved scope{scope}: " + "; ".join(problems)
     return True, "allowed"
 
@@ -359,13 +424,13 @@ def lwc_prefix(prefix: str) -> str:
     return caps[:len(caps) - keep].lower() + prefix[len(caps) - keep:]
 
 
-def type_prefixes(prefix: str, lwc: str) -> dict[str, str]:
-    """The name every approved metadata type must start with."""
-    return {**{kind: prefix for kind in FLAT_TYPES}, BUNDLE_TYPE: lwc}
+def type_prefixes(prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> dict[str, str]:
+    """The name every approved metadata type must start with (`kinds`: flat_types() of the run)."""
+    return {**{kind: prefix for kind in kinds}, BUNDLE_TYPE: lwc}
 
 
-def approved_text(prefix: str, lwc: str) -> str:
-    return f"{', '.join(FLAT_TYPES)} named {prefix}*, {BUNDLE_TYPE} named {lwc}*"
+def approved_text(prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> str:
+    return f"{', '.join(kinds)} named {prefix}*, {BUNDLE_TYPE} named {lwc}*"
 
 
 def shown(text: str) -> str:
@@ -442,7 +507,7 @@ def package_dirs(root: str) -> list[str] | None:
     return paths if paths and all(isinstance(path, str) and path for path in paths) else None
 
 
-def in_scope(parts: list[str], prefix: str, lwc: str) -> bool:
+def in_scope(parts: list[str], prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> bool:
     """Whether a file at this path (relative to the project) is an approved file: a class, tab, app or app page file of the right
     suffix straight in its own folder (and no `-meta.xml` in front of that suffix), or a file of an approved bundle. The CLI types a
     file by ANY strict folder above it (lwc, aura, objects ...), not by its own parent, so a class file under one of those is judged
@@ -453,14 +518,14 @@ def in_scope(parts: list[str], prefix: str, lwc: str) -> bool:
     if "lwc" in dirs:  # every lwc folder on the path must lead straight into an approved bundle (or be the folder of the config files)
         return all(dirs[i + 1].startswith(lwc) if i + 1 < len(dirs) else name in LWC_CONFIG_FILES
                    for i, folder in enumerate(dirs) if folder == "lwc")
-    suffixes = FLAT_FOLDERS.get(dirs[-1]) if dirs else None
+    suffixes = {folder: ends for folder, ends in kinds.values()}.get(dirs[-1]) if dirs else None
     suffix = next((end for end in suffixes or () if name.endswith(end)), None)
     # The CLI finds `<name>.<type>-meta.xml` anywhere in a file name (unanchored), so `SLChess.permissionset-meta.xml.cls` is a
     # PermissionSet named SLChess: a stem that holds `-meta.xml` is not a plain class, tab, app or app page file.
     return suffix is not None and name.startswith(prefix) and "-meta.xml" not in name[:-len(suffix)]
 
 
-def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, limit: int) -> list[str]:
+def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, limit: int, kinds: dict = FLAT_TYPES) -> list[str]:
     """Up to `limit` paths (relative to the project) under `path`, a file or a directory tree walked through its symlinks, that the
     approved scope does not cover; a link that leads outside the project counts. Empty directories are fine, and so is a file named
     exactly `.gitkeep` (PLACEHOLDER)."""
@@ -490,33 +555,33 @@ def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, li
             stack.extend((os.path.join(current, name), above + (real,)) for name in names)
         elif os.path.basename(current) == PLACEHOLDER:
             continue  # after the project boundary above: a link to somewhere else is still refused
-        elif not in_scope(rel.split(os.sep), prefix, lwc):
+        elif not in_scope(rel.split(os.sep), prefix, lwc, kinds):
             bad.append(rel)
     return bad
 
 
-def metadata_problem(entry: str, prefix: str, lwc: str) -> str | None:
+def metadata_problem(entry: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> str | None:
     """Why a --metadata entry is not an approved `Type:Name`, or None. A single trailing * is the CLI's own wildcard (ApexClass:SLChess*
     stays inside the prefix); a manifest keeps refusing any star."""
     kind, _, member = entry.strip().partition(":")
-    wanted = type_prefixes(prefix, lwc).get(kind)
+    wanted = type_prefixes(prefix, lwc, kinds).get(kind)
     if wanted is None or not re.fullmatch(re.escape(wanted) + r"\w*\*?", member):
-        names = ", ".join(f"{name}:{start}<name>" for name, start in type_prefixes(prefix, lwc).items())
+        names = ", ".join(f"{name}:{start}<name>" for name, start in type_prefixes(prefix, lwc, kinds).items())
         return f"--metadata {clip(entry)!r} must be one of {names} (no other type; a * only at the very end)"
     return None
 
 
-def manifest_problems(path: str, cwd: str, prefix: str, lwc: str) -> list[str]:
+def manifest_problems(path: str, cwd: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> list[str]:
     """The problems of the manifest at `path`. It is read under both spellings of the path (as written, and with `link/..` folded
     away lexically) because the CLI may open either; the problems are the union."""
     joined = os.path.join(cwd, path)
     problems: list[str] = []
     for spelling in dict.fromkeys((joined, os.path.normpath(joined))):
-        problems += manifest_file_problems(spelling, clip(path, 200), prefix, lwc)
+        problems += manifest_file_problems(spelling, clip(path, 200), prefix, lwc, kinds)
     return list(dict.fromkeys(problems))[:SCOPE_SHOWN]
 
 
-def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str) -> list[str]:
+def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> list[str]:
     try:
         fd = os.open(full, os.O_RDONLY | os.O_NONBLOCK)  # never waits for the writer of a pipe
     except OSError:
@@ -539,7 +604,7 @@ def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str) ->
         root = ET.fromstring(data)
     except (ET.ParseError, LookupError, ValueError):  # LookupError: an encoding the parser does not know
         return [f"manifest {shown_path!r} is not valid XML"]
-    wanted_by_type = type_prefixes(prefix, lwc)
+    wanted_by_type = type_prefixes(prefix, lwc, kinds)
     problems = []
     for types in (element for element in root.iter() if element.tag.rsplit("}", 1)[-1] == "types"):
         children = [(child.tag.rsplit("}", 1)[-1], (child.text or "").strip()) for child in types]
@@ -554,7 +619,7 @@ def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str) ->
     return problems[:SCOPE_SHOWN]
 
 
-def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str) -> list[str]:
+def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str, permission_sets: bool = False) -> list[str]:
     """Why a `project deploy start|validate` with these flags would carry more than the approved scope, or [] when it would not.
 
     The scope is ApexClass, CustomTab, CustomApplication and FlexiPage named <prefix>* and LightningComponentBundle named
@@ -565,10 +630,12 @@ def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str) -> list[s
     `classes/<prefix>*.cls-meta.xml`, `tabs/<prefix>*.tab-meta.xml`, `applications/<prefix>*.app-meta.xml`,
     `flexipages/<prefix>*.flexipage-meta.xml`, inside `lwc/<lwcPrefix>*/`, or `lwc/jsconfig.json` / `lwc/.eslintrc.json`; empty
     directories are fine, and so is a file named exactly `.gitkeep` (git's placeholder for an empty folder: it names no component).
-    The tab, app and app page checks are on file names, --metadata entries and manifest members, not on content."""
+    The tab, app and app page checks are on file names, --metadata entries and manifest members, not on content. With
+    `permission_sets`, `permissionsets/<prefix>*.permissionset-meta.xml` (PermissionSet) is approved too, on the same terms."""
     if not prefix:
         return ["the wrapper has no --prefix, so no deploy scope is defined"]
     lwc = lwc_prefix(prefix)
+    kinds = flat_types(permission_sets)
     given = deploy_inputs(rest_argv)
     real_cwd = os.path.realpath(cwd)
     found = project_root(real_cwd)
@@ -589,18 +656,19 @@ def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str) -> list[s
         if not inside(os.path.realpath(full), real_root):
             problems.append(f"source path {clip(path, 200)!r} is outside the project directory")
         elif len(bad) < SCOPE_SHOWN:
-            bad += out_of_scope(full, root, real_root, prefix, lwc, SCOPE_SHOWN - len(bad))
+            bad += out_of_scope(full, root, real_root, prefix, lwc, SCOPE_SHOWN - len(bad), kinds)
     if bad:
-        problems.append(f"not a class, tab, app or app page named {prefix}* or part of an LWC bundle named {lwc}*: {', '.join(bad)}"
+        what = "a class, tab, app, app page or permission set" if permission_sets else "a class, tab, app or app page"
+        problems.append(f"not {what} named {prefix}* or part of an LWC bundle named {lwc}*: {', '.join(bad)}"
                         " (deploy only those, for example --source-dir on the class file or the bundle folder; a file retrieved from the org"
                         " is not yours to deploy: delete it or narrow the path)")
     for value in given["--metadata"]:
         for entry in value.split(","):
-            problem = metadata_problem(entry, prefix, lwc)
+            problem = metadata_problem(entry, prefix, lwc, kinds)
             if problem:
                 problems.append(problem)
     for manifest in given["--manifest"]:
-        problems += manifest_problems(manifest, cwd, prefix, lwc)
+        problems += manifest_problems(manifest, cwd, prefix, lwc, kinds)
     return problems
 
 
@@ -649,10 +717,10 @@ def log_end(call: str, code: int | None, stderr: str, interrupted: bool) -> bool
                       "stderr_head": scrub(stderr)[:200], "interrupted": interrupted})
 
 
-def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str]]:
-    """The wrapper's fixed flags (--org, --prefix, --deny-all, --name, in any order), one optional `--` after them, then the model's
-    argv: (org, prefix, deny_all, name, argv), name `sf` unless --name gives another."""
-    org, prefix, deny_all, name, i = "", "", False, "sf", 0
+def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str], bool]:
+    """The wrapper's fixed flags (--org, --prefix, --deny-all, --name, --permission-sets, in any order), one optional `--` after them,
+    then the model's argv: (org, prefix, deny_all, name, argv, permission_sets), name `sf` unless --name gives another."""
+    org, prefix, deny_all, name, permission_sets, i = "", "", False, "sf", False, 0
     while i < len(args):
         if args[i] == "--org" and i + 1 < len(args):
             org, i = args[i + 1], i + 2
@@ -662,11 +730,13 @@ def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str]]:
             name, i = args[i + 1], i + 2
         elif args[i] == "--deny-all":
             deny_all, i = True, i + 1
+        elif args[i] == "--permission-sets":
+            permission_sets, i = True, i + 1
         else:
             break
     if i < len(args) and args[i] == "--":
         i += 1
-    return org, prefix, deny_all, name, args[i:]
+    return org, prefix, deny_all, name, args[i:], permission_sets
 
 
 def child_env(org: str, environ: dict | None = None) -> dict:
@@ -699,7 +769,7 @@ def run_real(real: str, argv: list[str], state: dict, env: dict | None = None) -
 
 
 def main(args: list[str]) -> int:
-    org, prefix, deny_all, name, argv = parse_fixed(args)
+    org, prefix, deny_all, name, argv, permission_sets = parse_fixed(args)
     if not org:
         print(denied_line(name, "the wrapper was built without --org"), file=sys.stderr)
         return 2
@@ -708,13 +778,13 @@ def main(args: list[str]) -> int:
         allowed, reason = False, f"`{name}` is not available in this run; use `sf` with --target-org {org}"
     else:
         try:
-            allowed, reason = decide(argv, org, prefix=prefix)
+            allowed, reason = decide(argv, org, prefix=prefix, permission_sets=permission_sets)
         except Exception as exc:  # a crash is a refusal with a decision line, never a traceback and an unlogged call
             allowed, reason = False, f"the guard could not judge this call ({type(exc).__name__})"
     if not allowed:
         logged = log_decision(call, argv, org, prefix, False, reason, name)
         print(denied_line(name, reason[:REASON_LIMIT]) + ("" if logged else " (and the call could not be logged)"), file=sys.stderr)
-        print(scope_line(name, org, prefix, reason), file=sys.stderr)
+        print(scope_line(name, org, prefix, reason, permission_sets), file=sys.stderr)
         return 2
     state: dict = {"proc": None, "interrupted": False, "at": 0.0}
 
@@ -747,7 +817,7 @@ def main(args: list[str]) -> int:
     sys.stdout.flush()
     sys.stderr.write(scrub(err))
     if reason in HELP_REASONS or argv[:1] in (["--help"], ["-h"], ["help"]):
-        sys.stderr.write(scope_line(name, org, prefix) + "\n")
+        sys.stderr.write(scope_line(name, org, prefix, permission_sets=permission_sets) + "\n")
     sys.stderr.flush()
     return code
 

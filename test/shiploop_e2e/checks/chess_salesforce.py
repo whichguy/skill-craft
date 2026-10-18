@@ -338,10 +338,10 @@ def plan_removal(found: list[str], before: set[str], prefix: str) -> tuple[list[
     return remove, refused
 
 
-def destructive_xml(members: dict[str, list[str]]) -> str:
+def destructive_xml(members: dict[str, list[str]], order: tuple[str, ...] = REMOVABLE) -> str:
     parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<Package xmlns="%s">' % META_NS]
     # REMOVABLE order: what refers to something is listed before it, and one destructive deploy removes them all.
-    for kind in REMOVABLE:
+    for kind in order:
         if members.get(kind):
             parts.append("    <types>")
             parts += ["        <members>%s</members>" % n for n in members[kind]]
@@ -402,25 +402,9 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
         record["refused"] += [{"type": kind, "name": n, "reason": why} for n, why in refused]
     deploy_note = ""
     if any(plan.values()):
-        work = Path(tempfile.mkdtemp(prefix="chess-sf-cleanup-"))
-        try:
-            (work / "force-app").mkdir()
-            (work / "manifest").mkdir()
-            (work / "sfdx-project.json").write_text(json.dumps(
-                {"packageDirectories": [{"path": "force-app", "default": True}], "sourceApiVersion": API_VERSION}))
-            (work / "manifest" / "package.xml").write_text(empty_package_xml())
-            (work / "manifest" / "destructiveChanges.xml").write_text(destructive_xml(plan))
-            doc = sf(["project", "deploy", "start", "--manifest", str(work / "manifest" / "package.xml"),
-                      "--post-destructive-changes", str(work / "manifest" / "destructiveChanges.xml"), "--wait", "10"],
-                     org, timeout=900, cwd=str(work))
-            if doc.get("status") != 0:
-                deploy_note = "destructive deploy failed: %s" % tail(str(doc.get("message") or doc.get("name") or doc))
-            else:
-                record["removed"] = [{"type": kind, "name": n} for kind in REMOVABLE for n in plan[kind]]
-        except SfError as exc:
-            deploy_note = str(exc)
-        finally:
-            shutil.rmtree(work, ignore_errors=True)
+        deploy_note = destructive_deploy(org, plan)
+        if not deploy_note:
+            record["removed"] = [{"type": kind, "name": n} for kind in REMOVABLE for n in plan[kind]]
     try:
         now = read_org(org)
     except SfError as exc:
@@ -441,6 +425,31 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
                       ", ".join(kind for kind in diff["covered"] if kind not in REMOVABLE) or "-",
                       "; not covered (query failed at the snapshot): " + ", ".join(diff["not_covered"]) if diff["not_covered"] else "",
                       ", ".join(removed) or "nothing"))
+
+
+def destructive_deploy(org: str, members: dict[str, list[str]], order: tuple[str, ...] = REMOVABLE) -> str:
+    """One destructive deploy of exactly these named members (listed in `order`) from a throwaway project: "" when it succeeded, else
+    why it failed (the verification after it decides the cleanup)."""
+    work = Path(tempfile.mkdtemp(prefix="sf-cleanup-"))
+    try:
+        (work / "force-app").mkdir()
+        (work / "manifest").mkdir()
+        (work / "sfdx-project.json").write_text(json.dumps(
+            {"packageDirectories": [{"path": "force-app", "default": True}], "sourceApiVersion": API_VERSION}))
+        (work / "manifest" / "package.xml").write_text(empty_package_xml())
+        (work / "manifest" / "destructiveChanges.xml").write_text(destructive_xml(members, order))
+        doc = sf(["project", "deploy", "start", "--manifest", str(work / "manifest" / "package.xml"),
+                  "--post-destructive-changes", str(work / "manifest" / "destructiveChanges.xml"), "--wait", "10"],
+                 org, timeout=900, cwd=str(work))
+        if doc.get("status") != 0:
+            failures = "; ".join("%s %s: %s" % (f.get("componentType"), f.get("fullName"), tail(str(f.get("problem") or ""), 200))
+                                 for f in (((doc.get("result") or {}).get("details") or {}).get("componentFailures") or [])[:5])
+            return "destructive deploy failed: %s" % (failures or tail(str(doc.get("message") or doc.get("name") or doc)))
+        return ""
+    except SfError as exc:
+        return str(exc)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
 
 
 def compare(before: dict, now: dict) -> dict:
@@ -469,10 +478,10 @@ def compare(before: dict, now: dict) -> dict:
     return diff
 
 
-def describe(diff: dict) -> str:
+def describe(diff: dict, removable: tuple[str, ...] = REMOVABLE) -> str:
     parts = []
     for kind, names in diff["extra"].items():
-        if kind in REMOVABLE:
+        if kind in removable:
             parts.append("extra %s %s" % (kind, ", ".join(names)))
         else:
             parts.append("not removable by this cleanup: remove by hand: %s %s" % (kind, ", ".join(names)))

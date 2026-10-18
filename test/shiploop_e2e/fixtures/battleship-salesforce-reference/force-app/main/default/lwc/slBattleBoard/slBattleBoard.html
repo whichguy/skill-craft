@@ -1,0 +1,18 @@
+<template>
+    <div class="game">
+        <div class="status" role="status">{statusText}</div>
+        <div class="counts">Shots: {shots}. Ships left: {shipsLeft}. {sunkText}</div>
+        <div class="grid" aria-label="Battleship grid">
+            <template for:each={rows} for:item="row">
+                <div key={row.id} class="row">
+                    <template for:each={row.cells} for:item="cell">
+                        <button key={cell.id} class={cell.className} data-row={cell.row} data-col={cell.col} aria-label={cell.label}
+                                disabled={cell.disabled} onclick={handleCellClick}>{cell.glyph}</button>
+                    </template>
+                </div>
+            </template>
+        </div>
+        <div class="message" role="alert">{message}</div>
+        <button class="new-game" disabled={busy} onclick={handleNewGame}>New game</button>
+    </div>
+</template>

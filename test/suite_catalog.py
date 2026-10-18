@@ -158,6 +158,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-render-diff.test.py",
     "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-e2e-chess-salesforce.test.py",
+    "test/shiploop-e2e-battleship-salesforce.test.py",
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-sf-guard.test.py",
     "test/shiploop-e2e-efficiency.test.py",
@@ -325,6 +326,10 @@ _DURATION_SECONDS = {
     # seconds, 2026-10-16: 105 to 123 s at load average about 5 (the platform and guard suites ran beside it in some of those).
     # Just under QUICK_MAX_SECONDS; the E2E apparatus runs in the full tier anyway.
     "test/shiploop-e2e-chess-salesforce.test.py": 115.0,
+    # The battleship-salesforce case's checks against the fake `sf`: 52 tests, most a check run as a subprocess against the fake, plus a
+    # Python copy of the reference engine and the Apex subset that runs the grader's scripts against it. Local wall seconds,
+    # 2026-10-17: 29 s at load average about 6, one serial run. Under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-battleship-salesforce.test.py": 30.0,
     # The case `platform` hooks (preflight, before, home_links, model_bin, always-run cleanup, scrub): 40 tests, most of them a whole
     # run.main over a fake host and one tiny platform command. 135 tests since the model_bin pin, resolution, bypass-detector, keep-platform
     # and resume additions. Local wall seconds, 2026-10-16: 43 to 59 s at load average about 5. Under QUICK_MAX_SECONDS.
@@ -607,7 +612,7 @@ _PATH_SUITE_IDS = {
 
 # Paths whose row above is their whole selection, beside the suite that carries their own name: the wider rule that
 # would otherwise run is skipped, because it only adds suites that do not read them.  For the two data files that rule
-# is the E2E prefix (the whole family, about 578 s of catalog estimate, for a journal or a data push); for the workspace
+# is the E2E prefix (the whole family, about 616 s of catalog estimate, for a journal or a data push); for the workspace
 # module it is the hub fallback (nine consumers, one more than HUB_REFERENCE_LIMIT, so the hub set ran in their place
 # and none of the suites that drive the module).  A new suite that reads one of these files is added to its row; the
 # E2E README.md, cases.json, suites.json and packet_changes.json stay on the prefix, because the family reads them
@@ -630,10 +635,10 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 # Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
 # ShipLoop-family suite its name does not select (the leaf-name rule skips that family).  A new leaf's
 # package build is its release gate, so the Run Review leaf also selects marketplace-package.  Each family
-# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: the 15 family suites
-# sum to about 578 s of the estimates in _DURATION_SECONDS on 2026-10-17 (shiploop-e2e 100, -chess-salesforce 115,
-# -slice 81, -platform 75, -environment 65, -quality 43, -baseline 25, -commit-counters 24.5, -sf-guard 20, the other
-# six 30 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
+# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: the 17 family suites
+# sum to about 616 s of the estimates in _DURATION_SECONDS on 2026-10-17 (shiploop-e2e 100, -chess-salesforce 115,
+# -slice 81, -platform 75, -environment 65, -quality 43, -battleship-salesforce 30, -baseline 25, -commit-counters 24.5,
+# -sf-guard 20, the other seven 38 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
 _PREFIX_SUITE_IDS = {
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
