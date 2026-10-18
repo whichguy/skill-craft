@@ -93,8 +93,15 @@ the model fills (keys, allowed values, one example row), so the model's answer i
 validator fails a build when a template names an unknown slot or leaves one unfilled; a test proves every packet is
 template text plus slot values. Builds on `static_text` (implement-step plan §3.6). Pilot step-plan and implement, then
 migrate one stage per change, folding that stage's prose fixes (themes E, F, G, H, M below) into its template as it moves,
-so no text is rewritten twice. Template audit (step-plan and implement written in full with Battleship values) is folded
-in when it lands.
+so no text is rewritten twice. Template audit (`packets-audit.json`, `templates/`): recommended **yes**. Each stage
+gets one template with declared slots and its result form; shared frame and rules text live in small partial files
+(decision T-D3). The prototype renders step-plan at 19,643 characters and implement S1 at 18,794 while carrying, by
+value, the item context, concern rows, commands, R-n and AD-n that today's printed outputs dropped. With today's data
+both exceed a 19,500 budget (worst 21,204 and 20,660); with size limits enforced by the stage that writes each field
+(context 2,500, concern rows 1,200, step task 700, criteria 1,200, Proof 600; decision T-D2) implement fits at 18,760 and
+step-plan misses by 84 characters, closed by the N7 trims. Migration: a byte-identical pilot of step-plan and implement
+first, then one stage per change; the obligations ledger only repoints its anchors (its source check already reads
+`.md`). The platform card needs a testing heading before a slot can select its testing rules (with C6).
 
 **N2. One step at a time, commits as memory (directions 2 and 4; M4, M11).** A step packet shows the current step in full,
 earlier steps as one line each (step id, short commit, headline), later steps as a count only, one pointer to the step
@@ -151,9 +158,15 @@ files and 5.13 MB in 8 locations, 45% of it Improve; a producer packet names a m
 1.1 MB go. Recovery keeps every file it needs (`state.md`, the packet, an unaccepted inbox draft, loop receipts,
 `until-loop/`, the Improve `packet.json`, the three return files).
 
-**N7. Concise packets (direction 7; M3, M4).** Measured findings from the packet audit are folded in when it lands; until
-then the units M1-M2 below and the G and E themes carry the concision work. Each stage's guidance is reviewed for purpose,
-method in order, what to read, what done means and how it is checked, as it moves into its template (N1).
+**N7. Concise packets (direction 7; M3, M4).** Measured on the 33 Battleship producer packets (563,438 printed
+characters): the fixed frame is 39% and the stage's own guidance 27%; 5,790 characters are identical in all 33; each rule
+is stated 2-5 times per packet (step-plan states each structural rule three times); 25% of the planning guidance did not
+apply to this request; 10 of 33 outputs passed the 20,000-character host cut and lost their middle (7 of 8 implement
+packets lost guidance items 5-7 and Code craft rules 1-2); 23 of 28 packets printed none of the values quoted from
+earlier results, and 15 of 33 printed no symbol definitions. The ten worst planning duty items are rewritten in the audit
+from 12,849 to 6,874 characters (-46%) while adding units B1, B2, C1, A1, A4, G4, G6 and H4; unused constants and 4,247
+characters of stage-row fields no packet prints are removed. Each stage's guidance is reviewed for purpose, method in
+order, what to read, what done means and how it is checked, as it moves into its template (N1).
 
 ## 4. The fix catalogue by theme
 
@@ -197,7 +210,11 @@ in packets (A2): yes, first section, measured. 6. A data-migration case later: y
 installable under recorded authority (N4): yes. 8. Rendered check through a harness-held session: no. 9. D2: dropped. 10.
 Four outcomes; send-back across release stages; Improve only on done (N5): yes. 11. Reinstate `learned_from` (N2): yes.
 12. Drop `status.md` and `context-index.md` (N6): yes. 13. Move the Improve child under RUN with the Improve skill in one
-release (N6): yes. 14. Service duties by cue (G4): yes. 15. Stale temp files: removed (done).
+release (N6): yes. 14. Service duties by cue (G4): yes. 15. Stale temp files: removed (done). 16. Templates use shared partial files (T-D3): yes. 17. Producing stages enforce field size
+limits (T-D2): yes. 18. Code craft in the implement head (T-D1): one clause per rule in the printed head, the full
+rubric in the packet file and in the step's Improve review, where it is applied. This changes D3 of the packet-review
+plan ("implement keeps the full text, for now") because the full text breaks the head budget and was cut by the host
+in 7 of 8 implement packets anyway; the owner can reverse it.
 
 ## 7. Waves and order
 
