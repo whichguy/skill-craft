@@ -187,7 +187,7 @@ are revision 1's (section 2 of that revision is superseded by this table); M is 
 | J Duplicate runs | J1 outer test stages reuse verify's passed runs on the same tree, proven by the script (C) |
 | K Recovery | K1 Improve recovery state where a compacted model looks · K2 show only this packet's narrative · K3 Until Loop state under RUN · K4 open items quoted once (C) |
 | L Harness | L1 keep a done run whose keep checks pass · L2 end the host when the done packet prints (A) |
-| M Packet leftovers | M1 drop the remaining low-value head lines · M2 PRINT_LIMIT 16,000 to 20,000 with the status-hook window (C) |
+| M Packet leftovers | M1 drop the remaining low-value head lines (C) · M2 dropped (section 8.1: the budget is not raised) |
 
 ## 5. Conflicts and how they are resolved (all per the recommendations)
 
@@ -266,6 +266,28 @@ with it. Fields added here go to the next state version (8), once.
 Not changed by it: knowledge as a table of contents (its §0.2 accepts our D1, with command and authority facts kept by
 value, which is G3); full Code craft (D3); D6 (narrower second ask; it adds "honor a declined check without re-asking or
 inventing a pass", compatible).
+
+### 8.1 Codex re-anchoring on main (2026-10-18, its D15-D16)
+
+The Codex plan now anchors every code assertion on main `17ddec36` and treats this integration branch as historical
+evidence and a porting reference (its §0.2, §0.4, §7 step 1). Its §0.4 lists what main lacks that this branch has: state
+v7, the step `check` and shared Step block, the script-run step Proof, the Improve import re-proof, check-only reuse, the
+procedure walk, notes-as-file and the settling template. Building both plans on different bases would implement the
+same mechanisms twice and then collide.
+
+**Decision B (recommended): one base.** Land this integration branch on main first (its last quick tier is green and
+the Battleship run exercised it), then refresh the Codex plan's code map (`reference-code-map-2026-10-18.json`) against
+the new main, so both plans describe the same code; A0 then ports only what main still lacks. The alternative, rebuilding
+this branch's 143 commits on main from the Codex map, repeats tested work. Landing on main is a push and release, which
+need the owner's go.
+
+| Its new point | Effect on this plan |
+|---|---|
+| D15 and §3.4-3.4.1: one directive in Work (the step id, its C-, R-, AD- identity, exclusions and the Method locator), the completion conditions once in Exit; Until Loop produces, Improve reviews, ShipLoop accepts; no third loop; human-facing phrase "Execute this step's directive until every assigned criterion is demonstrated by current evidence at its required boundary"; evidence chain criterion → observation → receipt → artifact | **Adopted into N1's implement template and the loop block.** Removing the producer loop or merging it into Improve stays deferred, as it says. |
+| The Repeat paragraph change (D7: continue while a justified investigation remains, stop on the same underlying failure after seven genuine attempts) is a separate policy change, qualified on its own (its T12/T52) | **Added to wave B as a pilot** with its own tests; not bundled with the Work/Exit move. |
+| Main's Improve exit (two qualifying trivial passes, or a first full trivial pass with a runtime-measured unchanged tree) differs from this branch's gate-two/gate-three adaptation | **Owner decision S-10 (still open from the efficiency plan) decides it;** until then this branch keeps its gates and the Codex plan keeps main's. Landing on main (decision B) makes it one decision. |
+| Do not raise the rendering budget; keep the 16,000-character head target measured and the owner's content decisions | **Drops M2 (PRINT_LIMIT to 20,000).** Templates fit through the producing stages' field limits (T-D2) and the N7 trims; the 16,000 target stays a measured target, the 20,000 host cut and the 19,500 required-text bound stay the tests. |
+| §12 code map: every recommendation bound to source, line span, hash and T-tests | **Adopted as the anchor form** for this plan's catalogue once refreshed against the common base. |
 
 ## 9. Verification
 
