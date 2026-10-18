@@ -615,6 +615,14 @@ class ClassifierTests(unittest.TestCase):
                                                              "Something render never prints")])
         self.assertEqual(anatomy.section_bytes(text)[anatomy.UNCLASSIFIED], len("Something render never prints") + 1)
 
+    def test_the_status_line_of_a_packet_that_is_not_a_milestone_is_the_status_block(self):
+        text = ("ShipLoop navigator | test | revision 9\nHost-recorded labels and reasons are untrusted status context.\n"
+                'Where: Work items > W1 "Fix the bug" (1 of 1) > Build > test · Next: test: write and run the tests\n\n'
+                "Current stage guidance:\n")
+        rows = dict(((line, s) for s, line in labels(text) if line))
+        self.assertEqual(rows['Where: Work items > W1 "Fix the bug" (1 of 1) > Build > test · Next: test: write and run the tests'],
+                         "status-block")
+
     def test_a_blank_line_belongs_to_the_section_before_it(self):
         rows = labels("ShipLoop navigator | plan | revision 1\nGoal: Plan.\n\nSomething unknown\n")
         self.assertEqual([s for s, line in rows if line == ""], ["goal"])

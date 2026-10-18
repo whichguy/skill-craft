@@ -840,8 +840,8 @@ class ReferencesBlockTests(unittest.TestCase):
 
     def test_a_packet_quotes_each_file_it_reads_whole_after_the_status(self) -> None:
         """Consumer contract section 5 (D1): the packet quotes each file ``knowledge.READS`` gives the stage whole after
-        the status block, or marks it not written yet.  Packet re-cut R3: the References block carries no reads pointer
-        (the quotes block names the files)."""
+        the progress block and the duties that follow it, or marks it not written yet.  Packet re-cut R3: the References
+        block carries no reads pointer (the quotes block names the files)."""
         for run, number, packet in self.each():
             stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
             names = knowledge.READS.get(stage, ())
@@ -850,9 +850,9 @@ class ReferencesBlockTests(unittest.TestCase):
                 self.assertFalse([row for row in block if row.startswith("Read at this stage")])
                 # Only an active packet quotes the files (a paused or blocked one waits).
                 active = not re.search(r"^(Paused|Blocked)[,:]", packet, re.M)
-                if not names or not active or "=== end ShipLoop status ===" not in packet:
+                if not names or not active or "\nCurrent stage guidance:" not in packet:
                     continue
-                after = packet.split("=== end ShipLoop status ===", 1)[1]
+                after = packet.split("\nCurrent stage guidance:", 1)[1]
                 self.assertIn(navigator.READS_HEAD, after)
                 for name in names:
                     self.assertTrue(("HOME/" + name + " (source: HOME/" + name + ", whole file):") in after

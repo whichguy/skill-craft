@@ -98,6 +98,28 @@ class NarrativeTests(unittest.TestCase):
         self.assertIn("**Work items 1/3**", narrative.markdown(facts))
         self.assertTrue(navigator.narrative_facts(self.driver.advance_to(state, "validate-existing"))["milestone"])
 
+    def test_an_improve_stage_is_never_a_milestone_and_its_packet_carries_no_progress(self) -> None:
+        """The milestone test reads the last accepted step, which an Improve child does not change: the reviewed result
+        is accepted only when the child completes.  So every Improve packet repeated the narrative of the producer
+        packet before it (8 of 11 Improve packets of a live run, packet review F6, 2026-10-17)."""
+        root = self.driver.repo.parent / "improve-run"
+        root.mkdir()
+        spec = self.driver.advance_to(self.driver.state(), "spec")
+        self.assertTrue(navigator.narrative_facts(spec)["milestone"])  # research was just accepted
+        parked = self.driver.act(spec, summary="Spec drafted.")
+        self.assertIsNotNone(parked.get("active_improve"))
+        self.assertFalse(navigator.narrative_facts(parked)["milestone"])
+        self.assertEqual(navigator.narrative_lines(parked), [])
+        navigator.save(root, parked)
+        packet = navigator.render(None, root, parked)
+        self.assertTrue(packet.startswith(f"ShipLoop navigator | {navigator.IMPROVE_STAGE} |"))
+        for absent in (narrative.BEGIN, navigator.STATUS_BEGIN, navigator.status_line(parked), "Host-recorded labels"):
+            self.assertNotIn(absent, packet)
+        self.assertIsNone(hook.packet_progress(packet))
+        self.assertIn("Keepalive marker: SHIPLOOP-RUN run=", packet)  # the keepalive hooks still bind from it
+        # A stopped run is a milestone even while a child is parked: its packet tells the user why it stopped.
+        self.assertTrue(navigator.narrative_facts(navigator.control(parked, "pause", "Asked to stop."))["milestone"])
+
     def test_stop_states_replace_now_and_drop_ahead(self) -> None:
         state = self.driver.advance_to(self.driver.state(), "research")
         cases = {
@@ -197,6 +219,10 @@ class TimelineAndPacketTests(unittest.TestCase):
         section = head[head.index(narrative.BEGIN):head.index(narrative.END)]
         self.assertIn("Show the user this narrative exactly as written", section)
         self.assertLess(head.index(narrative.END), hook.WINDOW)
+        # One progress block: the narrative stands in for the status block and the status line.
+        self.assertNotIn(navigator.STATUS_BEGIN, head)
+        self.assertIsNone(hook.LINE.search(head))
+        self.assertTrue(hook.packet_progress(head).startswith(narrative.BEGIN))
         self.assertTrue((self.run_dir / "timeline.json").is_file())
 
         cli_head = self.shiploop("next", f"--run-dir={self.run_dir}",
@@ -221,12 +247,17 @@ class TimelineAndPacketTests(unittest.TestCase):
         self.addCleanup(driver.temp.cleanup)
         state = driver.advance_to(driver.planned(ROWS[:1]), "test-spec")
         self.assertEqual(navigator.narrative_lines(state), [])
-        block = navigator.status_block(state)
-        stdout = f"ShipLoop navigator | test-spec | revision 1\n\n{block}\n"
+        status_line = navigator.status_line(state)
+        self.assertEqual(navigator.progress_lines(state), [status_line, ""])
+        stdout = f"ShipLoop navigator | test-spec | revision 1\n\n{status_line}\n"
         payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
                    "tool_input": {"command": f"python3 {self.cli} next --run-dir={self.run_dir}"},
                    "tool_response": {"stdout": stdout, "stderr": ""}}
-        self.assertEqual(hook.status_message(payload), hook.compact(block))
+        message = hook.status_message(payload)
+        self.assertEqual(message, hook.compact(status_line))
+        self.assertEqual(message.splitlines(), [
+            'ShipLoop ▶ Work items > W1 "Config loader refactor" (1 of 1) > Plan > test-spec',
+            "Next: test-spec: " + navigator.guidance.STAGE_PURPOSE["test-spec"]])
 
 
 def load_tests(loader: unittest.TestLoader, tests: unittest.TestSuite, pattern: str | None) -> unittest.TestSuite:

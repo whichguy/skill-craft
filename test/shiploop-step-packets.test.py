@@ -4,7 +4,7 @@
 For every case in test/shiploop_e2e/step_cases.json, the checkout's navigator walks the run with synthetic results
 (packets.offline_packets: the plan's only item is the case's work item, and the step plan records the case's first check
 as its test command). Every inner-loop stage, and every Improve packet the item's loop starts, must render:
-- naming the case's work item;
+- naming the case's work item (an Improve packet: the result it reviews);
 - with each skill reference it names present on disk;
 - with the printed head inside the host's shell-output limit.
 Each packet that runs the item's tests (test, verify) must also name the recorded test command.
@@ -53,10 +53,17 @@ class StepPacketTests(unittest.TestCase):
                 self.assertIn("carry-forward-improve", " ".join(found))  # the last item's end review
 
     def test_each_packet_names_the_case_work_item(self) -> None:
+        """A producer packet names the item.  An Improve packet named it only in its status block, which it no longer
+        carries (packet review F6, 2026-10-17: the packet before it showed the step, the next one shows the result): it
+        names the result it reviews, and its hand-off names the item."""
         for name, found in self.found.items():
             title = CASES[name]["work_item"]["title"]
             for key, text in found.items():
                 with self.subTest(case=name, packet=key):
+                    if key.endswith("-improve"):
+                        self.assertIn(f"| the {key.split('-', 1)[1].removesuffix('-improve')} result", text)
+                        self.assertNotIn("=== ShipLoop", text)
+                        continue
                     self.assertIn(title, text)
 
     def test_named_skill_references_exist(self) -> None:

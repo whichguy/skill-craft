@@ -275,7 +275,7 @@ packet to `<run>/packets/<action>.md` (the Improve stage is its own action, so i
 was sent stays on disk) and prints it whole when it is at most 16,000 characters.
 A longer packet prints a head, built from the same ordered blocks as the file: the two pointer lines (the `next`
 command and the packet file's path), the callback, the owner rule, the goal and
-done-when, the Until Loop block, the status block, the stage's duties and rules, the stage's own input (the work item,
+done-when, the Until Loop block, the progress block, the stage's duties and rules, the stage's own input (the work item,
 the step with its paths, skills and check commands, the test floors, the rerun list, the queue rule), the result
 template and allowed outcomes; then, while the head fits 20,000
 characters, the References block, the pass log, the progress view and the pause command; and the quoted knowledge
@@ -291,14 +291,14 @@ reprints the head, and the script cannot know what survived a clear or
 compaction, so no packet ever refers back to an earlier one. Paused, blocked,
 awaiting, halted and done packets are short and print whole.
 
-Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
-where the run is, what just finished, what comes next and what is complete.
-Do not reprint it: a host status hook shows the user a two-line summary where
-the host supports one. Tell the user at most one line per completed step, and show
-the whole block unchanged only when they ask for the full status. At milestones
-the packet also carries a script-rendered **narrative** (achieved, now, ahead,
-pace); its first line says whether to paste it to the user as written or whether
-the host already showed it; see [status display](references/status-display.md).
+Each packet carries one script-rendered **progress block**: at a milestone the
+**narrative** (achieved, now, ahead, pace), whose first line says whether to paste
+it to the user as written or whether the host already showed it; otherwise one
+**status line** (`Where: … · Next: …`). An Improve packet carries neither.
+Do not reprint the status line: a host status hook shows the user a two-line summary where
+the host supports one. Tell the user at most one line per completed step, and when
+they ask for the full status show the **status block** that `shiploop status` prints
+(also in `status.md`) unchanged; see [status display](references/status-display.md).
 
 Run to completion by default within the user's scope and existing authority.
 Progress reports are intermediate updates, not turn-ending handoffs or approval

@@ -2237,7 +2237,10 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(store.read_record(cli_root / "state.md"), updated)
         self.assertIn("ShipLoop navigator | discovery | revision 1", status.stdout)
         self.assertEqual((cli_root / "status.md").read_text(encoding="utf-8"), expected_status)
-        self.assertIn(navigator.status_block(updated), status.stdout)
+        # The packet's one progress block (packet review F6, 2026-10-17): after intake, a milestone, the narrative.
+        self.assertIn(navigator.narrative.markdown(navigator.narrative_facts(updated, navigator.load_timeline(cli_root))),
+                      status.stdout)
+        self.assertNotIn(navigator.STATUS_BEGIN, status.stdout)
 
         outside = Path(self.temp.name) / "outside"
         outside.mkdir()
@@ -2278,11 +2281,11 @@ class NavigatorContractTests(unittest.TestCase):
         progress = self._progress(state)
         packet = navigator.render(None, root, state)
         self.assertEqual(state, before)
-        # The packet no longer restates the snapshot (2026-10-11 dedupe: the status block stays, report.html keeps the
-        # snapshot), so the projection's lines are checked on the projection and on the report.
+        # The packet no longer restates the snapshot (2026-10-11 dedupe: its one progress block stays, report.html keeps
+        # the snapshot), so the projection's lines are checked on the projection and on the report.
         self.assertNotIn("Progress snapshot", packet)
         self.assertNotIn(progress, packet)
-        self.assertIn("=== ShipLoop status ===", packet)
+        self.assertIn("\n".join(navigator.progress_lines(state)), packet)
         report = navigator._render_report(state, root)
         self.assertIn("<h2>Progress snapshot</h2>", report)
         self.assertEqual(state, before)
@@ -2308,7 +2311,7 @@ class NavigatorContractTests(unittest.TestCase):
         cold = self._cold_next(root)
         self.assertEqual((root / "state.md").read_bytes(), state_bytes)
         self.assertNotIn("Progress snapshot", cold)
-        self.assertIn("=== ShipLoop status ===", cold)
+        self.assertTrue(navigator.narrative.BEGIN in cold or navigator.status_line(state) in cold)
         # Once in a packet printed whole; twice when a head was printed and the file was appended (the head carries the
         # duties since 2026-10-16, so a reader of the printed text alone sees them).
         self.assertEqual(cold.count("Current stage guidance:"), 2 if "Full packet:" in cold else 1)

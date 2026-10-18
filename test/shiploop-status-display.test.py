@@ -269,20 +269,33 @@ class StatusBlockTests(unittest.TestCase):
 
     # --- packet placement, status.md and the status verb --------------------
 
-    def test_packet_carries_block_early_and_status_file_matches_cli(self) -> None:
+    def test_status_line_is_the_blocks_where_and_next_on_one_line(self) -> None:
+        """A packet that is not a milestone carries this one line in place of the block (packet review F6, 2026-10-17)."""
+        state = self.advance_to(self.planned(self.ROWS), "test")
+        block = navigator.status_block(state)
+        where = line(block, "Where").split(":", 1)[1].strip()
+        upcoming = line(block, "Next").split(":", 1)[1].strip()
+        self.assertEqual(navigator.status_line(state), f"Where: {where} · Next: {upcoming}")
+        self.assertEqual(hook.LINE.fullmatch(navigator.status_line(state))["where"], where)
+
+    def test_a_packet_carries_one_progress_block_and_status_keeps_the_full_block(self) -> None:
+        # test follows implement, which ends no stage group: not a milestone, so the packet carries the status line.
         state = self.advance_to(self.planned(self.ROWS), "test")
         root = (Path(self.temp.name) / "run").resolve()
         root.mkdir()
         navigator.save(root, state)
         block = navigator.status_block(state)
+        status_line = navigator.status_line(state)
         packet = navigator.render(None, root, state)
-        self.assertEqual(packet.count(BEGIN), 1)
-        self.assertIn(block, packet)
+        self.assertNotIn(BEGIN, packet)
+        self.assertNotIn(navigator.narrative.BEGIN, packet)
+        self.assertEqual(packet.count(status_line), 1)
+        self.assertEqual(hook.packet_progress(packet), status_line)
         header = packet.index("ShipLoop navigator | ")
-        self.assertLess(header, packet.index(BEGIN))
-        # The "Progress snapshot" block is gone (2026-10-11 dedupe): the status block above is its one home here.
+        self.assertLess(header, packet.index(status_line))
+        # The "Progress snapshot" block is gone (2026-10-11 dedupe), and the full block lives in status.md and `status`.
         self.assertNotIn("Progress snapshot", packet)
-        self.assertLess(packet.index(END), hook.WINDOW)
+        self.assertLess(packet.index(status_line) + len(status_line), hook.WINDOW)
         self.assertEqual((root / "status.md").read_text(encoding="utf-8"),
                          "```text\n" + block + "\n```\n")
 
@@ -319,12 +332,16 @@ class StatusBlockTests(unittest.TestCase):
             self.assertEqual(nxt.stdout, written)
         else:
             self.assertIn(f"Full packet: {packet_path}", nxt.stdout)
-        self.assertEqual(nxt.stdout.count(BEGIN), 1)
-        self.assertIn(block, nxt.stdout)
-        self.assertEqual(written.count(BEGIN), 1)
-        self.assertIn(block, written)
+        self.assertEqual(nxt.stdout.count(status_line), 1)
+        self.assertNotIn(BEGIN, nxt.stdout)
+        self.assertEqual(written.count(status_line), 1)
+        self.assertNotIn(BEGIN, written)
 
-    def test_every_dry_run_packet_carries_the_block_inside_the_kept_head(self) -> None:
+    def test_every_dry_run_packet_carries_one_progress_block_and_an_improve_packet_none(self) -> None:
+        """Packet review F6 (2026-10-17): 28 of 36 packets of a live run carried the status block and the narrative,
+        and 8 of 11 Improve packets the narrative of the stage they reviewed.  Now a milestone packet carries the
+        narrative, any other producer packet the status line, and an Improve packet neither."""
+        seen = {"narrative": 0, "line": 0, "improve": 0}
         for delegation in prompts.DELEGATIONS:
             completed = subprocess.run(
                 [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run",
@@ -334,14 +351,24 @@ class StatusBlockTests(unittest.TestCase):
             for scenario in json.loads(completed.stdout)["scenarios"]:
                 for event in scenario["events"]:
                     packet = event["prompt"]
+                    blocks = packet.count(navigator.narrative.BEGIN) + len(hook.LINE.findall(packet))
                     with self.subTest(delegation=delegation, scenario=scenario["name"],
                                       sequence=event["sequence"]):
-                        self.assertEqual(packet.count(BEGIN), 1)
-                        self.assertLess(packet.index(END), hook.WINDOW)
+                        self.assertNotIn(BEGIN, packet)
+                        if f"ShipLoop navigator | {navigator.IMPROVE_STAGE} |" in packet:
+                            seen["improve"] += 1
+                            self.assertEqual(blocks, 0)
+                            self.assertIsNone(hook.packet_progress(packet))
+                            continue
+                        self.assertEqual(blocks, 1)
+                        found = hook.packet_progress(packet)  # it reads the first WINDOW characters only
+                        self.assertIsNotNone(found)
+                        seen["narrative" if found.startswith(navigator.narrative.BEGIN) else "line"] += 1
+        self.assertTrue(all(seen.values()), seen)
 
 
 class StatusHookTests(unittest.TestCase):
-    """The hook shows only a real ShipLoop call's own block; it never fails a call."""
+    """The hook shows only a real ShipLoop call's own progress; it never fails a call."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -354,12 +381,33 @@ class StatusHookTests(unittest.TestCase):
             [sys.executable, "-B", cls.cli, "init", f"--repo={repo}", f"--run-dir={cls.run_dir}",
              "--prompt=Add a --version flag."], env=ENV, text=True, capture_output=True, timeout=30)
         assert init.returncode == 0, init.stderr
+        # init is a milestone packet: it carries the narrative and no status block.
         cls.packet = init.stdout
-        cls.block = cls.packet[cls.packet.index(BEGIN):cls.packet.index(END) + len(END)]
+        nb, ne = navigator.narrative.BEGIN, navigator.narrative.END
+        cls.narrative = cls.packet[cls.packet.index(nb):cls.packet.index(ne) + len(ne)]
+        status = subprocess.run([sys.executable, "-B", cls.cli, "status", f"--run-dir={cls.run_dir}"],
+                                env=ENV, text=True, capture_output=True, timeout=30)
+        assert status.returncode == 0, status.stderr
+        cls.block = status.stdout.rstrip("\n")
         cls.command = f"python3 {cls.cli} next --run-dir={cls.run_dir}"
+        # A packet that is not a milestone (test-spec follows step-plan inside the Plan group) carries the status line.
+        walker = StatusBlockTests("test_fresh_intake_block")
+        walker.setUp()
+        cls.walker = walker
+        state = walker.advance_to(walker.planned(walker.ROWS), "test-spec")
+        cls.line_dir = (Path(cls.temp.name) / "line-run").resolve()
+        cls.line_dir.mkdir()
+        navigator.save(cls.line_dir, state)
+        nxt = subprocess.run([sys.executable, "-B", cls.cli, "next", f"--run-dir={cls.line_dir}"],
+                             env=ENV, text=True, capture_output=True, timeout=30)
+        assert nxt.returncode == 0, nxt.stderr
+        cls.line_packet = nxt.stdout
+        cls.line = navigator.status_line(state)
+        cls.line_command = f"python3 {cls.cli} next --run-dir={cls.line_dir}"
 
     @classmethod
     def tearDownClass(cls) -> None:
+        cls.walker.temp.cleanup()
         cls.temp.cleanup()
 
     def payload(self, command: str, stdout: str, **response) -> dict:
@@ -372,10 +420,13 @@ class StatusHookTests(unittest.TestCase):
         return subprocess.run([str(HOOK)], input=stdin, env=ENV, text=True,
                               capture_output=True, timeout=30)
 
-    def test_real_calls_emit_the_scripts_own_block(self) -> None:
+    def test_real_calls_emit_the_scripts_own_progress(self) -> None:
         wrapper = str(SCRIPTS / "shiploop-complete")
+        self.assertIn(self.line, self.line_packet)
+        self.assertNotIn(BEGIN, self.packet + self.line_packet)
         cases = {
             "next": (self.command, self.packet),
+            "line": (self.line_command, self.line_packet),
             "status": (f"{self.cli} status --run-dir {self.run_dir}", self.block + "\n"),
             "env-and-quotes": (f'PYTHONDONTWRITEBYTECODE=1 python3 "{self.cli}" next --run-dir "{self.run_dir}"',
                                self.packet),
@@ -400,11 +451,12 @@ class StatusHookTests(unittest.TestCase):
                          if label == "truncated" else {})
                 completed = self.run_hook(json.dumps(self.payload(command, stdout, **extra)))
                 self.assertEqual(completed.returncode, 0, completed.stderr)
-                # init is a milestone packet, so the hook shows its narrative;
-                # the bare `status` block has none and shows the compact lines.
-                expected = hook.narrative_text(stdout) or hook.compact(self.block)
+                # init is a milestone packet, so the hook shows its narrative; the test-spec packet carries the
+                # status line and the bare `status` block the full block, and both show the compact lines.
+                expected = (hook.compact(self.block) if label == "status" else hook.compact(self.line) if label == "line"
+                            else hook.narrative_text(stdout))
+                self.assertIsNotNone(expected)
                 self.assertEqual(json.loads(completed.stdout), {"systemMessage": expected})
-                self.assertEqual(label == "status", expected == hook.compact(self.block))
 
     def test_hook_message_is_two_compact_lines(self) -> None:
         compact = hook.compact(self.block)
@@ -414,6 +466,11 @@ class StatusHookTests(unittest.TestCase):
             + " | Next: " + line(self.block, "Next").split(":", 1)[1].strip(),
         ])
         self.assertNotIn(BEGIN, compact)
+        # The status line has no Done row: its two lines are where the run is and what comes next.
+        found = hook.LINE.fullmatch(self.line)
+        self.assertEqual(hook.compact(self.line).splitlines(),
+                         ["ShipLoop ▶ " + found["where"], "Next: " + found["value"]])
+        self.assertIn("> Plan > test-spec", found["where"])
         stopped = "\n".join([BEGIN, "Where:     Release > deploy (2 of 3)", "Done:      W1 check: ok.",
                              "Waiting on you: Which account?", "Stopped:   paused: x.", END])
         self.assertEqual(hook.compact(stopped).splitlines()[1],
@@ -444,20 +501,24 @@ class StatusHookTests(unittest.TestCase):
         expected_host = {"codex": "claude-or-codex", "grok": "grok", "cursor": "cursor"}
         for name, shape in shapes.items():
             with self.subTest(host=name):
-                self.assertEqual(hook.status_block(shape(self.command, self.packet)),
-                                 (expected_host[name], self.block))
-                self.assertIsNone(hook.status_block(shape(cat, self.block)))
-                self.assertIsNone(hook.status_block(shape(self.command + " | head", self.packet)))
-                completed = self.run_hook(json.dumps(shape(self.command, self.packet)))
-                self.assertEqual(completed.returncode, 0, completed.stderr)
-                if name == "codex":
-                    self.assertEqual(json.loads(completed.stdout),
-                                     {"systemMessage": hook.narrative_text(self.packet)})
-                else:
-                    self.assertEqual(completed.stdout, "")
+                self.assertEqual(hook.progress(shape(self.command, self.packet)),
+                                 (expected_host[name], self.narrative))
+                self.assertEqual(hook.progress(shape(self.line_command, self.line_packet)),
+                                 (expected_host[name], self.line))
+                self.assertIsNone(hook.progress(shape(cat, self.block)))
+                self.assertIsNone(hook.progress(shape(self.command + " | head", self.packet)))
+                for command, stdout, message in ((self.command, self.packet, hook.narrative_text(self.packet)),
+                                                 (self.line_command, self.line_packet, hook.compact(self.line))):
+                    completed = self.run_hook(json.dumps(shape(command, stdout)))
+                    self.assertEqual(completed.returncode, 0, completed.stderr)
+                    if name == "codex":
+                        self.assertEqual(json.loads(completed.stdout), {"systemMessage": message})
+                    else:
+                        self.assertEqual(completed.stdout, "")
 
     def test_lookalike_or_unsafe_calls_stay_silent(self) -> None:
         status_md = f"{self.run_dir}/status.md"
+        nb, ne = navigator.narrative.BEGIN, navigator.narrative.END
         cases = {
             "cat": self.payload(f"cat {status_md}", self.block),
             "grep": self.payload(f"grep -r 'ShipLoop status' {self.run_dir}", self.block),
@@ -469,11 +530,15 @@ class StatusHookTests(unittest.TestCase):
             "not-scripts-dir": self.payload(f"python3 /tmp/shiploop next", self.packet),
             "report-verb": self.payload(f"python3 {self.cli} report --run-dir={self.run_dir}", self.packet),
             "no-header": self.payload(self.command, "noise\n" + self.packet),
-            "missing-end": self.payload(self.command, self.packet.replace(END, "")),
+            "missing-end": self.payload(self.command, self.packet.replace(ne, "")),
             "late-end": self.payload(self.command, self.packet.replace(
-                "\n" + BEGIN, "\n" + "x" * hook.WINDOW + "\n" + BEGIN)),
-            "two-blocks": self.payload(self.command, self.packet.replace(
-                BEGIN, self.block + "\n" + BEGIN, 1)),
+                "\n" + nb, "\n" + "x" * hook.WINDOW + "\n" + nb)),
+            "late-line": self.payload(self.line_command, self.line_packet.replace(
+                "\n" + self.line, "\n" + "x" * hook.WINDOW + "\n" + self.line)),
+            "two-narratives": self.payload(self.command, self.packet.replace(nb, self.narrative + "\n" + nb, 1)),
+            "two-lines": self.payload(self.line_command, self.line_packet.replace(self.line, self.line + "\n" + self.line)),
+            "narrative-and-line": self.payload(self.command, self.packet.replace(nb, self.line + "\n" + nb, 1)),
+            "status-block-in-a-packet": self.payload(self.command, self.packet.replace(self.narrative, self.block)),
             "background": self.payload(self.command, "", backgroundTaskId="b1"),
             "other-tool": dict(self.payload(self.command, self.packet), tool_name="Read"),
         }
