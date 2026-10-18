@@ -131,3 +131,22 @@ The questions as asked:
 - **D5 (U9):** Let `complete` reuse a passed check-only record on an unchanged tree? Saves about 100 s of org time per
   stage; the gate's evidence is then as fresh as the check-only.
 - Push and release of the integration branch, including 603a709c, stay held for your go.
+
+## 5. Incorporated from the implement-step fix plan (2026-10-17)
+
+Source: `/Users/dadleet/src/skill-craft/docs/shiploop-implement-step-fix-plan-2026-10-17.md` (another session's plan from
+the same run, `Execute: ask`, with its own owner decisions D1-D12; untracked in the canonical checkout, cited by path).
+The owner asked to consider it. Its priority order (executable step-specific checks, valid acceptance procedures,
+consistent prompt surfaces, measured concision) matches this plan's findings F1, F3, F5 and F8. Disposition:
+
+| Its section | Disposition here |
+|---|---|
+| §4.1, §5 six consumers, T1-T2, T6, T27, T33: a per-step `check` (the step Proof) written by step-plan, run by ShipLoop at implement done and rerun before importing a changed Improve; item checks leave implement | **Adopt as wave 2 unit W2-A.** It supersedes U0's criteria-scoped rule (603a709c), which stays as the interim fix until W2-A lands; then `step_checks` is removed (one supported version). All six consumers change together: implement duty 3, implement `done_when`, the stage's test text, `REPEAT["implement"]`, the step Improve focus's rerun sentence, and `test_loop.stage_commands`. Needs the next state version. |
+| §2.2 F15, §3.1 (trimmed): one `step_block()` for `render()`, `packet_head()` and `improve_handoff_text()`; criteria and cases filtered to the step; step-entry review base for Improve; loop block last; no path fence (its D3) | **Adopt as W2-B**, building on U3/U4 (the U3 worker was told to use one function for render and head, filter to the step and keep the loop last). |
+| §4.2: procedure validity (start, actions, oracle, observation, ownership, evidence) reviewed where the procedure originates, through the shared `_REVIEW_FOCUS_ITEMS` text; prepare establishes actor, entry route and access prerequisites | **Adopt as W2-C** (the review text, T25-T26, T34). The prepare prerequisite is folded into U7 now (the U7 worker was told). |
+| §3.2, §3.5, §3.6: static guidance and Code craft read from reference files, eight considerations, `criterion_evidence`, Code craft rules 10-14 | **Adopt later as W2-D**, after U1 and W2-A/B are measured: it grows the implement head, and its §8 asks that growth be measured first. Consistent with D3 here (full Code craft text stays). |
+| "Retain whole-file knowledge until selection is qualified"; selective knowledge loading deferred | **Not adopted:** the owner's D1 here (table of contents) is the later decision. Its "Anchored in" locator lines fit the table of contents and are used by W2-B. |
+| Keep the 16,000-character head target, not 20,000 | **Adopted as a target to measure after U1**, not a new gate; the existing 20,000 cut and 19,500 required-text tests stay. |
+
+Order: wave 1 (U1-U10) merges and is verified; wave 2 builds W2-A, W2-B and W2-C in parallel; W2-D after a measurement;
+then the live checkers run checks the per-step series (one implement, one step Proof and one Improve per planned step).
