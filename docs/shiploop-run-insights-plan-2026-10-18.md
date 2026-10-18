@@ -201,14 +201,56 @@ release (N6): yes. 14. Service duties by cue (G4): yes. 15. Stale temp files: re
 
 ## 7. Waves and order
 
-- **Wave A (correctness and the largest costs; mostly scripts and gates, little prose):** N5 outcomes; N2 step commits,
+- **Wave A (correctness and the largest costs; mostly scripts and gates, little prose):** A0 port the Codex implement branch (section 8); obligation continuity; N5 outcomes; N2 step commits,
   look-back and one-step packets; N3 write-back route; I1-I4; C1-C6; D1, D3, D4; B1-B5 after A3; A1-A7; L1-L2; K3. One
   quick tier at the integrator, then a live run.
 - **Wave B (templates and text):** N1 framework and the step-plan and implement pilot, then each stage moves into its
   template carrying its E, F, G, H fixes and the N7 concision review; N4 test layers and the platform card tooling list.
 - **Wave C:** N6 layout (with the Improve skill release), J1, K1, K2, K4, M1, M2, the remaining template migrations.
 
-## 8. Verification
+## 8. Reconciliation with the implement-step fix plan (Codex, revised 2026-10-18)
+
+Source: `/Users/dadleet/src/skill-craft/docs/shiploop-implement-step-fix-plan-2026-10-17.md` (1,465 lines; untracked in
+the canonical checkout, still being revised) and its branch `shiploop/implement-prompt-2d6ecc` (worktree
+`.claude/worktrees/impl-prompt-2d6ecc`, based on main 90fa2ca0; our integration branch has 143 commits it lacks). Its
+§0.2 already records this branch's step Proof, Step block, state version 7 and procedure walk as existing work and says to
+build only the remaining delta; its §10.4 and §10.6 dispose of every gap in our two run reports (91 Battleship, 58 chess
+entries) with acceptance tests T1-T51, and its §12 maps each to the code it changes. Both plans share the priority order
+(executable step checks, valid procedures, consistent surfaces, measured concision). This section records what this plan
+takes from it; where it is safer, it supersedes the item named.
+
+**Code on its branch to port (unit A0, first in wave A).** Commits b3874637 and 4eae0910 implement, on the old base:
+static guidance read from `references/implement-guidance.md` (method, eight domain-neutral considerations, evidence, write
+back) and `references/code-craft.md` (rules 10-14 and sharper rules 3, 4, 6, 9; owner decisions D8-D10 of that plan),
+inserted word for word by `shiploop_static.static_text`; a Step block with anchors, cards, the match contract and the last
+two commits; step-plan `cards`/`cards_na` and `match`; implement result fields `considerations` and `criterion_evidence`
+with an `implement-record` gate; both gates covering every step of an ask-agent plan; and a 104-row static-obligation test.
+A0 ports these onto this branch on top of W2-A/B (this branch's step Proof and step block stay; no mechanism twice), as the
+foundation of N1 (the loader becomes the template engine) and N2 (its last-two-commits line becomes the commit look-back).
+Its docs and evidence (`shiploop-implement-prompt-audit-journal.md`, `shiploop-implement-prompt-audit-evidence/`) merge
+with it. Fields added here go to the next state version (8), once.
+
+| Its point | Effect on this plan |
+|---|---|
+| Obligation continuity: system-test-author called the board interaction required; release-verify accepted without it and passed it to handoff with no waiver (§0.2, T44) | **New, adopted (wave A):** an obligation's required/advisory status travels through every stage, including a no-reply; no later stage downgrades it without an owner waiver. Joins H1/H2 and D6. |
+| Mutation: a generic engine must not blindly deploy a build-breaking mutant to a shared target; remote mutation needs an isolated route, a restore baseline and permission; the runner restores in `finally` with an `in_progress` record; a failed restore blocks with "target may still hold a mutant" (§4.3, T37-T39) | **Supersedes C2 and C5:** the sentinel runs only on an isolated route or as an adapter-specific observation test; restore is runner-owned and gated; reuse (C4) keeps restore as a separate gate. |
+| Revisit reuse by exact normalized records per step, unchanged product content, the longest unchanged prefix and freshly script-run Proofs; a pilot (§4.4, T40) | **Supersedes D1's looser "no change to steps":** adopt this rule. |
+| No new `generated` classifier class; use the project's ignore rules and correct test classification; product configuration is never disposable (§4.5) | **Supersedes C3's `generated` class:** the platform card says which tool-state paths go to `.gitignore`; Apex test classes are classified as tests. |
+| Applicability from accepted project facts, not request keywords; missing facts trigger discovery; an empty repository still discovers its target and external services (§4.6, T50) | **Supersedes G4's "by cue":** discovery duties narrow from accepted facts (stack, surface, capabilities). |
+| File-open telemetry, minimum review time and a blanket ban on reading ShipLoop's source are not gates; source reads diagnose missing prompt information (§4.5, §10.4) | **Drops E5 and F3's telemetry;** keep "a classification follows the actual inspection" as text and count source reads as a diagnostic in each run report. |
+| Session and front-door entry: enforce the recorded access route and host capability policy rather than a generic ban (§10.6) | **Refines H3:** a session or front-door URL is used only when the run's recorded authority names it as the route; never to bypass a person-only or denied route. The card's `sf org open --url-only` advice is removed or rewritten to that rule. |
+| Correct the platform card against captured parser output before linking it to more stages (§10.5, T37/T43) | **Orders C6 before G1.** |
+| Release checks observe the actual current target state; do not manufacture an absence (§4.5) | **Refines I3.** |
+| End the host only on run-bound terminal evidence plus host completion, not text containing "done" (§4.5, T48) | **Refines L2.** |
+| Repeated unchanged deploy/test runs in system stages: a pilot that counts executions first and reuses only proven-equivalent evidence (§4.6, T51) | **Refines J1 into a pilot.** |
+| Remote behavioural step Proofs: a prepared isolated route; a source/compile criterion may finish early while a runtime criterion stays open, never weakened silently (§10.5) | **Refines B1/B5.** |
+| §12 traceability: every item mapped to reference code, delta and acceptance check | **Adopted as the catalogue's form:** each item in `fix-catalogue.json` gains its acceptance test id (this plan's route tests or its T-numbers). |
+
+Not changed by it: knowledge as a table of contents (its §0.2 accepts our D1, with command and authority facts kept by
+value, which is G3); full Code craft (D3); D6 (narrower second ask; it adds "honor a declined check without re-asking or
+inventing a pass", compatible).
+
+## 9. Verification
 
 1. Offline per unit: render diff, head tables, footprint suites, route tests for every changed gate; one quick tier per wave.
 2. Live after wave A: `battleship-salesforce` again (remote target: behavioural step proofs, mutation sentinel, send-back
