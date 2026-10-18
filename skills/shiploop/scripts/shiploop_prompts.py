@@ -1184,7 +1184,12 @@ DUTIES = {
 5. Recheck discovery's source-return trigger and the authorized delivery and verification route from the execution
    checkout before the first dependent work. If the return must precede a consumer check, record the ordering
    conflict in `summary` as unresolved. Never return early, deploy, or bypass the final-handoff return guard.
-6. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
+6. The consumer's access: name the consumer's account or role, the entry route the plan gives them and what reaching
+   it needs (account, role, visibility, permission). Check it read-only, with the probe the target's platform guide
+   names where it has one (GUIDES/platforms/), and record each prerequisite under HOME/environment.md ## Access and
+   accounts; one still unresolved stays open there with its owner (who can grant it) and the stage that needs it.
+   Create no grant; it does not block this stage.
+7. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
    commands that start each runner, the observations. Record not-applicable only when this candidate needs no
    preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
 """,
@@ -1672,7 +1677,10 @@ in order; """ + _VERIFY_ONCE + """
    missing plan: recover it, or report `repeat` (`replan` for missing product work).
 2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
    evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
-   readiness, any target concurrency condition (Release operation guidance).
+   readiness, any target concurrency condition (Release operation guidance). Rerun prepare's read-only probe that the
+   consumer can reach the entry (HOME/environment.md ## Access and accounts; the target's platform guide names one
+   where it has one) and save its output beside the dry run's. A gap this run may not fix stays open there with who
+   can grant it, for release-verify's step 1; create no grant.
 3. Run the dry-run form of the planned deploy (for example the deploy tool's validate or check-only mode) once; save the output in
    RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
 4. Run each `consumer_checks` post-release confirm command once against the current target; save its "not there yet"
@@ -1725,11 +1733,15 @@ in order; """ + _VERIFY_ONCE + """
    prerequisites. Check that no clause or case was dropped; claim no requirement met while a required observation
    is unrun.
 5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release again blindly.
-6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Record an
-   open item in `assumptions` with the steps for that person (where to go, such as a menu entry or URL path, what to
-   do) and what they report back; verify every other case. Only when the release cannot be accepted without it,
-   report `blocked` with `awaiting` kind `present`; the person's report resumes the run and only the blocked cases
-   are rechecked against the same release.
+6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Verify every
+   other case first and record it as an open item in `assumptions` (who does what, where, and what they report). Only
+   when the release cannot be accepted without it, report `blocked`, `awaiting` kind `present`, asked once: step 1
+   reaches the consumer entry (menu entry or URL path) and says what to answer if it is missing or hidden; `report`
+   is a fill-in list, one yes/no line per case with what to look for (`2. after <action>, <what shows>: yes/no`).
+   The run's exclusions bind the run, not the person: ask what they changed. On the reply, recheck only the cases it
+   answers, against the same release; an unanswered case is not-run, an open item for handoff quoting the reply, and
+   the stage continues. Block again only when it answers none, or a required delivery-contract behavior obligation
+   still has no passed observation (ask then only its lines).
 7. Isolated run: this stage cannot return (Which checkout release-verify observes). A defect the checks find in the
    delivered result goes through `replan` with one corrective work item; release then returns the fix. Write
    nothing inside the user's checkout (a file there makes the return receipt stale and blocks handoff).

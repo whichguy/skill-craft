@@ -381,8 +381,9 @@ class TierTests(unittest.TestCase):
                 self.assertEqual(tiers.get("quoted", navigator.QUOTED), navigator.QUOTED)
                 for name, tier in tiers.items():
                     if tier == navigator.P1:
-                        self.assertIn(name, {"work-item", "step", "commit-scope", "expectation-results", "queue-rule",
-                                             "test-rules", "rerun", "observed", "lint-commands", "improve-lessons"})
+                        self.assertIn(name, {"answered", "work-item", "step", "commit-scope", "expectation-results",
+                                             "queue-rule", "test-rules", "rerun", "observed", "lint-commands",
+                                             "improve-lessons"})
                 self.assertEqual([name for name in tiers if name not in
                                   self.P0 | self.LOOKUP | self.CHROME | self.FILE | {"quoted"}
                                   and tiers[name] != navigator.P1], [])

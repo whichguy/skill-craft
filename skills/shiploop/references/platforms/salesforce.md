@@ -133,3 +133,34 @@ open directly. At discovery, run it once (without opening the page) to prove the
 route, and record the alias and page path. Keep the URL out of evidence and
 logs: it is a session credential. Ask the user only when the CLI has no working
 authentication for the target org.
+
+## Consumer entry access (read-only probe)
+
+A deployed tab or app is hidden from a user whom no profile or permission set
+grants it: the URL path answers "Page does not exist" and App Launcher lists
+nothing, although the metadata is in the org. Probe it read-only and grant
+nothing; a missing grant is a prerequisite with its owner, not a step to take.
+
+At prepare, name the consumer user and what they hold:
+`sf data query --target-org <alias> --query "SELECT Id, Username, Profile.Name FROM User WHERE Username = '<username>'"`
+(the username `sf org list` shows for the alias; not `sf org display`, whose
+output can carry a session token), then
+`sf data query --target-org <alias> --query "SELECT PermissionSet.Name, PermissionSet.IsOwnedByProfile FROM PermissionSetAssignment WHERE AssigneeId = '<user id>'"`
+(the profile appears as the permission set it owns). A new tab or app is
+visible only through a profile or permission set that names it: record that
+grant under ## Access and accounts, with who may create and assign it.
+
+At release-check, rerun both and query the tab's visibility for those
+permission sets:
+`sf data query --target-org <alias> --query "SELECT Name, Visibility, Parent.Name FROM PermissionSetTabSetting WHERE Name = '<TabApiName>' AND ParentId IN (SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId = '<user id>')"`.
+`DefaultOn` or `DefaultOff` is visible; no row is hidden, so after the release
+the user cannot open the tab unless the release itself grants it (a permission
+set in the candidate and its assignment, each planned by name at release-plan).
+Check the app and the Apex classes the page calls the same way, through
+`SetupEntityAccess` rows (`SetupEntityType` `TabSet` for an app, `ApexClass`
+for a class) for those permission sets. Field names move between API versions:
+confirm them with `sf sobject describe --sobject <Object> --target-org <alias>`
+before relying on a query. A gap the run may not fix stays open with its
+owner, and release-verify's person ask starts there: step 1 is the App
+Launcher entry and its URL path, and what to answer when the page does not
+exist.

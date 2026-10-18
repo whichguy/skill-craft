@@ -960,6 +960,24 @@ class GuidanceTests(unittest.TestCase):
                        "cannot fail unless the command deploys the tree first", "`red_na`"):
             self.assertIn(phrase, card)
 
+    def test_consumer_access_is_probed_read_only_at_prepare_and_again_at_release_check(self) -> None:
+        """Packet review 2026-10-17 (F-7, X-1) and the implement-step plan's access row: the consumer's entry route and
+        access prerequisites are established at prepare, not found at release-verify; release-check reruns the same
+        read-only probe; a gap stays open with its owner and nothing is granted.  The platform card holds the probe."""
+        prepare = " ".join(prompts.DUTIES["prepare"].split())
+        for phrase in ("The consumer's access", "the entry route the plan gives them", "Check it read-only",
+                       "the probe the target's platform guide names", "## Access and accounts",
+                       "stays open there with its owner", "Create no grant"):
+            self.assertIn(phrase, prepare)
+        check = " ".join(prompts.DUTIES["release-check"].split())
+        for phrase in ("Rerun prepare's read-only probe", "beside the dry run's", "create no grant"):
+            self.assertIn(phrase, check)
+        card = " ".join((REFERENCES / "platforms" / "salesforce.md").read_text(encoding="utf-8").split())
+        for phrase in ("## Consumer entry access (read-only probe)", "At prepare, name the consumer user",
+                       "FROM PermissionSetAssignment WHERE AssigneeId", "At release-check, rerun both",
+                       "FROM PermissionSetTabSetting WHERE Name = '<TabApiName>'", "grant nothing"):
+            self.assertIn(phrase, card)
+
     def test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields(self) -> None:
         """Exercise host-authored evidence handoff, not automatic model compliance."""
         state = self.state()

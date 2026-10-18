@@ -2649,6 +2649,66 @@ class ImprovePassTests(ImproveCliFixture):
         ended = self.invoke(*self.pass_args(), status=2).stderr
         self.assertEqual(self.named_exit(ended), shlex.split(complete))
 
+    RECOVERY = "Review progress (from this review's files): "
+
+    def recovered(self) -> str:
+        """The recovery command's Improve packet (what a model runs after a compaction): its review-progress line."""
+        packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        return next((row for row in packet.splitlines() if row.startswith(self.RECOVERY)), "")
+
+    def next_command(self, line: str) -> list:
+        """The command a review-progress line names (it ends with a parenthesis on what that command prints)."""
+        return shlex.split(line.split("Next command: ", 1)[1].rsplit(" (it prints", 1)[0])
+
+    def test_a_compaction_after_a_recorded_pass_names_the_pass_and_its_next_command_and_that_command_finishes(self):
+        """Packet review 2026-10-17, E step 30: a compaction after improve-pass recorded pass 1 reprinted the same Improve
+        packet with no word of it; the model took review-1.md for unsubmitted, rewrote it and redid the pass (about
+        390 s).  The recovery command's packet now says the pass is recorded and names one next command; following only
+        what that command and the packet print finishes the stage, with no second review."""
+        self.begin()
+        self.assertEqual(self.recovered(), "")  # a review that has written nothing prints the packet it began with
+        review = self.write_review()
+        self.invoke(*self.pass_args())  # pass 1 recorded; then the context is lost before the runtime's done
+        written = review.read_bytes()
+        line = self.recovered()
+        self.assertIn("pass 1 is recorded by improve-pass: do not redo a recorded pass", line)
+        argv = self.next_command(line)
+        self.assertEqual(argv[2:], ["improve-pass", "--run-dir=" + str(self.run), "--action=" + self.improve])
+        done, _complete, _again = self.printed(self.run_argv(argv).stdout)  # the same pass's done, printed again
+        self.assertEqual(self.run_done(done)["status"], "complete")
+        # Lost again after the done: the same line and command; improve-pass's refusal names the stage's complete.
+        line = self.recovered()
+        self.assertIn("pass 1 is recorded by improve-pass", line)
+        ended = self.invoke(*self.next_command(line)[1:], status=2).stderr
+        self.assertEqual(self.named_exit(ended)[2], "complete")
+        self.run_named(ended)
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+        self.assertEqual(review.read_bytes(), written)  # the review was not rewritten
+        self.assertEqual(sorted(path.name for path in self.reviews().glob("pass-*.json")), ["pass-1.json"])
+
+    def test_after_a_returned_pass_the_recovery_packet_names_the_next_pass_and_a_written_unrecorded_review(self):
+        """The other states a compaction can leave: pass 1 returned to the runtime (the loop asks for pass 2), then
+        review-2.md written but not yet recorded; the line's one command leads to the next step in each."""
+        self.begin()
+        self.edit()
+        self.write("docs: fix the example\n\nKey learnings: an example must match the contract it shows.\n")
+        (self.reviews() / "checks.md").write_text("python3 -m pytest: 1 passed\n", encoding="utf-8")
+        self.write_review(label="non-trivial", exit="unsatisfied", found="the example was wrong.",
+                          changed="product/contracts/cold-recovery.md: fixed the example.", why="it changed a file.")
+        done, _complete, _again = self.printed(self.invoke(*self.pass_args()).stdout)
+        self.assertEqual(self.run_done(done)["status"], "active")
+        line = self.recovered()
+        self.assertIn("pass 1 is recorded by improve-pass: do not redo a recorded pass. Next command: ", line)
+        refused = self.invoke(*self.next_command(line)[1:], status=2).stderr
+        self.assertIn("review-2.md", self.line_one(refused))  # the runtime asks for pass 2: the refusal names its file
+        self.write_review(2)
+        line = self.recovered()
+        self.assertIn("pass 1 is recorded by improve-pass: do not redo a recorded pass; review-2.md is written but not "
+                      "recorded (finish it if needed)", line)
+        out = self.run_argv(self.next_command(line)).stdout
+        self.assertIn("Pass 2 of the test-strategy review is recorded.", out)
+        self.assertIn("passes 1, 2 are recorded by improve-pass", self.recovered())
+
     def test_every_shiploop_command_the_improve_packet_and_improve_pass_print_drives_the_run_for_the_hooks(self):
         """IMP-8: the hooks bind and refresh a session only from a command they recognise; every ShipLoop command these
         prints name must be one, written literally with the run directory."""
