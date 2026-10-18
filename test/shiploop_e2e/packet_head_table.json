@@ -4,7 +4,7 @@
     "inline/83/96": {
       "step-plan": 19961,
       "step-plan-improve": 1328,
-      "test-spec": 14828,
+      "test-spec": 15577,
       "test-spec-improve": 1328,
       "validate-existing": 15237,
       "implement": 16104,
@@ -18,7 +18,7 @@
     "inline/163/96": {
       "step-plan": 19924,
       "step-plan-improve": 1648,
-      "test-spec": 14281,
+      "test-spec": 15030,
       "test-spec-improve": 1648,
       "validate-existing": 13783,
       "implement": 16984,
@@ -32,7 +32,7 @@
     "ask-agent/83/96": {
       "step-plan": 19923,
       "step-plan-improve": 1328,
-      "test-spec": 13001,
+      "test-spec": 13750,
       "test-spec-improve": 1328,
       "validate-existing": 12503,
       "implement": 17544,
@@ -46,7 +46,7 @@
     "ask-agent/163/96": {
       "step-plan": 19528,
       "step-plan-improve": 1648,
-      "test-spec": 14281,
+      "test-spec": 15030,
       "test-spec-improve": 1648,
       "validate-existing": 13783,
       "implement": 18424,
