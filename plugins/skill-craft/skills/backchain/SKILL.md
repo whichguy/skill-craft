@@ -8,7 +8,7 @@ description: >-
   unresolved risks, then directly calls the selected Until Loop to repeat dependency
   review, by default until two consecutive trivial/no-change reviews, or for one cycle
   when the caller states `Backchain passes: one`.
-version: 0.6.3
+version: 0.6.5
 author: Backchain
 license: MIT
 platforms:
@@ -16,7 +16,7 @@ platforms:
   - macos
 metadata:
   skill_craft:
-    kind: prompt-only
+    kind: mixed
   hermes:
     category: software-development
     tags:
@@ -68,6 +68,9 @@ or substitute scheduler is allowed.
 2. Load `prompts/dependency-review.prompt.md` with goal + draft → dependency-context JSON (`source: native`).
 3. Resolve only evidenced facts; unevidenced world-state is not `initial_state`.
 4. Load `prompts/elaborator.v1.md` with draft + rendered dependency context → enriched JSON.
+   After serialization, run the package-local `scripts/check_preservation.py` in legacy
+   mode against the saved draft, as `references/convergence.md` describes. Resolve its
+   differences before freezing the enriched candidate.
 5. Freeze the enriched plan artifact and original request as the plan-only Until Loop child
    candidate described in `references/convergence.md`. One Until Loop callback may use the
    Backchain review primitive and dependency review/elaboration for an authorized repair,
@@ -91,7 +94,8 @@ child context; existing plan JSON/schema remain unchanged.
 1. **Plan/draft:** generate, dependency-review, and elaborate with the retained caller
    data. Preserve action/stage/action ID/owner/workflow stage, observed locator bases,
    source authority/provenance/currentness/revision/digests, resolved locators, and
-   distinct candidate identities in the companion.
+   distinct candidate identities in the companion. Check draft → enriched preservation
+   in legacy mode before freezing the enriched candidate, just as above.
 2. **Review/audit diagnostic:** `prompts/audit.prompt.md` returns review only. It does
    not start Until Loop or claim convergence. Applicable unavailable, stale, or ambiguous
    normative sources keep source review incomplete absent inspected supersession evidence.
@@ -234,7 +238,10 @@ hand/harness-supplied) is the goal-closure check.
    `packagePlan` / `run-prompt.sh --package-only`), then validate with `validateStructure`
    before using the plan. Do not leave `parallel_groups` as `[]` if multi-member waves exist.
 4. For a complete Backchain planning invocation, run `references/convergence.md` over
-   the candidate and preserve its companion report. Repackage after any graph revision.
+   the candidate and preserve its companion report. Every review/fix/check cycle rechecks
+   implementable chunk boundaries, splitting authorized oversized work into serial,
+   parallel, or mixed dependencies while preserving outcomes and verification. Repackage
+   after any graph revision.
    `prompts/rubric-judge.md` and `prompts/compare-judge.md` assess benchmark candidates;
    neither substitutes for the planning reviews the gate requires (by default two
    consecutive; one cycle with `Backchain passes: one`).
@@ -349,7 +356,7 @@ is **invalid**, not silently ignored.
 ## Layout and verification
 
 A marketplace or skill-directory install ships only this skill directory (`SKILL.md`,
-`prompts/`, `references/`, `evals/`), published from Skill Craft. The paths below, the
+`prompts/`, `references/`, `scripts/`, `evals/`), published from Skill Craft. The paths below, the
 harness commands above and the gate below live in the separate Backchain **development
 checkout** and are not shipped with this skill; the native procedure and plan contract on
 this card need none of them.

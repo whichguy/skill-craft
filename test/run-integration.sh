@@ -17,6 +17,10 @@ Optional commands (never part of default CI):
   marketplace-grok    Install local candidate plugins in a disposable Grok profile.
   marketplace-codex   Install local candidate plugins in a disposable Codex profile.
   marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
+  backchain-chunks prepare --output /new/absolute/dir [--case NAME]
+                    Prepare seven native Backchain cases for evals 17-22.
+                    Execute each request.md in a fresh native agent, then use
+                    backchain-chunks check --run /absolute/dir. No model launcher.
   shiploop-e2e [--case NAME | --prompt TEXT --check CMD] [run.py options]
                     Run ShipLoop live from one prompt in a new empty directory
                     (Grok, medium effort, by default) and grade it. Costs money.
@@ -67,6 +71,10 @@ case "${1:-list}" in
   current-dispatcher)
     shift
     exec python3 -B "$root/test/current_dispatcher.py" "$@"
+    ;;
+  backchain-chunks)
+    shift
+    exec python3 -B "$root/test/backchain_chunks.py" "$@"
     ;;
   *)
     printf 'run-integration: unknown command %q\n' "$1" >&2

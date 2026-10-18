@@ -11,6 +11,29 @@ suite explicitly enables the default observer and stops its own processes.
 For a focused non-progress suite, the same environment variable can suppress
 automatic observation without changing workflow behavior.
 
+Backchain chunk regressions have two layers. `python3 -B test/backchain-chunks.test.py`
+checks the evaluator against useful plans, deliberate corruptions, and actual Until Loop
+complete/blocked transitions using authored reports. It does not call a model. Quick
+runs select it when Backchain, its evaluator, or its fixtures change.
+
+For live behavior, run `bash test/run-integration.sh backchain-chunks prepare --output /tmp/new-chunk-run`.
+Execute each generated `request.md` in a fresh native agent with no parent history,
+memory, prior results or expected answers; allow only its declared inputs, selected
+skills and output directory. Each case uses the actual bundled Until Loop. Then run
+`bash test/run-integration.sh backchain-chunks check --run /tmp/new-chunk-run`.
+Preparation and checking launch no model. Missing output, changed inputs/source,
+lost goals/confirmations, invalid branches and wrong terminal states fail the check.
+The seven cases cover evals 17–22, including both routes in case 22; the historical
+five-case outcome campaign and frozen efficiency study remain separate.
+
+The checker reports mechanical evidence only. Independently inspect retained reviews
+and final plans for useful boundaries, checks executable with their own suppliers,
+source-linked mappings, audit permission for changed confirmations, and specific
+recovery (including a new binding for draft replacement). Record that assessment
+against the final candidate hash. A stopped missing-authority case is a passing
+regression only when it preserves the inherited obligations and edit bounds and
+truthfully reports incomplete planning with a usable recovery action.
+
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |

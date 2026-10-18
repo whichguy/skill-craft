@@ -1626,9 +1626,8 @@ class SuiteTest(HarnessCase):
 PORT_PROBE = ROOT / "docs" / "experiments" / "shiploop-e2e-audit-20261016" / "port-probe"
 VALID_PAGE = ("require('http').createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html'});"
               "res.end('<title>Battleship</title> candidate')}).listen(Number(process.env.PORT));\n")
-# Ignores PORT: it listens on a port of its own choosing and records its pid, as a product with a hard-coded port does.
-ELSEWHERE = ("require('fs').writeFileSync('pid.txt', String(process.pid));"
-             "require('http').createServer((req,res)=>res.end('<title>Battleship</title>')).listen(0, '127.0.0.1');\n")
+# Ignores PORT: it listens on a port of its own choosing, as a product with a hard-coded port does.
+ELSEWHERE = "require('http').createServer((req,res)=>res.end('<title>Battleship</title>')).listen(0, '127.0.0.1');\n"
 
 
 @unittest.skipUnless(shutil.which("node") and shutil.which("lsof"), "needs node and lsof")
@@ -1681,14 +1680,24 @@ class HttpCheckBindingTest(unittest.TestCase):
         self.assertFalse(result["pass"], result)
         self.assertIsNone(sibling.poll(), "the check must not stop a process it did not start")
 
-    def test_a_valid_candidate_passes_alone_and_fails_with_its_startup_error_when_a_sibling_holds_its_port(self):
+    def test_a_valid_candidate_passes_alone_and_is_refused_when_a_sibling_holds_its_port(self):
         work = self.candidate(VALID_PAGE)
         self.assertTrue(self.check(work)["pass"], "the valid candidate alone")
         port, env = self.check_port()
-        self.sibling(port)
+        sibling = self.sibling(port)
         result = self.check(work, env)
         self.assertFalse(result["pass"], result)
-        self.assertIn("EADDRINUSE", result["output"])
+        # Either the candidate exits first or the ownership probe sees the sibling first.
+        # Both refuse its response; the latter can happen before Node emits its bind error.
+        self.assertRegex(result["output"], r"EADDRINUSE|not by the candidate")
+        self.assertIsNone(sibling.poll(), "the check must not stop the foreign listener")
+
+    def test_a_candidate_that_exits_before_listening_reports_its_startup_error(self):
+        work = self.candidate("process.stderr.write('startup fixture refused\\n'); process.exit(23);\n")
+        result = self.check(work)
+        self.assertFalse(result["pass"], result)
+        self.assertIn("the candidate exited (rc 23)", result["output"])
+        self.assertIn("startup fixture refused", result["output"])
 
     def test_a_listener_that_is_not_the_candidate_is_refused_and_only_the_candidate_is_ended(self):
         port, env = self.check_port()
@@ -1698,7 +1707,12 @@ class HttpCheckBindingTest(unittest.TestCase):
         self.assertFalse(result["pass"], result)
         self.assertIn("not by the candidate", result["output"])
         self.assertIsNone(sibling.poll())
-        pid = int((work / "pid.txt").read_text())
+        # The ownership check can stop Node before its source runs. Use the PID
+        # recorded at launch, not a file whose creation depends on startup order.
+        candidate_pid = re.search(r"not by the candidate \(pid (\d+)\)", result["output"])
+        self.assertIsNotNone(candidate_pid, result["output"])
+        pid = int(candidate_pid.group(1))
+        self.assertNotEqual(pid, sibling.pid)
         for _ in range(50):
             try:
                 os.kill(pid, 0)

@@ -186,6 +186,8 @@ class InstalledSkillInvocationTest(unittest.TestCase):
     def base_env(self, extra: Mapping[str, str] | None = None) -> dict[str, str]:
         env = dict(os.environ)
         env.pop("PYTHONPATH", None)
+        for name in ("UNTIL_LOOP_SESSION_ID", "CODEX_THREAD_ID", "CLAUDE_CODE_SESSION_ID", "GROK_SESSION_ID"):
+            env.pop(name, None)
         env["HOME"] = str(self.home)
         env["PYTHONNOUSERSITE"] = "1"
         env["PYTHONDONTWRITEBYTECODE"] = "1"
@@ -455,7 +457,8 @@ two consecutive clean residual rounds with green suite
             self.assert_ok(result, "installed ephemeral callback")
             return json.loads(result.stdout)
 
-        packet = call([sys.executable, "-B", str(runtime), "start"], contract)
+        packet = call([sys.executable, "-B", str(runtime), "start", "--isolated"], contract)
+        self.assertNotIn("stack", packet)
         state = Path(packet["state_file"])
         self.addCleanup(lambda: state.unlink(missing_ok=True))
         self.assertNotIn(package, state.parents)
@@ -527,7 +530,8 @@ two consecutive clean residual rounds with green suite
             self.assert_ok(result, "bundled Improve callback runtime")
             return json.loads(result.stdout)
 
-        packet = call([sys.executable, "-B", str(runtime), "start"], contract)
+        packet = call([sys.executable, "-B", str(runtime), "start", "--isolated"], contract)
+        self.assertNotIn("stack", packet)
         state = Path(packet["state_file"])
         self.addCleanup(lambda: state.unlink(missing_ok=True))
         self.assertEqual(packet["status"], "active")

@@ -17,10 +17,10 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [adversarial-review](skills/adversarial-review/SKILL.md) | `/skill-craft:adversarial-review` | 0.1.0 | Have an independent model try to break a proposed change and return its findings as testable hypotheses, each with the… |
 | [architect](skills/architect/SKILL.md) | `/skill-craft:architect` | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent… |
 | [ask-agent](skills/ask-agent/SKILL.md) | `/skill-craft:ask-agent` | 0.10.1 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main… |
-| [backchain](skills/backchain/SKILL.md) | `/skill-craft:backchain` | 0.6.3 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain /… |
+| [backchain](skills/backchain/SKILL.md) | `/skill-craft:backchain` | 0.6.5 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain /… |
 | [c-plan](skills/c-plan/SKILL.md) | `/skill-craft:c-plan` | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | `/skill-craft:compare-prompts` | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results… |
-| [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.4.2 | Review and improve until two clean passes |
+| [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.4.4 | Review and improve until two clean passes |
 | [improve-agent](skills/improve-agent/SKILL.md) | `/skill-craft:improve-agent` | 0.1.3 | Run Improve in a fresh native agent |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | `/skill-craft:improve-system-prompt` | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the… |
 | [in-parallel](skills/in-parallel/SKILL.md) | `/skill-craft:in-parallel` | 0.1.1 | Use for "in parallel" or when one goal should be divided among independent native agents and returned as one verified… |

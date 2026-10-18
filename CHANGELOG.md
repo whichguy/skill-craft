@@ -2,6 +2,52 @@
 
 Written by scripts/release.py.
 
+## 2026-10-17
+
+### skill-craft 2.5.4
+
+- Skills: improve 0.4.4
+
+### improve 0.4.4
+
+- Clarify how Until Loop composes separate work, success and continuation conditions from a request and accepted clarifications, while retaining literal stop and check obligations. Refresh the vendored Until Loop runtime to 0.10.0; Improve keeps its existing isolated callback mode.
+
+### skill-craft 2.5.3
+
+- Skills: backchain 0.6.5
+
+### backchain 0.6.5
+
+- Run package-local goal and confirmation comparisons through Until Loop's existing exit
+  checks. Retain candidate-bound comparison evidence for every review, while keeping
+  confirmation repair authority and useful chunk boundaries in the semantic review.
+  Clarify that preserving seed labels does not authorize moving their implementation into
+  discovered prerequisites, and freeze live-check commands as prepared inputs.
+  Reuse scripted artifact checks in live runs, and keep confirmation criteria within the
+  request and governing sources.
+
+### skill-craft 2.5.2
+
+- Skills: improve 0.4.3
+
+### improve 0.4.3
+
+- Vendor Until Loop 0.9.0 runtime helpers while keeping standalone Improve on its isolated callback mode.
+
+### skill-craft 2.5.1
+
+- Skills: backchain 0.6.4
+
+### backchain 0.6.4
+
+- Recheck implementable chunk boundaries on every planning review and after repairs.
+  Split oversized work along real prerequisite and deliverable boundaries, preserving
+  serial/parallel dependencies, outcome coverage, confirmations, and existing edit bounds.
+  Add repeatable chunk fixtures, preservation and lifecycle regressions, and an explicit
+  native live-check entrypoint; keep model evidence distinct from hermetic checks.
+  Preserve unaffected confirmations verbatim and keep unrelated context chunk findings
+  advisory, correcting failures observed during the live regression workflow.
+
 ## 2026-10-16
 
 ### skill-craft 2.5.0

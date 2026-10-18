@@ -1,0 +1,127 @@
+{
+  "id": "cohesive",
+  "eval_id": 18,
+  "route": "source-aware",
+  "source": "Rename timeout to request_timeout consistently in the four configuration consumers without changing behavior. Partial renames are unusable; all four edits share suppliers and form one implementation boundary. test_config_rename.py is the established compatibility and old-reference check. S1 is an already completed migration with accepted receipt migration-accepted recording its schema and row checks passing. S2 is a protected running importer with unrelated implementation scope. Neither S1 nor S2 supplies or needs the rename; they are retained dependency-neighborhood context. There is no request to revisit those prior work boundaries. The local repository, fixtures, and test runner are available. This is a planning diagnostic only.",
+  "plan": {
+    "goal": "The renamed timeout configuration retains existing behavior with no stale references.",
+    "initial_state": [
+      "The local repository, fixtures, and test runner are available."
+    ],
+    "goal_needs": [
+      "The renamed timeout configuration retains existing behavior with no stale references."
+    ],
+    "steps": [
+      {
+        "id": "S1",
+        "statement": "The earlier migration is complete.",
+        "produces": [
+          "The versioned data schema and migrated rows are consistent."
+        ],
+        "inputs": [],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The versioned data schema and migrated rows are consistent.",
+            "by": "Inspect accepted migration receipt migration-accepted; pass when both schema and row checks are recorded passing.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "statement": "The protected importer implementation is in progress.",
+        "produces": [
+          "The importer parser and retry path satisfy their existing contract."
+        ],
+        "inputs": [],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The importer parser and retry path satisfy their existing contract.",
+            "by": "Run the existing importer test suite after implementation; pass when parser and retry cases pass.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "statement": "The timeout key is consistently named request_timeout in all four configuration consumers.",
+        "produces": [
+          "The timeout key is consistently named request_timeout in all four configuration consumers."
+        ],
+        "inputs": [
+          {
+            "from": null,
+            "need": "The local repository, fixtures, and test runner are available."
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The timeout key is consistently named request_timeout in all four configuration consumers.",
+            "by": "Run python test_config_rename.py; pass when all four consumers use request_timeout and no old key references remain.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "statement": "The renamed timeout configuration retains existing behavior with no stale references.",
+        "produces": [
+          "The renamed timeout configuration retains existing behavior with no stale references."
+        ],
+        "inputs": [
+          {
+            "from": "S3",
+            "need": "The timeout key is consistently named request_timeout in all four configuration consumers."
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The renamed timeout configuration retains existing behavior with no stale references.",
+            "by": "Run python test_config_rename.py; pass when existing behavior fixtures pass with the new key and old-key searches find zero references.",
+            "level": "execute"
+          }
+        ]
+      }
+    ],
+    "parallel_groups": [
+      [
+        "S1",
+        "S2",
+        "S3"
+      ]
+    ],
+    "unresolved": []
+  },
+  "edit_bounds": {
+    "provisional_step_ids": [
+      "S3",
+      "S4"
+    ],
+    "provisional_edge_keys": [
+      "S3<-null",
+      "S4<-S3"
+    ],
+    "allow_new_steps": true,
+    "allow_new_edges": true,
+    "protected_step_ids": [
+      "S1",
+      "S2"
+    ],
+    "protected_edge_keys": [],
+    "protected_facts": [
+      "The local repository, fixtures, and test runner are available."
+    ],
+    "running_or_completed_step_ids": [
+      "S1",
+      "S2"
+    ]
+  },
+  "expected": {
+    "behavior": "keep",
+    "runtime_status": "complete"
+  }
+}

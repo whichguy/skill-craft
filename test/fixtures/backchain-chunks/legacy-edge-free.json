@@ -1,0 +1,40 @@
+{
+  "id": "legacy-edge-free",
+  "eval_id": 22,
+  "route": "legacy",
+  "source": "Implement a response schema with string id and label fields, and an independently checkable cache purge operation for expired entries. The schema and purge use different implementation boundaries and have no data dependency. Both are useful independent deliverables with separate checks. The inherited seed S1 currently bundles them and has existing confirmations but no inherited inputs. The local repository, fixtures, and test runner are available. This is compatibility-native planning assessment only; no source-aware caller packet is selected. Expired means the existing cache expiry predicate, already available to purge tests. No new time or storage architecture is requested.",
+  "plan": {
+    "goal": "The response schema and independent cache purge are implemented.",
+    "initial_state": [
+      "The local repository, fixtures, and test runner are available."
+    ],
+    "goal_needs": [
+      "The response schema lists id and label as strings. The cache purge operation removes expired entries."
+    ],
+    "steps": [
+      {
+        "id": "S1",
+        "statement": "The response schema and cache purge are implemented.",
+        "produces": [
+          "The response schema lists id and label as strings. The cache purge operation removes expired entries."
+        ],
+        "inputs": [],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The response schema lists id and label as strings. The cache purge operation removes expired entries.",
+            "by": "Run the schema inspection and cache-purge tests; pass when both stated results hold.",
+            "level": "execute"
+          }
+        ]
+      }
+    ],
+    "parallel_groups": [],
+    "unresolved": []
+  },
+  "edit_bounds": null,
+  "expected": {
+    "behavior": "blocked",
+    "runtime_status": "stopped"
+  }
+}

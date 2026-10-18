@@ -6,16 +6,16 @@ flowchart LR
     Contract --> Packet[Bundled Until Loop returns one action]
     Packet --> Cycle[Review, improve, check, and record one cycle]
     Cycle --> Report[Submit the exact done callback with handoff]
-    Report --> Gate{A pass with no change, measured by the runtime?}
+    Report --> Gate{Two passes with no changes, or a first pass with no change?}
     Gate -->|No| Packet
     Gate -->|Yes| Terminal[Terminal packet and state deletion]
 ~~~
 
 Improve reviews a repository candidate, makes worthwhile changes, checks the
-result, and repeats until one pass makes no changes (the runtime confirms "no change" from Git: the content
-after the pass equals the content after the previous pass, or at the start for the first pass). It reads the last seven full Git commit messages
-for every review. A pass that changed anything never ends the run, even when the fix
-is small and succeeds, so a material pass is always followed by another review.
+result, and repeats until two consecutive passes make no changes, or the first
+pass completes with no change (the runtime confirms "no change" from Git). It reads the last seven full Git commit messages
+for every review. A material finding or fix resets the count, even when the fix
+is small and succeeds.
 
 The user-facing interface stays natural language. The selected Improve card
 binds a package-local Until Loop card, which owns internal start, next, and done
@@ -69,10 +69,11 @@ Each completed cycle reports factual observations and a rolling handoff:
 }
 ~~~
 
-A trivial report after which the runtime measures the content unchanged from the previous pass
-(the first pass: from the start) ends the run when the exit condition has current evidence. A
-trivial report on a pass that changed the content leaves the run active, however it is labelled;
-there is no pass count and no timer. The terminal response retains the
+A first trivial report that left the workspace unchanged ends the run at once
+when the exit condition has current evidence. Otherwise the first qualifying
+trivial report leaves the run active with a streak of one, and the second
+distinct qualifying report can be terminal only when the substantive exit
+condition also has current evidence. The terminal response retains the
 last report and context, then deletes the temporary state file.
 
 ## Context, handoff, and cold recovery
@@ -116,7 +117,7 @@ completion. A worker never executes parent callbacks.
 | What is material? | Behavior fixes, public-contract changes, security or data-integrity corrections, and missing required regression coverage are material. Non-semantic spelling, formatting, or explanatory polish can be trivial only with evidence behavior is unchanged. |
 | When are commits made? | After applicable checks pass, commit authorized scoped work with Review, Plan, Changes, Validation, Key learnings, and Remaining work. Preserve unrelated staged and unstaged hunks. |
 | What if a review changes nothing? | Keep an honest host record. Do not manufacture an edit or empty commit unless an explicit audit-commit-every-iteration request authorizes the identified no-change audit commit. |
-| When is it complete? | The exit condition, current relevant checks, and every other requested condition are satisfied, with one pass that makes no changes (measured by the runtime) and no unresolved material finding. |
+| When is it complete? | The exit condition, current relevant checks, and every other requested condition are satisfied, with two consecutive passes that make no changes (or a first pass that completes with no change) and no unresolved material finding. |
 
 ### Influences, decisions, and new learnings
 
@@ -142,14 +143,6 @@ The reusable obligations are in [review-policy.md](references/review-policy.md).
 [callback-evidence.md](references/callback-evidence.md) explains the
 host-record and handoff boundary.
 
-SKILL.md is a router (efficiency plan U18). A direct `/improve` or an `improve-agent` worker reads
-[standalone-route.md](references/standalone-route.md), which holds the standalone binding, continuation after
-context loss, completion summary, preview and execution handoff. A ShipLoop review (the argument
-`ShipLoop Improve: <handoff path>`) reads the ShipLoop subcall in SKILL.md and
-[shiploop-route.md](references/shiploop-route.md), which carries what a ShipLoop child needs from those four
-documents once, plus the text that used to repeat in every handoff.
-`test/improve_route_ledger.json` has a row for every paragraph of them.
-
 ## Preview and installation
 
 Dry run, preview, show how you interpret this, and do not execute show the
@@ -174,18 +167,19 @@ or a particular repository's review quality.
 
 The callback runtime is vendored from
 [whichguy/until-loop](https://github.com/whichguy/until-loop) commit and
-version recorded in PROVENANCE.json. Its scripts/until_loop_ephemeral.py carries one recorded
-adaptation (the unchanged-content stop rule; the manifest holds both SHA-256 values and the
-reason), so a re-vendor must carry it until upstream does.
+version recorded in PROVENANCE.json. Its scripts/until_loop_ephemeral.py is
+byte-identical to upstream (the manifest holds its SHA-256), so a runtime change
+is a re-vendor, never a local edit.
 
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the
-vendored callback runtime, which is upstream's only runtime; a workspace
-`.until-loop` directory from an earlier release is not a run and is never read. The bundled
-ADAPTER.md clarifies owner-bound user updates versus changes to immutable loop
-conditions; its provenance entry
-retains both upstream and bundled hashes and the adaptation reason. The runtime
-script and its reference carry the recorded stop-rule adaptation.
+vendored ephemeral runtime, session and recovery helpers, and runtime reference;
+the runtime files are byte-identical to upstream. A workspace `.until-loop`
+directory from an earlier release is not a run and is never read. Upstream 0.9.0
+also provides host-session mode, but standalone Improve explicitly uses
+`start --isolated` and keeps its per-run temporary callback state. The bundled
+ADAPTER.md retains Improve's owner-bound user-update clarification and records
+both upstream and bundled hashes plus its consumer compatibility adaptation.
 
 The source repository's tests, experiment output, validation manifests,
 activation reports, working-checkout instructions, .git data, and bytecode are
@@ -214,6 +208,6 @@ PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH PYTHONDONTWRITEBYTECODE=1
 ~~~
 
 The package test relocates the leaf to a path with spaces, verifies the
-ephemeral start/next/done unchanged-content terminal path and state deletion, and
+ephemeral start/next/done two-review terminal path and state deletion, and
 checks the vendored runtime provenance. It does not run arbitrary repository
 changes or prove semantic review quality.

@@ -173,12 +173,13 @@ is a re-vendor, never a local edit.
 
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the
-vendored callback runtime, which is upstream's only runtime; a workspace
-`.until-loop` directory from an earlier release is not a run and is never read. The bundled
-ADAPTER.md clarifies owner-bound user updates versus changes to immutable loop
-conditions; its provenance entry
-retains both upstream and bundled hashes and the adaptation reason. The runtime
-script and its reference are byte-identical.
+vendored ephemeral runtime, session and recovery helpers, and runtime reference;
+the runtime files are byte-identical to upstream. A workspace `.until-loop`
+directory from an earlier release is not a run and is never read. Upstream 0.9.0
+also provides host-session mode, but standalone Improve explicitly uses
+`start --isolated` and keeps its per-run temporary callback state. The bundled
+ADAPTER.md retains Improve's owner-bound user-update clarification and records
+both upstream and bundled hashes plus its consumer compatibility adaptation.
 
 The source repository's tests, experiment output, validation manifests,
 activation reports, working-checkout instructions, .git data, and bytecode are

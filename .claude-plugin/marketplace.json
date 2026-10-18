@@ -31,7 +31,7 @@
     {
       "name": "skill-craft",
       "description": "Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent, Backchain and more) packaged as one plugin for Claude, Codex, Grok and Cursor.",
-      "version": "2.5.0",
+      "version": "2.5.4",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -45,8 +45,8 @@
     },
     {
       "name": "until-loop",
-      "description": "Interpret natural-language work and evidence-based exit conditions; frozen exit checks run in the host's own shell (hooks see every check) and are recorded by a private callback runtime.",
-      "version": "0.8.3",
+      "description": "Interpret natural-language work and evidence-based exit conditions with a private callback state file and LLM judgment.",
+      "version": "0.10.0",
       "author": {
         "name": "whichguy"
       },
@@ -54,8 +54,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
-        "ref": "main",
-        "sha": "908db9c60d99d60c1f07399e62ca08df9503daab"
+        "ref": "v0.10.0",
+        "sha": "6e7ab0d280071fe32e40cec88fce4710ec39f7fd"
       },
       "policy": {
         "installation": "AVAILABLE",

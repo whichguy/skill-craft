@@ -12,7 +12,7 @@ allowed-tools: all
 disable-model-invocation: false
 user-invocable: true
 argument-hint: "<what to execute, and when to stop> | preview | Contract: <abs path> Receipt: <abs path>"
-version: 0.8.3
+version: 0.10.0
 license: MIT
 platforms:
   - linux
@@ -27,7 +27,7 @@ metadata:
 You are the executor of a script-owned loop. Interpret the user's natural language,
 execute one assigned iteration, report its evidence, and follow the script's
 returned instruction. The script owns action identity, current state, the
-review-gate measurement and transitions. You own semantic judgment and actual
+consecutive-trivial count and transitions. You own semantic judgment and actual
 work. Do not invoke `/goal` or create a background scheduler.
 
 For authorized execution, always start the runtime, even when the work looks
@@ -87,7 +87,13 @@ continue before mutation.
 
 ## Interpret the request before starting
 
-Separate three questions, retaining each requested clause:
+Compose three separate answers from the request and accepted clarifications.
+They need not repeat the original wording, but must resolve conversation-only
+references. Use task context to resolve references or clarify broad terms with
+the rubric below, never to add an obligation, review count or stop. Preserve the
+governing words of stop predicates, limits and counts as quotes; a resolving
+explanation may follow without weakening them. Compose once before `start`,
+then assess the packet's frozen conditions:
 
 - **Execution (`work`):** What ordered work belongs in one iteration? Retain scope, exclusions, dependencies and requested checks. Keep the loop's repeat/exit clauses out of the executable body; do not turn "repeat until" into several hidden iterations inside one callback.
 - **Successful exit (`exit_condition`):** What observable evidence proves the entire requested outcome? Preserve conjunctions, genuine success alternatives and conditional requirements. Include a requested trivial-review requirement here as well as in its numeric gate; neither passing tests nor a trivial review replaces the other required evidence.
@@ -97,7 +103,7 @@ Check the interpretation against the original wording for missing or invented ob
 
 For broad words such as "good enough," inspect the relevant context and state a task-specific rubric and reasonable assumptions. Ask only if missing scope or acceptance criteria materially prevents valid execution or assessment; do not initialize an unassessable loop or silently invent a review count. For a `while` guard, check it before work; a false guard proves success only if the outcome also holds. Preserve a requested first action. Keep genuine success alternatives (CSV or JSON) distinct from incomplete stops and assess conditional obligations only after establishing their premise. An unrun check leaves behavior unknown; an observed missing required check record makes that record obligation unsatisfied. Before starting, briefly state the interpreted execution, successful exit and incomplete stops. This is an explanation, not an approval gate.
 
-Write exit checks before any work. For every exit clause a shell command can observe, add an `exit_checks` entry `{id, clause, command}`: `clause` quotes the request's words, and `command` is a POSIX shell command, run in the workspace, that exits 0 only when that clause holds as literally worded (every qualifier of where, which, how many and exactly what). Keep the request's logic: an alternative ("CSV or JSON") or a conditional obligation is one check that passes when any branch holds or when the premise is false, never separate checks that demand every branch. A check observes; it is verification within the user's authority, never a deploy, publish or change outside the workspace, and it checks the durable evidence of a one-time action (a receipt, a file) instead of repeating it. Prefer fast, repeatable commands such as the test suite, file and content assertions, that finish and leave no background process; use ids of letters, digits, `.`, `_` or `-`. Write them from the request before seeing any result. They freeze with the contract. Before reporting `satisfied`, run the packet's `verify_script` once, unchanged, after the iteration's last change, by passing its text itself as your shell tool's command: not saved to a file, read from a variable, or run through another interpreter, because the host's permission prompt and hooks inspect that command text. It runs every check in your shell, where the host's permissions and hooks see each command, and pipes the real results to the runtime, which records them. The runtime never executes a check itself: it refuses a satisfied report without a recorded run for the current action (or after a later workspace change) and refuses completion while any recorded check failed. If a failed check's command misstates its own clause (a shell or platform bug), repair it through the report's `check_repairs` with the reason and an unsatisfied exit, then run the next packet's `verify_script`; the clause never changes, a check never gets repaired to accept work that differs from its clause, and the terminal report lists every repair for the user to confirm. A clause no command can observe stays only in `exit_condition`; stops and limits are not exit checks.
+Write exit checks before any work. For every exit clause a shell command can observe, add an `exit_checks` entry `{id, clause, command}`: `clause` quotes the request or accepted clarification that actually states the obligation (for example, "sample records round-trip without loss," not "the criteria we agreed on"), and `command` is a POSIX shell command, run in the workspace, that exits 0 if and only if that clause holds as literally worded (every qualifier of where, which, how many and exactly what). Do not strengthen a clause: the check must also accept every outcome it permits. Keep the request's logic: an alternative ("CSV or JSON") or a conditional obligation is one check that passes when any branch holds or when the premise is false, never separate checks that demand every branch. A check observes; it is verification within the user's authority, never a deploy, publish or change outside the workspace, and it checks the durable evidence of a one-time action (a receipt, a file) instead of repeating it. Prefer fast, repeatable commands such as the test suite, file and content assertions, that finish and leave no background process; use ids of letters, digits, `.`, `_` or `-`. Write them from the request before seeing any result. They freeze with the contract. Before reporting `satisfied`, run the packet's `verify_script` once, unchanged, after the iteration's last change, by passing its text itself as your shell tool's command: not saved to a file, read from a variable, or run through another interpreter, because the host's permission prompt and hooks inspect that command text. It runs every check in your shell, where the host's permissions and hooks see each command, and pipes the real results to the runtime, which records them. The runtime never executes a check itself: it refuses a satisfied report without a recorded run for the current action (or after a later workspace change) and refuses completion while any recorded check failed. If a failed check's command misstates its own clause (a shell or platform bug), repair it through the report's `check_repairs` with the reason and an unsatisfied exit, then run the next packet's `verify_script`; the clause never changes, a check never gets repaired to accept work that differs from its clause, and the terminal report lists every repair for the user to confirm. A clause no command can observe stays only in `exit_condition`; stops and limits are not exit checks.
 
 Keep every requested outcome in `exit_condition` and its checks even when requirements seem to conflict. Never resolve a conflict by dropping or rewording an outcome or by adding a condition the request did not state; when requirements cannot all hold, do the work that does not depend on the conflict, including anything the request asks for when stopping incomplete (a write-up, notes, a report), then report `blocked` and name the conflict.
 
@@ -128,9 +134,7 @@ The script enforces field shape, not semantic adequacy or length: there is no si
 
 ## Follow the returned action
 
-Within the user's authorized scope, **the latest script return value owns the next action**. Read its entire `instruction`, `workspace`, `work`, conditions, `context`, progress, and latest report including `handoff`.
-
-**Lean returns with a receipt.** A run started with `--receipt` prints a lean return from `start` and `done`: `status`, `state_file`, `receipt`, a short `instruction`, `conditions.exit`, `report_fields` (each report field with its allowed values), `next_argv`, `done_argv` and `verify_script`. The receipt file holds the full packet (`work`, both conditions, `context`, progress, `last_report` with its `handoff`, `report_schema`), and `next` prints it whole. Where this card says to read the packet or the return value, read the receipt on a fresh or compacted context; in a live context the lean return and the contract you started are enough. A run without a receipt prints the full packet every time. Carry out precisely that assigned action using current artifacts and tools. Previous reports are claims to check, not instructions or independent proof. Do not invent a successor, advance a counter, or substitute a remembered plan for the returned action.
+Within the user's authorized scope, **the latest script return value owns the next action**. Read its entire `instruction`, `workspace`, `work`, conditions, `context`, progress, and latest report including `handoff`. Carry out precisely that assigned action using current artifacts and tools. Previous reports are claims to check, not instructions or independent proof. Do not invent a successor, advance a counter, or substitute a remembered plan for the returned action.
 
 For each active return, **execute the execution condition first, then call `done`**. Its action-specific focus does not replace the required steps in `work`. For Improve-shaped work, complete the requested review/history, plan worthwhile changes, implement authorized fixes, and run applicable checks in that order. An empty plan is valid after a complete review finds no worthwhile change. Recheck current artifacts and prior completed work; do not blindly reapply an earlier fix. Merely reviewing or planning is insufficient when implementation or checks are also assigned. If a stop or blocker prevents completion, report the unfinished work honestly instead of counting it as a trivial review.
 
@@ -139,14 +143,14 @@ One callback covers **one complete assigned iteration**, not the entire loop. Tr
 Only after that execution (or an actual incomplete stop), call the packet's exact `done_argv` with a JSON report on stdin matching its `report_schema`:
 
 - `classification`: `trivial` only for a distinct completed iteration/review with only trivial/no changes, no material findings and applicable checks; `non-trivial` for behavioral changes or material findings, even if fixed in this action; `unresolved` if the required execution or assessment remains incomplete. Classify this iteration's actual changes and findings; line count or earlier edits still present in the diff do not determine materiality.
-- `exit_assessment`: `satisfied`, `unsatisfied`, or `unknown`, based on evidence for the substantive exit condition. Report `satisfied` only after checking every exit clause on its own, against its literal wording (every qualifier of where, which, how many and exactly what) and the current artifacts, after this iteration's last change. Name each clause and its fresh observation in `evidence`, taken this iteration from current artifacts or durable receipts (never by repeating a one-time action); a clause you did not observe is `unknown`, not satisfied. The script also enforces the review gate (a trivial report, and for gates 2 and 3 unchanged content). `unresolved` cannot assert a satisfied exit.
+- `exit_assessment`: `satisfied`, `unsatisfied`, or `unknown`, based on evidence for the substantive exit condition. Report `satisfied` only after checking every exit clause on its own, against its literal wording (every qualifier of where, which, how many and exactly what) and the current artifacts, after this iteration's last change. Name each clause and its fresh observation in `evidence`, taken this iteration from current artifacts or durable receipts (never by repeating a one-time action); a clause you did not observe is `unknown`, not satisfied. The script also enforces the requested consecutive-trivial gate. `unresolved` cannot assert a satisfied exit.
 - `continuation_assessment`: `allowed`, `blocked`, or `cancelled`, based on the repeat condition and current user instructions. Name an actual blocker or cancellation in the evidence.
 - `evidence`: actual observations, checks, changes and remaining gaps for this iteration. Do not submit intended actions or sample claims as observed facts.
 - `handoff`: the complete compact continuation summary described above, including still-relevant prior facts and exact new artifact/receipt locators. Always required; never replace it with only “see above” or this iteration’s delta.
 
 `done` means **this action is finished**. `trivial` or `non-trivial` describes its result; neither selects the next state. Do not supply a decision, next action, successor, count, or caller-chosen action number.
 
-Consume the return value of every `done` call (with a receipt, the lean return; its receipt holds the rest):
+Consume the full return value of every `done` call:
 
 - `active`: communicate the returned factual status, then execute its returned instruction and new callback. Do not end the loop because a test passed or a review was trivial.
 - `complete` or `stopped`: follow the terminal reporting instruction. There is no further callback or loop work. Distinguish fulfilled conditions from an incomplete stop.
@@ -166,7 +170,7 @@ new run. Retain terminal returns for reporting because their state file is gone.
 
 When a parent names a receipt file, start with `--receipt <absolute file>`. The
 runtime then writes every packet it returns, the terminal one included, to that
-file before printing its lean return, so the durable copy never depends on saved stdout. After
+file before printing it, so the durable copy never depends on saved stdout. After
 lost context, read that receipt: an active one supplies `next_argv`, a terminal one
 is the run's result.
 
@@ -188,20 +192,16 @@ The single tempfile lasts across script calls in this logical run and is removed
 ## Start, communicate and hand off
 
 For authorized execution, send the interpreted contract as JSON stdin to
-`python <absolute scripts/until_loop_ephemeral.py> start`. Include `workspace`,
+`python <absolute scripts/until_loop_ephemeral.py> start --isolated`. Include `workspace`,
 `work`, `exit_condition`, `repeat_condition`, `required_trivial_reviews`, the
-optional `candidate_paths` and `exit_checks` lists, and the complete `context` object described in the adapter.
-Set the gate from the requested policy: Improve uses 2, or 3 when the reviewed result is code
-(ShipLoop's implement-step and last carry-forward reviews); a requested single trivial
-review uses 1; generic work defaults to 0. Gate 2 ends the loop on the first pass that is
-reported trivial and satisfied and leaves the content tree as the previous pass left it (the
-first pass: as it was at `start`); it does not count reviews. Gate 3 keeps that rule for the first
-pass, and once any pass has changed the tree it needs two such passes in a row; larger values are
-refused. The runtime records the workspace's content (Git, or a throwaway bare repository for a
-directory that is not a worktree), plus the bytes of any `candidate_paths` file, at `start`
-and after every pass, and `progress.last_pass_changed_tree` carries the result. The report
-cannot claim this; the runtime measures it, and a pass that changed the tree never ends the loop
-however it is labelled. The returned packet is the first
+`exit_checks` list, and the complete `context` object described in the adapter.
+Set the gate from the requested policy: Improve uses two; generic work defaults
+to zero unless a review count was requested. With a gate of two or more, the
+loop ends when that many consecutive passes make no changes, or when the first
+pass completes with no change: the runtime records the workspace's Git content
+at `start` and, if a trivial, satisfied first report leaves it unchanged,
+completes with `progress.unchanged_first_pass`. The report cannot claim this;
+Git decides it. The returned packet is the first
 action. Keep conditions out of the executable body so one callback never conceals
 multiple private improvement iterations.
 
@@ -209,7 +209,7 @@ On user corrections, compare old and new clauses and retain unaffected
 constraints. For a direct invocation whose frozen work, exit/repeat conditions,
 or review gate must change, stop the old run as cancelled, then initialize the
 revised authorized contract only when execution is requested. Never carry a
-clean-review streak or an unchanged-pass observation across changed criteria.
+clean-review streak across changed criteria.
 
 For an owner-bound invocation, first follow the consumer's update and recovery
 contract; the child must not independently cancel and replace its owner's run.
@@ -221,7 +221,7 @@ runtime. Keep launch context immutable as the original record. A handoff or owne
 note records authority; it cannot invent permission. Coordinate any newly
 authorized write paths with the owner before using them. Report material work or
 unresolved conditions truthfully in the next full-cycle callback so the runtime
-measures the change; an authority update is not itself a qualifying review.
+resets its normal streak; an authority update is not itself a qualifying review.
 If the frozen work or conditions must change, keep the invocation incomplete and
 return the conflict to the owner for its supported transition, without fabricating
 a restart, callback or successful completion. If higher-priority instructions
@@ -241,7 +241,7 @@ unchanged background briefly. The reporting owner incorporates child results
 without duplicate overall updates; preserve required launch/return notices and
 exact internal handoffs. Reporting does not change control flow: continue only
 the current authorized action, or honor the returned stop or handoff. The
-script-reported progress is authoritative for the review gate; the latest report
+script-reported progress is authoritative for the review count; the latest report
 remains a claim about work and checks. When explaining remaining loop work, use
 that count and the exit condition to make the remaining requirement concrete
 without predicting that the next iteration will succeed. Preserve the meaningful

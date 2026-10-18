@@ -416,6 +416,7 @@ def _shiploop(path: str) -> Suite:
 
 
 _CORE_SUITES = (
+    _suite("backchain-chunks", "core", "test/backchain-chunks.test.py", "python3", "-B", "test/backchain-chunks.test.py"),
     _suite("test-groups", "core", "test/test-groups.test.py", "python3", "test/test-groups.test.py"),
     _suite("ci-policy", "core", "test/ci-policy.test.py", "python3", "test/ci-policy.test.py"),
     _suite("integration-boundaries", "core", "test/integration-boundaries.test.py", "python3", "test/integration-boundaries.test.py"),
@@ -640,6 +641,7 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 # -slice 81, -platform 75, -environment 65, -quality 43, -battleship-salesforce 30, -baseline 25, -commit-counters 24.5,
 # -sf-guard 20, the other seven 38 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
 _PREFIX_SUITE_IDS = {
+    "test/fixtures/backchain-chunks/": ("backchain-chunks",),
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
     "agents/in-parallel.md": (*_IN_PARALLEL_IDS, "marketplace-package"),
