@@ -98,3 +98,14 @@ Four anonymous Apex runs; the Apex only records, Python decides:
    logged, `--name Other` denied.
 5. Then the live run: `run.py --case battleship-salesforce --host grok --model grok-4.7 --effort medium --source checkout ...` with
    the chess case's host and permission settings.
+
+## 2026-10-17 · real-org self-tests before the first live run (firm)
+- `preflight --org de --prefix SLBattle`: org connected, no SLBattle item in 13 metadata types.
+- `selftest --org de` (probe project): every step PASS — deploy, deployed, tests, assign (`sf org assign permset` status 0,
+  1 success), access (tab settings seen: `DefaultOn`; assignment read back), apex-run, cleanup (unassigned 1, then the
+  permission set, then the rest; org equals its snapshot: 151 PermissionSet, 38 CustomApplication, 12 CustomTab, ...).
+  Settles the unverified items: the `sf org list` user name, `PermissionSetTabSetting.Visibility` = `DefaultOn`, the assign
+  JSON, deleting an assignment with `sf data delete record`, and that the assignment must go before the permission set.
+- `selftest --org de --reference`: every rules marker PASS on both seeded games (17 hits, the standard fleet sunk,
+  gameOver at the fifth sink, counts, straight non-overlapping fleet), seed.same, seed.different and the three invalid
+  shots; cleanup back to the snapshot. The reference Apex and the grader's anonymous scripts compile on the real org.
