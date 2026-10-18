@@ -1,4 +1,4 @@
-Execute: ask
+Execute: ask (decisions in section 4 accepted by the owner, 2026-10-18; plan revision 2 in progress)
 
 # Run insights plan (2026-10-18)
 
@@ -216,6 +216,9 @@ removed and restored by hand). **L2.** End the host session when the done packet
    switchover rows; none of the current cases has one.
 
 ## 4. Decisions for the owner
+
+Owner (2026-10-18): "I'll go with your recommendations" — decisions 1-6 below are accepted as recommended.
+
 
 1. **Concern map as data (A1).** Replace duty 9's prose with per-item concern rows that the gate checks for structure and
    Improve judges. Recommendation: yes. Risk: boilerplate rows; mitigated by `no: <reason>` and structure-only gating.
