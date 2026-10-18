@@ -669,6 +669,25 @@ class ReturnRouteTests(ReturnReviewCase):
         run = root / "run"
         return navigator.render(None, run, advance_to(store.read_record(run / "state.md"), stage))
 
+    def test_a_return_stage_prints_its_return_route_and_commands_in_the_head(self) -> None:
+        """Packet review G33-2 (F3): the release duties run "the packet's plan-return" and write the rollback for "the source
+        return the packet states"; those lines were file-only, so the model read the packet file for them.  At every
+        ``RETURN_STAGES`` stage the printed head carries them before the result template, once, and the file once."""
+        root, _ = self.start("head route")
+        run = root / "run"
+        for stage in navigator.RETURN_STAGES:
+            with self.subTest(stage=stage):
+                state = advance_to(store.read_record(run / "state.md"), stage)
+                head = navigator.packet_head(None, run, state, run / "packets" / "p.md")
+                whole = navigator.render(None, run, state)
+                tokens = ["Return plan: ", "workspace plan-return --workspace-root", "Record each undecided path with ",
+                          "Return route (from workspace.md)"]
+                if stage in ("release", "handoff"):
+                    tokens.append("workspace return --workspace-root")
+                for token in tokens:
+                    self.assertEqual(head[:head.index("Result template:")].count(token), 1, token)
+                    self.assertEqual(whole.count(token), 1, token)
+
     def test_the_release_duties_tell_the_model_to_use_the_route_the_packet_states(self) -> None:
         # Wording-level check: the duty text is what makes a model write and verify the rollback it is shown.
         root, _ = self.start("duties")

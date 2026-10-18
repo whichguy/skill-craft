@@ -187,8 +187,10 @@ class ReviseTests(unittest.TestCase):
         self.assertIn(result_path(plan), packet)
         self.assertIn(result_path(sent_back), packet)
 
-    def test_a_first_visit_the_redone_test_spec_and_the_next_item_print_no_amend_lines(self) -> None:
-        # GUARD, green before and after: only the redone step plan is asked to amend.
+    def test_a_first_visit_and_the_next_item_print_no_amend_lines(self) -> None:
+        # GUARD, green before and after: a first visit and another item are never asked to amend.  (Until 2026-10-17
+        # this also held that the redone test spec printed nothing of the revise; packet review X2 reversed that: see
+        # test_every_revisited_stage_head_prints_the_four_revisit_lines.)
         head_of = lambda state: nav.packet_head(dry_run.CORE, dry_run.RUN, state, dry_run.RUN / "packets" / "x.md")
         self.assertNotIn("carried over", head_of(drive_to("step-plan", two=True)))
         state = drive_to("implement", two=True)
@@ -198,12 +200,8 @@ class ReviseTests(unittest.TestCase):
         rows = dry_run.activity(two=True)
         step_plan = next(i for i, row in enumerate(rows) if row["at"] == "step-plan")
         test_spec = next(i for i, row in enumerate(rows) if row["at"] == "test-spec")
-        # The redone step plan is accepted, so the test spec after it builds on the new plan and no longer
-        # carries the revise evidence or the amend request.
         state = walk(state, rows[step_plan:test_spec])
         self.assertEqual(nav.current_stage(state), "test-spec")
-        self.assertNotIn(result_path(sent_back), nav.render(dry_run.CORE, dry_run.RUN, state))
-        self.assertNotIn("carried over", head_of(state))
         # W2 reaches its own step plan once W1 finishes: nothing of W1's plans or revise result is named.
         first_carry = next(i for i, row in enumerate(rows) if row["at"] == "carry-forward")
         second_item = next(i for i, row in enumerate(rows) if i > first_carry and row["at"] == "step-plan")
@@ -214,6 +212,61 @@ class ReviseTests(unittest.TestCase):
         self.assertNotIn(result_path(plan), packet)
         self.assertNotIn(result_path(sent_back), packet)
         self.assertNotIn("carried over", head_of(state))
+
+    def test_every_revisited_stage_head_prints_the_four_revisit_lines(self) -> None:
+        """Packet review F5 (C X1, X2, C2-1, C2-8): after a revise, the first printed head of step-plan, test-spec and
+        implement says why the stage is back (the revise result's summary and path), names its previous accepted result,
+        lists the IDs the redone upstream results added, removed or changed, and asks to keep unchanged rows with their
+        IDs.  Before, only step-plan's packet file said so; a redone test spec searched the run for its own earlier result.
+        Each result goes through the real gate; the amended plan adds step S2."""
+        head_of = lambda state: nav.packet_head(dry_run.CORE, dry_run.RUN, state, dry_run.RUN / "packets" / "x.md")
+        state = drive_to("implement")
+        plan, spec_before = last_action(state, "step-plan", "done"), last_action(state, "test-spec", "done")
+        state = submit(state, REVISE)
+        sent_back = state["history"][-1]["action"]
+        why = ("Revisit: implement sent W1 back to step-plan (1 of 2 revises)", '"' + REVISE["summary"] + '"',
+               "Evidence: " + result_path(sent_back) + ".")
+        keep = "Keep unchanged rows with their IDs: carry over as written every row the revise result"
+
+        head = head_of(state)
+        self.assertEqual(nav.current_stage(state), "step-plan")
+        for token in (*why, "this packet asks for an amended plan, not a new one",
+                      "Your previous accepted step-plan result: " + result_path(plan),
+                      "Changed upstream since your previous step plan: nothing", keep,
+                      "Submit the whole amended plan: it replaces the previous one."):
+            self.assertIn(token, head)
+        rows = dry_run.activity()
+        produced = next(row["result"] for row in rows if row["at"] == "step-plan")
+        amended = dict(produced, steps=[*produced["steps"], {"id": "S2", "task": "Second synthetic step.", "deps": ["S1"]}])
+        state = submit(state, amended)
+        state = nav.finish_improve(state, nav.current_action(state)["id"], dry_run._improve_receipt("step-plan"), None)
+        new_plan = last_action(state, "step-plan", "done")
+
+        head = head_of(state)
+        self.assertEqual(nav.current_stage(state), "test-spec")
+        upstream = ("Changed upstream since your previous test-spec result (step plan " + result_path(plan) + " -> "
+                    + result_path(new_plan) + "): steps added S2.")
+        for token in (*why, "Your previous accepted test-spec result: " + result_path(spec_before), upstream, keep):
+            self.assertIn(token, head)
+        self.assertNotIn("amended plan", head)
+        self.assertIn("carried over from the previous test-spec result", head[head.index("Done when"):])
+
+        test_spec = next(i for i, row in enumerate(rows) if row["at"] == "test-spec")
+        until = next(i for i, row in enumerate(rows) if row["at"] == "implement")
+        state = walk(state, rows[test_spec:until])
+        head = head_of(state)
+        self.assertEqual(nav.current_stage(state), "implement")
+        for token in (*why, "Your previous accepted implement result: none (this stage had no accepted result for W1 "
+                            "before the revise).", "Changed upstream since your previous implement result (step plan "
+                      + result_path(plan) + " -> " + result_path(new_plan), "steps added S2", keep):
+            self.assertIn(token, head)
+        self.assertNotIn("carried over from the previous implement result", head)  # there is none to carry over
+
+        # The amended plan's second step is no revisit: its implement result after the revise exists.
+        state = walk(state, [row for row in rows[until:] if row["at"] in ("implement", nav.IMPROVE_STAGE)][:2])
+        self.assertEqual(nav.current_stage(state), "implement")
+        self.assertIn("Step S2 (2 of 2)", head_of(state))
+        self.assertNotIn("Revisit: ", head_of(state))
 
     def test_an_amended_step_plan_is_accepted_through_the_gate(self) -> None:
         state = submit(drive_to("implement"), REVISE)

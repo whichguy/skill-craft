@@ -40,6 +40,7 @@ import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_view as packet_view  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_protocol as protocol  # noqa: E402
+import shiploop_reference as run_reference  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_status_hook as hook  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -114,7 +115,7 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
                    navigator.step_checks(plan["steps"], index, plan["test_commands"])[0], 1)),
                "Lint each implementation step (report-only): "]
     if stage == "test":
-        p1 += ["A command passes only when it exits 0 and actually ran tests", "Each focused and regression command must also run at least its floor",
+        p1 += ["Pass: exit 0 and at least one test run", "Floor of each focused and regression command: the larger of",
                "Base run: before the candidate run", "Lint this item's changes (report-only): "]
     if stage in ("document", "verify"):
         p1 += ["Step plan paths: " + ", ".join(plan["paths"])]
@@ -352,7 +353,7 @@ class TierTests(unittest.TestCase):
     this pins them."""
 
     P0 = {"header", "top", "goal", "loop", "status", "duties", "result"}
-    LOOKUP = {"reference-symbols", "reference-files", "builds-on", "backchain-route"}
+    LOOKUP = {"reference-symbols", "guides", "reference-files", "builds-on", "backchain-route"}
     CHROME = {"progress-view", "pause"}
     FILE = {"delegation", "halt", "pass-log", "run-context", "last-accepted", "deltas", "lint-records", "unverified",
             "change-inventory", "chain", "discovery-links"}
@@ -377,8 +378,9 @@ class TierTests(unittest.TestCase):
                 self.assertEqual(tiers.get("quoted", navigator.QUOTED), navigator.QUOTED)
                 for name, tier in tiers.items():
                     if tier == navigator.P1:
-                        self.assertIn(name, {"work-item", "step", "commit-scope", "expectation-results", "queue-rule",
-                                             "test-rules", "rerun", "observed", "lint-commands", "improve-lessons"})
+                        self.assertIn(name, {"work-item", "revisit", "step", "commit-scope", "expectation-results",
+                                             "queue-rule", "test-rules", "rerun", "observed", "workspace-return",
+                                             "delivery", "lint-commands", "improve-lessons"})
                 self.assertEqual([name for name in tiers if name not in
                                   self.P0 | self.LOOKUP | self.CHROME | self.FILE | {"quoted"}
                                   and tiers[name] != navigator.P1], [])
@@ -409,6 +411,124 @@ class TierTests(unittest.TestCase):
                 full = plans.prompts.prompt(stage, delegation=delegation)
                 self.assertEqual(text.replace(plans.prompts.BACKCHAIN_STUB, moved) if moved else text, full)
                 self.assertEqual(plans.prompts.BACKCHAIN_STUB in text, bool(moved))
+
+
+_NODE_RENDERS: dict = {}
+
+
+def node_renders(delegation: str) -> dict:
+    """{key: row} of the offline node-fix-bug walk (packets.py --offline) at the normal install (cached)."""
+    if delegation not in _NODE_RENDERS:
+        _NODE_RENDERS[delegation] = packets.offline_renders(plans.CASE, delegation, run_dir_length=INSTALL_RUN_DIR,
+                                                            cli_path_length=CLI_PATH_LENGTH)
+    return _NODE_RENDERS[delegation]
+
+
+class CitationTests(unittest.TestCase):
+    """Packet review F3 (A AX-2, B6-2, C-1, G29-2, G32-1): what a print's guidance cites resolves inside that print.
+
+    A guide or policy the stage text names by label prints as ``<label>: <path>`` (the head's ``guides`` block), unless
+    the text already prints that guide's path; a packet line the text cites ("the printed `backchain-check`", "the
+    packet's \"Loop resources\" line", "quoted below", the Backchain stub's paragraph) is in the print; a GUIDES/ path has
+    its symbol defined.  Checked on both fixtures (the offline node-fix-bug walk and this suite's two-item walk), both
+    routes, the normal install.
+    """
+
+    PACKET_LINES = (  # (the phrase the stage text cites a packet line by, a token of that line)
+        ("printed `backchain-check`", "Backchain graph check: python3 "),
+        ('"Loop resources" line', "Loop resources for a repair/revise request, under "),
+        ('printed "Selected Backchain and Until Loop resources" block',
+         "Selected Backchain and Until Loop resources (resolved"),
+        ('"Results this stage builds on"', navigator.BUILDS_ON_HEAD),
+        ("quoted below", navigator.HANDOFF_HEAD),
+        ("the `test_cases` hand-off", "\ntest_cases ("),
+        ("changed paths below", navigator.CHANGED_SINCE_BASE),
+        ("results are below", "ShipLoop ran each expectation's check"),
+        ('"Consumer checks (release-verify)" line', "Consumer checks (release-verify)"),
+        (prompts.BACKCHAIN_STUB, "Follow the packet's Backchain planning guide"),
+    )
+    # Recorded gaps, (route, stage): a head whose required text leaves no room for what its guidance cites (plan: 19,436 of
+    # 20,000 before any lookup; ask-agent step-plan: its 2,113-character Backchain route paragraph).  They close when the
+    # head's required text shrinks (packet review U5, U8); an entry that resolves fails the gap test, so it is removed then.
+    BUDGET_GAPS = {("inline", "plan"), ("ask-agent", "plan"), ("ask-agent", "step-plan")}
+
+    @staticmethod
+    def rows():
+        """(fixture, route, key, row) of every active producer print of both fixtures."""
+        for fixture, rendered in (("node", node_renders), ("two-item", lambda route: renders(route, INSTALL_RUN_DIR))):
+            for route in ("inline", "ask-agent"):
+                for key, row in rendered(route).items():
+                    if plans.is_producer(key, row["state"]):
+                        yield fixture, route, key, row
+
+    @staticmethod
+    def unresolved(row) -> list[str]:
+        """What the print's stage text cites and the print does not hold."""
+        state, printed = row["state"], row["printed"]
+        stage = navigator.current_stage(state)
+        text = " ".join(navigator._named_text(state, stage, navigator.delegation(state)).split())
+        located = {label for label, ref in prompts.STAGE_REFERENCES.get(stage, ())
+                   if "GUIDES/" + ref.split("#", 1)[0] in text}
+        labels = ({label for label, _ in prompts.STAGE_REFERENCES.get(stage, ())}
+                  | {label for label, _ in run_reference.POLICIES} | {"Backchain planning guide"})
+        missing = [label for label in sorted(labels)
+                   if label in text and label not in located and "\n" + label + ": " not in printed]
+        missing += [token for phrase, token in CitationTests.PACKET_LINES if phrase in text and token not in printed]
+        item = item_of(state)
+        if "packet's Step lines" in text and item and navigator.implement_progress(state, item)[1] \
+                and "\nStep S" not in printed:
+            missing.append("\nStep S")
+        if "GUIDES/" in printed and "GUIDES = " not in printed:
+            missing.append("GUIDES = ")
+        return missing
+
+    def test_every_label_a_print_cites_resolves_inside_the_print(self) -> None:
+        for fixture, route, key, row in self.rows():
+            if (route, plans.stage_of(key)) in self.BUDGET_GAPS:
+                continue
+            with self.subTest(fixture=fixture, route=route, packet=key):
+                self.assertEqual(self.unresolved(row), [])
+
+    def test_a_recorded_gap_is_a_head_short_of_room_whose_file_holds_what_it_cites(self) -> None:
+        open_gaps = set()
+        for fixture, route, key, row in self.rows():
+            missing = self.unresolved(row)
+            if (route, plans.stage_of(key)) not in self.BUDGET_GAPS or not missing:
+                continue
+            open_gaps.add((route, plans.stage_of(key)))
+            with self.subTest(fixture=fixture, route=route, packet=key):
+                # The budget, not a defect: a full head (under 1,000 characters left, less than any block the citation
+                # sits in), and the file holds every line the print leaves out.
+                self.assertTrue(row["head"])
+                self.assertGreater(len(row["printed"]), navigator.HEAD_LIMIT - 1_000)
+                for token in missing:
+                    self.assertIn(token.lstrip("\n"), row["whole"])
+        self.assertEqual(open_gaps, self.BUDGET_GAPS)  # a gap that closed is removed from the list
+
+    def test_an_inline_implement_head_prints_its_steps_criteria_by_value_and_the_hand_off_names_them(self) -> None:
+        """B6-2: the step's criteria print with the Step line (the hand-off held them only, and a head over the cut left
+        them out); the hand-off names them by ID, so the text is printed once."""
+        seen = 0
+        for key, row in renders("inline", INSTALL_RUN_DIR).items():
+            state = row["state"]
+            if plans.stage_of(key) != "implement" or not plans.is_producer(key, state):
+                continue
+            item = item_of(state)
+            done, steps = navigator.implement_progress(state, item)
+            plan = plans.PLAN if item == "W1" else plans.SECOND_PLAN
+            wanted = [row_ for row_ in plan["criteria"] if row_["id"] in steps[done]["criteria"]]
+            with self.subTest(packet=key):
+                for text in (row["printed"], row["whole"]):
+                    self.assertIn("\nStep criteria (this step satisfies each, in the step plan's words):", text)
+                    for criterion in wanted:
+                        self.assertEqual(text.count(criterion["text"]), 1, criterion["id"])
+                        self.assertLess(text.index("\nStep " + steps[done]["id"]), text.index(criterion["text"]))
+                    if navigator.HANDOFF_HEAD in text:  # the head may leave the hand-offs out; the file has them
+                        self.assertIn("criteria (" + item + " step-plan): " + ", ".join(c["id"] for c in wanted)
+                                      + " (printed under the Step line above)", text)
+                self.assertIn(navigator.HANDOFF_HEAD, row["whole"])
+                seen += 1
+        self.assertGreaterEqual(seen, 3)
 
 
 class BlockBudgetTests(unittest.TestCase):

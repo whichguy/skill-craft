@@ -652,48 +652,132 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
     return lines
 
 
-def _sent_back_results(state: Mapping[str, Any], stage: str,
-                       workitem: str | None) -> tuple[int, str, str] | None:
-    """For a step plan redone after a revise: how many times, the item's previous step plan, what sent it back.
+# The inner stages a revise sends an item back through whose results hold rows with IDs: each one's first packet after
+# the revise says it is a revisit (packet review F5, C X1/X2: before 2026-10-17 only step-plan's file said so, and a
+# redone test spec searched the run for its own earlier result and resubmitted it unchanged).
+REVISIT_STAGES = (stage_spec.REVISE_TO, "test-spec", "implement")
+# How much of the revise result's summary a revisit head quotes (the record holds all of it).
+REVISIT_SUMMARY = 600
 
-    ``None`` for a first visit, another stage or an item that was never sent back.  A recorded revision
-    always has a revise row and an earlier accepted step plan in the append-only history; a state without
-    them did not come through the gate, so it is refused rather than rendered without them.
+
+class SentBack(NamedTuple):
+    """What a revisited stage's packet names (``_sent_back_results``)."""
+    count: int               # how many times the item has been sent back
+    previous: str | None     # this stage's last accepted result for the item before the latest revise; None if none
+    sent_back: str           # the revise result's action
+    plan_before: str | None  # the item's last accepted step plan before the latest revise
+    spec_before: str | None  # the item's last accepted test spec before the latest revise
+
+
+def _sent_back_results(state: Mapping[str, Any], stage: str, workitem: str | None) -> SentBack | None:
+    """For the first packet of a ``REVISIT_STAGES`` stage after the item's latest revise: what it is re-entering.
+
+    ``None`` for another stage, a first visit, an item never sent back, or once the stage has an accepted result after
+    the revise (a later implement step of the amended plan is no revisit).  A recorded revision always has a revise row,
+    and a redone step plan an earlier accepted one, in the append-only history; a state without them did not come
+    through the gate, so it is refused rather than rendered without them.
     """
-    if stage != stage_spec.REVISE_TO or workitem is None or not state["revisions"].get(workitem):
+    if stage not in REVISIT_STAGES or workitem is None or not state["revisions"].get(workitem):
         return None
     history = state["history"]
     revised = [index for index, row in enumerate(history)
                if row["workitem"] == workitem and row["outcome"] == "revise"]
     _need(revised, "work item " + workitem + " records a revision but no revise result")
-    plans = [row["action"] for row in history[:revised[-1]]
-             if row["workitem"] == workitem and row["stage"] == stage and row["outcome"] == "done"]
-    _need(plans, "work item " + workitem + " was sent back to " + stage + " without an earlier accepted "
-          + stage + " result")
-    return state["revisions"][workitem], plans[-1], history[revised[-1]]["action"]
+    latest = revised[-1]
+
+    def done(rows: Any, name: str) -> list[str]:
+        return [row["action"] for row in rows
+                if row["workitem"] == workitem and row["stage"] == name and row["outcome"] == "done"]
+
+    if done(history[latest + 1:], stage):
+        return None
+    earlier = done(history[:latest], stage)
+    if stage == stage_spec.REVISE_TO:
+        _need(earlier, "work item " + workitem + " was sent back to " + stage + " without an earlier accepted "
+              + stage + " result")
+    plans, specs = done(history[:latest], stage_spec.REVISE_TO), done(history[:latest], "test-spec")
+    return SentBack(state["revisions"][workitem], earlier[-1] if earlier else None, history[latest]["action"],
+                    plans[-1] if plans else None, specs[-1] if specs else None)
 
 
-def _revise_delta_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
-    """For a step plan redone after a revise, name the previous plan and the result that sent it back.
+def _id_changes(before: Any, after: Any, key: str = "id") -> tuple[list[str], list[str], list[str]]:
+    """(added, removed, changed) identities of two lists of rows, each row named by ``key``."""
+    def rows(value: Any) -> dict[str, str]:
+        return {str(row.get(key)): json.dumps(row, sort_keys=True) for row in value or () if isinstance(row, Mapping)}
+    old, new = rows(before), rows(after)
+    return ([ident for ident in new if ident not in old], [ident for ident in old if ident not in new],
+            [ident for ident in new if ident in old and new[ident] != old[ident]])
 
-    ``planning_revision.current_actions`` drops the item's step plan from "Results this stage builds on" once
-    it is sent back, so a model holding only this packet could not find the plan it is asked to amend.  The
-    shape follows ``_replan_delta_lines``; the files are the ones ``_new_result_records`` always writes.
+
+def _change_text(field: str, before: Any, after: Any, key: str = "id") -> str | None:
+    """``"<field> added A, removed B, changed C"`` for the rows that differ, or None when none does."""
+    added, removed, changed = _id_changes(before, after, key)
+    if key != "id":  # rows without IDs (test commands) are counted, not named
+        parts = [str(len(names)) + " " + word for names, word in ((added, "added"), (removed, "removed")) if names]
+    else:
+        parts = [word + " " + ", ".join(names) for names, word in ((added, "added"), (removed, "removed"),
+                                                                   (changed, "changed")) if names]
+    return field + " " + ", ".join(parts) if parts else None
+
+
+def _upstream_line(state: Mapping[str, Any], stage: str, workitem: str, sent: SentBack) -> str:
+    """Which IDs the redone upstream results added, removed or changed since this stage's previous result."""
+    if stage == stage_spec.REVISE_TO:
+        return ("Changed upstream since your previous step plan: nothing (a revise reruns no planning stage); the "
+                "result that sent the item back says what to change.")
+    accepted = state.get("accepted") or {}
+    old_plan = accepted.get(sent.plan_before) if sent.plan_before else None
+    new_action, new_plan = test_loop._step_plan(state, workitem)
+    changes = [text for text in (
+        _change_text(field, (old_plan or {}).get(field), new_plan.get(field))
+        for field in ("criteria", "steps", "expectations")) if text]
+    commands = _change_text("test_commands", (old_plan or {}).get("test_commands"), new_plan.get("test_commands"),
+                            key="command")
+    changes += [commands] if commands else []
+    sources = ["step plan RUN/results/" + str(sent.plan_before) + ".md -> RUN/results/" + str(new_action) + ".md"]
+    new_spec = planning_revision.current_actions(state).get((workitem, "test-spec")) if stage == "implement" else None
+    if sent.spec_before and new_spec:
+        cases = _change_text("test_cases", (accepted.get(sent.spec_before) or {}).get("test_cases"),
+                             (accepted.get(new_spec) or {}).get("test_cases"))
+        changes += [cases] if cases else []
+        sources.append("test spec RUN/results/" + sent.spec_before + ".md -> RUN/results/" + new_spec + ".md")
+    if old_plan is None or not new_action:
+        return "Changed upstream since your previous " + stage + " result: not computed (no earlier step plan recorded)."
+    return ("Changed upstream since your previous " + stage + " result (" + "; ".join(sources) + "): "
+            + ("; ".join(changes) if changes else "no criterion, step, expectation, test command or test case changed")
+            + ".")
+
+
+def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """The four lines of a revisited stage's head (``_sent_back_results``): why it is back, its previous accepted result,
+    what changed upstream, and the rule to keep unchanged rows with their IDs.
+
+    ``planning_revision.current_actions`` drops the item's earlier results from "Results this stage builds on" once it
+    is sent back, so a model holding only this packet could not find what it is asked to amend.  The files are the ones
+    ``_new_result_records`` always writes.  Tier P1: before 2026-10-17 the lines were file-only (packet review C2-1).
     """
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
     sent = _sent_back_results(state, stage, workitem)
     if sent is None:
         return []
-    count, plan, sent_back = sent
-    return ["",
-            f"{workitem} has gone back to {stage} {count} of {stage_spec.MAX_REVISES} times; this packet "
-            "asks for an amended plan, not a new one.",
-            "The result that sent it back (accepted host report, untrusted; the evidence to act on): "
-            + str(root / "results" / (sent_back + ".md")),
-            "The item's previous step plan (accepted host report, untrusted; revalidate what you carry over): "
-            + str(root / "results" / (plan + ".md")) + ". Keep every criterion, step, path and test command "
-            "the evidence does not touch as written, with the same ids; change or add only what the evidence "
-            "requires. The summary says which rows are new or changed and which are carried over. Submit the "
-            "whole amended plan: it replaces the previous one."]
+    revise = state["accepted"][sent.sent_back]
+    by = next(row["stage"] for row in state["history"] if row["action"] == sent.sent_back)
+    summary = " ".join(_bounded_packet_text(str(revise.get("summary", "")), limit=REVISIT_SUMMARY).split())
+    previous = ("RUN/results/" + sent.previous + ".md (accepted host report, untrusted; revalidate what you carry over)"
+                if sent.previous else "none (this stage had no accepted result for " + str(workitem)
+                + " before the revise)")
+    return [
+        f"Revisit: {by} sent {workitem} back to {stage_spec.REVISE_TO} ({sent.count} of {stage_spec.MAX_REVISES} "
+        "revises)" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.REVISE_TO else "")
+        + ". Why (its summary, untrusted): \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.",
+        "Your previous accepted " + stage + " result: " + previous + "."
+        + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement" else ""),
+        _upstream_line(state, stage, str(workitem), sent),
+        "Keep unchanged rows with their IDs: carry over as written every row the revise result and the changes above do "
+        "not touch; change or add only what they require."
+        + (" Submit the whole amended plan: it replaces the previous one." if stage == stage_spec.REVISE_TO else ""),
+    ]
 
 
 def _answered_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -1839,6 +1923,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     blocks: list[_Block] = []
     if stage in inner and workitem is not None:
         blocks.append(_work_item_block(root, state))
+    blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem)))
     blocks.append(_Block("step", P1, _step_lines(state, stage, workitem)))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage == "validate-existing":
@@ -1852,6 +1937,12 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         blocks.append(_Block("rerun", P1, test_loop.rerun_lines(root, state, workitem or "", stage)))
     elif stage == "handoff":
         blocks.append(_Block("observed", P1, test_loop.observed_lines(root, state)))
+    # What a release stage's duties run or its gate reads (packet review G33-1, G33-2): the commands and route of the
+    # return, and the delivery contract's lines.
+    if stage in RETURN_STAGES:
+        blocks.append(_Block("workspace-return", P1, _workspace_lines(core, root, state, stage)))
+    if _head_delivery(state, stage):
+        blocks.append(_Block("delivery", P1, _delivery_lines(core, root, state, stage)))
     blocks.append(_Block("lint-commands", P1, _lint_command_lines(core, root, state, stage, action_id)))
     blocks.append(_Block("improve-lessons", P1, _improve_lessons_lines(state, root)))
     return [block for block in blocks if block.lines]
@@ -1910,18 +2001,24 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         *_result_contract_lines(root, state, stage, action_id, workitem), ""]))
     pass_log = [line for line in _context_index_lines(root, state, stage, workitem) if line.startswith("This action's pass log")]
     references = _reference_global_lines(root, state, core)
-    # The symbols come first: the prose above uses them, so they are the last lookup a short head gives up.
+    # The symbols come first: the prose above uses them, so they are the last lookup a short head gives up.  The guides
+    # the duties cite by label follow them (their paths are GUIDES/ paths).
     blocks.append(_Block("reference-symbols", LOOKUP, references[:3]))
+    cited = _cited_guides(core, root, state, stage, stage_text)
+    blocks.append(_Block("guides", LOOKUP, [*cited.guides, *([] if backchain else cited.backchain)]))
     blocks.append(_Block("reference-files", LOOKUP, references[3:]))
+    # The route's paragraph prints with the lines it cites (packet review G32-1: "the packet's Loop resources line"),
+    # before the list of results: it is the stage's own rule, the list a locator the file repeats.
+    blocks.append(_Block("backchain-route", LOOKUP,
+                         [backchain, *cited.backchain, ""] if backchain else []))
     blocks.append(_Block("builds-on", LOOKUP, _builds_on_lines(root, state, stage, workitem)))
-    blocks.append(_Block("backchain-route", LOOKUP, [backchain, ""] if backchain else []))
     blocks.append(_Block("progress-view", CHROME, [
         f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to track "
         "changes during this ShipLoop run."]))
     blocks.append(_Block("pause", CHROME, [
         "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
         + " (only when the user asks or a real blocker stops authorized work)"]))
-    consumer = _consumer_lines(root, state, stage)
+    consumer = _without_step_criteria(_consumer_lines(root, state, stage), state, stage, workitem)
     blocks.append(_Block("quoted", QUOTED, consumer))
     blocks.append(_Block("pass-log", FILE_ONLY, pass_log))
     blocks.append(_Block("halt", FILE_ONLY, [HALT_LINE]))
@@ -1940,8 +2037,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
             + "#recursive-discovery-and-experiments",
             "Navigator adapter: " + str(_reference_dir(core) / "research-loop.md") + "#navigator-execution-mode-adapter"]))
     blocks.append(_Block("deltas", FILE_ONLY, [
-        *_answered_lines(root, state), *_replan_delta_lines(root, state, stage),
-        *_revise_delta_lines(root, state, stage, workitem), *_knowledge_lines(root, state, stage)]))
+        *_answered_lines(root, state), *_replan_delta_lines(root, state, stage), *_knowledge_lines(root, state, stage)]))
     blocks.append(_Block("lint-records", FILE_ONLY, _lint_lines(core, root, state, stage, action_id, commands=False)))
     if stage == quality.STAGE:
         blocks.append(_Block("change-inventory", FILE_ONLY, quality.inventory_lines(root, state, workitem or "", action_id)))
@@ -4443,31 +4539,113 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     return prose_symbols(_render_lines(core, root, state, timeline), core, Path(root), state)
 
 
-def _run_context_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str, workitem: str | None,
-                       stage_text: str, *, producer: bool = False) -> list[str]:
-    """The run rules, the guides, the Backchain and workspace lines, the queue, the planning sources, the last accepted
-    transition, the test context and the work item: what a packet prints about the run around the stage's own text.
-
-    ``producer`` leaves out what an active producer packet prints as its own blocks (the Keepalive marker beside the
-    status, the carry-forward queue rule, the last accepted transition and the work item as the stage's inputs).
-    """
-    prelude, inner, outer = graph(state)
+def _stage_guide_lines(core: Any, state: Mapping[str, Any], stage: str, named: str | None) -> list[str]:
+    """The stage's guides (``STAGE_REFERENCES``), each as ``<label>: <path>``: those whose label the text ``named``
+    names, or every one (``named`` None)."""
     reference_dir = _reference_dir(core)
     route = delegation(state)
+    return [label + ": " + str(reference_dir / reference)
+            for label, reference in guidance.STAGE_REFERENCES.get(stage, ())
+            # Inline runs execute reviewed steps directly and never bind a chain.
+            if not (route == guidance.INLINE and label == "Parallel-chain guide")
+            and (named is None or label in named)]
+
+
+class CitedGuides(NamedTuple):
+    """An active producer's guide lines, split by where they print (``_cited_guides``)."""
+    guides: list[str]           # the guides and policies the stage text names, not already located in it: the head
+    backchain: list[str]        # the Backchain lines the stage's Backchain paragraph or line cites: the head
+    other_guides: list[str]     # the stage's other guides: the packet file's run context
+    other_backchain: list[str]  # the other Backchain lines (an uncited loop-resource status): the run context
+
+
+def _cited_guides(core: Any, root: Path, state: Mapping[str, Any], stage: str, stage_text: str) -> CitedGuides:
+    """What an active producer's guidance cites by label, with the locator, and what only the file keeps.
+
+    A guide or policy the stage text names ("Repeatable test-suite guide", "Interaction design guide") prints with its
+    path unless the text already prints that guide's path (a duty that says "Plan record guide (GUIDES/plan-record.md)").
+    The Backchain lines print with the paragraph or line that cites them; the loop-resource status only where the text
+    names its "Loop resources" line.  Before 2026-10-17 all of them were file-only, so a head cited a guide it did not
+    locate and the model searched the packet file for it (packet review F3, A AX-2, E C-1, G29-2 and G32-1).
+    """
+    reference_dir = _reference_dir(core)
+    stage_text = " ".join(stage_text.split())  # the duties wrap: a label may break across two lines
+    labels = {label for label, _ in guidance.STAGE_REFERENCES.get(stage, ())}
+    located = {label for label, reference in guidance.STAGE_REFERENCES.get(stage, ())
+               if "GUIDES/" + reference.split("#", 1)[0] in stage_text}
+    every = _stage_guide_lines(core, state, stage, None)
+    guides = [line for line in _stage_guide_lines(core, state, stage, stage_text)
+              if line.split(": ", 1)[0] not in located]
+    guides += [label + ": " + str(reference_dir / target) for label, target in run_reference.POLICIES
+               if label in stage_text and label not in labels]
+    backchain = _backchain_lines(core, root, state, stage)
+    cited = [line for line in backchain if not line.startswith("Loop resources ") or "Loop resources" in stage_text]
+    return CitedGuides(guides, cited, [line for line in every if line not in guides],
+                       [line for line in backchain if line not in cited])
+
+
+def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
+    """The Backchain planning guide, the resources (or the audit resource and the loop-resource status) and the graph
+    check command, at a Backchain stage; what the stage's Backchain paragraph or line cites."""
+    if stage not in guidance.BACKCHAIN_STAGES:
+        return []
+    lines = ["Backchain planning guide: " + str(_reference_dir(core) / "backchain-planning.md") + "#navigator-planning"]
+    resources = guidance.resolved_backchain_resources()
+    if (guidance.offers_whole_backchain_loop(stage, recorded_backchain_passes(state))
+            and not state.get("active_improve")):
+        # Only the stage that may start a whole loop selects its full resource set: plan, unless
+        # the run's Backchain passes option is none (then plan prints the audit line and the status).
+        lines.append(
+            "Selected Backchain and Until Loop resources "
+            "(resolved by ShipLoop from its installed plugin):"
+        )
+        lines.extend(f"  {label}: {path}" for label, path in resources)
+    else:
+        audit_resource = dict(resources)[guidance.BACKCHAIN_AUDIT_RESOURCE]
+        lines.append(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {audit_resource}")
+        if not state.get("active_improve"):
+            # S-5: the script reports what the host would otherwise have to check by hand.
+            missing = [label for label, path in resources if path.startswith("MISSING:")]
+            lines.append("Loop resources for a repair/revise request, under "
+                         + str(guidance.backchain_skills_root()) + ": "
+                         + ("MISSING: " + ", ".join(missing) if missing else "all present"))
+    if state["status"] == "active" and not state.get("active_improve"):
+        lines.append("Backchain graph check: " + shlex.join(
+            ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
+            + " <your candidate file>")
+    return lines
+
+
+def _delivery_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
+    """The consumer-delivery schema locator and the contract lines of a run with a delivery contract; else none."""
     lines: list[str] = []
-    lines += _run_rules(core, root, state, _named_policy_text(state, stage, route, stage_text), keepalive=not producer)
-    lines.extend(
-        label + ": " + str(reference_dir / reference)
-        for label, reference in guidance.STAGE_REFERENCES.get(stage, ())
-        # Inline runs execute reviewed steps directly and never bind a chain.
-        if not (route == guidance.INLINE and label == "Parallel-chain guide")
-    )
-    if state["execution_mode"] == "navigator-worktree" and stage not in RETURN_STAGES and state["status"] != "done":
+    if state.get("delivery_contract_version") == consumer_delivery.DELIVERY_CONTRACT_VERSION:
+        lines.append("Consumer-delivery schema and examples: " + str(_reference_dir(core) / "consumer-delivery.md"))
+    delivery_lines = consumer_delivery.packet_lines(state, stage)
+    if delivery_lines:
+        lines.append(_required_excerpt("\n".join(delivery_lines), root,
+                                       "accepted (delivery_assessment records in history order)", limit=6000))
+    return lines
+
+
+def _head_delivery(state: Mapping[str, Any], stage: str) -> bool:
+    """Whether an active producer prints the delivery lines in its head: at the stages whose done the release gate
+    refuses on the contract's necessity and authority (``consumer_delivery.RELEASE_GATED_STAGES``; packet review G33-1)."""
+    return stage in consumer_delivery.RELEASE_GATED_STAGES and state["status"] == "active"
+
+
+def _workspace_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
+    """An isolated run's workspace lines: the rollback at a ``ROLLBACK_STAGES`` stage that makes no return, and at a
+    ``RETURN_STAGES`` stage (or a done run) the execution checkout, the return plan and its commands and route."""
+    if state["execution_mode"] != "navigator-worktree":
+        return []
+    lines: list[str] = []
+    if stage not in RETURN_STAGES and state["status"] != "done":
         # Inner and planning stages need only where to work, which the References block's WORKTREE line says; the
         # return route is printed where it is planned or made, and the rollback at ROLLBACK_STAGES (4b).
         if stage in ROLLBACK_STAGES:
             lines.extend(_return_route_lines(root.parent, rollback=True))
-    elif state["execution_mode"] == "navigator-worktree":
+    else:
         workspace_root = root.parent
         lines.extend([
             "Execution checkout: " + state["repo"]
@@ -4497,40 +4675,30 @@ def _run_context_lines(core: Any, root: Path, state: Mapping[str, Any], stage: s
         else:
             lines.append("The return operation is unavailable here; the script permits it "
                          "only at active release or handoff after assembled-candidate checks.")
-    if state.get("delivery_contract_version") == consumer_delivery.DELIVERY_CONTRACT_VERSION:
-        lines.append(
-            "Consumer-delivery schema and examples: "
-            + str(reference_dir / "consumer-delivery.md")
-        )
-    if stage in guidance.BACKCHAIN_STAGES:
-        lines.append(
-            "Backchain planning guide: "
-            + str(reference_dir / "backchain-planning.md")
-            + "#navigator-planning"
-        )
-        resources = guidance.resolved_backchain_resources()
-        if (guidance.offers_whole_backchain_loop(stage, recorded_backchain_passes(state))
-                and not state.get("active_improve")):
-            # Only the stage that may start a whole loop selects its full resource set: plan, unless
-            # the run's Backchain passes option is none (then plan prints the audit line and the status).
-            lines.append(
-                "Selected Backchain and Until Loop resources "
-                "(resolved by ShipLoop from its installed plugin):"
-            )
-            lines.extend(f"  {label}: {path}" for label, path in resources)
-        else:
-            audit_resource = dict(resources)[guidance.BACKCHAIN_AUDIT_RESOURCE]
-            lines.append(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {audit_resource}")
-            if not state.get("active_improve"):
-                # S-5: the script reports what the host would otherwise have to check by hand.
-                missing = [label for label, path in resources if path.startswith("MISSING:")]
-                lines.append("Loop resources for a repair/revise request, under "
-                             + str(guidance.backchain_skills_root()) + ": "
-                             + ("MISSING: " + ", ".join(missing) if missing else "all present"))
-        if state["status"] == "active" and not state.get("active_improve"):
-            lines.append("Backchain graph check: " + shlex.join(
-                ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
-                + " <your candidate file>")
+    return lines
+
+
+def _run_context_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str, workitem: str | None,
+                       stage_text: str, *, producer: bool = False) -> list[str]:
+    """The run rules, the guides, the Backchain and workspace lines, the queue, the planning sources, the last accepted
+    transition, the test context and the work item: what a packet prints about the run around the stage's own text.
+
+    ``producer`` leaves out what an active producer packet prints as its own blocks: the Keepalive marker beside the
+    status, the carry-forward queue rule, the last accepted transition and the work item as the stage's inputs, the
+    guides and policies its text cites and the Backchain lines (``guides``, ``backchain-route``), the return route at a
+    ``RETURN_STAGES`` stage (``workspace-return``) and the delivery lines a release gate reads (``delivery``).
+    """
+    prelude, inner, outer = graph(state)
+    route = delegation(state)
+    lines: list[str] = []
+    lines += _run_rules(core, root, state, "" if producer else _named_policy_text(state, stage, route, stage_text),
+                        keepalive=not producer)
+    # A producer's head prints the guides and Backchain lines its text cites; the file keeps the rest here.
+    cited = _cited_guides(core, root, state, stage, stage_text) if producer else None
+    lines.extend(_stage_guide_lines(core, state, stage, None) if cited is None else cited.other_guides)
+    if not (producer and stage in RETURN_STAGES):
+        lines.extend(_workspace_lines(core, root, state, stage))
+    lines.extend(_backchain_lines(core, root, state, stage) if cited is None else cited.other_backchain)
     if not (producer and stage == "carry-forward"):  # the producer's own input: printed with the stage's rules
         lines.extend(_queue_lines(root, state, stage))
     if stage in planning_revision.PLANNING_STAGES[:-1]:
@@ -4546,10 +4714,8 @@ def _run_context_lines(core: Any, root: Path, state: Mapping[str, Any], stage: s
         lines.extend(_last_accepted_lines(state, root))
         lines.extend(_improve_lessons_lines(state, root))
     lines.extend(_test_context_lines(state, root))
-    delivery_lines = consumer_delivery.packet_lines(state, stage)
-    if delivery_lines:
-        lines.append(_required_excerpt("\n".join(delivery_lines), root,
-                                       "accepted (delivery_assessment records in history order)", limit=6000))
+    if not (producer and _head_delivery(state, stage)):
+        lines.extend(_delivery_lines(core, root, state, stage))
     if stage in inner:
         if not producer:  # the producer prints the item as one of the stage's inputs
             lines.extend(_work_item_block(root, state).lines)
@@ -4968,7 +5134,7 @@ PROSE_PATH_LINES = re.compile(
     r"Latest reconciliation finding and immutable evidence: |Spec and architecture changes since the run began: not computed|"
     r"State: |Repository knowledge \w+ \(host-authored|Test rerun: on done|Where and floors: |Commands ShipLoop ran \(|"
     r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
-    r"This stage's result before the replan: |The result that sent it back \(|The item's previous step plan \(|"
+    r"This stage's result before the replan: |"
     r"Proposed queue awaiting Improve: |"
     # The Improve handoff's lines that name the child's files as prose (its commit-message and review-evidence lines that
     # carry a command stay literal): the opening, the receipt, the owner record, the review and check files.
@@ -5633,16 +5799,17 @@ def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
                 "Done when (a done result must meet each; correct the result, never the condition):",
                 *("- " + condition for condition in row.done_when)]
     sent_back = _sent_back_results(state, stage, _current_work_item(state))
-    revised = "the summary says which rows are new or changed and which are carried over from the previous step plan"
+    revised = ("the summary says which rows are new or changed and which are carried over from the previous "
+               + stage + " result")
     if stage in loops.STAGES and loops.argument_ready(root, state):
         # One home per thing (owner, 2026-10-11): the Until Loop argument after the status block numbers the exit
         # conditions, so the head points at it instead of listing them a second time.  When the argument cannot be
         # built (the invoke block says why), the list stays here, so the conditions are still printed once.
-        done = [DONE_WHEN_LOOP, *(["Also: " + revised + "."] if sent_back else [])]
+        done = [DONE_WHEN_LOOP, *(["Also: " + revised + "."] if sent_back and sent_back.previous else [])]
     else:
         done = ["Done when (confirm each before calling done; keep going until all hold):",
                 *("- " + condition for condition in row.done_when),
-                *(["- " + revised] if sent_back else [])]
+                *(["- " + revised] if sent_back and sent_back.previous else [])]
     # The stage table's develop/test/deploy/tools considerations are folded into each duty (packet re-cut,
     # 2026-10-11), so the packet no longer prints them as a second list.
     return ["Goal: " + row.goal[0].upper() + row.goal[1:].rstrip(".") + ".", *done, _checked_line(row, state)]
@@ -5748,7 +5915,7 @@ def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_i
         # The inventory document's duty 1 lists behaviours from (plan row TD-8): the change inventory exists only at verify.
         changed, why = item_scope.changed_paths_or_reason(root, work_item)
         return lines + [CHANGED_SINCE_BASE + (("not computed: " + why) if changed is None
-                                               else (", ".join(changed) or "none"))]
+                                               else _against_plan(changed, allowed))]
     if stage != "verify":
         return lines
     changed = item_scope.changed_paths(root, work_item)
@@ -5761,10 +5928,23 @@ def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_i
     except item_scope.ItemScopeError:
         return lines  # the workspace manifest is unreadable: name nothing rather than guess
     if committed:
-        lines.append("Changed, ShipLoop will commit: " + ", ".join(committed))
+        lines.append("Changed, ShipLoop will commit: " + _against_plan(committed, allowed))
     if left:
-        lines.append("Changed, ShipLoop will not commit: " + ", ".join(left))
+        lines.append("Changed, ShipLoop will not commit: " + _against_plan(left, allowed))
     return lines
+
+
+def _against_plan(paths: Sequence[str], declared: Sequence[str]) -> str:
+    """``paths`` as a list, or, when two or more of them are step-plan paths, naming the step plan's list (printed on the
+    line above) once instead of repeating it: "every step-plan path[ except ...][, plus ...]" (packet review D-6: the two
+    lists shared 17 of their paths).  A plan that declares a glob keeps the full list: a glob is no path to except."""
+    in_plan = [path for path in paths if path in declared]
+    if len(in_plan) < 2 or any(char in path for path in declared for char in "*?["):
+        return ", ".join(paths) or "none"
+    missing = [path for path in declared if path not in paths]
+    extra = [path for path in paths if path not in declared]
+    return (("every step-plan path" if not missing else "the step-plan paths except " + ", ".join(missing))
+            + (", plus " + ", ".join(extra) if extra else ""))
 
 
 def step_checks(steps: Sequence[Mapping[str, Any]], index: int,
@@ -5792,8 +5972,43 @@ def step_checks(steps: Sequence[Mapping[str, Any]], index: int,
     return due, later
 
 
+def _step_criteria(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[tuple[str, str]]:
+    """``[(id, text)]`` of the criteria the current inline implement step lists, in plan order, as the step plan wrote
+    them; [] where ``_step_lines`` prints no step (another stage, route or packet) or the step lists none."""
+    if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
+            or delegation(state) != guidance.INLINE or work_item is None):
+        return []
+    done, steps = implement_progress(state, work_item)
+    if done >= len(steps):
+        return []
+    listed = {str(ident) for ident in steps[done].get("criteria") or ()}
+    _action, plan = test_loop._step_plan(state, work_item)
+    return [(str(row.get("id")), _one_line(row.get("text"))) for row in plan.get("criteria") or ()
+            if isinstance(row, Mapping) and str(row.get("id")) in listed]
+
+
+def _without_step_criteria(lines: list[str], state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """A producer's quoted block with the step's criteria hand-off named by ID where the step block prints them by value
+    (``_step_criteria``): one home per surface.  The Improve handoff, which prints no step block, quotes them whole."""
+    printed = _step_criteria(state, stage, work_item)
+    label = "criteria (" + str(work_item) + " step-plan):"
+    if not printed or label not in lines:
+        return lines
+    start = end = lines.index(label)
+    end += 1
+    while end < len(lines) and lines[end].startswith("- "):
+        end += 1
+    return [*lines[:start], label[:-1] + ": " + ", ".join(ident for ident, _text in printed)
+            + " (printed under the Step line above)", *lines[end:]]
+
+
 def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """Name the one step this inline implement packet is for, and what is already done."""
+    """Name the one step this inline implement packet is for, its criteria, and what is already done.
+
+    The one source of the step block: ``_stage_input_blocks`` puts it in the P1 ``step`` block, which the printed head
+    and the packet file both take (``_producer_blocks``).  The criteria print here by value (packet review B6-2: in the
+    hand-offs only, a head that left them out sent the model to the packet file), and the hand-off names them by ID.
+    """
     if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
             or delegation(state) != guidance.INLINE):
         return []
@@ -5804,7 +6019,10 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
     history = [row for row in state["history"]
                if row.get("stage") == "implement" and row.get("workitem") == work_item
                and row.get("outcome") == "done"][-done:] if done else []
+    criteria = _step_criteria(state, stage, work_item)
     lines = [f"Step {step['id']} ({done + 1} of {len(steps)}), the only work for this packet: {step['task']}",
+             *(["Step criteria (this step satisfies each, in the step plan's words):",
+                *("  " + ident + ": " + text for ident, text in criteria)] if criteria else []),
              "Step paths (change only these): " + (", ".join(str(path) for path in step.get("paths") or ())
                                                    or "none declared"),
              "Step skills (use each; the summary says whether you did): "

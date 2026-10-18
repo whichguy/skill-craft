@@ -294,29 +294,28 @@ def check_result_fields(state: Mapping[str, Any], work_item: str, result: Option
           "test is one this item removes, so it cannot also be a test the item must run.")
 
 
-COUNT_RULE = ("A command passes only when it exits 0 and actually ran tests: ShipLoop reads the runner's summary, "
-              "refuses a run of zero tests, and checks that every listed ID appears in the output. "
-              + guidance.ID_WORD_RULE + " A filter "
-              "that matches nothing is not evidence; running the whole suite instead of the named cases does "
-              "not satisfy a listed ID. If ShipLoop cannot read a focused command's test count, it needs ids "
-              "and a runner flag that prints test names (for example --verbose; never dot or junit; a platform's "
-              "runner: GUIDES/platforms/).")
+# The pass rule, the floor and the ratchet, each one line a head can afford (packet review D-12: the long forms cost the
+# verify head 960 characters; every clause stays, and the refusals still quote their own long reasons).
+COUNT_RULE = ("Pass: exit 0 and at least one test run (ShipLoop reads the runner's summary), with every listed ID in the "
+              "output. " + guidance.ID_WORD_RULE + " A filter that matches nothing is not evidence, and the whole suite "
+              "run in place of the named cases does not satisfy a listed ID. A focused command whose count ShipLoop "
+              "cannot read needs ids and a runner flag that prints test names (for example --verbose; never dot or "
+              "junit; a platform's runner: GUIDES/platforms/).")
 # The test stage's floor (owner decision 2026-10-10, 2): the base count, raised by any earlier run of the action.
-FLOOR_RULE = ("Each focused and regression command must also run at least its floor: the larger of the tests it ran on "
-              "the item's base (ShipLoop's base run, with this item's test files copied in) and the most any earlier "
-              "ShipLoop run of this action ran, less each test the result's retired_tests names that the base run "
-              "showed for that command. A test removed or newly skipped to pass is refused; a test this item "
-              "deliberately retires goes in retired_tests (shape: duty 6), and it must print its name on the base.")
+FLOOR_RULE = ("Floor of each focused and regression command: the larger of its count on the item's base (ShipLoop's base "
+              "run, this item's test files copied in) and the most any earlier ShipLoop run of this action ran, less "
+              "each retired_tests entry the base run showed for it. A test removed or newly skipped to pass is refused; "
+              "a test this item deliberately retires goes in retired_tests (shape: duty 6) and must print its name on "
+              "the base.")
 BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the item's "
              "base (a temporary detached worktree, with only this item's test files copied in). No listed test ID "
              "may pass there: each must fail, or be missing because a file this item adds cannot be loaded. A "
              "characterisation test that passes without this item's change goes in red_na (shape: duty 6). A refused "
              "base run counts toward the same refused runs.")
 # What the reruns after the test stage say about the floor ``accepted_counts`` sets.
-RATCHET_RULE = ("A run must also run at least as many tests as the most any earlier run of the same command that "
-                "ShipLoop accepted for this item has run since its latest step plan, so a test removed or newly skipped "
-                "is refused. A test that must go because the plan changed is a revise; the redone step plan starts the "
-                "count again.")
+RATCHET_RULE = ("Floor: each command runs at least as many tests as the most an accepted ShipLoop run of it ran for this "
+                "item since its latest step plan, so a test removed or newly skipped is refused; a test that must go "
+                "because the plan changed is a revise, and the redone step plan starts the count again.")
 
 
 def _floor_lines(stage: str) -> List[str]:
