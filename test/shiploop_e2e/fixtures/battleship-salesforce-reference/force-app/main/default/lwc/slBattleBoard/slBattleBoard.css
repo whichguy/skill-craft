@@ -1,0 +1,63 @@
+.game {
+    padding: 1rem;
+    background: #fff;
+    max-width: 30rem;
+}
+
+.status {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.counts {
+    margin-bottom: 0.75rem;
+}
+
+.grid {
+    display: inline-block;
+    border: 2px solid #1b3a5b;
+}
+
+.row {
+    display: flex;
+}
+
+.cell {
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid #7aa3c7;
+    background: #d6e8f5;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+.cell:disabled {
+    cursor: default;
+}
+
+.miss {
+    background: #eef4f9;
+    color: #55708a;
+}
+
+.hit {
+    background: #f4b183;
+    color: #8a2b00;
+}
+
+.sunk {
+    background: #c0392b;
+    color: #fff;
+}
+
+.message {
+    min-height: 1.25rem;
+    color: #b00020;
+    margin: 0.5rem 0;
+}
+
+.new-game {
+    padding: 0.4rem 1rem;
+}

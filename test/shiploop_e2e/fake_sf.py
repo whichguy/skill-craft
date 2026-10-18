@@ -17,6 +17,12 @@ points the fake at its state with environment variables:
                     query_errors     {type: message}: a query on that type fails. A message that says "not supported" is answered
                                      like an edition without the object (INVALID_TYPE); any other text, like a timeout, comes back as
                                      a plain QueryFailed error
+                    users            User rows {"Id", "Username"} (default: one, the user `sf org list` names)
+                    assignments      PermissionSetAssignment rows {"Id", "PermissionSetId", "AssigneeId"}
+                    tab_settings     PermissionSetTabSetting rows {"Id", "ParentId", "Name", "Visibility"}: a deployed permission set's
+                                     `<tabSettings>` (visibility Visible -> DefaultOn, Available -> DefaultOff, None -> no row)
+                    permset_refs     {permission set: {type: [names]}}: the apps, tabs and Apex classes a deployed permission set
+                                     names (`<applicationVisibilities>`, `<tabSettings>`, `<classAccesses>`)
   FAKE_SF_LOG     file; one JSON line is appended per call: {"argv", "target_org", "refused", ...}. A destructive deploy
                   also logs {"destructive": {"CustomApplication": [...], "CustomTab": [...], "FlexiPage": [...],
                   "LightningComponentBundle": [...], "ApexClass": [...]}, "type_order": [...], "manifest_types": N}: the members of
@@ -40,10 +46,19 @@ points the fake at its state with environment variables:
   FAKE_SF_DEPLOY_PROBLEM  "Type|Name|problem": a deploy is rejected with that component failure, as the real CLI reports it (status 1,
                   result.details.componentFailures); nothing is deployed.
   FAKE_SF_NOOP_DESTRUCTIVE   "1": a destructive deploy reports success but removes nothing (to test the verify step).
+  FAKE_SF_NOOP_DELETE   "1": `data delete record` reports success but deletes nothing (to test the verify step).
 
-A deploy of a source directory creates what it holds: Apex classes, Lightning web component bundles, and the tabs, applications
-and flexipages (`tabs/<Name>.tab-meta.xml`, `applications/<Name>.app-meta.xml`, `flexipages/<Name>.flexipage-meta.xml`). A
-destructive deploy removes the named members of those five types.
+A deploy of a source directory creates what it holds: Apex classes, Lightning web component bundles, and the tabs, applications,
+flexipages and permission sets (`tabs/<Name>.tab-meta.xml`, `applications/<Name>.app-meta.xml`, `flexipages/<Name>.flexipage-meta.xml`,
+`permissionsets/<Name>.permissionset-meta.xml`). A destructive deploy removes the named members of those six types, all or nothing,
+and refuses (component failures, nothing removed) to remove a permission set that is still assigned to a user, or a component that
+a permission set staying in the org names. Whether the real org refuses the second is not measured: it is the stricter model, so a
+cleanup that passes here removes the permission set before what it names, which is safe either way.
+
+`sf org assign permset --name <Name>... --target-org <alias>` assigns each existing permission set to the user `sf org list` names
+(`--on-behalf-of` is not modelled); `sf data delete record --sobject PermissionSetAssignment --record-id <Id>` removes one assignment.
+Every record has a stable Id derived from its type and name, so a PermissionSet Id read by one query matches the PermissionSetId of
+its assignments in the next.
 
 Queries mirror the real CLI: the Tooling API types need --use-tooling-api, StaticResource and PermissionSet (IsOwnedByProfile = false)
 must be queried without it, and every type answers its name field and LastModifiedDate. `sf --version` prints one plain line.
@@ -58,6 +73,7 @@ import os
 import re
 import sys
 import xml.etree.ElementTree as ET
+import zlib
 from pathlib import Path
 
 TOKEN = "FAKE-TOKEN-DO-NOT-LOG"
@@ -66,6 +82,7 @@ VALUE_FLAGS = {
     "--target-org", "-o", "--source-dir", "-d", "--manifest", "-x", "--post-destructive-changes",
     "--pre-destructive-changes", "--class-names", "-n", "--result-format", "-r", "--file", "-f", "--query", "-q",
     "--wait", "-w", "--test-level", "-l", "--tests", "-t", "--api-version", "--metadata", "-m", "--output-dir",
+    "--name", "--on-behalf-of", "--sobject", "-s", "--record-id", "-i", "--where",
 }
 VERSION = "@salesforce/cli/2.150.6 darwin-arm64 node-v22.14.0"
 BASE_DATE = "2026-09-01T09:00:00.000+0000"
@@ -86,10 +103,23 @@ BASELINE_TYPES = {
 # object -> (where its names live in the state, name field, id prefix). ApexClass and LightningComponentBundle keep their own keys.
 KINDS = {"ApexClass": ("apex_classes", "Name", "01p"), "LightningComponentBundle": ("lwc", "DeveloperName", "0Rb"),
          **{kind: (None, "Name" if kind in ("ApexTrigger", "ApexPage", "ApexComponent", "StaticResource", "PermissionSet", "ExternalString")
-                   else "DeveloperName", "0Xx") for kind in BASELINE_TYPES}}
-DEPLOYABLE = ("CustomApplication", "CustomTab", "FlexiPage", "LightningComponentBundle", "ApexClass")  # what a deploy may create or remove
-SOURCE_SUFFIX = {"CustomTab": ".tab-meta.xml", "CustomApplication": ".app-meta.xml", "FlexiPage": ".flexipage-meta.xml"}  # in tabs/, applications/, flexipages/
-STANDARD_API = {"StaticResource", "PermissionSet"}  # every other object here is queried with --use-tooling-api
+                   else "DeveloperName", "0PS" if kind == "PermissionSet" else "0Xx") for kind in BASELINE_TYPES}}
+# Objects held as rows in the state (their key there), queried by `Field = 'value'` conditions on any of their fields.
+ROWS = {"User": "users", "PermissionSetAssignment": "assignments", "PermissionSetTabSetting": "tab_settings"}
+ROW_FIELDS = {"User": ("Username",), "PermissionSetAssignment": ("PermissionSetId", "AssigneeId"),
+              "PermissionSetTabSetting": ("ParentId", "Name", "Visibility")}
+DEPLOYABLE = ("PermissionSet", "CustomApplication", "CustomTab", "FlexiPage", "LightningComponentBundle", "ApexClass")  # what a deploy may create or remove
+SOURCE_SUFFIX = {"CustomTab": ".tab-meta.xml", "CustomApplication": ".app-meta.xml", "FlexiPage": ".flexipage-meta.xml",
+                 "PermissionSet": ".permissionset-meta.xml"}  # in tabs/, applications/, flexipages/, permissionsets/
+STANDARD_API = {"StaticResource", "PermissionSet", *ROWS}  # every other object here is queried with --use-tooling-api
+USERNAME = "fake@example.invalid"  # the user `sf org list` names for the alias
+TAB_VISIBILITY = {"Visible": "DefaultOn", "Available": "DefaultOff"}  # PermissionSetTabSetting.Visibility for a <tabSettings> visibility
+
+
+def record_id(kind: str, name: str) -> str:
+    """A stable 18-character Id for the record of this type and name (the same in every call)."""
+    prefix = KINDS[kind][2] if kind in KINDS else {"User": "005", "PermissionSetAssignment": "0Pa", "PermissionSetTabSetting": "0Ps"}[kind]
+    return "%s%012dAAA" % (prefix, zlib.crc32(("%s|%s" % (kind, name)).encode()) % 10 ** 12)
 
 
 def default_state() -> dict:
@@ -102,6 +132,10 @@ def default_state() -> dict:
         "types": {kind: list(names) for kind, names in BASELINE_TYPES.items()},
         "dates": {},
         "query_errors": {},
+        "users": [{"Id": record_id("User", USERNAME), "Username": USERNAME}],
+        "assignments": [],
+        "tab_settings": [],
+        "permset_refs": {},
     }
 
 
@@ -179,10 +213,12 @@ def run_query(state: dict, soql: str, tooling: bool) -> int:
     match = re.fullmatch(
         r"\s*SELECT\s+(?P<fields>.+?)\s+FROM\s+(?P<obj>\w+)(?:\s+WHERE\s+(?P<where>.+?))?(?:\s+ORDER\s+BY\s+(?P<order>\w+))?\s*",
         soql, re.IGNORECASE | re.DOTALL)
+    if match and match.group("obj") in ROWS:
+        return row_query(state, match.group("obj"), match.group("fields"), match.group("where"), tooling)
     if not match or match.group("obj") not in KINDS:
         return fail("fake sf cannot parse this query: %s" % soql, "MALFORMED_QUERY")
     obj = match.group("obj")
-    _key, field, prefix = KINDS[obj]
+    _key, field, _prefix = KINDS[obj]
     if tooling == (obj in STANDARD_API):
         return fail("sObject type '%s' is not supported%s." % (obj, " by the Tooling API" if tooling else " without --use-tooling-api"),
                     "INVALID_TYPE")
@@ -209,11 +245,11 @@ def run_query(state: dict, soql: str, tooling: bool) -> int:
         return emit({"status": 0, "result": {"records": [], "totalSize": len(names), "done": True}, "warnings": []})
     dates = state.get("dates", {}).get(obj, {})
     records = []
-    for index, name in enumerate(names, 1):
+    for name in names:
         record = {}
         for f in fields:
             if f == "Id":
-                record["Id"] = "%s%012dAAA" % (prefix, index)
+                record["Id"] = record_id(obj, name)
             elif f.lower() == field.lower():
                 record[field] = name
             elif f == "LastModifiedDate":
@@ -222,6 +258,112 @@ def run_query(state: dict, soql: str, tooling: bool) -> int:
                 return fail("fake sf does not know field %s on %s" % (f, obj), "INVALID_FIELD")
         records.append(record)
     return emit({"status": 0, "result": {"records": records, "totalSize": len(records), "done": True}, "warnings": []})
+
+
+def row_query(state: dict, obj: str, field_list: str, where: str | None, tooling: bool) -> int:
+    """A query on an object held as rows: `SELECT f1, f2 FROM Obj [WHERE F = 'v' [AND G = 'v']]`; Ids compare on 15 characters."""
+    if tooling:
+        return fail("sObject type '%s' is not supported by the Tooling API." % obj, "INVALID_TYPE")
+    rows = list(state.get(ROWS[obj]) or [])
+    known = {"Id", *ROW_FIELDS[obj]}
+    for cond in re.split(r"\s+AND\s+", where, flags=re.IGNORECASE) if where else ():
+        cm = re.fullmatch(r"\s*(\w+)\s*=\s*'((?:[^'\\]|\\.)*)'\s*", cond)
+        if not cm or cm.group(1) not in known:
+            return fail("fake sf supports WHERE <field> = '...' [AND ...] on %s only: %s" % (obj, cond), "MALFORMED_QUERY")
+        key, value = cm.group(1), cm.group(2).replace("\\'", "'")
+        same = (lambda a, b: a[:15] == b[:15]) if key.endswith("Id") else (lambda a, b: a == b)
+        rows = [row for row in rows if same(str(row.get(key) or ""), value)]
+    fields = [f.strip() for f in field_list.split(",")]
+    unknown = [f for f in fields if f not in known]
+    if unknown:
+        return fail("No such column '%s' on entity '%s'." % (unknown[0], obj), "INVALID_FIELD")
+    records = [{"attributes": {"type": obj}, **{f: row.get(f) for f in fields}} for row in rows]
+    return emit({"status": 0, "result": {"records": records, "totalSize": len(records), "done": True}, "warnings": []})
+
+
+def permission_set_refs(state: dict, name: str, source: Path) -> None:
+    """What a deployed permission set names (state["permset_refs"]) and its tab settings rows (PermissionSetTabSetting)."""
+    def local(tag: str) -> str:
+        return tag.rsplit("}", 1)[-1]
+
+    refs: dict[str, list[str]] = {"CustomApplication": [], "CustomTab": [], "ApexClass": []}
+    parent = record_id("PermissionSet", name)
+    settings = [row for row in state.setdefault("tab_settings", []) if row.get("ParentId") != parent]
+    try:
+        root = ET.parse(source).getroot()
+    except (OSError, ET.ParseError):
+        root = None
+    for element in root.iter() if root is not None else ():
+        values = {local(child.tag): (child.text or "").strip() for child in element}
+        tag = local(element.tag)
+        if tag == "applicationVisibilities" and values.get("application"):
+            refs["CustomApplication"].append(values["application"])
+        elif tag == "classAccesses" and values.get("apexClass"):
+            refs["ApexClass"].append(values["apexClass"])
+        elif tag == "tabSettings" and values.get("tab"):
+            refs["CustomTab"].append(values["tab"])
+            if values.get("visibility") in TAB_VISIBILITY:
+                settings.append({"Id": record_id("PermissionSetTabSetting", name + "|" + values["tab"]), "ParentId": parent,
+                                 "Name": values["tab"], "Visibility": TAB_VISIBILITY[values["visibility"]]})
+    state.setdefault("permset_refs", {})[name] = refs
+    state["tab_settings"] = settings
+
+
+def destructive_problems(state: dict, members: dict[str, list[str]]) -> list[dict]:
+    """The component failures that stop a destructive deploy: a permission set still assigned to a user, and a component that a
+    permission set staying in the org names."""
+    problems = []
+    for name in members.get("PermissionSet") or ():
+        parent = record_id("PermissionSet", name)
+        if any(row.get("PermissionSetId") == parent for row in state.get("assignments") or ()):
+            problems.append({"componentType": "PermissionSet", "fullName": name,
+                             "problem": "This permission set is assigned to one or more users. Remove the assignments first."})
+    staying = [ps for ps in state.get("permset_refs") or {} if ps not in (members.get("PermissionSet") or ())
+               and ps in names_of(state, "PermissionSet")]
+    for kind, names in members.items():
+        for name in names:
+            holder = next((ps for ps in staying if name in state["permset_refs"][ps].get(kind, ())), None)
+            if holder:
+                problems.append({"componentType": kind, "fullName": name, "problem": "referenced by PermissionSet %s" % holder})
+    return problems
+
+
+def run_assign(state: dict, path: Path, flags: dict) -> int:
+    """`org assign permset`: each named, existing permission set is assigned to the org's user; the result lists both."""
+    names = flags.get("--name", []) + flags.get("-n", [])
+    if not names:
+        return fail("Missing required flag name", "MissingRequiredFlag")
+    successes, failures = [], []
+    user = state["users"][0]
+    for name in names:
+        parent = record_id("PermissionSet", name)
+        if name not in names_of(state, "PermissionSet"):
+            failures.append({"name": user["Username"], "message": "PermissionSet %s not found" % name})
+        elif any(row["PermissionSetId"] == parent and row["AssigneeId"] == user["Id"] for row in state["assignments"]):
+            failures.append({"name": user["Username"], "message": "Duplicate PermissionSetAssignment: %s" % name})
+        else:
+            state["assignments"].append({"Id": record_id("PermissionSetAssignment", "%s|%s|%d" % (name, user["Id"], len(state["assignments"]))),
+                                         "PermissionSetId": parent, "AssigneeId": user["Id"]})
+            successes.append({"name": user["Username"], "value": name})
+    save_state(state, path)
+    return emit({"status": 1 if failures else 0, "result": {"successes": successes, "failures": failures}, "warnings": []},
+                1 if failures else 0)
+
+
+def run_delete(state: dict, path: Path, flags: dict) -> int:
+    """`data delete record --sobject PermissionSetAssignment --record-id <Id>`: the one record the harness's cleanup deletes."""
+    if "delete" in fail_ops():
+        return fail("fake sf: delete failed on request", "DeleteFailed")
+    sobject, record = first(flags, "--sobject", "-s"), first(flags, "--record-id", "-i")
+    if sobject != "PermissionSetAssignment" or not record:
+        return fail("fake sf: data delete record supports --sobject PermissionSetAssignment --record-id <Id> only")
+    rows = state["assignments"]
+    if not any(row["Id"][:15] == record[:15] for row in rows):
+        return fail("entity is deleted or does not exist: %s" % record, "ENTITY_IS_DELETED")
+    if os.environ.get("FAKE_SF_NOOP_DELETE") != "1":
+        state["assignments"] = [row for row in rows if row["Id"][:15] != record[:15]]
+        save_state(state, path)
+    return emit({"status": 0, "result": {"id": record, "success": True, "errors": []}, "warnings": []})
 
 
 def touch(state: dict, kind: str, name: str) -> None:
@@ -263,12 +405,21 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
                 entry["manifest_types"] = -1
         if any(m == "*" for names in members.values() for m in names):
             return fail("fake sf: wildcard destructive change refused", "WildcardRefused")
+        problems = destructive_problems(state, members)
+        if problems:  # all or nothing, like the real deploy: nothing is removed
+            entry["destructive_refused"] = problems
+            return emit({"status": 1, "result": {"status": "Failed", "success": False, "numberComponentErrors": len(problems),
+                                                 "details": {"componentFailures": problems}}}, 1)
         if os.environ.get("FAKE_SF_NOOP_DESTRUCTIVE") != "1":
             for kind, names in members.items():
                 current = names_of(state, kind)
                 current[:] = [n for n in current if n not in names]
                 for n in names:
                     state.get("dates", {}).get(kind, {}).pop(n, None)
+            for name in members["PermissionSet"]:
+                state.get("permset_refs", {}).pop(name, None)
+                parent = record_id("PermissionSet", name)
+                state["tab_settings"] = [row for row in state.get("tab_settings") or [] if row.get("ParentId") != parent]
             save_state(state, path)
         count = sum(len(v) for v in members.values())
         return emit({"status": 0, "result": {"success": True, "status": "Succeeded", "numberComponentsDeployed": count,
@@ -300,6 +451,8 @@ def run_deploy(state: dict, path: Path, flags: dict, entry: dict) -> int:
         for kind, suffix in SOURCE_SUFFIX.items():
             for item in sorted(root.rglob("*" + suffix)):
                 touch(state, kind, item.name[:-len(suffix)])
+                if kind == "PermissionSet":
+                    permission_set_refs(state, item.name[:-len(suffix)], item)
                 deployed += 1
     save_state(state, path)
     return emit({"status": 0, "result": {"success": True, "status": "Succeeded", "numberComponentsDeployed": deployed,
@@ -417,6 +570,10 @@ def main(argv: list[str]) -> int:
             code = run_tests(state, flags)
         elif command == "apex run":
             code = run_apex(flags, entry)
+        elif words[:3] == ["org", "assign", "permset"]:
+            code = run_assign(state, path, flags)
+        elif words[:3] == ["data", "delete", "record"]:
+            code = run_delete(state, path, flags)
         else:
             code = fail("fake sf: unsupported command: %s" % " ".join(words))
     finally:

@@ -231,3 +231,11 @@ rule and the step-plan/test-spec loops) are the largest controllable share; the 
 Open: the guard's default-scope deploy block on `.gitkeep` (a deploy of an empty directory is not a risk; fix after the run, not in it); ShipLoop's red-check
 and mutation steps cannot read Apex test output from the human reporter (a platform-declared test adapter, in `references/platforms/salesforce.md`); a longer cap
 or a faster loop is needed before this case can pass.
+
+## 2026-10-17: the Battleship case reuses this case's checks (pointer)
+
+`battleship-salesforce` (owner request 2026-10-17) loads `checks/chess_salesforce.py` as its Salesforce library. Three chess functions
+gained a parameter whose default keeps this case's behaviour (`destructive_xml` order, `describe` removable types, the extracted
+`destructive_deploy`, which now also names a refused destructive deploy's component failures); the chess suite is unchanged at 192
+tests and passes. The guard's permission-set scope and `org assign permset` exist only behind `sf_guard.py --permission-sets`, which
+this case's wrapper does not pass. Design, oracle and open items: `docs/e2e-salesforce-battleship-journal.md`.
