@@ -7737,9 +7737,11 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 gate_lines = gate_lines + request_file.notices(state["prompt"], str(submitted.get("summary") or ""))
         if check_only:
             # The gates above ran in check-only form; nothing is accepted, saved or committed.
+            # Owner decision D5 (2026-10-17): the real complete takes this test run while nothing changes.
+            reuse = test_loop.reuse_note(root, str(action_id)) if cursor_stage in test_loop.VERIFY_STAGES else ""
             print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "
                   "Until Loop receipt is checked only on the real complete). The action is not completed; run the "
-                  "same complete command without --check-only to submit it.")
+                  "same complete command without --check-only to submit it." + (" " + reuse if reuse else ""))
             if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.
