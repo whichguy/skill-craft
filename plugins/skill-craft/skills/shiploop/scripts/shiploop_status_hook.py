@@ -2,8 +2,9 @@
 """Claude Code PostToolUse adapter: show ShipLoop's own status to the user.
 
 Reads the hook payload on stdin. When the Bash call was a direct ShipLoop CLI
-invocation whose stdout carries the script-rendered status block, prints
-``{"systemMessage": <two-line compact status>}``; otherwise prints nothing. It never reads run
+invocation whose stdout carries the script-rendered progress (a packet's one progress block: the milestone
+narrative or the status line; or the full status block that ``shiploop status`` prints), prints
+``{"systemMessage": <the narrative, or a two-line compact status>}``; otherwise prints nothing. It never reads run
 state, resolves paths, or fails the tool call: every problem exits 0 silently (with ``SHIPLOOP_DEBUG`` set,
 the problem is named on stderr).
 """
@@ -28,9 +29,14 @@ END = "=== end ShipLoop status ==="
 BOLD, PLAIN = "\x1b[1m", "\x1b[22m"
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
+# A packet that is not a milestone carries this one line instead, "Where: <where> · Next: <next>"
+# (shiploop_navigator.status_line); the full block is printed only by `shiploop status` (packet review F6, 2026-10-17).
+LINE = re.compile(r"^Where: (?P<where>.+?) · (?P<label>Next|Waiting on you|Stopped): (?P<value>.+)$", re.M)
 HEADER = "ShipLoop navigator | "
-# The block must end this early in stdout: the navigator's PRINT_LIMIT, the most
-# ShipLoop prints. Claude Code keeps the first ~30,000 characters of oversized Bash
+# The progress must end this early in stdout: the navigator's PRINT_LIMIT, the most a
+# packet prints whole, and a head (up to 20,000 characters) puts the progress block
+# after its callback, goal and Until Loop block, inside it (test/shiploop-head-order.test.py).
+# Claude Code keeps the first ~30,000 characters of oversized Bash
 # output (measured 2026-09-25), so the whole printed packet reaches the hook. It was
 # 8000 until the step-plan template's per-step criteria and paths (2026-10-10) pushed
 # the block 450 characters past it on the ask-agent route.
@@ -41,7 +47,7 @@ WRAPPER_LINES = {
     "next": "shiploop next — reprint stdout\n",
 }
 PACKET_VERBS = {
-    "init", "next", "context", "complete", "improve-bind", "improve-start",
+    "init", "next", "context", "complete", "improve-bind", "improve-start", "improve-pass",
     "improve-reconcile", "pause", "resume", "halt", "delegation", "lint-mode",
 }
 INTERPRETER = re.compile(r"python(\d+(\.\d+)*)?$")
@@ -138,8 +144,24 @@ def shell_call(payload: Any) -> tuple[str, str, str] | None:
     return host, command, output
 
 
-def status_block(payload: Any) -> tuple[str, str] | None:
-    """Return (host, block) when this call was a direct ShipLoop call carrying its block."""
+def packet_progress(stdout: str) -> str | None:
+    """A packet's one progress block in its first WINDOW characters: the narrative section or the status line.
+
+    None when there is none, or more than one (a second copy, or both kinds, is ambiguous and shows nothing).
+    """
+    head = stdout[:WINDOW]
+    lines = list(LINE.finditer(head))
+    if head.count(NARRATIVE_BEGIN) + len(lines) != 1:
+        return None
+    if lines:
+        return lines[0].group(0)
+    start, end = head.find(NARRATIVE_BEGIN), head.find(NARRATIVE_END)
+    return head[start:end + len(NARRATIVE_END)] if end > start else None
+
+
+def progress(payload: Any) -> tuple[str, str] | None:
+    """Return (host, progress) when this call was a direct ShipLoop call carrying its own progress: the block for
+    ``status``, a packet's narrative section or its status line."""
     call = shell_call(payload)
     if call is None:
         return None
@@ -153,10 +175,7 @@ def status_block(payload: Any) -> tuple[str, str] | None:
         if not stdout.startswith(line):
             return None
         stdout = stdout[len(line):]
-    if verb == "status":
-        if not stdout.startswith(BEGIN):
-            return None
-    else:
+    if verb != "status":
         body = stdout
         for prefix in PREFIXES:
             if body.startswith(prefix):
@@ -164,6 +183,10 @@ def status_block(payload: Any) -> tuple[str, str] | None:
                 break
         if not body.startswith(HEADER):
             return None
+        shown = packet_progress(stdout)
+        return None if shown is None else (host, shown)
+    if not stdout.startswith(BEGIN):
+        return None
     head = stdout[:WINDOW]
     start, end = head.find(BEGIN), head.find(END)
     if start < 0 or end < start or head.count(BEGIN) != 1:
@@ -172,16 +195,19 @@ def status_block(payload: Any) -> tuple[str, str] | None:
 
 
 def compact(block: str) -> str:
-    """Two lines from the block: where the run is, then what finished and what comes next.
+    """Two lines from the block or the status line: where the run is, then what finished (the block only) and what
+    comes next.
 
     Hosts show a hook message as a warning, so the full block reads as an alarm
     at every step; ``status`` and ``status.md`` keep the full block.
     """
-    rows: dict[str, str] = {}
-    for row in block.splitlines()[1:-1]:
-        label, sep, value = row.partition(":")
-        if sep:
-            rows.setdefault(label.strip(), value.strip())
+    found = LINE.fullmatch(block)
+    rows: dict[str, str] = {"Where": found["where"], found["label"]: found["value"]} if found else {}
+    if not found:
+        for row in block.splitlines()[1:-1]:
+            label, sep, value = row.partition(":")
+            if sep:
+                rows.setdefault(label.strip(), value.strip())
     if not rows.get("Where"):
         return block
     second = [f"Done: {rows['Done']}"] if rows.get("Done") else []
@@ -219,15 +245,15 @@ def narrative_text(stdout: str) -> str | None:
 def status_message(payload: Any) -> str | None:
     """Return what to show the user, only on hosts that can display it.
 
-    A milestone packet carries the run narrative; every other packet shows the
-    compact two-line status.
+    A milestone packet carries the run narrative, shown as styled text; every other packet carries the status line,
+    and ``status`` the full block, both shown as the compact two-line status.
     """
-    found = status_block(payload)
+    found = progress(payload)
     if found is None or found[0] not in DISPLAY_HOSTS:
         return None
-    call = shell_call(payload)
-    story = narrative_text(call[2]) if call is not None else None
-    return story or compact(found[1])
+    if found[1].startswith(NARRATIVE_BEGIN):
+        return narrative_text(found[1])
+    return compact(found[1])
 
 
 def main() -> int:

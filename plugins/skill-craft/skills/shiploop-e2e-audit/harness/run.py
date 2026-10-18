@@ -66,9 +66,11 @@ _PRODUCER_CALLBACKS = frozenset(("complete",))
 # Stages ShipLoop can record by script with no callback (engine change 2026-10-10), and the exact summary text it
 # writes then, stated literally rather than imported: validate-existing when every expectation check matched, and
 # test or document when the item leaves them out.  Such an action needs no callback; any other one still does.
+# Validate-existing's summary is the opening words only: a run of an earlier ShipLoop continued the same sentence
+# ("...; validate-existing was recorded without running it. Records: <path>").
 _SCRIPT_RECORDED = {
     "validate-existing": ("ShipLoop ran every expectation check on the unchanged checkout and each matched its "
-                          "state; validate-existing was recorded without running it.", ""),
+                          "state", ""),
     "test": ("Not applicable to this item: ", ". ShipLoop recorded this stage without running it."),
     "document": ("Not applicable to this item: ", ". ShipLoop recorded this stage without running it."),
 }

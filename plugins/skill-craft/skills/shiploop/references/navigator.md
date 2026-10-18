@@ -53,17 +53,17 @@ including a justified N/A output. The planning producers (`spec`,
 `carry-forward` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
-Every inner stage does its work inside one bound Until Loop invoked by name,
-with a ShipLoop-authored contract and receipt under `loops/`
-([stage Until Loops](../SKILL.md#stage-until-loops)). ShipLoop accepts an inner
+Every inner stage does its work inside one bound Until Loop started by the
+packet's literal command, with a ShipLoop-authored contract and receipt under `loops/`
+([stage Until Loops](inner-loop.md#stage-until-loops)). ShipLoop accepts an inner
 `done` only with a terminal packet that matches the contract rebuilt from state,
 and only after the stage's script gates pass: the expectation checks at
-`validate-existing`, the [lint gate](../SKILL.md#script-owned-lint) at
+`validate-existing`, the [lint gate](run-options.md#script-owned-lint) at
 `implement`, `test` and `verify`, ShipLoop's base and candidate
-[test runs](../SKILL.md#test-loop) at `test`, and its rerun of every recorded
+[test runs](test-loop.md#test-loop) at `test`, and its rerun of every recorded
 command at `verify`. Each loop prints its own repeat condition; the
 `implement` and `test` loops carry the
-[pass-or-stop rule](../SKILL.md#tests-pass-or-the-step-stops).
+[pass-or-stop rule](test-loop.md#tests-pass-or-the-step-stops).
 No stage contains a copied Improve policy or independently counts review passes.
 
 ## Whole-run map
@@ -120,7 +120,7 @@ resolve).
 | Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `revise`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `repeat`, `blocked`, `replan` with new work items |
 | Going back | `revise` returns the item to `step-plan`; `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
-| Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations and skills at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
+| Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `check` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a
@@ -174,7 +174,7 @@ python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
 # Choose how many passes the Backchain planning child may take (one is the default; fixed for the run):
 python3 "$CLI" workspace start --repo="$REPO" --backchain-passes=converge --prompt='requested outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
-python3 "$CLI" complete --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
+python3 "$CLI" complete --run-dir="$RUN_DIR" --action="$ACTION"   # reads $RUN_DIR/inbox/$ACTION.md; --result takes only that path
 ```
 
 `workspace start` and direct `init` return an `intake` producer packet for a
@@ -220,7 +220,7 @@ packets are rendered with. No verb changes it mid-run, a retry of `init` or
 fresh-run hint. `none` offers no whole `plan`/`draft` loop: the `plan` packet prints the
 audit resource and the loop-resource status line, as the other Backchain stages do, and
 not the six-file "Selected Backchain and Until Loop resources" block that `one` and
-`converge` print there. See [Backchain passes option](../SKILL.md#backchain-passes-option).
+`converge` print there. See [Backchain passes option](backchain-route.md#backchain-passes-option).
 
 Every run also records its `planning_review` option (`stage` or `none`; `stage` unless
 `--planning-review` says otherwise), which selects the planning results that start an
@@ -230,7 +230,7 @@ so the Improve line of those packets says none starts and no reconcile route or 
 experiment locator is printed. The children after each `implement` step, `system-test-author`,
 `release-plan` and the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
 it, and a saved run without it is refused with the fresh-run hint. See
-[Planning review option](../SKILL.md#planning-review-option).
+[Planning review option](run-options.md#planning-review-option).
 
 Every packet prints the shared
 [reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
@@ -243,7 +243,7 @@ packets also select the [Backchain adaptation](backchain-planning.md#navigator-p
 For the current ephemeral adapter, carry those constraints and locators into
 frozen `context`, with the exact parent binding line in `context.request` and a
 fresh `handoff` on each `done`. Save complete raw runtime responses at the
-per-action `.shiploop-improve/<run-id>/<reviewed action>/packet.json` path (the runtime writes it
+per-action `.shiploop-improve/<stage>-<last 8 characters of the reviewed action>/packet.json` path (the runtime writes it
 through `--receipt`). An active receipt supplies the exact read-only `next_argv`; a complete
 receipt survives temporary child state deletion and can be imported without
 another review. Missing or stopped child receipts leave the parent incomplete.
@@ -257,11 +257,20 @@ recorded owner stopped. A pause keeps the child active and is never reported as 
 See [the current runtime binding](../README.md#current-improve-and-until-loop-binding)
 for the transition example and validation limits.
 
-The line after the packet header (`ShipLoop navigator | stage | revision N`) is
-the one legal callback for the current owner: `complete` for a producer,
+Two pointer lines follow the header (`ShipLoop navigator | stage | revision N`) of a producer
+packet, whether printed whole, as a head or read from its file: `Lost context, or unsure? Run
+<CLI> next --run-dir=<RUN> (it reprints this step).` and `Full packet: <RUN>/packets/<id>.md - ...`,
+which says to open the packet file with a file tool when a print was cut (a complete print ends
+with the line `=== end ShipLoop head ===`; every head carries the duties and the result template),
+and that the file's References block lists the other references (the run's `reference.md` and `context-index.md`
+among them) and what each holds. The one legal callback for the current owner is the third line
+after the header, labelled `Callback for this stage` and giving the reason to run it exactly as
+printed (an Improve child's packet labels it `Next command (` or
+`2. When the improve skill has completed, run:`; the bound child carries no pointer line):
+`complete` for a producer,
 `improve-bind` for an unbound child, or `complete --action=<improve id>` for the Improve stage
 (its header reads `ShipLoop navigator | improve | revision N | the <stage> result`).
-Paused, blocked, halted and done packets print none. A producer result fills in
+Paused, blocked, halted and done packets print no callback (they carry the `next` pointer and the owner rule). A producer result fills in
 the packet's printed template, for example:
 
 ````markdown
@@ -286,7 +295,10 @@ conversation without clearing, pausing for a clear or delegating (see
 conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
 reprinted packet. ShipLoop issues one `implement` packet per step of the
-accepted step plan, in its order, in the execution checkout. It binds no chain
+accepted step plan, in its order, in the execution checkout. Each packet, its
+printed head and the step's Improve hand-off carry the same Step block (task,
+criteria, Proof, dependencies, later steps) and end with the step's Until Loop;
+ShipLoop runs the step's Proof, its step-plan `check`, at done. It binds no chain
 and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan` records
 ordered `steps` rather than a dispatcher execution graph.
 
@@ -313,8 +325,8 @@ boundary once per assignment; an already-fresh worker does not delegate again
 because the packet repeats. When no fresh worker is usable, execute the
 assignment in this conversation.
 
-Active INNER Improve handoffs never clear the invoking parent. Under
-`delegation: inline` they begin with **Keep the invoking parent alive and run
+Active INNER Improve reviews never clear the invoking parent. Under
+`delegation: inline` the Improve route file (named by the handoff) says **Keep the invoking parent alive and run
 this Improve invocation inline.** The parent conversation runs the selected
 Improve card's ShipLoop whole-skill subcall itself, in the exact Child
 workspace. It does not hand the invocation to Ask Agent, a native worker or an
@@ -333,7 +345,7 @@ exact `next_argv`; start another runtime only through the stopped-child restart
 route. PRELUDE and
 OUTER Improve handoffs carry the same runtime lines without the prefix.
 
-Under `delegation: ask-agent`, INNER Improve handoffs instead begin with **Keep
+Under `delegation: ask-agent`, the Improve route file instead says **Keep
 the invoking parent alive and follow Improve's selected context ownership.** The
 fresh-context boundary belongs to the whole Improve executor invocation, not its
 invoking parent or individual review iterations. The parent retains collection,
@@ -429,7 +441,7 @@ The semantic result contract is small:
 | `outcome` | `done` or `blocked` at every stage; `repeat` at PRELUDE and OUTER stages (an INNER stage's Until Loop repeats instead); `revise` from `test-spec` through `verify`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews, every `implement` step and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line of at most 100 characters, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved. The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
-| `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
+| `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. A path may lead with `RUN/`, `HOME/`, `WORKTREE/` or `GUIDES/` (the packet's symbols): ShipLoop expands it before any check and stores the absolute path; another all-capital word and a slash is refused as an unknown root. An inner stage's Until Loop receipt is listed by ShipLoop when the result leaves it out. The template's placeholder is refused. |
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
@@ -437,7 +449,7 @@ Stage results add their own fields where the stage needs them: `step-plan` recor
 `steps`, `paths`, `criteria`, `test_commands` (or `test_commands_na`), `check_na`,
 `expectations` and each step's `skills`; `validate-existing`'s `revise` records
 `failed_expectations`; `test` may record `red_na` and `retired_tests`; and a done
-`carry-forward` records its `skill` decision (see [the skill guide](../SKILL.md#the-inner-loop)).
+`carry-forward` records its `skill` decision (see [the skill guide](inner-loop.md#the-inner-loop)).
 `test` and `document` are recorded as not applicable, with a history row and a
 result file, only on the script's proof; `validate-existing` is recorded done by
 script when every expectation check matches.
@@ -506,18 +518,19 @@ omitted counts, short titles and a short blocking reason. Read `state.md` for
 the full queue/history and actual evidence for execution claims. Before
 `plan` and its child complete, the queue is provisional.
 
-Every packet also carries the script-rendered [status block](status-display.md)
-between `=== ShipLoop status ===` and `=== end ShipLoop status ===`: where the
-run is, the phase and item maps, what was just accepted, what comes next, the
-item's plan sentence and the completed items. The block orients the owner; the
-owner does not reprint it. Where the host supports one, a status hook (see the
-status-display guide) shows the user a two-line summary. At start/recovery and
-after each callback the owner tells the user at most one line, for example the
-stage just finished and the one starting, and shows the whole block unchanged
-only when the user asks for the full status. At milestones the packet also
-carries the [run narrative](status-display.md#run-narrative); its first line says
-whether the owner pastes it to the user as written or the host's hook already
-showed it. During long actions or waits, follow the host's update cadence with an actual observation, or the last
+Every packet but an Improve packet also carries one script-rendered progress
+block: at milestones the [run narrative](status-display.md#run-narrative), whose
+first line says whether the owner pastes it to the user as written or the host's
+hook already showed it; otherwise one status line, `Where: … · Next: …`. The
+full [status block](status-display.md) (between `=== ShipLoop status ===` and
+`=== end ShipLoop status ===`: where the run is, the phase and item maps, what
+was just accepted, what comes next, the item's plan sentence and the completed
+items) is in `status.md` and what `shiploop status` prints. The progress orients
+the owner; the owner does not reprint it. Where the host supports one, a status
+hook (see the status-display guide) shows the user the narrative or a two-line
+summary. At start/recovery and after each callback the owner tells the user at
+most one line, for example the stage just finished and the one starting, and
+shows the full block unchanged only when the user asks for the full status. During long actions or waits, follow the host's update cadence with an actual observation, or the last
 known status and next check.
 
 Run to completion by default within the user's scope and existing authority.

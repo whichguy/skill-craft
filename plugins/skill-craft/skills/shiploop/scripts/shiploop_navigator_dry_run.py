@@ -62,7 +62,8 @@ def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[
                 {'command': 'python3 -m unittest discover -s tests', 'suite': 'focused'},
             ]
             # One synthetic step, so implement's packet names it as a run's does.
-            producer['steps'] = [{'id': 'S1', 'task': 'Synthetic step; no work executed.', 'deps': []}]
+            producer['steps'] = [{'id': 'S1', 'task': 'Synthetic step; no work executed.', 'deps': [],
+                                  'check': 'python3 -m unittest discover -s tests'}]
         if stage == 'plan' and two:
             producer['work_items'] = [
                 {'id': 'W1', 'title': 'First fixture'},
@@ -177,7 +178,7 @@ def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAUL
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
             # What `init` records: the improve card installed beside ShipLoop.  The real bundled card, so every inner
-            # packet resolves its Until Loop runtime and shows the INVOKE /until-loop block, as a run's packet does.
+            # packet resolves its Until Loop runtime and shows the RUN until-loop block, as a run's packet does.
             improve_skill=str(stage_loops.BUNDLED_IMPROVE_CARD), delegation=delegation, backchain_passes=backchain_passes,
             planning_review=planning_review,
         )

@@ -198,7 +198,7 @@ and file/handle are gone, do not claim recovery or manufacture another run.
 The final handoff must retain the whole run's key implemented changes and current
 learning synthesis even when the final review made no changes. Use those facts
 and the retained evidence to produce the caller-facing
-[completion summary](../SKILL.md#completion-summary) after a successful terminal
+[completion summary](standalone-route.md#completion-summary) after a successful terminal
 return. A receipt locator alone does not convey what was learned or improved.
 
 ## Boundaries and incomplete work

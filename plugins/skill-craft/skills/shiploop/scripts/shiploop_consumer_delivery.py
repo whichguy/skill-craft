@@ -15,6 +15,7 @@ import re
 from typing import Any
 
 import shiploop_planning_revision as planning_revision
+import shiploop_stage_spec as stage_spec
 
 DELIVERY_CONTRACT_VERSION = 1
 _ANCHOR = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
@@ -71,6 +72,12 @@ _EARLIER_DUE_KINDS = {
     "operations": _OBLIGATION_KINDS,
     "handoff": _OBLIGATION_KINDS,
 }
+# The stages whose packet prints the whole delivery block (the contract, its authority and every obligation with its
+# declared observation): where an observation can be declared or a failure retained (the keys of the two tables above),
+# plan, which declares the contract, and system-test-author, which writes the system tests of its obligations.  Every
+# other stage's packet prints the anchor lines (``anchor_lines``).  Computed from the tables, so a stage added to one
+# of them prints whole with no edit here (efficiency plan U13, rev 4 Step 2.2).
+WHOLE_BLOCK_STAGES = frozenset(_OBSERVABLE_AT) | frozenset(_NEGATIVE_OBSERVABLE_AT) | {"plan", "system-test-author"}
 _POST_RELEASE_PLAN_MUTATION_STAGES = frozenset(
     (
         "system-test-author", "system-test", "product-acceptance", "release-check",
@@ -129,20 +136,23 @@ def _correction_source(value: Any, label: str) -> dict[str, str]:
     return result
 
 
-def _authority(value: Any) -> dict[str, str]:
-    """Check a delivery authority mapping and return a dict of its fields; text is not stripped. ``approval_ref``
-    is returned only for ``repo-policy``, where it is required, and ``scope`` only when given. Raises
-    ``ConsumerDeliveryError`` for a non-mapping, unknown or missing field, invalid value, or non-null
-    ``approval_ref`` or ``standing`` scope on another kind.
+def _authority(value: Any, target: Any = None, operation: Any = None) -> dict[str, str]:
+    """Check a delivery authority mapping and return a dict of its fields; text is not stripped. ``target`` and
+    ``operation`` are the contract's: an authority that leaves its own out takes them (one value, written once: the
+    2026-10-17 run was refused twice for an authority whose copy differed from the contract's), and one that gives them
+    must match (``_contract``); without them the authority must give its own. ``approval_ref`` is returned only for
+    ``repo-policy``, where it is required, and ``scope`` only when given. Raises ``ConsumerDeliveryError`` for a
+    non-mapping, unknown or missing field, invalid value, or non-null ``approval_ref`` or ``standing`` scope on another
+    kind.
     """
     _need(isinstance(value, Mapping), "delivery authority must be an object")
     allowed = {"status", "kind", "reference", "approval_ref", "target", "operation", "scope"}
-    required = {"status", "kind", "reference", "target", "operation"}
+    required = {"status", "kind", "reference"}
     _need(set(value) <= allowed and required <= set(value),
           "delivery authority has unsupported or missing fields")
     status = value.get("status")
     _need(isinstance(status, str) and status in _AUTHORITY_STATUSES,
-          "delivery authority status is invalid")
+          "delivery authority status is invalid: write " + ", ".join(sorted(_AUTHORITY_STATUSES)))
     source = _correction_source(
         {key: value[key] for key in ("kind", "reference", "approval_ref") if key in value},
         "delivery authority",
@@ -150,8 +160,8 @@ def _authority(value: Any) -> dict[str, str]:
     result = {
         "status": status,
         **source,
-        "target": _text(value.get("target"), "delivery authority target"),
-        "operation": _text(value.get("operation"), "delivery authority operation"),
+        "target": _text(value.get("target", target), "delivery authority target"),
+        "operation": _text(value.get("operation", operation), "delivery authority operation"),
     }
     if "scope" in value:
         # A plain yes covers this run; standing needs the user's own words, kept as a repo policy.
@@ -217,13 +227,14 @@ def _contract(value: Any) -> dict[str, Any]:
     _need(set(value) == required, "delivery contract has unsupported or missing fields")
     necessity = value.get("necessity")
     _need(isinstance(necessity, str) and necessity in _NECESSITIES,
-          "delivery necessity is invalid")
-    authority = _authority(value.get("authority"))
+          "delivery necessity is invalid: write " + ", ".join(sorted(_NECESSITIES)))
     target = _text(value.get("target"), "delivery target")
     operation = _text(value.get("operation"), "delivery operation")
-    _need(authority["target"] == target, "delivery authority target does not match contract")
-    _need(authority["operation"] == operation,
-          "delivery authority operation does not match contract")
+    authority = _authority(value.get("authority"), target, operation)
+    _need(authority["target"] == target, "delivery authority target does not match contract; leave the authority's "
+          "target out and ShipLoop takes the contract's")
+    _need(authority["operation"] == operation, "delivery authority operation does not match contract; leave the "
+          "authority's operation out and ShipLoop takes the contract's")
     obligations = _obligations(value.get("obligations"))
     result = {
         "consumer": _text(value.get("consumer"), "delivery consumer"),
@@ -605,19 +616,42 @@ def _late_unrepairable_rows(
     return [row for row in _pending(projection) if row["kind"] in earlier_kinds]
 
 
+def _require_settled(contract: Mapping[str, Any]) -> None:
+    """Refuse a contract whose necessity is unresolved, or required with its authority not approved (``_unsettled``)."""
+    _need(contract["necessity"] != "unresolved",
+          "delivery necessity is unresolved; submit blocked with the needed decision")
+    if contract["necessity"] == "required":
+        _need(contract["authority"]["status"] == "approved",
+              "delivery authority is unresolved; submit blocked with the needed approval")
+
+
 def _require_release_ready(projection: Mapping[str, Any]) -> None:
     contract = projection.get("contract")
     _need(isinstance(contract, Mapping), "delivery contract is required before release planning")
-    if contract["necessity"] == "not-required":
-        _need(not _pending(projection, phase="system-test"),
-              "required pre-update obligations are not current")
-        return
-    _need(contract["necessity"] == "required",
-          "delivery necessity is unresolved; submit blocked with the needed decision")
-    _need(contract["authority"]["status"] == "approved",
-          "delivery authority is unresolved; submit blocked with the needed approval")
+    _require_settled(contract)
     _need(not _pending(projection, phase="system-test"),
           "required pre-update obligations are not current")
+
+
+def validate_settled(state: Mapping[str, Any], action_id: str, stage: str, result: Mapping[str, Any]) -> None:
+    """release-plan's done, at its own complete: refuse a result that leaves the contract unsettled (``_require_settled``).
+
+    release-plan is an Improve checkpoint, so ``validate_transition`` runs only when its Improve review is imported; the
+    necessity and authority are the stage's decision, not the review's, so they are refused here, before a review of a
+    result that cannot be accepted (and ``complete --check-only`` reports them).  Pre-update observations stay at the
+    import: the review may refresh them.  No-op for a run without the delivery guard and for any other stage or outcome.
+    """
+    if (stage != "release-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done"
+            or state.get("delivery_contract_version") != DELIVERY_CONTRACT_VERSION):
+        return
+    contract = _project_submission(state, action_id, stage, result).get("contract")
+    if isinstance(contract, Mapping):
+        _require_settled(contract)
+
+
+# The stages whose done ``validate_transition`` refuses on the contract's necessity and authority
+# (``_require_release_ready``): their packets print the delivery lines in the head, where the gate's input is.
+RELEASE_GATED_STAGES = frozenset(("release-plan", "release-check", "release", "release-verify", "operations", "handoff"))
 
 
 def validate_transition(
@@ -634,10 +668,9 @@ def validate_transition(
     elif stage == "system-test":
         _need(not _pending(projection, phase="system-test"),
               "required pre-update obligations are not current")
-    elif stage == "release-plan":
-        _require_release_ready(projection)
-    elif stage in {"release-check", "release", "release-verify", "operations", "handoff"}:
-        _need(projection["replan_required"] is None, projection["replan_required"])
+    elif stage in RELEASE_GATED_STAGES:
+        if stage != "release-plan":
+            _need(projection["replan_required"] is None, projection["replan_required"])
         _require_release_ready(projection)
         if stage == "release":
             _need(not _pending(projection, phase="release"),
@@ -706,12 +739,11 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
                 "necessity": "unresolved",
                 "basis": "...",
                 "exclusions": [],
+                # The authority's target and operation are the contract's: ShipLoop fills them in (``_authority``).
                 "authority": {
                     "status": "unresolved",
                     "kind": "user-decision",
                     "reference": "...",
-                    "target": "...",
-                    "operation": "...",
                 },
                 # This is a valid minimal early declaration.  When necessity
                 # becomes required, add required effect, identity, and
@@ -719,6 +751,8 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
                 "obligations": [],
             },
         }
+    if stage == "release-plan" and _unsettled(contract):
+        return _settling_template(projection)
     permitted = _OBSERVABLE_AT.get(stage, frozenset())
     rows = [row for row in contract["obligations"] if row["kind"] in permitted]
     if not rows:
@@ -739,8 +773,110 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
     }
 
 
-def packet_lines(state: Mapping[str, Any]) -> list[str]:
-    """Return a fresh-context projection for a marked navigator packet."""
+def _unsettled(contract: Mapping[str, Any]) -> bool:
+    """Whether ``_require_release_ready`` refuses this contract for its necessity or authority (not its observations)."""
+    return contract["necessity"] == "unresolved" or (
+        contract["necessity"] == "required" and contract["authority"]["status"] != "approved")
+
+
+# The decisions a settling template leaves to the stage: the gate refuses the placeholder itself (an invalid necessity or
+# status), so a template copied without deciding is refused, never accepted as a decision.
+SETTLE_NECESSITY = "<required or not-required>"
+SETTLE_STATUS = "<approved: cite the grant in reference; with no grant report blocked>"
+SETTLE_REFERENCE = "<the request sentence or user decision that settles necessity and authority>"
+
+
+def _settling_template(projection: Mapping[str, Any]) -> dict[str, Any]:
+    """release-plan's delivery_assessment while the accepted contract is unsettled (``_unsettled``): the full replacement
+    contract that ``_require_release_ready`` accepts, prefilled from the accepted one.
+
+    The 2026-10-17 run read the consumer-delivery script 7 times at release-plan to learn this shape (packet review E,
+    G33-1): it supersedes the current anchor, carries the correction source a changed necessity needs, and adds a required
+    effect, identity and behavior row for each kind the contract lacks (effect and identity bound to the authority's
+    target).  The necessity, an unapproved status and the correction's reference are placeholders the gate refuses.
+    """
+    contract = projection["contract"]
+    authority = {key: value for key, value in contract["authority"].items() if key not in ("target", "operation")}
+    if authority["status"] != "approved":
+        authority["status"] = SETTLE_STATUS
+    correction = {"kind": authority["kind"], "reference": SETTLE_REFERENCE}
+    if "approval_ref" in authority:
+        correction["approval_ref"] = authority["approval_ref"]
+    rows = [dict(row) for row in contract["obligations"]]
+    required = {row["kind"] for row in rows if row["required"] is True}
+    ids = {row["id"] for row in rows}
+    for kind in ("effect", "identity", "behavior"):
+        if kind in required:
+            continue
+        identifier, number = "O-" + kind, 2
+        while identifier in ids:
+            identifier, number = f"O-{kind}-{number}", number + 1
+        ids.add(identifier)
+        rows.append({"id": identifier, "consumer": contract["consumer"],
+                     "target": contract["target"] if kind != "behavior" else "...", "kind": kind,
+                     "phase": _PHASE_FOR_KIND[kind], "expected": "...", "required": True})
+    settled = {key: deepcopy(value) for key, value in contract.items() if key not in ("authority", "obligations")}
+    return {"kind": "contract", "supersedes": projection["anchor"], "correction": correction,
+            "contract": {**settled, "necessity": SETTLE_NECESSITY, "authority": authority, "obligations": rows}}
+
+
+def checked_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """The delivery refusals of ``stage``'s done, in a packet's words, for its Checked-by line.
+
+    release-plan only (``_require_release_ready``; the later stages it guards meet a contract release-plan settled): the
+    2026-10-17 run met this gate only by reading the script, because Checked-by did not name it (packet review E, G33-1).
+    """
+    if stage != "release-plan":
+        return []
+    projection = project(state)
+    if not projection["enabled"]:
+        return []
+    contract = projection["contract"]
+    lines = []
+    if contract is not None and _unsettled(contract):
+        lines.append("a delivery contract whose necessity is still unresolved, or required with its authority not "
+                     "approved: settle both in the template's delivery_assessment (not-required drops the effect and "
+                     "identity rows), or report blocked with the decision needed")
+    lines.append("when the Improve review is imported, a required pre-update delivery obligation that is not current")
+    return lines
+
+
+def _exclusions_line(contract: Mapping[str, Any]) -> str:
+    return "Delivery exclusions: " + ("; ".join(_packet_text(value) for value in contract["exclusions"]) or "none declared")
+
+
+def exclusions_lines(state: Mapping[str, Any]) -> list[str]:
+    """The accepted contract's exclusions line, for a text that names the request by its file and prints no delivery block
+    (the Improve handoff; owner decision D2, 2026-10-17); [] when the run has no accepted contract."""
+    projection = project(state)
+    return [_exclusions_line(projection["contract"])] if projection["enabled"] and projection["contract"] else []
+
+
+def anchor_lines(projection: Mapping[str, Any]) -> list[str]:
+    """What every stage outside ``WHOLE_BLOCK_STAGES`` prints of an accepted contract: where it is, the obligations it
+    still holds the run to (ids with their phase) and the standing exclusions.  The rest is in the record the anchor names."""
+    contract = projection["contract"]
+    whole_at = ", ".join(stage for stage in stage_spec.STAGES if stage in WHOLE_BLOCK_STAGES)
+    obligations = ", ".join(
+        f"{_packet_text(row['id'])} [{'required' if row['required'] else 'optional'}; "
+        f"{_packet_text(row['phase'])}/{_packet_text(row['kind'])}]"
+        for row in contract["obligations"]) or "none declared"
+    return [
+        f"Delivery contract anchor: {projection['anchor']}",
+        f"Delivery contract record: results/{projection['anchor']}.md",
+        "Delivery obligations (the contract, its authority and each obligation's expected result and observation are in "
+        f"that record and print whole at {whole_at}): " + obligations,
+        _exclusions_line(contract),
+    ]
+
+
+def packet_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """Return a fresh-context projection for a marked navigator packet.
+
+    ``stage`` decides how much of an accepted contract prints: the whole block at ``WHOLE_BLOCK_STAGES``, the anchor
+    lines elsewhere (``anchor_lines``).  A contract not yet accepted, a replanning requirement and a recovery notice print
+    at every stage.
+    """
     projection = project(state)
     if not projection["enabled"]:
         return []
@@ -756,6 +892,9 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
             ]
         )
         return lines
+    if stage not in WHOLE_BLOCK_STAGES:
+        lines.extend(anchor_lines(projection))
+        return lines + _recovery_lines(state, projection)
     lines.extend(
         [
             f"Delivery contract anchor: {projection['anchor']}",
@@ -777,10 +916,7 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
                 " (approval: " + _packet_text(contract["authority"]["approval_ref"]) + ")"
                 if "approval_ref" in contract["authority"] else ""
             ),
-            "Delivery exclusions: " + (
-                "; ".join(_packet_text(value) for value in contract["exclusions"])
-                or "none declared"
-            ),
+            _exclusions_line(contract),
             "For an observation, copy the script-provided contract anchor above; do not invent an anchor or a next stage.",
         ]
     )
@@ -802,6 +938,12 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
             f"{_packet_text(row['consumer'])} -> {_packet_text(row['target'])}]: "
             f"expected {_packet_text(row['expected'])}; {observed_text}"
         )
+    return lines + _recovery_lines(state, projection)
+
+
+def _recovery_lines(state: Mapping[str, Any], projection: Mapping[str, Any]) -> list[str]:
+    """The replanning and recovery notices of a contract that needs them (none for one that does not)."""
+    lines: list[str] = []
     if projection["replan_required"] is not None:
         lines.append("Delivery replanning required: " + projection["replan_required"])
         if _superseded_planning_anchor(state, projection["anchor"]):
@@ -893,10 +1035,12 @@ __all__ = [
     "ConsumerDeliveryError",
     "DELIVERY_CONTRACT_VERSION",
     "canonical_assessment",
+    "checked_lines",
     "html_section",
     "packet_lines",
     "project",
     "template_assessment",
+    "validate_settled",
     "validate_terminal",
     "validate_transition",
 ]

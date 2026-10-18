@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.5.0
+# ShipLoop navigator 1.6.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
@@ -71,6 +71,7 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
 - [Delivery-authority readiness](references/delivery-authority.md)
 - [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
 - [House style: evidenced conventions and per-item exemplar match contracts](references/house-style.md)
+- [Plan record: what a step plan records when the item touches code or stored data, a pinned value, or interactions, UI or service state](references/plan-record.md)
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — on
   a `delegation: ask-agent` run, bind the selected Plan Dispatcher/Ask-Agent
   packages to one current implementation action; `chain bind` refuses a fresh
@@ -158,8 +159,8 @@ Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
 `system-test-author`, `release-plan`), every accepted `implement` step and the
 successful `carry-forward` that leaves no work item pending follow this
 sequence; every other producer result is accepted on its own checks and the
-script selects the next producer directly (see the skill card's "When Improve
-runs"). That is the default of the run option `--planning-review stage|none`;
+script selects the next producer directly (see "When Improve
+runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs)). That is the default of the run option `--planning-review stage|none`;
 with `none` the first five of those (`spec` through `test-spec`) are accepted on
 ShipLoop's checks at `complete` too, and only each `implement` step,
 `system-test-author`, `release-plan` and the last `carry-forward` follow this
@@ -171,11 +172,13 @@ existing (`validate-existing`), Build (`implement` once per step, `test`,
 `system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
-Every inner stage runs its work inside one Until Loop, invoked by name: the
-packet prints `INVOKE /until-loop NOW` with the contract ShipLoop wrote to
-`loops/<action>-contract.json`, and ShipLoop accepts the result only with a
+Every inner stage runs its work inside one Until Loop, started with one literal
+command on every host: the packet says to `RUN` the Until Loop, prints the start
+command, then the argument between two marker lines (it is already in the
+contract file ShipLoop wrote to `loops/<action>-contract.json`) and what to do
+with the loop's result, and ShipLoop accepts the result only with a
 terminal receipt that matches the contract rebuilt from state (see "Stage Until
-Loops" in the [skill guide](SKILL.md)). `complete --check-only` runs a stage's
+Loops" in [the inner loop](references/inner-loop.md#stage-until-loops)). `complete --check-only` runs a stage's
 script gates on a draft result without completing it.
 
 - `step-plan` records the item's steps, paths, criteria, test and check commands
@@ -277,7 +280,8 @@ flowchart LR
 ```
 
 The runtime writes complete raw `start`, `next` and `done` JSON responses at
-`<workspace>/.shiploop-improve/<parent-run-id>/<reviewed action>/packet.json`. This file
+`<workspace>/.shiploop-improve/<stage>-<last 8 characters of the reviewed action>/packet.json`
+(for example `implement-5e2f1a9b`; the child directory). This file
 is a receipt and recovery locator, not another loop controller. Until Loop owns
 one independent temporary file for the active child. Separate parents/actions
 have separate receipts and runtime files; overlapping product edits still need
@@ -299,7 +303,8 @@ and submit the exact `done_argv`. It does not remember or choose the next state.
 Relevant resources still have to be available; a locator does not embed their
 contents or grant authority to change them.
 
-For example, with `required_trivial_reviews: 2`, a material repair reported as
+For example, with `required_trivial_reviews: 2` (Improve's own stop rule, the same for every
+reviewed stage), a material repair reported as
 `non-trivial` leaves the streak at zero. A qualifying `trivial` review raises it
 to one and returns another active action. A second trivial self-pass raises it
 to two; with `exit_assessment: satisfied`, Until Loop returns `status: complete`
@@ -307,7 +312,7 @@ and deletes its temporary file. These are three separate execution/report
 cycles. The LLM judges the evidence and classification; the runtime applies the
 counter and transition. ShipLoop validates the terminal packet's parent/workspace
 identity, context and gate, then archives it as `improve/<reviewed action>/terminal.json`
-alongside two distinct final review files and current check evidence. Only an
+alongside the final review files (two, or one for an unchanged first pass) and current check evidence. Only an
 accepted import releases the parent action. Duplicate matching parent callbacks
 remain idempotent.
 
@@ -583,7 +588,7 @@ run; a Backchain call uses only the `source-aware-native` route.
 The plan packet's Backchain loop takes one review/fix/check pass by default
 (`--backchain-passes one`; `converge` takes two consecutive trivial reviews, `none` takes no whole loop), and
 `--planning-review stage|none` turns the per-stage planning reviews on or off; both are fixed for the run
-(SKILL.md, *Backchain passes option* and *Planning review option*).
+([Backchain route](references/backchain-route.md#backchain-passes-option) and [run options](references/run-options.md#planning-review-option)).
 Keep product-document links portable across worktree return; verify destination
 files and anchors, distinguish planned tests from evidence, and repair affected
 links together when an authorized change moves a destination. Improve/Until Loop
@@ -611,7 +616,7 @@ The navigator applies the actual-skill handoff to the planning stages (spec, tes
 strategy, plan, step plan, test spec, system-test authoring and release plan; with
 `--planning-review none`, only system-test authoring and release plan), to each
 accepted implement step, and to the last carry-forward, whose review covers all
-executed steps before OUTER work. See the skill card's "When Improve runs" section. The producer callback first saves its attempt. The next
+executed steps before OUTER work. See "When Improve runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs). The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual
 selected skill's instructions for its review, history, evidence and commit
@@ -968,8 +973,13 @@ run directory as evidence and start the same request again with a fresh
 
 ## Command reference
 
-The compact stdout packet is authoritative for the current action; its first
-line after the header is the one legal callback. The command surface is:
+The compact stdout packet is authoritative for the current action; the two lines
+under a producer packet's header are the `next` command (`Lost context, or unsure?
+Run ...`) and the packet file (`Full packet: <path> - ...`), and the one legal callback
+is the line labelled `Callback for this stage`, the third line after the header, followed
+by the owner rule (an Improve child's packet labels it `Next command (` or `2. When the
+improve skill has completed, run:`, and the bound one carries neither pointer). The
+command surface is:
 
 ```sh
 # Start a navigator protocol 4 run
@@ -982,11 +992,12 @@ shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CA
 shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN
 # Callbacks the packet prints
-shiploop complete --run-dir RUN --action ACTION --result RESULT.md
+shiploop complete --run-dir RUN --action ACTION [--result RUN/inbox/ACTION.md]   # --result is that one path, which is the default
 shiploop complete --run-dir RUN --action IMPROVE_ID [--notes LESSONS.md] [--final-result RESULT.md] [--no-commit=TEXT]   # the Improve stage's import
 shiploop improve-bind --run-dir RUN --action IMPROVE_ID --skill-card ABSOLUTE_SKILL_CARD
 shiploop improve-start --run-dir RUN --action IMPROVE_ID --restart-stopped
 shiploop improve-commit --run-dir RUN --action IMPROVE_ID --message MESSAGE_FILE [--remote-change]
+shiploop improve-pass --run-dir RUN --action IMPROVE_ID [--no-commit=TEXT]   # one review pass: commit, checks.md, runtime report; prints done and complete
 shiploop improve-reconcile --run-dir RUN --action IMPROVE_ID --result RECONCILIATION.md
 # Run control
 shiploop pause    --run-dir RUN --reason=TEXT
@@ -1031,7 +1042,7 @@ never gates.
 [graph dry runs](references/graph-dry-run.md).
 
 The packet is authoritative for `complete`, `improve-bind`, `improve-start`,
-`improve-commit` and `improve-reconcile` arguments and for recovery; the improve-* verbs and the
+`improve-commit`, `improve-pass` and `improve-reconcile` arguments and for recovery; the improve-* verbs and the
 Improve stage's `complete` take the Improve stage's id, and a command given the reviewed action's id
 is refused. A parent imports only
 matching accepted child evidence and never replaces a blocked child with a

@@ -243,7 +243,7 @@ def _strings(value: Any) -> Iterator[str]:
 # Only commands that drive the run bind; a read-only query (hook-status, status,
 # report, context) from another session must never claim someone else's run.
 COMMAND_RUN_DIR = re.compile(
-    r"\bshiploop\s+(?:init|next|resume|complete|improve-bind|improve-start|improve-reconcile)\b"
+    r"\bshiploop\s+(?:init|next|resume|complete|improve-bind|improve-start|improve-pass|improve-reconcile)\b"
     r"[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
 
 
@@ -265,7 +265,7 @@ def command_run_dir(payload: Any) -> str | None:
 # transcript that happens to contain a marker is not one.
 DRIVING_COMMAND = re.compile(
     r"shiploop[\w.-]*['\"]?\s+(?:workspace\s+start|init|next|resume|complete|improve-bind|improve-start|"
-    r"improve-reconcile)\b")
+    r"improve-pass|improve-reconcile)\b")
 
 
 def invoking_command(payload: Mapping[str, Any]) -> str | None:
@@ -385,9 +385,10 @@ def skill_call(host: str, payload: Mapping[str, Any]) -> bool:
         agent_id=payload.get("agent_id"))
 
 
-# A host started from a Claude shell inherits Claude's variables and has no Skill-call hook: Codex and Cursor set
-# their own, which win over the inherited Claude session (shiploop_grants.detect_host reads the same Codex ones).
-NESTED_NON_CLAUDE = ("CODEX_SANDBOX", "CODEX_THREAD_ID", "CURSOR_PLUGIN_ROOT")
+# A host started from a Claude shell inherits Claude's variables and has no Skill-call hook: Codex, Cursor and OpenCode
+# set their own, which win over the inherited Claude session (shiploop_grants.detect_host reads the same Codex ones;
+# Grok's pair is SESSION_ENV, read first).  OpenCode sets OPENCODE=1 at startup and its shells inherit it.
+NESTED_NON_CLAUDE = ("CODEX_SANDBOX", "CODEX_THREAD_ID", "CURSOR_PLUGIN_ROOT", "OPENCODE")
 
 
 def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool, str]:

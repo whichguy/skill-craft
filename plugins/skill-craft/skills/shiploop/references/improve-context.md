@@ -17,13 +17,15 @@ entrypoint and needs no bound packet; this binding is only the automatic
 internal handoff for an existing ShipLoop run.
 
 Every model-facing command here names the Improve stage's id (`improve_id`, printed in its
-packet): `complete`, `improve-bind`, `improve-start --restart-stopped`, `improve-commit` and
+packet): `complete`, `improve-bind`, `improve-start --restart-stopped`, `improve-commit`, `improve-pass` and
 `improve-reconcile`. A command given the reviewed action's id is refused with "action '<id>' is not
 this run's Improve stage". The child's files stay under the reviewed action
-(`.shiploop-improve/<run>/<reviewed action>/`). The Improve packet is the file
+(`.shiploop-improve/<stage>-<last 8 characters of the reviewed action>/`, for example `implement-5e2f1a9b`, called `CHILD` in the handoff). The Improve packet is the file
 `packets/<improve id>.md` (`packets/<improve id>-bind.md` before a card is bound); it holds two
 lines, the improve skill call on the handoff and the `complete` callback, and the handoff file
-(`handoff.md` beside the receipt) holds everything the review needs. (Before 2026-10-11 the model
+(`handoff.md` beside the receipt) holds this review's facts, its focus and its exact commands; what is the same in
+every review (ownership of both routes, recovery, the stopped-child route, exclusions, the `final_result` rules, the
+fixed review inputs) is in the Improve skill's `references/shiploop-route.md`, which the handoff names (`ROUTE`). (Before 2026-10-11 the model
 wrote the opening, ran `improve-start --opening` and finished with `improve-complete`.)
 
 ## Route by the run's delegation
@@ -52,9 +54,9 @@ apply to both routes.
 
 ## Default route: the parent runs Improve (`delegation: inline`)
 
-INNER Improve handoffs begin with "Keep the invoking parent alive and run this
-Improve invocation inline." PRELUDE and OUTER Improve handoffs carry the same
-runtime lines without that prefix. The parent conversation runs the selected
+The inline route's text, "Keep the invoking parent alive and run this Improve
+invocation inline." and the runtime lines that follow it, is in the route file
+(`Route: inline` in the handoff); a handoff no longer prints it. The parent conversation runs the selected
 Improve card's ShipLoop whole-skill subcall once, in the exact Child
 workspace; its review iterations share this context. Do not hand the invocation
 to Ask Agent, a native worker or an extra worktree, and write no `host-owner.md`.
@@ -85,6 +87,19 @@ If ShipLoop could not start the child (the runtime refused the contract), the st
 and its packet says so; run `improve-start --action <improve id> --restart-stopped`. If the recorded
 card no longer resolves, the packet prints `improve-bind --action <improve id> --skill-card ...`
 instead; the transition then starts the child.
+
+After each review pass, write `reviews/review-<n>.md` (front matter `classification`, `exit`,
+`continuation`; the lines `Read:`, `Found:`, `Changed:`, `Checked:`, `Class:`; a `## Handoff` section) and
+run `improve-pass --action <improve id>`. In this order it refuses until the improve skill's call is
+recorded (where the hooks enforce it), refuses a review missing its form, commits the pass's uncommitted
+edits with `commit-message.md` (the `improve-commit` rules below; `--no-commit` carries a user's
+instruction not to commit), writes `checks.md` itself when the tree is unchanged since the bind and refuses
+a `checks.md` older than the review's last edit otherwise, then writes `report-<n>.json` and
+`pass-<n>.json` and prints the runtime's `done` for the pass (literal, with the report as standard input)
+and the stage's `complete`. It runs neither. At import `complete` writes `RUN/improve/<reviewed
+action>/passes.md`: one row per pass (stage, pass, label, tree changed, seconds, skill call recorded).
+When the hooks enforce the call and the loop ended without one, `complete` refuses and names
+`improve-start --restart-stopped`: a call after the loop ended would review nothing.
 
 To commit a review iteration's changes on this route, write the message to
 `commit-message.md` (beside the receipt) with a file-writing tool and
@@ -337,8 +352,8 @@ Loop runtime is not supported and is refused at bind and import.
 ## Opt-in delegated route: Ask Agent executor (`delegation: ask-agent`)
 
 This route applies when the run's delegation is `ask-agent`, including a saved
-run without the setting. Its INNER Improve handoffs begin "Keep the invoking
-parent alive and follow Improve's selected context ownership." One fresh native
+run without the setting. Its route text begins "Keep the invoking
+parent alive and follow Improve's selected context ownership." (the route file, `Route: ask-agent`). One fresh native
 worker owns the whole invocation. The worker retains useful within-loop context
 while the parent receives a compact return and durable locators. This reduces
 parent-context growth, not necessarily total tokens or latency.

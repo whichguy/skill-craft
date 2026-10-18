@@ -19,18 +19,19 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `report.html` | Derived report written for done and halted runs; not workflow state. For a worktree run it lists, read live from Git, the branches and worktrees the run left in the source repository with the command to remove each; ShipLoop never removes them itself. |
 | `progress.html` | Self-contained live plan, activity and key-file previews, published by a read-only observer. Browser refresh reads the whole file; no web server is needed. |
 | `progress-observer.json`, `.progress.lock`, `.progress-stop`, `.progress-disabled` | Display process status, singleton lock, cooperative stop request and restart preference. None owns workflow state or proves the workflow is running. See [live progress view](status-display.md#live-html-progress-view). |
+| `request.md` | Derived at every save from `state.md`'s request: the request verbatim, then the same text split into sentences `S1..Sn`, a display index a stage cites (`S<n>`); the verbatim text governs. Intake's `complete` prints a counted notice (`ShipLoop request notice: ...`) for each sentence its summary does not cite; it never refuses. |
 | `skill-calls.jsonl` | Append-only record of the Skill-tool calls a Claude Code session bound to this run made, written by the `skill-calls` hook, plus one `gate` line when the Improve stage's invocation was not enforceable on the host. Evidence, not state: the Improve stage's `complete` reads it. See [Skill calls](keepalive.md#skill-calls-claude-code-only). |
 | `status.md` | Derived copy of the user-facing [status block](status-display.md), rewritten by every saved transition in the same transaction as `state.md`; not workflow state. |
 | `decisions/<action>.md` | The user's own reply to a question (or a person's report after steps) a blocked result was `awaiting`, recorded by `resume --answer`/`--observed`. |
 | `improve/<action>-bind.md` | The candidate's tree when that Improve child was bound (`<action>` is the reviewed action); the import compares against it to find the review's own uncommitted edits. |
 | `loops/<action>-contract.json`, `loops/<action>-terminal.json` | An inner stage's Until Loop contract, written by ShipLoop on entry to the action, and the receipt the runtime writes (every packet, the terminal one last). ShipLoop checks the receipt against the contract rebuilt from state, never against the file. Never edit either. |
 | `expectations/` | `validate-existing`'s records: `<action>.md` lists each expectation check's result at entry, one `.txt` per check holds its command and output, and `<item>-preparatory-commit.txt` names the preparatory fix commit the test stage's base run starts from. |
-| `tests/` | ShipLoop's own test runs: `<action>-base<N>.md` (the test stage's base run), `<action>-verify<N>.md` (candidate runs and reruns), `<action>-red-check.md` (the latest `shiploop red-check`) and `<action>-check-only.md` (the candidate run of the latest `complete --check-only`); the last two are replaced on each call and never counted. |
+| `tests/` | ShipLoop's own test runs: `<action>-base<N>.md` (the test stage's base run), `<action>-verify<N>.md` (candidate runs and reruns), `<action>-red-check.md` (the latest `shiploop red-check`) and `<action>-check-only.md` (the candidate run of the latest `complete --check-only`); the last two are replaced on each call and never counted, but `complete` takes a passed check-only run whose command list and working tree are unchanged, and that `verify<N>` record says so under `reused`. An inline `implement` step's Proof (its step-plan `check`) is `<action>-step-proof<N>.md`, bound to the action, the step, the command and the candidate's working trees, with `<action>-step-proof-check-only.md` for `complete --check-only`; a passed record of the same step and command on an unchanged tree is taken instead of running again, at `complete` and at the step's Improve import, which reruns it when the review changed the candidate. A base-run or mutation-check record whose gate did nothing (no focused command, no item base, no mutant) says `disposition: skipped` with `passed: true` and the reason under `skipped`; `complete` prints a `Gates:` line for each gate after the packet. |
 | `quality/code-craft.md` | The *Code craft* rubric file ShipLoop writes on entry to `verify`, which its review reads. |
 | `lint/` | Script-owned lint output, never exit-criteria evidence: per-item base snapshots (`items/`), per-action records and patches, byte-exact tool logs (`logs/`, mode 0600), scratch space (`tmp/`) and pending fix journals. See the [lint catalog](lint-catalog.md). |
 
 The live Improve child keeps its own receipt at
-`<workspace>/.shiploop-improve/<run-id>/<reviewed action>/packet.json` in the execution
+`<workspace>/.shiploop-improve/<stage>-<last 8 characters of the reviewed action>/packet.json` in the execution
 worktree; see [Improve context ownership](improve-context.md). Beside that receipt
 ShipLoop writes `opening.md`, `start.json` and `parent-return.md` when it starts the child at the
 transition into the Improve stage: the `improve-commit` command with its
@@ -65,14 +66,17 @@ executes (`test_loop.stage_commands`). A command in one and not the other is not
 detected, and neither is a strategy file that keeps its commands outside a
 fenced block, as its duty asks.
 
-The planning basis travels the same way. Prelude planning packets (discovery
-through plan) name the current accepted intake-through-test-strategy results as
-**Current planning sources**. The stages that turn the accepted plan into work
-(`step-plan`, `test-spec`, `system-test-author`, `release-plan`) name the
-accepted `spec` and `plan` results there, beside the test strategy source, so
-the steps, tests and release steps are planned from the accepted plan rather
-than from memory. `test/shiploop-planning-handoff.test.py` pins which results
-each stage's packet names.
+The planning basis travels the same way. Each stage's References block lists
+the accepted results it builds on ("Results this stage builds on"): the prelude
+planning packets (discovery through plan) the intake-through-test-strategy
+results, and the stages that turn the accepted plan into work (`step-plan`,
+`test-spec`, `system-test-author`, `release-plan`) the accepted `spec` and
+`plan` results beside the test strategy source, so the steps, tests and release
+steps are planned from the accepted plan rather than from memory. A planning
+packet prints **Current planning sources** (which results are current, which
+finding retired the rest) only for a run with a planning reconciliation.
+`test/shiploop-planning-handoff.test.py` pins which results each stage's packet
+names.
 
 ## Run reference
 
@@ -94,16 +98,26 @@ when it is missing or comes from another version, and the cursor does not move.
 
 ## Run context index
 
-Every save regenerates `context-index.md` in the run directory from `state.md`:
-the request, each current accepted planning result (result file, summary,
-registered notes, Improve receipt and lessons, and the plan's assumptions), the
-work-item queue with each item's accepted results, the outer loop, and
+Every save regenerates `context-index.md` in the run directory from `state.md`. It is the
+run's master index. It opens with a map of about 3 KB: the current stage with its packet file,
+the next and recovery commands, and one row per file or folder of the run, per knowledge file
+(`HOME/spec.md`, `architecture.md`, `environment.md`) and for the skill's guides, saying what
+it holds and when to read it. A test lists a populated run directory and fails on an entry
+the map lacks. After the map comes the run's record: the request, each current accepted
+planning result (result file, summary, registered notes, Improve receipt and lessons, and the
+plan's assumptions), the work-item queue with each item's accepted results, the outer loop, and
 superseded results. It is a derived view with pointers and short summaries, not
 another record; `state.md` stays the authority, and nothing writes the index
 but the script.
 
-Every packet prints the index path right after its callback line, so no stage is
-limited to the result of the stage before it. Active packets also print, in
+Every producer packet puts two pointer lines under its header (owner, 2026-10-16; moved
+2026-10-17 because a model follows a command and rarely opens a file): the `next` command to run
+after lost context or any doubt, then `Full packet: <path>`, the packet file, whose References
+block lists this index (`Run records: RUN/context-index.md`) and `reference.md` and what each holds,
+so no stage is limited to the result of the stage before it. Each is defined once
+(`shiploop_prompts.recovery_pointer`, `packet_pointer`), and `emit` writes the index when a run
+lacks it. An Improve packet that asks for a bind or a restart keeps the `next` pointer; the bound one
+carries neither pointer. Active packets also print, in
 their References block, **Results this stage builds on**: the accepted results
 and durable products of the stages named by the script-owned `STAGE_READS` map in
 `shiploop_context_index.py` (for example `verify` reads the spec, test strategy
@@ -130,7 +144,7 @@ runs), `converge` or `none`. It is set once, by `--backchain-passes` on `init` o
 `workspace start`, and no verb changes it: an `init` or `workspace start` retry that
 names another value is refused, and a saved run without the key is refused with the
 fresh-run hint like any other missing key. See the
-[skill guide](../SKILL.md#backchain-passes-option).
+[skill guide](backchain-route.md#backchain-passes-option).
 
 ## Planning review
 
@@ -142,7 +156,7 @@ set once, by `--planning-review` on `init`
 or `workspace start`, and no verb changes it: an `init` or `workspace start` retry that
 names another value is refused, and a saved run without the key is refused with the
 fresh-run hint like any other missing key. See the
-[skill guide](../SKILL.md#planning-review-option).
+[skill guide](run-options.md#planning-review-option).
 
 ## Authority and safety rules
 

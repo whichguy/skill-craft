@@ -98,10 +98,11 @@ an open investigation. Resolve it and define the required checks before release
 readiness; it is not evidence that no delivery work is needed.
 
 `authority` has `status` (`approved`, `not-required`, `unresolved`), `kind`
-(`request`, `user-decision`, `repo-policy`), `reference`, `target`, and `operation`.
+(`request`, `user-decision`, `repo-policy`) and `reference`; its `target` and `operation`
+are the contract's, so leave them out and ShipLoop fills them in (given, they must match).
 For `repo-policy`, also supply `approval_ref` identifying the user instruction
 that approved it. Optional `scope` is `run` (a plain yes covers this run only) or
-`standing`; `standing` requires `kind: repo-policy` with its `approval_ref`. Its target/operation must match the contract. Agent-authored
+`standing`; `standing` requires `kind: repo-policy` with its `approval_ref`. Agent-authored
 policy cannot authorize itself; a nonempty reference is not authentication.
 Correction sources use the same kind/reference/approval convention.
 
@@ -151,6 +152,11 @@ an automatic repeated write. Old-anchor submissions are rejected.
 `plan` (after its Improve return) needs a contract. `system-test` needs current required prechecks.
 `release-plan` needs resolved necessity and scoped authority for necessary
 activation, plus current prechecks; its deliverable is a **plan**, not an upload.
+While the accepted contract's necessity is unresolved (or required with authority
+not approved), the release-plan template prints the replacement contract that
+settles it, prefilled from the accepted one (supersedes, correction, a required
+effect, identity and behavior row for each missing kind); decide its placeholders,
+or report blocked with the decision needed.
 `release` needs effect and identity observations. `release-verify` needs required
 behavior observations and still-current earlier checks. `handoff` cannot discard a recorded pending requirement.
 Declared local checks remain required even when activation is N/A.
@@ -180,7 +186,7 @@ until a fresh `system-test` and `release-plan` complete for the current contract
 
 When every corrective item changed only non-code paths (its step plan records no
 test command and declares only documentation, configuration or navigation
-metadata, such as a Salesforce tab and app), each outer stage's packet names the
+metadata, such as a tab or app menu entry), each outer stage's packet names the
 delta: the changed paths and the result that stage accepted before the replan.
 The stages still run, because the fresh evidence above is required, but each
 keeps and cites its earlier evidence for everything the paths do not affect, and
@@ -199,10 +205,15 @@ the steps for the person (the entry point, for example a URL or menu entry, and
 the action) and what they should report back, and verify every other case. When
 the release cannot be accepted without that observation, report `release-verify`
 blocked with `awaiting` kind `present` and its `no_default`; the person's report
-(`resume --observed "<their words>"`) resumes it. Then resume verification of the
-same candidate. The feature remains unverified; do not automatically repush
-or upload again just to create a fresh receipt. If the candidate/target changes
-instead, follow the replanning boundary.
+(`resume --observed "<their words>"`) resumes it. Ask once and answerably: step 1
+reaches the consumer entry and says what to answer if it is missing or hidden,
+and the report is one yes/no line per case. Then resume verification of the
+same candidate. A reply that leaves a case unanswered records it not-run and
+open for handoff, but closes no required behavior obligation: while one still
+has no passed observation, ask again for only its unanswered lines. The feature
+remains unverified; do not automatically repush or upload again just to create a
+fresh receipt. If the candidate/target changes instead, follow the replanning
+boundary.
 
 ## Evidence and limits
 

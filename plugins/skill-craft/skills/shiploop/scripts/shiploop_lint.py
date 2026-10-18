@@ -1155,8 +1155,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     lines.append(result_line)
     if stage in GATE_STAGES:
         lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
-                     "remains. For implement, only the item's last step is gated: an earlier step's findings "
-                     "are reported without auto-fix, since a later step may resolve them. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
+                     "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
                      "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
                      "errors and timeouts never block. This pass does not replace the checks you run for this step.")
     else:
@@ -2171,6 +2170,40 @@ def _parts(block: str) -> List[str]:
     return parts
 
 
+# The sections of a lint block that a packet leaves to the stored record (``lint --show`` prints it whole): what was in
+# scope, how each file was covered, the tools found, every command run with its complete output and the Git plumbing.  Each
+# is (its first line's start, the start of the line that ends it; None for a one-line section).  What the packet keeps is
+# the rest: the findings, the verdict, the gate rule with its waiver shape, the rerun command and every notice
+# (auto-fix applied, not applied, tool trouble) the block carries.
+_RECORD_SECTIONS = (("Scope: ", "Coverage:"), ("Coverage:", "Tools on this host: "), ("Tools on this host: ", None),
+                    ("Commands ShipLoop ran (", "Git plumbing for scope ("), ("Git plumbing for scope (", "Findings ("))
+
+
+def _packet_digest(block: str, counts: Mapping[str, Any]) -> Optional[str]:
+    """``block`` without ``_RECORD_SECTIONS``, or None when the whole block must print: a tool that failed or timed out
+    (its output is the diagnosis), a block of another shape (a failure record) or one whose sections are not all found."""
+    if counts.get("tool_errors") or counts.get("timeouts"):
+        return None
+    kept: List[str] = []
+    until: Optional[str] = None
+    dropped = 0
+    for line in block.splitlines():
+        if until is not None:
+            if not line.startswith(until):
+                dropped += 1
+                continue
+            until = None
+        section = next((row for row in _RECORD_SECTIONS if line.startswith(row[0])), None)
+        if section is not None:
+            dropped += 1
+            until = section[1]
+            continue
+        kept.append(line)
+    if until is not None or not dropped:
+        return None
+    return "\n".join(kept)
+
+
 def _show_command(command: str, run_dir: Path, action: str, part: int, rerun: int = 0) -> str:
     argv = ["python3", command, "lint", "--run-dir=" + os.fspath(run_dir), "--action=" + action, "--show"]
     if rerun:
@@ -2244,17 +2277,30 @@ def pending_lines(run_dir: Path) -> List[str]:
     return lines
 
 
-def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional[str], repo: str,
-                 command: str) -> List[str]:
-    """Read-only packet lines for the current action: never lints."""
+def command_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional[str], command: str) -> List[str]:
+    """The lint command the stage runs (implement) and the line that says lint is off (verify): the stage's input."""
     run_dir = Path(run_dir)
-    lines = pending_lines(run_dir)
+    lines: List[str] = []
     if stage == GATE_STAGE and run_option in ("fix", "report"):
         lines.append("Lint each implementation step (report-only): "
                      + _command_line(command, "lint", run_dir=run_dir, action=action))
     if run_option == "off" and stage == "verify":
         lines.append("ShipLoop lint: off (run option lint=off). ShipLoop ran no linters; choose and run this "
                      "step's static checks yourself.")
+    return lines
+
+
+def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional[str], repo: str,
+                 command: str, commands: bool = True) -> List[str]:
+    """Read-only packet lines for the current action: never lints.
+
+    ``commands`` False leaves out ``command_lines`` (a producer packet prints them as the stage's input).  A block of one
+    page prints without its ``_RECORD_SECTIONS`` and with the command that shows the whole record; a larger block, and one
+    whose tools failed, print whole and paged."""
+    run_dir = Path(run_dir)
+    lines = pending_lines(run_dir)
+    if commands:
+        lines.extend(command_lines(run_dir, action, stage=stage, run_option=run_option, command=command))
     record = _record_path(run_dir, action)
     gate_number = 0
     if stage in GATE_STAGES:
@@ -2273,8 +2319,14 @@ def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional
         top = payload.get("toplevel")
         stale = _stale(payload, Path(top) if isinstance(top, str) and top else None)
         parts = _parts(block)
+        digest = _packet_digest(block, payload.get("counts") or {}) if len(parts) == 1 else None
         lines.append("")
-        lines.append(parts[0].rstrip("\n"))
+        lines.append((digest if digest is not None else parts[0]).rstrip("\n"))
+        if digest is not None:
+            lines.append("Whole lint record (scope, coverage, tools, every command run and its output): "
+                         + (shlex.join(["python3", command, "lint", "--run-dir=" + os.fspath(run_dir),
+                                        "--action=" + action, "--show", "--gate=" + str(gate_number), "--part=1"])
+                            if gate_number else _show_command(command, run_dir, action, 1)))
         if len(parts) > 1:
             shows = ([shlex.join(["python3", command, "lint", "--run-dir=" + os.fspath(run_dir),
                                   "--action=" + action, "--show", "--gate=" + str(gate_number),

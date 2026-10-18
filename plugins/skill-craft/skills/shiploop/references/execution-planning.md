@@ -315,7 +315,7 @@ remains responsible for evidence quality, test adequacy and truthful reporting.
 
 Every `implement` step, like every other inner stage, runs its fix-until-confirmed
 loop inside one bound Until Loop that ShipLoop writes for it
-([stage Until Loops](../SKILL.md#stage-until-loops)): `work` is the step,
+([stage Until Loops](inner-loop.md#stage-until-loops)): `work` is the step,
 `exit_condition` is the stage's Done-when lines, `repeat_condition` carries the
 proven-unachievable rule and the stop after 7 genuine fix attempts, and
 `required_trivial_reviews` is 0. A criterion that contradicts another criterion,

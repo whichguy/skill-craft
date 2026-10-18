@@ -1555,14 +1555,16 @@ def rollback_lines(workspace_root: Path) -> List[str]:
     """Commands that undo each return the route above can make, from workspace.md alone (read-only).
 
     The anchors are the manifest's ``source_head`` and ``baseline_commit`` and the run branch, never a receipt's
-    ``source_before`` (which is the previous result in a follow-up).  Every call runs in the source repository, so the
-    recipes survive removing the execution worktree and name no run path.  Raises WorkspaceError when unreadable.
+    ``source_before`` (which is the previous result in a follow-up).  Every call is plain ``git`` run from the source
+    repository's root, as the plan must write it: the recipes survive removing the execution worktree and name no
+    absolute path (packet review 2026-10-17, G33-3: a ``git -C <checkout>`` recipe beside "never this run's absolute
+    paths" was rewritten by hand).  Raises WorkspaceError when unreadable.
     """
     manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
-    git = "git -C " + shlex.quote(manifest["source_repo"])
+    git = "git"
     head, base, run = manifest["source_head"], manifest["baseline_commit"], manifest["branch"]
-    lines = ["Rollback of the return (SHAs and branches are from workspace.md; write the plan's rollback as plain `git` "
-             "commands run from the repository root with these values, never this run's absolute paths):"]
+    lines = ["Rollback of the return (SHAs and branches are from workspace.md; plain `git` commands run from the "
+             "repository root, copy-ready for the plan's rollback):"]
     if manifest["start_clean"]:
         lines += [
             f"- A fast-forward, with {manifest['source_branch']} checked out and nothing committed after the "

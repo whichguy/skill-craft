@@ -8,6 +8,7 @@ Neither prompt contains a copied Improve algorithm or a second review counter.
 
 from __future__ import annotations
 
+import re
 import textwrap
 from pathlib import Path
 
@@ -104,6 +105,52 @@ def inner_context(delegation: str, *, improve: bool) -> str:
     if delegation == ASK_AGENT:
         return IMPROVE_INNER_CONTEXT if improve else SERIAL_INNER_CONTEXT
     return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
+
+
+# The lines under every packet's first line (owner, 2026-10-16: "the first line of each packet should say something like:
+# read this file if you don't have context about prior paths and what you're doing, or if you're uncertain in any way ...
+# point to the file and let the model inspect it and open subfiles from there").  Each text is defined here once; the
+# navigator prints them in the producer packets' top block (the head, the whole print and the packet file alike) and
+# nothing else in a packet says either again.  The first line is a command, which a model follows; the second names the
+# packet file, which is the stage-complete master and whose References block lists the other references and what each
+# holds (efficiency plan 6.2).  A model that lost its context meets them before the callback, so both are literal.
+OWNER_RULE = "Owner rule: concise and exact; no restating. Keep every command, path, ID and expected value."
+RECOVERY_POINTER_PREFIX = "Lost context, or unsure? Run "
+RECOVERY_POINTER_SUFFIX = " (it reprints this step)."
+PACKET_POINTER_PREFIX = "Full packet: "
+
+
+def recovery_pointer(command: str) -> str:
+    """The first pointer line: the literal ``next`` command, which reprints the step from saved state."""
+    return RECOVERY_POINTER_PREFIX + command + RECOVERY_POINTER_SUFFIX
+
+
+def packet_pointer(path: object, head_end: str) -> str:
+    """The second pointer line: the packet file, when to open it, what it holds, and how to use its References block.
+
+    ``head_end`` is the line every complete print ends with, so a reader can tell a cut print from a whole one.  The lookup
+    rule (open only the section a step needs, never a whole reference file, do not re-read the skill card) is said here once.
+    """
+    return (PACKET_POINTER_PREFIX + str(path) + " - open it with a file tool, not the shell, when this print was cut (a "
+            "complete print ends with the line " + head_end + "); it also holds the "
+            "hand-offs, the knowledge files' contents and the request or its file. Its References block lists the other "
+            "references and what each holds; open only the section a step needs, never a whole reference file, and do not "
+            "re-read the ShipLoop skill card.")
+
+
+# The label of a producer packet's one legal callback.  The reason is the point: a model that pipes, redirects or builds
+# the command from a shell variable (20 of 20 calls in the recorded run, efficiency plan SP-2) gets the packet cut by its
+# own `head`, and the status display, which reads the command, never fires.  The label names the absolute result path
+# because `complete` reads that one path by default and the command carries no --result flag.
+CALLBACK_LABEL_PREFIX = "Callback for this stage (run once after its work, with the result written to "
+CALLBACK_REASON = ("run it exactly as printed, adding only --check-only to test before it accepts, and with no pipe, "
+                   "redirect, \";\" or shell variable: its output is the next stage's instructions and the status display "
+                   "reads the command")
+
+
+def callback_label(result_path: object) -> str:
+    """The producer callback's label, up to and including the ``": "`` before the command."""
+    return CALLBACK_LABEL_PREFIX + str(result_path) + "; " + CALLBACK_REASON + "): "
 
 
 # The graph and each stage's fixed considerations live in shiploop_stage_spec.
@@ -204,6 +251,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("House-style guidance", "house-style.md#write-the-match-contract"),
+        ("Plan record guide", "plan-record.md#topics-the-item-touches"),
         ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
         ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -315,13 +363,16 @@ for _facility_stage in sorted(TEST_FACILITY_STAGES - {"carry-forward"}):
 
 
 PROGRESS_REPORTING = """\
-Progress: do not reprint this packet's ShipLoop status block; it orients you.
+Progress: do not reprint this packet's progress; it orients you. A packet carries one
+progress block: at a milestone the ShipLoop narrative section, otherwise one
+`Where: ... · Next: ...` status line (an Improve packet carries neither).
 The user sees the run's status through a host status hook where one exists. At
 start/recovery and after each callback, tell the user at most one line of your
-own: the item, the stage just finished and the stage now starting. Show the whole
-block unchanged only when the user asks for the full status. At milestones a packet
-also carries a ShipLoop narrative section; follow its first line, which says whether
-you paste the narrative to the user as written or the host already showed it. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
+own: the item, the stage just finished and the stage now starting. When the user
+asks for the full status, show the block `shiploop status` prints (the run's
+status.md holds the same), unchanged. At a
+milestone follow the narrative section's first line, which says whether you paste
+the narrative to the user as written or the host already showed it. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
 Improve iterations have occurred.  Describe Improve activity only from its own
 observed records; do not infer a review count, completion percentage, or ETA.
 Run to completion by default within scope and authority. Emit progress as an
@@ -461,7 +512,7 @@ RULES (each one fixes a failure live runs showed; the long form is reference#rul
 """
 
 # Every INNER stage runs its work as one Until Loop that ShipLoop starts from a contract it wrote (shiploop_loops).  The
-# renderer prints the /until-loop block and this one rule beside it, once per packet (packet re-cut, 2026-10-11), so no
+# renderer prints the Until Loop block and this one rule beside it, once per packet (packet re-cut, 2026-10-11), so no
 # duty repeats it and a duty never names the loop's paths.
 
 # Non-producer packets (Improve parent, paused, blocked) print this instead of PROGRESS_REPORTING.
@@ -662,8 +713,33 @@ _IMPLEMENT_CHAIN = """\
    - Before this stage's callback: every required step accepted and the combined return verified, or a recorded
      incomplete blocker.
 """
+# The inline route issues one action per step: its scope is the step's criteria (no path fence, implement-step fix plan
+# D3) and its check is the step's Proof (section 4.1); the ask-agent action builds every step and keeps the item's checks.
+_IMPLEMENT_SCOPE = """\
+1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
+   accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
+   reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
+   change one only when a criterion says to.
+"""
+_IMPLEMENT_SCOPE_INLINE = """\
+1. **Scope.** Do only this step: meet its criteria, nothing no criterion asks for, and break none of the item's
+   other requirements. Earlier steps are accepted. Write no tests, start no later step, and leave unrelated code as is
+   (no reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
+   change one only when a criterion says to.
+"""
+_IMPLEMENT_CHECK = """\
+3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
+   exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
+   command.
+"""
+_IMPLEMENT_CHECK_INLINE = """\
+3. **Check.** After each meaningful change run the step's Proof (the Step block) and `shiploop lint --action`; write
+   each exit code in RUN/notes/<action>.md. ShipLoop runs the Proof itself at done; the item's other checks belong to
+   the test stage and verify. Fix a failure by changing the work, never the Proof or what it expects.
+"""
 _IMPLEMENT_INLINE = """\
-7. **Inline.** Do the one step on the packet's Step line in this conversation. Bind no chain and dispatch no worker.
+7. **Inline.** Do the one step of the packet's Step block (task, criteria, Proof, skills; the lint command) in this
+   conversation. Bind no chain and dispatch no worker.
 """
 _VERIFY_ASSEMBLY = """\
 8. **Assembly.** If implement bound a chain, confirm its finish commit is an ancestor of the execution checkout HEAD,
@@ -671,11 +747,36 @@ _VERIFY_ASSEMBLY = """\
    guidance). Otherwise confirm the candidate is assembled in the execution checkout under workspace and repository
    policy. The original branch returns only at the final workspace return.
 """
-_VERIFY_ASSEMBLY_INLINE = """\
-8. **Assembly.** Confirm the item's candidate is assembled in the execution checkout under workspace and repository
-   policy (Workspace integration guidance). The original branch returns only at the final workspace return.
-"""
+# An inline run builds every step in the execution checkout and binds no chain, so there is nothing to assemble: item 8
+# is not printed for it, and the other items keep their numbers (the Work text of the verify loop cites them).
+_VERIFY_ASSEMBLY_INLINE = ""
+# The verify duty's opening says which items repeat each iteration and which are done once; the inline route has no item 8.
+_VERIFY_ONCE = "items 8-9 once, before you report the exit satisfied."
+_VERIFY_ONCE_INLINE = "item 9 once, before you report the exit satisfied."
 
+
+# Procedure validity (implement-step fix plan 2026-10-17 section 4.2, unit W2-C): an ordered procedure can name
+# repeatable actions and still be impossible.  A live run's release check asked for one more action after the state
+# that allows it had ended, and passed every review handoff on the way.  The walk is worded once: the shared focus item
+# below carries it to the spec and test-strategy duties and to every planning review, and test-spec's duty applies it to
+# the cases that stage owns.
+PROCEDURE_WALK = ("Walk it from its stated start: can the actor reach that start under recorded authority, can each "
+                  "action occur in the state the preceding actions leave, can the chosen observer see the expected "
+                  "result?")
+_PROCEDURE_ITEM = textwrap.fill(
+    "an ordered procedure (calls, commands, interactions) that cannot happen as written. " + PROCEDURE_WALK
+    + " Use an existing local check where one fits. Record an unreachable start as an open prerequisite, revise an "
+    "invalid action or oracle, claim no execution from a plan, and treat an observation made before its setup changed "
+    "as stale", width=80, initial_indent="- ", subsequent_indent="  ", break_on_hyphens=False)[2:]
+# Test-spec's duty item 4: the walk applied to the cases that stage owns, and where a procedure's locator rides, so the
+# stages that quote the case or the open item (implement and its Improve, test, verify, system-test-author, the open
+# item's consumer) run that one procedure rather than a copy.
+_TEST_SPEC_PROCEDURE = textwrap.fill(
+    "4. A case's setup and actions are an ordered procedure. " + PROCEDURE_WALK + " An unreachable start is an open "
+    "prerequisite (item 7); an impossible action or unobservable oracle is revised here (a forbidden action is its own "
+    "failure case). A procedure another record holds (HOME/architecture.md ## Real-boundary checks): its locator in "
+    "`oracle` or the open item's `check`. A plan is not a run; a setup change makes an earlier observation stale.",
+    width=117, subsequent_indent="   ", break_on_hyphens=False) + "\n"
 
 # The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
 # test-strategy duties hold the ones that apply to them, so a producer reads in its own packet what its result must
@@ -684,6 +785,7 @@ _VERIFY_ASSEMBLY_INLINE = """\
 _REVIEW_FOCUS_ITEMS = (
     "a step, example or expected result that cannot be replayed exactly: name the\n"
     "  concrete inputs, values, identifiers and sample interactions",
+    _PROCEDURE_ITEM,
     "an expected result or check that a weaker stand-in would pass: a hardcoded\n"
     "  value, a missing assertion, a title-only test, or an absent required name",
     "a documented command that does not run what it claims on the target runtime:\n"
@@ -694,7 +796,9 @@ _REVIEW_FOCUS_ITEMS = (
     "  depends on, with no primary-documentation source or probe result: check it,\n"
     "  and correct the plan where it is wrong",
 )
-_REVIEW_FOCUS_STEPS = "a missing prerequisite, wrong order or unowned verification in the steps"
+# One line (the completeness test reads a bullet's first line): the steps condition, with the step check's two faults.
+_REVIEW_FOCUS_STEPS = ("a missing prerequisite, wrong order or unowned verification, or a check that needs a later step's "
+                       "work or passes by skipping a missing artifact, in the steps")
 
 
 def _focus_list(items: tuple) -> str:
@@ -723,15 +827,85 @@ def _duty_focus(number: int, where: str, product: str) -> str:
 ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` "
                 "does not show `TC-4`: title it `TC-4 (a)`).")
 
+# A run of one work item with one step and no pending item (``shiploop_loops.one_step_run``) repeated no procedure and has no
+# future queue to map, so carry-forward prints these for duties 2 and 3 (plan row VR-2, measured 4,356 -> 802 characters).
+# ``<<item>>`` is the item's ID.  Every other run prints the duties above, byte for byte.
+_CARRY_FORWARD_ONE_STEP = """\
+2. **Queue** (Carry-forward mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
+   defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
+   queue, rows `{"id", "title", "context"}`, and say why in the summary.
+3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeated. Inspect
+   the repository skill index (HOME/environment.md ## Skills) and your host's skills and list them in evidence_refs,
+   then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n> says the
+   procedure will recur (put it in `skill.evidence`): follow Repository-local skill guidance and write the trial to
+   RUN/notes/<action>-skill-trial.md.
+"""
+
+
 # Placeholders duty() fills from the run: the Backchain item of spec and plan (by the run's Backchain passes option)
 # and the item commit rule of document and verify (by the run's execution mode).
+# The result template's `summary` placeholder per producer stage (U25, rev 4 Step 8.2): it says what only this result
+# records, so a model fills the summary instead of restating the request, the spec or the files it wrote.  A stage whose
+# duty used to describe its summary carries that description here instead (printed once, in the template); the test
+# stage keeps the navigator's TEST_SUMMARY_PLACEHOLDER.  The gate refuses a summary still equal to one of these.
+SUMMARY_PLACEHOLDER = "<decisions, defaults, open questions and owners only this result records; no restatement>"
+SUMMARY_PLACEHOLDERS = {
+    "intake": "<one clause per request sentence S<n>: the outcome, boundary, default or open question it maps to>",
+    "plan": ("<this pass's key reference statements, decisions, constraints and acceptance context; not a replacement "
+             "assignment or a restatement of the request>"),
+    "test-spec": ("<which recorded harness and suite decisions this item keeps, refines or supersedes, and why; each "
+                  "value all cases share, once>"),
+    "verify": ("<entry points traced; each trace's issue and fix; each required check not run "
+               "and why; known limitations>"),
+}
+
+
+def summary_placeholder(stage: str) -> str:
+    """The `summary` placeholder of ``stage``'s result template: its own, else the generic one."""
+    return SUMMARY_PLACEHOLDERS.get(stage, SUMMARY_PLACEHOLDER)
+
+
 _BACKCHAIN_ITEM = "<<backchain item>>"
 _ITEM_COMMIT = "<<item commit rule>>"
 
+# Step-plan duty 9's interaction topic, printed in the duty for an item that may change interactions, UI or service
+# state.  Print-order unit U7 moved it to references/plan-record.md to fit the 20,000-character host print, which left
+# a UI item's step plan with only a pointer a cold model rarely opens; the duty now prints it whenever the request or
+# the item names such a change (``names_interactions``), and only the pointer for an item that names none.
+_PLAN_RECORD_INTERACTIONS = """\
+   - interactions, UI or service state changing: a Design basis paragraph or exact section links, rechecking the
+     Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
+     plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
+     component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
+     and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
+     defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths,
+     animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning
+     ownership guide); locators of sources and checks.
+"""
+
+# Words that mark a request or work item as one that may change interactions, UI or service state.  Deliberately
+# wide: a false match costs one bullet of packet text, a missed one loses the interaction obligations of a UI item.
+# "state" counts only with a word that makes it held state ("client state", "state owner"), not the verb ("State the
+# rule in the README").
+INTERACTION_CUES = re.compile(
+    r"\b(?:ui|ux|gui|user interface|interfaces?|screens?|views?|components?|buttons?|clicks?|keyboard|mouse|touch|"
+    r"drag|forms?|display\w*|render\w*|layouts?|browsers?|front-?end|interactive|interactions?|animat\w*|"
+    r"notifications?|events?|connections?|reconnect\w*|subscri\w*|websockets?|sockets?|sessions?|stateful|"
+    r"(?:service|client|server|shared|session|application|app|ui|user|live|persistent|stored) state|"
+    r"state (?:owner\w*|store|sync\w*)|real-?time|webhooks?|playable|players?)\b",
+    re.IGNORECASE)
+
+
+def names_interactions(*texts: str) -> bool:
+    """True when any text names a change to interactions, UI or service state (``INTERACTION_CUES``)."""
+    return any(INTERACTION_CUES.search(text or "") for text in texts)
+
+
 DUTIES = {
     "intake": """\
-1. Map each sentence of the request to an outcome, boundary or open question in `summary`. Boundaries: repository and
-   run scope, user constraints, authority limits, consumers and entry points, risks. Mark each fact or assumption.
+1. Cover each request sentence in `summary`, do not copy it: one clause each, cited S<n> (S1 is the first), as the
+   template's summary says. Boundaries: repository and run scope, user constraints, authority limits, consumers and
+   entry points, risks. Mark each fact or assumption.
 2. Each open question: who answers it (discovery or a recorded default), what it blocks, what discovery must
    establish first.
 3. List discovery's source hints in `summary` (team or workspace, channels, internal sites and docs, private
@@ -848,14 +1022,15 @@ DUTIES = {
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Start from HOME/spec.md (quoted below), the research and discovery results and RUN/notes/current-system-baseline.md
+1. Start from HOME/spec.md (read it whole), the research and discovery results and RUN/notes/current-system-baseline.md
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
    its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
    or tests.
 2. Write each requirement under HOME/spec.md ## Requirements as R-<n> with its acceptance criteria inside
    (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each criterion: positive,
-   failure and boundary expectations, the consumer surface where it is observed, how it is confirmed. Split
-   independently verifiable clauses; keep bundled behaviours visible under one ID.
+   failure and boundary expectations, each only where it says something the others do not, otherwise `n/a: <reason>`;
+   the consumer surface where it is observed; how it is confirmed. Split independently verifiable clauses; keep
+   bundled behaviours visible under one ID.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
    HOME/architecture.md ## Decisions, never in HOME/spec.md; a product decision never takes the AD- prefix.
 4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Mark
@@ -921,17 +1096,19 @@ DUTIES = {
    Per command: inclusion rule, expected cost, environment and fixture prerequisites, the test IDs it may print.
    A passing command names the IDs or cases it ran. This section owns the suite commands; fix any stale copy. Plan
    durable regression tests, not one-off probes. Smoke is a bounded subset, never evidence for the full suite.
-10. Under HOME/environment.md ## ID convention declare each ID as tests will be titled. """ + ID_WORD_RULE + """
-11. A case needing a host tool (browser, device, account, service): name it and probe it now by doing the case's
-    first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
+10. Under HOME/environment.md ## ID convention declare each ID as tests will be titled; choose IDs legal in the
+    runner's test names (`TC_1` where a hyphen is not). """ + ID_WORD_RULE + """
+11. A case needing a host tool (browser, device, account, service): name it (the host's tool listing is the probe that
+    it exists) and probe it now by doing the case's first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
     opened by `file:` URL or a throwaway static server you stop, its title read back; for an account or service, a
     harmless read. Cite the output in `evidence_refs`. Record only a failed probe as an access gap under
     ## Real-boundary checks with the requirement left unobserved. Give the case its own opt-in command or flag so the
     default test command passes without the tool.
 12. A request naming a page or screen people use: plan a case driving it through its interface (browser or device)
     with its actions, expected visible outcomes, and tool named and probed as in item 11 (Consumer testing guide).
-    Otherwise record the outcome unverified with owner and due stage (handoff, or the stage whose external effect it
-    gates). An HTTP response alone is neither.
+    Write it under ## Real-boundary checks as an ordered procedure from its start (actor, entry route, initial state),
+    with an ID later stages cite. Otherwise record the outcome unverified with owner and due stage (handoff, or the
+    stage whose external effect it gates). An HTTP response alone is neither.
 """ + _duty_focus(13, "HOME/environment.md or HOME/architecture.md", "strategy") + """\
 14. `evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.
 """,
@@ -991,9 +1168,10 @@ DUTIES = {
    state, event and connection agreements with planned recovery checks (including a crash after acknowledgment but
    before processing); deployment fit; source and check locators. UI: component, interaction and skin premises, the
    design guidance locator with identity, version or digest (or the named fallback), each async cue with purpose and
-   reduced-motion alternative or an explicit static choice. A human-facing UI defaults to an ambitious, highly
-   interactive design: name the rich interactions planned (direct manipulation, inline editing, live preview,
-   keyboard paths, animated transitions) and any scaled back, with the reason. A consequential UI choice gives the
+   reduced-motion alternative or an explicit static choice. A human-facing UI takes the ambition the request states
+   (a simple one when it asks for simple); one that states none defaults to an ambitious, highly interactive design:
+   name the rich interactions planned (direct manipulation, inline editing, live preview, keyboard paths, animated
+   transitions) and any scaled back, with the reason. A consequential UI choice gives the
    guide's ambition, the reuse, evolve or upgrade decision, effort and benefit, and the compatibility check.
    Allocate each UI decision to the item that owns it (UI planning ownership guide) and put it, with planned check
    locators, in that item's `context` and `evidence_refs`. Reuse accepted choices for unaffected scope. Start no
@@ -1020,8 +1198,9 @@ DUTIES = {
     documentation work for knowledge that exists only in run notes.
 12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
     UI, logging, test and operator files, as needed (Service discovery guidance), ordering prerequisites and checks.
-13. Each item's `context` states the module format its files use (CommonJS or ESM, with or without package.json) and
-    the loadable seam its tests import, so a test loads before the implementation exists.
+13. Each item's `context` states the loadable seam its tests import, so a test loads before the implementation exists,
+    and, where the language has more than one module format (CommonJS or ESM, with or without package.json), the one
+    its files use.
 14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
     prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
     fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
@@ -1038,10 +1217,9 @@ DUTIES = {
     open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it.
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
-18. `summary` keeps this pass's key reference statements, decisions, constraints and acceptance context, as
-    supporting references, not a replacement assignment or a restatement of the request; each item's ready and done
-    conditions stay its only execution directive. `evidence_refs`: HOME/architecture.md, any execution graph, every
-    source used. An unrecorded conversation is not a handoff.
+18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
+    `evidence_refs`: HOME/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
+    handoff.
 19. """ + _BACKCHAIN_ITEM + """
 """,
     "prepare": """\
@@ -1049,15 +1227,20 @@ DUTIES = {
    (Environment preparation guidance), using what the repository declares. Install nothing without authority.
 2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
    baseline identity (Workspace and return guidance).
-3. Start each planned check's runner, the linters and the fixtures; save the output and list each file in
-   `evidence_refs`.
+3. Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help
+   that proves it starts, not the suite); save the output and list each file in `evidence_refs`.
 4. Baseline blocked by setup or access (Initial repository baseline guide): prepare only the approved prerequisite,
    keep the original observation, and rerun the original initial check on the unchanged product and tests before any
    dependent feature edit. Never replace it with an easier route or call the blocked baseline passed.
 5. Recheck discovery's source-return trigger and the authorized delivery and verification route from the execution
    checkout before the first dependent work. If the return must precede a consumer check, record the ordering
    conflict in `summary` as unresolved. Never return early, deploy, or bypass the final-handoff return guard.
-6. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
+6. The consumer's access: name the consumer's account or role, the entry route the plan gives them and what reaching
+   it needs (account, role, visibility, permission). Check it read-only, with the probe the target's platform guide
+   names where it has one (GUIDES/platforms/), and record each prerequisite under HOME/environment.md ## Access and
+   accounts; one still unresolved stays open there with its owner (who can grant it) and the stage that needs it.
+   Create no grant; it does not block this stage.
+7. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
    commands that start each runner, the observations. Record not-applicable only when this candidate needs no
    preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
 """,
@@ -1085,26 +1268,31 @@ Change no product file in this stage.
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable
      behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
-     "and", or too large for one review. Merge a step no check confirms alone (half a rename, unused scaffolding)
-     into the step it serves. A single bug fix or mechanical rename is one step.
+     "and", or too large for one review. Fold a step no check confirms alone (half a rename, scaffolding) into the
+     first step that uses it. A single bug fix or mechanical rename is one step.
    - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
      files is refused unless the whole item is tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
-     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`). Every criterion is satisfied by
-     some step.
+     `criteria` it satisfies and its `check`; its `task` cites IDs, not their text. Every criterion is satisfied by
+     some step. Optional `paths` (inside the item's) serve the parallel chain.
+   - `check`: the one command, from the repository root, that proves the step's criteria with only this step and
+     accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
+     artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
+     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only. None runs
+     now: change the step boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
      reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
 5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test and
    verify stages run exactly these.
    - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
-     pytest `-v`, `node --test` default spec or tap reporter; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
+     pytest `-v`, others: GUIDES/platforms/; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
-     `ids` or `min_tests`. None: `check_na` with the reason; no command at all: `test_commands_na`.
-   - Every criterion is named in some command's `criteria`, and a command names only listed criteria. A list too
-     large for the loop contract is refused: shorten IDs, drop duplicates or split the item.
+     `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
+     The test and verify stages run these; implement runs only each step's own `check`.
+   - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
    - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every
@@ -1116,7 +1304,8 @@ Change no product file in this stage.
    stage writes. The item commit takes these, the changed documentation and HOME/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in HOME/spec.md or HOME/architecture.md.
-9. **Plan record** in the item's `context` or the summary:
+9. **Plan record** in the item's `context` or the summary (supporting reference; each step's task and criteria stay
+   its only directive), for the topics this item touches only:
    - outcome and invariants kept; contracts and responsibilities that change;
    - target files, interfaces and conventions, matched to the house style (House-style guidance);
    - each step's failure cases and the diagnostics and errors it must produce;
@@ -1124,22 +1313,10 @@ Change no product file in this stage.
      conditions;
    - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
      sections;
-   - code or stored data added or moved: reopen the namespace and data entries in HOME/architecture.md ## Structure and
-     each touched environment's tree. Per file, module and public symbol: environment, home namespace, visibility,
-     collision check (import or load test, deploy validation, or name search). Per stored field, key, table or
-     payload: owning environment, migration (unneeded, earlier step, this step, deploy obligation), round-trip
-     check. Reason for a changed placement or schema (Namespace and placement guidance, Schema and storage guidance,
-     State and data assessment);
-   - each pinned value a check replays (fixed dice, seed data), labelled a source-check fixture apart from the runtime
-     control; confirm an external oracle (golden file, fixture, snapshot) agrees with the task;
-   - interactions, UI or service state changing: a Design basis paragraph or exact section links, rechecking the
-     Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
-     plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
-     component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     and the rich interactions planned (a human-facing UI defaults to ambitious and highly interactive: direct
-     manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any
-     scaled back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
-   This record is supporting reference; each step's task and criteria stay its only directive.
+""" + _PLAN_RECORD_INTERACTIONS + """\
+   - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
+     interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
+     topic, opening only its matching section.
 10. **Knowledge.** A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
     in HOME/.
@@ -1159,15 +1336,15 @@ Write no test code in this stage.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. RED: how it fails on the item's base, or "characterisation" if it
    already passes.
-4. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
+""" + _TEST_SPEC_PROCEDURE + """\
+5. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
    (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state.
-5. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
+6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
    it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
-6. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
+7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
    `assumption`; `check`; `consumer` = that outer stage; owner). Confirmed only by a check command or inspection: no
    case; list it with its command in the summary. Untestable as written: report revise naming it.
-7. Summary: which harness and suite decisions in HOME/environment.md this item keeps, refines or supersedes, and
-   why. evidence_refs: their locators, the step plan's, the requirement sections used.
+8. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
 """,
     "validate-existing": """\
 1. ShipLoop ran each expectation's check, and each open plan assumption this item settles, on the unchanged item
@@ -1202,8 +1379,9 @@ preparatory commit); a mismatch there is a revise.
    unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
    and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
    it); the summary says per skill whether you used it, and why not.
-3. **Check.** After each edit run every recorded check command and `shiploop lint --action`; write each exit code in
-   RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the command.
+3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
+   exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
+   command.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
@@ -1234,9 +1412,8 @@ preparatory commit); a mismatch there is a revise.
    owner, revalidation condition). Write no case due at a later stage.
 2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. Record a
    harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
-   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why;
-   locators and the step plan's in evidence_refs. A recorded completion does not prove a harness, fixture or target
-   still works.
+   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.
+   A recorded completion does not prove a harness, fixture or target still works.
 3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
    sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
    `<ID> (<letter>)`; none fits: report revise. Each new or changed public entry point gets rejection cases. Test a
@@ -1266,7 +1443,7 @@ preparatory commit); a mismatch there is a revise.
    outside dependency must unblock it.
 """,
     "document": """\
-1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
    item's diff.
 2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
    docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
@@ -1284,9 +1461,11 @@ preparatory commit); a mismatch there is a revise.
 """,
     "verify": """\
 This is item acceptance, not a claim that integration or release has happened. Each review iteration does items 1-7
-in order.
+in order; """ + _VERIFY_ONCE + """
 
-1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+1. **Run.** After your last edit, write the result (the Result template below) to RUN/inbox/<action>.md, then run the
+   Callback command with `--check-only`, which reads that file; fix each refusal. It reruns every recorded command
+   into RUN/tests/<action>-check-only.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
    this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report revise.
@@ -1323,8 +1502,7 @@ in order.
    pending with its owner in HOME/architecture.md ## Real-boundary checks (Real-boundary test guidance).
 10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
     commit. """ + _ITEM_COMMIT + """
-11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
-    any required check not run and why, known limitations.
+11. **Summary:** as the template says.
 12. Criterion or check unachievable as planned: report revise naming it. Report blocked, with blocked_by, only when
     the user, an access grant or an outside dependency must unblock it.
 """,
@@ -1395,8 +1573,8 @@ in order.
     "system-test-author": """\
 1. Gather: the test strategy (HOME/environment.md ## Harnesses and suites, HOME/architecture.md ## Real-boundary
    checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), and the open items quoted
-   below (the system-test obligations). Take the latest done test-decision record for each relevant completed item
-   (step-plan, test-spec or test) from state.md's accepted history with the locators it kept; infer no whole-product
+   below (the system-test obligations). The records in force are the ones listed under "Results this stage builds
+   on" (each completed item's step-plan, test-spec and test result and its candidate run); infer no whole-product
    coverage from the last transition or item. The current OUTER plans are the latest done records after the most
    recent accepted replan; pending, repeat and blocked results are not plan authority. `evidence_refs`: the action,
    result and test-note locators used.
@@ -1444,8 +1622,8 @@ in order.
    locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as repeat,
    blocked or replan; never guess a command or drop a required case.
 2. Before running check prerequisites, fixtures, execution location, target, identity, authorization, remote
-   framework availability, and the deployed or test revision. Deploy not to unblock a test; use production only with
-   authority.
+   framework availability, and the deployed or test revision. Add no deploy to unblock a test (a recorded command's
+   own deploy step runs as recorded); use production only with authority.
 3. Run the due cases on the intended candidate and boundary (System-test placement guidance, Real-boundary test
    guidance). Substitute no planned case or local mock for a required system observation. A local pass replaces no
    blocked or unrun required remote check and establishes no combined full-suite pass; keep that check's owner and
@@ -1516,7 +1694,7 @@ in order.
 2. Write the release steps in `summary` and HOME/environment.md (item 8): target and candidate identity, permission,
    prerequisites, user impact, monitoring, stop conditions. Every operation the user-visible outcome needs is a
    named step with its exact command and authorization status: the deploy, each access or visibility change (for
-   example assigning a permission set, activating an app or tab), each browser session a consumer check needs with
+   example granting a role or permission, activating an app or menu entry), each browser session a consumer check needs with
    its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact
    publication, deployment, promotion and consumer verification as separate steps. Order the remaining schema,
    data, service and cutover work with its durable execution owner, observations and recovery limits (Release
@@ -1545,7 +1723,7 @@ in order.
    and never write into the user's checkout by absolute path. A check only a person can make is an open item in
    `assumptions` (who, where, what to report) with release-verify or handoff as `consumer`, not a command. None
    applies: empty list with `consumer_checks_na` and the reason.
-7. `consumer_entry`: `how` a person reaches the result (App Launcher name and URL path, command, page) and the
+7. `consumer_entry`: `how` a person reaches the result (app or menu entry name and URL path, command, page) and the
    repository `sources` files that create that entry.
 8. Update HOME/environment.md: target under ## Targets and runtimes; deploy, dry-run, rollback and confirm commands
    under ## Commands; approvals and accounts under ## Access and accounts.
@@ -1557,8 +1735,11 @@ in order.
    missing plan: recover it, or report `repeat` (`replan` for missing product work).
 2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
    evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
-   readiness, any target concurrency condition (Release operation guidance).
-3. Run the dry-run form of the planned deploy (for example `sf project deploy validate`) once; save the output in
+   readiness, any target concurrency condition (Release operation guidance). Rerun prepare's read-only probe that the
+   consumer can reach the entry (HOME/environment.md ## Access and accounts; the target's platform guide names one
+   where it has one) and save its output beside the dry run's. A gap this run may not fix stays open there with who
+   can grant it, for release-verify's step 1; create no grant.
+3. Run the dry-run form of the planned deploy (for example the deploy tool's validate or check-only mode) once; save the output in
    RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
 4. Run each `consumer_checks` post-release confirm command once against the current target; save its "not there yet"
    output in the same file. A confirm command that cannot tell present from absent is fixed now in
@@ -1610,11 +1791,15 @@ in order.
    prerequisites. Check that no clause or case was dropped; claim no requirement met while a required observation
    is unrun.
 5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release again blindly.
-6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Record an
-   open item in `assumptions` with the steps for that person (where to go, such as a menu entry or URL path, what to
-   do) and what they report back; verify every other case. Only when the release cannot be accepted without it,
-   report `blocked` with `awaiting` kind `present`; the person's report resumes the run and only the blocked cases
-   are rechecked against the same release.
+6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Verify every
+   other case first and record it as an open item in `assumptions` (who does what, where, and what they report). Only
+   when the release cannot be accepted without it, report `blocked`, `awaiting` kind `present`, asked once: step 1
+   reaches the consumer entry (menu entry or URL path) and says what to answer if it is missing or hidden; `report`
+   is a fill-in list, one yes/no line per case with what to look for (`2. after <action>, <what shows>: yes/no`).
+   The run's exclusions bind the run, not the person: ask what they changed. On the reply, recheck only the cases it
+   answers, against the same release; an unanswered case is not-run, an open item for handoff quoting the reply, and
+   the stage continues. Block again only when it answers none, or a required delivery-contract behavior obligation
+   still has no passed observation (ask then only its lines).
 7. Isolated run: this stage cannot return (Which checkout release-verify observes). A defect the checks find in the
    delivered result goes through `replan` with one corrective work item; release then returns the fix. Write
    nothing inside the user's checkout (a file there makes the return receipt stale and blocks handoff).
@@ -1684,11 +1869,11 @@ IMPROVE_SCOPES = {
     "discovery": "repository/environment facts, initial-baseline evidence and classification, conventions, reuse findings, and material gaps",
     "research": "source-backed conclusions, uncertainty, and reuse recommendations",
     "spec": "behavior, acceptance, non-functional criteria, existing-spec reconciliation, failure boundaries, and consumer outcomes",
-    "test-strategy": "independent test/risk strategy and required test boundaries",
+    "test-strategy": "independent test/risk strategy, required test boundaries and their procedures",
     "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
     "step-plan": "the newly created bounded steps and any parallel or serial execution graph, criteria, test commands, expectations, step skills, conventions and diagnostic obligations",
-    "test-spec": "the test cases, their independent oracles, RED/GREEN definitions and command IDs",
+    "test-spec": "the test cases, their procedures, independent oracles, RED/GREEN definitions and command IDs",
     "validate-existing": "the expectation checks, preparatory fixes and environment repairs",
     "implement": "one implementation step's diff: its task and criteria, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use",
     "test": "the item's executable tests, their oracles and suite registration, and the passing command evidence",
@@ -2060,13 +2245,15 @@ def _require_planning_review(planning_review: str) -> None:
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
-    "step-plan": (_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),
-    "implement": (_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE),
-    "verify": (_VERIFY_ASSEMBLY, _VERIFY_ASSEMBLY_INLINE),
+    "step-plan": ((_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),),
+    "implement": ((_IMPLEMENT_SCOPE, _IMPLEMENT_SCOPE_INLINE), (_IMPLEMENT_CHECK, _IMPLEMENT_CHECK_INLINE),
+                  (_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE)),
+    "verify": ((_VERIFY_ASSEMBLY, _VERIFY_ASSEMBLY_INLINE), (_VERIFY_ONCE, _VERIFY_ONCE_INLINE)),
 }
-for _stage, (_delegated, _inline) in _INLINE_DUTY_PARAGRAPHS.items():
-    if DUTIES[_stage].count(_delegated) != 1:
-        raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
+for _stage, _pairs in _INLINE_DUTY_PARAGRAPHS.items():
+    for _delegated, _inline in _pairs:
+        if DUTIES[_stage].count(_delegated) != 1:
+            raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
 
 _PLANNING_HANDOFF = (
     "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
@@ -2094,28 +2281,46 @@ def _item_commit_rule(execution_mode: str | None) -> str:
     return stage_spec.ITEM_COMMITS + " " + left
 
 
+def _one_step_carry_forward(text: str, item: str) -> str:
+    """The carry-forward duty with items 2 and 3 in their one-step one-item form (``_CARRY_FORWARD_ONE_STEP``)."""
+    start = text.index("2. **Queue** (Carry-forward mapping guidance).")
+    end = text.index("4. **Commit nothing.**")
+    # Item 4 names item 3.7, which the short form folds into item 3.
+    tail = text[end:].replace("(and the skill, item 3.7)", "(and a created or updated skill, item 3)")
+    return text[:start] + _CARRY_FORWARD_ONE_STEP.replace("<<item>>", item) + tail
+
+
 def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage",
-         backchain_passes: str = DEFAULT_BACKCHAIN_PASSES, execution_mode: str | None = None) -> str:
+         backchain_passes: str = DEFAULT_BACKCHAIN_PASSES, execution_mode: str | None = None,
+         one_step_item: str | None = None, interactions: bool = True) -> str:
     """Return one stage duty with the run's implementation-route paragraph.
 
     ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES): ``stage`` renders the
     text below unchanged, ``none`` swaps the sentences that promise an Improve child the run will not start
     (see _NO_REVIEW_SWAPS).  The literal default ``stage`` keeps catalog renders independent of the option's
     default.  ``backchain_passes`` picks the Backchain item of spec and plan; ``execution_mode`` (state key
-    ``execution_mode``) picks what the commit rule says about a file the item commit leaves.
+    ``execution_mode``) picks what the commit rule says about a file the item commit leaves.  ``one_step_item`` is the
+    item's ID when the run has one work item with one step and no pending item (``shiploop_loops.one_step_run``): the
+    carry-forward duty then prints items 2 and 3 short; every other stage ignores it.  ``interactions`` False (the
+    navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves step-plan duty 9's
+    interaction bullet out, keeping its pointer to the Plan record guide; the catalog renders the bullet.
     """
     _require_stage(stage)
     _require_delegation(delegation)
     _require_planning_review(planning_review)
     _require_backchain_passes(backchain_passes)
     text = DUTIES[stage]
+    if stage == "carry-forward" and one_step_item:
+        text = _one_step_carry_forward(text, one_step_item)
+    if not interactions:
+        text = text.replace(_PLAN_RECORD_INTERACTIONS, "")
     if _BACKCHAIN_ITEM in text:
         text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage, backchain_passes))
     if _ITEM_COMMIT in text:
         text = text.replace(_ITEM_COMMIT, _item_commit_rule(execution_mode))
     if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
-        delegated, inline = _INLINE_DUTY_PARAGRAPHS[stage]
-        text = text.replace(delegated, inline)
+        for delegated, inline in _INLINE_DUTY_PARAGRAPHS[stage]:
+            text = text.replace(delegated, inline)
     return _swapped(text, stage, planning_review)
 
 
@@ -2176,9 +2381,52 @@ def _swapped(text: str, stage: str, planning_review: str) -> str:
 _check_swaps(_NO_REVIEW_SWAPS)
 
 
+def common_text(planning_review: str = stage_spec.DEFAULT_PLANNING_REVIEW) -> str:
+    """COMMON as the run reference file prints it: its Improve schedule is the one the run's planning review option starts.
+
+    The producer packets print STAGE_RULES, not COMMON, so the swap row for ``*`` reached no text until the reference
+    file applied it here; before, a ``none`` run's reference listed the planning results the engine never reviews.
+    """
+    _require_planning_review(planning_review)
+    return _swapped(COMMON, "*", planning_review)
+
+
+# What stands in the duties where the Backchain route paragraph stood, in a packet that prints the paragraph after the
+# result template (the print-order unit: a lookup the packet file repeats whole goes behind the required text).
+BACKCHAIN_STUB = "Backchain: the route's paragraph follows the result template."
+
+
+def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, planning_review: str,
+                  execution_mode: str | None, one_step_item: str | None = None,
+                  interactions: bool = True) -> list[tuple[str, str]]:
+    """The producer instruction as ``(kind, text)`` parts in print order; ``prompt`` joins them.
+
+    ``kind`` is ``duty``, ``audit`` (the inline route's short optional audit line), ``backchain`` (the route paragraph of a
+    stage that may call Backchain), ``craft`` or ``rules``.
+    """
+    parts = [("duty", duty(stage, delegation=delegation, planning_review=planning_review,
+                           backchain_passes=backchain_passes, execution_mode=execution_mode,
+                           one_step_item=one_step_item, interactions=interactions))]
+    # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
+    # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
+    # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
+    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
+        parts.append(("audit", INLINE_BACKCHAIN_AUDIT))
+    elif stage in BACKCHAIN_FOLDED_STAGES:
+        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
+    elif stage in BACKCHAIN_STAGES:
+        parts.append(("backchain", _swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage,
+                                            planning_review)))
+    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
+        parts.append(("craft", CODE_CRAFT))
+    parts.append(("rules", STAGE_RULES))
+    return parts
+
+
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
            backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
-           planning_review: str = "stage", execution_mode: str | None = None) -> str:
+           planning_review: str = "stage", execution_mode: str | None = None,
+           one_step_item: str | None = None, interactions: bool = True) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
     The navigator always passes the run's delegation, Backchain passes option and planning review
@@ -2189,21 +2437,30 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     _require_delegation(delegation)
     _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
-    parts = [duty(stage, delegation=delegation, planning_review=planning_review,
-                  backchain_passes=backchain_passes, execution_mode=execution_mode)]
-    # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
-    # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
-    # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
-    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
-        parts.append(INLINE_BACKCHAIN_AUDIT)
-    elif stage in BACKCHAIN_FOLDED_STAGES:
-        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
-    elif stage in BACKCHAIN_STAGES:
-        parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
-    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
-        parts.append(CODE_CRAFT)
-    parts.append(STAGE_RULES)
-    return "\n\n".join(parts)
+    return "\n\n".join(text for _, text in _prompt_parts(
+        stage, delegation=delegation, backchain_passes=backchain_passes, planning_review=planning_review,
+        execution_mode=execution_mode, one_step_item=one_step_item, interactions=interactions))
+
+
+def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
+                 backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
+                 planning_review: str = "stage", execution_mode: str | None = None,
+                 one_step_item: str | None = None, interactions: bool = True) -> tuple[str, str]:
+    """``(prompt text, Backchain route paragraph)`` for a packet that prints the paragraph behind its result template.
+
+    The first holds everything ``prompt`` returns, with ``BACKCHAIN_STUB`` where the paragraph stood; the second is the
+    paragraph, or "" for a stage without one (the inline route's short audit line stays in place).  Joined back in place
+    of the stub, the two are exactly ``prompt``.
+    """
+    _require_stage(stage)
+    _require_delegation(delegation)
+    _require_backchain_passes(backchain_passes)
+    _require_planning_review(planning_review)
+    parts = _prompt_parts(stage, delegation=delegation, backchain_passes=backchain_passes,
+                          planning_review=planning_review, execution_mode=execution_mode, one_step_item=one_step_item,
+                          interactions=interactions)
+    moved = next((text for kind, text in parts if kind == "backchain"), "")
+    return ("\n\n".join(BACKCHAIN_STUB if kind == "backchain" else text for kind, text in parts), moved)
 
 
 # Inline runs have no dispatcher steps, execution graph or worker packets; the
@@ -2228,29 +2485,32 @@ unless a finding depends on it. A pass that finds none of these is trivial.
 """
 
 
-END_REVIEW_FOCUS = """\
+END_REVIEW_FOCUS_HEAD = """\
 End-of-work code review focus. Across every executed work item's change, trace
 each new or changed public entry point with a valid, a boundary and an invalid
 input, then review the change against the rubric below. Fix violations within
 scope. A pass that finds no material violation is trivial.
-
-""" + CODE_CRAFT
+"""
+END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
 # The per-step Improve child's focus (owner decision 2026-10-10: an Improve child reviews every accepted implement step,
 # whatever the planning review option says).  The step's tests are written later, so this review is the only check of
 # the step's code before them; it carries the Code craft rubric verbatim because the child reads no other file reliably.
-IMPLEMENT_STEP_REVIEW_FOCUS = """\
+IMPLEMENT_STEP_REVIEW_FOCUS_HEAD = """\
 Implementation step review focus. This result is one step of the item's step
 plan, and its tests are written later from the test spec, so this review is the
-only check of the code before them. Review the step's diff (the step's paths since
-the step began) and fix, within those paths, any of these:
+only check of the code before them. Review the step's change since its Review
+base (below) and fix, within the item's paths, any of these:
 - the change does not do the step's task, misses a criterion as the spec's R-<n>
   states it, or does work no criterion asks for (a later step's work, a feature
   the item does not request);
-- a file changed outside the step's paths, or unrelated work reverted or
+- a file changed outside the item's paths, or unrelated work reverted or
   reformatted;
 - a new or changed public entry point that does not check its arguments before
   any effect, swallows an error or returns a success default (Code craft 2);
+- a language or library behaviour the change relies on that no command has
+  exercised (comparison and case rules, null and empty values, visibility,
+  ordering): run a one-line probe or read its primary documentation;
 - a public function without its contract docstring, a comment that restates
   code, or dead code (rules 3-4);
 - code placed outside HOME/architecture.md's ## Structure or ## Conventions, or a
@@ -2266,103 +2526,80 @@ the step began) and fix, within those paths, any of these:
   purpose, with no reason in the result;
 - a behaviour the code now has that no test-spec case covers and the result does
   not list for the test stage;
-- a recorded check command that fails, or a new lint finding on a changed line
-  with no waiver, after your last edit.
-Do not write tests, start a later step, or edit a recorded command. After your
-last edit, rerun the step's recorded check commands and ShipLoop's lint for the
-step's action (`shiploop lint --action`), and record their exit codes. Commit your
-edits. A pass that finds none of these is trivial.
+- the step's Proof failing or not testing its criteria (a skipped file, a later
+  step's work), or a new unwaived lint finding on a changed line, after your
+  last edit.
+Do not write tests, start a later step, or edit the Proof. After your last edit,
+rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop
+lint --action`), and record their exit codes. Commit your edits. A pass that
+finds none of these is trivial.
+"""
+IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
-""" + CODE_CRAFT
+
+# The ask-agent route issues one implement action for every step of the plan, so the review of a plan of several steps
+# names them: each pair swaps a per-step sentence for one worded for the steps ``{steps}`` and their ``{paths}``
+# (``for_steps``).  The inline route reviews one step per action and keeps the text above.  ``_check_for_steps`` fails at
+# import when an edit to that text leaves a pair matching nothing or twice.
+_STEPS_WORDING = (
+    ("Implementation step review focus. This result is one step of the item's step\n"
+     "plan, and its tests are written later from the test spec, so this review is the\n"
+     "only check of the code before them. Review the step's change since its Review\n"
+     "base (below) and fix, within the item's paths, any of these:\n"
+     "- the change does not do the step's task, misses a criterion as the spec's R-<n>\n"
+     "  states it, or does work no criterion asks for (a later step's work, a feature\n"
+     "  the item does not request);\n"
+     "- a file changed outside the item's paths, or unrelated work reverted or\n"
+     "  reformatted;\n",
+     "Implementation step review focus. This result is steps {steps} of the item's step\n"
+     "plan, built in one action, and their tests are written later from the test spec, so\n"
+     "this review is the only check of the code before them. Review the diff of the paths\n"
+     "of these steps ({paths}) since the first step began and fix, within those paths,\n"
+     "any of these:\n"
+     "- the change does not do a step's task, misses a criterion as the spec's R-<n>\n"
+     "  states it, or does work no criterion asks for (another item's work, a feature\n"
+     "  the item does not request);\n"
+     "- a file changed outside these paths, or unrelated work reverted or\n"
+     "  reformatted;\n"),
+    ("- the step's Proof failing or not testing its criteria (a skipped file, a later\n"
+     "  step's work), or a new unwaived lint finding on a changed line, after your\n"
+     "  last edit.\n"
+     "Do not write tests, start a later step, or edit the Proof. After your last edit,\n"
+     "rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop\n"
+     "lint --action`), and record their exit codes. Commit your edits. A pass that\n"
+     "finds none of these is trivial.",
+     "- a recorded check command that fails, or a new lint finding on a changed line\n"
+     "  with no waiver, after your last edit.\n"
+     "Do not write tests or edit a recorded command. After your last edit, rerun the\n"
+     "steps' recorded check commands and ShipLoop's lint for this action (`shiploop\n"
+     "lint --action`), and record their exit codes. Commit your edits. A pass that finds none of these is trivial."),
+    ("one implementation step's diff: its task and criteria,",
+     "the diff of implementation steps {steps}: their tasks and criteria,"),
+)
 
 
-def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
-    """Return the actual Improve-skill handoff for a completed producer stage."""
-    _require_delegation(delegation)
-    text = _improve_prompt(stage)
-    if delegation == INLINE:
-        for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
-            text = text.replace(delegated, inline)
+def for_steps(text: str, steps: str, paths: str) -> str:
+    """``text`` (the implement review focus, the implement Improve prompt) worded for the steps ``steps`` that one action
+    built, with their ``paths``; a sentence of ``_STEPS_WORDING`` that ``text`` does not hold is left out."""
+    for old, new in _STEPS_WORDING:
+        text = text.replace(old, new.format(steps=steps, paths=paths))
     return text
 
 
-def _improve_prompt(stage: str) -> str:
-    """Compose the Improve child's prompt for ``stage``, adding the Backchain and coding-review guidance where the
-    stage uses them.
-    """
-    _require_stage(stage)
-    backchain = ""  # an Improve review never mentions Backchain (owner, 2026-10-11)
-    coding_review = ""
-    if stage in {"step-plan", "implement", "verify"}:
-        coding_review = """\
-Use the packet's Coding decision guide. Carry the accepted plan, proposed revisions
-and selected practice/platform locators into the child's existing contract/review
-notes. Read only applicable sections and compare decisions with independent
-requirements and checks. Planning review concerns decisions and proposed checks;
-implementation/verification review needs actual evidence. Keep the assigned edit
-scope and expected check state; this guide adds no review loop or authority.
-"""
-    outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
-    test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
-    plan_guard = ""
-    if stage in {"plan", "step-plan"}:
-        plan_guard = """\
-Review the actual steps after their creation, including any linked execution
-graph. Carry the plan/graph locators and current content identities into this
-child's existing contract and review notes. Check direct dependencies, missing
-suppliers, ready/done criteria, independent paths, joins, resource exclusions,
-and integration/verification ownership. Recheck affected relationships after
-material repairs. Keep the plan pending until this actual Improve loop completes;
-structural validation alone does not complete this handoff.
-"""
+def _check_for_steps() -> None:
+    texts = [IMPLEMENT_STEP_REVIEW_FOCUS, _improve_prompt("implement")]
+    for old, _new in _STEPS_WORDING:
+        if sum(text.count(old) for text in texts) != 1:
+            raise RuntimeError("the several-steps wording no longer matches the implement review text once: "
+                               + repr(" ".join(old.split())[:70]))
 
-    release_guard = ""
-    if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
-        # No Improve child runs at the release stage itself (stage_spec: release has no improve), so every Improve
-        # that reads this guard is stage-scoped: it assesses and records, and never executes or replays a release
-        # effect (SPEC S-3; environment-lifecycle.md#release-operation-ownership).
-        performs = """\
-its authority. A stage-scoped Improve assesses and records its handoff; it does not
-execute or replay a release effect (a deployment, an MCP interaction or any other
-release operation). Those run only at the release stage, with a recorded grant and
-their required checks. Do not repeat unchanged release effects merely to advance the
-review streak. Reconcile uncertain or partial outcomes by reading the recorded
-receipts, without inventing provider guarantees; a retry belongs to the release
-stage, under the release guidance, with the prior operation/receipt identity and the
-provider's supported retry or idempotency procedure.
-"""
-        release_guard = """\
-Read and retain Release operation guidance and the current operation/evidence
-locators. Review this stage's plan, readiness checks, or observed outcome within
-""" + performs + """\
-Material candidate changes require corrective planning and affected revalidation.
-External release N/A still requires applicable local candidate and consumer checks.
-"""
 
-    assessment = ""
-    if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
-        assessment = """\
-Review the packet's State and data assessment for the affected slice. Check actual
-resource/consumer identity, transition correctness, workload criteria and applicable
-release/recovery conditions against the proposed work and tests. At initial plan,
-apply Initial-plan reconciliation; carry its selected source/test locators into
-this child's contract and notes. Keep unknowns visible and use existing correction
-routes for newly discovered effects. This is part of this Improve call.
-"""
-    baseline_guard = ""
-    if stage == "discovery":
-        baseline_guard = """\
-For this discovery handoff, use the packet's Initial repository baseline
-guide to review evidence, commands, and classification only. You may improve
-run notes and repeat authorized checks, but may not edit product source, tests,
-dependency definitions, or product configuration, install dependencies, provision
-targets, or perform a repair/bootstrap to make the observation green. Keep an
-expected-RED repair or missing-coverage bootstrap as evidence for its named
-producer; a completed evidence review does not certify repository health.
-"""
-    return f"""\
-This producer attempt has returned a result; its parent action now awaits Improve.
-Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
+# The fixed part of every Improve child's prompt (efficiency plan U18): no handoff prints it any more; it is carried word for
+# word by skills/improve/references/shiploop-route.md ("Review inputs"), which test/improve-route.test.py keeps in step.
+# ``improve_prompt`` composes the opening, the scope sentence, the HEAD, the stage's paragraphs and the TAIL;
+# ``improve_stage_prompt`` is what a handoff prints of it: the scope sentence and the stage's paragraphs.
+_IMPROVE_OPENING = "This producer attempt has returned a result; its parent action now awaits Improve.\n"
+IMPROVE_REVIEW_INPUTS_HEAD = """\
 selected skill card and follow the Until Loop runtime bound by that card.  Use the
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
@@ -2399,23 +2636,8 @@ measurability, preserved conditions, and unresolved targets within this scope.
 Use the packet's Initial repository baseline guide when baseline evidence is
 relevant. Retain its locator, command/result evidence, classification, and
 readiness conditions in the child contract/review notes for cold recovery.
-
-{baseline_guard}
-
-{plan_guard}
-
-{backchain}
-
-{coding_review}
-
-{assessment}
-
-{outer_handshake}
-
-{test_facilities}
-
-{release_guard}
-
+"""
+IMPROVE_REVIEW_INPUTS_TAIL = """\
 When the candidate concerns actor interactions, channels, incoming/outgoing events,
 connection lifecycle, state ownership or UI, read the applicable Interaction design
 guide sections, including UI-specific planning when relevant, and the current
@@ -2492,6 +2714,121 @@ outcome rather than replaying it.
 """
 
 
+def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+    """Return the actual Improve-skill handoff for a completed producer stage."""
+    _require_delegation(delegation)
+    text = _improve_prompt(stage)
+    if delegation == INLINE:
+        for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
+            text = text.replace(delegated, inline)
+    return text
+
+
+def _improve_guards(stage: str) -> list[str]:
+    """The stage-conditional paragraphs of the Improve child's prompt, in print order (an empty string where the stage
+    has none): baseline, plan, Backchain, coding review, state assessment, outer handshake, test facilities, release."""
+    _require_stage(stage)
+    backchain = ""  # an Improve review never mentions Backchain (owner, 2026-10-11)
+    coding_review = ""
+    if stage in {"step-plan", "implement", "verify"}:
+        coding_review = """\
+Use the packet's Coding decision guide. Carry the accepted plan, proposed revisions
+and selected practice/platform locators into the child's existing contract/review
+notes. Read only applicable sections and compare decisions with independent
+requirements and checks. Planning review concerns decisions and proposed checks;
+implementation/verification review needs actual evidence. Keep the assigned edit
+scope and expected check state; this guide adds no review loop or authority.
+"""
+    outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
+    test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
+    plan_guard = ""
+    if stage in {"plan", "step-plan"}:
+        plan_guard = """\
+Review the actual steps after their creation, including any linked execution
+graph. Carry the plan/graph locators and current content identities into this
+child's existing contract and review notes. Check direct dependencies, missing
+suppliers, ready/done criteria, independent paths, joins, resource exclusions,
+and integration/verification ownership. Recheck affected relationships after
+material repairs. Keep the plan pending until this actual Improve loop completes;
+structural validation alone does not complete this handoff.
+"""
+
+    release_guard = ""
+    if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
+        # No Improve child runs at the release stage itself (stage_spec: release has no improve), so every Improve
+        # that reads this guard is stage-scoped: it assesses and records, and never executes or replays a release
+        # effect (SPEC S-3; environment-lifecycle.md#release-operation-ownership).
+        performs = """\
+its authority. A stage-scoped Improve assesses and records its handoff; it does not
+execute or replay a release effect (a deployment, an MCP interaction or any other
+release operation). Those run only at the release stage, with a recorded grant and
+their required checks. Do not repeat unchanged release effects merely to advance the
+review streak. Reconcile uncertain or partial outcomes by reading the recorded
+receipts, without inventing provider guarantees; a retry belongs to the release
+stage, under the release guidance, with the prior operation/receipt identity and the
+provider's supported retry or idempotency procedure.
+"""
+        release_guard = """\
+Read and retain Release operation guidance and the current operation/evidence
+locators. Review this stage's plan, readiness checks, or observed outcome within
+""" + performs + """\
+Material candidate changes require corrective planning and affected revalidation.
+External release N/A still requires applicable local candidate and consumer checks.
+"""
+
+    assessment = ""
+    if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
+        assessment = """\
+Review the packet's State and data assessment for the affected slice. Check actual
+resource/consumer identity, transition correctness, workload criteria and applicable
+release/recovery conditions against the proposed work and tests. At initial plan,
+apply Initial-plan reconciliation; carry its selected source/test locators into
+this child's contract and notes. Keep unknowns visible and use existing correction
+routes for newly discovered effects. This is part of this Improve call.
+"""
+    baseline_guard = ""
+    if stage == "discovery":
+        baseline_guard = """\
+For this discovery handoff, use the packet's Initial repository baseline
+guide to review evidence, commands, and classification only. You may improve
+run notes and repeat authorized checks, but may not edit product source, tests,
+dependency definitions, or product configuration, install dependencies, provision
+targets, or perform a repair/bootstrap to make the observation green. Keep an
+expected-RED repair or missing-coverage bootstrap as evidence for its named
+producer; a completed evidence review does not certify repository health.
+"""
+    return [baseline_guard, plan_guard, backchain, coding_review, assessment, outer_handshake, test_facilities,
+            release_guard]
+
+
+def improve_stage_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+    """What an Improve handoff prints of ``improve_prompt``: the stage's scope sentence and its own paragraphs.
+
+    The fixed review inputs around them are IMPROVE_REVIEW_INPUTS_HEAD and _TAIL, which the Improve skill's ShipLoop route
+    carries; the same inline wording applies as in ``improve_prompt``.
+    """
+    _require_delegation(delegation)
+    _require_stage(stage)
+    paragraphs = [f"Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}."]
+    paragraphs += [guard.rstrip("\n") for guard in _improve_guards(stage) if guard]
+    text = "\n\n".join(paragraphs) + "\n"
+    if delegation == INLINE:
+        for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
+            text = text.replace(delegated, inline)
+    return text
+
+
+def _improve_prompt(stage: str) -> str:
+    """Compose the Improve child's prompt for ``stage``: the scope sentence, the fixed review inputs (which the Improve
+    skill's ShipLoop route carries) and the stage's own paragraphs between them."""
+    guards = _improve_guards(stage)
+    return (_IMPROVE_OPENING
+            + f"Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the\n"
+            + IMPROVE_REVIEW_INPUTS_HEAD + "\n"
+            + "\n\n".join(guards) + "\n\n"
+            + IMPROVE_REVIEW_INPUTS_TAIL)
+
+
 if len(STAGES) != 24 or len(set(STAGES)) != len(STAGES):
     raise RuntimeError("navigator stage catalog must contain 24 unique stages")
 if set(DUTIES) != set(STAGES) or set(IMPROVE_SCOPES) != set(STAGES):
@@ -2500,6 +2837,7 @@ if set(DUTIES) != set(STAGES) or set(IMPROVE_SCOPES) != set(STAGES):
 
 PROMPTS = {stage: prompt(stage) for stage in STAGES}
 IMPROVE_PROMPTS = {stage: improve_prompt(stage) for stage in STAGES}
+_check_for_steps()
 for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
     if not any(_delegated in text for text in IMPROVE_PROMPTS.values()):
         raise RuntimeError("navigator Improve prompts lost a delegated-route phrase")
@@ -2509,6 +2847,8 @@ __all__ = (
     "ASK_AGENT",
     "BACKCHAIN_PASSES_MODES",
     "COMMON",
+    "common_text",
+    "for_steps",
     "DEFAULT_BACKCHAIN_PASSES",
     "DELEGATIONS",
     "DUTIES",
@@ -2516,8 +2856,12 @@ __all__ = (
     "ENVIRONMENT_DISCOVERY_REQUIREMENTS",
     "CODE_CRAFT",
     "IMPLEMENTATION_STAGES",
+    "END_REVIEW_FOCUS_HEAD",
     "IMPLEMENT_STEP_REVIEW_FOCUS",
+    "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
     "IMPROVE_PROMPTS",
+    "IMPROVE_REVIEW_INPUTS_HEAD",
+    "IMPROVE_REVIEW_INPUTS_TAIL",
     "IMPROVE_SCOPES",
     "INLINE",
     "INNER",
@@ -2534,6 +2878,7 @@ __all__ = (
     "STAGE_RULES",
     "duty",
     "improve_prompt",
+    "improve_stage_prompt",
     "inner_context",
     "prompt",
 )

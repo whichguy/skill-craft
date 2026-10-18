@@ -124,15 +124,20 @@ class _Paths:
         return self.head + ", ".join(shown) + more(len(self.paths) - len(shown)) + self.tail
 
 
+# The most one command's output holds (the return-review and workspace commands' lists): the navigator's whole-print limit
+# when the two were one constant, apart from it now so the packet limits can move without changing these outputs.
+OUTPUT_LIMIT = 16_000
+
+
 def _fit(parts: Sequence[str | _Paths], limit: Optional[int] = None) -> list[str]:
-    """The lines of one command's output, as text of at most ``limit`` characters (default ``PRINT_LIMIT``) in all.
+    """The lines of one command's output, as text of at most ``limit`` characters (default ``OUTPUT_LIMIT``) in all.
 
     A plain string is a fixed line and prints whole.  Each ``_Paths`` takes an even share of the room the fixed lines
     leave, in order, so a short list leaves its room to the longer ones after it.  Output hosts cut near 20,000
     characters, and the line a cleared context needs is the last one (the next command), so the whole output, not each
     list, is held to the limit.
     """
-    room = (limit or navigator.PRINT_LIMIT) - sum(len(part) + 1 for part in parts if isinstance(part, str))
+    room = (limit or OUTPUT_LIMIT) - sum(len(part) + 1 for part in parts if isinstance(part, str))
     lists = sum(not isinstance(part, str) for part in parts)
     lines = []
     for part in parts:
@@ -401,7 +406,8 @@ def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated:
 
 
 CALLBACK_ATTEMPTS = "callback-attempts"
-PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-reconcile"})
+PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-pass",
+                          "improve-reconcile"})
 CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-reconcile"})
 
 
@@ -554,6 +560,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         "improve-bind",
         "improve-start",
         "improve-commit",
+        "improve-pass",
         "improve-reconcile",
         "next",
         "status",
@@ -601,19 +608,25 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             sub.add_argument("--remote-change", dest="remote_change", action="store_true",
                              help="record a change to a remote system that left no file change: the message needs a "
                                   "'Remote change:' section, and with no file pending the commit holds no files")
-        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-reconcile"):
+        if name == "improve-pass":
+            sub.add_argument("--no-commit", dest="no_commit",
+                             help="the user's or repository's instruction not to commit this review's edits")
+        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name == "improve-reconcile":
             sub.add_argument("--result", required=True)
         if name == "complete":
-            # Every producer stage needs it; an improve stage takes it only for a changed result (--final-result).
-            sub.add_argument("--result")
+            # Every producer stage reads it; the one path accepted is RUN/inbox/<action>.md, so it may be left out.  An
+            # improve stage takes no result (--final-result is its changed result).
+            sub.add_argument("--result", help="the result file; default and only accepted path: RUN/inbox/<action>.md")
         if name == "complete":
             sub.add_argument("--check-only", dest="check_only", action="store_true",
                              help="run this stage's script gates on the result and report, without completing the "
                                   "action (an Until Loop's way to observe its exit conditions before done)")
         if name == "complete":
-            sub.add_argument("--notes", help="optional plain-text lessons from the review, for later steps")
+            sub.add_argument("--notes", metavar="FILE",
+                             help="optional: the path of a plain-text file (not the text itself) holding the review's "
+                                  "lessons for later steps; the handoff names the file to write")
             sub.add_argument("--final-result", dest="final_result",
                              help="optional step-result record, only when the review changed a decision")
             sub.add_argument("--no-commit", dest="no_commit",
