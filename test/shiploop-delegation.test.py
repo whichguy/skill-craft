@@ -326,6 +326,34 @@ class StepTests(DelegationStateTests):
         for task in ("Document divide", "Announce it"):
             self.assertNotIn(task, line)
 
+    def test_a_check_runs_from_the_step_that_finishes_its_criteria(self):
+        """Chess run 2026-10-17: S1 was given a grep for files only S3 creates, failed, and the revise merged S1-S3.
+
+        A check naming criteria is due from the last step listing them; a check with no criteria is due at every step.
+        """
+        steps = [{"id": "S1", "task": "Add the engine.", "paths": ["engine.py"], "criteria": ["C1"]},
+                 {"id": "S2", "task": "Add the controller.", "paths": ["ctl.py"], "criteria": ["C2"]},
+                 {"id": "S3", "task": "Add the board.", "paths": ["board.html"], "criteria": ["C3"]}]
+        commands = [{"command": "make lint", "suite": "check"},
+                    {"command": "grep -q board board.html", "suite": "check", "criteria": ["C3"]},
+                    {"command": "pytest -v", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1", "C2", "C3"]}]
+        state = advance(self.state("inline"), "step-plan")
+        action = nav.current_action(state)["id"]
+        state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic step plan.", "steps": steps,
+                                          "test_commands": commands})
+        if state.get("active_improve") is not None:
+            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        state = advance(state, "implement")
+        seen = []
+        for number in (1, 2, 3):
+            packet = self.render(state)
+            self.assertIn(f"Step S{number} ({number} of 3), the only work for this packet", packet)
+            checks = packet.split("Check commands (run each after every edit", 1)[1].split("\nLint", 1)[0]
+            seen.append(("grep -q board" in checks.split("Checks due at a later step")[0], "make lint" in checks))
+            state = self.done(state, f"S{number} done.")
+        self.assertEqual(seen, [(False, True), (False, True), (True, True)])
+        self.assertNotEqual(nav.current_stage(state), "implement")
+
     def test_inline_implement_issues_one_packet_per_step_in_order(self):
         state = self.at_implement()
         first = self.render(state)

@@ -111,7 +111,7 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
                + (", ".join(skill["name"] for skill in step["skills"]) or "none"),
                "Check commands (run each after every edit; exit codes to RUN/notes/<action>.md)",
                *(f"  {number}. {row_['command']}" for number, row_ in enumerate(
-                   [command for command in plan["test_commands"] if command["suite"] == "check"], 1)),
+                   navigator.step_checks(plan["steps"], index, plan["test_commands"])[0], 1)),
                "Lint each implementation step (report-only): "]
     if stage == "test":
         p1 += ["A command passes only when it exits 0 and actually ran tests", "Each focused and regression command must also run at least its floor",

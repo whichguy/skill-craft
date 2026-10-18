@@ -9,7 +9,7 @@ one structured result for the current action.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
@@ -5767,6 +5767,31 @@ def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_i
     return lines
 
 
+def step_checks(steps: Sequence[Mapping[str, Any]], index: int,
+                commands: Sequence[Mapping[str, Any]]) -> tuple[list[Mapping[str, Any]], list[tuple[str, Mapping[str, Any]]]]:
+    """Split the item's check commands into those due at ``steps[index]`` and those due at a later step.
+
+    A check with no criteria (lint, type, build) is due at every step.  A check naming criteria is due from the step
+    that finishes the last of them (the last step listing it), so an early step is never asked to pass a check on work
+    a later step builds.  A criterion no step lists keeps its check due now, as before.
+    """
+    last: dict[str, int] = {}
+    for position, step in enumerate(steps):
+        for criterion in step.get("criteria") or ():
+            last[str(criterion)] = position
+    due: list[Mapping[str, Any]] = []
+    later: list[tuple[str, Mapping[str, Any]]] = []
+    for row in commands:
+        if row.get("suite") != "check":
+            continue
+        finish = max((last.get(str(criterion), -1) for criterion in row.get("criteria") or ()), default=-1)
+        if finish <= index:
+            due.append(row)
+        else:
+            later.append((str(steps[finish].get("id")), row))
+    return due, later
+
+
 def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
     """Name the one step this inline implement packet is for, and what is already done."""
     if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
@@ -5785,11 +5810,13 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
              "Step skills (use each; the summary says whether you did): "
              + (", ".join(str(skill.get("name")) for skill in step.get("skills") or () if isinstance(skill, Mapping))
                 or "none")]
-    checks = [str(row["command"]) for row in test_loop.stage_commands(state, "test", work_item or "")[0]
-              if row.get("suite") == "check"]
+    due, later = step_checks(steps, done, test_loop.stage_commands(state, "test", work_item or "")[0])
     lines.append("Check commands (run each after every edit; exit codes to RUN/notes/<action>.md)"
-                 + (":" if checks else ": none recorded"))
-    lines.extend("  " + str(number) + ". " + command for number, command in enumerate(checks, 1))
+                 + (":" if due else ": none due at this step"))
+    lines.extend("  " + str(number) + ". " + str(row["command"]) for number, row in enumerate(due, 1))
+    if later:
+        lines.append("Checks due at a later step (do not run them here; their criteria finish there): "
+                     + "; ".join(f"{step_id}: {row['command']}" for step_id, row in later))
     for earlier, row in zip(steps[:done], history):
         lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
     if done + 1 < len(steps):

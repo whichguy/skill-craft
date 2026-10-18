@@ -1224,6 +1224,7 @@ Change no product file in this stage.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
+     A check naming `criteria` runs from the step that finishes the last of them; one without runs after every step.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
@@ -1310,7 +1311,7 @@ preparatory commit); a mismatch there is a revise.
    unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
    and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
    it); the summary says per skill whether you used it, and why not.
-3. **Check.** After each edit run every recorded check command and `shiploop lint --action`; write each exit code in
+3. **Check.** After each edit run every check command on the Step lines and `shiploop lint --action`; write each exit code in
    RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the command.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
