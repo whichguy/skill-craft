@@ -39,6 +39,7 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "improve-bind",
         "improve-start",
         "improve-commit",
+        "improve-pass",
         "improve-reconcile",
         "next",
         "status",

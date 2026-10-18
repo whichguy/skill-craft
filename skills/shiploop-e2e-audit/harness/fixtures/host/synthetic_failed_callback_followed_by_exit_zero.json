@@ -23,7 +23,7 @@
   },
   "id": "synthetic-failed-callback-followed-by-exit-zero",
   "observer": {
-    "grok_adapter_sha256": "835e656eab6bb5640d43e2e62bb20dbc8288c3617ce5cef63d76efdaec67f277",
+    "grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
     "previous_grok_adapter_sha256": "c6fbad88c5ee6fb19d6c4167572ee4338030ed038f9c3a8a9b19de3901936613",
     "revalidation": "The direct-form ShipLoop verb allowlist now also accepts backchain-check, the record-only Backchain graph check. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged.",

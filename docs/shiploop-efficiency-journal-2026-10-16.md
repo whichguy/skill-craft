@@ -646,12 +646,17 @@ Related commits: `da9e2e75` (base), `a7c1fdb2` (baseline row of the audit-fix ru
 - suites skipped: shiploop-e2e-environment, -chess-salesforce, -platform and -sf-guard (65, 115, 55 and 20 s; they call none of the changed symbols and reach the org's `sf` only through fakes; the import path of metrics.py and clear.py is exercised by the twelve family suites run); the whole quick group and the full tier (G-QUICK is not an exit item of this unit); no shiploop-chain or improve suite (no skills/ file changed)
 - key learning: a packet's size depends on the length of the checkout path it prints, so a measurement at another path is read against the audit only after the path is normalised (the audit's own figures reproduce exactly that way); "variable-built" is only 19 of 20 if it means the run directory argument, because the CLI path in `$SC` also makes a command unreadable to the status display (20 of 20); an equivalent mutant (a filter applied twice) survived the first fail-first sweep and was replaced, so the fail-first record is 18 mutations that bite; the plan-stage Backchain child is 4.3 percent of the live2 planning window against 17 percent on the Luna run (one run each, so it prices the 30-minute bar differently by host and is not a constant to plan with)
 
-### 2026-10-17 · step-scoped check commands (firm)
+### 2026-10-17 · step-scoped check commands
+- status: superseded
+- superseded by: W2-A (12151c49, merged 672973ae): each step carries its own `check` (the step Proof) that ShipLoop runs at done, and implement runs only that; the interim `step_checks` helper was removed then.
+- snapshot: 603a709c
+- fixture: the delegation suite's three-step plan (engine, controller, board), offline; the chess run's step 16 as the observed case
+- run-dir length: n/a
+- unit: INT
+- evidence: `test/shiploop-delegation.test.py`, `docs/experiments/packet-review-2026-10-17/B-build-1.json`
 - question: why did the chess run's step plan (S1 engine, S2 controller, S3 board) collapse into one step?
-- evidence: `/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29` step 16 (implement S1, outcome revise): the packet's "Check commands (run each after every edit)" listed the C12 grep for the board, tab and app files that only S3 creates; it exited 2 on S1's tree and the revise's repair was a one-step plan of 11 paths (step 17), so 1 implement and 1 Improve ran instead of 3 of each. Cause: `_step_lines` took every `suite: check` row of the item and ignored its `criteria`. Owner (2026-10-17): the per-step series is the intent; fix it.
-- change: `shiploop_navigator.step_checks` splits the item's checks into those due at the step (no criteria, or every criterion's last listing step at or before it) and those due later (named on the packet with their step); the step-plan check duty and the implement exit condition say so.
-- tests: new `shiploop-delegation` case `test_a_check_runs_from_the_step_that_finishes_its_criteria` (a 3-step plan: the board check is due only at S3, lint at every step); fail-first: on the previous navigator it reports the board check due at all three steps, the run's failure. Suites run once after the last edit, all OK: shiploop-delegation (59), -head-order (33, the fixture's expected check list now uses `step_checks`), -packet-recut (30, after raising three head values by 18 to 117 characters in head_table.json), -loops (51), -navigator-contract (110), -callback-contract (72), -step-packets (9), -packet-completeness (62), -packet-obligations (15), -reference (8), -reference-routing (4), -test-loop.
-- open: the gate does not yet refuse a step plan whose check cannot be satisfied by any prefix of the steps; a live run with a multi-step plan should show one implement and one Improve per step in order (owner TODO, memory todo-step-series-order).
+- result: `_step_lines` ran every item check row on every step; S1 got S3's board grep, revised, and the repair merged three steps into one. The interim fix scoped a check to the step that finishes its criteria (fail-first: the old navigator reports the board check due at all three steps).
+- key learning: an item-wide check after every step defeats the step series; a step needs its own proof, which W2-A then added.
 
 ### 2026-10-18 INT merge with main's Improve 0.4.4: the stop rule, its scope by stage kind and the lean returns dropped
 - status: firm
