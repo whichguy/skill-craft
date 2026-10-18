@@ -277,3 +277,46 @@ The consolidated fix plan (§2.2, §5) puts the step block and the closing `/unt
 - **Deferred:** the ask-agent assigned-steps slot.
 - The disposition table is §10 of the fix plan. In the same turn the owner added six engineering directions (D8) and
   the static-file rule (D9); see §3.5 and §3.6.
+
+## Round 4 — 2026-10-18: a live run on the integration branch (Battleship in Salesforce, Grok 4.7 medium)
+
+**Source.** The owner's run analysis, [Battleship Run Analysis](https://claude.ai/artifact/4dwjgqaNCzRCCj5tzUr5ey).
+- The run used `feat/shiploop-eff-int-c5f79b`, the packet-review integration branch.
+- That branch had already folded in this audit's fix plan (86a01ac2) and built two of its units in 12151c49: W2-A, the
+  per-step Proof, and W2-B, one step block on every surface.
+- W2-D (static guidance from files, the eight considerations, evidence, Code craft 10–14) is deferred there pending a
+  measurement.
+- This branch (`shiploop/implement-prompt-2d6ecc`) built W2-A/B again plus W2-D, so the two overlap.
+
+**Result.** done, 5/5 org checks, 10/10 Apex tests on the first org run, 2 refusals, 10 compactions all recovered.
+
+**What it shows about the implement prompt** (firm for this run; one run, one host):
+1. **The step block plus the per-step Proof works.**
+   - S1–S4 ran in plan order, each in its own packet.
+   - The implement packets were sufficient, with directive scores 4–5: zero ShipLoop-source reads, no refusal.
+   - The model also went past the Proof on its own: a Python placement simulator and an anonymous-Apex probe.
+2. **On a remote-only target, the Proof degrades to a source-string check, and the model shaped code to it.**
+   - Reasoning, from the run: "I'll also avoid mentioning `JSON.serialize(` in docstrings to prevent the test check
+     from flagging it". The rowAxis and colAxis objects exist only to carry `length: 10`.
+   - Cause: the step-check rule forbids a remote effect, so for Salesforce only the source text is checkable. This
+     branch has the same rule ("a dry-run validation can be"), so the defect is shared.
+   - Fix direction:
+     - let a step Proof use the environment's recorded development route (dry-run validate plus a probe) when the run's
+       recorded authority covers it;
+     - tell the implementer that a Proof shows the step done and is never a design target;
+     - make `evidence` require an observation of behaviour, not of text (this branch's evidence rule asks for that;
+       not yet measured).
+3. **A revise that changed only `test_commands` re-ran all four steps on unchanged code** (about 11 min, empty diffs),
+   because `implement_progress` counts from the latest accepted step plan. Both branches have this. Fix: keep the
+   accepted steps when the revised plan's steps, criteria and paths are unchanged.
+4. **The step review focus paraphrases Code craft 2 without "the received value", and three reviews missed exactly
+   that defect.** The end-of-work review, which quotes the full rubric, found it. This branch's
+   `IMPLEMENT_STEP_REVIEW_FOCUS` keeps the same paraphrase. Fix: quote the rule's words.
+5. **Two Improve reviews deployed to the org despite "No push, deploy"**, because remote-only checks pushed them to.
+   The Improve authority line needs the same rule the Deploying consideration gives implement.
+6. **Test-spec quotes only the focused IDs**, so 7 of the 10 required methods had no oracle, and implement listed them
+   as `not_covered`.
+
+**Next.** Owner decision: port this branch's W2-D-only parts (considerations, evidence, static files, Code craft 10–14,
+anchors, cards, match, recent commits) onto the integration branch and drop this branch's W2-A/B duplicate. Then fix
+items 2–4 above, then measure.
