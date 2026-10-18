@@ -1,0 +1,575 @@
+{
+ "reviewer": "step-plan",
+ "file": "docs/experiments/run-insights-2026-10-18/templates/step-plan.template.md (read as step-plan.filled.md, partials included)",
+ "date": "2026-10-18",
+ "measured": {
+  "printed_chars_filled": 19643,
+  "print_budget": 19500,
+  "host_cut": 20000,
+  "static_worst_case": 21204,
+  "source": "python slice of step-plan.filled.md from 'ShipLoop navigator | step-plan' to the last '=== end ShipLoop head ==='; packets-audit.json template_option.proposal.static_budget.templates_as_delivered",
+  "live_packet_printed": 19726,
+  "live_shiploop_source_reads": "30 of 58 CALLs in SP/11-step-plan.actions.md read skills/shiploop/scripts/shiploop_*.py or references/path-classes.json (normalise_commands, _normalise_criteria, _handoff_fault, write_problem, normalise_paths, classify, _entries)"
+ },
+ "verifications": [
+  {
+   "question": "Can `complete --check-only` pass while this stage's Until Loop receipt is still active (the Work line runs it inside the loop)?",
+   "answer": "yes, verified",
+   "evidence": "shiploop_navigator.py `command == \"complete\"` branch: `loops.check_terminal` runs only `if ... and not check_only` (comment: 'It runs inside the stage's own loop, whose receipt is still active, so the receipt check waits for the real complete'); `_check_submitted_evidence(..., check_only=True)` skips the action's own receipt. Live: SP/11-step-plan.actions.md OUT 'ShipLoop check-only: every script gate for step-plan accepts this result (the Until Loop receipt is checked only on the real complete).' Caveat (kept, code text): that same success line says 'run the same complete command without --check-only to submit it', which inside an active loop is refused by check_loop_packet ('the step-plan loop is still active')."
+  },
+  {
+   "question": "Can the template's six rewritten exit conditions coexist with the contract ShipLoop builds from stage_spec's seven done_when lines?",
+   "answer": "no, not as two texts. The gate itself would still pass (the Contract file is written by `loops.contract_writes` from stage_spec and `check_terminal` rebuilds the same), but the print would contradict the contract the runtime echoes, and if an implementation writes the Contract file from the template while `check_terminal` keeps rebuilding from stage_spec, every step-plan done is refused ('the terminal packet is not from a run of this action's contract'). Only one source works.",
+   "evidence": "python3: `loops.exit_condition('step-plan')` prints 7 numbered lines; the template argument has 6. `loops.REPEAT['step-plan']` ends 'a user's stop is the ShipLoop packet's pause command.'; the template's ends 'the packet's Pause command.' (string compare False). `loops.WORK['step-plan']` = 'Do duty items {items} of {run}/packets/{action}.md, writing the result at ...' with `_duty_items('step-plan','inline')` = '1-12'; the template Work is 'Plan work item {{item_id}} by the Method in {{packet_abs}} ...' and its Method has 9 inline items. `check_loop_packet` compares packet.work, conditions.exit, conditions.repeat and context with `contract()`. The runtime echoes the contract: SP/11-step-plan.actions.md OUT of `start` shows conditions.exit with the 7 stage_spec lines. Other readers of done_when: `_goal_lines` (active_improve parent packet), `loop_contract.stage_exit`, the Improve hand-off (SP/12-improve-step-plan.improve-handoff.md 'Done when (a done result must meet each ...)' lists the 7 lines), test/shiploop-head-order.test.py `tokens` (each done_when line is a P0 token)."
+  },
+  {
+   "question": "Do the slots that depend on planned features render safely when absent?",
+   "answer": "no for three of them, yes for D1",
+   "evidence": "plan_concerns: no plan result can carry `concerns` (`navigator._RESULT_KEYS` lacks it) and a step-plan result that carries it is refused ('result has unsupported fields: concerns', ran `_canonical_result`). platform_testing: no card has a '## Testing' heading (`grep '^## ' skills/shiploop/references/platforms/*.md`: none); the proposal says a missing heading raises. platform_card: no code maps HOME/environment.md ## Targets and runtimes to a card (grep 'platforms/' in scripts: only prose); the Battleship section names 'Salesforce Developer Edition', not a card file; over=refuse. item_context: 'plan's gate refuses a context over this bound' is not true today (`_normalise_work_items` only `_text`s the context). In the filled packet the spent pool turned platform_testing into a pointer, which hides the missing heading. D1 tables of contents (spec_toc, arch_toc): a source exists today (`navigator._contents_lines`, the live 'Knowledge files this stage reads, listed by contents' block), so they render."
+  }
+ ],
+ "blocks": [
+  {
+   "name": "frame (partial)",
+   "chars": 2004,
+   "consumer": "model (callback, recovery, symbols); status hook (HEADER 'ShipLoop navigator | ' at stdout start); keepalive hook (MARKER regex); run-review export ('where')",
+   "necessary": "yes: callback, recovery, symbols and keepalive are each read; the 'Owner rule' sentence is partly style",
+   "sufficient": "partly: 'this packet states every rule its gates apply' is false for this stage (see F4, F5, F13); 'Full packet: RUN/...' is symbolic although PROSE_PATH_LINES' comment and SKILL.md list the Full packet line as always literal"
+  },
+  {
+   "name": "Goal + Done when / Checked by",
+   "chars": 280,
+   "consumer": "model; run-review export CARRIED 'purpose' and 'checked'",
+   "necessary": "yes",
+   "sufficient": "partly: 'Checked by:' is mid-line, so export.py `^Checked by:` misses it; Goal names 'concern mapping' (planned) and differs from stage_spec.goal, which the Improve hand-off quotes"
+  },
+  {
+   "name": "loop-invoke (partial)",
+   "chars": 920,
+   "consumer": "model; Until Loop runtime (absolute start command)",
+   "necessary": "yes",
+   "sufficient": "partly: the fresh branch drops loops.INVOKE_LINE's guard '(if the Receipt below already exists and is active, run its next_argv instead ...)', and the Work line sends the in-loop model to the packet file, which still holds the fresh branch until the next emit (F9)"
+  },
+  {
+   "name": "Until Loop argument",
+   "chars": 1851,
+   "consumer": "model; must equal the Contract file that the runtime reads and check_terminal compares",
+   "necessary": "yes",
+   "sufficient": "no: its Work, Exit and Repeat differ from loops.contract() (F3); Contract and Receipt lines are RUN-relative inside the always-literal argument"
+  },
+  {
+   "name": "loop-result (partial)",
+   "chars": 506,
+   "consumer": "model",
+   "necessary": "yes",
+   "sufficient": "partly: one route back ('run the receipt's next_argv once') fits only the 'still active' refusal; a terminal receipt has next_argv null (check_loop_packet); '(stopped: report it)' does not name the outcome"
+  },
+  {
+   "name": "progress (narrative)",
+   "chars": 674,
+   "consumer": "status hook (narrative markers within WINDOW 16,000: ends at 6,203) and the user",
+   "necessary": "yes",
+   "sufficient": "yes"
+  },
+  {
+   "name": "Input (context, concern rows, commands, card, assumptions, headings, skills, revisit, last summary)",
+   "chars": 6647,
+   "consumer": "model",
+   "necessary": "partly: context whole (3,362) fixes the live 400-character excerpt; the concern rows are fabricated in the illustration (no A1 today); last summary marginal",
+   "sufficient": "partly: open assumptions (gate-checked via `from`) become a pointer when the pool is spent (F7); ## Harnesses and suites is neither quoted nor named (F16); 'commands only' drops the 'none configured' and 'runs only after the deploy' lines (F17); revisit lacks the previous step-plan result path (F8)"
+  },
+  {
+   "name": "Method (9 inline items, 10 ask-agent)",
+   "chars": 3728,
+   "consumer": "model",
+   "necessary": "partly: items 2-8 restate exit conditions 2-6 a second time; item 9 needed (knowledge gate)",
+   "sufficient": "partly: misses criterion coverage (F4) and deps-earlier (F13); wrong stage for red_na (F11); false glob claim (F12); ask-agent locator missing (F19)"
+  },
+  {
+   "name": "Gates beyond the exit conditions",
+   "chars": 582,
+   "consumer": "model",
+   "necessary": "yes, minus the last sentence's Improve clause (F10)",
+   "sufficient": "partly: omits the loop-terminal refusals (left to loop-result) and the criterion-coverage refusals; the placeholder gate is weaker than stated (F5)"
+  },
+  {
+   "name": "RULES (partial)",
+   "chars": 534,
+   "consumer": "model",
+   "necessary": "yes (live model used RUN/scratch for its done report)",
+   "sufficient": "yes"
+  },
+  {
+   "name": "Result form",
+   "chars": 1329,
+   "consumer": "model; gate parser (store.loads of the shiploop-state fence)",
+   "necessary": "yes",
+   "sufficient": "no: carries `concerns`, which `_canonical_result` refuses today (F1); new placeholder strings pass the gates (F5); no step `paths` on the ask-agent route (F19)"
+  },
+  {
+   "name": "result-rules (partial)",
+   "chars": 588,
+   "consumer": "model; awaiting and blocked gates",
+   "necessary": "yes",
+   "sufficient": "partly: 'ShipLoop refuses a form with a placeholder left' is not what `_placeholders` does (it walks only follows/test_cases/not_covered/lessons and exact strings)"
+  },
+  {
+   "name": "appendix (file only)",
+   "chars": 1738,
+   "consumer": "a reader after a cut or reset",
+   "necessary": "yes",
+   "sufficient": "partly: 'do not commit it yourself' moved here from the print (the loop contract's authority still says 'Commit nothing'); the Pause command the Repeat line names is only here"
+  }
+ ],
+ "gate_map": [
+  {
+   "gate": "loops.check_terminal: '<stage> accepts only done, blocked; the bound Until Loop repeats the work, not the graph'",
+   "where": "Allowed outcomes: done | blocked."
+  },
+  {
+   "gate": "check_loop_packet: 'the step-plan loop has not run: no terminal packet exists ... Start it with: <start>'",
+   "where": "loop-invoke fresh branch (start command); the refusal prints the command"
+  },
+  {
+   "gate": "check_loop_packet: 'not a complete Until Loop packet' / 'not written by a run started with --receipt' / 'lacks its conditions or progress'",
+   "where": "loop-invoke: 'exactly as printed' and 'do not edit that file or the receipt'"
+  },
+  {
+   "gate": "check_loop_packet: 'the terminal packet is not from a run of this action's contract ...: start the loop again with ...'",
+   "where": "loop-invoke 'Its argument is already in the Contract file' (false if the printed argument stays a second text: F3)"
+  },
+  {
+   "gate": "check_loop_packet: 'the step-plan loop is still active: run the receipt's next_argv once ...'",
+   "where": "loop-result 'If the Callback refuses for the loop, run the receipt's next_argv once'"
+  },
+  {
+   "gate": "check_loop_packet: status not complete/stopped; state file still live; still offers a callback; no final report; no iteration count",
+   "where": "loop-invoke 'run its done_argv as printed' (runtime-internal; refusal self-explains)"
+  },
+  {
+   "gate": "check_loop_packet: 'a complete terminal packet needs a final report whose exit is satisfied'",
+   "where": "loop-result Done-report fields + 'Call an exit condition satisfied only when ...'"
+  },
+  {
+   "gate": "check_loop_packet: 'a complete step-plan loop reports outcome done'",
+   "where": "loop-result 'when the Receipt says complete ... run the Callback' (implicit)"
+  },
+  {
+   "gate": "check_loop_packet: 'the step-plan loop was cancelled after N iterations'",
+   "where": "argument Repeat 'Never stop cancelled'"
+  },
+  {
+   "gate": "check_loop_packet: 'a step-plan loop stopped as blocked reports outcome blocked ...'",
+   "where": "loop-result '(stopped: report it)' (vague: F24)"
+  },
+  {
+   "gate": "_check_submitted_evidence: 'evidence_refs cite files that do not exist'",
+   "where": "Gates line 3"
+  },
+  {
+   "gate": "_check_submitted_test_commands: must list test_commands / paths / criteria (when commands) / steps",
+   "where": "Result form keys"
+  },
+  {
+   "gate": "item_scope.normalise_paths: inside the repository, nonblank, 'paths must not repeat'",
+   "where": "Method 7 'exact repository-relative paths' (no-repeat missing, P3)"
+  },
+  {
+   "gate": "_check_step_sizing: 'step S must record its check' / 'must list criteria' / 'no step satisfies C' / 'only changes test files'",
+   "where": "exit 2, Method 4"
+  },
+  {
+   "gate": "_check_step_sizing: 'step S names criteria the result does not list'",
+   "where": "missing (P3; refusal self-explains)"
+  },
+  {
+   "gate": "_check_step_sizing: 'step S changes paths the item does not declare'",
+   "where": "Gates line 2"
+  },
+  {
+   "gate": "_normalise_steps: 'step deps must name earlier steps; unknown, self and forward dependencies are invalid'",
+   "where": "missing (F13)"
+  },
+  {
+   "gate": "_normalise_steps: step check 'must be one nonblank command line'; step/criterion ids unique, no spaces",
+   "where": "Method 4 'the one command' (partial)"
+  },
+  {
+   "gate": "_normalise_criteria: 'every criterion needs a test command that confirms it ... uncovered: C<n>'",
+   "where": "missing (F4); also refuses test_commands_na with criteria"
+  },
+  {
+   "gate": "_normalise_criteria: 'test_commands name criteria that are not listed'",
+   "where": "missing (F4)"
+  },
+  {
+   "gate": "test_loop.normalise_commands: keys, one nonblank line, suite enum, ids without spaces, min_tests >= 1, criteria distinct",
+   "where": "Result form shape (the form's ids ['<case ID>'] is refused as a shape error, not as a placeholder)"
+  },
+  {
+   "gate": "test_loop.normalise_commands: 'a check command is judged by its exit code and takes no ids or min_tests'",
+   "where": "Method 5 'judged by exit code' (no-ids clause dropped: F27)"
+  },
+  {
+   "gate": "_canonical_result: test_commands_na needs an empty list / only for an empty list / an empty list needs test_commands_na",
+   "where": "Method 5 'no command at all: test_commands_na'"
+  },
+  {
+   "gate": "expectations._check_check_suite: no check row and no check_na; check_na blank; check_na without commands; both a check row and check_na",
+   "where": "exit 3, Method 5 (the 'both' case missing, P3)"
+  },
+  {
+   "gate": "expectations.check_step_plan: 'step S must list skills'; 'skill ...: locator ... does not exist'",
+   "where": "exit 6; Gates line 2"
+  },
+  {
+   "gate": "expectations.check_step_plan: 'a done step-plan result must list expectations'; normalise_expectations shape and write_problem (one line, redirect only to /dev/null, no writer)",
+   "where": "Result form; Method 6 'one read-only command' (shape details not stated, P3)"
+  },
+  {
+   "gate": "expectations.check_step_plan: 'expectation E names steps the result does not list'",
+   "where": "missing (P3)"
+  },
+  {
+   "gate": "expectations.check_step_plan: absent path exists on base / works-broken path missing / 'these step paths have no expectation listing them'",
+   "where": "exit 4, Method 6"
+  },
+  {
+   "gate": "expectations.check_step_plan: 'expectations cite from X, which is not an open plan assumption' / 'open plan assumptions A name W as consumer; add an expectation ... from'",
+   "where": "Method 6 (input is a pointer when the pool is spent: F7)"
+  },
+  {
+   "gate": "_canonical_result: 'result has unsupported fields: ...'",
+   "where": "conflict: the form asks for `concerns` (F1)"
+  },
+  {
+   "gate": "_canonical_result / _result_shape_problem: object with top-level outcome and summary; wrapper record refused",
+   "where": "result-rules '\"outcome\" and \"summary\" top-level'"
+  },
+  {
+   "gate": "_canonical_result: 'a blocked result does not carry ...' / blocked_by enum / awaiting shape / 'a result awaiting a person has blocked_by user or access'; _check_submitted_awaiting no_default",
+   "where": "result-rules blocked and awaiting shapes"
+  },
+  {
+   "gate": "_canonical_result: 'headline still holds the template placeholder' (exact HEADLINE_PLACEHOLDER only); one line <= 100",
+   "where": "Result form; the template's new headline placeholder is not caught (F5)"
+  },
+  {
+   "gate": "_canonical_result: 'summary still holds the template placeholder' (exact _summary_placeholders only)",
+   "where": "result-rules; the new summary placeholder is not caught (F5)"
+  },
+  {
+   "gate": "_handoff_gate/_handoff_fault: 'Replace placeholders' (follows only, exact HANDOFF_PLACEHOLDERS)",
+   "where": "Gates line 3 'a placeholder left in the form' (overstated: F5)"
+  },
+  {
+   "gate": "_handoff_fault: 'Add follows' / 'Fix the follows IDs ... No entry: ...'",
+   "where": "Gates line 1; Method 7"
+  },
+  {
+   "gate": "_knowledge_gate -> knowledge.check: 'Restore the lost R-<n> ... or move it under Superseded'",
+   "where": "Gates line 3; Method 9"
+  }
+ ],
+ "findings": [
+  {
+   "id": "SP-1",
+   "category": "problem",
+   "severity": "P0",
+   "where": "Result form: '\"concerns\": [{\"concern\": \"<row>\", \"steps\": [\"S1\"], \"check\": \"<command or case ID>\"}]' with exit 5 and Method 8",
+   "evidence": "python3 `_canonical_result(live_result + concerns, stage='step-plan')` -> NavigatorError 'result has unsupported fields: concerns. Delete them ...'; `_RESULT_KEYS` has no concerns. Every done result that follows the form is refused, and the refusal ('delete them') contradicts exit condition 5, which the loop must satisfy.",
+   "fix": "Gate the whole concern feature on one flag: `{{#if plan_concerns}}` around the Input concern rows, exit 5, Method 8, the form's \"concerns\" key and the Goal's 'and concern mapping'; land `concerns` in _RESULT_KEYS, _canonical_result and its gate (A1) in the same commit that turns the flag on.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-2",
+   "category": "problem",
+   "severity": "P0",
+   "where": "front matter slots platform_card ('over refuse'), platform_testing ('needs a ## Testing heading in each card'), item_context ('plan's gate refuses a context over this bound, so this slot never cuts')",
+   "evidence": "`grep '^## ' skills/shiploop/references/platforms/*.md`: no card has ## Testing; no script maps HOME/environment.md ## Targets and runtimes to a card (grep 'platforms/' finds prose only; the Battleship section says 'Salesforce Developer Edition'); `_normalise_work_items` applies no length bound to context. packets-audit.json validator: 'render time: a slot left unfilled, a value over a refuse bound ... raises naming the slot' and static_text 'a missing file or heading raises; no fallback'. A render that raises prints no packet: the run stalls. Not verified on a renderer (prototype tmpl.py not run).",
+   "fix": "platform_card: source a structured field (prepare result or environment.md line 'Platform card: GUIDES/platforms/<card>.md'), and when absent render 'Platform card: none recorded (cards: GUIDES/platforms/)'. platform_testing: print the line only under a flag `card_has_testing`. item_context: land the plan producer bound before this template, or make it `over: excerpt` with today's pointer '[Excerpt only. Full value: RUN/state.md; field work_items[<i>].context ...]'.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-3",
+   "category": "problem",
+   "severity": "P1",
+   "where": "Until Loop argument: 'Work: Plan work item {{item_id}} by the Method in {{packet_abs}} ...', exit lines 1-6, 'Repeat while ... the packet's Pause command.'",
+   "evidence": "`loops.exit_condition('step-plan')` = 7 stage_spec lines; REPEAT differs ('the ShipLoop packet's pause command'); WORK says 'Do duty items 1-12'. `check_loop_packet` compares work, exit, repeat and context with `contract()` rebuilt from stage_spec. The runtime echoes the 7-line contract (SP/11-step-plan.actions.md, `start` OUT); the Improve hand-off quotes the same 7 lines (SP/12-improve-step-plan.improve-handoff.md). P0 if the Contract file is written from the template text while check_terminal keeps rebuilding from stage_spec.",
+   "fix": "Replace the literal argument with one slot `{{loop_argument}}` rendered from `loops.contract(root, state, action)` (Work, exit_condition, repeat_condition, Contract, Receipt). Move the six conditions into stage_spec 'step-plan' done_when, the template Work into WORK['step-plan'] and the template Repeat into REPEAT['step-plan'], and have `_duty_items` count the template's Method items, so the packet, the contract, the Improve hand-off and the head-order tokens read one text.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-4",
+   "category": "insufficient",
+   "severity": "P1",
+   "where": "Method 5 ('... A row naming a criterion runs code on that criterion's paths.') and exit 3",
+   "evidence": "`_normalise_criteria` refuses 'every criterion needs a test command that confirms it ... uncovered: C1' and 'test_commands name criteria that are not listed'; neither is in the template (grep 'named|unlisted|every criterion': only 'every criterion is satisfied by a step'). Ran: a result with test_commands [] + test_commands_na + criteria is refused, so the offered 'no command at all: test_commands_na' route fails whenever criteria are present. Today's duty 5 and Checked by stated it; the live model read `_normalise_criteria` in navigator source (SP/11-step-plan.actions.md read_file shiploop_navigator.py at 2280-2330).",
+   "fix": "Method 5, last sentence: 'Every criterion is named in some row's `criteria` (a check row is enough for documents), and a row names only listed criteria; with `test_commands_na`, list no criteria and put each condition in `summary` as an open item. A row naming a criterion runs code on that criterion's paths.' Exit 3: append '; every criterion is named by some row'.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-5",
+   "category": "problem",
+   "severity": "P1",
+   "where": "Result form placeholders ('<under 100 characters: what this plan established>', '<one sentence naming the change ...>', '<outcome, citing C1>', '<command>', '<condition>. Confirm by: ...', '<file>') and result-rules 'ShipLoop refuses a form with a placeholder left'",
+   "evidence": "Ran `_canonical_result` on the form with only ids, follows and E1's check filled: accepted, headline/summary/steps/criteria/paths still placeholders; `_placeholders` returned []. HEADLINE_PLACEHOLDER and `_summary_placeholders()` hold today's strings only; `_placeholders` walks follows, test_cases, not_covered, lessons. An unfilled step check '<command>' passes step-plan and fails at implement's Proof.",
+   "fix": "In the same commit: add each form placeholder to the gate (headline and summary sets; extend `_placeholders` to criteria[].text, steps[].task/check, paths, expectations[].statement, concerns[]), or a generic rule 'a string that is exactly one <...> token is unfilled'; route-test it with the verbatim form.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-6",
+   "category": "problem",
+   "severity": "P1",
+   "where": "front matter 'print_budget: 19500'; whole print",
+   "evidence": "Filled print 19,643 > 19,500; static worst case 21,204 > HOST_CUT 20,000 (packets-audit.json static_budget: 'refused at 19,500'). Grok keeps the first and last 10,000 characters, so the '=== end ShipLoop head ===' line survives a middle cut and the frame's completeness test ('whole packet when it ends with the line') cannot see it; at worst case the dropped middle is the Input block (context, concern rows).",
+   "fix": "Land the producer bounds first (plan context 2,500, concern rows 1,200: static 19,584), then cut at least 84 more fixed characters (SP-10 and SP-22 give about 200); make the static validator a CI test on both routes.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-7",
+   "category": "insufficient",
+   "severity": "P1",
+   "where": "Input: 'Open assumptions this item settles:' -> '[not quoted: the packet's budget is spent; read RUN/results/nav-723e....md, field assumptions]'",
+   "evidence": "`check_step_plan` refuses 'open plan assumptions A8 name W1 as consumer; add an expectation for each with \"from\"'. The live packet quoted A8 by value (SP/11-step-plan.packet.md 'open items for W1: - A8 ...'); the template's pool order prints commands first and turns A8 into a pointer.",
+   "fix": "Make open_assumptions a non-pooled slot (over refuse, bound 1,200, bounded at plan) printed before the pool; move spec_toc, arch_toc and env_skills into the pool in its place.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-8",
+   "category": "insufficient",
+   "severity": "P1",
+   "where": "flags 'revisit | state.revises[item] > 0'; slot revisit_block (pool inputs, over excerpt); 'Revisit (amend the accepted plan; keep each row ...)'",
+   "evidence": "State has `revisions`, not `revises` (navigator validate: 'navigator revisions must map work item IDs to 1..'); the revisit test is `_sent_back_results`. `_revisit_lines` prints the previous accepted step-plan result path and 'Submit the whole amended plan: it replaces the previous one.', and `planning_revision.current_actions` drops that result from the sources; the template keeps neither and pools the block (a pointer when the budget is spent) although it is the re-run's directive.",
+   "fix": "flag revisit: `_sent_back_results(state, stage, item) is not None`; revisit_block: non-pooled, over refuse, the four `_revisit_lines` (why and its evidence, 'Your previous accepted step-plan result: RUN/results/<prev>.md', upstream changes, 'Keep unchanged rows with their IDs ... Submit the whole amended plan: it replaces the previous one.').",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-9",
+   "category": "problem",
+   "severity": "P1",
+   "where": "argument Work 'by the Method in {{packet_abs}}' with loop-invoke fresh branch 'RUN the Until Loop now, once, before any work ... Start it with this command'",
+   "evidence": "`emit` writes RUN/packets/<action>.md; the runtime's `start` does not, so after the start the file still holds the fresh branch until the next `next`/`complete`. loops.INVOKE_LINE carries '(if the Receipt below already exists and is active, run its next_argv instead: a second start resets the loop)'; the partial drops it. The in-loop model is told to read that file. (Partial owned by the partials reviewer; the harm lands here.)",
+   "fix": "Keep loops.INVOKE_LINE verbatim in the fresh branch of loop-invoke.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-10",
+   "category": "unnecessary",
+   "severity": "P2",
+   "where": "Gates: 'ShipLoop checks structure, not the plan's quality: the Improve review that follows judges the substance.'",
+   "evidence": "Owner rule improve-packet-minimal (2026-10-11): a packet does not mention an upcoming Improve at all. Today's Checked by says 'It does not judge the work: you confirm each condition.'",
+   "fix": "ShipLoop checks structure, not the plan's quality: you confirm each exit condition.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-11",
+   "category": "problem",
+   "severity": "P2",
+   "where": "Method 2: 'a focused row for such a target deploys the tree it judges first, or test-spec records `red_na` for its IDs'",
+   "evidence": "navigator `_RECORD_FIELDS`: ('red_na', 'test', ('done',), ...); test-spec's test_cases keys are id, criterion, requirement, oracle, red, green.",
+   "fix": "a focused row for such a target deploys the tree it judges first, or the test stage records `red_na` for its IDs.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-12",
+   "category": "confusing",
+   "severity": "P2",
+   "where": "Method 7: 'as exact repository-relative paths (a glob never matches across `/`)'",
+   "evidence": "`_check_step_sizing`, `expectations._covers` and `item_scope.scope_refusal` use fnmatch.fnmatchcase; ran fnmatchcase('force-app/main/x.cls', 'force-app/*') -> True. normalise_paths accepts globs.",
+   "fix": "as exact repository-relative file paths (no globs).",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-13",
+   "category": "insufficient",
+   "severity": "P2",
+   "where": "Method 4: 'Each step: `deps`, `criteria`, `task` ...'; exit 2 'each declares deps'",
+   "evidence": "`_normalise_steps` refuses 'step deps must name earlier steps; unknown, self and forward dependencies are invalid' (ran with S1 deps [S2]). Today's duty: 'earlier step IDs it truly needs, else []; list order is no dependency'.",
+   "fix": "Each step: `deps` (earlier step IDs it truly needs, else []; list order is no dependency), `criteria`, ...",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-14",
+   "category": "confusing",
+   "severity": "P2",
+   "where": "Method 8: 'a row with no decision is an open item in `summary` for the stage that must decide it'",
+   "evidence": "Filled rows 'concurrency: yes; no decision recorded ... (R-9; owner step-plan)' and 'accessibility: ... owner step-plan': the stage that must decide is this one, so the rule defers a decision to itself.",
+   "fix": "a row with no decision: decide it here when its owner is step-plan (the next AD-<n> if structural) and map it; otherwise make it an open item in `summary` naming its owner stage.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-15",
+   "category": "problem",
+   "severity": "P2",
+   "where": "headings '== Input ...', '== Method ...', '== Result form ...' and 'Done when: ... Checked by: ...' on one line",
+   "evidence": "skills/shiploop-run-review/scripts/export.py CARRIED matches `^Current stage guidance:`, `^Checked by:`, `^Result template:`, `^Results this stage builds on`; none matches the template, so the Run Review page reports operates, checked, produces and inputs as not found. Tests also key on them (test/shiploop-callback-contract.test.py splits on 'Result template:\\n').",
+   "fix": "Put 'Checked by: the Gates below, at `complete`.' on its own line; update CARRIED and the tests to the new headings in the same commit.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-16",
+   "category": "insufficient",
+   "severity": "P2",
+   "where": "Method 2: 'Take the test route from ## Commands and the platform card ... which recorded harness and commands you keep'",
+   "evidence": "The recorded harness lives in HOME/environment.md ## Harnesses and suites (Battleship context: 'Harness: docs/shiploop/environment.md ## Harnesses and suites'); the print neither quotes nor names it, and the test-strategy result is only in the appendix (file only).",
+   "fix": "Take the test route from HOME/environment.md ## Harnesses and suites and ## Commands and the platform card.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-17",
+   "category": "insufficient",
+   "severity": "P2",
+   "where": "slot env_commands 'code only: each command with its one-line label'",
+   "evidence": "The filled block lost 'No formatter, linter, type checker, package manager, or local test runner is configured' (decides check row vs check_na, which `_check_check_suite` gates) and 'Suite commands below ... run only after the deploy and the permission-set assignment' (HOME at 2449835).",
+   "fix": "Quote each ## Commands bullet whole and any line of the section that says no command of a kind is configured.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-18",
+   "category": "confusing",
+   "severity": "P2",
+   "where": "Method 4: 'deploy only this step's paths to the recorded development target, then run a read-only probe the run's authority covers'",
+   "evidence": "Only the probe is bound to authority; the Battleship context authorized 'that deploy and that assign only' (whole-project `sf project deploy start --target-org de`). Behaviour only a blocked channel can observe (A8, browser) gets no route, the dead end R1 meant to remove (packets-audit.json duty_review.rewrites R1).",
+   "fix": "deploy only this step's paths to the recorded development target, as the run's recorded authority allows, then run a read-only probe it covers; behaviour no available channel can observe: fold the step into one whose check observes it, or make the criterion an open item.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-19",
+   "category": "insufficient",
+   "severity": "P2",
+   "where": "Method 10 '(Parallel-chain guide)'; Method 4 'ShipLoop issues one implement packet per step' / 'ShipLoop runs it at the step's done'; Result form steps",
+   "evidence": "On the ask-agent route implement is one action for every step (`loops.implement_scope` all_steps) and the Proof runs inline only (`_checked_line` comment). The guide's locator (GUIDES/parallel-chain.md#parallel-implementation-chains, prompts reference table) is not printed; `_result_template` adds step paths when the route is not inline, the template form never does.",
+   "fix": "Method 10: '(Parallel-chain guide: GUIDES/parallel-chain.md#parallel-implementation-chains)'; Method 4: 'inline: one implement packet per step, and ShipLoop runs `check` when that step is submitted'; form: `{{#if !inline}}\"paths\": [\"<file this step changes>\"], {{/if}}` in S1.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-20",
+   "category": "confusing",
+   "severity": "P2",
+   "where": "Symbols (owner question): 'write nothing else in HOME/', 'HOME/architecture.md', 'RUN the Until Loop now' beside 'RUN/loops/...', 'Temporary files go in RUN/scratch', 'Contract: RUN/loops/...', pass log 'RUN/notes/<action>.md'",
+   "evidence": "HOME reads as the shell's $HOME in the one place this stage writes knowledge (Method 9); RUN is both a verb and a symbol in consecutive lines; a relative 'RUN/notes/x.md' written from the worktree creates WORKTREE/RUN/..., an undeclared path `item_scope.scope_refusal` would report at implement. PROSE_PATH_LINES' comment and SKILL.md keep the argument and the Full packet line literal. No literal symbol path appears in SP/11 or SP/12 actions (grep).",
+   "fix": "Keep the argument's Contract and Receipt lines and the Full packet line absolute; the notation itself is the partials reviewer's call.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-21",
+   "category": "insufficient",
+   "severity": "P3",
+   "where": "Method 5 'check: ... judged by exit code and safe to repeat'",
+   "evidence": "normalise_commands: 'a check command is judged by its exit code and takes no ids or min_tests'; _check_check_suite: 'test_commands has a check row, so drop check_na'.",
+   "fix": "check: ..., judged by exit code (no `ids` or `min_tests`) and safe to repeat; a check row and `check_na` never both.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-22",
+   "category": "unnecessary",
+   "severity": "P3",
+   "where": "Method 4-8 restating exit conditions 2-6",
+   "evidence": "Owner rule 'one wording per rule'; duty_review per_stage step-plan 'each structural rule stated three times'. The template keeps two wordings (e.g. 'every row naming a criterion runs code on that criterion's paths' in exit 3 and Method 5).",
+   "fix": "Keep the rule in the exit condition; let each Method item say how, ending '(exit N)'.",
+   "confidence": "low"
+  },
+  {
+   "id": "SP-23",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "Method 9: 'a newly working command goes under ## Commands'",
+   "evidence": "The sentence before names HOME/architecture.md ## Decisions; ## Commands is in HOME/environment.md.",
+   "fix": "a newly working command goes under HOME/environment.md ## Commands.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-24",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "loop-result: 'when the Receipt says complete (stopped: report it)'",
+   "evidence": "check_loop_packet: a stopped (blocked) loop supports only blocked here (step-plan outcomes done, blocked).",
+   "fix": "when the Receipt says complete (stopped: report outcome blocked)",
+   "confidence": "high"
+  },
+  {
+   "id": "SP-25",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "'done' in several senses: 'Done when', outcome done, done_argv, 'Done-report fields', Method 4 'at the step's done'",
+   "evidence": "Brief example of mixed vocabulary.",
+   "fix": "Method 4: 'ShipLoop runs it when that step's implement result is submitted'.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-26",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "Gates line 1: '(an ID under ## Superseded or ## Retired counts as kept)'",
+   "evidence": "Mixes the follows rule with the knowledge drop rule and invites following a retired requirement; `knowledge.entries` accepts it, nothing needs the model to.",
+   "fix": "delete",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-27",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "Method 5 ID rule reworded: 'a listed ID counts only as its own word in a test name (`TC-4 (a)`, not `TC-4a`)'",
+   "evidence": "prompts.ID_WORD_RULE is shared by test-spec, step-plan and test_loop refusals; a second wording breaks 'one wording per rule'.",
+   "fix": "Print prompts.ID_WORD_RULE verbatim (a partial).",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP-28",
+   "category": "problem",
+   "severity": "P3",
+   "where": "code (kept): the check-only success line 'run the same complete command without --check-only to submit it'",
+   "evidence": "Inside the active loop the real complete is refused ('the step-plan loop is still active'); the live model did the done report first (SP/11-step-plan.actions.md).",
+   "fix": "navigator check-only print: '... The action is not completed: report this iteration to the stage's Until Loop, and submit without --check-only once its receipt says complete.'",
+   "confidence": "medium"
+  }
+ ],
+ "live_comparison": {
+  "kept": [
+   "Packet text still misses rules the live model looked up in ShipLoop source (criterion coverage: SP-4), although the frame says the packet states every gate rule; 30 of 58 live CALLs read ShipLoop modules.",
+   "Print still at the 20,000 edge (live 19,726; template 19,643, worst 21,204): SP-6.",
+   "The check-only success text that says 'submit' while the loop is active: SP-28 (code)."
+  ],
+  "fixed": [
+   "Work item context printed whole (3,308) instead of the live 400-character excerpt with '[Excerpt only ...]'.",
+   "Symbols defined in the top block instead of the References block the head dropped.",
+   "The Improve review-1 defect class (criteria C1, C3-C5 named on the Apex org suite that never reads the board or metadata) is now a stated rule: 'every row naming a criterion runs code on that criterion's paths' (exit 3).",
+   "Source-text step checks (Improve review-1: S1 rejected any ', true'; S3 accepted the word SLBattleController) are ruled out by R1 'matching the implementation's own text ... proves nothing'.",
+   "The 1,833-character ungated Plan record and the inline 'Record none' item are gone; the blocked awaiting shape is printed instead of a reference pointer."
+  ],
+  "introduced": [
+   "SP-1 concerns refused",
+   "SP-2 refuse-class slots with no source",
+   "SP-3 argument vs contract",
+   "SP-5 new placeholders unguarded",
+   "SP-7 open assumptions pooled (A8 was quoted live)",
+   "SP-8 revisit regressions",
+   "SP-9 start guard dropped",
+   "SP-10 Improve pre-announced",
+   "SP-11 red_na stage",
+   "SP-12 glob claim",
+   "SP-15 run-review labels"
+  ]
+ },
+ "symbols": {
+  "note": "Places in this file where a symbol can be misread (full answer is the partials reviewer's).",
+  "places": [
+   "Method 9 'write nothing else in HOME/' and 'HOME/architecture.md ... ## Decisions': HOME as $HOME on the stage's only knowledge write.",
+   "loop-invoke 'RUN the Until Loop now' next to argument 'Contract: RUN/loops/...': RUN as the verb.",
+   "RULES 'Temporary files go in RUN/scratch' and appendix pass log 'RUN/notes/<action>.md': a relative write from the worktree creates WORKTREE/RUN/..., which implement's scope check would report.",
+   "Argument 'Contract:'/'Receipt:' and frame 'Full packet:' are symbolic in lines the navigator's PROSE_PATH_LINES comment keeps literal.",
+   "Front matter mixes '<action>' (source notation) with '{{action}}' (slot) and the form's '<...>' placeholders; only the form's survive into the print."
+  ]
+ },
+ "verdict": {
+  "sufficient": "partly",
+  "necessary": "partly",
+  "summary": "The template fixes the live run's worst input gap: the whole work item context, symbols up front, and the two defect classes Improve found (criteria named on a command that never runs their code, source-text step checks). It cannot ship as drafted. Its result form carries `concerns`, which `_canonical_result` refuses today. Three slots (platform card, card Testing section, item context bound) have no source or bound in today's state, and the validator's own rule raises on them. Its Until Loop argument is a second text beside `loops.contract()`: the runtime echoes seven stage_spec conditions while the packet prints six. Its placeholder sentence promises refusals the gates don't make. It drops the criterion-coverage and deps rules the gates do apply (the live model read `_normalise_criteria` to learn the first one). It also turns the gate-checked open assumption A8 into a pointer, and it is over its own 19,500 budget (worst case 21,204).",
+  "top_changes": [
+   "One source for the loop argument: render the argument block from loops.contract() and move the six conditions, the Work and the Repeat into stage_spec/WORK/REPEAT, so the packet, the Contract file, check_terminal, the Improve hand-off and the head-order tokens agree (SP-3).",
+   "Gate every planned-feature slot behind a flag or land the feature first: drop `concerns` from the form, exit 5 and Method 8 until A1 is in _RESULT_KEYS and its gate; give platform_card, platform_testing and item_context an absent or over-bound rendering that prints instead of raising (SP-1, SP-2).",
+   "Make the frame's claim true and route-test it: restate criterion coverage (including the test_commands_na case) and deps-earlier, register every new form placeholder in the gates, and keep the open assumptions and the revisit lines non-pooled (SP-4, SP-5, SP-7, SP-8, SP-13)."
+  ]
+ }
+}

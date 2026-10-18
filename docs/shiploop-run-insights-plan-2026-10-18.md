@@ -212,7 +212,23 @@ Four outcomes; send-back across release stages; Improve only on done (N5): yes. 
 12. Drop `status.md` and `context-index.md` (N6): yes. 13. Move the Improve child under RUN with the Improve skill in one
 release (N6): yes. 14. Service duties by cue (G4): yes. 15. Stale temp files: removed (done). 16. Templates use shared partial files (T-D3): yes. 17. Producing stages enforce field size
 limits (T-D2): yes. 18. Code craft in the implement head (T-D1): one clause per rule in the printed head, the full
-rubric in the packet file and in the step's Improve review, where it is applied. This changes D3 of the packet-review
+rubric in the packet file and in the step's Improve review, where it is applied.
+
+19. **Folder symbols (owner, 2026-10-18, "pick one").** Packet prose keeps bare symbols, and HOME becomes KNOWLEDGE:
+    RUN, WORKTREE, KNOWLEDGE (= WORKTREE/docs/shiploop) and GUIDES. They are defined on the frame's Symbols line ("shorthand
+    for reading; commands and file tools take the absolute path"), and every command and file-tool path stays absolute.
+
+    Evidence (`template-review/partials.json` `symbols`): 0 of 2,169 live tool calls used a literal symbol path, and
+    neither run folder has a stray symbol directory. `expand_result_roots` already reads bare roots in `evidence_refs`.
+
+    Options considered:
+    - `<HOME/>` reads as a fill-in placeholder, and in a shell it is two redirections that can truncate a file.
+    - `$NAME` is unset in each fresh shell, so `$WORKTREE/*` becomes `/*`.
+    - An `@` sigil collides with annotations and decorators (`@AuraEnabled`) for no measured gain; it was proposed first
+      and withdrawn on this evidence.
+
+    HOME is renamed because it is the one symbol with a competing system meaning (`$HOME`; on a case-insensitive volume a
+    stray `HOME/` aliases the harness's `home/`). The rename rides on the N1 migration, which rewrites that text anyway. This changes D3 of the packet-review
 plan ("implement keeps the full text, for now") because the full text breaks the head budget and was cut by the host
 in 7 of 8 implement packets anyway; the owner can reverse it.
 
@@ -303,6 +319,74 @@ main is the one base for this plan and the Codex plan. Consequences:
   plan's catalogue against the new main, marking which items main now holds (step Proof, Step block, state v7, procedure
   walk, check-only reuse, the packet-review units) so A0 ports only what is still missing.
 - E4 still applies: print the trivial-review gate in words, now for main's rule.
+
+### 8.3 Template review (2026-10-18, owner request: sufficient, necessary, nothing confusing or harmful)
+
+**Method.** Three Opus reviewers, read-only, against main's gate code, the vendored Until Loop 0.10.0 and the Battleship
+run's packets and actions. Each mapped every refusal the stage's gates can raise to template text, and classified each
+block and finding. Evidence: `docs/experiments/run-insights-2026-10-18/template-review/`.
+- step-plan: 37 gate rows, 28 findings (2 P0, 7 P1).
+- implement: 39 gate rows, 25 findings (2 P0, 4 P1).
+- partials: 38 gate rows, 30 findings (0 P0, 4 P1).
+
+The session rechecked the P0s and the main P1s in code: `_RESULT_KEYS`, the `check_only` skip of `check_terminal`, the
+state key `revisions`, the S4 Proof length, `printed_text`'s `HEAD_END`, and the runtime's refusal of a start over a live
+receipt.
+
+**Verdict.** Both stage templates are partly sufficient and partly necessary. They are not shippable as drafted, but the
+design holds. What they fix against the live run:
+- the work item context printed whole (3.3K, against a 400-character excerpt);
+- the symbols defined in every print;
+- implement fits under the host cut (18.8K, against 21.6K live, where the middle was lost);
+- the Proof printed with its directory;
+- a revisit points at the step's own result.
+
+The hooks keep working: the callback is still the third line, and the keepalive and status-hook window are intact.
+
+**Root causes and the conditions for landing a template (amends N1):**
+1. **Text that must come from code the gates read is hand-written.**
+   - The Until Loop argument (Work, Exit, Repeat) differs from `loops.contract()` in both templates, and step-plan has 6
+     exit lines against stage_spec's 7. Nothing is refused, but the runtime judges against text the packet never shows.
+   - Outcomes, placeholders and field shapes are hand-written as well.
+   - The fix: these become generated slots (the loop argument from `loops.contract`, outcomes from stage_spec, placeholders
+     and shapes from the registry the gates use). Rewritten exit conditions go into stage_spec, never into a template.
+2. **Templates name features main does not have yet.**
+   - Today's gate refuses `concerns` (A1) and `criterion_evidence` as unsupported fields.
+   - No platform card has a `## Testing` section.
+   - Producer bounds (T-D2) are not enforced: Battleship's S4 Proof is 1,036 characters against implement's 1,000
+     refuse bound, so the packet would not render.
+   - N2 fields and the N5 names are missing; "revise" is written 7 times in implement.
+   - The fix: a template lands only after the gate keys, bounds and outcome names it prints. A slot whose feature is
+     absent sits behind a flag.
+3. **"This packet states every rule its gates apply" is false.**
+   - step-plan misses every criterion named by a test command, deps-earlier, and `test_commands_na` being refused while
+     criteria exist.
+   - implement misses the lint auto-fix refusal, the 0-tests rule, `assumptions` being refused at implement, and the
+     `not_covered` row shape.
+   - The new `<...>` placeholders pass the exact-match placeholder gate.
+   - The fix: the reviewers' gate maps become a route test. Each gate refusal must map to template text, every
+     placeholder in a form is registered in the gate, and an unfilled form is refused through the real `complete`.
+4. **Inputs that direct the work were pooled or excerpted.**
+   - Open assumptions the step-plan gate checks print as a pointer.
+   - The revisit flag reads `state.revises` (the key is `revisions`) and drops "submit the whole amended plan".
+   - implement's Anchors claim "complete" while R-n text is cut to two sentences.
+   - The fix: a slot the gate checks, or that directs a revisit, is never pooled. An excerpt says it is one.
+5. **The shared partials have drifted from runtime 0.10.0 and from the code.**
+   - A second start over a live receipt is refused, not reset.
+   - The fresh branch lost the active-receipt guard.
+   - loop-result offers only `next_argv`, while refusals name the start command.
+   - The frame's "whole when it ends with === end ShipLoop head ===" is false: `printed_text` appends the line to cut
+     prints too. It should become a cut detector.
+   - code-craft-titles points at `GUIDES/code-craft.md`, which does not exist, and drops the redaction, secrets,
+     catalog-first and composition-guard clauses.
+6. **Budget.** step-plan prints 19,643 against 19,500, with a worst case of 21,204 against the 20,000 host cut. The N7
+   trims come first: Method items 4-8 restate exit conditions 2-6, and several lines are stated two or three times.
+7. **Wording that is wrong or not generic.**
+   - "test-spec records `red_na`": only the test stage does.
+   - "a glob never matches across /": the gates use fnmatch, which does.
+   - A `## Procedures` locator only Battleship had.
+   - The Gates lines announce the Improve review (against the owner's rule).
+   - The rules partial's "record it as an assumption" invites a field implement refuses.
 
 ## 9. Verification
 
