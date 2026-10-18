@@ -289,6 +289,21 @@ need the owner's go.
 | Do not raise the rendering budget; keep the 16,000-character head target measured and the owner's content decisions | **Drops M2 (PRINT_LIMIT to 20,000).** Templates fit through the producing stages' field limits (T-D2) and the N7 trims; the 16,000 target stays a measured target, the 20,000 host cut and the 19,500 required-text bound stay the tests. |
 | §12 code map: every recommendation bound to source, line span, hash and T-tests | **Adopted as the anchor form** for this plan's catalogue once refreshed against the common base. |
 
+### 8.2 After landing on main (2026-10-18, decision B executed)
+
+The owner approved decision B: this branch is merged with origin/main (fe02651e), reconciled, released and pushed, so
+main is the one base for this plan and the Codex plan. Consequences:
+- **S-10 is resolved:** Improve keeps main's upstream stop rule (a review ends when the first pass completes with no change,
+  or after two consecutive trivial passes), with the Until Loop runtime vendored byte-identical (0.10.0). This branch's
+  stop rule by stage kind and its one-unchanged-pass rule are withdrawn (29407b46; journals mark them superseded).
+- **Lean runtime returns are withdrawn locally** (U21): an Improve child's `start` and `done` print the full packet again
+  (about 11.5K and 22.7K characters against about 2.7K). New follow-up **U-up**: propose lean returns upstream in the Until
+  Loop repository, then re-vendor; an upstream change needs the owner's go.
+- **Wave A starts with A-1, re-anchor:** refresh the Codex code map (`reference-code-map-2026-10-18.json`) and this
+  plan's catalogue against the new main, marking which items main now holds (step Proof, Step block, state v7, procedure
+  walk, check-only reuse, the packet-review units) so A0 ports only what is still missing.
+- E4 still applies: print the trivial-review gate in words, now for main's rule.
+
 ## 9. Verification
 
 1. Offline per unit: render diff, head tables, footprint suites, route tests for every changed gate; one quick tier per wave.
