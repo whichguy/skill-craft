@@ -1,0 +1,1349 @@
+{
+ "consumer": "the owner and the session revising docs/shiploop-run-insights-plan-2026-10-18.md, before it schedules units; read whole, as JSON",
+ "summary": "Today the packet prints a bare list of outcome names. Only revise and replan get a definition, and replan's uses internal jargon. Across 59 recorded runs (1,845 accepted results) the outcomes chosen were done 1,826, revise 11, blocked 6, replan 2, repeat 0. repeat is never used and cannot do what the duties offer it for. Both replans were really 'send back to system-test-author'. blocked_by was labelled inconsistently for the same need. In both revise steps of the 2026-10-17 runs, the model read ShipLoop's source to learn when revise is allowed and how a stopped loop maps to an outcome. Proposal: done, blocked, send-back and add-work, each printed with when to use it, what happens next and its shape. Remove repeat and blocked_by, check the budget before Improve and at --check-only, and name the outcome in every loop stop rule.",
+ "census": {
+  "command": "python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/census.py (reads every /Users/dadleet/e2e-runs/*/*/.shiploop-runs/*/run/state.md history)",
+  "runs": 59,
+  "accepted_results": 1845,
+  "by_outcome": {
+   "done": 1826,
+   "revise": 11,
+   "blocked": 6,
+   "replan": 2,
+   "repeat": 0,
+   "reconcile": 0
+  },
+  "revise_stages": {
+   "implement": 5,
+   "test-spec": 2,
+   "test": 1,
+   "test-red": 1,
+   "test-refine": 1,
+   "baseline": 1
+  },
+  "blocked_stages": {
+   "plan": 1,
+   "system-test-author": 1,
+   "system-test": 2,
+   "release-verify": 2
+  },
+  "blocked_by": {
+   "access": 3,
+   "user": 2,
+   "external": 1
+  },
+  "replan_uses": [
+   {
+    "run": "20261004/v1190-hello-sonnet-2",
+    "stage": "system-test",
+    "work_items": [
+     [
+      "W2",
+      "Correct the system-test plan so ShipLoop can judge ST-1"
+     ]
+    ],
+    "summary_quote": "The recorded command cannot be edited in place, so requesting a corrective documentation-only work item W2",
+    "actions_until_system_test_again": 19
+   },
+   {
+    "run": "20261009/s6-inside-test-strategy",
+    "stage": "system-test",
+    "work_items": [
+     [
+      "W2",
+      "Record ST-1 as a check-suite system command"
+     ]
+    ],
+    "actions_until_system_test_again": 19
+   }
+  ],
+  "blocked_reviewed_by_improve_first": "2 of 6 (battleship-luna plan, r1-battleship-grok-none system-test-author: improve_results hold the blocked seed_result)",
+  "two_2026_10_17_runs": "chess 38 steps: done 35, revise 1 (16-implement), blocked 2 (37, 38 release-verify); Battleship 53 steps: done 52, revise 1 (24-test). No repeat or replan.",
+  "packet_counts_bs": {
+   "packets": 51,
+   "producer_packets_with_Allowed_outcomes": 33,
+   "printing_repeat": 16,
+   "printing_'INNER, then OUTER restarts'": 9,
+   "header_'revision N'": 51,
+   "Checked-by_'repeat it until it accepts'": 33,
+   "Until_Loop_'Repeat while'": 17,
+   "'Stop blocked'": 17,
+   "inner_packets_that_refuse_repeat_but_print_repeat_words": 17,
+   "command": "grep -l over /private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/*.packet.md"
+  },
+  "outcome_block_bytes_today": {
+   "bs 04-spec": 593,
+   "bs 24-test": 762,
+   "bs 47-release-plan": 889
+  }
+ },
+ "routes": {
+  "R-RECORD": "Every accepted outcome: accepted[action] = the canonical result and one history row {stage, outcome, summary, workitem, action} (navigator._record_acceptance); state revision += 1. Only done rows count as 'current' (shiploop_planning_revision.current_actions keeps the latest done per (item, stage)); duties say 'pending, repeat and blocked results are not plan authority' (shiploop_prompts DUTIES['release-plan'] item 1).",
+  "R-DONE": "Script gates of the row's complete_runs run first (CLI complete path in navigator.main); then, at a reviewed stage, an Improve child starts and its final_result may replace the result (navigator.apply, finish_improve); then _apply_result issues the next graph stage (_next_stage) and clears status_reason.",
+  "R-REPEAT": "Prelude/outer only. Recorded (R-RECORD), status active, a new action of the SAME stage (_apply_result 'repeat' branch: _new_action(stage)). No budget, no backward jump (references/navigator.md: '`repeat` does not jump backward'). Model supplies {outcome, summary} (+headline, evidence_refs); done-only fields refused (_DONE_ONLY_FIELDS).",
+  "R-BLOCKED": "Recorded; status = blocked, status_reason = '<blocked_by>: <summary>'; a new action of the SAME stage (prelude/outer _new_action, inner _replace_inner_action) (_apply_result). No budget. `resume` (control) reactivates; with `awaiting` it needs --answer (kind answer) or --observed (kind present), refuses 'continue'-type replies (_NOT_AN_ANSWER) and writes RUN/decisions/<action>.md, which the re-issued packet quotes (_answered_lines). Model supplies {outcome, summary, blocked_by: user|access|external} (BLOCKED_BY, BLOCKED_BY_RULE, enforced for new results in _apply_result); `awaiting` (AWAITING_SHAPE, with no_default: _check_submitted_awaiting) only with blocked_by user|access (_canonical_result). Inner stages: the Until Loop must be stopped, not active or cancelled, unless it never started (shiploop_loops.check_terminal, check_loop_packet).",
+  "R-REVISE": "test-spec..verify only. revisions[item] += 1, refused when already MAX_REVISES = 2 ('report blocked with blocked_by user and an awaiting question', _apply_result); cursor -> step-plan (_replace_inner_action(REVISE_TO)); current_actions drops the item's step-plan..carry-forward results (kept in accepted/history); the redone step-plan, test-spec and first implement packet print a Revisit line naming the previous result and the revise result (_sent_back_results, REVISIT_STAGES); the item reruns test-spec, validate-existing and every implement step (implement_progress counts from the latest step plan; plan unit D1). Model supplies {outcome, summary} (+ failed_expectations at validate-existing) and a stopped loop receipt (or ShipLoop's refused-run cap at test/verify: loops.check_terminal, _remedy_open, _verify_refused).",
+  "R-REPLAN": "Outer only. Corrective work_items appended (IDs must be new: 'corrective work IDs must be new'); stage -> inner-loop and the first corrective item's step-plan begins (_begin_inner_loop); each corrective item runs the whole inner loop with its Improve children; after the last one's carry-forward (and the end-of-work Improve) the outer phase restarts at system-test-author (_next_stage after carry-forward), not at the stage that replanned. Outer duties then read 'the latest done ... after the most recent accepted replan' (OUTER_TEST_HANDOFF); _replan_delta_lines scopes outer stages when the items changed only non-code paths; delivery-contract runs track replan_required (shiploop_consumer_delivery). No budget. Model supplies {outcome, summary, work_items:[{id,title,context}]}.",
+  "R-RECONCILE": "Not printed. _canonical_result accepts it only as the exact plan result {outcome, summary, evidence_refs, reconciliation_target}; apply and finish_improve refuse it ('reconcile requires improve-reconcile'). Only `improve-reconcile` after a stopped initial plan Improve child records it; current_actions then drops the planning suffix from the target (planning_revision.RECONCILIATION_TARGETS: discovery, research, spec, test-strategy)."
+ },
+ "per_stage": [
+  {
+   "stage": "intake",
+   "phase": "prelude",
+   "printed_line": "Allowed outcomes: done | repeat | blocked.",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked"
+   ],
+   "gate_accepts": {
+    "done": "accepted; request_file.notices prints uncited request sentences (never a refusal)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by; awaiting optional (user|access only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)",
+     "reconcile (except R-RECONCILE at plan)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> discovery",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "01 done",
+    "bs": "01 done"
+   }
+  },
+  {
+   "stage": "discovery",
+   "phase": "prelude",
+   "printed_line": "Allowed outcomes: done | repeat | blocked.",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks (evidence paths exist: _check_submitted_evidence; knowledge gate; hand-off gate)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by; awaiting optional (user|access only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)",
+     "reconcile (except R-RECONCILE at plan)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> research",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "02 done",
+    "bs": "02 done"
+   }
+  },
+  {
+   "stage": "research",
+   "phase": "prelude",
+   "printed_line": "Allowed outcomes: done | repeat | blocked.",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks (evidence paths exist: _check_submitted_evidence; knowledge gate; hand-off gate)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by; awaiting optional (user|access only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)",
+     "reconcile (except R-RECONCILE at plan)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> spec",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "03 done",
+    "bs": "03 done"
+   }
+  },
+  {
+   "stage": "spec",
+   "phase": "prelude",
+   "printed_line": "Allowed outcomes: done | repeat | blocked.",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks (evidence paths exist: _check_submitted_evidence; knowledge gate; hand-off gate)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by; awaiting optional (user|access only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)",
+     "reconcile (except R-RECONCILE at plan)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: Improve child (planning_review 'stage', ONE_PASS_GATE) -> test-strategy",
+    "repeat": "R-REPEAT, but an Improve child reviews the unfinished result first",
+    "blocked": "R-BLOCKED, but an Improve child reviews the blocked result first"
+   },
+   "improve": "every outcome starts the Improve child (_improve_checkpoint returns True for reviewed_stages whatever the outcome); its final_result may change the outcome (finish_improve)",
+   "runs": {
+    "chess": "04 done (+05 Improve)",
+    "bs": "04 done (+05 Improve)"
+   }
+  },
+  {
+   "stage": "test-strategy",
+   "phase": "prelude",
+   "printed_line": "Allowed outcomes: done | repeat | blocked.",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks (evidence paths exist: _check_submitted_evidence; knowledge gate; hand-off gate)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by; awaiting optional (user|access only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)",
+     "reconcile (except R-RECONCILE at plan)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: Improve -> plan",
+    "repeat": "R-REPEAT after Improve",
+    "blocked": "R-BLOCKED after Improve"
+   },
+   "improve": "every outcome (as spec)",
+   "runs": {
+    "chess": "06 done",
+    "bs": "06 done"
+   }
+  },
+  {
+   "stage": "plan",
+   "phase": "prelude",
+   "printed_line": "Allowed outcomes: done | repeat | blocked.",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked"
+   ],
+   "gate_accepts": {
+    "done": "accepted when the assumption list is complete and names queued items (_check_submitted_assumptions); optional work_items replaces the whole queue; delivery-contract runs need a contract (consumer_delivery.validate_transition)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by; awaiting optional (user|access only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)",
+     "reconcile (except R-RECONCILE at plan)"
+    ],
+    "reconcile": "R-RECONCILE (not printed)"
+   },
+   "navigator": {
+    "done": "R-DONE: _replace_plan_work_items, _planning_sources_current; Improve -> prepare",
+    "repeat": "R-REPEAT after Improve",
+    "blocked": "R-BLOCKED after Improve",
+    "reconcile": "R-RECONCILE"
+   },
+   "improve": "every outcome (as spec); the only prelude route backwards is the stopped-plan-child reconcile",
+   "runs": {
+    "chess": "08 done",
+    "bs": "08 done"
+   }
+  },
+  {
+   "stage": "prepare",
+   "phase": "prelude",
+   "printed_line": "Allowed outcomes: done | repeat | blocked.",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks (evidence paths exist: _check_submitted_evidence; knowledge gate; hand-off gate)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by; awaiting optional (user|access only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)",
+     "reconcile (except R-RECONCILE at plan)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: stage -> inner-loop, W1 step-plan (_begin_inner_loop)",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "10 done",
+    "bs": "10 done"
+   }
+  },
+  {
+   "stage": "step-plan",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked.",
+   "printed": [
+    "done",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "blocked"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started.",
+    "done": "expectations.check_step_plan plus criteria/steps/paths/test_commands/expectations/check_na normalisation (_canonical_result)",
+    "blocked": "accepted with blocked_by (duty 1: blocked_by user, awaiting 'drop or keep' when the plan no longer needs the item)",
+    "refused": [
+     "repeat (loop gate / 'repeat is not an outcome at step-plan')",
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: Improve (planning_review 'stage') -> test-spec",
+    "blocked": "R-BLOCKED (step-plan re-issued after resume)"
+   },
+   "improve": "every outcome under planning_review 'stage'",
+   "runs": {
+    "chess": "11 done; 17 done (revisit)",
+    "bs": "11 done; 25 done (revisit)"
+   },
+   "notes": "Loop text REPEAT['step-plan']: 'Stop blocked only when the plan no longer requires the item.'"
+  },
+  {
+   "stage": "test-spec",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked | revise (... it goes back to step-plan with this result as evidence; N of 2 left for this item).",
+   "printed": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "shapes_printed": [
+    "blocked",
+    "revise"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started.",
+    "done": "case rows checked (expectations); coverage notices at --check-only",
+    "blocked": "stopped receipt + blocked_by",
+    "revise": "stopped receipt; MAX_REVISES checked only in _apply_result, i.e. after the Improve child and never at --check-only",
+    "refused": [
+     "repeat",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: Improve -> validate-existing (entry expectation-check; all match: recorded done by script, no packet)",
+    "blocked": "R-BLOCKED after Improve",
+    "revise": "R-REVISE after Improve"
+   },
+   "improve": "every outcome under planning_review 'stage', revise included",
+   "runs": {
+    "chess": "13, 19 done",
+    "bs": "13, 27 done"
+   }
+  },
+  {
+   "stage": "validate-existing",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked | revise (... it goes back to step-plan with this result as evidence; N of 2 left for this item).",
+   "printed": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "shapes_printed": [
+    "blocked",
+    "revise"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started.",
+    "done": "expectation checks rerun; a mismatch or a change outside a mismatched expectation's paths refused (expectations.check_complete)",
+    "revise": "requires failed_expectations [{id, actual, route: check|steps}] naming known expectations (expectations.check_complete)",
+    "blocked": "accepted with blocked_by (duty 2: 'fix lies outside this run ... blocked_by external or access')",
+    "refused": [
+     "repeat",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: preparatory commit of the fix (_preparatory_commit) -> implement",
+    "blocked": "R-BLOCKED",
+    "revise": "R-REVISE"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "15, 21 recorded done by script (no packet)",
+    "bs": "15, 29 recorded done by script (no packet)"
+   }
+  },
+  {
+   "stage": "implement",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked | revise (... it goes back to step-plan with this result as evidence; N of 2 left for this item).",
+   "printed": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "shapes_printed": [
+    "blocked",
+    "revise"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started.",
+    "done": "lint-gate, step-proof (inline route), item_scope.scope_refusal",
+    "revise": "stopped receipt; the step-proof refusal names revise for a Proof that needs a later step or an absent tool/access/authority (_step_proof_gate)",
+    "blocked": "stopped receipt + blocked_by",
+    "refused": [
+     "repeat",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: Improve (rule 'step', TWO_PASS_GATE, done only) -> the next step's implement until implement_progress covers every step, then test (ask-agent: one action for all steps, for_steps)",
+    "blocked": "R-BLOCKED (same step re-issued)",
+    "revise": "R-REVISE"
+   },
+   "improve": "done only",
+   "runs": {
+    "chess": "16 revise (S1's only check was S3's board grep); 22 done",
+    "bs": "16, 18, 20, 22, 30, 32, 34, 36 done"
+   }
+  },
+  {
+   "stage": "test",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked | revise (... it goes back to step-plan with this result as evidence; N of 2 left for this item).",
+   "printed": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "shapes_printed": [
+    "blocked",
+    "revise"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started.",
+    "done": "lint-gate, test-base (no new ID passes on the base), test-loop (every command passes, IDs, floors, mutation check)",
+    "revise": "stopped receipt, or receiptless once MAX_REFUSED_RUNS = 11 refused runs or a run that could not run (shiploop_test_loop.remedy_open)",
+    "blocked": "as revise",
+    "refused": [
+     "repeat",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> document (or recorded not applicable by _record_not_applicable)",
+    "blocked": "R-BLOCKED",
+    "revise": "R-REVISE"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "24 done",
+    "bs": "24 revise (mutation check cannot observe the org copy); 38 done"
+   }
+  },
+  {
+   "stage": "document",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked | revise (... it goes back to step-plan with this result as evidence; N of 2 left for this item).",
+   "printed": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "shapes_printed": [
+    "blocked",
+    "revise"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started.",
+    "refused": [
+     "repeat",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> verify",
+    "blocked": "R-BLOCKED",
+    "revise": "R-REVISE"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "25 done",
+    "bs": "39 done"
+   },
+   "notes": "Duty 7: 'Report blocked only when a behaviour cannot be observed here', against RULES ('a person-only step is an open item')."
+  },
+  {
+   "stage": "verify",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked | revise (... it goes back to step-plan with this result as evidence; N of 2 left for this item).",
+   "printed": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "shapes_printed": [
+    "blocked",
+    "revise"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started. The review gate needs a final trivial report (TRIVIAL_REVIEWS['verify'] = 1).",
+    "done": "lint-gate, test-rerun at the item's floors",
+    "revise": "stopped receipt, or receiptless after one refused rerun (loops._verify_refused) or the cap",
+    "refused": [
+     "repeat",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: item commit of declared paths, docs, docs/shiploop/ (_item_commit) -> carry-forward",
+    "blocked": "R-BLOCKED",
+    "revise": "R-REVISE"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "26 done",
+    "bs": "40 done"
+   }
+  },
+  {
+   "stage": "carry-forward",
+   "phase": "inner",
+   "printed_line": "Allowed outcomes: done | blocked.",
+   "printed": [
+    "done",
+    "blocked"
+   ],
+   "shapes_printed": [
+    "blocked"
+   ],
+   "gate_accepts": {
+    "loop": "Until Loop gate first (loops.check_terminal, before _canonical_result on a real complete): repeat refused ('<stage> accepts only done, blocked[, revise]; the bound Until Loop repeats the work, not the graph'); done needs a complete receipt whose final report is exit satisfied; blocked/revise need a stopped (not cancelled) receipt; blocked needs none when the loop never started.",
+    "done": "skill decision (_check_skill_decision); optional work_items replaces the future queue",
+    "refused": [
+     "repeat",
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "replan refused ('replan requires corrective work_items at an outer stage', _canonical_result)"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: item complete, work_index += 1 -> next item's step-plan, or (last item) end-of-work Improve (last-item, TWO_PASS_GATE) then system-test-author; skill commit",
+    "blocked": "R-BLOCKED"
+   },
+   "improve": "done of the last item only",
+   "runs": {
+    "chess": "27 done (+28 Improve)",
+    "bs": "41 done (+42 Improve)"
+   }
+  },
+  {
+   "stage": "system-test-author",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "system_commands or system_commands_na recorded",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: Improve (always) -> system-test",
+    "repeat": "R-REPEAT after Improve",
+    "blocked": "R-BLOCKED after Improve",
+    "replan": "R-REPLAN after Improve"
+   },
+   "improve": "every outcome",
+   "runs": {
+    "chess": "29 done",
+    "bs": "43 done"
+   },
+   "notes": "Duty 7: 'Report blocked only when nothing else can proceed, replan when the plan is wrong' (which plan is not said)."
+  },
+  {
+   "stage": "system-test",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "test-rerun of every system command (refuses unless each passes); after 11 refused runs done is refused and the remedy is replan (shiploop_test_loop._remedy)",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> product-acceptance",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED",
+    "replan": "R-REPLAN"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "31 done",
+    "bs": "45 done"
+   },
+   "notes": "Duty 1 offers repeat for a missing plan; duty 4: 'Fix the candidate, report replan for missing product work, or blocked'."
+  },
+  {
+   "stage": "product-acceptance",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> release-plan",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED",
+    "replan": "R-REPLAN"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "32 done",
+    "bs": "46 done"
+   },
+   "notes": "done_when: 'missing product work is routed as replan'. Its Backchain block also prints 'stage `revise`' (a Backchain stage, not an outcome)."
+  },
+  {
+   "stage": "release-plan",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "consumer_checks/_na and consumer_entry recorded; delivery authority recorded",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: Improve (always) -> release-check",
+    "repeat": "R-REPEAT after Improve",
+    "blocked": "R-BLOCKED after Improve",
+    "replan": "R-REPLAN after Improve"
+   },
+   "improve": "every outcome",
+   "runs": {
+    "chess": "33 done",
+    "bs": "47 done"
+   }
+  },
+  {
+   "stage": "release-check",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> release",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED",
+    "replan": "R-REPLAN"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "35 done",
+    "bs": "49 done"
+   },
+   "notes": "Duty 1: 'recover it, or report `repeat` (`replan` for missing product work)'."
+  },
+  {
+   "stage": "release",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> release-verify",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED",
+    "replan": "R-REPLAN"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "36 done",
+    "bs": "50 done"
+   },
+   "notes": "Duty 1 offers repeat for a missing plan; duty 2: 'report `blocked` or `replan`'."
+  },
+  {
+   "stage": "release-verify",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "test-rerun of every consumer check release-plan recorded, from the returned copy; remedy after the cap is replan",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> operations",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED",
+    "replan": "R-REPLAN"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "37 blocked (blocked_by access, awaiting present), 38 blocked (blocked_by user, awaiting present); run ended",
+    "bs": "51 done"
+   }
+  },
+  {
+   "stage": "operations",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE -> handoff",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED",
+    "replan": "R-REPLAN"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "never ran",
+    "bs": "52 done"
+   }
+  },
+  {
+   "stage": "handoff",
+   "phase": "outer",
+   "printed_line": "Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).",
+   "printed": [
+    "done",
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "shapes_printed": [
+    "repeat",
+    "blocked",
+    "replan"
+   ],
+   "gate_accepts": {
+    "done": "accepted after the stage's submit checks",
+    "repeat": "accepted; done-only fields refused",
+    "blocked": "accepted with blocked_by",
+    "replan": "accepted with new-ID work_items (IDs checked only at _apply_result, not at --check-only)",
+    "refused": [
+     "revise refused at this stage ('revise ... is allowed only at the INNER stages from test-spec to verify', _canonical_result)",
+     "reconcile"
+    ]
+   },
+   "navigator": {
+    "done": "R-DONE: stage done, status done, report.html",
+    "repeat": "R-REPEAT",
+    "blocked": "R-BLOCKED",
+    "replan": "R-REPLAN"
+   },
+   "improve": "none",
+   "runs": {
+    "chess": "never ran",
+    "bs": "53 done"
+   }
+  },
+  {
+   "stage": "improve (pseudo-stage)",
+   "phase": "any",
+   "printed_line": null,
+   "printed": [],
+   "gate_accepts": {
+    "complete": "imports the child's receipt; --final-result (optional) replaces the seed result with any outcome the reviewed stage accepts, revalidated by _canonical_result (finish_improve); a plan/carry-forward done final_result must list the whole queue"
+   },
+   "navigator": {
+    "any": "the final (or seed) result is routed by _apply_result exactly as a producer result; a stopped child: improve-start --restart-stopped, or improve-reconcile (R-RECONCILE) for the initial plan child"
+   },
+   "improve": "n/a",
+   "runs": {
+    "chess": "11 children, all done",
+    "bs": "18 children, all done"
+   },
+   "notes": "skills/improve/references/shiploop-route.md lists final_result outcomes 'done, repeat, blocked, revise ... or replan'."
+  }
+ ],
+ "mismatches": [
+  {
+   "id": "OM-1",
+   "kind": "printed but refused",
+   "what": "revise is printed with its budget even when none is left ('0 of 2 left for this item'); the gate refuses it only in _apply_result.",
+   "where": "skills/shiploop/scripts/shiploop_navigator.py _allowed_outcome_lines (prints left = MAX_REVISES - used, no floor), _apply_result (refusal), main complete path (--check-only returns before apply), apply (starts the Improve child before any budget check)",
+   "effect": "--check-only accepts a revise the real complete refuses; at test-spec (Improve-reviewed) the refusal arrives only after a full Improve review of the revise result.",
+   "evidence": "code read; not hit in 59 runs (max 1 revise per run, census)",
+   "severity": "medium (latent)"
+  },
+  {
+   "id": "OM-2",
+   "kind": "printed and accepted but has no use",
+   "what": "repeat is printed at 16 prelude/outer stages but chosen 0 times in 1,845 accepted results (59 runs). It re-issues the same stage; the duties offer it as the fix for a missing upstream plan, which it cannot fix ('`repeat` does not jump backward', references/navigator.md). At the 5 Improve-reviewed prelude/outer stages a repeat first runs a full Improve review of an unfinished result. The need SKILL.md step 4 gives ('another producer attempt') is already served by `next`, which reprints the packet.",
+   "where": "skills/shiploop/scripts/shiploop_stage_spec.py Stage.outcomes default; shiploop_prompts.py DUTIES['system-test'] 1, ['release-check'] 1, ['release'] 1; shiploop_navigator.py _improve_checkpoint",
+   "evidence": "census; BS packets: 16 of 33 producer packets print repeat",
+   "severity": "high (clarity)"
+  },
+  {
+   "id": "OM-3",
+   "kind": "one word, three meanings",
+   "what": "'repeat' in one inner packet: an outcome the stage refuses, the Until Loop's 'Repeat condition'/'Repeat while' (17 of 17 inner packets), and the Checked-by tail 'so repeat it until it accepts' (33 of 33 producer packets).",
+   "where": "skills/shiploop/scripts/shiploop_loops.py REPEAT, condition_lines; shiploop_navigator.py _checked_line",
+   "evidence": "BS packet counts (census.packet_counts_bs)",
+   "severity": "medium"
+  },
+  {
+   "id": "OM-4",
+   "kind": "one word, three meanings; loop stop not mapped to an outcome",
+   "what": "'blocked' is the Until Loop stop (continuation_assessment blocked, 'Stop blocked ...' in 17 of 17 inner packets), the ShipLoop outcome (wait for someone outside the run), and the run status. At test, document and verify, which accept both revise and blocked, the REPEAT text says 'Stop blocked when ...' without naming which outcome follows. The ask-agent implement text names revise for its last clause only. test-spec, validate-existing and the inline implement step map the stop to an outcome. _RESULT_HEAD says only '(stopped: report it)'; the shape lines never say blocked/revise need a stopped receipt.",
+   "where": "skills/shiploop/scripts/shiploop_loops.py REPEAT, REPEAT_STEP, _RESULT_HEAD, check_loop_packet ('a blocked stop supports revise or blocked')",
+   "evidence": "chess 16-implement: 11 ShipLoop source reads of 18 calls before submitting revise, incl. shiploop_loops.py check_loop_packet (/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-chess/in/16-implement.actions.md); docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-build.json /steps[3]/gaps[1]. SAY: 'The board grep is the only recorded check, and this step may not create the board.'",
+   "severity": "high"
+  },
+  {
+   "id": "OM-5",
+   "kind": "same situation, two outcomes",
+   "what": "'needs a tool, access or authority that is absent' routes to revise in implement duty 6, REPEAT_STEP, the step-proof refusal and test duty 8, but to blocked (external or access) in validate-existing duty 2 and stage_spec.case_end_states; document duty 7 blocks on 'a behaviour cannot be observed here' while RULES say a person-only step is an open item and BLOCKED_BY_RULE says only a person/outside party blocks.",
+   "where": "skills/shiploop/scripts/shiploop_prompts.py DUTIES implement 6, test 8, validate-existing 2, document 7, RULES; shiploop_loops.py REPEAT_STEP; shiploop_navigator.py _step_proof_gate; shiploop_stage_spec.py case_end_states",
+   "evidence": "code read; packets /private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/24-test.packet.md (loop text vs duty 8), 39-document.packet.md",
+   "severity": "medium"
+  },
+  {
+   "id": "OM-6",
+   "kind": "when an outcome is allowed is misdescribed",
+   "what": "The test packet's refused-run note ('if they keep coming, the item goes back to its step plan (revise)') and the docstring of loops._verify_refused ('revise opens only at the cap') read as 'revise only after 11 refused runs'; the truth is that a stopped receipt allows revise at any time and the cap only opens a receiptless route.",
+   "where": "skills/shiploop/scripts/shiploop_test_loop.py refused_note, _remedy_sentence; shiploop_loops.py _verify_refused",
+   "evidence": "BS 24-test: 33 ShipLoop source reads + 12 reference reads of 79 calls, 876 s (/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/24-test.actions.md; index.json); analysis-bs-build-1.json /steps[13]/gaps[3], /worst[0]. SAY: 'The mutation gate runs the org tests against a local copy, so a source change cannot fail them.'",
+   "severity": "high"
+  },
+  {
+   "id": "OM-7",
+   "kind": "a required field the scripts do not route on, chosen inconsistently",
+   "what": "blocked_by user|access|external changes no route (only status_reason text and the awaiting coupling). The same need (a person clicks through the deployed board) was labelled access at chess 37 and user at chess 38; browser observations: v1161 user/present, v1230 access/present, r1 access/answer.",
+   "where": "skills/shiploop/scripts/shiploop_navigator.py BLOCKED_BY, BLOCKED_BY_RULE, _canonical_result, _apply_result; shiploop_reference.py ('user (or access, for a sign-in)')",
+   "evidence": "census.blocked_by; /private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-chess/in/37-release-verify.result.md, 38-release-verify.result.md. SAY (37): 'I am reading the plans, the observation rules, and `environment.md` so the result matches what the script will accept.' (25 source reads, incl. _canonical_result and consumer_delivery's replan projection)",
+   "severity": "medium"
+  },
+  {
+   "id": "OM-8",
+   "kind": "outcome used for a meaning it does not have; route missing",
+   "what": "Both replans in 59 runs corrected a command system-test-author had recorded (ST-1's suite), not missing product work: the model invented a docs-only work item so system-test-author would run again; 19 actions each before system-test ran again. The printed definition ('they run through INNER, then OUTER restarts') uses internal jargon and does not say outer restarts at system-test-author. _remedy makes replan the cap remedy at system-test and release-verify, while SPEC S-10 (carve-out 2026-10-10) names only revise or blocked.",
+   "where": "skills/shiploop/scripts/shiploop_navigator.py _allowed_outcome_lines, _apply_result; shiploop_test_loop.py _remedy, OUTER_SOURCES; test/shiploop_e2e/SPEC.md S-10",
+   "evidence": "census.replan_uses (/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/replan_cost.py)",
+   "severity": "high"
+  },
+  {
+   "id": "OM-9",
+   "kind": "term collision",
+   "what": "'revise' sits beside 'revision N' in every packet header (51 of 51 BS packets), Improve's 'revised final_result', and the Backchain block's 'stage `revise`' (printed at product-acceptance, which refuses revise). Analysts also called the step-plan revisit 'the replan' (docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-prep.json /steps[10]/step_by_step).",
+   "where": "skills/shiploop/scripts/shiploop_navigator.py packet header; shiploop_prompts.py _BACKCHAIN_AUDIT_ONE_PASS",
+   "evidence": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/46-product-acceptance.packet.md",
+   "severity": "medium"
+  },
+  {
+   "id": "OM-10",
+   "kind": "refusal names outcomes the stage refuses",
+   "what": "_canonical_result's unknown-outcome refusal says 'must be done, repeat, blocked, revise, or a supported corrective replan' at every stage; _result_shape_problem adds '\"outcome\": \"done\" (or repeat, blocked, ...)' at every stage.",
+   "where": "skills/shiploop/scripts/shiploop_navigator.py _canonical_result, _result_shape_problem",
+   "evidence": "code read",
+   "severity": "low"
+  },
+  {
+   "id": "OM-11",
+   "kind": "non-done results reviewed by Improve; stale description",
+   "what": "At the 7 always-reviewed stages every outcome starts an Improve child (blocked, repeat, revise, replan included). 2 of 6 blocked results in 59 runs had a full Improve review before the run stopped. _improve_line (never called) still says 'including blocked and repeat' and omits revise/replan.",
+   "where": "skills/shiploop/scripts/shiploop_navigator.py _improve_checkpoint, _improve_line",
+   "evidence": "census.blocked_reviewed_by_improve_first; `grep -n '_improve_line(' skills/shiploop/scripts/*.py` finds only the definition",
+   "severity": "low"
+  },
+  {
+   "id": "OM-12",
+   "kind": "accepted but not printed (internal)",
+   "what": "reconcile is accepted by _canonical_result at plan and recorded only by improve-reconcile; apply refuses it. Correct as an internal record; it is a 6th outcome word in history and the status notes ('(planning reconciled)').",
+   "where": "skills/shiploop/scripts/shiploop_navigator.py _canonical_result, apply; shiploop_planning_revision.py",
+   "evidence": "0 uses in 59 runs",
+   "severity": "info"
+  }
+ ],
+ "proposal": {
+  "vocabulary": [
+   {
+    "outcome": "done",
+    "meaning": "This stage's work is finished: every Done-when (inner: exit) condition holds.",
+    "where": "every stage",
+    "next": "ShipLoop runs the stage's checks, then starts the next stage (named in the line).",
+    "model_supplies": "the result template (stage fields); inner stages: a complete Until Loop receipt.",
+    "replaces": "done (unchanged)"
+   },
+   {
+    "outcome": "blocked",
+    "meaning": "Only someone outside this run can unblock the stage (a person's answer, sign-in or grant, or an outside service), and no change to the plan avoids it.",
+    "where": "every stage",
+    "next": "The run stops; it resumes at this stage with their reply.",
+    "model_supplies": "{outcome, summary}; `awaiting` (reference#blocked) when a person must answer or act; inner stages: the Until Loop ended as stopped (or never started).",
+    "replaces": "blocked; the blocked_by field is dropped: awaiting present = a person, absent = an outside service (OM-7)"
+   },
+   {
+    "outcome": "send-back",
+    "meaning": "A record an earlier stage wrote, and this stage builds on, is wrong or cannot work here (a step, check, test case or recorded command).",
+    "where": "test-spec, validate-existing, implement, test, document, verify; with decision C9 also system-test and release-verify",
+    "next": "ShipLoop reruns the stage that wrote the record with this result as evidence: inside an item, step-plan (2 per item); at system-test, system-test-author; at release-verify, release-plan.",
+    "model_supplies": "{outcome, summary: what is wrong and what must change} (+ failed_expectations at validate-existing); inner: a stopped receipt or ShipLoop's refused-run cap.",
+    "replaces": "revise (renamed: 'revise' collides with 'revision N', Improve's 'revised result' and Backchain's revise stage, OM-9)"
+   },
+   {
+    "outcome": "add-work",
+    "meaning": "The product lacks work a requirement needs.",
+    "where": "outer stages (system-test-author to handoff)",
+    "next": "ShipLoop builds each new work item from step-plan to carry-forward, then reruns the release stages from system-test-author.",
+    "model_supplies": "{outcome, summary, work_items: [{id (new), title, context}]}",
+    "replaces": "replan (renamed: 'replan' reads as 'rerun plan', and its printed definition says 'INNER, then OUTER restarts', OM-8)"
+   },
+   {
+    "outcome": "(removed) repeat",
+    "meaning": "none",
+    "where": "nowhere",
+    "next": "A model that is not finished keeps working and submits done; after lost context `next` reprints the packet.",
+    "model_supplies": "-",
+    "replaces": "repeat: 0 of 1,845 results in 59 runs; cannot fix what the duties offer it for (OM-2, OM-3)"
+   },
+   {
+    "outcome": "(internal) reconcile",
+    "meaning": "the record improve-reconcile writes after a stopped initial plan Improve child",
+    "where": "plan, never printed",
+    "next": "unchanged (R-RECONCILE)",
+    "model_supplies": "only through improve-reconcile",
+    "replaces": "kept as is; not model-facing (OM-12)"
+   }
+  ],
+  "packet_lines": [
+   {
+    "case": "spec (prelude)",
+    "bytes": 598,
+    "lines": [
+     "Outcomes (choose one; ShipLoop picks the next stage):",
+     "- done: every Done-when condition holds. Next: ShipLoop checks the result, then test-strategy.",
+     "- blocked: only a person or an outside service can unblock this. Next: the run stops and resumes at spec with their reply. {\"outcome\": \"blocked\", \"summary\": \"<what stopped the work>\"}, plus \"awaiting\" when a person must answer or act (reference#blocked).",
+     "Fill the template: each key once, every placeholder (<...> and \"...\") replaced, \"outcome\" and \"summary\" top-level. Any other outcome keeps headline and evidence_refs and drops the other fields."
+    ]
+   },
+   {
+    "case": "test (inner, 2 left)",
+    "bytes": 1003,
+    "lines": [
+     "Outcomes (choose one; ShipLoop picks the next stage):",
+     "- done: every exit condition holds. Next: ShipLoop runs its checks, then document.",
+     "- send-back: W1's step plan or test spec is wrong or cannot work here (a step, check, case or recorded command). Next: W1 goes back to step-plan with this result as evidence (2 of 2 left). {\"outcome\": \"send-back\", \"summary\": \"<what is wrong and what the step plan must change>\"}",
+     "- blocked: only a person or an outside service can unblock this and no step-plan change avoids it. Next: the run stops and resumes at test with their reply. {\"outcome\": \"blocked\", \"summary\": \"<what stopped the work>\"}, plus \"awaiting\" when a person must answer or act (reference#blocked).",
+     "Before send-back or blocked, end the Until Loop as stopped; a loop that never started needs no receipt.",
+     "Fill the template: each key once, every placeholder (<...> and \"...\") replaced, \"outcome\" and \"summary\" top-level. Any other outcome keeps headline and evidence_refs and drops the other fields."
+    ]
+   },
+   {
+    "case": "test (inner, 0 left)",
+    "bytes": 774,
+    "lines": [
+     "Outcomes (choose one; ShipLoop picks the next stage):",
+     "- done: every exit condition holds. Next: ShipLoop runs its checks, then document.",
+     "- blocked: only a person or an outside service can unblock this, or W1's plan is wrong again (send-back is used up, 2 of 2: awaiting asks the user). Next: the run stops and resumes at test with their reply. {\"outcome\": \"blocked\", \"summary\": \"<what stopped the work>\"}, plus \"awaiting\" when a person must answer or act (reference#blocked).",
+     "Before send-back or blocked, end the Until Loop as stopped; a loop that never started needs no receipt.",
+     "Fill the template: each key once, every placeholder (<...> and \"...\") replaced, \"outcome\" and \"summary\" top-level. Any other outcome keeps headline and evidence_refs and drops the other fields."
+    ]
+   },
+   {
+    "case": "system-test (outer, with option B)",
+    "bytes": 1178,
+    "lines": [
+     "Outcomes (choose one; ShipLoop picks the next stage):",
+     "- done: every due system test ran on the real candidate. Next: ShipLoop reruns every system command, then product-acceptance.",
+     "- send-back: a command system-test-author recorded is wrong or cannot run here. Next: system-test-author redoes its record with this result as evidence, then system-test runs again. {\"outcome\": \"send-back\", \"summary\": \"<which command is wrong and why>\"}",
+     "- add-work: the product lacks work a requirement needs. Next: ShipLoop builds each new item from step-plan to carry-forward, then reruns from system-test-author. {\"outcome\": \"add-work\", \"summary\": \"<what is missing>\", \"work_items\": [{\"id\": \"<new id>\", \"title\": \"...\", \"context\": \"...\"}]}",
+     "- blocked: only a person or an outside service can unblock this. Next: the run stops and resumes at system-test with their reply. {\"outcome\": \"blocked\", \"summary\": \"<what stopped the work>\"}, plus \"awaiting\" when a person must answer or act (reference#blocked).",
+     "Fill the template: each key once, every placeholder (<...> and \"...\") replaced, \"outcome\" and \"summary\" top-level. Any other outcome keeps headline and evidence_refs and drops the other fields."
+    ]
+   },
+   {
+    "case": "release-plan (outer)",
+    "bytes": 894,
+    "lines": [
+     "Outcomes (choose one; ShipLoop picks the next stage):",
+     "- done: every Done-when condition holds. Next: ShipLoop checks the result, then release-check.",
+     "- add-work: the product lacks work a requirement needs. Next: ShipLoop builds each new item from step-plan to carry-forward, then reruns from system-test-author. {\"outcome\": \"add-work\", \"summary\": \"<what is missing>\", \"work_items\": [{\"id\": \"<new id>\", \"title\": \"...\", \"context\": \"...\"}]}",
+     "- blocked: only a person or an outside service can unblock this. Next: the run stops and resumes at release-plan with their reply. {\"outcome\": \"blocked\", \"summary\": \"<what stopped the work>\"}, plus \"awaiting\" when a person must answer or act (reference#blocked).",
+     "Fill the template: each key once, every placeholder (<...> and \"...\") replaced, \"outcome\" and \"summary\" top-level. Any other outcome keeps headline and evidence_refs and drops the other fields."
+    ]
+   },
+   {
+    "case": "bytes vs today",
+    "lines": [
+     "spec 593 -> 598 B; test 762 -> 1003 B (2 left) / 774 B (0 left); release-plan 889 -> 894 B; system-test 889 -> 1178 B with option C9 (measured: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/draft_lines.py vs the BS packets)."
+    ]
+   },
+   {
+    "case": "Until Loop repeat condition (shiploop_loops.REPEAT['test'])",
+    "lines": [
+     "Repeat while a case has no test or the latest iteration found ... and changed code or tests to fix it; there is no iteration limit. End the loop as stopped when a failure is proven unachievable as planned or a recorded command cannot run here (the stage then reports send-back), or when only a person or an outside service can unblock it (the stage then reports blocked). Never stop cancelled: a user's stop is the ShipLoop packet's pause command."
+    ]
+   },
+   {
+    "case": "loop result line (shiploop_loops._RESULT_HEAD)",
+    "lines": [
+     "Result: when the Receipt says complete, report done; when it says stopped, report send-back or blocked. Keep the receipt in evidence_refs and run the Callback command above."
+    ]
+   },
+   {
+    "case": "Checked-by tail (shiploop_navigator._checked_line)",
+    "lines": [
+     "A refusal does not advance the run: fix the cause and run the same command again; `complete --check-only` prints the first refusal without accepting, so run it again until it accepts."
+    ]
+   },
+   {
+    "case": "refused-run note (shiploop_test_loop.refused_note)",
+    "lines": [
+     "Refused runs for this action so far: N (base, candidate and mutation runs together). A wrong check or command is send-back at any time with the stopped loop receipt; after repeated refusals ShipLoop also accepts send-back without one."
+    ]
+   }
+  ],
+  "code": [
+   {
+    "id": "C1",
+    "priority": "P1",
+    "change": "Remove the repeat outcome.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_stage_spec.py OUTCOMES, Stage.outcomes default -> ('done', 'blocked')",
+     "skills/shiploop/scripts/shiploop_navigator.py _canonical_result, _apply_result (repeat branch), _outcome_shape_lines, status_block notes, _result_shape_problem",
+     "skills/shiploop/scripts/shiploop_loops.py check_terminal (repeat message)",
+     "skills/shiploop/scripts/shiploop_reference.py OUTCOMES_TEXT",
+     "skills/shiploop/scripts/shiploop_prompts.py DUTIES system-test 1, release-check 1, release 1, release-plan 1, OUTER_TEST_HANDOFF ('pending, repeat and blocked results')",
+     "skills/shiploop/scripts/shiploop_consumer_delivery.py _recovery_lines ('Repeat or resume cannot repair')",
+     "skills/shiploop/scripts/shiploop_navigator_dry_run.py 'repeat-improve' scenario",
+     "skills/shiploop/SKILL.md step 4; references/navigator.md (mermaid, outcome table, field table, repeat paragraph); references/inner-loop.md",
+     "skills/improve/references/shiploop-route.md (final_result outcome list)",
+     "skills/shiploop-run-review/scripts/export.py (implementVisits 'repeat', 'repeats'), SCHEMA.md, template/index.html"
+    ],
+    "test": "T2: for every stage, a repeat result through the real `complete` is refused with that stage's own outcome list; the run-review counts drop the key."
+   },
+   {
+    "id": "C2",
+    "priority": "P1",
+    "change": "Rename revise -> send-back everywhere (no alias; REVISE_TO -> SEND_BACK_TO, MAX_REVISES -> MAX_SEND_BACKS, state key revisions -> send_backs).",
+    "files": [
+     "skills/shiploop/scripts/shiploop_stage_spec.py _finish, case_end_states, REVISE_TO, MAX_REVISES",
+     "skills/shiploop/scripts/shiploop_navigator.py _canonical_result, _apply_result, _STAGE_REVISE_FIELDS, REVISIT_STAGES, _sent_back_results, revisit lines, validate (revisions), status_block notes",
+     "skills/shiploop/scripts/shiploop_loops.py REPEAT, REPEAT_STEP, check_loop_packet, check_terminal, _verify_refused",
+     "skills/shiploop/scripts/shiploop_test_loop.py _remedy, _remedy_sentence, _cap_refusal, _place_reply, _unavailable_sentence",
+     "skills/shiploop/scripts/shiploop_expectations.py check_complete",
+     "skills/shiploop/scripts/shiploop_planning_revision.py current_actions",
+     "skills/shiploop/scripts/shiploop_context_index.py",
+     "skills/shiploop/scripts/shiploop_prompts.py DUTIES (test-spec, validate-existing, implement, test, document, verify)",
+     "references/inner-loop.md '## Revise', test/shiploop_e2e/SPEC.md S-10 carve-out",
+     "run-review export/SCHEMA/template"
+    ],
+    "test": "T1 and T3; test/shiploop-revise.test.py renamed and kept as the route test."
+   },
+   {
+    "id": "C3",
+    "priority": "P1",
+    "change": "Rename replan -> add-work; its definition names system-test-author and drops INNER/OUTER; gate it by row.outcomes instead of guidance.OUTER.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_stage_spec.py _finish",
+     "skills/shiploop/scripts/shiploop_navigator.py _canonical_result, _apply_result, _replan_delta_lines, _allowed_outcome_lines",
+     "skills/shiploop/scripts/shiploop_consumer_delivery.py (replan edge text, replan_required)",
+     "skills/shiploop/scripts/shiploop_prompts.py OUTER_TEST_HANDOFF and outer duties",
+     "skills/shiploop/scripts/shiploop_test_loop.py _remedy (unless C9 makes send-back the remedy)"
+    ],
+    "test": "T5: add-work at release-verify appends the items, runs their step-plan first, and resumes at system-test-author."
+   },
+   {
+    "id": "C4",
+    "priority": "P1",
+    "change": "One outcome block per packet: merge _allowed_outcome_lines and _outcome_shape_lines into one line per outcome '- <outcome>: <when>. Next: <what ShipLoop does, next stage named>. <shape>' (drafts above); omit send-back when none is left and say so in the blocked line; done does not pre-announce Improve (owner rule).",
+    "files": [
+     "skills/shiploop/scripts/shiploop_navigator.py _allowed_outcome_lines, _outcome_shape_lines, _result_contract_lines, _next_stage (preview of the next stage)",
+     "test/shiploop-callback-contract.test.py OutcomeShapeTests (STAGES covers 3 stages today)",
+     "test/shiploop-head-order.test.py (head bound)"
+    ],
+    "test": "T1: for all 24 stages, the printed outcome set equals the set the real `complete` accepts on a minimal valid result (extends OutcomeShapeTests from intake/test/system-test-author to every stage)."
+   },
+   {
+    "id": "C5",
+    "priority": "P1",
+    "change": "Check the send-back budget before anything else: in a submit gate that also runs for --check-only and in apply before _improve_checkpoint.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_navigator.py main complete path (_check_submitted_* group), apply, _apply_result"
+    ],
+    "test": "T3: with 2 send-backs used, --check-only and complete both refuse send-back at test-spec, and no Improve child starts (active_improve stays None)."
+   },
+   {
+    "id": "C6",
+    "priority": "P1",
+    "change": "Loop wording names the outcome: every REPEAT text says 'End the loop as stopped when X (the stage then reports send-back)' / '(... blocked)'; _RESULT_HEAD maps complete -> done and stopped -> send-back or blocked; Checked-by says 'run it again until it accepts'; refused_note and _verify_refused say a stopped receipt allows send-back at any time; the mutation refusal names the send-back route when the commands cannot observe the mutated copy (plan unit C2).",
+    "files": [
+     "skills/shiploop/scripts/shiploop_loops.py REPEAT, REPEAT_STEP, _RESULT_HEAD, _verify_refused",
+     "skills/shiploop/scripts/shiploop_navigator.py _checked_line",
+     "skills/shiploop/scripts/shiploop_test_loop.py refused_note",
+     "skills/shiploop/scripts/shiploop_mutation.py mutation_check refusal"
+    ],
+    "test": "For each inner stage: a stopped receipt plus each outcome its REPEAT text names is accepted through the real gate, and each REPEAT text names only outcomes its row accepts (test/shiploop-loops.test.py)."
+   },
+   {
+    "id": "C7",
+    "priority": "P2",
+    "change": "One rule for an absent tool, access or authority: send-back when another plan can avoid it; blocked (with awaiting) only when a person or outside service must supply it and no plan avoids it; an unobservable behaviour is an open item, not blocked.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_prompts.py DUTIES implement 6, test 8, validate-existing 2, document 7",
+     "skills/shiploop/scripts/shiploop_loops.py REPEAT_STEP",
+     "skills/shiploop/scripts/shiploop_navigator.py _step_proof_gate refusal",
+     "skills/shiploop/scripts/shiploop_stage_spec.py case_end_states"
+    ],
+    "test": "A document result that blocks without awaiting on an unobservable behaviour is refused with the open-item route (if C8 lands)."
+   },
+   {
+    "id": "C8",
+    "priority": "P2",
+    "change": "Drop blocked_by: awaiting present means a person (resume needs their reply), absent means an outside service (resume without one); status_reason and run-review derive the label; BLOCKED_BY_RULE keeps its 'anything this run can fix is not blocked' sentence.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_navigator.py BLOCKED_BY, BLOCKED_BY_RULE, AWAITING_SHAPE, _canonical_result, _apply_result, _normalise_awaiting, _outcome_shape_lines",
+     "skills/shiploop/scripts/shiploop_reference.py blocked text, OUTCOMES_TEXT",
+     "skills/shiploop/scripts/shiploop_prompts.py RULES and duties that name blocked_by",
+     "skills/shiploop-run-review/scripts/export.py ('by')",
+     "skills/shiploop-e2e-audit/harness/dag_replay.py",
+     "skills/shiploop/scripts/shiploop_navigator_dry_run.py"
+    ],
+    "test": "T6: blocked with awaiting resumes only with --answer/--observed; blocked without awaiting resumes with a bare resume; a result carrying blocked_by is refused as an unsupported field."
+   },
+   {
+    "id": "C9",
+    "priority": "decision",
+    "change": "Outer send-back at the two rerun stages: system-test -> system-test-author, release-verify -> release-plan (test_loop.OUTER_SOURCES already names each record's owner); same budget of 2, counted per target; _remedy returns send-back there.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_stage_spec.py _finish",
+     "skills/shiploop/scripts/shiploop_navigator.py _apply_result (outer send-back branch)",
+     "skills/shiploop/scripts/shiploop_test_loop.py _remedy, OUTER_SOURCES",
+     "skills/shiploop/scripts/shiploop_prompts.py DUTIES system-test 4, release-verify 7",
+     "test/shiploop_e2e/SPEC.md S-10"
+    ],
+    "why": "OM-8: both replans in 59 runs were this case and cost 19 actions each through a dummy work item; adds one route.",
+    "test": "T4: send-back at system-test issues system-test-author with the result quoted and adds no work item; a third send-back is refused."
+   },
+   {
+    "id": "C10",
+    "priority": "decision",
+    "change": "Start an Improve child only for a done result at the reviewed stages; delete the dead _improve_line.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_navigator.py _improve_checkpoint, _improve_line",
+     "references/navigator.md ('a reviewed done can become repeat, blocked or ... replan')"
+    ],
+    "why": "OM-11: 2 of 6 blocked results were fully reviewed before the run stopped; a send-back reruns the stage anyway.",
+    "test": "A blocked spec result sets status blocked with active_improve None."
+   },
+   {
+    "id": "C11",
+    "priority": "P3",
+    "change": "Refusals list the stage's own outcomes.",
+    "files": [
+     "skills/shiploop/scripts/shiploop_navigator.py _canonical_result (unknown outcome), _result_shape_problem"
+    ],
+    "test": "An unknown outcome at step-plan is refused with 'done, blocked' only."
+   }
+  ],
+  "owner_rules": [
+   "One supported version: renames and removals have no aliases. validate re-canonicalises every history row through _canonical_result, so every saved run with revise/replan/repeat/blocked_by rows is refused after the change (acceptable under the rule). Conflict to decide: skills/shiploop-run-review reads old runs by outcome name; either it reports unknown names raw, or old runs are not reviewable after the release.",
+   "Main tenet: each outcome's meaning and next step is printed in every packet, not only in reference#blocked.",
+   "Compact packets: +5 B at prelude/outer, +241 B at inner stages, +289 B at system-test with C9 (measured drafts).",
+   "Improve packet minimal: the done line never pre-announces Improve.",
+   "Test the route: T1-T6 submit through the real complete; T1 replaces the 3-stage sample in OutcomeShapeTests with all 24 stages.",
+   "KISS: one outcome and one field fewer; C9 adds one route only on the owner's decision.",
+   "Overlap with the run-insights plan: C6's mutation refusal is plan unit C2; send-back cost after a test-commands-only change is plan unit D1; revisit lines are D3."
+  ]
+ },
+ "tools": [
+  "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/says.py",
+  "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/census.py",
+  "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/census2.py",
+  "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/replan_cost.py",
+  "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/draft_lines.py",
+  "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/insights2/outcomes-tools/write_audit.py"
+ ]
+}

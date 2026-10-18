@@ -1,0 +1,238 @@
+{
+  "audit": "step-commit-audit: one step at a time, and commits as memory",
+  "date": "2026-10-18",
+  "mode": "read-only (no file edited outside this scratchpad; no sf, no tests, no ShipLoop command run)",
+  "consumer": "The owner, to decide the step-exposure and step-commit design for plan revision 2 of docs/shiploop-run-insights-plan-2026-10-18.md; then the session that builds it (read once, before writing the unit).",
+  "sources": {
+    "code": "R = /Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b (HEAD 71d7187c)",
+    "battleship_run": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f (worktree .shiploop-runs/work-20261018-040601-5105d5/worktree, run .../run)",
+    "chess_run": "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29 (worktree .shiploop-runs/work-20261017-204618-70708c/worktree)",
+    "step_layouts": "SP/report-bs/in (steps 11-37 for S1-S4, two rounds) and SP/report-chess/in; index.json beside them",
+    "fix_plan": "docs/shiploop-implement-step-fix-plan-2026-10-17.md: committed only on branch shiploop/implement-prompt-2d6ecc (649b8d60..4eae0910, 53 KB); a newer untracked revision (110 KB, 2026-10-18 07:09) sits in the canonical checkout /Users/dadleet/src/skill-craft/docs/. Not present on the integration branch R. Citations below use the newer copy's sections.",
+    "earlier_commit_plan": "R/docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md (R1-R6, critique item 5, section 0e, T8, T12)",
+    "owner_memory": "~/.claude/projects/-Users-dadleet-src-skill-craft/memory/shiploop-commit-and-spec-lifecycle-requirements.md (items 1, 3, 4) and commit-learnings-and-read-last-three.md",
+    "analysis_scripts": "SP/insights2/work-step-commit/scan.py (cross-step reads/writes from .actions.md), sample-S1-message.txt (990-byte sample step commit, parsed by shiploop_lessons.lessons and .citations)"
+  },
+  "summary_12_lines": [
+    "1. Exposure: each Battleship implement packet (33-46 KB) prints its own step in full, earlier steps' whole summaries (0/495/782/1,082 B for S1-S4), later steps by first sentence (114/99/84/0 B), the step-plan result path 3 times, and a 1,220 B work-item context naming every step's checks and order; Improve handoffs (29-32 KB) repeat this with a 3,328 B full context.",
+    "2. Behaviour: 0 of 16 Battleship step actions (8 implement, 8 Improve) wrote a later step's paths; cross-step reads were dependencies (S2 read S1, S3 read S2), one grep of the whole step plan (S3), S4 copying S3's result/notes as a format template, and S2-revisit opening S1's packet. Wandering is a byte and pointer cost here, not an observed behaviour.",
+    "3. Duplication: each S2-S4 packet prints the previous step's summary twice (Accepted step line and LAST ACCEPTED SUMMARY, 269-477 B), and the revisit summaries ('Carried over unchanged') replaced S1's real learning (Apex Long overflow limbs) in every later packet.",
+    "4. Recommend: current step in full; earlier steps one line each (id, short commit, headline); later steps by count only; one step-plan locator (the Files line); drop the duplicate LAST ACCEPTED block and the receipt pointer at an implement step. Generated in step_block, _step_lines, handoff_lines, _builds_on_lines, _last_accepted_lines, improve_handoff_text.",
+    "5. Commits: the Battleship worktree has 21 commits: 13 by ShipLoop scripts (1 empty baseline, 9 knowledge, 1 item commit at verify, 2 leftovers), 8 by Improve through improve-pass (model-written messages), 0 typed by a model.",
+    "6. 9 of 21 carry a lessons section (8 Improve 'Key learnings', 1 release-verify 'Learned'); 1 carries decisions (release-verify 'Key considerations'); 5 cite earlier commits (Learned-from); 11 are subject-only bookkeeping.",
+    "7. Implement steps are not committed per step today (0 of 8): S1, S2, S4 code and S3's html/meta land in the verify item commit a62baf4 (message = verify summary, no labels); S3's whole new slBattleBoard.js (128 lines) landed in Improve commit 4c5b99b under the review's subject. Chess: 0 step commits, 0 implement Improve commits.",
+    "8. Look-back today: only intake and discovery quote commits (knowledge_home.stage_lines -> recent_commits; Battleship quoted the empty baseline); the Improve route makes the model run git log -7 (23 runs over 13 Battleship actions); 0 of 8 implement producers ran git log; 0 packets carried 'Last accepted Improve lessons'; 0 of 16 receipt pointers were opened.",
+    "9. Result: the S3 Improve's race learning (commit 4c5b99b: New game must ignore an in-flight fire) reached no later packet by value; git commits were the only by-value store of Improve lessons in this run.",
+    "10. Design: at an inline implement step's accepted 'complete' (gates passed, after save, before any Improve edit), ShipLoop commits the step's changed declared paths (HOME excluded) as 'feat(<item>/<step>): <headline>' with Key learnings, Key decisions, Evidence (script-built) and Related commits (validated Learned-from); the Improve's own commit then holds only its diff.",
+    "11. Result fields: learned [str], decisions [str] (each required at done, ['none'] allowed) and optional learned_from [{commit, contribution}]; gate refuses a missing/placeholder field or an unreachable commit. Step-plan, test-spec, implement and the step's Improve handoff quote the last 2 non-bookkeeping commits by value (anchored at the step's entry HEAD), plus the step's own previous commit on a revisit.",
+    "12. Consistency: matches fix-plan F14/D6 and T14 except 'since this item began' (it would hide 8947618, the item base head and S1's key JSON.serialize lesson); reverses the 2026-10-10 plan's T8 (learned_from left stage results because citations never reached a commit; a step commit is that commit); supersedes run-insights E6's printed git log -7; satisfies the owner's 2026-10-10 items 1, 3, 4."
+  ],
+  "part1_exposure": {
+    "question": "What do the Battleship S1-S4 implement, test-spec, step-plan and Improve packets show about OTHER steps, and did the model read or act on that material?",
+    "packets": [
+      {"packet": "16-implement (S1, round 1)", "bytes": 43918, "own_step_block_bytes": 3464,
+       "later_steps": "line 'Later steps (ShipLoop issues each after this one; do not start them): S2 Satisfy C3; S3 Satisfy C4; S4 Satisfy C5' (114 B; step_block, _first_sentence of each later task, limit 200)",
+       "earlier_steps": "none (first step); LAST ACCEPTED SUMMARY is validate-existing's (91 B)",
+       "whole_plan_pointers": 3, "whole_plan_pointer_lines": ["Files: ShipLoop commits the item's declared paths (its step plan's result: RUN/results/nav-03cbb489....md) (STEP_FILES_LINE)", "- W1 step-plan result: RUN/results/nav-03cbb489....md (the steps, criteria, test commands, expectations and paths) (_builds_on_lines, _RESULT_USE['step-plan'])", "Cut to step S1: ...; RUN/results/nav-03cbb489....md holds every step's. (handoff_lines)"],
+       "test_spec_pointer": "- W1 test-spec result: RUN/results/nav-ec9a0688....md (all cases of C1-C5)",
+       "hand_offs": "follows cut to the step's R-n plus every AD-1..AD-7; criteria C1, C2 by value in the Step block; test_cases cut to fleet, miss, hit (step_scope, handoff_sources)",
+       "item_context": "Work item context excerpt 1,220 B (_work_item_block, 1,200-char excerpt): names controllerShape, boardSource, metaShape, the tab/app/permission set, and the internal order 'project, engine, controller, board and metadata, deployed assignment, then the org suite'",
+       "knowledge_toc": "HOME/architecture.md contents list every procedure (fleet ... boardClick, metadataDeploy) by heading"},
+      {"packet": "18-implement (S2)", "bytes": 33554, "own_step_block_bytes": 1570, "accepted_lines_bytes": 495, "later_bytes": 99,
+       "duplicate": "LAST ACCEPTED SUMMARY repeats S1's summary (477 B) already printed as 'Accepted step S1:' (_last_accepted_lines vs step_block)", "whole_plan_pointers": 3, "item_context_bytes": 1220},
+      {"packet": "20-implement (S3)", "bytes": 34946, "own_step_block_bytes": 2094, "accepted_lines_bytes": 782, "later_bytes": 84,
+       "duplicate": "LAST ACCEPTED SUMMARY repeats S2's summary (269 B)", "whole_plan_pointers": 3, "item_context_bytes": 1220},
+      {"packet": "22-implement (S4)", "bytes": 35789, "own_step_block_bytes": 2421, "accepted_lines_bytes": 1082, "later_bytes": 0,
+       "duplicate": "LAST ACCEPTED SUMMARY repeats S3's summary (282 B)", "whole_plan_pointers": 3, "item_context_bytes": 1220,
+       "prior_improve": "'Prior Improve evidence and lessons: RUN/improve/<S3 action>/receipt.md' (pointer only; the receipt holds no lessons; _improve_lessons_lines)"},
+      {"packet": "30/32/34/36-implement (round 2, S1-S4)", "bytes": [45775, 33210, 34648, 35498], "accepted_lines_bytes": [0, 323, 547, 819], "later_bytes": [114, 99, 84, 0], "duplicate_last_accepted_bytes": [0, 305, 206, 254],
+       "lost_learning": "Accepted step S1 in 32/34/36 reads 'Carried over unchanged: sfdx-project.json, SLBattleEngine ...' - the round-1 learning 'Apex throws on signed Long overflow, so the LCG multiplies and adds in 16-bit and 32-bit limbs' (18/20/22-implement) is gone from every round-2 packet",
+       "revisit": "only S1 (30) has a Revisit line, naming the test stage's revise result nav-3cc80f85"},
+      {"packet": "17/19/21/23-improve-implement (packet)", "bytes": [1586, 1586, 1586, 1586], "shows_other_steps": "nothing: two instructions (run improve with the handoff path; then complete) - improve_packet"},
+      {"packet": "17/19/21/23-improve-implement.improve-handoff (round 1)", "bytes": [32085, 29483, 30095, 30674],
+       "shows_other_steps": "the producer's Step block word for word (later-steps line, Accepted step lines: step_block via improve_handoff_text); full Work item context 3,328 B (all steps' checks, scope and order); step-plan result pointer x2 and test-spec result pointer x1 (_reference_lines/_builds_on_lines, STEP_FILES_LINE); Review base diff (_review_base_line); 'criteria (W1 step-plan): C1, C2 (printed in the Step block above)' (_without_step_criteria)"},
+      {"packet": "11/25-step-plan", "bytes": [28499, 30564], "shows_other_steps": "item-level stage: no step exists yet (it writes all of them); open items for W1; 25 carries the Revisit line with the test stage's revise summary. No commit quoted."},
+      {"packet": "13/27-test-spec", "bytes": [41259, 42104], "shows_other_steps": "item-level stage: all criteria C1-C5 by value and the focused test_commands (CONSUMES['test-spec']); the step-plan result pointer. No commit quoted."},
+      {"packet": "12/14/26/28-improve-step-plan/test-spec handoffs", "shows_other_steps": "review the whole item's plan or test spec by design"}
+    ],
+    "model_behaviour_from_actions": {
+      "method": "SP/insights2/work-step-commit/scan.py plus targeted reads of CALL lines (write/search_replace file_path and read_file/grep targets) in SP/report-bs/in/{16..23,30..37}-*.actions.md",
+      "product_writes_outside_own_step": "0 of 16 step actions. Round 1 writes: S1 3 (sfdx-project.json, SLBattleEngine.cls, -meta), S2 2 (SLBattleController + meta), S3 5 (3 lwc files + 2 edits), S3-Improve 2 edits to slBattleBoard.js, S4 3 (tab, app, permission set). Round 2: 0 product writes (each step carried its previous result over).",
+      "reads_of_other_steps_product": "S2 r1 read SLBattleEngine (1), S3 r1 read SLBattleController (1), S3-Improve r1 read SLBattleController (6 mentions), S2 r2 and its Improve read SLBattleEngine (1 each), S3 r2 read SLBattleController (1): every one is a declared dependency (Depends on: S1 / S2).",
+      "reads_of_the_whole_step_plan": "1 of 8 implement actions: 20-implement (S3 r1) grep on RUN/results/nav-03cbb489....md ('found 18 matches'); 0 of 8 Improve actions.",
+      "reads_of_other_steps_records": "22-implement (S4 r1) read S3's inbox result, notes and scratch/s3-done-1.json (format template for its own report); 32-implement (S2 r2) read S1 r2's packet file RUN/packets/nav-edc9030b....md after re-orienting ('checking the live loop receipt'); round 2 each step read its own round-1 result to carry it over (4 of 4).",
+      "prior_improve_receipts_opened": "0 of 8 implement, 0 of 2 test-spec, 0 of 1 step-plan revisit actions (grep 'run/improve/' in the actions files)",
+      "shiploop_source_reads_in_step_actions": 0,
+      "layout_caveat": "30-implement.actions.md also holds S2's loop-close and submit events (lines 100-119, 'Read the active S2 until-loop packet'); the step layout attributes them to step 30 by time. They are S2's work, not S1 working ahead.",
+      "chess_comparison": "Chess (older build) printed later steps by their paths (413 B: 'S2 force-app/.../SLChessController.cls, ...; S3 force-app/.../slChessBoard.js, ...'). Chess S1 (16-implement) wrote 0 product files and reported revise because the item's only recorded check needed S3's board; the revise merged the three steps into one ('Step S1 (1 of 1)', 22-implement wrote all 11 product paths). One-step-at-a-time collapsed through the step plan, not through the model building ahead."
+    },
+    "finding": "The owner's risk (a model wandering into later steps) did not occur in either run's product writes; what the packets expose about other steps is bytes and pointers: up to 1,082 B of earlier summaries, a 282-477 B duplicate, a later-step line, three pointers to the whole step plan and an item context that names every step. The real loss runs the other way: earlier steps' learnings are carried only as free-text summaries that a revisit overwrites.",
+    "recommendation": {
+      "current_step": "In full, unchanged: task, criteria by value, its test cases, Depends on with locators, Proof, skills (step_block).",
+      "earlier_steps": "One line each: 'Accepted: S1 <short commit> <headline>; S2 <short commit> <headline>' (headline < 100 chars). Their learnings and decisions travel by value in the Recent commits block (part 4), not as summaries. Depends-on keeps the result locator only for declared dependencies.",
+      "later_steps": "Count only: 'Later steps: 2 (ShipLoop issues each after this one; do not start them).' No IDs, tasks or paths. The exit condition 'no later step's work is in the change' reads as 'no work your criteria do not ask for', which needs no later-step text.",
+      "whole_plan_locator": "Once, in STEP_FILES_LINE (the paths field it names). Drop the clause 'RUN/results/<plan>.md holds every step's' from handoff_lines' cut line, and leave the step-plan and test-spec result lines out of _builds_on_lines at an inline step (the Step block quotes the step's share by value).",
+      "duplicates": "At an implement step whose last accepted transition is an earlier implement step of the same item, _last_accepted_lines prints nothing (the Accepted line and the quoted commit carry it); _improve_lessons_lines' receipt pointer is dropped there too (0 of 16 opened).",
+      "item_context": "Keep _work_item_block as is: it carries the item's authority, corrections and scope that bind every step (for example 'Authority: that deploy and that assign only ... never sf org display'). It names other steps' checks, but trimming it risks losing binding rules; revisit after A1's concern map exists.",
+      "where_generated": [
+        "shiploop_navigator.step_block: Accepted step lines (row['summary'] -> headline + step commit), Later steps line (count), STEP_FILES_LINE, and the new Recent commits block; printed word for word by render, packet_head and improve_handoff_text",
+        "shiploop_navigator._step_lines: wrapper, unchanged",
+        "shiploop_navigator.handoff_lines: the 'Cut to step ...' line's 'holds every step's' clause",
+        "shiploop_navigator._builds_on_lines / _RESULT_USE: step-plan and test-spec result lines at an inline implement step",
+        "shiploop_navigator._last_accepted_lines and _improve_lessons_lines: skip at implement-after-implement",
+        "shiploop_navigator.improve_handoff_text: inherits step_block; _review_base_line names the step commit ('git show <commit>' plus the review's own edits)",
+        "shiploop_navigator.StepView / step_view: carry each accepted step's commit (from a run record written by the step commit)"
+      ],
+      "estimated_bytes": "Savings per implement packet: S1 about 0.35 KB (later line 114 B, two pointer lines about 250 B); S4 about 1.6 KB (accepted 1,082 -> about 270 B, duplicate 282 B plus its 3 header lines, pointers about 250 B, receipt pointer about 100 B). Measure with render_diff.py; part 4 adds the Recent commits block."
+    }
+  },
+  "part2_commits": {
+    "battleship_worktree": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/worktree (git log --format=full; every author 'ShipLoop E2E <shiploop-e2e@example.invalid>', the workspace identity)",
+    "commits": [
+      {"sha": "45e3cc5", "maker": "ShipLoop script", "site": "shiploop_workspace.bootstrap_empty", "subject": "Empty baseline for the first ShipLoop run", "bytes": 43, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "1a6d806", "maker": "ShipLoop script", "site": "knowledge_home.commit via navigator._knowledge_close", "subject": "docs(shiploop): record <run> knowledge after discovery", "bytes": 95, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "e08008c", "maker": "ShipLoop script", "site": "knowledge_home.commit", "subject": "... knowledge after research", "bytes": 94, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "5ba06cc", "maker": "Improve (spec review, step 05; improve-pass -> _improve_commit, message written by the model)", "subject": "docs(shiploop): make Battleship shot checks read the fleet", "bytes": 228, "learnings": true, "decisions": false, "citations": 0, "note": "holds the whole spec.md (147 lines): the spec stage's own output, committed under the review's subject; no 'after spec' knowledge commit exists"},
+      {"sha": "0205e1f", "maker": "Improve (test-strategy review pass 1, step 07)", "subject": "docs(shiploop): tighten Battleship shot and metadata checks", "bytes": 355, "learnings": true, "decisions": false, "citations": 1, "note": "holds architecture.md +146 and environment.md +77: test-strategy's own output"},
+      {"sha": "cf9b0e8", "maker": "Improve (test-strategy pass 2)", "subject": "docs(shiploop): name the game string each shot check reads", "bytes": 359, "learnings": true, "decisions": false, "citations": 1},
+      {"sha": "0333d88", "maker": "Improve (test-strategy pass 3)", "subject": "docs(shiploop): require a null lastShot key on a new game", "bytes": 354, "learnings": true, "decisions": false, "citations": 1},
+      {"sha": "8947618", "maker": "Improve (plan review, step 09)", "subject": "docs(shiploop): record that Apex JSON.serialize keeps nulls", "bytes": 424, "learnings": true, "decisions": false, "citations": 1, "note": "the W1 item base head (lint/items/W1.md head)"},
+      {"sha": "2449835", "maker": "ShipLoop script", "site": "knowledge_home.commit", "subject": "... knowledge at prepare", "bytes": 90, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "fcd65c9", "maker": "Improve (step-plan review round 1, step 12)", "subject": "docs(shiploop): confirm board shape with a source check", "bytes": 395, "learnings": true, "decisions": false, "citations": 1},
+      {"sha": "4c5b99b", "maker": "Improve (S3 implement review round 1, step 21)", "subject": "fix(lwc): drop a shot that returns after New game", "bytes": 207, "learnings": true, "decisions": false, "citations": 0, "note": "slBattleBoard.js +128 (the whole new file S3 wrote) under the review's subject; S3's html and meta went into a62baf4"},
+      {"sha": "0f415c4", "maker": "ShipLoop script", "site": "knowledge_home.commit", "subject": "... knowledge after document", "bytes": 94, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "a62baf4", "maker": "ShipLoop script", "site": "navigator._item_commit -> item_scope.commit_item (verify done)", "subject": "feat: W1 Build and prove the Battleship game on org de", "bytes": 375, "learnings": false, "decisions": false, "citations": 0, "note": "body = verify's summary; 14 files, 878 lines: S1, S2, S4 code, S3 html/meta, the tests, README, SHIPLOOP.md"},
+      {"sha": "6d4b7d2", "maker": "Improve (carry-forward end review, step 42)", "subject": "fix: name the rejected shot in the engine error", "bytes": 167, "learnings": true, "decisions": false, "citations": 0},
+      {"sha": "e93b92f", "maker": "ShipLoop script", "site": "knowledge_home.commit", "subject": "... knowledge after carry-forward", "bytes": 99, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "0a4a3bd", "maker": "ShipLoop script", "site": "knowledge_home.commit", "subject": "... knowledge after system-test-author", "bytes": 104, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "a7ae701", "maker": "ShipLoop script", "site": "knowledge_home.commit", "subject": "... knowledge at release-plan", "bytes": 95, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "c5f3834", "maker": "ShipLoop script", "site": "workspace.commit_leftovers (protocol workspace_command plan-return)", "subject": "chore(shiploop): commit files written after the last work item, before the return", "bytes": 83, "learnings": false, "decisions": false, "citations": 0, "note": "committed .sf/orgs/.../localSourceTracking/HEAD and config (run-insights I1)"},
+      {"sha": "9224be0", "maker": "ShipLoop script", "site": "workspace.commit_leftovers", "subject": "chore(shiploop): commit files written after the last work item, before the return", "bytes": 83, "learnings": false, "decisions": false, "citations": 0},
+      {"sha": "3c61bbe", "maker": "ShipLoop script", "site": "knowledge_home.commit with lessons_body (release-verify, always made)", "subject": "docs(shiploop): record <run> knowledge at release-verify", "bytes": 2247, "learnings": true, "decisions": true, "citations": 0, "note": "Learned / Key considerations / Open for the next run, plus generated open items"},
+      {"sha": "c1e49a0", "maker": "ShipLoop script", "site": "knowledge_home.commit", "subject": "... knowledge after operations", "bytes": 96, "learnings": false, "decisions": false, "citations": 0}
+    ],
+    "counts": {"total": 21, "shiploop_script": 13, "improve_via_improve_pass": 8, "model_typed_git_commit": 0, "lessons_section": 9, "decisions_section": 1, "with_learned_from": 5, "subject_only_bookkeeping": 11, "per_implement_step_commits": 0},
+    "chess_worktree": "19 commits: 1 baseline, 7 knowledge, 8 Improve (7 planning-stage docs, 1 release-plan), 1 item commit d53e06c, 2 leftovers; no implement Improve commit and no step commit: all product code is in the item commit; 8 messages carry 'Key learnings'.",
+    "commit_sites_in_code": [
+      {"symbol": "shiploop_workspace.bootstrap_empty", "when": "an empty starting directory", "message": "'Empty baseline for the first ShipLoop run' (allow_empty)"},
+      {"symbol": "shiploop_knowledge_home.commit (called by shiploop_navigator._knowledge_close after any accepted stage that changed docs/shiploop/, and always at release-verify)", "message": "knowledge_subject: 'docs(shiploop): record <run_label> knowledge at|after <stage>'; body only at release-verify: lessons_body (Learned, Key considerations, Open for the next run, open items)"},
+      {"symbol": "shiploop_navigator._item_commit -> shiploop_item_scope.commit_item (commit_scope: declared paths, docs class and HOME; withheld paths left)", "when": "verify accepted done", "message": "'feat: <item> <title>' + blank line + verify's summary"},
+      {"symbol": "shiploop_navigator._preparatory_commit", "when": "validate-existing done with a preparatory fix", "message": "'fix: preparatory fix for <expectation ids> (<item>)'"},
+      {"symbol": "shiploop_navigator._skill_commit", "when": "carry-forward created/updated a skill", "message": "'feat(skill): <decision> <folder>' + reason"},
+      {"symbol": "shiploop_navigator._improve_commit (improve-commit command, and improve-pass via _improve_pass)", "when": "inside an Improve review", "message": "model-written CHILD/commit-message.md; refused without a Key learnings section (_lessons_and_citations_refusal, shiploop_lessons.lessons); Learned-from IDs resolved through shiploop_git.resolve_commit and rewritten to full IDs"},
+      {"symbol": "shiploop_workspace.commit_leftovers (shiploop_protocol.workspace_command, plan-return)", "when": "before the return", "message": "'chore(shiploop): commit files written after the last work item, before the return'"}
+    ],
+    "implement_steps_committed_per_step_today": "No. _step_entry records only a tree snapshot ('the item's earlier steps stay uncommitted until verify', its docstring); the first commit holding implement code is the verify item commit, or an Improve commit that happens to touch a step's still-untracked file (4c5b99b took the whole file). Statement of the rule in code: STEP_FILES_LINE 'ShipLoop commits the item's declared paths'; prompts _item_commit_rule."
+  },
+  "part3_lookback": {
+    "packets_quoting_commits_today": "2 of 51 Battleship packets: 01-intake and 02-discovery ('Inherited learnings: the last 1 commit messages ...' quoting the empty baseline; 'Lessons from earlier runs: none recorded'). Source: shiploop_knowledge_home.stage_lines -> recent_commits(repo, 3) and lessons_lines, gated on stage in ('intake', 'discovery'). No step-plan, test-spec, implement or Improve packet/handoff quotes a commit.",
+    "improve_history_window": "skills/improve/references/shiploop-route.md 'History window': read the last seven reachable commit messages in full at every active callback. The handoff does not print them; the model must run git log.",
+    "git_log_runs_battleship": {"total_runs": 23, "by_action": {"02-discovery": 1, "05-improve-spec": 2, "07-improve-test-strategy": 5, "09-improve-plan": 1, "12-improve-step-plan": 2, "14-improve-test-spec": 1, "17-improve-S1": 1, "21-improve-S3": 2, "26-improve-step-plan-r2": 1, "33-improve-S2-r2": 1, "42-improve-carry-forward": 4, "47-release-plan": 1, "48-improve-release-plan": 1},
+      "implement_producers_that_ran_git_log": "0 of 8", "step_plan_and_test_spec_producers": "0 of 4",
+      "step_improves": "3 of 8 ran it (17 with '--format=%H %s', subjects only; 21; 33); 4 of 8 (19, 23, 35, 37) wrote 'Read: git log -7 through <id>' in review-1.md without running it in that action; 31 neither"},
+    "chess_git_log_runs": "17 runs; implement producers 0",
+    "what_the_window_held": "At the S1 Improve: fcd65c9, 2449835, 8947618, 0333d88, cf9b0e8, 0205e1f, 5ba06cc (6 lesson-bearing Improve commits, 1 bookkeeping), none about S1-S4 because no step was committed. At the S2-revisit Improve: 4c5b99b through 0205e1f; still no step commit.",
+    "was_it_used": "Yes, by reviews: S1 Improve review-1 'Read: git log -7 through fcd65c94 (null lastShot text, one-argument JSON.serialize, cells from newGame(1), source checks)'; S3 revisit's summary cites 'the generation token from commit 4c5b99b', which then appeared in S4-revisit's Accepted step S3 line.",
+    "other_carriers": "_improve_lessons_lines printed 'Last accepted Improve lessons' in 0 packets (no receipt had lessons; no --notes file was written) and the receipt pointer in 16 packets, opened 0 times.",
+    "loss": "The S3 Improve learning (4c5b99b: 'a New game click must ignore an in-flight fire and block new clicks until the new game returns') reached no later step, test or release packet by value. The SDLC audit's 'overlapping clicks unplanned (an Improve caught a race later)' is this learning."
+  },
+  "part4_design": {
+    "intent": "Each accepted inline implement step leaves one commit whose message is the step's durable memory (learnings, decisions, evidence, the commits that helped); the next step-plan, test-spec, implement and the step's Improve read the last two such messages by value, so a later or repeated step reuses them instead of rediscovering them.",
+    "consumers": ["the next two step packets and their Improve handoffs (by value, at render)", "the step's own Improve review (Review base: git show <step commit>)", "step-plan and test-spec on a revise (by value)", "verify's item commit (commits what is left: tests, docs)", "the next run's intake/discovery (recent_commits)", "the owner reading git log"],
+    "when_and_what_is_committed": {
+      "when": "In shiploop_navigator's complete path, after save and beside _item_commit/_preparatory_commit: a new _step_commit(root, before, after, action_id) runs when the accepted transition is an inline implement step's done (gates passed: step Proof, lint, scope). The Improve child is already bound by then, but its bind snapshot and the until-loop's _content_tree are working-content trees (improve_changes._snapshot, until_loop_ephemeral._workspace_tree), so a commit does not move them; improve_changes.review_changes then reports only the review's own edits as pending, and improve-commit commits only the review's diff (the 4c5b99b case becomes a review-sized diff).",
+      "paths": "The step's changed paths since its entry tree (the action record's 'base' from _step_entry, diffed against a fresh snapshot with improve_changes._diff), filtered by item_scope.commit_scope(declared, withheld); HOME (knowledge.in_home) excluded so the knowledge commit after the stage keeps owning docs/shiploop/ and its ID check. Undeclared paths stay for verify's notice. No per-step path fence (fix plan D3).",
+      "no_change": "No file to commit: no commit when learned and decisions are both ['none'] (the round-2 'carried over unchanged' steps); otherwise an empty commit carrying the message (the release-verify always-commit precedent and the owner's empty-delta rule, memory item 3).",
+      "ask_agent_route": "One implement action builds every step: one commit for the action, subject 'feat(<item>/<first>-<last>): <headline>'.",
+      "verify": "_item_commit unchanged: commit_paths stages only paths that still differ from HEAD, so it commits what the steps left (tests, README, docs). Test base runs and changed-path scopes read snapshot trees (lint.read_base, item_scope.changed_since), not HEAD, so step commits move neither.",
+      "printed": "'ShipLoop committed step S1 of W1 as <12 hex>: <paths>.' after the packet, like the item commit notice."
+    },
+    "message_format": {
+      "layout": ["<type>(<item>/<step>): <headline>", "", "Key learnings:", "- <each learned entry>", "", "Key decisions:", "- <each decisions entry>", "", "Evidence:", "- Criteria <ids>; Proof (the step plan's <step> check) exited 0 when ShipLoop ran it at done", "- Lint gate <action>.gate<n>: <n> new findings, <n> waived", "- Not covered by a test-spec case: <n> behaviours (result <action>, run <run_id>)", "", "Related commits:", "Learned-from: <full id> <contribution>"],
+      "type": "feat for every step (as the item commit); the item commit keeps 'feat: <item> ...' so _item_commit_product's matcher ('feat: W1' prefix) never matches a step subject",
+      "built_by": "ShipLoop only: subject from the result's headline; Key learnings/decisions from the result fields verbatim; Evidence from the gates ShipLoop ran (_step_proof_gate, the latest lint gate record in _PRODUCTS['implement'], the result's not_covered count); Related commits from validated learned_from rows (section omitted when there are none; no 'none cited' filler and no mechanical citation, per T12 of the 2026-10-10 plan)",
+      "grammar": "Sections apart by blank lines, so shiploop_lessons reads 'Key learnings:' and its bullets as the lessons section (checked on SP/insights2/work-step-commit/sample-S1-message.txt: lessons() returns the Long-overflow bullet, citations() returns the Learned-from row) and the E2E counters (test/shiploop_e2e/counters.py, metrics.commits) count step commits as lesson-bearing without a grammar change",
+      "sample_bytes": 990,
+      "sample_path": "SP/insights2/work-step-commit/sample-S1-message.txt (built from 16-implement.result.md's headline and summary)"
+    },
+    "result_fields": [
+      {"field": "learned", "shape": "list of strings, required at done", "meaning": "what this step taught that a later step or run should reuse: a probe result, a platform behaviour, an approach that failed; ['none'] when nothing new", "template_placeholder": "<what this step taught a later step: a probe result, a platform behaviour, a failed approach; or none>"},
+      {"field": "decisions", "shape": "list of strings, required at done", "meaning": "each choice this step made that its criteria and HOME did not settle, with why (a departure from architecture.md is still a new AD-<n>); ['none'] when none"},
+      {"field": "learned_from", "shape": "optional list of {commit, contribution}", "meaning": "each quoted commit whose lesson this step used; rendered as Learned-from lines; reverses the 2026-10-10 plan's T8 (removed because stage citations never reached a commit; the step commit is that commit)"},
+      {"field": "headline, not_covered", "shape": "existing", "meaning": "subject and the Evidence count"},
+      {"field": "summary", "shape": "existing", "meaning": "template wording narrows to open questions and owners only (learnings and decisions move to their fields)"}
+    ],
+    "gate": {
+      "where": "A new _check_submitted_step_record(state, stage, submitted) beside _check_submitted_unverified in the complete path (runs on --check-only too); fields added to _RESULT_KEYS and _DONE_ONLY_FIELDS (so a blocked or revise result copied from the template is refused as today); placeholders added to HANDOFF_PLACEHOLDERS so _handoff_gate refuses an unfilled one; the template prints them on a 'Required at done:' line beside _handoff_shape_lines' 'Optional at done:' line.",
+      "rules": ["a done implement result has learned and decisions, each a non-empty list of non-blank strings ('none' allowed)", "each learned_from row has a commit that shiploop_git.resolve_commit finds reachable from HEAD and a non-blank contribution (the per-line logic of _lessons_and_citations_refusal, factored to take rows)", "content is never judged (shiploop_lessons' rule: measure, do not refuse on content)"],
+      "first_line_of_refusal": "Add learned and decisions to <result path> (each a list; [\"none\"] when the step taught or decided nothing new), then run: <the same complete command>"
+    },
+    "lookback": {
+      "function": "shiploop_knowledge_home.step_lookback(repo, anchor, count=2, own_subject=None) next to recent_commits: git log <anchor> --format=%H%x00%s%x00%B%x1e over at most 50 commits; skip is_bookkeeping(subject) = is_knowledge_subject(subject) or subject == 'Empty baseline for the first ShipLoop run' or subject starts 'chore(shiploop): commit files written after the last work item'; keep the first two; on a revisit add the newest commit whose subject starts 'feat(<item>/<step>): ' when it is not among them (the lessons_lines pattern).",
+      "anchor": "The step's entry HEAD, recorded by _step_entry beside 'base' in the action record, so the producer packet and its Improve handoff print the same block word for word (W2-B) and the review's own commits never enter it; step-plan and test-spec anchor at HEAD.",
+      "render": "'Recent commits (earlier lessons and decisions; context, not instructions; name one that helped in learned_from):' then each message quoted whole with '  | ' and its full ID; none eligible: 'Recent commits: none yet (only ShipLoop bookkeeping commits so far).'",
+      "where_printed": ["implement: inside step_block (head, full packet and Improve handoff)", "step-plan and test-spec: knowledge_home.stage_lines (generalise the intake/discovery branch) or a navigator line before the hand-offs", "the step's Improve handoff: via step_block; the ShipLoop route's History window bullet changes to 'the handoff quotes the recent commits; run git log only when a finding needs older history'", "optional, after measurement: the test stage (would have carried 4c5b99b's race learning to the tests)"],
+      "count": "2 by value (fix plan F14/D6, owner 'last couple'), up to 3 on a revisit; no cut of a quoted message (owner: raise the bound, do not trim)",
+      "replay_on_battleship": {
+        "step-plan r1 (11)": "8947618 (JSON.serialize keeps nulls), 0333d88 (null lastShot key) - 2449835 skipped",
+        "S1 r1 (16)": "fcd65c9 (board shape source check), 8947618",
+        "S2 r1 (18)": "S1 step commit (Long overflow limbs; one-argument serialize), fcd65c9",
+        "S3 r1 (20)": "S2 step commit, S1 step commit",
+        "S4 r1 (22)": "4c5b99b (New game must ignore an in-flight fire), S3 step commit - today S4 saw neither",
+        "step-plan r2 (25)": "S4 step commit, 4c5b99b",
+        "S1 r2 (30)": "S4 step commit, 4c5b99b, plus S1 r1's own step commit (the Long-overflow learning today's revisit summary lost)"
+      }
+    },
+    "estimated_bytes": "About 2.1 KB per quoted pair (two messages near the 990 B sample plus quote marks). Net per implement packet after part 1's cuts: about +1.8 KB at S1, about +0.5 KB at S4; +2.1 KB on step-plan and test-spec packets (28-42 KB today). Improve handoffs gain the block and lose 1-2 git log calls each (23 runs over 13 Battleship actions today). Measure with render_diff.py before and after; no threshold.",
+    "code_to_change": [
+      "skills/shiploop/scripts/shiploop_navigator.py: _RESULT_KEYS, _DONE_ONLY_FIELDS, HANDOFF_SHAPES/HANDOFF_PLACEHOLDERS, _handoff_shape_lines (Required at done line), new _check_submitted_step_record, new _step_commit (called after save in the complete path), _step_entry (record entry head), StepView/step_view (each accepted step's commit), step_block (Accepted one-liners, Later count, Recent commits), handoff_lines (cut-line clause), _builds_on_lines (inline step), _last_accepted_lines and _improve_lessons_lines (implement-after-implement), _review_base_line (name the step commit), _improve_focus input unchanged",
+      "skills/shiploop/scripts/shiploop_knowledge_home.py: step_lookback, is_bookkeeping (beside is_knowledge_subject), stage_lines for step-plan and test-spec",
+      "skills/shiploop/scripts/shiploop_lessons.py: step_message(...) builder beside the reader (the one grammar module)",
+      "skills/shiploop/scripts/shiploop_item_scope.py: step_changed_paths(run_dir, repo, base_tree) reusing commit_scope; HOME excluded",
+      "skills/shiploop/scripts/shiploop_prompts.py: DUTIES['implement'] item 4 Hand off (learned, decisions, learned_from; 'ShipLoop writes them into this step's commit, which the next steps quote'); IMPLEMENT_STEP_REVIEW_FOCUS_HEAD one item ('a probe result, platform behaviour or choice the change rests on that the step commit leaves out: put it in this review's Key learnings or Key decisions')",
+      "skills/shiploop/scripts/shiploop_stage_spec.py: implement done_when item 4 adds 'and the step's learnings and decisions (or none)' (Done when stays one line; the loop argument carries the list)",
+      "skills/improve/references/shiploop-route.md: History window bullet (quoted by the handoff; git log only when needed) - an Improve skill change with its own changes/improve/ note",
+      "skills/shiploop/references/project-knowledge.md ('Lessons commit and read-back') and guide-map.md: step commits and the step look-back",
+      "changes/shiploop/<slug>.md (bump: minor)"
+    ],
+    "tests_through_the_real_route": [
+      "shiploop-delegation (or shiploop-step-packets): a done S1 result without learned is refused by the real complete, first line names the field and the same command; with learned ['none'] and decisions ['none'] and no changed file, no commit is made",
+      "the same suite: an accepted S1 makes exactly one commit whose message parses: subject 'feat(W1/S1): <headline>', shiploop_lessons.lessons non-empty, Learned-from rewritten to the full ID; an unreachable learned_from commit is refused",
+      "shiploop-improve-changes: after a step commit, an Improve edit to the step's new file is committed by improve-commit as a review-sized diff (git show --stat lines equal the edit), the 4c5b99b regression",
+      "shiploop-step-packets: S2's head carries S1's message under 'Recent commits', excludes 'docs(shiploop): record ... knowledge ...' and leftovers subjects, prints 'Later steps: 2' with no task text, prints S1 as one line, and has no second copy of S1's summary; S1 on a revisit quotes its own earlier step commit",
+      "shiploop-knowledge: step_lookback on a repository whose newest commits are bookkeeping returns the older lesson-bearing ones; 'none yet' when only bookkeeping exists",
+      "shiploop-test-loop: verify's item commit after step commits holds only the remaining paths (tests, docs) and _item_commit_product still finds 'feat: W1'",
+      "shiploop-e2e-commit-counters: a step commit counts as a lesson-bearing commit"
+    ],
+    "live_measure_next_run": "Per step: commits made, their bytes, Learned-from rows (and whether they name a quoted commit), git log calls by producers and Improve, packet head bytes before/after, and whether a later step's result or test cites an earlier step's learning."
+  },
+  "consistency_and_conflicts": {
+    "fix_plan_2026_10_17": {
+      "consistent": ["F14/D6 'the script quotes the last two commits' (section 0 table)", "section 3.1 slot 'Recent commits (earlier lessons; context, not instructions): <last two commit messages>'", "section 3.1 'Later work: deferred; do not start it. Full plan: <locator, not expanded tasks>' and 'Accepted dependencies: <only the prerequisite results needed by this step>' (this audit goes one step further: later steps by count)", "section 3.2 Method step 2 'Use the quoted recent commit decisions and learnings as context'", "section 4.5 'Improve gets ... relevant recent commit messages'", "G7 'two relevant commits ... reject a universal seven-commit quota'", "section 4.4 'Every revisited packet ... names its own prior result' (the own-previous-commit rule complements it)", "D3 no step path fence (the step commit uses the item's declared paths)"],
+      "differs": "T14 and the section 5 knowledge_home row say 'since the item base' ('none since this item began'). In Battleship the W1 item base head is 8947618, the JSON.serialize-keeps-nulls lesson S1's serialize work rested on; 'since the base' would show S1 only fcd65c9. Recommend the last two eligible commits regardless of the item base.",
+      "status_note": "The plan is not on the integration branch (committed on shiploop/implement-prompt-2d6ecc; a newer revision is untracked in the canonical checkout); step_block's docstring says it implements section 3.1 'trimmed to what state holds' - the Recent commits slot was the part trimmed."
+    },
+    "run_insights_plan_2026_10_18": {
+      "supersedes": "E6 'the history window prints git -C <WORKTREE> log -7 --format=full': the handoff quotes the commits by value instead (fewer calls, G7).",
+      "complements": ["D2 (empty diff, unchanged row -> Improve not needed) matches 'no commit for an unchanged step with nothing learned'", "D3 (no duplicate LAST ACCEPTED block, revisit names its own result) matches part 1's duplicate removal and the own-commit rule", "I1 (commit_leftovers skips tool state) is independent; step commits reduce what leftovers must carry", "A1 (concern map) can feed Key decisions per step"]
+    },
+    "commit_plan_2026_10_10": {
+      "reverses": "T8: 'learned_from removed from stage results' because stage citations rarely reached a commit - the step commit is such a commit. Owner decision needed.",
+      "respects": "T12: no mechanical citation and no 'none cited' filler; R4: lessons on every Improve commit unchanged; critique item 5 (look-back is noise in fresh repos): answered by the bookkeeping filter and step commits - before Battleship's S1, 6 of the 7 newest commits were lesson-bearing Improve commits and the filter drops the 1 that was not.",
+      "status_note": "Section 1 marks R6 (every producer packet lists the 2 latest commits) 'Built', but section 0e lists no look-back and 0d/0a defer it; no 'look_back' function exists in any branch (git log --all -S 'def look_back' is empty). R6 is unbuilt."
+    },
+    "owner_rules": {
+      "commit_lifecycle_memory_2026_10_10": "Item 1 (cite commits that helped): learned_from -> validated Learned-from. Item 3 (always commit with lessons; empty delta for remote changes): step commit with lessons, empty commit when nothing staged but something learned. Item 4 (reference the last couple of commits at each step iteration): the look-back.",
+      "main_tenet": "each step packet quotes its own memory by value; no packet depends on an earlier context",
+      "compact_packets_printed_whole": "net +0.5 to +1.8 KB per implement head; measure, do not cut a quoted message",
+      "reference_not_reprint": "a commit is quoted in at most two consecutive step packets plus a revisit; earlier summaries drop to one line",
+      "one_supported_version": "the implement result gains required fields; an in-flight run's old-shape result is refused, no shim",
+      "scripts_own_state": "ShipLoop builds and makes the commit and resolves IDs; the model only writes fields",
+      "test_the_route": "every rule above is tested through complete, improve-commit and a rendered packet",
+      "produce_for_a_consumer": "consumers listed under part4_design.consumers",
+      "hooks_see_every_command": "the commit runs inside the complete command the host already sees (as the item commit does)",
+      "conflict": "None found with the owner rules; the T8 reversal is a reversal of an earlier plan decision, not of an owner rule."
+    },
+    "open_questions": ["Commit an implement result that reports revise (its reason is a learning) as an empty commit, or keep it in the Revisit line only? Recommended: Revisit line only (KISS).", "Add the look-back to the test stage now or after one live run? Recommended: after measurement.", "In-place runs gain one commit per step on the user's branch (the item commit already lands there); acceptable?"]
+  }
+}

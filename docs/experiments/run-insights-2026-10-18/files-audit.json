@@ -1,0 +1,2317 @@
+{
+ "scope": "Files and folders ShipLoop creates (not the harness, not the product). Primary: Battleship /Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5 (current integration build); second sample: chess /Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c (older build). Model access from SP/report-*/in/*.actions.md CALL lines (read_file, grep, list_dir, write, search_replace, run_terminal_command); packet references from SP/report-*/in/*.packet.md and *.improve-handoff.md. Tools: SP/insights2/files-work/{inv.py,kinds.py,dups.py,build_audit.py}.",
+ "headline": {
+  "files_bs": 667,
+  "bytes_bs": 5126223,
+  "files_chess": 434,
+  "bytes_chess": 5239862,
+  "locations": 8,
+  "never_opened_by_model_or_script": [
+   "status.md",
+   "context-index.md",
+   "quality/code-craft.md",
+   "CHILD/opening.md (only its writer reads it)",
+   "passes.md (analysis tool only)",
+   "RUN/improve/<a>/terminal.json and evidence/ (plan reconciliation only)",
+   "superseded lint records"
+  ],
+  "paths_in_packets": "median 43 distinct file paths per producer packet (BS; chess 37), 73 path mentions; 384 distinct paths across the BS run; paths are 15% of BS packet bytes",
+  "referenced_vs_opened": "282 existing files referenced by BS packets and handoffs, 101 of them opened by the model; it also opened 73 files no prompt named (mostly ShipLoop scripts)"
+ },
+ "inventory": [
+  {
+   "location": "RUN = <workspace root>/run (run records)",
+   "bs": {
+    "files": 444,
+    "bytes": 3556076,
+    "dirs": 16
+   },
+   "chess": {
+    "files": 295,
+    "bytes": 3881672
+   },
+   "largest": "packets/ 52 files 1.06 MB; state.md 434 KB; lint/ 35 files 397 KB; tests/ 32 files 245 KB; loops/ 34 files 232 KB; improve/ 108 files 356 KB; inbox/ 38 files 172 KB; results/ 35 files 147 KB; scratch/ 49 files 120 KB; progress.html 115 KB; report.html 114 KB",
+   "source": "python3 SP/insights2/files-work/inv.py <RUN> 2 (per-subdirectory counts); kinds.py (per kind)"
+  },
+  {
+   "location": "workspace root (beside run/)",
+   "files": [
+    "workspace.md",
+    "return-plan.md",
+    "return-receipt.md",
+    ".workspace.lock"
+   ],
+   "bs": {
+    "files": 4,
+    "bytes": 282954
+   },
+   "chess": {
+    "files": 4,
+    "bytes": 121794
+   }
+  },
+  {
+   "location": "workspace root consumer-check/ (copy of the returned tree)",
+   "bs": {
+    "files": 18,
+    "bytes": 106331
+   },
+   "chess": {
+    "files": 0,
+    "bytes": 0,
+    "note": "no release-verify consumer checks ran"
+   },
+   "measured": "17 of 18 files byte-identical to the worktree (74,799 bytes)"
+  },
+  {
+   "location": "WORKTREE/.shiploop-improve/ (Improve child dirs, untracked in the product checkout)",
+   "bs": {
+    "files": 195,
+    "bytes": 1112940,
+    "child_dirs": 18,
+    "experiments": 3
+   },
+   "chess": {
+    "files": 129,
+    "bytes": 1177545,
+    "child_dirs": 11
+   },
+   "note": "untracked; every row is fingerprinted in workspace.md, return-plan.md (twice) and return-receipt.md (and its nested previous receipts)"
+  },
+  {
+   "location": "WORKTREE committed knowledge (docs/shiploop/spec.md, architecture.md, environment.md; SHIPLOOP.md)",
+   "bs": {
+    "files": 4,
+    "bytes": 67771
+   },
+   "chess": {
+    "files": 4,
+    "bytes": 58700
+   },
+   "note": "intentional cross-run knowledge; committed by ShipLoop (15 docs(shiploop) and 2 chore(shiploop) commits in the Battleship branch)"
+  },
+  {
+   "location": "WORKTREE/.sf/orgs/<org>/localSourceTracking (sf CLI tool state)",
+   "bs": {
+    "files": 2,
+    "bytes": 151
+   },
+   "chess": {
+    "files": 2,
+    "bytes": 151
+   },
+   "note": "not written by ShipLoop but committed by it: commit c5f3834 'chore(shiploop): commit files written after the last work item' (commit_leftovers); plan unit I1"
+  },
+  {
+   "location": "user checkout work/ (the source repository)",
+   "bs": {
+    "files_written_by_return": 18,
+    "bytes": 109470,
+    "return_kind": "working-tree-return x3 (receipt nests 2 previous)"
+   },
+   "chess": {
+    "files_written_by_return": 21,
+    "bytes": 102589,
+    "return_kind": "working-tree-return x1"
+   },
+   "note": "intended delivery (product + knowledge), left uncommitted; .sf/ there was restored by hand at 00:20 (harness L1), not by ShipLoop"
+  },
+  {
+   "location": "HOME ~/.local/state/shiploop/keepalive (hook state) and ~/.grok/hooks/shiploop-keepalive.json",
+   "bs": {
+    "files": 10,
+    "bytes": 1749
+   },
+   "chess": {
+    "files": 13,
+    "bytes": 4571
+   },
+   "writer": "skills/shiploop/scripts/shiploop_keepalive.py home() and the hook installer",
+   "verdict": "keep (hooks are its consumer)"
+  },
+  {
+   "location": "system temp $TMPDIR/innerloop-*.json (Until Loop state of inner stages)",
+   "bs": {
+    "created": 17,
+    "left_after_run": 0
+   },
+   "chess": {
+    "created": 10,
+    "left_after_run": 0
+   },
+   "machine_wide": {
+    "files": 4907,
+    "bytes": 65617964,
+    "dates": "2026-10-06..2026-10-17",
+    "note": "left by tests and by loops that never reached terminal; not attributable to these two runs"
+   },
+   "writer": "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py (tempfile.mkstemp with dir=None) started by skills/shiploop/scripts/shiploop_loops.py start_command, which passes no --directory (the Improve child passes RUN/until-loop in shiploop_navigator._start_improve); plan unit K3"
+  },
+  {
+   "location": "RUN/until-loop/ (Improve child Until Loop state)",
+   "bs": {
+    "files": 0,
+    "note": "empty dir at end; state deleted at terminal"
+   }
+  },
+  {
+   "totals": {
+    "bs": {
+     "files": 667,
+     "bytes": 5126223,
+     "excluding": "product files, user checkout, home, temp"
+    },
+    "chess": {
+     "files": 434,
+     "bytes": 5239862
+    }
+   },
+   "share": "Improve family (WORKTREE/.shiploop-improve + RUN/improve + state.improve_results): BS 303 of 667 files (45%), about 1.47 MB of files plus 212 KB inside state.md"
+  }
+ ],
+ "kinds": [
+  {
+   "kind": "RUN/state.md",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.py save (store.transaction, every transition: revision 51 BS, 37 chess)",
+   "consumers": {
+    "scripts": "every command (store.read_record)",
+    "packets": "33/33 producer packets ('State: RUN/state.md'), 84 mentions",
+    "model": "BS 2 reads + 4 greps (step-plan, carry-forward, its Improve, release-plan); chess 0"
+   },
+   "opened_by_model": {
+    "bs": {
+     "grep": 4,
+     "read": 2
+    },
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 434252
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 518894
+    }
+   },
+   "verdict": "keep (authority) and slim",
+   "proposal": "Keep as the one authority. Drop the copies inside improve_results (212 KB = 55% of the 434 KB file): seed_result 85 KB, submission 43 KB and receipt 39 KB each carry the final result already in accepted[]; keep {receipt path, sha256, lessons, outcome}. Code: shiploop_navigator import (dispatch, the improve_results record) and the readers of improve_results (planning_revision.validate_archives, context index, report). Risk: medium (state schema; one supported version, so fresh runs only).",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 84
+   },
+   "recovery": "critical: the only authority; every recovery reads it",
+   "measured": "fence 386,833 bytes: improve_results 211,785; accepted 129,451; history 35,695; prompt 5,612"
+  },
+  {
+   "kind": "RUN/status.md",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.py save: writes['status.md'] = status_block(state)",
+   "consumers": {
+    "scripts": "none (shiploop_status_hook parses command stdout; `shiploop status` renders from state.md)",
+    "tests": "a navigator contract test pins it equal to status_block (test/shiploop_e2e/LEARNINGS.md, 'Not built, and why' (2))",
+    "packets": "0",
+    "model": "0 in both runs"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 477
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 922
+    }
+   },
+   "verdict": "drop",
+   "proposal": "Delete the write in save and the rows in context_index.MAP_ROWS, references/state-files.md and status-display.md (item 2). `shiploop status` already prints the same block. Risk: none.",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "RUN/context-index.md",
+   "writer": "skills/shiploop/scripts/shiploop_context_index.py render, from shiploop_navigator.save on every save and emit when missing",
+   "consumers": {
+    "scripts": "none read it (a test checks MAP_ROWS covers a populated run)",
+    "packets": "33/33 producer packets + 18/18 handoffs ('Run records: RUN/context-index.md')",
+    "model": "0 opens in both runs (and 0 in the earlier chess run: test/shiploop_e2e/LEARNINGS.md 'the model read the run's reference.md and context-index.md 0 times')"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 60314
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 49880
+    }
+   },
+   "verdict": "drop",
+   "proposal": "Stop writing it. Its map (MAP_ROWS) is static: move it into references/state-files.md, which is already the run-file catalog. Its record part repeats state.md (request verbatim = request.md; result summaries = history; plan assumptions = results/), and every packet already prints 'Results this stage builds on', the pass log, loop receipt and Improve receipt lines that its 'In progress' section repeats. Code: shiploop_navigator.save and emit, shiploop_context_index (keep stages_named/STAGE_READS, which feed _builds_on_lines), the References line in packets and handoffs. Conflict: owner decision 2026-10-16 that created it; measured consumer: none.",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 33
+   },
+   "recovery": "not needed: `next` reprints the packet with every pointer the index held",
+   "measured": "60,314 bytes BS, rewritten at each of 51 saves"
+  },
+  {
+   "kind": "RUN/reference.md",
+   "writer": "skills/shiploop/scripts/shiploop_reference.py render (save; emit rewrites it when missing or from another version)",
+   "consumers": {
+    "scripts": "none",
+    "packets": "33/33 producer packets, 132 mentions (reference#rules, #policies, #recovery ...); 18/18 handoffs",
+    "model": "BS 0; chess 2 reads + 4 greps (intake, release-verify)"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {
+     "grep": 4,
+     "read": 2
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 19291
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 19373
+    }
+   },
+   "verdict": "move to GUIDES (static)",
+   "proposal": "Diff chess vs Battleship copy = 21 lines, all of them absolute paths (PKG references and RUN locators); the rest is static text. Publish it as references/run-reference.md written with the RUN/GUIDES/WORKTREE symbols every packet defines, cite GUIDES/run-reference.md#<anchor>, and drop the per-run render and the stale-version rewrite in emit. Risk: low.",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 132
+   }
+  },
+  {
+   "kind": "RUN/request.md",
+   "writer": "skills/shiploop/scripts/shiploop_request.py render (every save)",
+   "consumers": {
+    "scripts": "intake complete prints the uncited-sentence notice",
+    "packets": "31 producer packets ('Original request: RUN/request.md')",
+    "model": "BS 2 reads, chess 1 (product-acceptance)"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 2
+    },
+    "chess": {
+     "read": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 11705
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 9781
+    }
+   },
+   "verdict": "keep",
+   "proposal": "The one readable copy of the request with S1..Sn. Remove the other copy (context-index ## Request) with the index.",
+   "packet_refs_bs": {
+    "packets": 31,
+    "of": 51,
+    "mentions": 32
+   }
+  },
+  {
+   "kind": "RUN/run-baseline.txt",
+   "writer": "skills/shiploop/scripts/shiploop_knowledge_home.py (RUN_BASELINE)",
+   "consumers": {
+    "scripts": "knowledge_home spec diffs",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 41
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 41
+    }
+   },
+   "verdict": "keep",
+   "proposal": "41 bytes; in-place runs have no workspace.md, so it is the one baseline record.",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "RUN/timeline.json",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.py save -> _updated_timeline",
+   "consumers": {
+    "scripts": "navigator.narrative_facts (pace line), shiploop_progress_data._decode_timeline (progress.html)",
+    "harness": "test/shiploop_e2e/metrics.py",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 2440
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 1896
+    }
+   },
+   "verdict": "keep",
+   "proposal": "2.4 KB; three consumers. (Could become history[*].accepted_at in state.md; no value in moving it.)",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "RUN/progress.html + progress-observer.json + .progress.lock",
+   "writer": "skills/shiploop/scripts/shiploop_progress.py (observer process)",
+   "consumers": {
+    "user": "browser view",
+    "packets": "33/33 'Progress view: [HTML file]' line",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 115227
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 103960
+    }
+   },
+   "verdict": "keep",
+   "proposal": "User-facing; the model never opens it. 115 KB BS.",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 33
+   }
+  },
+  {
+   "kind": "RUN/report.html",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.py save -> _render_report (done or halted)",
+   "consumers": {
+    "user": "final report",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 113765
+    },
+    "chess": {
+     "files": 0,
+     "bytes": 0
+    }
+   },
+   "verdict": "keep",
+   "proposal": "Chess has none (the run did not finish).",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "RUN/skill-calls.jsonl",
+   "writer": "skills/shiploop/scripts/shiploop_skill_calls.py (Skill-tool hook)",
+   "consumers": {
+    "scripts": "shiploop_navigator._skill_call_record (Improve gate)",
+    "harness": "metrics.py",
+    "model": "chess 1 read"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {
+     "read": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 214
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 213
+    }
+   },
+   "verdict": "keep",
+   "proposal": "",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "RUN/callback-attempts, .lock, inbox/.keep",
+   "writer": "skills/shiploop/scripts/shiploop_protocol.CALLBACK_ATTEMPTS; core run_lock; save provisions inbox/.keep",
+   "consumers": {
+    "scripts": "protocol counter and lock"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 3
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 3
+    }
+   },
+   "verdict": "keep",
+   "proposal": ""
+  },
+  {
+   "kind": "RUN/packets/<action>.md",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.py emit (packet_path), rewritten on every `next`",
+   "consumers": {
+    "model": "only when a print is cut: BS 6 reads + 5 greps in 5 steps (plan, implement, verify, product-acceptance, release-verify); chess 6+8",
+    "harness": "test/shiploop_e2e/packets.py, docs/experiments/run-analysis-2026-10-18/tools/run_steps.py",
+    "packets": "33/33 ('Full packet: <path>')"
+   },
+   "opened_by_model": {
+    "bs": {
+     "grep": 5,
+     "read": 6
+    },
+    "chess": {
+     "grep": 10,
+     "read": 10
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 52,
+     "bytes": 1063294
+    },
+    "chess": {
+     "files": 37,
+     "bytes": 1720691
+    }
+   },
+   "verdict": "keep, and make it equal the print",
+   "proposal": "31 of 52 BS packets passed PRINT_LIMIT (16,000) and printed only a head; 25 passed 20 KB; at least 382,934 bytes existed only in the files and the model opened a packet file in 5 steps. Text that reaches only the file has no observed consumer: with 'compact packets printed whole' the file becomes a byte copy of the print (recovery copy), not a second, longer packet. Code: shiploop_navigator.emit/printed_text (PRINT_LIMIT, HEAD_LIMIT).",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 50
+   },
+   "recovery": "critical: `next` rewrites it from state; it is what a cut print points to",
+   "measured": "BS 1,063,294 bytes; chess 1,720,691 (older build)"
+  },
+  {
+   "kind": "RUN/inbox/<action>.md (result draft)",
+   "writer": "the model (BS 22 writes + 5 edits; chess 19 + 22)",
+   "consumers": {
+    "scripts": "complete (_submitted_result), replay comparison; the Improve contract's candidate_paths[0] (the runtime measures it for 'unchanged')",
+    "handoffs": "18/18 quote it under '# Step result awaiting Improve'",
+    "model": "BS 4 reads + 2 greps; chess 3 + 1"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 22,
+     "edit": 5,
+     "read": 4,
+     "grep": 2,
+     "term-other": 1,
+     "callback-arg": 1
+    },
+    "chess": {
+     "write": 19,
+     "edit": 22,
+     "read": 3,
+     "term-other": 2,
+     "grep": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 33,
+     "bytes": 134824
+    },
+    "chess": {
+     "files": 25,
+     "bytes": 149972
+    }
+   },
+   "verdict": "keep",
+   "proposal": "Mailbox with two live consumers (complete, the Improve runtime). Known near-duplicate of results/<action>.md (similarity 0.86-0.98 on all 33 pairs). Optional later: remove it when the action's Improve is imported. Not worth a rule change now.",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 37
+   }
+  },
+  {
+   "kind": "RUN/inbox/<action>-final-result.md",
+   "writer": "the model, for an Improve stage that changed the result (write, cp, or edit)",
+   "consumers": {
+    "scripts": "complete --final-result",
+    "handoffs": "18/18 (36 mentions)",
+    "model": "BS 2 reads + 2 greps"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 1,
+     "callback-arg": 5,
+     "edit": 1,
+     "read": 2,
+     "grep": 2,
+     "term-other": 1
+    },
+    "chess": {
+     "write": 2,
+     "callback-arg": 5,
+     "term-other": 2,
+     "read": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 4,
+     "bytes": 37034
+    },
+    "chess": {
+     "files": 5,
+     "bytes": 69228
+    }
+   },
+   "verdict": "keep",
+   "proposal": "One per changed review (BS 4, chess 5). nav-03cb... is byte-identical to its inbox draft (the model ran `cp`).",
+   "packet_refs_bs": {
+    "packets": 1,
+    "of": 51,
+    "mentions": 1
+   }
+  },
+  {
+   "kind": "RUN/inbox/<action>-improve-notes.md (--notes lessons)",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.improve_notes_path; written by the model",
+   "consumers": {
+    "scripts": "complete --notes -> receipt lessons",
+    "handoffs": "18/18 name --notes (36 mentions)",
+    "model": "BS 0 files; chess 3 (+1 misnamed nav-X-notes.md)"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": null,
+    "chess": null
+   },
+   "verdict": "merge",
+   "proposal": "Lessons already have a home: the improve-commit message 'Key learnings:' line (required by parent-return.md). Take lessons from the final review-<n>.md (a 'lessons:' front-matter field ShipLoop already parses in _review_form) and drop --notes and the file. Risk: low.",
+   "measured": "BS 0 files; chess 3 files (637 bytes) plus one misnamed nav-X-notes.md (140 bytes)"
+  },
+  {
+   "kind": "RUN/results/<action>.md",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.py save -> _new_result_records",
+   "consumers": {
+    "scripts": "planning_context.collect (planning-return equality)",
+    "packets": "32 producer packets, 209 mentions ('Results this stage builds on')",
+    "handoffs": "118 mentions",
+    "model": "BS 14 reads + 10 greps; chess 10 + 11"
+   },
+   "opened_by_model": {
+    "bs": {
+     "callback-arg": 1,
+     "grep": 10,
+     "read": 14
+    },
+    "chess": {
+     "grep": 11,
+     "read": 10
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 35,
+     "bytes": 146743
+    },
+    "chess": {
+     "files": 27,
+     "bytes": 163666
+    }
+   },
+   "verdict": "keep",
+   "proposal": "The one model-readable accepted copy; heavily used.",
+   "packet_refs_bs": {
+    "packets": 32,
+    "of": 51,
+    "mentions": 209
+   }
+  },
+  {
+   "kind": "RUN/notes/<name>.md (stage notes)",
+   "writer": "the model (intake, discovery, research, current-system-baseline, environment-lifecycle, plan-dependency-audit, system-test-catalog; <action>-skill-trial/-release/-release-check)",
+   "consumers": {
+    "packets": "8 packets name a specific note (33 mentions)",
+    "results": "27 of 168 evidence_refs (BS), 31 of 147 (chess)",
+    "model": "BS 6 reads + 3 greps; chess 7 + 1"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 7,
+     "read": 6,
+     "edit": 3,
+     "grep": 3
+    },
+    "chess": {
+     "write": 8,
+     "edit": 5,
+     "read": 7,
+     "grep": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 7,
+     "bytes": 20568
+    },
+    "chess": {
+     "files": 8,
+     "bytes": 26488
+    }
+   },
+   "verdict": "keep",
+   "proposal": "Durable evidence later stages cite.",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 107
+   }
+  },
+  {
+   "kind": "RUN/notes/<action>.md (pass log)",
+   "writer": "the model (BS 18 files, 13 of them inner stages; chess 11)",
+   "consumers": {
+    "packets": "33/33 ('This action's pass log (optional ...)'); implement Goal line: 'exit codes go to RUN/notes/<action>.md'",
+    "scripts": "none (deliberately: shiploop_context_index.PASS_LOG_RULE)",
+    "model": "BS 5 reads, chess 6, each inside the stage that wrote it"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 5,
+     "write": 13,
+     "edit": 5
+    },
+    "chess": {
+     "read": 6,
+     "term-read": 1,
+     "write": 5,
+     "edit": 6,
+     "term-other": 2
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 17459
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 24559
+    }
+   },
+   "verdict": "keep for stages without a loop; drop for inner stages",
+   "proposal": "Inner stages already keep pass state in the Until Loop receipt (last_report.evidence) and exit codes in tests/ records: drop the pass-log line and the Goal wording for stages whose complete_runs has 'loop-terminal' (shiploop_stage_spec), keep it for prelude and outer stages. Risk: low.",
+   "packet_refs_bs": {
+    "packets": 4,
+    "of": 51,
+    "mentions": 4
+   }
+  },
+  {
+   "kind": "RUN/scratch/",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.emit (scratch_dir mkdir); files by the model (BS 26 writes, 8 edits, 11 redirects; chess 6 writes, 10 redirects)",
+   "consumers": {
+    "packets": "33/33 RULES 'Temporary files go in RUN/scratch, never /tmp' + State line; 217 mentions in 33 packets because results cite scratch files",
+    "results": "42 of 168 evidence_refs (BS) point into scratch, the largest single evidence location; 23 of 147 (chess)",
+    "model": "BS 16 reads"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 26,
+     "read": 16,
+     "edit": 8,
+     "term-other": 34,
+     "grep": 5,
+     "term-read": 4
+    },
+    "chess": {
+     "write": 6,
+     "term-other": 15,
+     "read": 13,
+     "callback-arg": 1,
+     "term-read": 3,
+     "grep": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 49,
+     "bytes": 120083
+    },
+    "chess": {
+     "files": 41,
+     "bytes": 150959
+    }
+   },
+   "verdict": "keep, but separate disposable from cited",
+   "proposal": "Scratch is used as the evidence store the rules call temporary. Say it once in RULES: 'temporary files go in RUN/scratch; a file you cite in evidence_refs goes in RUN/notes' and have complete print a notice for an evidence_ref under scratch/ (test the route). Also hosts the model's loop done reports (s1-done-1.json ...) and copies of runtime output (improve-next.json 16 KB): transient, correct place.",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 217
+   }
+  },
+  {
+   "kind": "RUN/tests/ (base, verify, red-check, mutation, check-only, step-proof)",
+   "writer": "skills/shiploop/scripts/shiploop_test_loop.py (verify/base/red-check/check-only record paths) and the step-proof writer",
+   "consumers": {
+    "scripts": "complete reuses a passed check-only or step-proof record on an unchanged tree; Gates lines",
+    "packets": "7 packets (15 mentions)",
+    "model": "BS check-only 3 reads + 3 greps, verify 1 read; step-proof 0"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 1
+    },
+    "chess": {
+     "grep": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 9,
+     "bytes": 110178
+    },
+    "chess": {
+     "files": 6,
+     "bytes": 157939
+    }
+   },
+   "verdict": "keep",
+   "proposal": "Evidence with a script consumer. BS: 16 step-proof (38 KB), 7 check-only (97 KB), 9 others (110 KB).",
+   "packet_refs_bs": {
+    "packets": 7,
+    "of": 51,
+    "mentions": 15
+   }
+  },
+  {
+   "kind": "RUN/lint/",
+   "writer": "skills/shiploop/scripts/shiploop_lint.py record_writes (lint_pass: <a>.md entry, <a>.<N>.md reruns, <a>.gate<N>.md per complete, <a>-inventory.md)",
+   "consumers": {
+    "scripts": "shiploop_lint.render_lines reads only the latest record per action; `lint --show`",
+    "packets": "5 (19 mentions)",
+    "model": "BS 1 read (verify); chess 1 read + 1 grep"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 1
+    },
+    "chess": {
+     "read": 1,
+     "grep": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 35,
+     "bytes": 397367
+    },
+    "chess": {
+     "files": 13,
+     "bytes": 171789
+    }
+   },
+   "verdict": "keep latest only",
+   "proposal": "35 records, 397 KB; records of one action are 99.7% similar; 12 superseded records (136,201 bytes) have no reader. Replace the record in place (one per action and kind). Risk: low (`--show --gate=N` history goes).",
+   "packet_refs_bs": {
+    "packets": 5,
+    "of": 51,
+    "mentions": 19
+   }
+  },
+  {
+   "kind": "RUN/loops/<action>-contract.json",
+   "writer": "skills/shiploop/scripts/shiploop_loops.py contract_writes (on entry; emit rewrites when missing)",
+   "consumers": {
+    "scripts": "the printed Until Loop start reads it on stdin (17 starts BS); check_terminal rebuilds the contract from state, not the file",
+    "packets": "17 packets (31 mentions)",
+    "model": "BS 2 greps"
+   },
+   "opened_by_model": {
+    "bs": {
+     "term-other": 17,
+     "grep": 2
+    },
+    "chess": {
+     "term-other": 7,
+     "read": 1,
+     "grep": 2
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 17,
+     "bytes": 89617
+    },
+    "chess": {
+     "files": 10,
+     "bytes": 48469
+    }
+   },
+   "verdict": "keep",
+   "proposal": "Transport for the start command.",
+   "packet_refs_bs": {
+    "packets": 17,
+    "of": 51,
+    "mentions": 31
+   }
+  },
+  {
+   "kind": "RUN/loops/<action>-terminal.json",
+   "writer": "until_loop_ephemeral.py _write_receipt (every packet, the terminal one last)",
+   "consumers": {
+    "scripts": "complete's loop gate",
+    "results": "17 evidence_refs",
+    "model": "BS 5 reads + 2 greps; chess 1"
+   },
+   "opened_by_model": {
+    "bs": {
+     "term-other": 17,
+     "read": 5,
+     "grep": 2
+    },
+    "chess": {
+     "term-other": 10,
+     "read": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 17,
+     "bytes": 142505
+    },
+    "chess": {
+     "files": 10,
+     "bytes": 75963
+    }
+   },
+   "verdict": "keep",
+   "proposal": "",
+   "packet_refs_bs": {
+    "packets": 18,
+    "of": 51,
+    "mentions": 67
+   },
+   "recovery": "critical: holds next_argv and the last report of an interrupted inner loop"
+  },
+  {
+   "kind": "system temp innerloop-*.json (inner loop state)",
+   "writer": "until_loop_ephemeral.py start (mkstemp in $TMPDIR) via skills/shiploop/scripts/shiploop_loops.py start_command",
+   "consumers": {
+    "scripts": "the Until Loop runtime (next/done)",
+    "model": "23 terminal commands BS name it"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": null,
+    "chess": null
+   },
+   "verdict": "move into RUN/until-loop",
+   "proposal": "Add --directory RUN/until-loop to shiploop_loops.start_command (as _start_improve already does). Then an interrupted loop's state stays with its run and is removed with it; the machine-wide leak (4,907 files, 65.6 MB) stops growing from runs. Plan unit K3.",
+   "recovery": "needed while a loop is active (next_argv points to it)"
+  },
+  {
+   "kind": "RUN/improve/<action>-bind.md",
+   "writer": "skills/shiploop/scripts/shiploop_improve_changes.py bind_writes",
+   "consumers": {
+    "scripts": "improve_changes.review_changes, _improve_pass (checks.md tree line)",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 4482
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 2860
+    }
+   },
+   "verdict": "merge into state",
+   "proposal": "249 bytes x 18: {prefix, toplevel, tree}. Store it in state.active_improve (bind_tree). Risk: low.",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "RUN/improve/<action>/receipt.md",
+   "writer": "skills/shiploop/scripts/shiploop_standalone_improve.py _complete_ephemeral / _settle_incomplete_ephemeral (archive)",
+   "consumers": {
+    "scripts": "shiploop_planning_revision (reconciliation path only)",
+    "packets": "18 ('Prior Improve evidence and lessons')",
+    "harness": "test/shiploop_e2e/fidelity.py",
+    "model": "0 in both runs"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 89550
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 108185
+    }
+   },
+   "verdict": "keep one copy",
+   "proposal": "77,912 of its 80,882 fence bytes equal fields of state.improve_results[action]. Keep the receipt file as the record and slim state (see state.md).",
+   "packet_refs_bs": {
+    "packets": 18,
+    "of": 51,
+    "mentions": 32
+   }
+  },
+  {
+   "kind": "RUN/improve/<action>/terminal.json",
+   "writer": "skills/shiploop/scripts/shiploop_standalone_improve.py import archive",
+   "consumers": {
+    "scripts": "shiploop_planning_revision (plan reconciliation only)",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 211427
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 133209
+    }
+   },
+   "verdict": "drop (no copy)",
+   "proposal": "18 of 18 byte-identical to WORKTREE/.shiploop-improve/<child>/packet.json (211,427 bytes). Disappears when the child lives in RUN/improve/<action>/."
+  },
+  {
+   "kind": "RUN/improve/<action>/evidence/*",
+   "writer": "skills/shiploop/scripts/shiploop_standalone_improve._evidence_archives",
+   "consumers": {
+    "scripts": "shiploop_planning_revision (plan reconciliation only)",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 36,
+     "bytes": 43815
+    },
+    "chess": {
+     "files": 22,
+     "bytes": 29630
+    }
+   },
+   "verdict": "drop (no copy)",
+   "proposal": "36 of 36 byte-identical to the child's reviews/review-<n>.md and checks.md (43,815 bytes)."
+  },
+  {
+   "kind": "RUN/improve/<action>/passes.md",
+   "writer": "skills/shiploop/scripts/shiploop_navigator._passes_text (written at import in dispatch)",
+   "consumers": {
+    "scripts": "none",
+    "harness": "docs/experiments/run-analysis-2026-10-18/tools/run_steps.py",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 6530
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 4206
+    }
+   },
+   "verdict": "drop from the run",
+   "proposal": "A research ledger ('Re-decide the Improve stop rule (IMP-4)'): the Run Review exporter can derive it from pass-<n>.json. Risk: none."
+  },
+  {
+   "kind": "RUN/expectations/",
+   "writer": "skills/shiploop/scripts/shiploop_expectations.py run (<action>.md + <action>-entry-<id>.txt per check)",
+   "consumers": {
+    "scripts": "the test stage base run (preparatory commit), check_preparatory_changes",
+    "packets": "8",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 14110
+    },
+    "chess": {
+     "files": 12,
+     "bytes": 13304
+    }
+   },
+   "verdict": "keep",
+   "proposal": "14 KB.",
+   "packet_refs_bs": {
+    "packets": 8,
+    "of": 51,
+    "mentions": 10
+   }
+  },
+  {
+   "kind": "RUN/quality/code-craft.md",
+   "writer": "skills/shiploop/scripts/shiploop_quality.py rubric_writes (constant guidance.CODE_CRAFT, at verify entry)",
+   "consumers": {
+    "scripts": "only named as a resource locator in the verify loop contract (shiploop_loops, RUBRIC_PATH)",
+    "packets": "0",
+    "model": "0 in both runs",
+    "handoffs": "the same constant is printed inline in 9 handoffs (33,318 bytes, similarity 0.998)"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 3688
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 3688
+    }
+   },
+   "verdict": "move to GUIDES (static)",
+   "proposal": "A per-run copy of a constant. Point the locator at a static references/code-craft.md (or print it in the verify packet). Risk: none.",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "RUN/backchain/<action>/",
+   "writer": "skills/shiploop/scripts/shiploop_backchain_graph.py _record_dir (backchain-check)",
+   "consumers": {
+    "scripts": "plan gate",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 2,
+     "bytes": 9091
+    },
+    "chess": {
+     "files": 0,
+     "bytes": 0
+    }
+   },
+   "verdict": "keep",
+   "proposal": "scratch/plan-candidate.json (the model's input) is byte-identical to the candidate it records; fine.",
+   "packet_refs_bs": {
+    "packets": 1,
+    "of": 51,
+    "mentions": 1
+   }
+  },
+  {
+   "kind": "RUN/decisions/<action>.md",
+   "writer": "`resume --answer/--observed`",
+   "consumers": {
+    "model": "chess 1 read"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {
+     "read": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 0,
+     "bytes": 0
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 2343
+    }
+   },
+   "verdict": "keep",
+   "proposal": ""
+  },
+  {
+   "kind": "workspace.md",
+   "writer": "skills/shiploop/scripts/shiploop_workspace.py (workspace start, candidate refresh)",
+   "consumers": {
+    "scripts": "navigator return-route lines, lint exclusions, item scope",
+    "packets": "5 (15 mentions)",
+    "harness": "fidelity.py WORKSPACE_FILES",
+    "model": "BS 1 read; chess 3 + 1"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 1
+    },
+    "chess": {
+     "read": 3,
+     "grep": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 41760
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 28672
+    }
+   },
+   "verdict": "keep, drop tool-state rows",
+   "proposal": "34 KB fence, 33 KB of it the candidate fingerprint; 31.6 KB = 195 untracked .shiploop-improve rows. Moving the child out of the worktree removes them.",
+   "packet_refs_bs": {
+    "packets": 5,
+    "of": 51,
+    "mentions": 15
+   },
+   "recovery": "critical for the return"
+  },
+  {
+   "kind": "return-plan.md",
+   "writer": "skills/shiploop/scripts/shiploop_workspace.py (plan-return; review-return records dispositions)",
+   "consumers": {
+    "scripts": "execute_return",
+    "packets": "4",
+    "model": "BS 0; chess 1"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {
+     "read": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 83831
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 58113
+    }
+   },
+   "verdict": "keep, drop tool-state rows",
+   "proposal": "215 path rows: 197 exclude (195 .shiploop-improve) and 18 keep; the same 195 rows again in candidate_fingerprint.",
+   "packet_refs_bs": {
+    "packets": 4,
+    "of": 51,
+    "mentions": 5
+   },
+   "recovery": "critical for the return"
+  },
+  {
+   "kind": "return-receipt.md",
+   "writer": "skills/shiploop/scripts/shiploop_workspace.py execute_return.record",
+   "consumers": {
+    "scripts": "workspace_completion_guard, export_returned_result, a reconcile of an interrupted return",
+    "packets": "6",
+    "model": "BS 4 reads + 4 greps (release, handoff); chess 1 grep"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 4,
+     "grep": 4
+    },
+    "chess": {
+     "grep": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 157363
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 35009
+    }
+   },
+   "verdict": "keep, stop nesting",
+   "proposal": "157 KB: 80,676 bytes are previous_receipt, which itself holds a previous_receipt (3 returns); only the immediate previous expected_source is used (execute_return: prior = existing.get('previous_receipt')). Keep {kind, plan_digest, expected_source} of the previous one. Risk: low.",
+   "packet_refs_bs": {
+    "packets": 6,
+    "of": 51,
+    "mentions": 9
+   },
+   "recovery": "critical for the return"
+  },
+  {
+   "kind": "consumer-check/ (returned tree copy)",
+   "writer": "skills/shiploop/scripts/shiploop_workspace.py export_returned_result",
+   "consumers": {
+    "scripts": "consumer_checks / system_commands runner at release-verify",
+    "packets": "3",
+    "model": "0"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 106331
+    },
+    "chess": {
+     "files": 0,
+     "bytes": 0
+    }
+   },
+   "verdict": "keep, remove at done",
+   "proposal": "Transient by purpose; 17 of 18 files identical to the worktree. Remove it when the run is done (the report names the receipt). Risk: low.",
+   "packet_refs_bs": {
+    "packets": 3,
+    "of": 51,
+    "mentions": 3
+   }
+  },
+  {
+   "kind": "CHILD/handoff.md (WORKTREE/.shiploop-improve/<stage>-<8>/)",
+   "writer": "skills/shiploop/scripts/shiploop_navigator.emit -> improve_handoff_text (rebuilt at every emit)",
+   "consumers": {
+    "model": "the improve skill's argument: BS 18 reads (one per Improve); chess 17 reads + 3 greps",
+    "packets": "18/18 Improve packets"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 18
+    },
+    "chess": {
+     "read": 17,
+     "grep": 3
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 494533
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 770773
+    }
+   },
+   "verdict": "keep as the one Improve input",
+   "proposal": "494,533 bytes BS. 37% of its long lines are verbatim from the reviewed packet (worked-from section: 106,232 of 184,250 bytes), the Code craft constant appears in 9, and 54% of bytes are lines shared by >= 9 of 18 handoffs. Under the main tenet that repetition is grounding, so keep the text; absorb parent-return.md into it and stop pointing at opening.md/start.json.",
+   "packet_refs_bs": {
+    "packets": 18,
+    "of": 51,
+    "mentions": 18
+   }
+  },
+  {
+   "kind": "CHILD/opening.md",
+   "writer": "skills/shiploop/scripts/shiploop_navigator._start_improve (improve_opening_text)",
+   "consumers": {
+    "scripts": "read back once by improve_start_contract in the same function",
+    "model": "0 in both runs (the plan handoff still says 'use the context-first opening')"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 47166
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 29310
+    }
+   },
+   "verdict": "drop",
+   "proposal": "An intermediate: 100% of its lines land in start.json/packet.json context. Pass the text in memory. Risk: none.",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "CHILD/start.json",
+   "writer": "skills/shiploop/scripts/shiploop_navigator._start_improve (loop_contract.dumps)",
+   "consumers": {
+    "scripts": "only its st_mtime: _skill_call_record (call after child start) and _passes_text",
+    "model": "0 in both runs (plan handoff names 'context.scope in start.json')"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 139193
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 86233
+    }
+   },
+   "verdict": "drop",
+   "proposal": "The runtime receives the contract on stdin and keeps it in packet.json. Record the start time in state.active_improve. Risk: low."
+  },
+  {
+   "kind": "CHILD/parent-return.md",
+   "writer": "skills/shiploop/scripts/shiploop_navigator._start_improve",
+   "consumers": {
+    "model": "BS 1 grep; chess 3 reads",
+    "scripts": "contract resources locator (improve_start_contract)",
+    "route": "skills/improve/references/shiploop-route.md"
+   },
+   "opened_by_model": {
+    "bs": {
+     "grep": 1
+    },
+    "chess": {
+     "read": 3
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 73750
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 46295
+    }
+   },
+   "verdict": "merge into handoff.md",
+   "proposal": "73,750 bytes BS; 26% already in the handoff; the Improve packet prints improve-pass and complete. One file per review.",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "CHILD/packet.json (Improve runtime receipt)",
+   "writer": "until_loop_ephemeral.py (the child's host receipt)",
+   "consumers": {
+    "scripts": "_improve_pass (status, done_argv), import",
+    "model": "BS 5 reads + 8 greps + 4 shell reads; chess 9 + 3 + 2"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 5,
+     "grep": 8,
+     "term-read": 4,
+     "term-other": 4
+    },
+    "chess": {
+     "read": 9,
+     "grep": 3,
+     "term-read": 2
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 211427
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 133209
+    }
+   },
+   "verdict": "keep, move to RUN/improve/<action>/",
+   "proposal": "",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   },
+   "recovery": "critical: next_argv resumes the review"
+  },
+  {
+   "kind": "CHILD/reviews/review-<n>.md",
+   "writer": "the model (BS 23 writes + 7 edits)",
+   "consumers": {
+    "scripts": "_improve_pass (_review_form), import review_refs"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 23,
+     "edit": 7,
+     "read": 4
+    },
+    "chess": {
+     "write": 19,
+     "edit": 6,
+     "read": 3
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 28,
+     "bytes": 62556
+    },
+    "chess": {
+     "files": 21,
+     "bytes": 48752
+    }
+   },
+   "verdict": "keep",
+   "proposal": "",
+   "packet_refs_bs": {
+    "packets": 18,
+    "of": 51,
+    "mentions": 18
+   }
+  },
+  {
+   "kind": "CHILD/reviews/checks.md",
+   "writer": "the model, or _improve_pass when the tree is unchanged",
+   "consumers": {
+    "scripts": "_improve_pass (mtime vs last edit), import check_refs"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 10,
+     "edit": 5,
+     "read": 2
+    },
+    "chess": {
+     "write": 12,
+     "edit": 2,
+     "term-other": 3,
+     "read": 1
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 18,
+     "bytes": 4871
+    },
+    "chess": {
+     "files": 11,
+     "bytes": 3036
+    }
+   },
+   "verdict": "keep",
+   "proposal": "",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "CHILD/reviews/report-<n>.json",
+   "writer": "skills/shiploop/scripts/shiploop_navigator._improve_pass",
+   "consumers": {
+    "scripts": "the runtime's done (stdin: '< report-<n>.json', 28 BS)"
+   },
+   "opened_by_model": {
+    "bs": {
+     "term-other": 28
+    },
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 28,
+     "bytes": 72194
+    },
+    "chess": {
+     "files": 21,
+     "bytes": 55898
+    }
+   },
+   "verdict": "keep (transport)",
+   "proposal": ""
+  },
+  {
+   "kind": "CHILD/reviews/pass-<n>.json",
+   "writer": "skills/shiploop/scripts/shiploop_navigator._improve_pass",
+   "consumers": {
+    "scripts": "next _improve_pass (previous tree), _passes_text"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 28,
+     "bytes": 5340
+    },
+    "chess": {
+     "files": 21,
+     "bytes": 4039
+    }
+   },
+   "verdict": "merge into state",
+   "proposal": "Keep the last pass tree in state.active_improve. 190 bytes each."
+  },
+  {
+   "kind": "CHILD/commit-message.md",
+   "writer": "the model",
+   "consumers": {
+    "scripts": "improve-commit (removes it after the commit)"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": null,
+    "chess": null
+   },
+   "verdict": "keep (transient)",
+   "proposal": ""
+  },
+  {
+   "kind": "WORKTREE/.shiploop-improve/.experiments/<run>/<action>/",
+   "writer": "the model (planning probes; navigator.planning_scratch_dir)",
+   "consumers": {
+    "model": "BS 3 Apex probe files"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 3,
+     "term-other": 3
+    },
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 3,
+     "bytes": 1910
+    },
+    "chess": {
+     "files": 0,
+     "bytes": 0
+    }
+   },
+   "verdict": "move to RUN/scratch/<action>/",
+   "proposal": "A third scratch location, inside the product checkout and fingerprinted. Risk: low.",
+   "packet_refs_bs": {
+    "packets": 0,
+    "of": 51,
+    "mentions": 0
+   }
+  },
+  {
+   "kind": "WORKTREE/.shiploop-improve/<run>/planning-investigation.md",
+   "writer": "named by navigator.planning_notebook_path; never written",
+   "consumers": {
+    "handoffs": "plan handoff and start.json scope",
+    "model": "never written in either run"
+   },
+   "opened_by_model": {
+    "bs": {},
+    "chess": {}
+   },
+   "bytes": {
+    "bs": null,
+    "chess": null
+   },
+   "verdict": "drop the path",
+   "proposal": "Or point it at RUN/notes/planning-investigation.md."
+  },
+  {
+   "kind": "HOME docs/shiploop/{spec,architecture,environment}.md",
+   "writer": "the model; ShipLoop commits (shiploop_knowledge_home)",
+   "consumers": {
+    "packets": "33/33, 621 mentions; handoffs 198",
+    "model": "BS 52 reads + 21 greps, 67 edits",
+    "later runs": "inherited"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 2,
+     "read": 52,
+     "edit": 67,
+     "grep": 21
+    },
+    "chess": {
+     "write": 3,
+     "edit": 68,
+     "grep": 19,
+     "read": 28
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 3,
+     "bytes": 67261
+    },
+    "chess": {
+     "files": 3,
+     "bytes": 58303
+    }
+   },
+   "verdict": "keep",
+   "proposal": "",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 621
+   }
+  },
+  {
+   "kind": "SHIPLOOP.md",
+   "writer": "the model",
+   "consumers": {
+    "packets": "33/33",
+    "model": "BS 4 reads"
+   },
+   "opened_by_model": {
+    "bs": {
+     "write": 1,
+     "read": 4,
+     "edit": 2,
+     "grep": 1
+    },
+    "chess": {
+     "write": 1,
+     "read": 5,
+     "edit": 2
+    }
+   },
+   "bytes": {
+    "bs": {
+     "files": 1,
+     "bytes": 510
+    },
+    "chess": {
+     "files": 1,
+     "bytes": 397
+    }
+   },
+   "verdict": "keep",
+   "proposal": "",
+   "packet_refs_bs": {
+    "packets": 33,
+    "of": 51,
+    "mentions": 37
+   }
+  },
+  {
+   "kind": "WORKTREE/.sf/ committed tool state",
+   "writer": "sf CLI; committed by ShipLoop commit_leftovers (c5f3834)",
+   "consumers": {
+    "lint": "lint records list it in scope",
+    "return": "excluded by the return plan"
+   },
+   "opened_by_model": {
+    "bs": {
+     "read": 1
+    },
+    "chess": {}
+   },
+   "bytes": {
+    "bs": {
+     "files": 2,
+     "bytes": 151
+    },
+    "chess": {
+     "files": 2,
+     "bytes": 151
+    }
+   },
+   "verdict": "do not commit",
+   "proposal": "Plan unit I1: commit_leftovers skips untracked tool state (references/path-classes.json: **/.sf/**, **/.sfdx/** generated)."
+  }
+ ],
+ "duplicates": [
+  {
+   "what": "an accepted result that Improve reviewed",
+   "copies": 8,
+   "where": "inbox/<a>.md, inbox/<a>-final-result.md, results/<a>.md, state.accepted, state.improve_results.{seed_result, submission.final_result, receipt.final_result}, improve/<a>/receipt.md",
+   "bytes_bs": 512908,
+   "distinct_bytes_bs": "89,393 accepted + 85,369 pre-Improve seeds"
+  },
+  {
+   "what": "Improve terminal packet",
+   "copies": 2,
+   "where": "CHILD/packet.json == RUN/improve/<a>/terminal.json",
+   "identical": "18/18",
+   "bytes_bs": 211427
+  },
+  {
+   "what": "Improve review and checks files",
+   "copies": 2,
+   "where": "CHILD/reviews/* == RUN/improve/<a>/evidence/*",
+   "identical": "36/36",
+   "bytes_bs": 43815
+  },
+  {
+   "what": "Improve record",
+   "copies": 2,
+   "where": "RUN/improve/<a>/receipt.md vs state.improve_results[a]",
+   "equal_bytes_bs": "77,912 of 80,882"
+  },
+  {
+   "what": "Improve opening",
+   "copies": 3,
+   "where": "CHILD/opening.md -> start.json context -> packet.json context",
+   "identical": "100% of lines",
+   "bytes_bs": 47166
+  },
+  {
+   "what": "lint records of one action",
+   "similarity": "0.997-1.0",
+   "superseded_bytes_bs": 136201
+  },
+  {
+   "what": ".shiploop-improve untracked list (195 rows, 31.6 KB)",
+   "copies": "6 (workspace.md, return-plan.md x2, return-receipt.md x3 with nesting)"
+  },
+  {
+   "what": "previous return receipts",
+   "where": "return-receipt.md.previous_receipt.previous_receipt",
+   "bytes_bs": 80676
+  },
+  {
+   "what": "returned tree",
+   "where": "consumer-check/ vs worktree",
+   "identical": "17/18",
+   "bytes_bs": 74799
+  },
+  {
+   "what": "Code craft rubric",
+   "where": "RUN/quality/code-craft.md + 9 handoffs",
+   "bytes_bs": 37006
+  },
+  {
+   "what": "reviewed packet text in Improve handoffs",
+   "where": "handoff 'What the reviewed stage worked from'",
+   "verbatim_bytes_bs": "106,232 of 184,250"
+  },
+  {
+   "what": "the request",
+   "where": "state.prompt, request.md, context-index ## Request"
+  },
+  {
+   "what": "the status block",
+   "where": "status.md, `shiploop status`, packet status lines, progress.html, report.html"
+  },
+  {
+   "what": "run reference",
+   "where": "RUN/reference.md per run; differs between runs only in 21 path lines"
+  },
+  {
+   "what": "result draft vs accepted result",
+   "where": "inbox/<a>.md vs results/<a>.md",
+   "similarity": "0.86-0.98 (33 pairs)",
+   "verdict": "kept: two live consumers"
+  },
+  {
+   "what": "backchain candidate",
+   "where": "scratch/plan-candidate.json == backchain/<a>/candidate-*.json",
+   "bytes_bs": 8436
+  },
+  {
+   "what": "lessons",
+   "where": "improve-commit 'Key learnings:', --notes file, state.improve_results lessons, context-index excerpt"
+  }
+ ],
+ "written_never_read": [
+  {
+   "file": "RUN/status.md",
+   "readers": "none"
+  },
+  {
+   "file": "RUN/context-index.md",
+   "readers": "none (model 0 in three runs)"
+  },
+  {
+   "file": "RUN/quality/code-craft.md",
+   "readers": "a contract locator only; model 0"
+  },
+  {
+   "file": "CHILD/opening.md",
+   "readers": "its own writer, in the same function"
+  },
+  {
+   "file": "CHILD/start.json",
+   "readers": "st_mtime only"
+  },
+  {
+   "file": "RUN/improve/<a>/terminal.json, evidence/*",
+   "readers": "planning reconciliation only (plan stage)"
+  },
+  {
+   "file": "superseded lint records",
+   "readers": "none"
+  },
+  {
+   "file": "planning-investigation.md",
+   "readers": "named, never written"
+  }
+ ],
+ "read_only_by_harness": [
+  {
+   "file": "RUN/improve/<a>/passes.md",
+   "reader": "docs/experiments/run-analysis-2026-10-18/tools/run_steps.py"
+  },
+  {
+   "file": "RUN/packets/*.md beyond the printed head",
+   "reader": "test/shiploop_e2e/packets.py, run_steps.py (model opened packet files in 5 BS steps)"
+  },
+  {
+   "file": "RUN/improve/<a>/receipt.md",
+   "reader": "test/shiploop_e2e/fidelity.py (plus planning reconciliation); model 0"
+  },
+  {
+   "file": "RUN/timeline.json",
+   "reader": "metrics.py, plus the packet pace line and progress.html (not harness-only)"
+  }
+ ],
+ "prompt_write_locations": [
+  {
+   "location": "RUN/inbox/<action>.md",
+   "told_by": "33/33 producer packets (Callback line + Run line); 18/18 handoffs quote it",
+   "purpose": "the stage result complete reads",
+   "actual": {
+    "bs": "33 files, 22 writes + 5 edits",
+    "chess": "25 files, 19 writes + 22 edits"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "RUN/inbox/<action>-final-result.md",
+   "told_by": "18/18 handoffs (36 mentions), complete refusals",
+   "purpose": "the result an Improve review changed",
+   "actual": {
+    "bs": "4 files (1 write, 1 cp, 2 edited)",
+    "chess": "5 files"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "RUN/inbox/<action>-improve-notes.md (--notes)",
+   "told_by": "18/18 handoffs (36 mentions)",
+   "purpose": "Improve lessons",
+   "actual": {
+    "bs": "0",
+    "chess": "3, plus one misnamed nav-X-notes.md"
+   },
+   "verdict": "merge into the review file's lessons field (duplicate of 'Key learnings:')"
+  },
+  {
+   "location": "RUN/notes/<action>.md (pass log)",
+   "told_by": "33/33 producer packets; implement Goal 'exit codes go to RUN/notes/<action>.md'",
+   "purpose": "recovery aid",
+   "actual": {
+    "bs": "18 files (11 writes + 4 edits)",
+    "chess": "11 files"
+   },
+   "verdict": "keep only where no loop receipt exists"
+  },
+  {
+   "location": "RUN/notes/<name>.md and <action>-<suffix>.md",
+   "told_by": "8 packets name intake/discovery/research/current-system-baseline/environment-lifecycle; 4 name -skill-trial/-release/-release-check",
+   "purpose": "evidence later stages cite",
+   "actual": {
+    "bs": "10 files",
+    "chess": "13 files (incl. .txt probe outputs filed as notes)"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "RUN/scratch/",
+   "told_by": "33/33 producer packets RULES 'Temporary files go in RUN/scratch, never /tmp' + State line",
+   "purpose": "temporary files",
+   "actual": {
+    "bs": "49 files (26 writes, 8 edits, 11 redirects); 42 of 168 evidence_refs cite scratch",
+    "chess": "41 files; 23 of 147 evidence_refs"
+   },
+   "verdict": "keep; state that cited files go in notes/"
+  },
+  {
+   "location": "HOME/spec.md, architecture.md, environment.md",
+   "told_by": "33/33 packets ('This stage keeps these up to date'), 18 handoffs",
+   "purpose": "cross-run knowledge",
+   "actual": {
+    "bs": "environment 34 ops, spec 20, architecture 15",
+    "chess": "48, 8, 15"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "WORKTREE/SHIPLOOP.md",
+   "told_by": "33/33 packets",
+   "purpose": "repository knowledge index",
+   "actual": {
+    "bs": "3 ops",
+    "chess": "3 ops"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "WORKTREE/README.md and product files",
+   "told_by": "implement, document",
+   "purpose": "the product",
+   "actual": {
+    "bs": "force-app 19 ops, README 2, sfdx-project 1"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "CHILD/reviews/review-<n>.md",
+   "told_by": "18 Improve packets, 18 handoffs (54), 18 parent-returns",
+   "purpose": "the pass record improve-pass reads",
+   "actual": {
+    "bs": "28 files (23 writes, 7 edits)",
+    "chess": "21 files"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "CHILD/reviews/checks.md",
+   "told_by": "18 handoffs (54), 18 parent-returns",
+   "purpose": "check output after the last edit",
+   "actual": {
+    "bs": "18 files (10 writes + 5 edits by the model, the rest by improve-pass)",
+    "chess": "11"
+   },
+   "verdict": "keep"
+  },
+  {
+   "location": "CHILD/commit-message.md",
+   "told_by": "18 handoffs (70 mentions), 18 parent-returns (36)",
+   "purpose": "improve-commit message (Key learnings)",
+   "actual": {
+    "bs": "9 ops (removed after commit)",
+    "chess": "8"
+   },
+   "verdict": "keep (transient)"
+  },
+  {
+   "location": "WORKTREE/.shiploop-improve/.experiments/<run>/<action>/",
+   "told_by": "plan handoff only",
+   "purpose": "planning probes",
+   "actual": {
+    "bs": "3 .apex files"
+   },
+   "verdict": "move to RUN/scratch/<action>/"
+  },
+  {
+   "location": "WORKTREE/.shiploop-improve/<run>/planning-investigation.md",
+   "told_by": "plan handoff and start.json scope",
+   "purpose": "planning notebook",
+   "actual": {
+    "bs": "never written",
+    "chess": "never written"
+   },
+   "verdict": "drop the path"
+  },
+  {
+   "location": "Until Loop done report (stdin)",
+   "told_by": "every inner-stage Until Loop packet ('send one JSON report on standard input')",
+   "purpose": "loop progress",
+   "actual": {
+    "bs": "model wrote s1-done-1.json, s1-report.json ... in scratch, then redirected"
+   },
+   "verdict": "keep in scratch"
+  },
+  {
+   "location": "never written though named as the model's: RUN/context-index.md, reference.md, status.md (read-only)",
+   "told_by": "33/33 packets",
+   "actual": {
+    "bs": "0 opens",
+    "chess": "context-index 0, reference 6, status 0"
+   },
+   "verdict": "drop context-index and status; reference to GUIDES"
+  }
+ ],
+ "layout": {
+  "principle": "One copy per content, one named consumer per file; the run directory holds everything ShipLoop and the model write for the run, the product worktree holds only the product and committed knowledge.",
+  "tree": {
+   "<workspace root>/": {
+    "workspace.md": "keep: return route (scripts, every return-stage packet); critical for recovery of the return",
+    "return-plan.md": "keep: review-return dispositions (execute_return)",
+    "return-receipt.md": "keep: completion guard; previous receipt as a digest, not nested",
+    "consumer-check/": "keep until done: consumer checks at release-verify; removed at done",
+    "run/": {
+     "state.md": "authority; read by every command; improve_results slimmed to pointer + digest + lessons",
+     "request.md": "the request with S1..Sn; stages that cite S<n>",
+     "run-baseline.txt, timeline.json, skill-calls.jsonl, callback-attempts, .lock": "script inputs (unchanged)",
+     "progress.html (+ observer files), report.html": "the user",
+     "packets/<action>.md": "recovery copy of exactly what was printed; read after a cut or lost context",
+     "inbox/<action>.md, <action>-final-result.md": "the model's result; complete and the Improve runtime read it",
+     "results/<action>.md": "the accepted result later stages read",
+     "notes/": "files a result cites (evidence) + the pass log of stages without a loop",
+     "scratch/": "disposable files (incl. planning probes in scratch/<action>/)",
+     "loops/<action>-contract.json, -terminal.json": "loop start (stdin) and loop receipt (resume, gate)",
+     "until-loop/": "live Until Loop state for every loop (inner stages and Improve)",
+     "tests/, expectations/, backchain/": "script gates and evidence",
+     "lint/": "latest record per action and kind",
+     "improve/<reviewed action>/": {
+      "handoff.md": "the one Improve input (absorbs parent-return.md)",
+      "packet.json": "the runtime receipt (resume; import reads it in place, no copy)",
+      "reviews/review-<n>.md, checks.md, report-<n>.json": "the model's pass records and the runtime's done input",
+      "commit-message.md": "transient",
+      "receipt.md": "the imported record (the one copy; state keeps a pointer)"
+     },
+     "decisions/": "the user's answers"
+    },
+    "worktree/": "product files + docs/shiploop/*.md + SHIPLOOP.md only; no .shiploop-improve, no committed tool state"
+   },
+   "GUIDES (skills/shiploop/references/)": "run-reference.md and code-craft.md as static files; state-files.md absorbs the context-index map",
+   "home": "keepalive state only (unchanged)",
+   "system temp": "nothing"
+  },
+  "dropped": [
+   "RUN/status.md",
+   "RUN/context-index.md",
+   "RUN/reference.md (moved to GUIDES)",
+   "RUN/quality/code-craft.md (moved to GUIDES)",
+   "CHILD/opening.md",
+   "CHILD/start.json",
+   "CHILD/parent-return.md (merged)",
+   "CHILD/reviews/pass-<n>.json (state)",
+   "RUN/improve/<a>-bind.md (state)",
+   "RUN/improve/<a>/terminal.json and evidence/ (no copies)",
+   "RUN/improve/<a>/passes.md (exporter derives)",
+   "RUN/inbox/<a>-improve-notes.md (lessons in the review file)",
+   "superseded lint records",
+   "WORKTREE/.shiploop-improve/** (moved)",
+   "$TMPDIR/innerloop-*.json (moved)",
+   "planning-investigation.md path"
+  ],
+  "estimated_savings_bs": {
+   "files": "about 206 of 667 (31%): Improve family 172 (opening 18, start 18, parent-return 18, passes 18, pass-N 28, bind 18, terminal copies 18, evidence copies 36), superseded lint 12, consumer-check 18 at done, status/context-index/reference/code-craft 4; 3 planning probes move to RUN/scratch",
+   "bytes": "about 1.1 MB of 5.13 MB (22%): Improve copies and intermediates 531,703 bytes, superseded lint 136,201, consumer-check 106,331, context-index + reference + code-craft + status 83,770, return files about 270 KB (195 tool-state rows x 6 copies = 190 KB, nested receipts 81 KB, overlapping); plus state.md from 434 KB to about 260 KB (seed/submission/receipt copies 167 KB), a file every command parses",
+   "basis": "measured sizes in this audit; the savings are the sum of the files a proposal removes, an estimate until built"
+  },
+  "recovery_after_context_loss": {
+   "depends_on": [
+    "state.md (authority)",
+    "packets/<action>.md (rewritten by `next`)",
+    "inbox/<action>.md (an unaccepted draft after a kill)",
+    "loops/<action>-terminal.json (inner loop next_argv)",
+    "until-loop/ (live loop state)",
+    "improve/<a>/packet.json (Improve next_argv; today CHILD/packet.json)",
+    "workspace.md, return-plan.md, return-receipt.md (interrupted return)",
+    "notes/<action>.md (optional pass log, stages without a loop)"
+   ],
+   "not_needed": [
+    "context-index.md (0 opens in three runs; `next` reprints every pointer)",
+    "status.md",
+    "opening.md",
+    "start.json (mtime only)",
+    "passes.md",
+    "improve terminal/evidence copies",
+    "superseded lint records"
+   ],
+   "moved_risk": "moving the Improve child into RUN changes the receipt path the improve skill route and the standalone binding use: one supported version, so change shiploop_standalone_improve.receipt_path, _RUNTIME_EXCLUDES users and skills/improve/references/shiploop-route.md together and refuse old runs."
+  }
+ },
+ "recommendations": [
+  {
+   "id": "F1",
+   "priority": 1,
+   "title": "Inner Until Loop state into RUN/until-loop (K3)",
+   "change": "shiploop_loops.start_command: add '--directory', str(root / 'until-loop')",
+   "evidence": "BS 17, chess 10 inner loops kept state in $TMPDIR; 4,907 stale innerloop-*.json (65.6 MB) machine-wide",
+   "risk": "low",
+   "test": "an inner-stage start command run through the real runtime leaves its state file under RUN/until-loop"
+  },
+  {
+   "id": "F2",
+   "priority": 1,
+   "title": "Drop status.md and context-index.md",
+   "change": "shiploop_navigator.save/emit; shiploop_context_index (keep STAGE_READS); MAP_ROWS into references/state-files.md; remove the 'Run records' line",
+   "evidence": "0 opens in both runs (and the earlier chess run); no script reads either; 60 KB rewritten at each of 51 saves",
+   "risk": "low; conflicts with the owner's 2026-10-16 decision, which the measured zero consumers answer",
+   "test": "a populated run lists no file missing from state-files.md; recovery via `next` after a cut"
+  },
+  {
+   "id": "F3",
+   "priority": 1,
+   "title": "Move the Improve child directory from WORKTREE/.shiploop-improve to RUN/improve/<reviewed action>/",
+   "change": "shiploop_standalone_improve.receipt_path/_RECEIPT_DIRECTORY; import reads packet.json and reviews in place (no terminal.json/evidence copies); planning_revision reads them there; drop the .shiploop-improve rules in shiploop_workspace (FORBIDDEN_PARTS, _retained_child_evidence), until_loop_ephemeral._RUNTIME_EXCLUDES, the improve route",
+   "evidence": "195 untracked files in the product worktree (1.11 MB) fingerprinted in workspace.md, return-plan.md x2, return-receipt.md x3 (32 KB each); 18/18 terminal and 36/36 evidence archive copies byte-identical (255 KB)",
+   "risk": "medium (cross-skill contract with the Improve skill and the Until Loop runtime; one supported version)",
+   "test": "an Improve stage end to end: receipt under RUN, worktree untracked list empty, return plan has no tool-state rows"
+  },
+  {
+   "id": "F4",
+   "priority": 2,
+   "title": "Remove the Improve intermediates: opening.md, start.json, parent-return.md, passes.md, pass-<n>.json, -bind.md",
+   "change": "shiploop_navigator._start_improve (opening text in memory; start time in state.active_improve); parent-return text into improve_handoff_text; _improve_pass keeps the last pass tree in state; _passes_text moves to the Run Review exporter; bind snapshot in state",
+   "evidence": "opening 100% inside start.json; start.json read only for its mtime; parent-return 26% already in the handoff, model 1 grep (BS); passes.md read only by an analysis tool",
+   "risk": "low",
+   "test": "improve-pass and complete through the real gate with no such files present"
+  },
+  {
+   "id": "F5",
+   "priority": 2,
+   "title": "One copy of an Improve record",
+   "change": "state.improve_results keeps {receipt path, sha256, lessons, outcome}; drop seed_result/submission/receipt copies (shiploop_navigator import in dispatch, readers)",
+   "evidence": "a 21 KB step-plan result exists 8 times (inbox, final-result, results, accepted, seed, submission, receipt, receipt.md); 513 KB for 18 reviewed results; state.md 55% improve_results",
+   "risk": "medium (state schema; fresh runs only)",
+   "test": "planning reconciliation reads the receipt file; a replayed complete stays idempotent"
+  },
+  {
+   "id": "F6",
+   "priority": 2,
+   "title": "Static guides instead of per-run copies: reference.md and code-craft.md",
+   "change": "shiploop_reference.render -> references/run-reference.md with RUN/GUIDES symbols; shiploop_quality.rubric_writes -> references/code-craft.md locator",
+   "evidence": "reference.md differs between runs only in 21 path lines; code-craft.md is a constant never opened, printed inline in 9 handoffs",
+   "risk": "low",
+   "test": "packets cite GUIDES/run-reference.md#rules and the anchor exists"
+  },
+  {
+   "id": "F7",
+   "priority": 2,
+   "title": "Return files: no nested receipts, no tool-state rows",
+   "change": "shiploop_workspace.execute_return.record keeps the previous receipt's kind, plan_digest and expected_source only; _fingerprint excludes ShipLoop/tool-state untracked paths (after F3 nothing ShipLoop-owned is left)",
+   "evidence": "return-receipt.md 157 KB, 80.7 KB nested previous receipts (3 returns)",
+   "risk": "low",
+   "test": "an interrupted follow-up return still reconciles"
+  },
+  {
+   "id": "F8",
+   "priority": 3,
+   "title": "Lint: one record per action and kind",
+   "change": "shiploop_lint record naming (gate<N>, <N>) -> replace in place",
+   "evidence": "12 superseded records, 136 KB, no reader; 99.7% similar",
+   "risk": "low",
+   "test": "render_lines shows the latest gate result"
+  },
+  {
+   "id": "F9",
+   "priority": 3,
+   "title": "Name the evidence home",
+   "change": "RULES line: temporary files in RUN/scratch, cited files in RUN/notes; complete prints a notice for an evidence_ref under scratch/; planning probes to RUN/scratch/<action>/",
+   "evidence": "42 of 168 BS evidence_refs (23 of 147 chess) cite scratch; three scratch locations (RUN/scratch, .shiploop-improve/.experiments, $TMPDIR)",
+   "risk": "low",
+   "test": "a result citing scratch gets the notice"
+  },
+  {
+   "id": "F10",
+   "priority": 3,
+   "title": "Pass log only where no loop receipt exists; lessons in the review file",
+   "change": "shiploop_navigator pass-log line and implement Goal wording gated on stage_spec complete_runs 'loop-terminal'; drop --notes (improve_notes_path) for a lessons: field",
+   "evidence": "13 of 18 BS pass logs were inner stages that also have a loop receipt; --notes used 0 times BS, 3 chess (one misnamed)",
+   "risk": "low",
+   "test": "an inner packet prints no pass-log line; Improve complete records lessons from the review file"
+  },
+  {
+   "id": "F11",
+   "priority": 3,
+   "title": "consumer-check removed at done; the packet file equals the print",
+   "change": "shiploop_workspace.export_returned_result cleanup at the done transition; emit writes what printed_text prints",
+   "evidence": "consumer-check 106 KB, 17/18 identical to the worktree; 31 of 52 packets cut at print, packet files opened in 5 steps",
+   "risk": "low / tied to the packet-size work",
+   "test": "done leaves no consumer-check; `next` reprints the same bytes as the file"
+  },
+  {
+   "id": "F12",
+   "priority": 1,
+   "title": "Do not commit tool state (I1)",
+   "change": "commit_leftovers skips untracked tool state (references/path-classes.json generated **/.sf/**, **/.sfdx/**)",
+   "evidence": "commit c5f3834 committed .sf/orgs/.../localSourceTracking in both runs",
+   "risk": "low",
+   "test": "a leftover .sf/ file stays untracked and the return fast-forwards"
+  }
+ ],
+ "owner_rule_conflicts": [
+  "F2 reverses the owner's 2026-10-16 context-index decision; the measured consumer count (0 in three runs) is the case for it.",
+  "F3 changes a cross-skill contract (Improve route, Until Loop standalone binding): one supported version means both change in one release and old runs are refused.",
+  "Handoff boilerplate is kept: the main tenet treats cross-packet repetition as grounding; only copies with no reader are removed.",
+  "F11 follows 'compact packets printed whole': the packet file stops carrying text the print lacks."
+ ]
+}

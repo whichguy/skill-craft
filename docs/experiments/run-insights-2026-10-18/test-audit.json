@@ -1,0 +1,573 @@
+{
+ "runs": {
+  "chess": {
+   "run": "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c",
+   "build": "older integration build (no per-step Proof records; no report.html because the run ended blocked)",
+   "sources": {
+    "spec": "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c/worktree/docs/shiploop/spec.md (R-1..R-16)",
+    "test_strategy": [
+     "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-chess/in/06-test-strategy.result.md",
+     "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c/worktree/docs/shiploop/environment.md ## Commands, ## Harnesses and suites",
+     "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c/worktree/docs/shiploop/architecture.md ## Real-boundary checks (case table and Browser procedure)",
+     "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c/run/notes/test-strategy-probes.md"
+    ],
+    "step_plan": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-chess/in/17-step-plan.result.md (criteria C1-C12, one step S1, 6 test_commands + 1 check)",
+    "test_spec": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-chess/in/19-test-spec.result.md (22 test_cases, open item A1 = board clicks)",
+    "system_test_author": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-chess/in/29-system-test-author.result.md (SYS-RULES, SYS-COUNTS, SYS-PERF, SYS-META runnable; SYS-BOARD open item)",
+    "executed_records": "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c/run/tests/*.md (9 records, 275,955 bytes, 78 command runs incl. 16 mutant runs, 966.5 s summed)"
+   },
+   "planned_counts": {
+    "test_spec_cases": 22,
+    "apex_ids_final": 23,
+    "criteria": 12,
+    "criteria_by_inspection_only": [
+     "C12 (R-1, R-2, R-10, R-15 via a source grep)"
+    ],
+    "open_items_for_a_person": [
+     "A1 / SYS-BOARD: six click sequences on the deployed tab (R-10, R-15 page half, R-2 tab opens)"
+    ]
+   },
+   "executed_summary": {
+    "apex_methods": "23 of 23 passed in org de at system-test (TAP: SLChessRulesTest 14 ok, SLChessCountsTest 6 ok, SLChessPerfTest 3 ok; run/tests/nav-4084430da445482298532da37fbfe56a-verify1.md); harness `tests` check: 23 ran, 0 failing (result.json checks[2])",
+    "test_stage": "check-only + verify1 each 10 runs (3 TAP focused, 6 regression = 3 TAP + 3 human, 1 C12 grep), all exit 0; Rules ran 13 ids at test, 14 after verify added controllerIllegalMove",
+    "red_check": "all 9 runs red on the empty base because the `ls sfdx-project.json <Class>.cls &&` prefix fails (id_outcomes all 'missing'): a load failure, not an assertion failure",
+    "mutation": "mutation1: 8 sampled of 659 candidates, 4 killed / 4 survived, gate passed (233.2 s). Killed: 1 engine mutant (SLChessEngine.cls `==`->`!=`) and 3 mutants in the test classes themselves. Survived: .sf/orgs/.../localSourceTracking/config, slChessBoard.css:30, slChessBoard.html:20 (`if:true={choosing}` true->false, i.e. the promotion chooser never renders), slChessBoard.js:127 (`square === this.selected` -> `!==`, deselect logic). LWC mutants killed: 0 of 3",
+    "verify": "check-only 10 runs + verify1 10 runs, 18 deploy-and-test runs, all exit 0 (run/tests/nav-ce15bf337a7f4882ba7303e3d65c7fc7-*.md); human Pass Rate 100%, coverage engine 95%, controller 100% (26-verify summary)",
+    "system_test": "SYS-RULES/COUNTS/PERF/META passed (4 runs, 186 s); SYS-BOARD not-run (31-system-test)",
+    "consumer_checks": "none: release-plan recorded an empty consumer_checks, so release-verify ran no confirm command (37-release-verify summary)",
+    "release_verify": "blocked twice (steps 37 and 38; 369 s + 3,401.7 s model time). Owner reply: first load of the tab was 'Page does not exist' (hidden tab) until an out-of-band permission set; then 'the board loads and can be played', but the six click sequences were never itemized, so they stay not-run"
+   },
+   "requirements": [
+    {
+     "id": "R-1",
+     "title": "Project root and names",
+     "planned": "architecture row 'Project root and meta allow-list'; C12 grep incl. empty `find` of extra force-app files",
+     "executed": "C12 grep exit 0 at test (2), verify (2), system-test (SYS-META); harness `project` check pass",
+     "evidence_kind": "inspection (source listing)",
+     "status": "passed (inspection)"
+    },
+    {
+     "id": "R-2",
+     "title": "Metadata allow-list; tab/app exist",
+     "planned": "C12 grep of tab/app meta; deploy report names no Profile/PermissionSet; tab visibility left as open gap for release-verify",
+     "executed": "C12 grep; deploy receipts (release deploy 0Afaj00000o9HknCAE Succeeded, no Profile/PermissionSet); harness `deployed` names check",
+     "evidence_kind": "inspection + deploy receipt; no read-only visibility probe run",
+     "status": "files passed; consumer entry FAILED for the owner (tab hidden, 'Page does not exist')",
+     "notes": "A read-only PermissionSetTabSetting query (platforms/salesforce.md ## Consumer entry access) would have shown the hidden tab before release; the run never ran it"
+    },
+    {
+     "id": "R-3",
+     "title": "Engine surface",
+     "planned": "startPositionMoveCount (C1), illegalEngineMove (C3)",
+     "executed": "TAP ok at test, verify, system-test",
+     "evidence_kind": "executed Apex test (org)",
+     "status": "passed"
+    },
+    {
+     "id": "R-4",
+     "title": "Piece moves and check",
+     "planned": "kiwipeteMoveCount, position3/4/5MoveCount, startPositionMoveCount list equality, statusCheckNotMate",
+     "executed": "TAP ok; harness `rules` perft p1/p2 PASS",
+     "evidence_kind": "executed Apex test + independent harness oracle",
+     "status": "passed"
+    },
+    {
+     "id": "R-5",
+     "title": "Castling",
+     "planned": "castlingBothSides, castlingThroughCheck, staleCastleRight",
+     "executed": "TAP ok",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-6",
+     "title": "En passant and clocks",
+     "planned": "enPassant, enPassantTargetAfterDoublePush",
+     "executed": "TAP ok",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-7",
+     "title": "Promotion",
+     "planned": "promotion, promotionCapture",
+     "executed": "TAP ok",
+     "evidence_kind": "executed Apex test",
+     "status": "passed (engine only; the board's promotion chooser is untested: its html:20 mutant survived)"
+    },
+    {
+     "id": "R-8",
+     "title": "Status",
+     "planned": "foolsMate, scholarsMate, stalemate, statusCheckNotMate, halfmoveDoesNotEndGame",
+     "executed": "TAP ok; harness foolsmate/scholarsmate/stalemate PASS",
+     "evidence_kind": "executed Apex test + harness oracle",
+     "status": "passed"
+    },
+    {
+     "id": "R-9",
+     "title": "Controller",
+     "planned": "scholarsMate/foolsMate via controller, controllerThirtyFivePlies; controllerIllegalMove added at verify",
+     "executed": "TAP ok (14 rules ids after verify)",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-10",
+     "title": "Board play (LWC)",
+     "planned": "C12 source grep only; test-spec open item A1 and SYS-BOARD (6 click sequences) for release-verify",
+     "executed": "grep only (words 'New game', White, Black, status words, queen, legalMoves/applyMove/status imports)",
+     "evidence_kind": "inspection only; rendered behaviour deferred to a person",
+     "status": "NOT RUN (release-verify blocked; sequences unitemized)",
+     "notes": "3 of 3 LWC mutants survived; play() stale-response race shipped (sdlc-audit.json chess concurrency row)"
+    },
+    {
+     "id": "R-11",
+     "title": "Org tests (>=8, human --code-coverage)",
+     "planned": "three human commands, one class each",
+     "executed": "human rows exit 0 at test and verify (Pass Rate 100%); 23 methods",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-12",
+     "title": "Deploy target",
+     "planned": "deploy exits 0; report names no Profile/PermissionSet",
+     "executed": "every deploy-prefixed run Succeeded; release deploy receipt",
+     "evidence_kind": "deploy receipt (inspection)",
+     "status": "passed"
+    },
+    {
+     "id": "R-13",
+     "title": "CPU and heap",
+     "planned": "kiwipeteCpu (<2,000 ms), kiwipeteDepth2 (2039, <8,000 ms), controllerThirtyFivePlies",
+     "executed": "TAP ok",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-14",
+     "title": "Security and privacy",
+     "planned": "file review + command history at verify",
+     "executed": "review only (no command)",
+     "evidence_kind": "inspection only",
+     "status": "passed by review; the org username is written into environment.md and every test record's deploy stdout (plan A7)"
+    },
+    {
+     "id": "R-15",
+     "title": "Accessibility and clients (text turn/status; desktop page)",
+     "planned": "C12 grep for the words; desktop page check in SYS-BOARD",
+     "executed": "grep only",
+     "evidence_kind": "inspection only; rendered half deferred to a person",
+     "status": "NOT RUN (page half)",
+     "notes": "64 square buttons: empty squares have no accessible name, pieces only a glyph; div role=grid with button children and no row/gridcell roles"
+    },
+    {
+     "id": "R-16",
+     "title": "Reliability (repeat legalMoves)",
+     "planned": "repeatLegalMoves",
+     "executed": "TAP ok",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    }
+   ],
+   "requirements_without_executed_behavioural_test": [
+    "R-1 (inspection)",
+    "R-2 (inspection + receipt; consumer entry failed for the owner)",
+    "R-10 (grep; person step never itemized)",
+    "R-12 (receipt)",
+    "R-14 (review)",
+    "R-15 (grep; person step never itemized)"
+   ],
+   "inspected_only": [
+    "R-1",
+    "R-2 files",
+    "R-10",
+    "R-12",
+    "R-14",
+    "R-15"
+   ],
+   "deferred_to_person": [
+    "R-10 (A1/SYS-BOARD)",
+    "R-15 page half",
+    "R-2 tab opens (observed hidden)"
+   ],
+   "score": "10 of 16 requirements have an executed behavioural test (all Apex); 0 of 2 UI requirements (R-10, R-15) were executed in any form beyond a source grep"
+  },
+  "battleship": {
+   "run": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5",
+   "build": "current integration branch (per-step Proof records exist; report.html written at done)",
+   "sources": {
+    "spec": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/worktree/docs/shiploop/spec.md (R-1..R-13)",
+    "test_strategy": [
+     "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/06-test-strategy.result.md",
+     "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/worktree/docs/shiploop/environment.md ## Commands, ## Harnesses and suites (### Integrated system catalog, ### Plan by requirement)",
+     "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/worktree/docs/shiploop/architecture.md ## Real-boundary checks and ## Procedures (boardClick)",
+     "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/run/scratch/browser-standin-probe.txt"
+    ],
+    "step_plan": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/25-step-plan.result.md (criteria C1-C5, steps S1-S4 each with a python source-text check, 3 Apex commands + 1 check)",
+    "test_spec": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/27-test-spec.result.md (3 test_cases: fleet, miss, hit; open item A9 = boardClick)",
+    "system_test_author": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8acf399b-0cf4-40cc-bba3-bf238461db58/scratchpad/report-bs/in/43-system-test-author.result.md (SYS-ORG-SUITE, SYS-SOURCE runnable; SYS-RELEASE, SYS-BOARD open)",
+    "executed_records": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/run/tests/*.md (32 records, 245,457 bytes, 79 command runs incl. 24 mutant runs, 532.9 s summed)"
+   },
+   "planned_counts": {
+    "apex_methods": 10,
+    "test_spec_cases": 3,
+    "methods_without_a_test_spec_case": [
+     "sameSeed",
+     "sink",
+     "gameOver",
+     "shotAfterGameOver",
+     "outOfRange",
+     "repeatShot",
+     "fullBoard"
+    ],
+    "why": "DUTIES['test-spec'] item 1: 'One test_cases row per ID the step plan's focused commands list; no other ID'. Focused IDs were fleet, miss, hit; report.html lists the other seven under 'Not covered by a test case'",
+    "criteria": 5,
+    "criteria_confirmed_by_source_text_only": [
+     "C1 (R-1)",
+     "C3 controller shape (R-8)",
+     "C4 board (R-9, R-12)",
+     "C5 tab/app/permset (R-2, R-12)"
+    ],
+    "open_items_for_a_person": [
+     "A1/A8/A9 / SYS-BOARD boardClick (R-9 visual, R-12 board)"
+    ]
+   },
+   "executed_summary": {
+    "step_proofs": "16 step-proof runs (S1-S4, two builds), all python source-text checks, 0.9 s total; none executes engine, controller or board behaviour (e.g. S3 requires the literal 'Math.floor(Math.random() * 2147483647)' and two 'length: 10' tokens)",
+    "test_stage_round_1": "commands had no deploy prefix: red-check passed on the base (org already held the classes), mutation-check-only killed 0 of 8 -> test revise (24-test.result)",
+    "test_stage_round_2": "deploy-prefixed commands: fleet 1, smoke 3, full class 10 of 10 Pass; mutation1 8 sampled of 359, 2 killed / 6 survived, gate passed (170.7 s). Killed: SLBattleEngine.cls:123 `<`->`>=`, sfdx-project.json default true->false. Survived: two .sf tracking-file mutants, SLBattleRulesTest.cls:206, slBattleBoard.html:8 (`if:true={errorText}` -> false: errors never shown), slBattleBoard.js:76 (`this.pending = false` -> true: the board locks after the first shot), slBattleBoard.js-meta.xml:4 (isExposed true->false). LWC mutants killed: 0 of 3",
+    "verify": "check-only 4 runs, verify1 reused it (identical seconds); all exit 0",
+    "end_of_work_review": "4 runs exit 0 (run/tests/nav-551a7a9a169846fcacb90e12d3ca2352-verify1.md)",
+    "system_test": "SYS-ORG-SUITE (10 methods) and SYS-SOURCE passed; SYS-RELEASE at release; SYS-BOARD not-run (45-system-test)",
+    "consumer_checks": "one python wrapper over two `sf data query` reads (ApexClass names, PermissionSetAssignment for SLBattle_Access), run from the consumer-check copy, exit 0 (run/tests/nav-227628329d94408f94f8f16b4264f00c-verify1.md). It does not read the tab, its visibility or the component",
+    "release_verify": "done; release accepted without the board click (A1 open for handoff, 51-release-verify)",
+    "harness": "project, deployed, tests (10 ran, 0 failing), access (tab DefaultOn via SLBattle_Access, assigned), rules (harness-owned anonymous Apex, two full games) all pass; overall pass false only on process rc=143 and the uncommitted return (mismatch.md)"
+   },
+   "requirements": [
+    {
+     "id": "R-1",
+     "title": "Project root and names",
+     "planned": "staticShape (S1 source check) + deploy",
+     "executed": "S1 proof, SYS-SOURCE check rows exit 0; deploys succeeded; harness `project` pass",
+     "evidence_kind": "inspection + deploy",
+     "status": "passed (inspection)"
+    },
+    {
+     "id": "R-2",
+     "title": "Metadata the user can open (tab, app, permission set, assign)",
+     "planned": "metaShape (S4 source check); metadataDeploy + assign + assignment query at release",
+     "executed": "S4 proof; release deploy 0Afaj00000oAEksCAG Succeeded; assign exit 1 (duplicate); consumer check (names + assignment) exit 0; harness `access` (PermissionSetTabSetting DefaultOn) pass",
+     "evidence_kind": "inspection + read-only org queries; nothing opened the tab",
+     "status": "passed (non-rendered); tab opening NOT RUN"
+    },
+    {
+     "id": "R-3",
+     "title": "Fleet",
+     "planned": "fleet (test-spec case, focused)",
+     "executed": "focused/smoke/regression Pass",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-4",
+     "title": "Seeded placement",
+     "planned": "sameSeed (regression only, no test-spec case)",
+     "executed": "regression Pass",
+     "evidence_kind": "executed Apex test",
+     "status": "passed; null seed = 0 untested (assumption, AD-7)"
+    },
+    {
+     "id": "R-5",
+     "title": "Shots, hits, misses, sinks",
+     "planned": "miss, hit (cases); sink (regression only)",
+     "executed": "Pass",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-6",
+     "title": "Invalid shots",
+     "planned": "outOfRange, repeatShot (regression only)",
+     "executed": "Pass for the engine exception",
+     "evidence_kind": "executed Apex test",
+     "status": "passed for the engine; controller AuraHandledException path never executed (SLBattleController lines 23-26 uncovered, coverage 56%)"
+    },
+    {
+     "id": "R-7",
+     "title": "Game over",
+     "planned": "gameOver, shotAfterGameOver (regression only)",
+     "executed": "Pass",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-8",
+     "title": "Controller",
+     "planned": "controllerShape (S2 source check) + fullBoard",
+     "executed": "fullBoard Pass; harness rules two full games PASS",
+     "evidence_kind": "executed Apex test + harness oracle",
+     "status": "passed"
+    },
+    {
+     "id": "R-9",
+     "title": "Board (LWC)",
+     "planned": "boardSource (S3 python source-text check); boardClick procedure opt-in for release-verify (A1/A8/A9)",
+     "executed": "source-text check only (8 step-proof runs + SYS-SOURCE)",
+     "evidence_kind": "inspection only; rendered behaviour deferred to a person",
+     "status": "NOT RUN; release accepted without it",
+     "notes": "3 of 3 LWC mutants survived, incl. the pending-lock (js:76) and the error display (html:8); both board races were found by an Improve review (21-improve-implement review 1-3) and no test keeps them fixed; 100 cell buttons have no accessible name until fired"
+    },
+    {
+     "id": "R-10",
+     "title": "Org tests (>=8)",
+     "planned": "full class command",
+     "executed": "10 of 10 Pass at test, verify, system-test",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-11",
+     "title": "One transaction, no SOQL/DML",
+     "planned": "fullBoard Limits.getQueries()/getDmlStatements() = 0",
+     "executed": "Pass",
+     "evidence_kind": "executed Apex test",
+     "status": "passed"
+    },
+    {
+     "id": "R-12",
+     "title": "Secrets and hidden ships",
+     "planned": "hiddenShips/secrets source checks; board half with boardClick",
+     "executed": "python source checks exit 0",
+     "evidence_kind": "inspection only; board half deferred",
+     "status": "source passed; board half NOT RUN"
+    },
+    {
+     "id": "R-13",
+     "title": "Exclusions (no WCAG, offline, multiplayer)",
+     "planned": "no check (N/A)",
+     "executed": "none",
+     "evidence_kind": "n/a",
+     "status": "N/A by design; it was read as 'no accessibility work' (plan section 1 table)"
+    }
+   ],
+   "requirements_without_executed_behavioural_test": [
+    "R-1 (inspection)",
+    "R-2 (read-only queries; tab never opened)",
+    "R-9 (source text; person step never run)",
+    "R-12 (source text; board half not run)",
+    "R-13 (N/A)"
+   ],
+   "inspected_only": [
+    "R-1",
+    "R-2 files",
+    "R-8 shape half",
+    "R-9",
+    "R-12"
+   ],
+   "deferred_to_person": [
+    "R-9 visual (SYS-BOARD/A1)",
+    "R-12 board half",
+    "R-2 opening the tab"
+   ],
+   "score": "8 of 13 requirements have an executed behavioural test (all Apex); the one UI requirement (R-9) was checked only by literal source text"
+  }
+ },
+ "ui": {
+  "planned": {
+   "chess": "C12 source grep at every stage; test-spec open item A1 and SYS-BOARD: a six-sequence manual click procedure in desktop Chrome at release-verify (architecture.md ## Real-boundary checks, 'Browser procedure'). 'LWC Jest: not selected. Reason: ... a local Jest render would not establish Apex rules or governor limits. Do not add an npm toolchain for it.' and 'Playwright: not installed ... Not selected' (environment.md ## Harnesses and suites). Every Improve review carried 'No Jest' forward unchallenged (07-improve-test-strategy review 1-2, 09-improve-plan review 1).",
+   "battleship": "boardSource python source-text check (S3 Proof, SYS-SOURCE); boardClick five-step manual procedure in headed Chrome at release-verify (architecture.md ### boardClick, which also says 'There is no separate wait for an in-flight pending state'). 'Not selected: Jest or a local LWC harness (no Node package, and a local render would not be the org)' (environment.md ### Integrated system catalog)."
+  },
+  "run_or_skipped": {
+   "chess": "run: grep only. skipped: every rendered check. release-verify blocked twice asking the owner; the owner found the tab hidden and later said the board plays, without itemized results, so R-10 and the R-15 page half end not-run.",
+   "battleship": "run: source text only. skipped: boardClick; release-verify accepted the release with A1 open for handoff.",
+   "mutation_evidence": "LWC mutants killed: chess 0 of 3, Battleship 0 of 3 (run/tests/*-mutation1.md in each run). The ShipLoop mutation gate passed both runs anyway (4/8 and 2/8 killed)."
+  },
+  "browser_capability": {
+   "harness_needs": "cases.json: chess-salesforce and battleship-salesforce declare no `needs` (the local battleship and checkers cases declare ['browser']); result.json environment.start.browser = {declared: false, probed: false, reason: 'no case or --need declares a browser'} in both runs. `needs` is a record, never a gate, and gives the model no tool (test/shiploop_e2e/environment.py start_record, browser_record; run.py declared_needs).",
+   "guard": "test/shiploop_e2e/checks/sf_guard.py denies `sf org open`, and the harness wraps `open` and `osascript` with --deny-all (cases.json platform.model_bin), so the model cannot reach an authenticated Lightning page by design.",
+   "host": "Grok host with no MCP tools: search_tool 'browser navigate screenshot' returned results [] (chess 06-test-strategy.actions.md, 37 and 38 release-verify; Battleship 06-test-strategy.actions.md).",
+   "local_tools_observed": "Google Chrome 155.0.8059.80 at /Applications/Google Chrome.app (chess run/scratch/prepare-chrome-version.txt); Node v25.9.0 (chess 38-release-verify.actions.md, `node -e`); no Playwright module, no chromium/google-chrome on PATH (chess 06-test-strategy.actions.md probe). npm and npx were never probed.",
+   "stand_in_probes": "test-strategy duty 11 made both runs load a one-line local page with headless Chrome --dump-dom and read back its title: chess run/scratch/browser-standin.html (title 'SLChess stand-in', exit 0), Battleship run/scratch/standin-board.html (title read, process exit 2 on teardown). This proved Chrome starts; it never rendered the product's component, and no later stage revisited it."
+  },
+  "layers_that_could_have_been_used": [
+   {
+    "layer": "Component tests with the UI framework's own runner (for LWC: @salesforce/sfdx-lwc-jest, jsdom in Node, no org)",
+    "needs": "npm install of a dev-only dependency (package.json + lockfile), `.forceignore` entry `**/__tests__/**`; Apex imports mocked with jest.mock('@salesforce/apex/<Class>.<method>', ..., {virtual: true}); deferred promises to control response order; @sa11y/jest or accessible-name assertions for a11y. Blocked today by 'Install, download or fetch nothing' (DUTIES['implement'] item 3, DUTIES['test'] item 7) and 'Install nothing without authority' (DUTIES['prepare'] item 1) unless test-strategy plans it as a facility with authority.",
+    "would_have_caught": [
+     "chess play() stale-response race: click e2,e4 (applyMove pending), click New game, then resolve applyMove -> expect the start FEN; fails on slChessBoard.js play(), which assigns this.fen = next with no pending guard or token (refresh() has one)",
+     "chess promotion chooser and deselect defects: the surviving html:20 and js:127 mutants are killed by 'reaching the last rank shows the queen/rook/bishop/knight chooser' and 'clicking the selected square deselects it'",
+     "Battleship board races (found late by Improve at 21-improve-implement and never pinned by a test): a second click while fire() is pending makes no second call; a New game during a pending fire discards the stale result",
+     "Battleship pending-lock mutant (js:76) and error-display mutant (html:8): 'after a shot returns, the next click fires again' and 'a rejected fire shows the message and keeps the counts'",
+     "Battleship's 100 unlabeled cell buttons and chess's unnamed empty squares: every button has an accessible name (@sa11y/jest toBeAccessible or a name query)"
+    ],
+    "would_not_catch": [
+     "hidden tab",
+     "Lightning Web Security/SLDS behaviour in the real page",
+     "Apex permission context"
+    ],
+    "cost_estimate": "seconds per run after a one-time install; runs locally inside the default suite, so ShipLoop's mutation check would kill LWC mutants"
+   },
+   {
+    "layer": "Rendered check of the component in a local harness page with headless Chromium (Playwright, Puppeteer, the Chrome DevTools protocol, or the Chrome DevTools MCP: navigate_page, click, wait_for, take_snapshot for the accessibility tree, list_console_messages, lighthouse_audit)",
+    "needs": "the component compiled into a local page (for LWC the LWC compiler/engine from npm; plain web apps serve their own page), backend responses stubbed with controllable timing. Chrome itself was present; Node >= 22 has a global WebSocket, so a CDP script needs no npm package, but compiling an LWC does.",
+    "would_have_caught": [
+     "accessible names via the real accessibility tree (100 unnamed buttons; glyph-only squares; role=grid misuse)",
+     "overlapping-request races with responses released in chosen order",
+     "error display",
+     "console errors and real layout"
+    ],
+    "would_not_catch": [
+     "hidden tab",
+     "org permission context",
+     "Lightning shell behaviour"
+    ],
+    "cost_estimate": "higher than the component runner for LWC (a build step); the natural layer for web apps served locally (the local battleship/checkers cases)"
+   },
+   {
+    "layer": "Authenticated rendered check on the target",
+    "needs": "a signed-in session the run must not hold (sf_guard denies `org open`; plan H3). Options: the person (plan H1 checklist), or a harness-owned check that holds the session itself and never shows it to the model.",
+    "would_have_caught": [
+     "chess hidden tab ('Page does not exist')",
+     "Battleship js-meta isExposed mutant (the tab cannot show the component)",
+     "unlabeled buttons in the real page",
+     "races only with throttled responses; a person clicking rarely sees them"
+    ],
+    "cheaper_partial_substitute": "for the hidden tab, a read-only PermissionSetTabSetting/assignment query (platforms/salesforce.md ## Consumer entry access) needs no session; the Battleship harness `access` check runs it; chess never did"
+   }
+  ],
+  "answer": "Yes for the defects found: a component-test layer (sfdx-lwc-jest in Node, no org) would have caught the chess play() race, both runs' surviving LWC mutants, the Battleship races before Improve did, and the unlabeled buttons. Headless Chromium on a local page adds real accessibility-tree, console and layout checks but costs a build for LWC. Only an on-target check (a person, or a harness-held session) or a read-only visibility query catches the hidden tab. Neither run used any of these: the stand-in probe proved Chrome starts, then both strategies excluded Jest with the reason that it is not the org."
+ },
+ "visibility": {
+  "where_test_output_is_stored": [
+   {
+    "path": "RUN/tests/<action>-check-only.md, -verify<N>.md (schema shiploop-test-loop/v1)",
+    "format": "Markdown wrapping a ```shiploop-state JSON block: runs[] with command, suite, ids, ids_missing, min_tests, exit, seconds, status, full stdout and stderr (deploy output included), counts",
+    "note": "counts is null in all 117 command runs of both runs (the 40 mutant runs carry no counts field): shiploop_test_counts.READERS has no TAP or Apex reader"
+   },
+   {
+    "path": "RUN/tests/<action>-base1.md, -red-check.md (shiploop-test-base/v1)",
+    "format": "same, plus id_outcomes and load_failure_names on the base tree"
+   },
+   {
+    "path": "RUN/tests/<action>-mutation1.md, -mutation-check-only.md (shiploop-test-mutation/v1)",
+    "format": "candidates, sample_size, killed, survived, mutants[] (file, line, operator, original, replacement, status, by)"
+   },
+   {
+    "path": "RUN/tests/<action>-step-proof<N>.md, -step-proof-check-only.md (Battleship build only)",
+    "format": "the step's check command and its run"
+   },
+   {
+    "path": "RUN/loops/<action>-terminal.json; RUN/scratch/*-report.json",
+    "format": "loop terminal state and the model's copies of loop reports"
+   },
+   {
+    "path": "RUN/scratch/st-*.tap, sys-*.tap, st-meta-grep.txt (chess); scratch/release-verify-confirm.txt (Battleship)",
+    "format": "model-saved raw outputs, cited in summaries"
+   },
+   {
+    "path": "harness: <output>/result.json checks[]",
+    "format": "per check: command, pass, returncode, output (per-marker PASS lines for the rules oracle)"
+   }
+  ],
+  "sizes": {
+   "chess": "9 records, 275,955 bytes, 78 runs",
+   "battleship": "32 records, 245,457 bytes, 79 runs"
+  },
+  "owner_facing": {
+   "report_html": "Written only when status is done or halted (shiploop_navigator.py: `if state[\"status\"] in (\"done\", \"halted\")` before `_render_report`); chess ended blocked and has none. Battleship's report shows: per item a planned test_cases table (ID, Criterion, Requirement, Oracle, Red, Green) with no outcome column, a 'Not covered by a test case' line, a 'System tests' table with Command, Suite, IDs only (`_handoff_sections`), Open items and Unverified request outcomes tables (person checks are visible), and transition summaries whose evidence paths include 4 RUN/tests links as plain text. No per-test pass/fail, no mutation score, no coverage.",
+   "progress_html": "Steps, work items, key files and recent activity; test outcomes appear only inside step prose (no test table) in both runs.",
+   "status_md": "Stage position and the next ask only; no test lines (both runs).",
+   "narrative": "not produced as a separate file in either run record set"
+  },
+  "harness_grading": {
+   "checks": "chess: project, deployed, tests (23 ran, 0 failing), rules (perft p1/p2, mates, stalemate); Battleship: project, deployed, tests (10 ran), access, rules (two whole games). All pass; none observes the LWC.",
+   "facts_md": "review-export/facts.md (Battleship): 'Delivered tests: not measured (no stage's script-check record carries a test count ...)' and 'Fidelity, validation: ... 0 rows with a test count; 10 focused or regression rows with no test count'; 'Delivered files ... tests 0' (Apex *Test.cls not classed as test; plan C3)",
+   "spec_gap": "test/shiploop_e2e/SPEC.md (design-audit dispositions of 2026-10-09): 'the UI observation waits until a browser can be clicked through a debugging connection'"
+  },
+  "verdict": "Per-test results exist only inside raw JSON test records; no owner-facing page shows which test passed, which IDs ran, mutation results or coverage, and a blocked run has no report at all."
+ },
+ "planning": {
+  "prompts": {
+   "test_strategy": "DUTIES['test-strategy'] item 1 lists layers 'unit, integration, system, consumer' (no component or rendered-UI layer) and Stage('test-strategy').test says the same (shiploop_stage_spec.py). Item 9 asks for focused, smoke and full commands: one suite. Item 11 asks to probe a host tool on a stand-in page before the product exists; nothing returns to it once the product exists. Item 12 asks for a browser case for a page people use, 'Otherwise record the outcome unverified', which both runs took. No duty asks for an executable command per layer per concern, and the done_when checks 'every criterion maps to a check', not that UI behaviour has an executed layer.",
+   "test_spec": "DUTIES['test-spec'] item 1: 'One test_cases row per ID the step plan's focused commands list; no other ID.' Battleship got 3 cases for 10 methods; item 2 names 'rendered UI' only as a field value. done_when allows a criterion confirmed by a check command to have no case, so C4 (the board) had none.",
+   "step_plan": "DUTIES['step-plan'] item 4: a remote-only target may use 'the recorded test route only' for a step check, which left all four Battleship steps with source-text Proofs (plan B1/B2). Item 5 names Jest only as a reporter-flag example.",
+   "system_test_author": "Item 2 asks for accessibility and consumer cases; item 7 turns any browser case into an open item; both runs did so.",
+   "install_rules": "DUTIES['implement'] item 3 and DUTIES['test'] item 7: 'Install, download or fetch nothing'; DUTIES['prepare'] item 1: 'Install nothing without authority'. Test-strategy item 5 has a route ('A missing facility goes in summary as plan's prerequisite work'), but nothing names a dev-only test runner as such a facility, so both runs excluded it.",
+   "platform_card": "references/platforms/salesforce.md: 'LWC Jest checks components locally; Apex tests execute in the org; browser checks observe the Lightning consumer. None substitutes for the others' required boundary.' Chess read it at test-strategy and concluded Jest was unnecessary. The card is not linked from either test-strategy packet (0 'platforms/' mentions in 06-test-strategy.packet.md, both runs). The same card says a human-format focused command is refused as unread, yet Battleship's human focused commands passed with ids shown, and it recommends `sf org open --url-only`, which the E2E guard denies and plan H3 forbids.",
+   "review_focus": "_REVIEW_FOCUS_ITEMS has no item for a changed code path (event handler, async call, template branch) that no recorded command executes; plan F1 adds 'a behaviour a criterion states that no command exercises'.",
+   "mutation_gate": "Passed with 4/8 (chess) and 2/8 (Battleship) killed while every LWC mutant survived; shiploop_mutation.py reports totals, not per-path-class kills."
+  },
+  "answer": "Planning made the model plan one suite, the org Apex suite, plus source greps and a manual browser procedure. It did not plan test layers per concern with an executable command each. The Apex rules were planned thoroughly (22 chess cases with exact FENs; 10 Battleship procedures). The UI concern had no executable layer in either run, and test-spec's focused-only rule left 7 of 10 Battleship methods without a case."
+ },
+ "recommendations": [
+  {
+   "change": "Test-layer rows per concern at test-strategy: for each requirement or concern row (fold into plan A1's concern map), name the layer (unit, component, remote/integration, rendered-local, rendered-on-target, consumer) and either one executable command or `na: <reason>`. The gate checks structure only: every UI or interactive requirement has a component or rendered-local row with a command, or a reason naming what blocks it.",
+   "where": "shiploop_prompts.py DUTIES['test-strategy'] items 1, 4 and 9; shiploop_stage_spec.py Stage('test-strategy') test= and done_when; the test-strategy result template plus a structural gate in shiploop_navigator.py",
+   "why": "Both runs planned one suite (Apex) and left both UI requirements with source greps; 0 of 6 LWC mutants were killed.",
+   "risk": "Boilerplate rows. Mitigate by sharing A1's rows (one 'check layer + command' column) and gating structure, not substance. Main tenet: the rows are data the later packets quote."
+  },
+  {
+   "change": "Once the product exists, the browser probe renders the product, not a stand-in. Test-strategy keeps the stand-in probe (the tool starts); system-test-author (or the test stage for a UI item) runs the planned rendered-local or component command against the real component and cites it.",
+   "where": "DUTIES['test-strategy'] item 11 (one clause), DUTIES['system-test-author'] items 2 and 5",
+   "why": "Both stand-in pages proved only that Chrome starts; no stage came back to render the product.",
+   "risk": "Low. For platform-compiled components the component runner is the cheaper route (next item)."
+  },
+  {
+   "change": "A named route for a dev-only test dependency: test-strategy may plan a test runner package (exact name, pinned version, install command, lockfile, ignore rule) as a facility; plan carries it as prerequisite work; prepare installs it under recorded authority; implement and test keep 'install nothing' beyond it.",
+   "where": "DUTIES['test-strategy'] item 5, DUTIES['prepare'] item 1, references/repeatable-test-suites.md#reuse-and-define-test-facilities, references/delivery-authority.md",
+   "why": "sfdx-lwc-jest needs an npm install. Both runs rejected it, and no prompt says how a runner may be added.",
+   "risk": "Network and supply chain (pin, lockfile, no global install); unattended runs need a default authority. Owner decision: it relaxes 'Install nothing without authority' for a planned dev-only test runner."
+  },
+  {
+   "change": "Rewrite the Salesforce card's test paragraph: an LWC with event handlers, async Apex calls or state gets component tests with @salesforce/sfdx-lwc-jest. Mock the Apex imports with {virtual: true}, use deferred promises for overlapping requests and New game during a pending call, and assert accessible names (@sa11y/jest or a name query). Add `**/__tests__/**` to .forceignore and keep a devDependency in package.json. Apex tests stay in the org. A read-only PermissionSetTabSetting query checks the entry before release. A rendered on-target check is a person's step or a harness-held session. Remove the `sf org open --url-only` advice, which conflicts with plan H3 and the E2E guard, and fix the 'human is refused' and 'mutation check carries the proof' sentences (plan C6).",
+   "where": "skills/shiploop/references/platforms/salesforce.md (Target-native tests paragraph, browser-session paragraph, ## Consumer entry access)",
+   "why": "Chess read the card and still excluded Jest. Its 'none substitutes' wording reads as 'pick one'. The card also contradicts the guard and the run's own evidence.",
+   "risk": "Low. Platform detail stays in references/platforms/. Link the card from test-strategy (plan G1)."
+  },
+  {
+   "change": "Generic local rendered-check guidance: headless Chromium on a local harness page with backend responses released in a chosen order. Use Playwright or Puppeteer where present, a zero-dependency CDP script (Chrome --remote-debugging-port plus Node's global WebSocket), or the Chrome DevTools MCP (take_snapshot for accessible names, click, wait_for, list_console_messages). Say what it proves (accessible names, overlapping requests, error display, console) and what it does not (on-target permissions).",
+   "where": "references/testing-and-documentation.md ### Lightweight and browser checks (one row in the observation table) and references/platforms/ui.md (one paragraph tying its overlapping-request and accessible-name rules to that check)",
+   "why": "ui.md already states the rules both runs broke, but names no local way to test them, and neither run opened ui.md.",
+   "risk": "Low (guidance). The card text has to reach the packet to matter (plan A2)."
+  },
+  {
+   "change": "Test-spec covers every ID the item's commands list (plan E7), not only focused IDs, and every UI criterion has at least one component or rendered case, or an open item naming the missing layer.",
+   "where": "DUTIES['test-spec'] item 1; shiploop_stage_spec.py Stage('test-spec') goal and done_when",
+   "why": "Battleship planned 3 cases for 10 methods; report.html lists sameSeed, sink, gameOver and others as 'Not covered by a test case'. The board had no case at all.",
+   "risk": "Bigger test-spec results (Battleship +7 rows); keep oracles one line each."
+  },
+  {
+   "change": "Mutation evidence per path class: stratify the sample so each changed code path class (component script and template, server code) gets at least one mutant, and record per-class kills. When every mutant on a changed code path survives, record an open item 'no recorded command executes <paths>' with the add-a-layer route; start as an observation, not a refusal.",
+   "where": "skills/shiploop/scripts/shiploop_mutation.py (sampling and record), the test stage gate in shiploop_test_loop.py, references/path-classes.json (component .js/.html are code; .css style; .sf/ generated per plan C3)",
+   "why": "The gate passed twice while 0 of 6 LWC mutants died, including a board lock after one shot and a hidden promotion chooser. Two of 16 mutants were spent on .sf tracking files.",
+   "risk": "A sample of 8 is noisy, so an open item is safer than a refusal. Test the route through the real gate (owner rule)."
+  },
+  {
+   "change": "Show test results to the owner. Add to the report's System tests table Outcome, per-ID passed/failed/missing (shiploop_test_counts.outcomes), seconds and a link to the RUN/tests record. Add a last-outcome column to each item's test_cases table and one mutation line per item (killed/survived by file). Render the report, or the same Tests section in progress.html, for blocked runs too.",
+   "where": "shiploop_navigator.py _handoff_sections, _item_handoff_lines, and the `status in (\"done\", \"halted\")` condition before _render_report; the progress renderer (shiploop_progress_render.py)",
+   "why": "Per-test results live only in raw JSON (521 KB across both runs). The report lists commands without outcomes, and chess, blocked at release-verify, has no report.",
+   "risk": "Report size: link the records, never inline stdout (it also carries the org username)."
+  },
+  {
+   "change": "Add a generic TAP reader (`1..N` plan line plus `ok N` / `not ok N`) to shiploop_test_counts.READERS, so TAP runners, Apex included, get counts and the harness can measure delivered tests.",
+   "where": "skills/shiploop/scripts/shiploop_test_counts.py (READERS, count); harness metrics/facts reuse it",
+   "why": "All 117 recorded command runs (both runs) have counts: null; harness facts say 'Delivered tests: not measured'.",
+   "risk": "Double counting where node --test also prints TAP: let the node reader win or dedupe. A reader for the Apex human format would be platform code in scripts, so leave it out (owner rule)."
+  },
+  {
+   "change": "Harness: declare `needs: [\"browser\"]` for chess-salesforce and battleship-salesforce. Add a harness-owned `render` check that holds the session itself (never visible to the model, URL scrubbed): open the tab through the debugging connection, assert the component renders and is not 'Page does not exist', count controls with no accessible name, click once and observe the turn or shot count change. Record it, as the delivered-quality rule says, without judging the run.",
+   "where": "test/shiploop_e2e/cases.json (needs, needs_source), test/shiploop_e2e/checks/chess_salesforce.py and battleship_salesforce.py (a render subcommand), test/shiploop_e2e/SPEC.md (lift the 'UI observation waits until a browser can be clicked through a debugging connection' deferral)",
+   "why": "Harness grading has 4-5 Apex and metadata checks and no UI observation. The owner learned of the hidden tab by hand.",
+   "risk": "The session URL is a credential, so the harness alone may hold it (owner decision; plan H3 binds the run, not the harness). Lightning load times make it flaky, so bound the waits and record rather than gate."
+  },
+  {
+   "change": "Review focus: extend plan F1's item to code: 'a changed event handler, async call or template branch that no recorded command executes'.",
+   "where": "shiploop_prompts.py _REVIEW_FOCUS_ITEMS",
+   "why": "Improve carried 'No Jest' through three reviews in chess. Battleship's Improve fixed two board races but added no test to keep them fixed.",
+   "risk": "Low; one line in a shared constant."
+  }
+ ],
+ "relation_to_plan": "Complements plan units A1 (concern map: add a test-layer column), A2 (card text in packets), A4 (overlapping requests and accessible names in spec), B1/B2 (behavioural step Proofs), C3/C6 (path classes, card corrections), E7 (test-spec regression IDs), F1 (review focus), G1 (link the card at test-strategy), H1/H3 (person checklist; no session in the run), I3 (consumer check observes the entry). New here: the component-runner route and install authority, per-class mutation evidence, report test outcomes, the TAP reader, and the harness render check.",
+ "method": "Read-only: parsed every RUN/tests/*.md shiploop-state block in both runs (scratchpad insights2/ta_tests.py, ta_count.py), the step results in SP/report-*/in, the product LWC sources, cases.json, sf_guard.py, shiploop_prompts.py DUTIES, shiploop_stage_spec.py, shiploop_test_counts.py, shiploop_navigator.py _handoff_sections/_render_report, and the platform and testing references. No transcript was opened."
+}
