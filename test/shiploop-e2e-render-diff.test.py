@@ -224,8 +224,14 @@ class TextRenderTests(unittest.TestCase):
         self.assertEqual(read_all(self.dirs["a83"]), self.text["a83"])
 
     def test_a_run_directory_that_cannot_be_reached_from_the_temporary_directory_is_refused_with_the_remedy(self):
+        # The temporary directory itself is made longer than the run directory asked for, so the refusal holds on any host
+        # (Linux CI's /tmp is short enough to hold 24 characters, macOS's /var/folders/... is not).
         with tempfile.TemporaryDirectory() as other:
-            code, _, err = run(packets.main, ["--offline", "node-fix-bug", "--text-dir", Path(other) / "x", "--run-dir-length", "24"])
+            deep = Path(other) / ("t" * 40)
+            deep.mkdir()
+            with mock.patch.object(tempfile, "tempdir", str(deep)):
+                code, _, err = run(packets.main, ["--offline", "node-fix-bug", "--text-dir", Path(other) / "x",
+                                                  "--run-dir-length", "24"])
         self.assertNotEqual(code, 0)
         self.assertIn("TMPDIR", err)
 
