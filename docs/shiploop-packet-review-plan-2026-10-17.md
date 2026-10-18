@@ -1,4 +1,4 @@
-Execute: ask
+Execute: inline (owner go 2026-10-17 with the decisions in section 4)
 
 # ShipLoop packet review and plan (2026-10-17)
 
@@ -110,6 +110,13 @@ Exit: a compaction-recovery test.
    refusals, compactions, minutes, and implement + Improve actions per planned step (must equal the step count, in order).
 
 ## 4. Decisions for the owner
+
+Owner answers (2026-10-17): **D1** table of contents (U1 as written); **D2** yes, quote the request whole only at
+intake, spec and plan, now (part of U1); **D3** no for now: implement keeps the full Code craft text; **D4** drop the
+`# ShipLoop navigator result` heading now; the first line and the refusal prefix stay; **D5** yes, `complete` reuses a
+passed check-only record on an unchanged tree and command list (U9).
+
+The questions as asked:
 
 - **D1 (U1):** Is quoting knowledge files whole a requirement of the main tenet (context is cleared between stages), or
   only the means? Recommendation: a table of contents plus the followed rows by value satisfies it; the model already
