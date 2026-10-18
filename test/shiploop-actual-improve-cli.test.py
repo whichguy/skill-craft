@@ -660,7 +660,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
         handoff = navigator.improve_handoff_text(None, self.run, waiting)  # the file the improve skill reads
 
-        self.assertIn(user_no_commit, packet)
+        # The Improve packet carries no progress block since packet review U5, so the request (once in its narrative
+        # goal line) reaches the child through the handoff, which quotes it whole at spec (owner D2).
+        self.assertNotIn("=== ShipLoop narrative ===", packet)
+        self.assertIn(user_no_commit, handoff)
         self.assertIn(
             "selected Improve card's scoped-commit policy with the task's explicit overrides",
             with_route(handoff),

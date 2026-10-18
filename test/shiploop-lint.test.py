@@ -1519,7 +1519,7 @@ class PromptContractTests(unittest.TestCase):
             self.assertNotIn("Pass-or-stop loop", guidance.prompt(stage, delegation=guidance.INLINE))
         # Packet re-cut (2026-10-11): the loop's Work is "do duty items 1-4 of the packet"; running the checks and the
         # lint command is stated once, in the stage's own duty item, and the loop's Repeat rule names the lint finding.
-        for stage, run_lint in (("implement", "run every recorded check command and `shiploop lint --action`"),
+        for stage, run_lint in (("implement", "run every check command on the Step lines and `shiploop lint --action`"),
                                 ("test", "run every recorded command, the red-check command and the lint command")):
             with self.subTest(stage=stage):
                 work = " ".join(loops.WORK[stage].split())

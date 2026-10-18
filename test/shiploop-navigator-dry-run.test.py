@@ -192,7 +192,12 @@ class NavigatorDryRunTests(unittest.TestCase):
                     if not is_improve_packet(event['prompt']):
                         # The Improve packet is two instructions (re-cut, 2026-10-11) and no longer prints the request;
                         # the request reaches the Improve child through the opening ShipLoop writes.
-                        self.assertIn('Inspect the SDLC graph', event['prompt'])
+                        # D2 (owner, 2026-10-17): the request is quoted whole at intake, spec and plan; every other
+                        # producer packet points to RUN/request.md instead.
+                        if event['from'] in navigator.REQUEST_WHOLE_STAGES:
+                            self.assertIn('Inspect the SDLC graph', event['prompt'])
+                        else:
+                            self.assertIn('Original request: RUN/', event['prompt'])
                     self.assertIn(event['from'], event['prompt'])
                     self.assertFalse(
                         {'phase', 'subphase', 'counter', 'review_count'} & set(event)

@@ -612,7 +612,7 @@ def outline(text: str, name: str) -> List[Section]:
     is not an entry, in order, with the entries that start under it.
 
     The entries are spec.md's R-<n> or architecture.md's AD-<n> (``_ENTRY_FILES``), each at its first start (the
-    ``_entries`` rule).  An entry that is a heading (``### R-3 Castling``) belongs to the section above it, with its heading
+    ``_entries`` rule).  An entry that is a heading (``### R-3 Export format``) belongs to the section above it, with its heading
     text, and a heading inside its span (``#### Acceptance``) is part of the entry, not a section.  Entries before the
     first heading form a level-0 section; a file with neither gives [].  Text only: no file, no Git.
     """

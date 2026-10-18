@@ -134,7 +134,8 @@ class ReviseTests(unittest.TestCase):
         self.assertIn("2 of 2 left for this item", packet)
         state = submit(state, REVISE)
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
-        self.assertIn("(sent back to step-plan)", packet)
+        # The one-line status (packet review U5) has no "(sent back ...)" suffix; the revisit block says it (U4).
+        self.assertIn("Revisit: test sent W1 back to step-plan (1 of 2 revises)", packet)
 
     def test_a_redone_step_plan_packet_names_the_previous_plan_and_the_revise_result(self) -> None:
         state = drive_to("implement")

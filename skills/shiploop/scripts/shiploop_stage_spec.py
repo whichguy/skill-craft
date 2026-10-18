@@ -398,7 +398,7 @@ _ROWS = (
         steps_done_when=(
             "only the paths of steps {steps} ({paths}) changed since the first of them began, and no work outside "
             "those steps is in them",
-            "after the last edit, every recorded check command exited 0",
+            "after the last edit, every check command on the Step lines exited 0",
             "after the last edit, the lint gate reports no unwaived new finding on a line these steps changed",
             "the result lists each behaviour the changes added that no test-spec case covers (or none), and whether "
             "each step's skills were used",

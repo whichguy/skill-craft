@@ -6316,10 +6316,11 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
                 lines += _source_lines(root, state, source)
     sent = _sent_back_results(state, stage, workitem)
     if sent is not None:
-        count, previous, sent_back = sent
-        lines.append("Revisit: " + str(workitem) + " is back at " + stage + " (" + str(count) + " of "
-                     + str(stage_spec.MAX_REVISES) + "); the previous accepted " + stage + " result: RUN/results/"
-                     + previous + ".md; the revise result that sent it back: RUN/results/" + sent_back + ".md.")
+        previous = ("the previous accepted " + stage + " result: RUN/results/" + sent.previous + ".md; "
+                    if sent.previous else "")
+        lines.append("Revisit: " + str(workitem) + " is back at " + stage + " (" + str(sent.count) + " of "
+                     + str(stage_spec.MAX_REVISES) + "); " + previous + "the revise result that sent it back: "
+                     "RUN/results/" + sent.sent_back + ".md.")
     return lines
 
 
