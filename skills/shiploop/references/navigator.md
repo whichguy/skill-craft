@@ -515,18 +515,19 @@ omitted counts, short titles and a short blocking reason. Read `state.md` for
 the full queue/history and actual evidence for execution claims. Before
 `plan` and its child complete, the queue is provisional.
 
-Every packet also carries the script-rendered [status block](status-display.md)
-between `=== ShipLoop status ===` and `=== end ShipLoop status ===`: where the
-run is, the phase and item maps, what was just accepted, what comes next, the
-item's plan sentence and the completed items. The block orients the owner; the
-owner does not reprint it. Where the host supports one, a status hook (see the
-status-display guide) shows the user a two-line summary. At start/recovery and
-after each callback the owner tells the user at most one line, for example the
-stage just finished and the one starting, and shows the whole block unchanged
-only when the user asks for the full status. At milestones the packet also
-carries the [run narrative](status-display.md#run-narrative); its first line says
-whether the owner pastes it to the user as written or the host's hook already
-showed it. During long actions or waits, follow the host's update cadence with an actual observation, or the last
+Every packet but an Improve packet also carries one script-rendered progress
+block: at milestones the [run narrative](status-display.md#run-narrative), whose
+first line says whether the owner pastes it to the user as written or the host's
+hook already showed it; otherwise one status line, `Where: … · Next: …`. The
+full [status block](status-display.md) (between `=== ShipLoop status ===` and
+`=== end ShipLoop status ===`: where the run is, the phase and item maps, what
+was just accepted, what comes next, the item's plan sentence and the completed
+items) is in `status.md` and what `shiploop status` prints. The progress orients
+the owner; the owner does not reprint it. Where the host supports one, a status
+hook (see the status-display guide) shows the user the narrative or a two-line
+summary. At start/recovery and after each callback the owner tells the user at
+most one line, for example the stage just finished and the one starting, and
+shows the full block unchanged only when the user asks for the full status. During long actions or waits, follow the host's update cadence with an actual observation, or the last
 known status and next check.
 
 Run to completion by default within the user's scope and existing authority.

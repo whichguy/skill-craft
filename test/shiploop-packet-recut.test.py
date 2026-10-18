@@ -136,9 +136,11 @@ class ImprovePacketTests(unittest.TestCase):
             for absent in ("Goal:", "References (", "Rules", "Result template", "Current stage guidance",
                            "Checked by", "Done when", "opening file", "Write the opening"):
                 self.assertNotIn(absent, packet, absent)
-            # The hooks' machine lines stay.
+            # The keepalive hooks' machine line stays; no progress block (packet review F6, 2026-10-17: the packet before
+            # it showed the step under review, the next producer packet shows the result).
             self.assertIn("Keepalive marker: ", packet)
-            self.assertIn("=== ShipLoop status ===", packet)
+            for absent in ("=== ShipLoop status ===", "=== ShipLoop narrative ===", " · Next: "):
+                self.assertNotIn(absent, packet, absent)
             self.assertLess(len(packet), IMPROVE_CEILING)
 
     def test_shiploop_writes_the_opening_and_starts_the_child_at_the_transition(self) -> None:
@@ -275,14 +277,16 @@ class PrintedHeadTests(unittest.TestCase):
                 self.assertIn("\nRULES ", text)  # the duties' own closing rules came with them
                 self.check_length("inline", key, text, full[key])
 
-    def test_the_status_block_ends_inside_the_status_hooks_window_and_leads_the_duties(self) -> None:
+    def test_the_progress_block_ends_inside_the_status_hooks_window_and_leads_the_duties(self) -> None:
         import shiploop_status_hook as hook
         for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():
-            if key.endswith("-improve"):
-                continue
             with self.subTest(packet=key):
-                end = text.index("=== end ShipLoop status ===")
-                self.assertLess(end + len("=== end ShipLoop status ==="), hook.WINDOW)
+                shown = hook.packet_progress(text)
+                if key.endswith("-improve"):  # an Improve packet carries no progress block
+                    self.assertIsNone(shown)
+                    continue
+                end = text.index(shown) + len(shown)
+                self.assertLess(end, hook.WINDOW)
                 self.assertLess(end, text.index("Current stage guidance:"))
 
     def test_the_ask_agent_route_keeps_the_duties_and_the_status_window_and_no_head_is_over_the_cut(self) -> None:
@@ -301,7 +305,8 @@ class PrintedHeadTests(unittest.TestCase):
                 continue
             with self.subTest(packet=key):
                 self.assertIn("Current stage guidance:", text)
-                self.assertLess(text.index("=== end ShipLoop status ==="), hook.WINDOW)
+                shown = hook.packet_progress(text)
+                self.assertLess(text.index(shown) + len(shown), hook.WINDOW)
                 self.check_length("ask-agent", key, text, whole[key])
 
     def test_a_head_that_would_pass_the_host_cut_drops_the_quoted_knowledge_not_the_duties(self) -> None:

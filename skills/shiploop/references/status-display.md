@@ -2,7 +2,10 @@
 
 ShipLoop renders one fixed **status block** from saved run state, and at
 milestones a **run narrative** that tells the story of the run. The model writes
-neither; in a terminal CLI a hook can show them to the user directly.
+neither; in a terminal CLI a hook can show them to the user directly. A packet
+carries one progress block: the narrative at a milestone, otherwise a one-line
+**status line** cut from the block; the full block is in `status.md` and
+`shiploop status` (see [where it appears](#where-it-appears)).
 
 ```text
 === ShipLoop status ===
@@ -111,41 +114,60 @@ no ongoing observation unless an observer still owns its original path.
 
 ## Where it appears
 
-1. **Every packet**, after the progress snapshot. The block orients the
-   owner, which does not reprint it: it tells the user at most one line per
-   step and shows the whole block unchanged only when the user asks for the
-   full status.
+1. **Every packet, one progress block**, after the Until Loop block and
+   before the duties (owner, 2026-10-17: the block and the narrative said the
+   same; a live run printed both in 28 of 36 packets). A milestone packet,
+   which every paused, blocked, halted and done packet is, carries the
+   [narrative](#run-narrative) only. Any other producer packet carries the
+   status line, the block's `Where` and `Next` rows on one line:
+
+   ```text
+   Where: Work items > W2 "Add --version flag" (2 of 4) > Build > test · Next: test: write the specified tests and make every recorded command pass
+   ```
+
+   An Improve packet carries neither: the packet before it showed the step under
+   review, and the next producer packet shows the result. The progress orients
+   the owner, which does not reprint it: it tells the user at most one line per
+   step and, when the user asks for the full status, shows the block that
+   `status` prints, unchanged.
 2. **`<run>/status.md`**, rewritten by every saved transition in the same
    journaled transaction as `state.md`, and **`shiploop status --run-dir=…`**,
-   which prints the block read-only. `status` takes the run lock like `next`,
+   which prints the full block read-only. `status` takes the run lock like `next`,
    so it first finishes any interrupted save. Only a direct read of
    `status.md` during an interrupted save can show the previous step.
-3. **Host status hook**: `scripts/shiploop-status-hook` reads the block from a
-   ShipLoop command's own stdout and puts a two-line summary in the hook's
-   `systemMessage`. Only the Claude Code terminal CLI shows it, in dim text
+3. **Host status hook**: `scripts/shiploop-status-hook` reads the progress from a
+   ShipLoop command's own stdout and puts it in the hook's `systemMessage`: the
+   narrative at a milestone, with terminal bold in place of the Markdown, and
+   otherwise a two-line summary of the status line (or of the block `status`
+   prints). Only the Claude Code terminal CLI shows it, in dim text
    after `PostToolUse:Bash says:`; the Claude desktop app, the VS Code panel
    and the Codex TUI (0.157.1) drop a PostToolUse `systemMessage`, and the
    model never sees it:
 
    ```text
    ShipLoop ▶ Work items > W2 "Add --version flag" (2 of 4) > Build > test
-   Done: W2 implement: --version added to the cli.py argparse; checks pass. | Next: test: write the specified tests and make every recorded command pass
+   Next: test: write the specified tests and make every recorded command pass
    ```
 
-   The second line takes `Waiting on you` or `Stopped` in place of `Next` when
-   the run waits or stops. The full block stays in `status.md` and `status`. A marketplace install sets it up; see
-   [host hooks](#host-hooks). At a milestone the hook shows the narrative
-   instead, with terminal bold in place of the Markdown.
+   From the block `status` prints, the second line also names what finished
+   (`Done: … | Next: …`) and takes `Waiting on you` or `Stopped` in place of
+   `Next` when the run waits or stops. An Improve packet shows nothing. A
+   marketplace install sets it up; see [host hooks](#host-hooks).
 
 ## Run narrative
 
 At milestones a packet carries a script-rendered narrative between
-`=== ShipLoop narrative ===` and `=== end ShipLoop narrative ===`: the goal, a
+`=== ShipLoop narrative ===` and `=== end ShipLoop narrative ===`, in place of
+the status line: the goal, a
 progress bar per phase, what has been achieved, what is happening now, what
-comes next and the run's observed pace. Milestones are the start of a run,
-every accepted preparation and release stage, the end of each work-item stage
-phase (Plan, Validate existing, Build, Verify, Carry forward), and every paused, blocked,
-awaiting, halted or done packet. Other packets carry no narrative.
+comes next and the run's observed pace. A milestone is the first producer packet
+after one of these: the start of a run, an accepted preparation or release
+stage, the end of a work-item stage phase (Plan, Validate existing, Build,
+Verify, Carry forward); and every paused, blocked, awaiting, halted or done
+packet. An Improve packet is never one: the step it reviews is accepted only
+when it completes, so the last accepted step is still the one the packet before
+it showed (a live run repeated that narrative on 8 of 11 Improve packets until
+2026-10-17). Other packets carry no narrative.
 
 ```markdown
 #### 🚢 ShipLoop — Add a --version flag to the CLI.
@@ -199,7 +221,8 @@ value: it drops control characters, collapses whitespace and turns any `===`
 run into `==` so text cannot close the block early. It also caps each value:
 IDs at 32 characters, titles at 60 (40 in Completed), and summaries and reasons
 at 140 (60 in Completed). The block holds no commands or absolute paths, is at
-most 11 lines, and stays under about 1,500 characters for any queue.
+most 11 lines, and stays under about 1,500 characters for any queue. The status
+line is its `Where` and `Next` rows, cleaned the same way.
 
 ## Host hooks
 
@@ -258,9 +281,11 @@ The hook stays silent, and always exits 0, unless every check passes:
 - The command has no pipe, redirect, chain or background operator.
 - Stdout begins with the packet header (after a known context prefix or
   wrapper line), or with the block itself for `status`.
-- Stdout holds exactly one block, ending within its first 16,000 characters (the most ShipLoop prints).
-  Claude Code keeps the head of oversized Bash output, and the block ends by
-  about character 4,000.
+- A packet's stdout holds exactly one progress block (one narrative or one
+  status line, not both), and `status`'s exactly one block, ending within the
+  first 16,000 characters (the most ShipLoop prints). Claude Code keeps the
+  head of oversized Bash output, and the progress ends by about character 4,000.
+  The shell gate starts Python only for output with a packet header or a block.
 
 So `cat status.md`, a `grep` over fixtures or an `echo` of the markers never
 shows anything. A backgrounded call has no stdout at hook time and stays

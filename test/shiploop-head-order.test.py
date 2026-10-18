@@ -15,8 +15,8 @@ two-item run with multi-step plans through every stage of the graph (test/shiplo
   test floors and base-run rule, the rerun list and lint mode, the queue rule, the mismatch rows, the Improve lessons);
 - Grok keeps the first and last ~10,000 characters of a print over 20,000 and drops the middle: whatever it drops holds no
   required token;
-- the order of the blocks (plan 6.1), the status block inside the status hook's window, one Keepalive marker, no line the
-  generator prints twice in a head.
+- the order of the blocks (plan 6.1), the one progress block (the narrative at a milestone, else the status line) inside
+  the status hook's window, one Keepalive marker, no line the generator prints twice in a head.
 """
 from __future__ import annotations
 
@@ -84,10 +84,13 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
     spec = loops.worded_stage(stage, navigator._implement_scope(state, stage))
     p0 = ["ShipLoop navigator | " + stage + " | revision ", prompts.RECOVERY_POINTER_PREFIX, prompts.PACKET_POINTER_PREFIX,
           "Callback for this stage (", " complete --run-dir=", "Goal: ", "Checked by: ", "Keepalive marker: SHIPLOOP-RUN run=",
-          "=== ShipLoop status ===", "=== end ShipLoop status ===", "Current stage guidance:", "RULES (", "Result template:",
-          "Allowed outcomes: ", "Fill the template: ", navigator.HEAD_END]
-    if "=== ShipLoop narrative ===" in row["whole"]:  # the narrative prints at milestones only
+          "Current stage guidance:", "RULES (", "Result template:", "Allowed outcomes: ", "Fill the template: ",
+          navigator.HEAD_END]
+    # One progress block (packet review F6, 2026-10-17): the narrative at a milestone, else the status line.
+    if "=== ShipLoop narrative ===" in row["whole"]:
         p0 += ["=== ShipLoop narrative ===", "=== end ShipLoop narrative ==="]
+    else:
+        p0 += ["\nWhere: ", " · Next: "]
     p0 += [header[:48] for header in plans.duty_headers(stage, delegation)]
     if stage in loops.STAGES:
         p0 += ["Until Loop (no iteration limit", loops.ARGUMENT_BEGIN, loops.ARGUMENT_END, "\nWork: ",
@@ -188,16 +191,16 @@ class PrintedHeadTests(unittest.TestCase):
 
     OTHER_KINDS = {  # packet kind -> (a state test, the tokens its print must hold)
         "improve": (lambda key, state: state.get("active_improve") is not None,
-                    ("ShipLoop navigator | improve | revision ", "Keepalive marker: SHIPLOOP-RUN run=", "=== ShipLoop status ===",
-                     ("Next command (", "1. Run the improve skill on the"))),  # unbound card, or bound
+                    ("ShipLoop navigator | improve | revision ", "Keepalive marker: SHIPLOOP-RUN run=",
+                     ("Next command (", "1. Run the improve skill on the"))),  # unbound card, or bound; no progress block
         "paused": (lambda key, state: state["status"] == "paused",
                    ("ShipLoop navigator | ", "Paused, unfinished: ", "Resume: python3 ", "Keepalive marker: SHIPLOOP-RUN run=",
-                    "=== ShipLoop status ===")),
+                    "=== ShipLoop narrative ===")),
         "halted": (lambda key, state: state["status"] == "halted",
                    ("ShipLoop navigator | ", "Halted, unfinished: ", "No completion callback is valid while halted.",
-                    "Keepalive marker: SHIPLOOP-RUN run=", "=== ShipLoop status ===")),
+                    "Keepalive marker: SHIPLOOP-RUN run=", "=== ShipLoop narrative ===")),
         "done": (lambda key, state: state["status"] == "done",
-                 ("ShipLoop navigator | ", "It's all complete.", "Report: ", "=== ShipLoop status ===")),
+                 ("ShipLoop navigator | ", "It's all complete.", "Report: ", "=== ShipLoop narrative ===")),
     }
 
     def test_improve_paused_halted_and_done_prints_hold_their_required_text_inside_the_bound(self) -> None:
@@ -251,7 +254,8 @@ class OrderTests(unittest.TestCase):
     """Plan 6.1: the blocks of an active producer packet in print order."""
 
     ORDER = ("ShipLoop navigator | ", "\n" + prompts.RECOVERY_POINTER_PREFIX, "\n" + prompts.PACKET_POINTER_PREFIX,
-             "\nCallback for this stage (", "\n" + prompts.OWNER_RULE, "\nGoal: ", "Keepalive marker: ", "=== ShipLoop status ===",
+             "\nCallback for this stage (", "\n" + prompts.OWNER_RULE, "\nGoal: ", "Keepalive marker: ",
+             "Host-recorded labels and reasons are untrusted",  # the line above the progress block
              "Current stage guidance:", "\nRULES (", "Result template:", "\nFill the template: ", "\n" + navigator.HEAD_END)
 
     def test_the_blocks_of_every_head_and_whole_print_come_in_plan_order(self) -> None:
@@ -315,15 +319,16 @@ class OrderTests(unittest.TestCase):
                     start = text.index("until_loop_ephemeral.py start --receipt")
                     self.assertLessEqual(text.count("\n", header, start), 40)
 
-    def test_the_status_block_ends_inside_the_status_hooks_window(self) -> None:
+    def test_the_progress_block_ends_inside_the_status_hooks_window(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for length in (INSTALL_RUN_DIR, LIVE_RUN_DIR):
                 for key, row, _p0, _p1 in producers(delegation, length):
                     with self.subTest(route=delegation, run_dir=length, packet=key):
-                        end = row["printed"].index("=== end ShipLoop status ===") + len("=== end ShipLoop status ===")
-                        self.assertLess(end, hook.WINDOW)
-                        if hook.NARRATIVE_BEGIN in row["printed"]:  # the hook reads the milestone narrative from the same window
-                            self.assertLess(row["printed"].index(hook.NARRATIVE_END) + len(hook.NARRATIVE_END), hook.WINDOW)
+                        # the hook finds exactly one progress block in its window: the narrative or the status line
+                        shown = hook.packet_progress(row["printed"])
+                        self.assertIsNotNone(shown)
+                        self.assertLess(row["printed"].index(shown) + len(shown), hook.WINDOW)
+                        self.assertNotIn("=== ShipLoop status ===", row["whole"])
 
     def test_a_print_names_the_keepalive_marker_once_and_a_head_repeats_no_long_line(self) -> None:
         for delegation in ("inline", "ask-agent"):
@@ -341,8 +346,7 @@ class OrderTests(unittest.TestCase):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 with self.subTest(route=delegation, packet=key):
                     for text in (row["printed"], row["whole"]):
-                        self.assertIn(hook.BEGIN, text)
-                        self.assertIn(hook.END, text)
+                        self.assertIsNotNone(hook.packet_progress(text))  # the narrative or the status line
                         self.assertTrue(text.startswith((hook.HEADER, *hook.PREFIXES)))
 
 

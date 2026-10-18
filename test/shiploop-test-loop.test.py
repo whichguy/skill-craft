@@ -1641,12 +1641,13 @@ class TestLoopTests(unittest.TestCase):
                 full = self.packet()
                 self.assertEqual(full.count("\n" + self.START), 1)  # in the head, not repeated at the tail
                 self.assertLess(full.index("\n" + self.START), full.index("Current stage guidance:"))
-                # the Until Loop block follows the goal and precedes the status block (the print order of the efficiency
+                # the Until Loop block follows the goal and precedes the progress block (the print order of the efficiency
                 # plan, 6.1: the start command is in the first part of any print, whatever a cut keeps)
                 self.assertGreater(full.index("\n" + self.START), full.index("\nChecked by: "))
-                self.assertLess(full.index("\n" + self.START), full.index(nav.STATUS_END))
+                shown = status_hook.packet_progress(head)
+                self.assertLess(full.index("\n" + self.START), full.index(shown))
                 # a status hook reads only the first WINDOW bytes (16,000; 8000 before 2026-10-10)
-                self.assertLess(head.index(nav.STATUS_END), status_hook.WINDOW)
+                self.assertLess(head.index(shown) + len(shown), status_hook.WINDOW)
                 if stage == "verify":
                     self.assertGreater(full.index("Change inventory for"), full.index("\n" + self.START))
                 (self.repo / "fixed.txt").write_text("fixed\n")
@@ -1700,7 +1701,7 @@ class TestLoopTests(unittest.TestCase):
                            summary="The bound Improve card cannot be resolved, so no loop can run."))
         self.assertEqual(self.state()["status"], "blocked")
 
-    def test_every_head_keeps_its_status_block_and_milestone_narrative_inside_the_hook_window(self):
+    def test_every_head_keeps_its_progress_block_inside_the_hook_window(self):
         """A status hook reads only the first WINDOW bytes of a head.  The loop lines (conditions, Start, receipt and
         a command list that grows with the commands and the run-dir path) printed before the narrative once pushed the
         milestone's narrative END to byte 8430 while the head told the model the hook already showed it.  Walked with a
@@ -1719,7 +1720,9 @@ class TestLoopTests(unittest.TestCase):
             stage = nav.current_stage(state)
             head = nav.packet_head(CORE, self.run_dir, state, nav.packet_path(self.run_dir, state))
             with self.subTest(stage=stage):
-                self.assertLess(head.index(nav.STATUS_END), hook.WINDOW)
+                shown = hook.packet_progress(head)  # the narrative at a milestone, else the status line
+                self.assertIsNotNone(shown)
+                self.assertLess(head.index(shown) + len(shown), hook.WINDOW)
                 if nav.narrative.BEGIN in head:
                     seen[stage] = head
                     self.assertLess(head.index(nav.narrative.END), hook.WINDOW)
@@ -1858,12 +1861,12 @@ class TestLoopTests(unittest.TestCase):
         return buffer.getvalue()
 
     def status_display_reads(self, output: str) -> bool:
-        """Whether the status display (a host hook) finds its block in this print of the callback command."""
+        """Whether the status display (a host hook) finds its progress in this print of the callback command."""
         action = self.action()
         command = " ".join(["python3", str(PACKAGE / "scripts" / "shiploop"), "complete", "--run-dir=" + str(self.run_dir),
                             "--action=" + action, "--result=" + str(self.run_dir / "inbox" / (action + ".md"))])
         payload = {"tool_name": "Bash", "tool_input": {"command": command}, "tool_response": {"stdout": output}}
-        return status_hook.status_block(payload) is not None
+        return status_hook.progress(payload) is not None
 
     def gate_lines_of(self, output: str) -> list[str]:
         return [line for line in output.splitlines() if line.startswith("Gates: ")]

@@ -16,6 +16,7 @@ CLI = PACKAGE / "scripts/shiploop"
 CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
+import shiploop_status_hook as hook  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
@@ -380,19 +381,21 @@ class StepTests(DelegationStateTests):
         # On steps 2..N the Progress snapshot listed implement among the accepted-done stages and dropped it from the
         # pending list beside "Current: implement", which a model that lost its context could read as finished (seen in
         # 3 packets of one checkers run; packet review 2026-10-10, P-implement-1).  The packet no longer prints the
-        # snapshot (2026-10-11 dedupe): its status block is the one saved-position display, and report.html keeps the
-        # snapshot (nav._progress_lines), so the rule is pinned on both homes.
-        def status_of(packet):
-            return packet.split("=== ShipLoop status ===", 1)[1].split("=== end ShipLoop status ===", 1)[0]
-
+        # snapshot (2026-10-11 dedupe): the status block (status.md, `shiploop status`) is the saved-position display,
+        # the packet's one progress block names the stage (packet review F6, 2026-10-17), and report.html keeps the
+        # snapshot (nav._progress_lines), so the rule is pinned on each home.
         state = self.at_implement()
         for step, accepted in ((state, 0), (self.done(state, "divide() added."), 1)):
             packet = self.render(step)
             self.assertNotIn("Progress snapshot", packet)
-            status = status_of(packet)
+            status = nav.status_block(step)
             self.assertIn("Build \u25b6", status)  # the Build group is current, never done, while steps remain
             self.assertNotIn("Build \u2713", status)
             self.assertIn("Next:      implement:", status)
+            # step 1 follows validate-existing (a milestone: the narrative), step 2 follows step 1 (the status line)
+            shown = hook.packet_progress(packet)
+            self.assertRegex(shown, r"Build (>|\u203a) implement")
+            self.assertEqual(shown.startswith(nav.narrative.BEGIN), accepted == 0)
             snapshot = "\n".join(nav._progress_lines(step))
             self.assertIn("Current: implement", snapshot)
             self.assertIn(f"Current stage implement: in progress ({accepted} of 2 steps accepted)", snapshot)

@@ -110,15 +110,16 @@ NOT_WHOLE_SHORTENED = "every line is there and a callback or keepalive line is s
 def head_or_why(reply: str) -> tuple[str | None, str | None]:
     """(the head, None) at the start of ``reply`` (which starts at its ``ShipLoop navigator |`` line), up to its closing line (``HEAD_END``
     from 2026-10-16; before that the status block's end, then the narrative block when one follows it); or (None, why) with one of
-    the NOT_WHOLE_* reasons."""
+    the NOT_WHOLE_* reasons.  A head with its closing line needs no status block: from 2026-10-17 a packet carries the narrative
+    or one status line instead (packet review F6)."""
     end = reply.find(STATUS_END)
-    if end < 0:
-        return None, NOT_WHOLE_BEFORE_CLOSING
     closing_line = HEAD_END_LINE.search(reply)
     closing = closing_line.start() if closing_line else -1
     pointer = FULL_PACKET.search(reply)
     if closing >= 0:
         cut = closing + len(HEAD_END)
+    elif end < 0:
+        return None, NOT_WHOLE_BEFORE_CLOSING
     elif pointer is not None and (pointer.start() > end or "ends with the line " + HEAD_END in reply):
         # A layout that has the closing line (the pointer after the status block, or the pointer sentence that names the
         # closing line, near the top) cut before it: not a whole print.
