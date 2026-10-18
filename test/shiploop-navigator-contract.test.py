@@ -1241,16 +1241,23 @@ class NavigatorContractTests(unittest.TestCase):
         # items ({items}: the range counted from the duty text, pinned in shiploop-loops); the exit-condition rule is the
         # loop rule, printed once in the until-loop invoke block.
         import shiploop_loops as loops
-        for stage, work_pointer, duty_phrase in (
-                ("implement", "Do duty items {items} of {run}/packets/{action}.md for {step_change}",
-                 "edit its paths to meet its criteria"),
-                ("implement", "Do duty items {items} of {run}/packets/{action}.md",
+        # The ask-agent route's whole-plan Work and duty (the default route of ``prompt``) are as they were; the inline
+        # step's Work (implement-step fix plan 3.4) points at the duty too, which has no path fence (its D3).
+        for stage, route, work, work_pointer, duty_phrase in (
+                ("implement", prompts.ASK_AGENT, loops.WORK["implement"],
+                 "Do duty items {items} of {run}/packets/{action}.md for {step_change}", "edit its paths to meet its criteria"),
+                ("implement", prompts.ASK_AGENT, loops.WORK["implement"], "Do duty items {items} of {run}/packets/{action}.md",
                  "changing the work, never the check, its expected result or the command"),
-                ("verify", "Do duty items {items} of {run}/packets/{action}.md in order",
+                ("implement", prompts.INLINE, loops.WORK_STEP,
+                 "Do duty items {items} of {run}/packets/{action}.md. Write no tests",
+                 "meet its criteria, nothing no criterion asks for"),
+                ("implement", prompts.INLINE, loops.WORK_STEP, "Do duty items {items} of {run}/packets/{action}.md",
+                 "changing the work, never the Proof or what it expects"),
+                ("verify", prompts.ASK_AGENT, loops.WORK["verify"], "Do duty items {items} of {run}/packets/{action}.md in order",
                  "Per criterion name the passing command or inspection that confirms it now")):
-            with self.subTest(work=stage, phrase=duty_phrase):
-                self.assertIn(work_pointer, " ".join(loops.WORK[stage].split()))
-                self.assertEqual(" ".join(prompts.prompt(stage).split()).count(duty_phrase), 1)
+            with self.subTest(work=stage, route=route, phrase=duty_phrase):
+                self.assertIn(work_pointer, " ".join(work.split()))
+                self.assertEqual(" ".join(prompts.prompt(stage, delegation=route).split()).count(duty_phrase), 1)
         self.assertIn("Call an exit condition satisfied only when a command or file shows it after your last edit.",
                       " ".join(loops.LOOP_RULE.split()))
         for stage in ("implement", "verify"):
@@ -4070,7 +4077,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             "paths": [self.STEP_PLAN_NOTES],
             "test_commands": [], "test_commands_na": "A documentation-only item: no test command applies.",
             "steps": [{"id": "S1", "task": "Write notes.md.", "deps": [], "criteria": [],
-                       "paths": [self.STEP_PLAN_NOTES], "skills": []}],
+                       "check": "test -f " + self.STEP_PLAN_NOTES, "paths": [self.STEP_PLAN_NOTES], "skills": []}],
             "expectations": expectations,
         }
 
@@ -4245,7 +4252,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                         "steps": ["S2"], "paths": ["more.md"], "check": "test ! -e more.md"}])
                 plan["paths"] = ["notes.md", "more.md"]
                 plan["steps"].append({"id": "S2", "task": "Write more.md.", "deps": ["S1"], "criteria": [],
-                                      "paths": ["more.md"], "skills": []})
+                                      "check": "test -f more.md", "paths": ["more.md"], "skills": []})
                 self.accept(plan)
                 for planning in ("step-plan", "test-spec"):
                     child = self.state().get("active_improve")

@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
@@ -204,8 +205,8 @@ class DelegationStateTests(unittest.TestCase):
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
-        self.assertIn("**Inline.** Do the one step on the packet's Step lines (task, paths, skills, check commands, "
-                      "lint command) in this conversation. Bind no chain and dispatch no worker.", " ".join(inline.split()))
+        self.assertIn("**Inline.** Do the one step of the packet's Step block (task, criteria, Proof, skills; the lint "
+                      "command) in this conversation. Bind no chain and dispatch no worker.", " ".join(inline.split()))
         step_plan = self.render(advance(self.state(), "step-plan"))
         flat_plan = " ".join(step_plan.split())
         self.assertIn("steps lists every implementation step in the order to do them", flat_plan)
@@ -295,8 +296,8 @@ class DelegationStateTests(unittest.TestCase):
 class StepTests(DelegationStateTests):
     """The script, not the host, walks a work item's step plan: one implement packet per step."""
 
-    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"]},
-             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"]}]
+    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"], "check": "python3 -B -c 'import calc'"},
+             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"], "check": "grep -q divide README.md"}]
 
     def at_implement(self, delegation="inline", steps=None):
         state = advance(self.state(delegation), "step-plan")
@@ -315,28 +316,31 @@ class StepTests(DelegationStateTests):
             state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         return state
 
-    def test_a_later_step_is_named_by_its_id_and_the_paths_it_owns_not_its_task(self):
-        """Efficiency plan U13: the line says where this step must not reach; the task is in the step plan's result."""
+    def test_a_later_step_is_named_by_its_id_and_the_first_sentence_of_its_task(self):
+        """Implement-step fix plan 3.1 (unit W2-B): a later step is named by what it does, its task's first sentence, not
+        by the paths it owns (no path fence, the fix plan's D3); the rest of the task is in the step plan's result."""
         steps = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"]},
-                 {"id": "S2", "task": "Document divide in the guide.", "paths": ["README.md", "docs/guide.md"]},
+                 {"id": "S2", "task": "Document divide in the guide. Give one worked example.",
+                  "paths": ["README.md", "docs/guide.md"]},
                  {"id": "S3", "task": "Announce it in the changelog."}]
         packet = self.render(self.at_implement(steps=steps))
         line = next(row for row in packet.splitlines() if row.startswith("Later steps ("))
-        self.assertEqual(line, "Later steps (ShipLoop issues each one after this callback; do not start them): "
-                               "S2 README.md, docs/guide.md; S3 (no paths declared)")
-        for task in ("Document divide", "Announce it"):
-            self.assertNotIn(task, line)
+        self.assertEqual(line, "Later steps (ShipLoop issues each after this one; do not start them): "
+                               "S2 Document divide in the guide; S3 Announce it in the changelog")
+        for fence in ("README.md", "docs/guide.md", "no paths declared", "worked example"):
+            self.assertNotIn(fence, line)
 
-    def test_a_check_runs_from_the_step_that_finishes_its_criteria(self):
+    def test_each_step_packet_carries_its_own_proof_and_no_item_check(self):
         """Chess run 2026-10-17: S1 was given a grep for files only S3 creates, failed, and the revise merged S1-S3.
 
-        A check naming criteria is due from the last step listing them; a check with no criteria is due at every step.
+        The step Proof replaces 603a709c's interim rule (a check due from the step that finishes its criteria): each step
+        packet names the one command its step plan recorded for it, and the item's check rows stay with test and verify.
         """
-        steps = [{"id": "S1", "task": "Add the engine.", "paths": ["engine.py"], "criteria": ["C1"]},
-                 {"id": "S2", "task": "Add the controller.", "paths": ["ctl.py"], "criteria": ["C2"]},
-                 {"id": "S3", "task": "Add the board.", "paths": ["board.html"], "criteria": ["C3"]}]
+        steps = [{"id": "S1", "task": "Add the parser.", "criteria": ["C1"], "check": "python3 -B probe_parser.py"},
+                 {"id": "S2", "task": "Add the validator.", "criteria": ["C2"], "check": "python3 -B probe_validator.py"},
+                 {"id": "S3", "task": "Add the report page.", "criteria": ["C3"], "check": "grep -q report report.html"}]
         commands = [{"command": "make lint", "suite": "check"},
-                    {"command": "grep -q board board.html", "suite": "check", "criteria": ["C3"]},
+                    {"command": "grep -q report report.html", "suite": "check", "criteria": ["C3"]},
                     {"command": "pytest -v", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1", "C2", "C3"]}]
         state = advance(self.state("inline"), "step-plan")
         action = nav.current_action(state)["id"]
@@ -345,24 +349,29 @@ class StepTests(DelegationStateTests):
         if state.get("active_improve") is not None:
             state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         state = advance(state, "implement")
-        seen = []
-        for number in (1, 2, 3):
+        for number, step in enumerate(steps, 1):
             packet = self.render(state)
             self.assertIn(f"Step S{number} ({number} of 3), the only work for this packet", packet)
-            checks = packet.split("Check commands (run each after every edit", 1)[1].split("\nLint", 1)[0]
-            seen.append(("grep -q board" in checks.split("Checks due at a later step")[0], "make lint" in checks))
+            proofs = [line for line in packet.splitlines() if line.lstrip().startswith("Proof (")]
+            self.assertEqual(len(proofs), 1, proofs)
+            self.assertTrue(proofs[0].endswith("): " + step["check"]), proofs[0])
+            for other in steps:
+                if other is not step:
+                    self.assertNotIn(other["check"], packet)  # S3's check is also an item check row: no other step sees it
+            self.assertNotIn("make lint", packet)
+            self.assertEqual(nav.test_loop.stage_commands(state, "implement", "W1")[0],
+                             [{"command": step["check"], "suite": "check"}])
             state = self.done(state, f"S{number} done.")
-        self.assertEqual(seen, [(False, True), (False, True), (True, True)])
         self.assertNotEqual(nav.current_stage(state), "implement")
+        self.assertFalse(hasattr(nav, "step_checks"))  # the interim helper is gone (one supported version)
 
     def test_inline_implement_issues_one_packet_per_step_in_order(self):
         state = self.at_implement()
         first = self.render(state)
         self.assertIn("Step S1 (1 of 2), the only work for this packet: Add divide() to calc.py.", first)
-        # A later step is named by its id and the paths it owns (where this step must not reach); its task is the step
-        # plan's, not repeated here (efficiency plan U13).
-        self.assertIn("Later steps (ShipLoop issues each one after this callback; do not start them): S2 README.md\n",
-                      first)
+        # A later step is named by its id and the first sentence of its task (implement-step fix plan 3.1).
+        self.assertIn("Later steps (ShipLoop issues each after this one; do not start them): S2 Document divide in "
+                      "README\n", first)
         self.assertNotIn("one step at a time in dependency order", first)
         first_action = nav.current_action(state)["id"]
         state = self.done(state, "divide() added.")
@@ -461,6 +470,167 @@ class StepTests(DelegationStateTests):
                 nav._canonical_result(dict(plan, steps=steps), stage="step-plan")
         with self.assertRaisesRegex(nav.NavigatorError, "only on a done step-plan"):
             nav._canonical_result({"outcome": "done", "summary": "s", "steps": self.STEPS}, stage="implement")
+
+
+class StepBlockTests(unittest.TestCase):
+    """One step block on every surface (implement-step fix plan section 3.1, W2-B): the packet file, the printed head and
+    the step's Improve hand-off name the same step, criteria, Proof and locators; the loop closes both the file and the
+    head; the hand-off names the diff base the step began from.  A three-step plan in a real Git checkout."""
+
+    CRITERIA = [{"id": "C1", "text": "The parser reads a valid record (R-1)."},
+                {"id": "C2", "text": "The validator rejects an empty record (R-2)."},
+                {"id": "C3", "text": "The report lists each record (R-3)."}]
+    STEPS = [{"id": "S1", "task": "Add the parser. It reads one record per line.", "deps": [], "criteria": ["C1"],
+              "check": "python3 -B -c 'import parser_probe'", "skills": []},
+             {"id": "S2", "task": "Add the validator.", "deps": ["S1"], "criteria": ["C2"],
+              "check": "python3 -B -c 'import validator_probe'", "skills": []},
+             {"id": "S3", "task": "Add the report page. It lists the records.", "deps": ["S2"], "criteria": ["C3"],
+              "check": "grep -q record report.html", "skills": []}]
+    CASES = [{"id": "TC-" + str(n), "criterion": "C" + str(n), "requirement": "R-" + str(n), "oracle": "the spec's example",
+              "red": "absent on the base", "green": "present after the step"} for n in (1, 2, 3)]
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-step-block-")
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name).resolve()
+        self.repo, self.run = base / "repo", base / "run"
+        self.repo.mkdir()
+        self.run.mkdir()
+        env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+        for argv in (["init", "-q"], ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q",
+                                      "--allow-empty", "-m", "base"]):
+            subprocess.run(["git", "-C", str(self.repo), *argv], env=env, check=True, capture_output=True)
+
+    def at_step(self, number: int = 1) -> dict:
+        """The run at implement step ``number``, its entry base captured as the transition captures it."""
+        state = nav.new_state(str(self.repo), "Synthetic step-block request.", delegation="inline", lint_option="off")
+        while nav.current_stage(state) != "implement":
+            stage, action = nav.current_stage(state), nav.current_action(state)["id"]
+            result = {"outcome": "done", "summary": "Synthetic " + stage + " declaration."}
+            if stage == "plan":
+                result["work_items"] = [{"id": "W1", "title": "Read, check and report records"}]
+            if stage == "step-plan":
+                result.update(steps=self.STEPS, criteria=self.CRITERIA, follows=["R-1", "R-2", "R-3", "AD-1"],
+                              paths=["parser.py", "validator.py", "report.html"],
+                              test_commands=[{"command": "pytest -v", "suite": "focused", "ids": ["TC-1", "TC-2", "TC-3"],
+                                              "criteria": ["C1", "C2", "C3"]}])
+            if stage == "test-spec":
+                result["test_cases"] = self.CASES
+            before = state
+            state = nav.apply(state, action, result)
+            if state.get("active_improve") is not None:
+                state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+            state = nav._step_entry(self.run, before, state)
+        for _ in range(number - 1):
+            action = nav.current_action(state)["id"]
+            before = state
+            state = nav.apply(state, action, {"outcome": "done", "summary": "Step done."})
+            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+            state = nav._step_entry(self.run, before, state)
+        return state
+
+    def under_review(self, state: dict) -> dict:
+        """``state`` with the step's result returned and its Improve child bound, its bind snapshot written."""
+        action = nav.current_action(state)["id"]
+        (self.repo / "parser.py").write_text("def parse(line):\n    return line.split(',')\n")
+        waiting = nav.apply(state, action, {"outcome": "done", "summary": "The parser reads a record."})
+        child = waiting["active_improve"]
+        waiting["active_improve"] = standalone.binding(waiting, action, child["stage"], child["seed_result"],
+                                                       standalone.resolve_skill(str(CARD)),
+                                                       improve_action=child["improve_action"])
+        for relative, text in nav.improve_changes.bind_writes(self.run, self.repo, action).items():
+            store.atomic_write_text(self.run / relative, text)
+        return waiting
+
+    def surfaces(self, state: dict) -> dict:
+        path = nav.packet_path(self.run, state)
+        return {"file": nav.render(None, self.run, state), "head": nav.packet_head(None, self.run, state, path),
+                "handoff": nav.improve_handoff_text(None, self.run, self.under_review(state))}
+
+    @staticmethod
+    def step_lines(text: str) -> list[str]:
+        lines = text.splitlines()
+        start = next(n for n, line in enumerate(lines) if line.startswith("Step S"))
+        end = next(n for n in range(start, len(lines)) if lines[n].startswith("Files: ShipLoop commits"))
+        return lines[start:end + 1]
+
+    def test_the_file_the_head_and_the_handoff_print_one_step_block(self):
+        """T8: the same Step block (task, criteria by value, dependencies, Proof, later steps) on all three surfaces; the
+        hand-off names the step's entry base as a diff command; no surface fences the step to paths."""
+        state = self.at_step(1)
+        base = nav.current_action(state)["base"]
+        texts = self.surfaces(state)
+        block = self.step_lines(texts["file"])
+        self.assertEqual(block[0], "Step S1 (1 of 3), the only work for this packet: "
+                                   "Add the parser. It reads one record per line.")
+        self.assertIn("    C1: The parser reads a valid record (R-1).", block)
+        self.assertIn("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "
+                      + self.STEPS[0]["check"], block)
+        self.assertIn("  Depends on: none", block)
+        self.assertIn("Later steps (ShipLoop issues each after this one; do not start them): S2 Add the validator; "
+                      "S3 Add the report page", block)
+        for name in ("head", "handoff"):
+            with self.subTest(surface=name):
+                self.assertEqual(self.step_lines(texts[name]), block)
+        review = next(line for line in texts["handoff"].splitlines() if line.startswith("Review base"))
+        self.assertIn("git -C " + str(self.repo) + " diff " + base + " ", review)
+        for name, text in texts.items():
+            with self.subTest(surface=name):
+                self.assertNotIn("Step paths", text)
+                self.assertNotIn("(change only these)", text)
+                self.assertNotRegex(text, r"(?m)^\s*(Paths|Where): ")
+
+    def test_a_step_quotes_its_own_criterion_and_cases_and_not_a_later_steps(self):
+        """T9: S1's packet and hand-off quote C1 and its case TC-1, and neither C3's text nor its case."""
+        texts = self.surfaces(self.at_step(1))
+        for name, text in texts.items():
+            if name == "head":
+                continue  # the head is pinned by T8 to the file's block
+            with self.subTest(surface=name):
+                self.assertIn("The parser reads a valid record (R-1).", text)
+                self.assertRegex(text, r"\bTC-1\b")
+                self.assertNotIn("The report lists each record", text)
+                self.assertNotRegex(text, r"\bTC-3\b")
+
+    def test_the_loop_invocation_closes_the_file_and_the_head_even_when_the_head_is_cut_short(self):
+        """T10: the last block of the packet file and of the printed head is the /until-loop invocation; with a head
+        budget too small for any optional block the step block and the loop are still there, the loop last."""
+        state = self.at_step(2)
+        path = nav.packet_path(self.run, state)
+
+        def last_block(text: str) -> str:
+            blocks = [chunk for chunk in re.split(r"\n\s*\n", text.replace(nav.HEAD_END, "").strip()) if chunk.strip()]
+            return blocks[-1]
+
+        for limit in (nav.HEAD_LIMIT, 9_000):
+            with self.subTest(head_limit=limit), mock.patch.object(nav, "HEAD_LIMIT", limit):
+                head = nav.packet_head(None, self.run, state, path)
+                self.assertTrue(head.endswith("\n" + nav.HEAD_END + "\n"))
+                self.assertTrue(last_block(head).startswith(loops.BLOCK_HEADING), last_block(head)[:120])
+                self.assertIn("Step S2 (2 of 3), the only work for this packet: Add the validator.", head)
+                self.assertIn("Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "
+                              + self.STEPS[1]["check"], head)
+                self.assertIn("Accepted step S1: Step done.", head)
+        self.assertTrue(last_block(nav.render(None, self.run, state)).startswith(loops.BLOCK_HEADING))
+        self.assertLess(nav.render(None, self.run, state).index("Step S2 (2 of 3)"),
+                        nav.render(None, self.run, state).index("Current stage guidance:"))
+
+    def test_the_work_names_the_steps_criteria_requirements_and_decisions_and_exit_one_lists_its_criteria(self):
+        """T11: the Work names exactly the step's criteria, the R-<n> they name and the item's AD-<n>, in the owner's D4
+        words; exit condition 1 lists the step's criteria."""
+        state = self.at_step(2)
+        value = loops.contract(self.run, state, nav.current_action(state)["id"])
+        work = value["work"]
+        self.assertIn("step S2", work)
+        self.assertIn("until each requirement assigned to this step is satisfied and none of the others is broken", work)
+        self.assertRegex(work, r"\bC2\b")
+        self.assertRegex(work, r"\bR-2\b")
+        self.assertRegex(work, r"\bAD-1\b")
+        for other in ("C1", "C3", "R-1", "R-3"):
+            self.assertNotRegex(work, r"\b" + other + r"\b", other)
+        first = value["exit_condition"].splitlines()[0]
+        self.assertTrue(first.startswith("1. ") and first.endswith("(assigned: C2)"), first)
+        self.assertIn(first, nav.render(None, self.run, state))
 
 
 class PacketContractTests(DelegationStateTests):

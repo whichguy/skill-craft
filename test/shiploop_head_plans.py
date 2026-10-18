@@ -31,15 +31,18 @@ SECOND_ITEM = {"id": "W2", "title": "State the last-page rule in the README",
                "context": "The README states the default page size and what the last page holds."}
 CHECK = "npm run lint"
 FOCUSED = CASE["checks"][0]
+# S1's Proof: a one-line probe of the page count, available before the regression test exists (fix plan 11.1).
+STEP_PROOF = "node -e \"const p=require('./src/paginate');process.exit(p.paginate([1,2,3,4,5],3,2).pages===3?0:1)\""
 PLAN = {
     "criteria": [
         {"id": "C1", "text": "The last partial page is returned. Confirm by: " + FOCUSED + "; pass when exit 0"},
         {"id": "C2", "text": "A regression test covers it. Confirm by: " + FOCUSED + "; pass when it lists TC-1"}],
     "steps": [
         {"id": "S1", "task": "Fix the page count in src/paginate.js", "deps": [], "criteria": ["C1"],
-         "paths": ["src/paginate.js"], "skills": []},
+         "check": STEP_PROOF, "paths": ["src/paginate.js"], "skills": []},
         {"id": "S2", "task": "Return the items of the partial last page", "deps": ["S1"], "criteria": ["C1", "C2"],
-         "paths": ["src/paginate.js", "src/index.js"], "skills": [{"name": "house-style", "why": "match the module style"}]}],
+         "check": FOCUSED, "paths": ["src/paginate.js", "src/index.js"],
+         "skills": [{"name": "house-style", "why": "match the module style"}]}],
     "test_commands": [
         {"command": FOCUSED, "suite": "focused", "ids": ["TC-1", "TC-2"], "criteria": ["C1", "C2"]},
         {"command": CHECK, "suite": "check", "criteria": ["C1"]},
@@ -52,7 +55,7 @@ PLAN = {
 SECOND_PLAN = {
     "criteria": [{"id": "C1", "text": "The README states the rule. Confirm by: grep -q last README.md; pass when exit 0"}],
     "steps": [{"id": "S1", "task": "Write the last-page rule in README.md", "deps": [], "criteria": ["C1"],
-               "paths": ["README.md"], "skills": []}],
+               "check": "grep -q last README.md", "paths": ["README.md"], "skills": []}],
     "test_commands": [{"command": "grep -q last README.md", "suite": "check", "criteria": ["C1"]}],
     "expectations": [], "paths": ["README.md"], "follows": ["R-1"],
 }

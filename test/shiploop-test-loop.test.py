@@ -11,6 +11,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -54,7 +55,7 @@ CHECK = ('echo "Ran 1 test in 0.001s"\n'
 def one_step(result: dict) -> dict:
     """The one implement step of a synthetic step plan, sized as the submit gate requires: it changes all of the
     item's paths and satisfies all of its criteria."""
-    step = {"id": "S1", "task": "Make the planned change.", "paths": list(result.get("paths") or ["a.py"])}
+    step = {"id": "S1", "task": "Make the planned change.", "paths": list(result.get("paths") or ["a.py"]), "check": "true"}
     if result.get("criteria"):
         step["criteria"] = [row["id"] for row in result["criteria"]]
     return step
@@ -181,7 +182,7 @@ class TestLoopTests(unittest.TestCase):
     def packet(self) -> str:
         return nav.render(CORE, self.run_dir, self.state())
 
-    def complete(self, result: dict, *, loop: bool | None = None, fill: bool = True) -> str:
+    def complete(self, result: dict, *, loop: bool | None = None, fill: bool = True, check_only: bool = False) -> str:
         """Submit ``result`` through the real ``complete``.
 
         At an inner stage the result is filled with the fields its gates need (``inner_fixture.fill``) and, unless it
@@ -217,7 +218,7 @@ class TestLoopTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             nav.dispatch(CORE, self.run_dir, state,
-                         types.SimpleNamespace(command="complete", action=action, result=str(path)))
+                         types.SimpleNamespace(command="complete", action=action, result=str(path), check_only=check_only))
         return buffer.getvalue()
 
     def finish_improve(self) -> None:
@@ -384,7 +385,7 @@ class TestLoopTests(unittest.TestCase):
 
         def plan(commands):
             return dict(DONE, test_commands=commands, paths=["src/a.py"], criteria=[{"id": "C1", "text": "x"}],
-                        steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "paths": ["src/a.py"]}])
+                        steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "check": "true", "paths": ["src/a.py"]}])
 
         nav._check_submitted_test_commands("step-plan", plan(rows(2, 3)))
         nav._check_submitted_test_commands("step-plan", plan(rows(6, 15)))  # about 10 KB: over the old 9,216-byte budget
@@ -2104,6 +2105,139 @@ class TestLoopTests(unittest.TestCase):
         self.restart()
         self.drive_to("verify")  # another looped stage has its own placeholder (U25: what its duty 11 used to list)
         self.assertEqual(self.template_of(self.head())["summary"], prompts.summary_placeholder("verify"))
+
+    # -- the step Proof (implement-step fix plan section 4.1, unit W2-A) -------------------------------------------
+
+    PROOF = "sh check.sh proof.txt"   # one unittest-style test: fails while proof.txt is missing
+
+    @staticmethod
+    def proof_plan(check: str, *, delegation_steps: int = 1) -> dict:
+        """A step plan whose step records ``check`` as its Proof (the item's own commands stay COMMANDS)."""
+        steps = [{"id": "S" + str(n), "task": "Make planned change " + str(n) + ".", "criteria": ["C1"],
+                  "check": check, "paths": ["a.py"], **({"deps": ["S" + str(n - 1)]} if n > 1 else {})}
+                 for n in range(1, delegation_steps + 1)]
+        return {"test_commands": [dict(COMMANDS[0], criteria=["C1"]), *COMMANDS[1:]], "paths": ["a.py"],
+                "criteria": [{"id": "C1", "text": "The item's focused check passes."}], "steps": steps}
+
+    def restart_loop(self, refusal: str) -> None:
+        """Start the Until Loop again with the command the refusal names and run one satisfied iteration."""
+        start = re.search(r"Start the Until Loop again with: (.+?)  \(it replaces the receipt\)", refusal).group(1)
+        words = shlex.split(start)
+        packet = json.loads(subprocess.run(words[:-2], input=Path(words[-1]).read_text(), text=True,
+                                           capture_output=True, check=True, timeout=30).stdout)
+        packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
+                                           capture_output=True, check=True, timeout=30).stdout)
+        self.assertEqual(packet["status"], "complete")
+
+    def test_implement_done_is_refused_while_the_step_proof_fails_and_accepted_once_it_passes(self):
+        """T6: complete runs the step's Proof (the real CLI path) and refuses while it fails, quoting its exit and tail;
+        following the refusal's route (fix, run the loop again, report done) is accepted; each run leaves its record."""
+        self.start()
+        self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
+        action = self.action()
+        self.assertEqual(test_loop.stage_commands(self.state(), "implement", "W1")[0],
+                         [{"command": self.PROOF, "suite": "check"}])
+        before = (self.run_dir / "state.md").read_bytes()
+        with self.assertRaises(nav.NavigatorError) as caught:
+            self.complete(DONE)
+        refusal = str(caught.exception)
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        self.assertIn("step S1's Proof did not pass", refusal)
+        self.assertIn(self.PROOF + " -> exit 1", refusal)
+        self.assertIn("    | FAILED (failures=1)", refusal)
+        first = store.read_record(self.run_dir / test_loop.step_proof_path(action, 1))
+        self.assertEqual((first["passed"], first["action"], first["step"], first["command"], first["stage"]),
+                         (False, action, "S1", self.PROOF, "implement"))
+        (self.repo / "proof.txt").write_text("proved\n")
+        self.restart_loop(refusal)
+        out = self.complete(DONE)
+        self.assertIn("Gates: step-proof: [check] " + self.PROOF + " -> passed", out)
+        second = store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))
+        self.assertTrue(second["passed"])
+        self.assertIn(test_loop._tree(self.run_dir, self.repo), second["trees"])   # bound to the accepted candidate
+        self.assertEqual(self.state()["active_improve"]["action_id"], action)     # the step's Improve child started
+
+    def test_a_proof_that_runs_no_test_is_refused(self):
+        """T27 (skipped assertions): a Proof that exits 0 having run no test proves nothing and is refused."""
+        self.start()
+        self.drive_to("implement", step_plan=self.proof_plan("printf 'Ran 0 tests in 0.000s\\n\\nOK\\n'"))
+        with self.assertRaises(nav.NavigatorError) as caught:
+            self.complete(DONE)
+        self.assertIn("ran no tests", str(caught.exception))
+
+    def test_complete_takes_a_passed_check_only_proof_only_while_the_candidate_is_unchanged(self):
+        """T27 (candidate binding): a passed --check-only Proof is taken at complete on the same tree; after an edit the
+        Proof runs again, on the final candidate, and its record says which tree it judged."""
+        self.start()
+        self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
+        action = self.action()
+        (self.repo / "proof.txt").write_text("proved\n")
+        printed = self.complete(DONE, check_only=True)
+        self.assertIn("step-proof: [check] " + self.PROOF + " -> passed", printed)
+        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_check_only_path(action))["passed"])
+        (self.repo / "proof.txt").unlink()          # the candidate changes after the check-only run
+        with self.assertRaises(nav.NavigatorError) as caught:
+            self.complete(DONE)
+        self.assertIn("step S1's Proof did not pass", str(caught.exception))
+        self.assertNotIn("reused", store.read_record(self.run_dir / test_loop.step_proof_path(action, 1)))
+        (self.repo / "proof.txt").write_text("proved\n")   # the tree the check-only run judged, byte for byte
+        self.restart_loop(str(caught.exception))
+        out = self.complete(DONE)
+        record = store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))
+        self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_only_path(action))
+        self.assertIn("reused the passed check-only run", out)
+
+    def test_a_review_that_breaks_the_proof_is_refused_at_import_and_an_unchanged_candidate_reuses_its_record(self):
+        """T33: the step's Improve import reruns the Proof when the review changed the candidate and refuses a failure; an
+        unchanged candidate reuses the accepted record without running it again.  The transition also captured the step's
+        entry base in its action record, which the hand-off names."""
+        self.start()
+        self.drive_to("implement", step_plan=self.proof_plan("grep -q fixed a.py"))
+        action = self.action()
+        base = nav.current_action(self.state())["base"]
+        self.assertRegex(base, r"^[0-9a-f]{40,64}$")
+        (self.repo / "a.py").write_text("fixed = 1\n")
+        self.complete(DONE)
+        state = self.state()
+        child = state["active_improve"]
+        handoff = nav.improve_handoff_text(CORE, self.run_dir, state)
+        self.assertIn("git -C " + str(self.repo) + " diff " + base + " ", handoff)
+        calls = []
+        real = test_loop._run_command
+
+        def counting(*args, **kwargs):
+            calls.append(args[1])
+            return real(*args, **kwargs)
+
+        with mock.patch.object(test_loop, "_run_command", counting):
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
+        self.assertEqual(calls, [])                                       # unchanged: no extra run
+        self.assertFalse((self.run_dir / test_loop.step_proof_path(action, 2)).exists())
+        (self.repo / "a.py").write_text("x = 2\n")                       # the review breaks the step and commits it
+        git(self.repo, "commit", "-qam", "review edit")
+        with self.assertRaises(nav.NavigatorError) as caught:
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
+        self.assertIn("the review changed step S1 and its Proof did not pass", str(caught.exception))
+        self.assertIn("grep -q fixed a.py -> exit 1", str(caught.exception))
+        self.assertIn("improve-commit", str(caught.exception))
+        self.assertFalse(store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))["passed"])
+        (self.repo / "a.py").write_text("fixed = 2\n")                   # the route: fix it, commit, complete again
+        git(self.repo, "commit", "-qam", "review fix")
+        nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
+        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_path(action, 3))["passed"])
+
+    def test_an_ask_agent_implement_action_runs_no_step_proof(self):
+        """T31: the whole-plan action keeps its acceptance: no single-step Proof gate (a failing check is not run)."""
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Test loop fixture.", improve_skill=str(IMPROVE_CARD),
+                                             lint_option="off", delegation="ask-agent"))
+        self.drive_to("implement", step_plan=self.proof_plan("false", delegation_steps=2))
+        action = self.action()
+        self.assertEqual(test_loop.stage_commands(self.state(), "implement", "W1")[0], test_loop.stage_commands(
+            self.state(), "verify", "W1")[0])                              # the item's commands, as before
+        self.complete(DONE)
+        self.assertEqual(sorted((self.run_dir / "tests").glob(action + "-step-proof*")) if (self.run_dir / "tests").is_dir()
+                         else [], [])
+        self.assertEqual(self.state()["active_improve"]["action_id"], action)   # accepted: its Improve child started
 
 
 class ItemScopePathClassTests(unittest.TestCase):

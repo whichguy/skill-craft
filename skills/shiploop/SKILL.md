@@ -443,9 +443,10 @@ run from navigator v1/v2/v3 or the removed managed and legacy modes with an erro
 that names its protocol or mode, and refuse a protocol 4 state with unexpected or
 missing keys (including a missing `delegation`) with an error that names them.
 A run saved by the 17-stage inner loop (state version 4) is refused because its
-stages no longer exist, and one saved before the consumer contract's hand-off
+stages no longer exist, one saved before the consumer contract's hand-off
 fields (state version 5) because its version is not the supported state
-version 6.
+version 7, and one saved before each implementation step recorded its Proof
+(state version 6) because its step plans name no check for `implement` to run.
 Nothing is converted or partly resumed. Preserve the old run directory as
 evidence and start the same request again with a fresh `--run-dir` or workspace
 root; its product commits and worktrees are unaffected.

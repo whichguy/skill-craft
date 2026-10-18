@@ -713,8 +713,32 @@ _IMPLEMENT_CHAIN = """\
    - Before this stage's callback: every required step accepted and the combined return verified, or a recorded
      incomplete blocker.
 """
+# The inline route issues one action per step: its scope is the step's criteria (no path fence, implement-step fix plan
+# D3) and its check is the step's Proof (section 4.1); the ask-agent action builds every step and keeps the item's checks.
+_IMPLEMENT_SCOPE = """\
+1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
+   accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
+   reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
+   change one only when a criterion says to.
+"""
+_IMPLEMENT_SCOPE_INLINE = """\
+1. **Scope.** Do only this step: meet its criteria, nothing no criterion asks for, and break none of the item's
+   other requirements. Earlier steps are accepted. Write no tests, start no later step, and leave unrelated code as is
+   (no reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
+   change one only when a criterion says to.
+"""
+_IMPLEMENT_CHECK = """\
+3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
+   exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
+   command.
+"""
+_IMPLEMENT_CHECK_INLINE = """\
+3. **Check.** After each meaningful change run the step's Proof (the Step block) and `shiploop lint --action`; write
+   each exit code in RUN/notes/<action>.md. ShipLoop runs the Proof itself at done; the item's other checks belong to
+   the test stage and verify. Fix a failure by changing the work, never the Proof or what it expects.
+"""
 _IMPLEMENT_INLINE = """\
-7. **Inline.** Do the one step on the packet's Step lines (task, paths, skills, check commands, lint command) in this
+7. **Inline.** Do the one step of the packet's Step block (task, criteria, Proof, skills; the lint command) in this
    conversation. Bind no chain and dispatch no worker.
 """
 _VERIFY_ASSEMBLY = """\
@@ -772,7 +796,9 @@ _REVIEW_FOCUS_ITEMS = (
     "  depends on, with no primary-documentation source or probe result: check it,\n"
     "  and correct the plan where it is wrong",
 )
-_REVIEW_FOCUS_STEPS = "a missing prerequisite, wrong order or unowned verification in the steps"
+# One line (the completeness test reads a bullet's first line): the steps condition, with the step check's two faults.
+_REVIEW_FOCUS_STEPS = ("a missing prerequisite, wrong order or unowned verification, or a check that needs a later step's "
+                       "work or passes by skipping a missing artifact, in the steps")
 
 
 def _focus_list(items: tuple) -> str:
@@ -1247,8 +1273,13 @@ Change no product file in this stage.
    - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
      files is refused unless the whole item is tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
-     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`); its `task` cites IDs, not their
-     text. Every criterion is satisfied by some step.
+     `criteria` it satisfies and its `check`; its `task` cites IDs, not their text. Every criterion is satisfied by
+     some step. Optional `paths` (inside the item's) serve the parallel chain.
+   - `check`: the one command, from the repository root, that proves the step's criteria with only this step and
+     accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
+     artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
+     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only. None runs
+     now: change the step boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
      reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
@@ -1260,7 +1291,7 @@ Change no product file in this stage.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
-     A check naming `criteria` runs from the step that finishes the last of them; one without runs after every step.
+     The test and verify stages run these; implement runs only each step's own `check`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
@@ -1348,8 +1379,9 @@ preparatory commit); a mismatch there is a revise.
    unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
    and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
    it); the summary says per skill whether you used it, and why not.
-3. **Check.** After each edit run every check command on the Step lines and `shiploop lint --action`; write each exit code in
-   RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the command.
+3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
+   exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
+   command.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
@@ -2216,7 +2248,8 @@ def _require_planning_review(planning_review: str) -> None:
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
     "step-plan": ((_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),),
-    "implement": ((_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE),),
+    "implement": ((_IMPLEMENT_SCOPE, _IMPLEMENT_SCOPE_INLINE), (_IMPLEMENT_CHECK, _IMPLEMENT_CHECK_INLINE),
+                  (_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE)),
     "verify": ((_VERIFY_ASSEMBLY, _VERIFY_ASSEMBLY_INLINE), (_VERIFY_ONCE, _VERIFY_ONCE_INLINE)),
 }
 for _stage, _pairs in _INLINE_DUTY_PARAGRAPHS.items():
@@ -2468,12 +2501,12 @@ END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 IMPLEMENT_STEP_REVIEW_FOCUS_HEAD = """\
 Implementation step review focus. This result is one step of the item's step
 plan, and its tests are written later from the test spec, so this review is the
-only check of the code before them. Review the step's diff (the step's paths since
-the step began) and fix, within those paths, any of these:
+only check of the code before them. Review the step's change since its Review
+base (below) and fix, within the item's paths, any of these:
 - the change does not do the step's task, misses a criterion as the spec's R-<n>
   states it, or does work no criterion asks for (a later step's work, a feature
   the item does not request);
-- a file changed outside the step's paths, or unrelated work reverted or
+- a file changed outside the item's paths, or unrelated work reverted or
   reformatted;
 - a new or changed public entry point that does not check its arguments before
   any effect, swallows an error or returns a success default (Code craft 2);
@@ -2495,12 +2528,13 @@ the step began) and fix, within those paths, any of these:
   purpose, with no reason in the result;
 - a behaviour the code now has that no test-spec case covers and the result does
   not list for the test stage;
-- a recorded check command that fails, or a new lint finding on a changed line
-  with no waiver, after your last edit.
-Do not write tests, start a later step, or edit a recorded command. After your
-last edit, rerun the step's recorded check commands and ShipLoop's lint for the
-step's action (`shiploop lint --action`), and record their exit codes. Commit your
-edits. A pass that finds none of these is trivial.
+- the step's Proof failing or not testing its criteria (a skipped file, a later
+  step's work), or a new unwaived lint finding on a changed line, after your
+  last edit.
+Do not write tests, start a later step, or edit the Proof. After your last edit,
+rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop
+lint --action`), and record their exit codes. Commit your edits. A pass that
+finds none of these is trivial.
 """
 IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
@@ -2512,12 +2546,12 @@ IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRA
 _STEPS_WORDING = (
     ("Implementation step review focus. This result is one step of the item's step\n"
      "plan, and its tests are written later from the test spec, so this review is the\n"
-     "only check of the code before them. Review the step's diff (the step's paths since\n"
-     "the step began) and fix, within those paths, any of these:\n"
+     "only check of the code before them. Review the step's change since its Review\n"
+     "base (below) and fix, within the item's paths, any of these:\n"
      "- the change does not do the step's task, misses a criterion as the spec's R-<n>\n"
      "  states it, or does work no criterion asks for (a later step's work, a feature\n"
      "  the item does not request);\n"
-     "- a file changed outside the step's paths, or unrelated work reverted or\n"
+     "- a file changed outside the item's paths, or unrelated work reverted or\n"
      "  reformatted;\n",
      "Implementation step review focus. This result is steps {steps} of the item's step\n"
      "plan, built in one action, and their tests are written later from the test spec, so\n"
@@ -2529,13 +2563,18 @@ _STEPS_WORDING = (
      "  the item does not request);\n"
      "- a file changed outside these paths, or unrelated work reverted or\n"
      "  reformatted;\n"),
-    ("Do not write tests, start a later step, or edit a recorded command. After your\n"
-     "last edit, rerun the step's recorded check commands and ShipLoop's lint for the\n"
-     "step's action (`shiploop lint --action`), and record their exit codes. Commit your\n"
-     "edits.",
+    ("- the step's Proof failing or not testing its criteria (a skipped file, a later\n"
+     "  step's work), or a new unwaived lint finding on a changed line, after your\n"
+     "  last edit.\n"
+     "Do not write tests, start a later step, or edit the Proof. After your last edit,\n"
+     "rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop\n"
+     "lint --action`), and record their exit codes. Commit your edits. A pass that\n"
+     "finds none of these is trivial.",
+     "- a recorded check command that fails, or a new lint finding on a changed line\n"
+     "  with no waiver, after your last edit.\n"
      "Do not write tests or edit a recorded command. After your last edit, rerun the\n"
      "steps' recorded check commands and ShipLoop's lint for this action (`shiploop\n"
-     "lint --action`), and record their exit codes. Commit your edits."),
+     "lint --action`), and record their exit codes. Commit your edits. A pass that finds none of these is trivial."),
     ("one implementation step's diff: its task and criteria,",
      "the diff of implementation steps {steps}: their tasks and criteria,"),
 )

@@ -101,8 +101,9 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
             if result.get("criteria"):
                 step["criteria"] = [row["id"] for row in result["criteria"]]
             result["steps"] = [step]
-        result["steps"] = [dict(step, skills=step.get("skills", [])) if isinstance(step, Mapping) else step
-                           for step in result["steps"]]
+        # Every step records its Proof (implement-step fix plan 4.1); a fixture that is not about it proves nothing.
+        result["steps"] = [dict(step, skills=step.get("skills", []), check=step.get("check", "true"))
+                           if isinstance(step, Mapping) else step for step in result["steps"]]
         if "expectations" not in result:
             result["expectations"] = expectations_for(repo, result["steps"], run_dir, _current_item(state))
     elif stage == "test-spec":

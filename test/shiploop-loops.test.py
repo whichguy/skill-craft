@@ -153,9 +153,11 @@ class ContractTests(Synthetic):
                 self.assertEqual(json.loads(writes[loops.contract_path(action)]), value)
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
                 self.assertEqual(value["required_trivial_reviews"], 1 if stage == "verify" else 0)
-                self.assertEqual(value["exit_condition"], loops.exit_condition(stage))
+                # an inline implement step's first condition ends with the criteria assigned to it (fix plan T11)
+                scope = loops.implement_scope(state, "W1", action) if stage == "implement" else None
+                self.assertEqual(value["exit_condition"], loops.exit_condition(stage, scope))
                 self.assertEqual(value["exit_condition"].splitlines(),
-                                 [f"{n}. {c}" for n, c in enumerate(stage_spec.stage(stage).done_when, 1)])
+                                 [f"{n}. {c}" for n, c in enumerate(loops.worded_stage(stage, scope).done_when, 1)])
                 self.assertTrue(value["repeat_condition"].startswith("Repeat while "))
                 self.assertIn("there is no iteration limit", value["repeat_condition"])
                 self.assertNotIn("Build a parser", json.dumps(value), "the request text leaked into the contract")
@@ -195,6 +197,33 @@ class ContractTests(Synthetic):
         self.assertEqual(loops.contract(self.root, one, "A-implement")["exit_condition"].splitlines()[0],
                          "1. " + stage_spec.stage("implement").done_when[0])
 
+    def test_the_step_contract_binds_its_anchors_and_rebuilds_the_same_after_the_living_files_change(self):
+        """T12: the inline step's Work names its criteria, the R-<n> they name and the item's AD-<n>; the contract rebuilt
+        at complete equals the one written at entry, though the step edited HOME/spec.md in between (the anchors are
+        read from state, never from the living files)."""
+        state = self.state_for("implement")
+        state["accepted"]["A-sp"].update(criteria=[{"id": "C1", "text": "The header is read as R-2 states."}],
+                                         follows=["R-1", "AD-3"])
+        written = json.loads(self.write(state)[loops.contract_path("A-implement")])
+        home = self.repo / "docs" / "shiploop"
+        home.mkdir(parents=True)
+        (home / "spec.md").write_text("# Spec\n\n- R-2: the header, edited by the step.\n- R-9: new.\n")
+        self.assertEqual(loops.contract(self.root, state, "A-implement"), written)
+        for token in ("step S1", "C1", "R-2", "AD-3",
+                      "until each requirement assigned to this step is satisfied and none of the others is broken"):
+            self.assertIn(token, written["work"])
+        self.assertNotRegex(written["work"], r"\bR-1\b")   # a criterion names R-2, so the item's R-1 is not this step's
+
+    def test_the_ask_agent_work_sentence_is_unchanged_and_names_no_step_proof(self):
+        """T31: the whole-plan action keeps today's Work word for word (the chain runs the steps; no single-step gate)."""
+        state = dict(self.state_for("implement"), delegation="ask-agent")
+        value = loops.contract(self.root, state, "A-implement")
+        self.assertEqual(value["work"], "Do duty items 1-7 of " + str(self.root) + "/packets/A-implement.md for the change "
+                                        "of every step, S1 to S2, in order. Write no tests and start no later step.")
+        # its exits keep the steps' wording, and no step-proof gate applies to it (shiploop-test-loop, T31's gate test)
+        self.assertTrue(value["exit_condition"].startswith("1. only the paths of steps S1 to S2"))
+        self.assertEqual(value["repeat_condition"], loops.REPEAT["implement"])
+
     def test_verify_writes_the_code_craft_rubric_its_contract_names(self):
         writes = self.write(self.state_for("verify"))
         self.assertEqual(writes[quality.RUBRIC_PATH], prompts.CODE_CRAFT)
@@ -202,11 +231,16 @@ class ContractTests(Synthetic):
         purposes = {row["purpose"]: row["locator"] for row in value["context"]["resources"]}
         self.assertEqual(purposes["Code craft rubric the review applies"], str(self.root / quality.RUBRIC_PATH))
 
-    def test_implement_contract_names_the_current_step_and_only_its_paths(self):
-        value = loops.contract(self.root, self.state_for("implement"), "A-implement")
+    def test_implement_contract_names_the_current_step_and_the_items_paths_with_no_step_fence(self):
+        """The inline step's scope is its assigned criteria within the item's declared paths (implement-step fix plan
+        D3: no step path fence), and its Work names the step."""
+        state = self.state_for("implement")
+        state["accepted"]["A-sp"]["paths"] = ["src/a.py", "src/b.py", "src/c.py"]
+        value = loops.contract(self.root, state, "A-implement")
         self.assertIn("step S1", value["work"])
-        self.assertIn("src/a.py, src/b.py", value["context"]["scope"])
-        self.assertNotIn("src/c.py", value["context"]["scope"])
+        self.assertIn("Step S1 of work item W1: its assigned criteria, within the item's declared paths (src/a.py, "
+                      "src/b.py, src/c.py)", value["context"]["scope"])
+        self.assertNotIn("only its paths", value["context"]["scope"])
         state = self.state_for("implement")
         state["history"].append({"stage": "implement", "workitem": "W1", "action": "A-i1", "outcome": "done"})
         self.assertIn("step S2", loops.contract(self.root, state, "A-implement")["work"])

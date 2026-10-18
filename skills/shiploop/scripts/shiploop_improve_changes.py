@@ -47,6 +47,14 @@ def _snapshot(run_dir: Path, repo: Path) -> Optional[Dict[str, str]]:
     return {"toplevel": str(top), "prefix": prefix, "tree": tree}
 
 
+def snapshot_tree(run_dir: Path, repo: Path) -> str:
+    """The candidate's working content as a Git tree, untracked files included ("" outside Git or when the snapshot
+    fails): the tree an inline implement step begins from (the navigator's ``_step_entry``), which its Improve review
+    diffs against the bind snapshot."""
+    snap = _snapshot(Path(run_dir), Path(repo))
+    return snap["tree"] if snap else ""
+
+
 def bind_writes(run_dir: Path, repo: Path, action: str) -> Dict[str, str]:
     """The snapshot record written when an Improve child is bound (none outside Git)."""
     snap = _snapshot(Path(run_dir), Path(repo))
@@ -121,4 +129,5 @@ def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return list(seen.values())
 
 
-__all__ = ("bind_path", "bind_writes", "commit_refusal", "rerun_commands", "review_changes", "uncommitted")
+__all__ = ("bind_path", "bind_writes", "commit_refusal", "rerun_commands", "review_changes", "snapshot_tree",
+           "uncommitted")

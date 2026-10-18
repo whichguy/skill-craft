@@ -10104,8 +10104,8 @@ class StageModelTests(unittest.TestCase):
                          ["Plan", "Build", "Verify"])
         self.assertEqual(cards["implement"]["purpose"], engine_spec().STAGE_SPEC["implement"].goal)  # the catalog is the engine's table
         # N2: a script-run row that also has an Improve child says so
-        self.assertEqual(cards["implement"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal, lint-gate before it "
-                         "accepts done, and an Improve child reviews each step's result."})
+        self.assertEqual(cards["implement"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal, lint-gate, step-proof "
+                         "before it accepts done, and an Improve child reviews each step's result."})
         self.assertIn("only the last work item's carry-forward", cards["carry-forward"]["check"]["why"])
         self.assertEqual(cards["verify"]["check"]["why"], "ShipLoop runs loop-terminal, lint-gate, test-rerun before it accepts done.")
         self.assertNotIn("meant to fail", view["tests"])
