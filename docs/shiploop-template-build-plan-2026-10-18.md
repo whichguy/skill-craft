@@ -116,7 +116,7 @@ Done means all of these hold:
 
 Each entry: the unit, its result, what it found, and the evidence. Entries are edited later rather than deleted.
 
-- **2026-10-18, S1.1, S1.3 and S1.4 (the four outcomes; firm).** Commit `5c3f3828`.
+- **2026-10-18, S1.1, S1.3 and S1.4 (the four outcomes; firm).** Commit `c6c82b16`. S1.2 is `9ab464c1` and S1.5 is `c4fc5608`.
   - **Result:** done, blocked (`awaiting`: answer, present or the new service kind), send-back and add-work. `repeat`,
     `revise`, `replan` and `blocked_by` are refused with the new names. Improve starts only on done. Check-only enforces
     the send-back budget. State version 8.
