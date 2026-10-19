@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.6.0
+version: 1.7.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -53,7 +53,7 @@ purpose files; open one when its trigger holds, read it whole, once:
 - [Guides by stage](references/guide-map.md): discovery, research, spec and planning guides and the knowledge home.
 - [When Improve runs](references/improve-stages.md): which results an Improve child reviews and how its passes end.
 - [The Improve child](references/improve-child.md): an Improve stage is current, or you recover or restart one.
-- [The inner loop](references/inner-loop.md): an inner stage's rule, its Until Loop, expectations, `revise`.
+- [The inner loop](references/inner-loop.md): an inner stage's rule, its Until Loop, expectations, `send-back`.
 - [Test loop and confirmation](references/test-loop.md): test commands, base and candidate runs, floors, criteria.
 - [Chains: route and binding](references/chain-route.md) and [navigation](references/chain-navigation.md): a
   `delegation: ask-agent` run at `implement`, or any `chain` command.
@@ -245,7 +245,7 @@ Work toward that goal and keep going until every condition holds; a passing
 test that ShipLoop ran is the evidence.
 
 Every packet opens, after its goal, with a **References** block that defines each
-path once: `HOME` (the knowledge home `docs/shiploop/`, each file with its
+path once: `KNOWLEDGE` (the knowledge home `docs/shiploop/`, each file with its
 sections, a missing one marked with the stage that writes it), `RUN` (the run
 directory), `WORKTREE` (the execution checkout) and `GUIDES` (this skill's
 references directory). Its heading reads "symbols expand to these absolute paths;
@@ -371,9 +371,8 @@ question about the loop is not a stop: answer it and continue the packet.
 4. The owning agent writes the packet's generic Markdown result and runs its
    exact completion command (`complete`), retaining the action ID. At an Improve
    checkpoint a `done` outcome starts the bound Improve child rather
-   than advancing the graph directly; `repeat` requests another producer attempt
-   at a PRELUDE or OUTER stage, and `blocked`
-   preserves unfinished work. These are result outcomes, not permission to pick
+   than advancing the graph directly; `blocked` preserves unfinished work, `send-back` returns
+   the item to its step plan and `add-work` adds corrective items. These are result outcomes, not permission to pick
    an arbitrary successor. Consume the returned packet before beginning another
    stage.
 5. After interruption, use the saved recovery command (`next`) before repeating

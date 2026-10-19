@@ -15,6 +15,7 @@ _PHASES = ("Preparation", "Work items", "Release")
 _STATUS_CLASSES = {
     "active": "active",
     "awaiting": "awaiting",
+    "service": "awaiting",
     "blocked": "blocked",
     "done": "done",
     "halted": "halted",

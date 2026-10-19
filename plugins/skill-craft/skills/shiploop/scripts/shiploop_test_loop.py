@@ -411,7 +411,7 @@ BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused an
 # What the reruns after the test stage say about the floor ``accepted_counts`` sets.
 RATCHET_RULE = ("Floor: each command runs at least as many tests as the most an accepted ShipLoop run of it ran for this "
                 "item since its latest step plan, so a test removed or newly skipped is refused; a test that must go "
-                "because the plan changed is a revise, and the redone step plan starts the count again.")
+                "because the plan changed is a send-back, and the redone step plan starts the count again.")
 
 
 def _floor_lines(stage: str) -> List[str]:
@@ -449,7 +449,7 @@ def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str
             lines.append("No command to run: " + reason.rstrip(".") + ". Report done with that reason; ShipLoop has "
                          "nothing to run.")
         else:
-            lines.append("The accepted step plan recorded no test_commands. Report outcome revise so the step plan "
+            lines.append("The accepted step plan recorded no test_commands. Report outcome send-back so the step plan "
                          "records them.")
         return lines
     known = floors(root, state, work_item, action, None)
@@ -524,7 +524,7 @@ def _copy_refusal(observed: Mapping[str, Any]) -> str:
             "there. A check that passes in the work area and fails here usually means one of: a path the return plan "
             "excluded (" + str(observed["plan"]) + "); an ignored or unmanaged file the check needs (installed "
             "dependencies, build output, local configuration); or a commit made after the return, which the copy does "
-            "not hold. " + ahead + "This stage cannot edit the commands or return. Report outcome replan with one "
+            "not hold. " + ahead + "This stage cannot edit the commands or return. Report outcome add-work with one "
             "corrective work item whose context names the failing command and its cause, so release returns the fix "
             "and release-verify observes it (an excluded path: the return plan must keep it; an ignored or unmanaged "
             "file: the check must bring it, for example by installing it first; a later commit: release must return "
@@ -564,7 +564,7 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
         "work-area": "Where they run: no completed return is recorded, so these commands run in the work area and do "
                      "not observe the user's checkout; the handoff reports that.",
         "unknown": "Where they run: the return state cannot be read now, so done is refused without counting until it "
-                   "can be; retry done then, or report replan if it cannot be repaired.",
+                   "can be; retry done then, or report add-work if it cannot be repaired.",
     }
     return (["", "Test rerun: on done, ShipLoop runs every test command " + recorded_by + " recorded from "
              + _where(observed, state["repo"]) + " and refuses unless each passes (if it keeps refusing, "
@@ -677,7 +677,7 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
                          "test the base run showed for this command.")
             else:
                 exit_ = ("Restore the tests that were removed or now skip. A test that must go because the plan changed "
-                         "is a revise: report revise naming what was removed and why, and the redone step plan starts "
+                         "is a send-back: report send-back naming what was removed and why, and the redone step plan starts "
                          "the count again.")
             return ("ran fewer tests than its floor (at least " + str(floor) + ": " + str(run.get("floor_from")
                     or "an earlier run of this command that ShipLoop accepted for this item") + ")" + seen + ". "
@@ -704,7 +704,7 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
             source, field = OUTER_SOURCES[stage]
             return (unread + source + " recorded this command and " + stage + " cannot edit it. A command that is "
                     "not a test runner (a shell pipeline, a grep, a probe) belongs in suite `check`, judged by its "
-                    "exit code. Report outcome replan now, with one corrective work item: a new id, a title, and a "
+                    "exit code. Report outcome add-work now, with one corrective work item: a new id, a title, and a "
                     "context that names this command and says to record it as suite check in " + field
                     + ". The outer stages then run again, and " + source + " records it.")
         return (unread + "Give the command ids and a runner flag that prints test names (for example --verbose; never "
@@ -799,7 +799,7 @@ def latest_attempt_could_not_run(root: Path, action: str) -> bool:
 def remedy_open(root: Path, action: str) -> bool:
     """Whether ShipLoop's own record entitles this action to its stage's remedy outcome.
 
-    ``revise`` (INNER) or ``replan`` (OUTER) is accepted without a stopped Until Loop packet when ShipLoop's own runs
+    ``send-back`` (INNER) or ``add-work`` (OUTER) is accepted without a stopped Until Loop packet when ShipLoop's own runs
     already failed ``MAX_REFUSED_RUNS`` times or its latest run never reached a verdict: the refusal names that outcome
     as the route out, so it must be accepted.  An ordinary ``done`` still needs a complete loop packet.
     """
@@ -923,31 +923,33 @@ def _disposition(runs: List[Dict[str, Any]], good: Tuple[str, ...]) -> str:
 def _remedy(stage: str) -> str:
     """The outcome this stage offers when its own runs keep refusing, from the stage contract.
 
-    INNER stages take the item back to its step plan (``revise``); the OUTER ``system-test`` and ``release-verify``
-    take corrective work items (``replan``).  ``verify`` is also called with a label that is not a graph stage -- the
-    navigator's ``end-of-work review`` gate -- which has no remedy outcome and must not raise here.
+    INNER stages take the item back to its step plan (``send-back``); the OUTER ``system-test`` and ``release-verify``
+    take corrective work items (``add-work``): their runs refused, so the product, not their plan, is what failed.  They
+    also accept send-back since S1.5, for a wrong plan, which a refused run does not show; add-work is checked first.
+    ``verify`` is also called with a label that is not a graph stage -- the navigator's ``end-of-work review`` gate --
+    which has no remedy outcome and must not raise here.
     """
     row = stage_spec.STAGE_SPEC.get(stage)
     if row is None:
         return ""
-    for candidate in ("revise", "replan"):
+    for candidate in ("add-work", "send-back"):
         if candidate in row.outcomes:
             return candidate
     return ""
 
 
 def _has_loop_packet(stage: str) -> bool:
-    """Whether the stage's revise otherwise needs a stopped Until Loop packet (every inner stage runs one)."""
+    """Whether the stage's send-back otherwise needs a stopped Until Loop packet (every inner stage runs one)."""
     return stage in stage_spec.INNER
 
 
 def _remedy_sentence(stage: str) -> str:
     """What the packet says the stage's remedy outcome does, in the stage's own terms."""
     remedy = _remedy(stage)
-    if remedy == "revise":
-        return "the item goes back to its step plan (revise)"
-    if remedy == "replan":
-        return "the outer loop takes corrective work items (replan)"
+    if remedy == "send-back":
+        return "the item goes back to its step plan (send-back)"
+    if remedy == "add-work":
+        return "the outer loop takes corrective work items (add-work)"
     return "done is no longer accepted for this action"
 
 
@@ -976,7 +978,7 @@ def _cap_refusal(root: Path, stage: str, refused: int, last: str) -> str:
     """The reply once this action has used every refused run."""
     remedy = _remedy(stage)
     instruction = ("Report outcome " + remedy + ", naming the failing command from " + last
-                   + (", so the step plan is revised" if remedy == "revise"
+                   + (", so the step plan is revised" if remedy == "send-back"
                       else ", with the corrective work_items the outer loop must run")
                    + "; report ") if remedy else "Report "
     return ("ShipLoop test run: " + stage + " was refused " + str(refused) + " times; done is no longer accepted for "
@@ -999,7 +1001,7 @@ def _unavailable_sentence(stage: str, refused: int, runs: Sequence[Mapping[str, 
             + ("; if the recorded command is itself wrong or too slow to fit (" + str(int(command_timeout))
                + " seconds each, " + str(int(budget)) + " for the whole run), report " + remedy
                + " rather than retrying it"
-               + (", with the corrective work_items the outer loop must run" if remedy == "replan" else "")
+               + (", with the corrective work_items the outer loop must run" if remedy == "add-work" else "")
                + (" (ShipLoop's own record of this attempt is the evidence, so no new loop packet is needed)"
                   if _has_loop_packet(stage) else "")
                if remedy else "")
@@ -1285,11 +1287,11 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                      "the packet's start command (its receipt is replaced), then submit done again. " + attempts
                      + " Full output: " + str(root / relative) + ".")
     elif stage in OUTER_SOURCES and all(run["status"] == "uncounted" for run in failing):
-        # Nothing here is a product failure: the recorded command itself cannot be counted, and only a replan
+        # Nothing here is a product failure: the recorded command itself cannot be counted, and only an add-work
         # reaches the stage that records it, so a "fix the code" line would send the model the wrong way.
-        lines.append("Report replan as named above, not done: no change to the code makes a recorded command "
+        lines.append("Report add-work as named above, not done: no change to the code makes a recorded command "
                      "countable. Refused runs for this action so far: " + str(refused + 1) + " (" + REFUSED_TALLY
-                     + "); replan does not wait for them. Full output: " + str(root / relative) + ".")
+                     + "); add-work does not wait for them. Full output: " + str(root / relative) + ".")
     elif observed is not None and observed["where"] == "returned-result" and disposition == "failed":
         # The generic reply ("fix the code") has no way out here: this stage cannot edit the commands or return.
         lines.append(_copy_refusal(observed) + " " + attempts + " Full output: " + str(root / relative) + ".")
@@ -1373,7 +1375,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     found = step_command(state, work_item)
     if found is None:
         return {}, ("ShipLoop step proof: the step this action builds records no check (its Proof) in the accepted step "
-                    "plan, so ShipLoop cannot confirm it. Report revise so the step plan records one."), []
+                    "plan, so ShipLoop cannot confirm it. Report send-back so the step plan records one."), []
     step, row = found
     step_id = str(step.get("id"))
     repo = Path(str(state["repo"]))

@@ -469,7 +469,7 @@ Carry this model through the existing stages:
 | `implement` | Implement the active slice, cases, and enduring product diagrams/ledger where needed; compare with the accepted spec, not an improvised model. |
 | `test`, `verify` | Run lint and all required checks, compare expected transitions/effects with observations. Do not silently adjust expectations to match failures. |
 | `carry-forward` | Distill new observations with source, scope, revalidation guidance and impact. Revise only future work within the accepted spec; incompatible contracts pause. |
-| `product-acceptance` | Reconcile end-to-end flows and state interactions across items with whole-product evidence; corrective work returns through `replan` and new work items. |
+| `product-acceptance` | Reconcile end-to-end flows and state interactions across items with whole-product evidence; corrective work returns through `add-work` and new work items. |
 | `handoff` | Link the behavior model and case evidence, naming scope/exclusions and unresolved limitations honestly. Generic harness proposals stay separate. |
 
 If learning contradicts accepted scope/acceptance, stop and seek direction, not a

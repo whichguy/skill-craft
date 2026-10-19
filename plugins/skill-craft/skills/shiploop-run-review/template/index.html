@@ -147,7 +147,7 @@ button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink
 .ws-mark{font-size:10.5px;font-family:var(--mono);fill:var(--muted)}
 .ws-cell{fill:var(--none-bg);stroke:var(--line);opacity:.7}
 .ws-cell.o-done{fill:var(--holds-bg);stroke:var(--holds)}
-.ws-cell.o-revise,.ws-cell.o-replan{fill:var(--bent-bg);stroke:var(--bent)}
+.ws-cell.o-sendback,.ws-cell.o-addwork{fill:var(--bent-bg);stroke:var(--bent)}
 .ws-cell.o-blocked{fill:var(--broken-bg);stroke:var(--broken)}
 .ws-cell.skip{fill:var(--none-bg);stroke:var(--muted);stroke-dasharray:2 2}
 .ws-cell.hl{opacity:1;stroke:var(--fg);stroke-width:2;stroke-dasharray:none}
@@ -224,7 +224,7 @@ label.opt .t{min-width:0}
 .sq .sq-nat{fill:var(--muted)}
 .sq-ax{stroke:var(--line);stroke-width:1}
 .sq-col.o-done{fill:var(--holds)}
-.sq-col.o-revise,.sq-col.o-replan{fill:var(--bent)}
+.sq-col.o-sendback,.sq-col.o-addwork{fill:var(--bent)}
 .sq-col.o-blocked{fill:var(--broken)}
 .sq-col.o-other{fill:var(--muted)}
 .sq-col.skip{fill:url(#sq-hatch);stroke:var(--muted);stroke-dasharray:2 2}
@@ -346,7 +346,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <p class="sub" id="seqcap" style="margin:2px 0 0"></p>
 <div class="seqscroll" id="seqscroll"></div>
 <p class="msg" id="seqhint" hidden>The picture is wider than the screen: scroll it sideways inside this box.</p>
-<div class="sqleg" id="sqleg"><span id="sql-done"><i class="sw s-done"></i>done</span><span id="sql-rev"><i class="sw s-rev"></i>R revise, P replan</span><span id="sql-blk"><i class="sw s-blk"></i>B blocked</span><span id="sql-skip"><i class="sw s-skip"></i>recorded by ShipLoop, no packet (xN: N in a row)</span><span id="sql-seed"><i class="sw s-seed"></i>S seeded by the harness, not run</span><span id="sql-na"><i class="sw s-na"></i>n/a, no time recorded</span><span id="sql-tail"><i class="sw s-tail"></i>U unaccepted: the stage the run ended in</span><span id="sql-imp"><b class="sqnum">3</b>Improve passes</span><span id="sqlegband" hidden><span id="sql-ctx"><i class="sw s-ctx"></i>context peak, share of the window</span><span id="sql-warn"><i class="sw s-warn"></i>! 90% or more</span><span id="sql-tri"><b>&#9650;</b>a compaction, a number when more than three</span></span></div>
+<div class="sqleg" id="sqleg"><span id="sql-done"><i class="sw s-done"></i>done</span><span id="sql-rev"><i class="sw s-rev"></i>R send-back (returned to step-plan), A add-work</span><span id="sql-blk"><i class="sw s-blk"></i>B blocked</span><span id="sql-skip"><i class="sw s-skip"></i>recorded by ShipLoop, no packet (xN: N in a row)</span><span id="sql-seed"><i class="sw s-seed"></i>S seeded by the harness, not run</span><span id="sql-na"><i class="sw s-na"></i>n/a, no time recorded</span><span id="sql-tail"><i class="sw s-tail"></i>U unaccepted: the stage the run ended in</span><span id="sql-imp"><b class="sqnum">3</b>Improve passes</span><span id="sqlegband" hidden><span id="sql-ctx"><i class="sw s-ctx"></i>context peak, share of the window</span><span id="sql-warn"><i class="sw s-warn"></i>! 90% or more</span><span id="sql-tri"><b>&#9650;</b>a compaction, a number when more than three</span></span></div>
 <p class="legend" id="seqnote"></p>
 </div>
 <div id="seqdetail" aria-live="polite"></div>
@@ -382,7 +382,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <h2 id="h-step-3">3. Findings and options</h2>
 <p class="sub">Each finding says what we expected, what we saw and what Claude advises; under it, the options that would put it right. Tick any mix. Your ticks stay in this browser, and step 4 turns them into one prompt.</p>
 <div class="chips" id="filters" style="margin:0 0 8px"></div>
-<div class="legend" id="wherelegend">Where strip: one cell per visit in order. Outlined cells are the stage the finding belongs to; amber is revise or replan, red blocked, dashed or hatched a visit with no packet (recorded by ShipLoop, or seeded by the harness). A letter under a cell names its outcome.</div>
+<div class="legend" id="wherelegend">Where strip: one cell per visit in order. Outlined cells are the stage the finding belongs to; amber is send-back or add-work, red blocked, dashed or hatched a visit with no packet (recorded by ShipLoop, or seeded by the harness). A letter under a cell names its outcome.</div>
 <div class="msg" id="notice" role="status"></div>
 <details class="live" id="live" hidden><summary id="livesum"></summary>
 <div class="row" style="margin:6px 0 0"><button class="btn sm primary" id="livecopy" type="button">Copy prompt</button><button class="btn sm" id="liveopen" type="button">Open plan</button><span class="msg" id="livemsg" role="status"></span></div>
@@ -1260,7 +1260,7 @@ function carriedRows(run){
 /* Its geometry in user units (a pixel at natural size). A column is one visit; the tallest work visit is `plot` high. */
 var SQ={pitch:16,gap:3,padL:8,padLBand:34,padR:8,head:6,num:14,plot:96,markH:13,bandGap:4,band:34,tickH:13,
   naH:26,skipH:14,seedH:20,minH:2,warnAt:90};
-var OUTCOME_MARK={revise:"R",replan:"P",blocked:"B"};
+var OUTCOME_MARK={"send-back":"R","add-work":"A",blocked:"B"};
 /* The harness's reason, filed under its own name (shiploop_failures, model_glue) or the run field's. */
 var REASON_NAME={refusals:"shiploop_failures",glue:"model_glue"};
 function whyNot(run,name){return reasonFor(run,name)||reasonFor(run,REASON_NAME[name]||name);}
@@ -1410,7 +1410,7 @@ function legendKinds(cols,band){
     if(c.kind==="skipped")have.skip=true;else if(c.kind==="seeded")have.seed=true;else if(c.kind==="tail")have.tail=true;
     else if(c.na)have.na=true;
     else if(c.outcome==="done")have.done=true;
-    else if(c.outcome==="revise"||c.outcome==="replan")have.rev=true;
+    else if(c.outcome==="send-back"||c.outcome==="add-work")have.rev=true;
     else if(c.outcome==="blocked")have.blk=true;
     if(c.improve&&c.improve.passes!==null)have.imp=true;
   });
@@ -1552,7 +1552,7 @@ var CARRIED_LABELS=[
   ["operates","operates","the 'Current stage guidance:' rules or the 'Considerations for this stage:' list"],
   ["checked","checked","the 'Done when (' list and the 'Improve:' line that says whether a review loop follows, or a 'Checked by:' line"],
   ["produces","produces","the 'Result template:' and the 'Allowed outcomes:' line"],
-  ["recovery","recovery","the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and either the historical self-repair sentence or the current best-default/assumption and person-only blocking rules"],
+  ["recovery","recovery","the blocked sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0, a 'blocked (only a person or an outside service can unblock it): {...}' line from the four outcomes) and either the historical self-repair sentence or the current best-default/assumption and person-only blocking rules"],
   ["inputs","inputs","the 'Results this stage builds on' list"]];
 /* The checklist of one visit: [{key, label, found: true|false|null, na, tip}], null when the row has no `carried` (older export,
    unreadable packet, skipped, seeded or an Improve child's packet). A cross is "not found in the packet text": a statement about
@@ -1615,7 +1615,7 @@ function stageCard(run,i,catalog){
   if(typeof r.workitem==="string")done.push(["Work item",r.workitem+(isCount(r.loop)?", steps-loop pass "+r.loop:"")]);
   if(typeof r.step==="string")done.push(["Step",r.step+" (the step this packet named)"]);
   var item=typeof r.workitem==="string"&&run&&Array.isArray(run.workItems)?run.workItems.filter(function(w){return w&&w.id===r.workitem;})[0]:null;
-  if(item&&isCount(item.revises))done.push(["Revises of this item",String(item.revises)+(item.revises===0?" (never sent back to step-plan)":" (each sent it back to step-plan)")]);
+  if(item&&isCount(item.sendBacks))done.push(["Send-backs of this item",String(item.sendBacks)+(item.sendBacks===0?" (never sent back to step-plan)":" (each sent it back to step-plan)")]);
   var imp=improveText(run,r);if(imp)done.push(["Improve",imp]);
   var vt=verifyText(r.verify);if(vt)done.push(["Checked by the script",vt]);
   var ev=evidenceLine(r.evidenceClass);if(ev)done.push(["Exit evidenced by",ev]);
@@ -1655,18 +1655,19 @@ function cardRows(model,run,catalog){
   });
 }
 /* ---- plan and execution (step 1) ---- */
-var OUTCOME_KEYS=["done","revise","repeat","replan","blocked"];
+var OUTCOME_KEYS=["done","send-back","add-work","blocked","repeat"];
 /* A work item's passes through the steps loop as a badge: "steps loop once" for 1, "x2" from 2, never a bare 0. */
 function loopsBadge(n){return !isCount(n)?"steps loop not recorded":n===0?"steps loop not started":n===1?"steps loop once":"steps loop x"+n;}
-/* The counts line of one work item: step plans, then implement visits with their outcomes (a blocked or replan count shows only when it is not 0). */
+/* The counts line of one work item: step plans, then implement visits with their outcomes (a blocked, add-work or historical repeat count shows only when it is not 0). */
 function itemCounts(it){
   var plans=isCount(it&&it.stepPlans)?plural(it.stepPlans,"step plan"):"step plans not recorded";
   var v=it&&it.implementVisits&&typeof it.implementVisits==="object"?it.implementVisits:null;
   if(!v)return plans+", implement visits not recorded";
   var n=function(k){return isCount(v[k])?v[k]:0;};
   var total=OUTCOME_KEYS.reduce(function(a,k){return a+n(k);},0);
-  var text=plans+", "+plural(total,"implement visit")+": "+n("done")+" done, "+n("revise")+" revise, "+n("repeat")+" repeat";
-  if(n("replan"))text+=", "+n("replan")+" replan";
+  var text=plans+", "+plural(total,"implement visit")+": "+n("done")+" done, "+n("send-back")+" send-back";
+  if(n("add-work"))text+=", "+n("add-work")+" add-work";
+  if(n("repeat"))text+=", "+n("repeat")+" repeat";
   if(n("blocked"))text+=", "+n("blocked")+" blocked";
   return text;
 }
@@ -1694,10 +1695,10 @@ function planModel(run){
         state:!paired?"unknown":(ran?"executed":"never"),visit:ran?visitOf(s.action):null};
     });
     if(isCount(it.loops))loops+=it.loops;else loopsKnown=false;
-    var added=it.origin==="replan"||it.origin==="carry-forward";
+    var added=it.origin==="add-work"||it.origin==="carry-forward";
     items.push({id:it.id,label:it.id+(typeof it.title==="string"&&it.title?": "+it.title:""),
       badge:loopsBadge(it.loops),counts:itemCounts(it),cells:cells,
-      added:added?(it.origin==="replan"?"added by replan":"revised at carry-forward"):"",
+      added:added?(it.origin==="add-work"?"added by add-work":"revised at carry-forward"):"",
       stepsText:!steps?"Steps not recorded for this item.":paired?it.stepsExecuted+" of "+it.stepsPlanned+" planned steps executed":
         plural(steps.length,"step")+" planned; which visit ran each is not recorded for this run"});
   });
@@ -1731,7 +1732,7 @@ function columnName(c){
   if(c.kind==="skipped")return c.n===1?"visit "+(c.first+1)+" "+c.stage+", recorded by ShipLoop":"visits "+(c.first+1)+" to "+(c.last+1)+", "+c.n+" recorded by ShipLoop";
   return "visit "+(c.first+1)+" "+c.stage+", "+(c.kind==="seeded"?"seeded":c.outcome)+", "+(c.kind==="seeded"?"not timed":(c.na?"n/a":c.min+" min"));
 }
-function outcomeClass(o){var k=String(o).replace(/[^a-z]/g,"");return ["done","revise","replan","blocked"].indexOf(k)>=0?k:"other";}
+function outcomeClass(o){var k=String(o).replace(/[^a-z]/g,"");return ["done","sendback","addwork","blocked"].indexOf(k)>=0?k:"other";}
 /* The picture as an SVG string. Only fixed class names, numbers and escaped text go in, and every colour comes from a
    class of the page's own tokens, so dark mode follows. `picked` is the selected column or -1. Layout (top down): the
    Improve passes above each column, the columns on a baseline, the outcome marks, the context band (when there is
@@ -2205,7 +2206,7 @@ function renderPlan(run){
   var box=byId("plancard"),pm=planModel(run);clear(box);box.hidden=false;
   box.appendChild(h("h3","","Plan and execution"));
   if(!pm.measured){box.appendChild(h("p","sub","Not measured: "+pm.why+"."));return;}
-  box.appendChild(h("p","sub","What planning produced, and how the run went through it. A work item goes through the steps loop: its steps are planned, then built one implement visit per step; a revise starts the loop again. A filled cell is a step an implement visit executed, an outlined one is a step no visit executed. Tap an item or a step to find its visits in the picture below."));
+  box.appendChild(h("p","sub","What planning produced, and how the run went through it. A work item goes through the steps loop: its steps are planned, then built one implement visit per step; a send-back starts the loop again. A filled cell is a step an implement visit executed, an outlined one is a step no visit executed. Tap an item or a step to find its visits in the picture below."));
   box.appendChild(h("p","pl-line",pm.headline));
   box.appendChild(h("p","pl-line",pm.line));
   if(!pm.items.length)box.appendChild(h("p","sub","This run's queue holds no work item."));
@@ -2295,7 +2296,7 @@ function fillPacket(id){
 /* ---------- the stage card and the list of stage cards (all text goes in through textContent) ---------- */
 /* The stage catalog a run reads: config/stages for an 8-stage run (or an unknown model), config/stages-v4 for a 17-stage run. */
 function stageCatalog(run){var s=cfgOf(stageModel(run)==="v4"?"stages-v4":"stages").stages;return Array.isArray(s)?s:null;}
-var OUTCOME_CHIP={done:"holds",revise:"bent",replan:"bent",repeat:"bent",blocked:"broken",unaccepted:"bent"};
+var OUTCOME_CHIP={done:"holds","send-back":"bent","add-work":"bent",repeat:"bent",blocked:"broken",unaccepted:"bent"};
 var CHECK_CHIP={"script-run":"holds","review loop":"acc","model judgement":"muted"};
 function chipEl(cls,text,title){var c=h("span","chip "+cls,text);if(title)c.title=title;return c;}
 function factsEl(lines){var dl=h("dl","facts");lines.forEach(function(l){dl.appendChild(h("dt","",l[0]));dl.appendChild(h("dd","",l[1]));});return dl;}

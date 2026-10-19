@@ -319,7 +319,7 @@ loop inside one bound Until Loop that ShipLoop writes for it
 `exit_condition` is the stage's Done-when lines, `repeat_condition` carries the
 proven-unachievable rule and the stop after 7 genuine fix attempts, and
 `required_trivial_reviews` is 0. A criterion that contradicts another criterion,
-the item or a protected file stops the loop, and the stage reports `revise`. Before the owner decision of
+the item or a protected file stops the loop, and the stage reports `send-back`. Before the owner decision of
 2026-10-10 this loop was selective, because on bounded steps it produced the
 same outcomes at about 1.8× the cost of an in-prompt loop; every inner stage now
 runs one so that each stage's exit and repeat conditions are script-written and

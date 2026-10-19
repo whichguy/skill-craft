@@ -48,17 +48,31 @@ COMPLETE_RUNS = frozenset({
 })
 EDITS = frozenset({"code", "tests", "docs"})
 PHASES = ("prelude", "inner", "outer")
-OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise"})
+# The four outcomes (run-insights plan N5, owner decision 10, 2026-10-18): done; blocked (only a person or an outside
+# service can unblock it, and the result says what it awaits); send-back (a record an earlier stage wrote is wrong: that
+# stage reruns with this result as evidence); add-work (product work is missing: new work items are built, then the run
+# resumes at system-test-author).  "repeat" is gone: it was never used in 1,845 results, and `next` restarts a stage.
+OUTCOMES = frozenset({"done", "blocked", "send-back", "add-work"})
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
 # and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.
 IMPROVE_RULES = ("always", "last-item", "step")
 
 # A work item whose goal proves wrong while it is being built goes back to its
-# step plan with the evidence, at most MAX_REVISES times; after that the user
-# decides (blocked, blocked_by user).
-REVISE_TO = "step-plan"
-MAX_REVISES = 2
+# step plan with the evidence, at most MAX_SEND_BACKS times; after that the user
+# decides (blocked, awaiting an answer).
+SEND_BACK_TO = "step-plan"
+MAX_SEND_BACKS = 2
+# Two OUTER stages run a plan another OUTER stage wrote: system-test runs system-test-author's, release-verify runs
+# release-plan's.  A wrong record there goes back to the stage that wrote it, which reruns with the result as evidence,
+# then every stage after it (run-insights N5, build plan S1.5).  Each target has its own budget of MAX_SEND_BACKS.
+OUTER_SEND_BACK_TO: Mapping[str, str] = MappingProxyType({"system-test": "system-test-author",
+                                                          "release-verify": "release-plan"})
+
+
+def send_back_target(stage: str) -> str:
+    """The stage a send-back from ``stage`` reruns: an OUTER stage's plan writer, else the item's step plan."""
+    return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
 # The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
 STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied and none of the others is broken, shown "
@@ -67,7 +81,7 @@ STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied 
 # is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its check in the step plan) exited 0"
 # The step exit criteria's stopping rule (SPEC S-10 carve-out, owner decision 2026-10-10): the same check still failing
-# after this many genuine fix attempts ends the stage as revise. No script counts the attempts; the model applies it, and
+# after this many genuine fix attempts ends the stage as send-back. No script counts the attempts; the model applies it, and
 # test/shiploop-stage-spec.test.py pins every prose copy to this value.
 GENUINE_FIX_ATTEMPTS = 7
 
@@ -90,7 +104,7 @@ class Stage:
     improve: str | None = None             # one of IMPROVE_RULES, or None
     reads: tuple[str, ...] = ()            # accepted results to read first ("item:" = this item)
     blocks: frozenset[str] = field(default_factory=frozenset)
-    outcomes: tuple[str, ...] = ("done", "repeat", "blocked")
+    outcomes: tuple[str, ...] = ("done", "blocked")
     short_goal: str = ""                   # what a status line shows ("specify this item's tests"); default: goal up to its first colon
     cases: bool = False                    # the test text ends with case_end_states (added once outcomes are final)
     steps_goal: str | None = None          # the goal for an action that builds several steps at once ({steps}, {paths})
@@ -135,21 +149,25 @@ def case_end_states(row: "Stage") -> str:
     """The case end-state sentence for ``row``, built from the outcomes the row accepts.
 
     An OUTER test stage records an unachievable case as an open item and continues, but only for a case whose command
-    ShipLoop does not rerun (the navigator's test-rerun gate refuses done while a recorded command fails); an INNER
-    stage sends it back to the step plan with revise.  Blocked and replan are named only where the row accepts them.
+    ShipLoop does not rerun (the navigator's test-rerun gate refuses done while a recorded command fails), and sends a
+    case that is wrong as planned back to the stage that wrote it where the row accepts send-back (S1.5); an INNER
+    stage sends it back to the step plan with send-back.  Blocked and add-work are named only where the row accepts them.
     """
     if row.phase == "outer":
         routes = ["record it as an open item in the result's `assumptions`, with the stage it is due at as its "
                   "consumer, and continue, provided its command is not one ShipLoop reruns, since every rerun command "
                   "must pass"]
-    elif "revise" in row.outcomes:
-        routes = ["report revise so the step plan reroutes the case"]
+        if "send-back" in row.outcomes:
+            routes.append("report send-back when the case as planned is itself wrong, so "
+                          + OUTER_SEND_BACK_TO[row.name] + " amends it")
+    elif "send-back" in row.outcomes:
+        routes = ["report send-back so the step plan reroutes the case"]
     else:
-        raise ValueError(f"{row.name}: an unachievable case needs an open-item or a revise route")
+        raise ValueError(f"{row.name}: an unachievable case needs an open-item or a send-back route")
     if "blocked" in row.outcomes:
-        routes.append("report blocked with blocked_by access only when nothing else can proceed")
-    if "replan" in row.outcomes:
-        routes.append("report replan when the plan is wrong")
+        routes.append("report blocked, awaiting a person's grant, only when nothing else can proceed")
+    if "add-work" in row.outcomes:
+        routes.append("report add-work when product work is missing")
     return _CASE_STATES.format(routes=routes[0] if len(routes) == 1 else ", ".join(routes[:-1]) + ", or " + routes[-1])
 
 
@@ -168,7 +186,7 @@ ITEM_COMMITS = (
 _LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
                     + " Delete generated output the product does not need.")
 _LEFT_IN_PLACE = ("ShipLoop commits no other changed file, and you commit nothing yourself: if the product needs one, "
-                  "report revise so the step plan declares it; otherwise delete it.")
+                  "report send-back so the step plan declares it; otherwise delete it.")
 
 
 def item_left(execution_mode: str) -> str:
@@ -210,7 +228,7 @@ _ROWS = (
     ),
     Stage(
         "discovery", "prelude",
-        goal='Inspect the repository and baseline tests; write the facts to HOME/environment.md and the baseline run to `evidence_refs`.',
+        goal='Inspect the repository and baseline tests; write the facts to KNOWLEDGE/environment.md and the baseline run to `evidence_refs`.',
         short_goal='discover the repository and baseline',
         done_when=(
             "the existing suite (full, or smoke if full is impractical) ran on the unchanged checkout, "
@@ -227,7 +245,7 @@ _ROWS = (
     ),
     Stage(
         "research", "prelude",
-        goal='Resolve the consequential unknowns with evidence in RUN/notes/research.md; durable facts go to HOME/environment.md.',
+        goal='Resolve the consequential unknowns with evidence in RUN/notes/research.md; durable facts go to KNOWLEDGE/environment.md.',
         short_goal='research the open unknowns',
         done_when=(
             "every consequential unknown is resolved with evidence, or recorded with an owner and the gate it blocks",
@@ -241,7 +259,7 @@ _ROWS = (
     ),
     Stage(
         "spec", "prelude",
-        goal="Define each requirement and its acceptance criteria as R-<n> in HOME/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
+        goal="Define each requirement and its acceptance criteria as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
         short_goal='specify the requirements',
         done_when=(
             "every request outcome maps to at least one acceptance criterion",
@@ -258,7 +276,7 @@ _ROWS = (
     ),
     Stage(
         "test-strategy", "prelude",
-        goal='Map each requirement to the checks that prove it: harnesses and commands in HOME/environment.md, boundaries in HOME/architecture.md.',
+        goal='Map each requirement to the checks that prove it: harnesses and commands in KNOWLEDGE/environment.md, boundaries in KNOWLEDGE/architecture.md.',
         short_goal='plan the test strategy',
         done_when=(
             "every criterion maps to a check, its surface and the stage it is due",
@@ -277,7 +295,7 @@ _ROWS = (
     ),
     Stage(
         "plan", "prelude",
-        goal='Plan dependencies and the queue: ordered `work_items`, `assumptions`, and structure decisions in HOME/architecture.md.',
+        goal='Plan dependencies and the queue: ordered `work_items`, `assumptions`, and structure decisions in KNOWLEDGE/architecture.md.',
         short_goal='plan the work items',
         done_when=(
             "every criterion is owned by a work item",
@@ -293,7 +311,7 @@ _ROWS = (
     ),
     Stage(
         "prepare", "prelude",
-        goal='Ready the development and test environment; record readiness in HOME/environment.md and runner output in `evidence_refs`.',
+        goal='Ready the development and test environment; record readiness in KNOWLEDGE/environment.md and runner output in `evidence_refs`.',
         short_goal='prepare the environment',
         done_when=(
             "each planned check's runner starts in the prepared environment",
@@ -361,7 +379,7 @@ _ROWS = (
     ),
     Stage(
         "validate-existing", "inner",
-        goal='Resolve each expectation that mismatched on the item base: fix it in WORKTREE or report revise with `failed_expectations`.',
+        goal='Resolve each expectation that mismatched on the item base: fix it in WORKTREE or report send-back with `failed_expectations`.',
         short_goal='validate the item base',
         done_when=(
             "every works expectation passes its check on the current checkout",
@@ -526,12 +544,12 @@ _ROWS = (
     ),
     Stage(
         "product-acceptance", "outer",
-        goal="Assess the product against the request: each outcome's end state in `summary`, gaps in `unverified`, missing work as replan.",
+        goal="Assess the product against the request: each outcome's end state in `summary`, gaps in `unverified`, missing work as add-work.",
         short_goal='accept the assembled product',
         done_when=(
             "every request outcome was observed by an executed check, or is listed in unverified with its reason, "
             "owner and due stage",
-            "missing product work is routed as replan",
+            "missing product work is routed as add-work",
         ),
         test="Assess the product against the original outcome, not only the spec.",
         reads=("intake", "spec", "system-test-author", "system-test"),
@@ -539,7 +557,7 @@ _ROWS = (
     ),
     Stage(
         "release-plan", "outer",
-        goal='Plan the release without performing it: steps and rollback in `summary` and HOME/environment.md, `consumer_checks`, `consumer_entry`.',
+        goal='Plan the release without performing it: steps and rollback in `summary` and KNOWLEDGE/environment.md, `consumer_checks`, `consumer_entry`.',
         short_goal='plan the release',
         done_when=(
             "release, rollback and post-release verification steps are planned",
@@ -593,7 +611,7 @@ _ROWS = (
     ),
     Stage(
         "operations", "outer",
-        goal='Confirm the release can be monitored, recovered and supported: evidence in `summary`, locators in HOME/environment.md.',
+        goal='Confirm the release can be monitored, recovered and supported: evidence in `summary`, locators in KNOWLEDGE/environment.md.',
         short_goal='confirm operational readiness',
         done_when=("monitoring, recovery and support readiness are confirmed, or justified not-applicable",),
         deploy="Confirm monitoring and rollback work.",
@@ -618,7 +636,8 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     """Add the outcomes that follow from a stage's place in the graph.
 
     INNER stages from test-spec through verify build the item against its step
-    plan, so a goal that proves wrong there goes back to the step plan (revise).  OUTER stages route missing product work as replan.
+    plan, so a goal that proves wrong there goes back to the step plan (send-back).  OUTER stages route missing product
+    work as add-work, and the two that run another stage's plan send a wrong plan back to it (``OUTER_SEND_BACK_TO``).
     A row that prints the case end states gets them here, from its final outcomes.
     """
     names = [row.name for row in rows]
@@ -626,9 +645,10 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     finished = []
     for index, row in enumerate(rows):
         if first <= index <= last:
-            row = replace(row, outcomes=row.outcomes + ("revise",))
+            row = replace(row, outcomes=row.outcomes + ("send-back",))
         elif row.phase == "outer":
-            row = replace(row, outcomes=row.outcomes + ("replan",))
+            row = replace(row, outcomes=row.outcomes + (("send-back",) if row.name in OUTER_SEND_BACK_TO else ())
+                          + ("add-work",))
         if row.cases:
             row = replace(row, test=(row.test + " " if row.test else "") + case_end_states(row))
         finished.append(row)

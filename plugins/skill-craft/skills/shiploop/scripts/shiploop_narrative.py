@@ -15,7 +15,7 @@ BEGIN = "=== ShipLoop narrative ==="
 END = "=== end ShipLoop narrative ==="
 BAR_WIDTH = 12
 _STOP_ICON = {"paused": "⏸️ Paused", "blocked": "⛔ Blocked", "halted": "⛔ Halted",
-              "awaiting": "❓ Waiting on you", "done": "\U0001f3c1 Done"}
+              "awaiting": "❓ Waiting on you", "service": "⏳ Waiting on a service", "done": "\U0001f3c1 Done"}
 
 
 def bar(done: float, total: int) -> str:

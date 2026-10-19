@@ -101,7 +101,7 @@ revision that needs new fixture or setup work revises the future queue in that
 same `carry-forward` result so the producer precedes its consumer. The last
 carry-forward's Improve review covers the executed items together, including
 their system-test implications. At outer stages, a needed catalog change is
-corrective work through `replan`.
+corrective work through `add-work`.
 
 Completed or running case definitions stay immutable. Add a corrective case
 for a changed requirement, target or executable assertion; do not rewrite a

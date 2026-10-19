@@ -97,7 +97,7 @@ def _need(condition: bool, message: str) -> None:
 
 _REPLAN_MESSAGE = (
     "The required delivery contract changed after release planning and requires replanning through "
-    "the accepted outer replan edge, followed by fresh system-test and release-plan "
+    "the accepted add-work edge, followed by fresh system-test and release-plan "
     "evidence for the current contract before another completion."
 )
 
@@ -545,7 +545,7 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                     action=entry["action"],
                     stage=entry["stage"],
                 )
-        if entry["outcome"] == "replan":
+        if entry["outcome"] == "add-work":
             # Every accepted edge starts a corrective inner cycle, so a prior
             # release plan cannot cover a candidate changed by that later work.
             release_plan_completed = False
@@ -954,7 +954,7 @@ def _recovery_lines(state: Mapping[str, Any], projection: Mapping[str, Any]) -> 
             )
         else:
             lines.append(
-                "Use the accepted outer replan edge with new corrective work_items; if that edge already "
+                "Use the accepted add-work edge with new corrective work_items; if that edge already "
                 "returned this run to inner work, complete the fresh system-test and release-plan cycle for "
                 "the current contract. Repeat or resume cannot repair this requirement."
             )
@@ -965,7 +965,7 @@ def _recovery_lines(state: Mapping[str, Any], projection: Mapping[str, Any]) -> 
             + ", ".join(_packet_text(row["id"]) for row in late_rows) + "."
         )
         lines.append(
-            "This action cannot positively repair an earlier phase. Use the accepted outer replan edge "
+            "This action cannot positively repair an earlier phase. Use the accepted add-work edge "
             "with corrective work_items; do not repeat or resume this action as a substitute for the "
             "missing receipt."
         )

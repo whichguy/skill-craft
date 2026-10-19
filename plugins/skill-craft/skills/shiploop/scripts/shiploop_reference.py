@@ -60,10 +60,12 @@ ShipLoop runs unattended: no one is watching and nothing arrives on standard inp
   assumption (the alternatives and why this one), and continue.
 - A step only a person can do (a sign-in, a grant, an observation in a signed-in browser): record it as an open item
   in the result (who must do what, what they report back) and continue with everything that does not depend on it.
-- Only when nothing further can proceed without the person: outcome `blocked` with `blocked_by` user (or access, for
-  a sign-in) and `awaiting`, one decision per question, in words the user can answer in one reply:
+- Only when nothing further can proceed without a person or an outside service: outcome `blocked` with `awaiting`,
+  one decision per question, in words the user can answer in one reply:
   - a decision: `{"kind": "answer", "question": "...", "options": [...], "no_default": "..."}`
-  - something only a person can do: `{"kind": "present", "steps": [...], "report": "...", "no_default": "..."}`
+  - something only a person can do (a sign-in, a grant): `{"kind": "present", "steps": [...], "report": "...",
+    "no_default": "..."}`
+  - an outside service: `{"kind": "service", "service": "...", "check": "<read-only command>", "no_default": "..."}`
   `no_default` says why no recorded default would do; ShipLoop refuses a wait without it. The run then stops until
   the user's own reply resumes it.
 - Blocked means work this stage cannot do (a missing target, account or approval, or a command with no replacement
@@ -74,13 +76,12 @@ OUTCOMES_TEXT = """\
 The result file holds one `shiploop-state` block whose object has "outcome" and "summary" as top-level fields; do
 not wrap it in action or result keys. An outcome other than done keeps headline and evidence_refs and drops the
 done-only fields (work_items, assumptions, steps, test_commands, ...):
-- repeat: {"outcome": "repeat", "summary": "<what is still open>"}
-- blocked: {"outcome": "blocked", "blocked_by": "user | access | external", "summary": "<what stopped the work>"},
-  plus "awaiting" only as described in reference#blocked
-- revise: {"outcome": "revise", "summary": "<what in the step plan or test spec is wrong>"}: the item goes back to
-  step-plan with this result as evidence
-- replan (only where the packet allows it): {"outcome": "replan", "summary": "...", "work_items": [{"id": "...",
-  "title": "...", "context": "..."}]}
+- blocked: {"outcome": "blocked", "summary": "<what stopped the work>", "awaiting": {...}}, with awaiting as
+  reference#blocked describes; only a person or an outside service can unblock it
+- send-back: {"outcome": "send-back", "summary": "<what in the step plan or test spec is wrong>"}: the item goes
+  back to step-plan with this result as evidence
+- add-work (only where the packet allows it): {"outcome": "add-work", "summary": "...", "work_items": [{"id": "...",
+  "title": "...", "context": "..."}]}: the new items are built, then the run resumes at system-test-author
 A packet lists the outcomes its stage accepts; any other is refused."""
 
 RECOVERY_TEXT = """\

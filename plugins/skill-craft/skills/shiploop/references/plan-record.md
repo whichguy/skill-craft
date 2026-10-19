@@ -15,7 +15,7 @@ nothing from this guide.
 
 ## Code or stored data added or moved
 
-Reopen the namespace and data entries in HOME/architecture.md ## Structure and each touched environment's tree. Per file,
+Reopen the namespace and data entries in KNOWLEDGE/architecture.md ## Structure and each touched environment's tree. Per file,
 module and public symbol: environment, home namespace, visibility, collision check (import or load test, deploy
 validation, or name search). Per stored field, key, table or payload: owning environment, migration (unneeded, earlier
 step, this step, deploy obligation), round-trip check. Reason for a changed placement or schema (Namespace and placement

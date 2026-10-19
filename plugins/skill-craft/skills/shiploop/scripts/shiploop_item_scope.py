@@ -264,7 +264,7 @@ def scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str) -> st
     changed = changed_paths(run_dir, work_item)
     if changed is None:
         return ("ShipLoop leaves this item's test stage out because its step plan declares only non-code "
-                "paths, but it cannot read the item's changes to confirm that. Report revise so the step plan "
+                "paths, but it cannot read the item's changes to confirm that. Report send-back so the step plan "
                 "records test commands.")
     code = behavioural_paths(changed)
     stray = outside(changed, declared(state, work_item))
@@ -274,7 +274,7 @@ def scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str) -> st
              + ", ".join(declared(state, work_item)) + "), but the change goes further:"]
     lines += ["- " + path + " (" + classify(path) + ")" for path in code]
     lines += ["- " + path + " (not declared)" for path in stray if path not in code]
-    lines.append("Keep the change within the declared paths, or report revise naming these paths so the step "
+    lines.append("Keep the change within the declared paths, or report send-back naming these paths so the step "
                  "plan declares the paths and test commands this change needs; its test stage then runs.")
     return "\n".join(lines)
 

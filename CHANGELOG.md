@@ -2,6 +2,80 @@
 
 Written by scripts/release.py.
 
+## 2026-10-19
+
+### skill-craft 2.7.0
+
+- Skills: improve 0.5.1, shiploop 1.7.0, shiploop-e2e-audit 0.7.5, shiploop-run-review 0.3.0
+
+### improve 0.5.1
+
+- - The ShipLoop route lists the four outcomes a revised step result may carry: done, blocked, send-back (test-spec to
+    verify) or add-work (outer stages). revise, replan and repeat are retired.
+
+### shiploop 1.7.0
+
+- - **`KNOWLEDGE` replaces `HOME`:** packets now name the knowledge home (`docs/shiploop/`) by the symbol `KNOWLEDGE`, as in
+    `KNOWLEDGE/spec.md`. `HOME` read too much like the user's `$HOME`. The References block defines it
+    (`KNOWLEDGE = <path> (knowledge home)`), and the stage goals, duties and gate texts use it.
+  - **Evidence paths:** an `evidence_refs` entry may lead with `KNOWLEDGE/`. One led by `HOME/` is now refused as an unknown
+    root, with the defined roots named.
+  - **Packet size:** each head grows by 6 to 51 characters. The tightest, the inline step-plan head, is 19,971 characters and
+    still fits the 20,000-character cut.
+- - **Four outcomes:** a stage result is now `done`, `blocked`, `send-back` (was `revise`: a record an earlier stage wrote is
+    wrong, and the item goes back to its step plan with this result as evidence) or `add-work` (was `replan`: product work
+    is missing; the new items are built, then the run resumes at system-test-author). `repeat` is retired: it was unused,
+    and `next` reprints a stage. A result that names a retired outcome is refused with the new names.
+  - **Blocked:** a blocked result carries `awaiting`, the thing it waits on, and `blocked_by` is retired and refused. It is
+    one of three kinds:
+    - a person's decision: `{"kind": "answer", ...}`;
+    - a person's action, such as a sign-in or a grant: `{"kind": "present", ...}`;
+    - new, an outside service: `{"kind": "service", "service", "check", "no_default"}`, where `check` is a read-only
+      command that exits 0 once the service is back.
+
+    Resuming a blocked run takes the reply: `--answer` or `--observed`.
+  - **Waiting on a service:**
+    - The status line and the narrative show "Waiting on a service", not "Waiting on you".
+    - The blocked packet tells the model to run the check only when the user says the service is back or asks, and to
+      resume with the check's output once it exits 0. Answer and present waits still say "do not answer it yourself".
+    - The status text keeps URLs whole. A check such as `curl https://host/health` used to print as `https:health`.
+  - **Improve:** it starts only on a `done` result. A blocked, send-back or add-work result goes straight to its route.
+  - **Send-back limit:** `complete --check-only` now refuses a send-back once the work item has used its two.
+  - **Loop text:**
+    - The implement loop's stop rule routes a person's or a service's action (access, authority, a decision) to blocked,
+      and a step that cannot be done as planned to send-back.
+    - A loop still running from another contract is reported as still running, with its `next_argv`, instead of being
+      told to start again, which the runtime would refuse.
+  - **Check-only:** its success line says to submit once the loop's receipt is complete or stopped.
+  - **State version 8:** a run saved at an older version is refused; start it again.
+- - **Send-back at the release stages:**
+    - `system-test` may send the run back to `system-test-author` when a case or command in its test plan is wrong;
+    - `release-verify` may send it back to `release-plan` when the release plan or one of its consumer checks is wrong.
+
+    The target reruns with the result as evidence. Its packet names the result that sent it back and its own previous
+    result, and asks for an amendment. Every stage after the target then runs again.
+  - **Budget:** each target has its own budget of two send-backs, checked at `--check-only` as for a work item. After that
+    the stage reports blocked, awaiting a decision.
+  - **Repeated refused runs** at those two stages still end in `add-work`: a refused run shows the product failing, not
+    the plan.
+  - **No repeated release:** after a send-back from `release-verify`, `release` runs only what the amended plan changed.
+    An unchanged operation keeps its earlier receipt and does not run twice.
+
+### shiploop-e2e-audit 0.7.5
+
+- The mock-replay fixtures follow ShipLoop's four outcomes: done, blocked (with awaiting), send-back and add-work; repeat is retired.
+
+### shiploop-run-review 0.3.0
+
+- - The stage catalog (`defaults/stages.json`) is regenerated from the stage table, whose goals now name the knowledge home
+    as `KNOWLEDGE/` (ShipLoop decision 19).
+- - The export and the page use ShipLoop's four outcomes. A historical run's `revise` and `replan` read as `send-back` and
+    `add-work`.
+  - A work item's `revises` count is now `sendBacks`. Its implement-visit counts are done, send-back, add-work and blocked,
+    plus repeat for historical runs.
+  - A corrective item's `origin` is `add-work`.
+  - A blocked run's "by" shows what it awaits.
+
 ## 2026-10-18
 
 ### skill-craft 2.6.0

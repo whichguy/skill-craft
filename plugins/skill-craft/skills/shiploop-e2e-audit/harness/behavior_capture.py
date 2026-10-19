@@ -43,7 +43,8 @@ _SUPPORTED_PROTOCOLS = frozenset({4})
 # The live runner's public partial-stop keys (run.PARTIAL_STAGES).
 _STOP_STAGES = frozenset({"intake", "discovery", "research", "spec", "test-strategy", "plan"})
 _STATE_STATUSES = frozenset({"active", "paused", "blocked", "halted", "done"})
-_OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise", "reconcile"})
+# The four outcomes (ShipLoop N5) and, for captures of historical runs, the retired repeat, replan and revise.
+_OUTCOMES = frozenset({"done", "blocked", "send-back", "add-work", "reconcile", "repeat", "replan", "revise"})
 _NATIVE_TYPES = frozenset(
     {
         "available_commands", "end", "plan", "text", "thought", "tool_call",

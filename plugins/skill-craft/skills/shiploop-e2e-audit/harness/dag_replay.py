@@ -233,7 +233,9 @@ def _result(stage: str, *, outcome: str = "done", work_items: list[dict[str, str
     if work_items is not None:
         value["work_items"] = work_items
     if outcome == "blocked":
-        value["blocked_by"] = "external"
+        # A blocked result says what it awaits (N5); the synthetic wait is an outside service, resumed by an observation.
+        value["awaiting"] = {"kind": "service", "service": "synthetic prerequisite", "check": "true",
+                             "no_default": "Synthetic: the prerequisite is outside this replay."}
     return value
 
 
@@ -367,43 +369,31 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         "synthetic-pause-blocked-cold-recovery", paused_steps, {"stage": "test-strategy", "status": "active"}
     )
 
-    # A repeat at a checkpoint keeps the stage: the parked repeat and an Improve-returned repeat
-    # both reissue test-strategy, and only a done result advances.  No INNER stage accepts repeat
-    # any more (each runs one Until Loop), so the case runs at a prelude checkpoint that still does.
-    repeat_prefix = _path_steps(("intake", "discovery", "research", "spec"), terminal_target="test-strategy")
-    repeat_steps = repeat_prefix + [
-        {"at": "test-strategy", "owner": "root", "command": "produce", "result": _result("test-strategy", outcome="repeat"), "expect": "test-strategy", "status": "active"},
-        {"at": "test-strategy", "command": "finish-improve", "receipt": _receipt("test-strategy"), "final_result": _result("test-strategy", outcome="repeat"), "expect": "test-strategy", "status": "active"},
-        {"at": "test-strategy", "owner": "root", "command": "produce", "result": _result("test-strategy"), "expect": "test-strategy", "status": "active"},
-        {"at": "test-strategy", "command": "finish-improve", "receipt": _receipt("test-strategy"), "expect": "plan", "status": "active"},
-    ]
-    cases["synthetic-repeat"] = _synthetic_case(
-        "synthetic-repeat", repeat_steps, {"stage": "plan", "status": "active", "owner": "root"}
-    )
-
-    # The INNER rework route: repeat is refused at an INNER stage, and a revise from test sends
-    # the item back to its step plan, which is reviewed again before test-spec.
-    revise_prefix = _path_steps(_PRELUDE + _INNER[:_INNER.index("test")], terminal_target="test")
-    revise_steps = revise_prefix + [
-        {"at": "test", "command": "produce", "result": _result("test", outcome="repeat"), "expect": "test", "expect_owner": "W1", "status": "active", "expect_error": "repeat is not an outcome at test"},
-        {"at": "test", "command": "produce", "result": _result("test", outcome="revise"), "expect": "step-plan", "expect_owner": "W1", "status": "active"},
+    # The INNER rework route (run-insights N5): a retired outcome is refused at an INNER stage, and a send-back from test
+    # sends the item back to its step plan, which is reviewed again before test-spec.  (repeat, which kept a
+    # checkpoint's stage, is retired: a stage's own Until Loop repeats the work, and `next` restarts a stage.)
+    send_back_prefix = _path_steps(_PRELUDE + _INNER[:_INNER.index("test")], terminal_target="test")
+    send_back_steps = send_back_prefix + [
+        {"at": "test", "command": "produce", "result": _result("test", outcome="repeat"), "expect": "test", "expect_owner": "W1", "status": "active", "expect_error": "revise, replan and repeat are retired"},
+        {"at": "test", "command": "produce", "result": _result("test", outcome="revise"), "expect": "test", "expect_owner": "W1", "status": "active", "expect_error": "revise, replan and repeat are retired"},
+        {"at": "test", "command": "produce", "result": _result("test", outcome="send-back"), "expect": "step-plan", "expect_owner": "W1", "status": "active"},
         {"at": "step-plan", "command": "produce", "result": _result("step-plan"), "expect": "step-plan", "status": "active"},
         {"at": "step-plan", "command": "finish-improve", "receipt": _receipt("step-plan", marker="revised"), "expect": "test-spec", "expect_owner": "W1", "status": "active"},
     ]
-    cases["synthetic-revise"] = _synthetic_case(
-        "synthetic-revise", revise_steps, {"stage": "test-spec", "status": "active", "owner": "W1"}
+    cases["synthetic-send-back"] = _synthetic_case(
+        "synthetic-send-back", send_back_steps, {"stage": "test-spec", "status": "active", "owner": "W1"}
     )
 
     corrective_prefix = _path_steps(
         _PRELUDE + _INNER + ("system-test-author",), terminal_target="system-test"
     )
     corrective_steps = corrective_prefix + [
-        # system-test is not a checkpoint: its corrective replan applies directly.
-        {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "step-plan", "expect_owner": "W2", "status": "active"},
+        # system-test is not a checkpoint: its corrective add-work applies directly.
+        {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="add-work", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "step-plan", "expect_owner": "W2", "status": "active"},
         *_path_steps(_INNER + _OUTER, active_owner="W2"),
     ]
-    cases["synthetic-corrective-replan"] = _synthetic_case(
-        "synthetic-corrective-replan", corrective_steps,
+    cases["synthetic-corrective-add-work"] = _synthetic_case(
+        "synthetic-corrective-add-work", corrective_steps,
         {"stage": "done", "status": "done", "completed_work_items": ["W1", "W2"]}
     )
 
@@ -675,17 +665,25 @@ def _apply_callback(navigator: Any, state: Mapping[str, Any], command: str, outp
     if command in {"finish-improve", "duplicate-finish-improve", "conflicting-finish-improve", "stale-finish-improve"}:
         return navigator.finish_improve(state, action_id, output["receipt"], output.get("final_result"))
     if command in {"pause", "resume", "halt"}:
-        return navigator.control(state, command, "Synthetic DAG replay control event.")
+        reply: dict[str, str] = {}
+        wait = navigator.awaiting(state) if command == "resume" else None
+        if wait is not None:
+            # Resuming a blocked run needs the reply its wait asks for (N5): an answer, or an observation.
+            reply = {("answer" if wait[1]["kind"] == "answer" else "observed"): "Synthetic DAG replay reply."}
+        return navigator.control(state, command, "Synthetic DAG replay control event.", **reply)
     raise DagReplayError(f"unsupported replay command: {command}")
 
 
 def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any, planning_review: str) -> bool:
-    """Say whether this producer result must park for Improve, per the literal schedule."""
-    if stage in _PLANNING_CHECKPOINTS[planning_review]:
+    """Say whether this producer result must park for Improve, per the literal schedule.
+
+    Only a done result is reviewed (N5): a blocked, send-back or add-work result goes straight to its route.
+    """
+    if not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return False
+    if stage in _PLANNING_CHECKPOINTS[planning_review] or stage in _STEP_CHECKPOINTS:
         return True
-    if stage in _STEP_CHECKPOINTS:
-        return isinstance(result, Mapping) and result.get("outcome") == "done"
-    if stage != "carry-forward" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+    if stage != "carry-forward":
         return False
     if "work_items" in result:
         return not result["work_items"]

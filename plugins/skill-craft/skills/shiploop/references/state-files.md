@@ -101,7 +101,7 @@ when it is missing or comes from another version, and the cursor does not move.
 Every save regenerates `context-index.md` in the run directory from `state.md`. It is the
 run's master index. It opens with a map of about 3 KB: the current stage with its packet file,
 the next and recovery commands, and one row per file or folder of the run, per knowledge file
-(`HOME/spec.md`, `architecture.md`, `environment.md`) and for the skill's guides, saying what
+(`KNOWLEDGE/spec.md`, `architecture.md`, `environment.md`) and for the skill's guides, saying what
 it holds and when to read it. A test lists a populated run directory and fails on an entry
 the map lacks. After the map comes the run's record: the request, each current accepted
 planning result (result file, summary, registered notes, Improve receipt and lessons, and the
