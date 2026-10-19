@@ -3377,11 +3377,15 @@ def outcome_class(passed: bool, t: dict) -> tuple[str | None, str]:
         return "BLOCKED", f"engine paused at {stage}{why}: it awaits resume; no blocked result names who can unblock it"
     if engine == "blocked":
         by, kind, no_default = now("engine_blocked_by"), now("engine_awaiting_kind"), now("engine_awaiting_no_default")
-        if by is None:
+        if by is None and kind is None:
             return "BLOCKED", f"engine blocked at {stage}{why}; no blocked result was read from the state (an old state, or none accepted)"
+        # A current blocked result names what it awaits (answer or present: a person; service: an outside service) and has no
+        # blocked_by; a run recorded before the four outcomes (run-insights plan N5) names who can unblock it as `by`, user,
+        # access or external, and usually the wait beside it.
+        who = "an outside service" if kind == "service" else "a person"
         wait = ("" if kind is None else
-                f"; awaits a person ({kind}), " + ("and states why no default would do" if no_default else "and gives no reason that no default would do"))
-        return "BLOCKED", f"engine blocked at {stage} by {by}{wait}"
+                f"; awaits {who} ({kind}), " + ("and states why no default would do" if no_default else "and gives no reason that no default would do"))
+        return "BLOCKED", f"engine blocked at {stage}" + (f" by {by}" if by is not None else "") + wait
     if engine == "halted":
         return "FAILED", f"engine halted at {stage}{why}"
     if engine == "done":

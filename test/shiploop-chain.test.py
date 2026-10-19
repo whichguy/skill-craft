@@ -557,7 +557,7 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(set(self.bind()["ready"]), {"A", "B"})
         saved = (self.run / "state.md").read_bytes()
         self.parent_complete()
-        self.parent_complete("repeat")
+        self.parent_complete("send-back")
         self.assertEqual((self.run / "state.md").read_bytes(), saved)
         claims = self.claim(["A", "B"])
         self.start("A", claims["A"])
@@ -712,22 +712,23 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(set(self.call("next")["ready"]), {"A", "B"})
         self.call("claim", {"steps": ["A"]}, ok=False)
 
-    def test_producer_repeat_is_refused_the_loop_repeats_the_work(self):
-        # implement is an Until Loop: the loop repeats the work, so the graph refuses repeat (a new implementation
-        # starts at the next step; see TwoStepChainTests).
+    def test_the_retired_repeat_outcome_is_refused(self):
+        # repeat is retired (N5): implement's Until Loop repeats the work, and a new implementation starts at the next
+        # step (see TwoStepChainTests).
         self.complete_single_chain()
         refused = self.parent_complete("repeat", ok=False)
-        self.assertIn("the bound Until Loop repeats the work, not the graph", refused.stdout + refused.stderr)
+        # At a loop stage the loop gate refuses first, naming the outcomes the stage accepts.
+        self.assertIn("implement accepts only done, blocked, send-back", refused.stdout + refused.stderr)
         state = store.read_record(self.run / "state.md")
         self.assertEqual(nav.current_action(state)["id"], self.action)
         self.assertIsNone(state["active_improve"])
 
-    def test_a_revise_after_a_finished_chain_starts_a_new_implementation(self):
+    def test_a_send_back_after_a_finished_chain_starts_a_new_implementation(self):
         # Under ask-agent delegation one implement action covers the item's steps, so a new implementation after a
-        # finished chain comes from a revise: the item goes back to step-plan and returns to a fresh implement action.
+        # finished chain comes from a send-back: the item goes back to step-plan and returns to a fresh implement action.
         self.complete_single_chain()
         old_action = self.action
-        self.parent_complete("revise", ok=True)
+        self.parent_complete("send-back", ok=True)
         state = store.read_record(self.run / "state.md")
         self.assertEqual(nav.current_stage(state), "step-plan")
         while nav.current_stage(state) != "implement":

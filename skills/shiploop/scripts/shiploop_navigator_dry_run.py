@@ -89,24 +89,8 @@ def _insert_before(rows: list[dict[str, Any]], stage: str, command: str,
     return rows
 
 
-def _insert_into_review(rows, stage, extra):
-    """Insert declarations before the Improve stage that follows ``stage``'s first produce row."""
-    produced = next(i for i, row in enumerate(rows) if row['at'] == stage and row['command'] == 'produce')
-    rows[produced + 1:produced + 1] = extra
-    return rows
-
-
 def scenarios(planning_review: str = 'stage') -> dict[str, list[dict[str, Any]]]:
     """Declarations for protocol 4: most producers advance without an Improve child."""
-    # a child that asks for another attempt: at plan when the run reviews it, else at the first stage that has one
-    repeat_at = 'plan' if 'plan' in REVIEWED3[planning_review] else 'system-test-author'
-    repeat = _insert_into_review(activity(planning_review), repeat_at, [
-        {'at': navigator.IMPROVE_STAGE, 'command': 'finish-improve', 'receipt': _improve_receipt(repeat_at),
-         'final_result': {'outcome': 'repeat', 'summary': 'More investigation needed.'},
-         'expect': repeat_at},
-        {'at': repeat_at, 'command': 'produce', 'expect': navigator.IMPROVE_STAGE,
-         'result': {'outcome': 'done', 'summary': 'Synthetic second attempt.'}},
-    ])
     paused = _insert_before(activity(planning_review), 'test', 'produce', [
         {'at': 'test', 'command': 'pause', 'expect': 'test', 'status': 'paused'},
         {'at': 'test', 'command': 'resume', 'expect': 'test'},
@@ -114,15 +98,15 @@ def scenarios(planning_review: str = 'stage') -> dict[str, list[dict[str, Any]]]
     # implement finds the step plan unachievable: the item goes back to
     # step-plan and walks its planning and test stages again.
     base = activity(planning_review)
-    replan_rows = []
+    send_back_rows = []
     for row in base[base.index(next(candidate for candidate in base if candidate['at'] == 'step-plan')):]:
         if row['at'] == 'implement':
             break
-        replan_rows.append(dict(row))
+        send_back_rows.append(dict(row))
     revised = _insert_before(base, 'implement', 'produce', [
         {'at': 'implement', 'command': 'produce', 'expect': 'step-plan',
-         'result': {'outcome': 'revise', 'summary': 'Synthetic: a completion criterion is unachievable as planned.'}},
-        *replan_rows,
+         'result': {'outcome': 'send-back', 'summary': 'Synthetic: a completion criterion is unachievable as planned.'}},
+        *send_back_rows,
     ])
     return {
         'delivery': {'steps': activity(planning_review)},
@@ -130,14 +114,13 @@ def scenarios(planning_review: str = 'stage') -> dict[str, list[dict[str, Any]]]
         'blocked-resume': {
             'steps': [
                 {'at': 'intake', 'result': {
-                    'outcome': 'blocked', 'blocked_by': 'external', 'summary': 'Synthetic prerequisite missing.'},
+                    'outcome': 'blocked', 'summary': 'Synthetic prerequisite missing.', 'awaiting': {'kind': 'service', 'service': 'synthetic prerequisite', 'check': 'true', 'no_default': 'Synthetic: the prerequisite is outside this run.'}},
                  'command': 'produce', 'expect': 'intake', 'status': 'blocked'},
-                {'at': 'intake', 'command': 'resume', 'expect': 'intake'},
+                {'at': 'intake', 'command': 'resume', 'expect': 'intake', 'observed': 'Synthetic: the check exited 0.'},
                 *activity(planning_review),
             ],
         },
-        'repeat-improve': {'steps': repeat},
-        'revise': {'steps': revised},
+        'send-back': {'steps': revised},
         'pause-resume': {'steps': paused},
         'halted': {'steps': [{'at': 'intake', 'command': 'halt', 'expect': 'intake', 'status': 'halted'}]},
     }
@@ -210,7 +193,8 @@ def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAUL
                 state = navigator.apply(state, current_action['id'], step.get('result', {
                     'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}))
             elif command in ('pause', 'resume', 'halt'):
-                state = navigator.control(state, command, 'Synthetic control event.')
+                state = navigator.control(state, command, 'Synthetic control event.',
+                                          **({'observed': step['observed']} if 'observed' in step else {}))
             else:
                 raise ValueError(f'unknown synthetic command: {command}')
             next_stage = navigator.sequence_stage(state)

@@ -253,7 +253,10 @@ class CrossRunTests(unittest.TestCase):
         callback.write_text(
             store.dumps(
                 {
-                    "outcome": "blocked", "blocked_by": "external",
+                    "outcome": "blocked",
+                    "awaiting": {"kind": "service", "service": "the synthetic upstream API",
+                                 "check": "curl -fsS https://api.example.test/health",
+                                 "no_default": "Nothing else in this run can proceed without it."},
                     "summary": "Synthetic blocker retained for packet recovery coverage.",
                 },
                 "ShipLoop cross-run blocked callback",
@@ -567,7 +570,9 @@ class CrossRunTests(unittest.TestCase):
         self._assert_knowledge_locators(resumed.stdout)
         blocked = self._submit_blocked(resumed.stdout)
         self._assert_knowledge_locators(blocked.stdout)
-        self.assertIn("Blocked, unfinished:", blocked.stdout)
+        self.assertIn("Blocked, waiting on an outside service: Synthetic blocker", blocked.stdout)
+        # The check's URL reaches the narrative whole (the status text shortens paths, not URLs).
+        self.assertIn("https://api.example.test/health", blocked.stdout.split("=== end ShipLoop narrative ===")[0])
 
         # A terminal state is intentionally constructed with the public state
         # schema, then rendered through the public CLI.  The routing assertion

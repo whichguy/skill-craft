@@ -402,6 +402,8 @@ import shiploop_unverified as unverified  # noqa: E402
 
 CASE = {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "GET /api/new returns a game id",
         "red": "fails on the base: the route does not exist", "green": "200 with a game id"}
+AWAITING = {"kind": "answer", "question": "Which of the two designs should the product keep?",
+            "no_default": "Either choice changes the product and the request does not say which."}
 GOOD = {"follows": ("step-plan", ["R-1", "AD-2"]), "test_cases": ("test-spec", [CASE]),
         "lessons": ("release-verify", LESSONS),
         "not_covered": ("implement", [{"behaviour": "the helper rejects an empty board", "reason": "internal only"}])}
@@ -417,9 +419,9 @@ class HandoffShapeTests(unittest.TestCase):
             canonical(value, stage)
         return str(caught.exception)
 
-    def test_the_state_version_is_seven_and_older_runs_are_refused_with_the_fresh_run_hint(self) -> None:
-        self.assertEqual(navigator.STATE_VERSION, 7)
-        for version in (5, 6):
+    def test_the_state_version_is_eight_and_older_runs_are_refused_with_the_fresh_run_hint(self) -> None:
+        self.assertEqual(navigator.STATE_VERSION, 8)
+        for version in (5, 6, 7):
             state = navigator.new_state("/tmp/repo", "add hello")
             state["version"] = version
             with self.subTest(version=version), self.assertRaises(navigator.NavigatorError) as caught:
@@ -435,10 +437,11 @@ class HandoffShapeTests(unittest.TestCase):
                 other = "verify" if stage != "verify" else "test"
                 self.assertIn(key, self.refused({"outcome": "done", "summary": "s", key: value}, other))
                 self.assertIn("belong to a done result",
-                              self.refused({"outcome": "blocked", "summary": "s", "blocked_by": "user", key: value},
+                              self.refused({"outcome": "blocked", "summary": "s", "awaiting": AWAITING, key: value},
                                            stage))
-        revise = self.refused({"outcome": "revise", "summary": "s", "test_cases": [CASE]}, "test-spec")
-        self.assertIn("test_cases", revise)
+        send_back = self.refused({"outcome": "send-back", "summary": "s", "test_cases": [CASE]}, "test-spec")
+        self.assertIn("test_cases", send_back)
+        self.assertIn("belong to a done result", send_back)
 
     def test_each_key_shape_is_refused_with_the_route_free_ending(self) -> None:
         bad = [
@@ -587,7 +590,7 @@ class HandoffGateTests(GateCase):
         self.assertEqual(message.splitlines()[-1], "Focused IDs: TC-3.")
         message = self.refusal(state, "test-spec", dict(done, test_cases=[case, dict(CASE, id="TC-1", criterion="C3")]))
         self.assertTrue(message.startswith("Fix the case IDs in "), message)        # W1's ID no longer counts
-        self.assertIn("report revise", message)
+        self.assertIn("report send-back", message)
         self.assertEqual(message.splitlines()[-1], "Not listed by a focused command of W2: TC-1.")
         message = self.refusal(state, "test-spec", dict(done, test_cases=[]))
         self.assertTrue(message.startswith("Add test_cases to "), message)
@@ -833,7 +836,7 @@ class CaseRowTests(GateCase):
         self.assertNotIn("R-3", message)
         (self.repo / knowledge.HOME / "spec.md").unlink()
         message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=rows))
-        self.assertEqual(message.splitlines()[1], spec + " lists no R-<n> entry: report revise naming the missing "
+        self.assertEqual(message.splitlines()[1], spec + " lists no R-<n> entry: report send-back naming the missing "
                          "requirement.")
         # A row that lacks another key gets the shape alone: the spec's IDs would be noise there.
         no_oracle = [{key: value for key, value in row.items() if key != "oracle"} for row in filled(
@@ -850,7 +853,7 @@ class CaseRowTests(GateCase):
         self.assertEqual(message.splitlines()[-1], "TC-1 names R-12; TC-2 names R-12.")
         (self.repo / knowledge.HOME / "spec.md").unlink()
         message = self.refusal(state, "test-spec", dict(self.DONE, test_cases=rows))
-        self.assertIn("lists no R-<n> entry: report revise naming the missing requirement.", message.splitlines()[1])
+        self.assertIn("lists no R-<n> entry: report send-back naming the missing requirement.", message.splitlines()[1])
 
     def test_no_printed_shape_carries_an_example_id(self) -> None:
         shape = navigator.expectations._TEST_CASE_SHAPE
@@ -1022,7 +1025,7 @@ class ConsumesTests(RepoCase):
     def test_not_covered_comes_only_from_implement_steps_after_the_items_latest_step_plan(self) -> None:
         rows = [row("sp1", "step-plan", "W1", {"follows": [], "criteria": [{"id": "C1", "text": "one"}],
                                                "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]}),
-                row("im1", "implement", "W1", {"not_covered": [{"behaviour": "old", "reason": "before the replan"}]}),
+                row("im1", "implement", "W1", {"not_covered": [{"behaviour": "old", "reason": "before the add-work"}]}),
                 row("sp2", "step-plan", "W1", {"follows": [], "criteria": [{"id": "C1", "text": "one"}],
                                                "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]}),
                 row("im2", "implement", "W1", {"not_covered": []})]
@@ -1634,6 +1637,47 @@ class CompleteRouteTests(inner.RunDriver):
         self.assertEqual(self.state()["active_improve"]["stage"], "step-plan")
 
 
+class SendBackBudgetCliTests(inner.RunDriver):
+    """The send-back budget through the real CLI (run-insights N5): check-only refuses a send-back once the item has
+    used its send-backs, and the exit the refusal names (blocked awaiting a decision) is accepted by the same gate."""
+
+    SEND_BACK = {"outcome": "send-back", "summary": "The step plan cannot meet a criterion as written."}
+    DECISION = {"kind": "answer", "question": "Which criterion yields: C1 or C2?", "options": ["C1", "C2"],
+                "no_default": "The plan cannot meet both criteria and either choice changes the product."}
+
+    def cli(self, action: str, path: Path, *flags: str) -> subprocess.CompletedProcess:
+        argv = [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run_dir), "--action", action,
+                "--result", str(path), *flags]
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+                   SHIPLOOP_PROGRESS="off", SHIPLOOP_KEEPALIVE="off")
+        return subprocess.run(argv, capture_output=True, text=True, env=env)
+
+    def test_check_only_refuses_a_third_send_back_and_the_named_exit_is_accepted(self) -> None:
+        self.start()
+        for used in (1, 2):
+            self.drive_to("implement")
+            self.complete(self.SEND_BACK)
+            self.assertEqual(self.state()["revisions"], {"W1": used})
+        state = self.drive_to("implement")
+        action = navigator.current_action(state)["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        store.write_record(path, inner.prepare(self.run_dir, state, dict(self.SEND_BACK)), "result")
+        refused = self.cli(action, path, "--check-only")
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing further can proceed "
+                      "without the user: report blocked awaiting a decision", refused.stderr)
+        self.assertEqual(self.state()["revisions"], {"W1": stage_spec.MAX_SEND_BACKS})   # check-only completes nothing
+        # The named exit goes through the same gate, check-only first, then for real.
+        store.write_record(path, dict(self.SEND_BACK, outcome="blocked", awaiting=self.DECISION), "result")
+        checked = self.cli(action, path, "--check-only")
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        done = self.cli(action, path)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(self.state()["status"], "blocked")
+        self.assertEqual(self.state()["status_reason"], "answer: " + self.SEND_BACK["summary"])
+
+
 class CaseRowCliTests(inner.RunDriver):
     """The test-spec cases through the real CLI: the refusal's spec line and the check-only coverage notice (U12)."""
 
@@ -1788,7 +1832,7 @@ class RequirementLinesTests(inner.RunDriver):
     def test_a_spec_with_no_entry_says_so_and_names_the_way_out_and_other_stages_have_no_such_line(self) -> None:
         state, whole, head = self.packets("# Spec\n\nNo requirement has an ID yet.\n")
         for text in (whole, head):
-            self.assertIn("HOME/spec.md lists no R-<n> entry: report revise naming the missing requirement. A case's "
+            self.assertIn("HOME/spec.md lists no R-<n> entry: report send-back naming the missing requirement. A case's "
                           "requirement names an R-<n> that has an entry there.", text)
         self.assertEqual(navigator._requirement_lines(state, "step-plan"), [])
         self.assertEqual(navigator._requirement_lines(state, "implement"), [])
@@ -1827,7 +1871,7 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
     def test_a_seed_refusal_on_the_improve_stage_complete_names_an_exit_the_real_cli_accepts(self) -> None:
         run, seed = self._at_bound_step_plan_review("parent-seed")
         packet = self.invoke(_improve_cli.CLI, "next", "--run-dir", run).stdout
-        self.assertIn("revise at the INNER stages test-spec to verify", with_route(packet))   # X4: revise is a final outcome
+        self.assertIn("send-back at the INNER stages test-spec to verify", with_route(packet))   # X4: send-back is a final outcome
         self.finish_ephemeral()
         flags, _receipt = self.completion_receipt()
         refused = self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
@@ -2336,18 +2380,18 @@ class RequestAndReviewedInputTests(unittest.TestCase):
                 self.assertNotIn("Revisit: ", handoff)                     # a first visit
         self.assertTrue({"spec", "plan", "step-plan", "test-spec", "implement", "carry-forward"} <= set(seen), seen)
 
-    def test_a_revisited_stages_handoff_names_the_previous_accepted_result_and_the_revise_result(self) -> None:
+    def test_a_revisited_stages_handoff_names_the_previous_accepted_result_and_the_send_back_result(self) -> None:
         state, _ = next(dry_run_packets(stop_at="implement"))
-        revise = navigator.current_action(state)["id"]
-        state = navigator.apply(state, revise, {"outcome": "revise", "summary": "Criterion unachievable as planned."})
+        send_back = navigator.current_action(state)["id"]
+        state = navigator.apply(state, send_back, {"outcome": "send-back", "summary": "Criterion unachievable as planned."})
         self.assertEqual(navigator.current_stage(state), "step-plan")
         previous = navigator._sent_back_results(state, "step-plan", "W1")[1]
         waiting = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Amended."})
         self.assertEqual(waiting["active_improve"]["stage"], "step-plan")
         lines = navigator._reviewed_input_lines(Path("/r"), waiting, "step-plan", "W1")
-        self.assertEqual(lines[-1], "Revisit: W1 is back at step-plan (1 of " + str(stage_spec.MAX_REVISES) + "); the "
-                                    "previous accepted step-plan result: RUN/results/" + previous + ".md; the revise result "
-                                    "that sent it back: RUN/results/" + revise + ".md.")
+        self.assertEqual(lines[-1], "Revisit: W1 is back at step-plan (1 of " + str(stage_spec.MAX_SEND_BACKS) + "); the "
+                                    "previous accepted step-plan result: RUN/results/" + previous + ".md; the send-back result "
+                                    "that sent it back: RUN/results/" + send_back + ".md.")
         self.assertIn(lines[-1], navigator.improve_handoff_text(None, Path("/r"), waiting))
 
 

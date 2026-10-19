@@ -302,7 +302,10 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         cold = self._cold_packet(run_dir)
         blocked_result = self._result(
             "discovery",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked",
+            awaiting={"kind": "service", "service": "the staging identity provider",
+                      "check": "curl -fsS https://idp.example.test/health",
+                      "no_default": "Discovery cannot read the access policy until the provider answers."},
             evidence_refs=[note_ref],
         )
         blocked_packet, blocked_callback, blocked_command = self._submit(
@@ -328,7 +331,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         self.assertIn(note_ref, cold_blocked)
         self.assertNotIn("Call this when done:", cold_blocked)
 
-        resumed_packet = self._cli(run_dir, "resume")
+        resumed_packet = self._cli(run_dir, "resume", "--observed", "The health check exits 0 again.")
         resumed = self._state(run_dir)
         resumed_action = self._current_action(resumed)
         self.assertEqual((resumed_action["stage"], resumed["status"]), ("discovery", "active"))

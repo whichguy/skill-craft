@@ -466,10 +466,10 @@ and continue. When a step can only be done by a person (a sign-in, a
 grant, an observation in a signed-in browser), record it as an open item in the
 result, with who must do what and what they should report, and continue with
 everything that does not depend on it. Only when nothing further can proceed
-without the person, report blocked with `blocked_by` user (or access, for a
-sign-in) and `awaiting`: `{"kind": "answer", "question": "...", "options": [...], "no_default": "..."}`
-for a decision, or `{"kind": "present", "steps": [...], "report": "...", "no_default": "..."}`
-for something only a person can do; `no_default` says why no recorded default
+without a person or an outside service, report blocked with `awaiting`: `{"kind": "answer", "question": "...", "options": [...], "no_default": "..."}`
+for a decision, `{"kind": "present", "steps": [...], "report": "...", "no_default": "..."}`
+for something only a person can do, or `{"kind": "service", "service": "...", "check": "...", "no_default": "..."}`
+for an outside service; `no_default` says why no recorded default
 would do, and ShipLoop refuses a wait without it. Ask one decision per question,
 in words the user can answer in one reply. The run then stops until the user's
 own reply resumes it.
@@ -1248,7 +1248,7 @@ DUTIES = {
 Change no product file in this stage.
 
 1. **Recheck the item.** Reopen its `context` and recheck each condition. If the plan no longer requires it, report
-   blocked (blocked_by user, `awaiting` an answer: drop or keep) citing the superseding result; never skip the item
+   blocked (`awaiting` an answer: drop or keep) citing the superseding result; never skip the item
    or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
    widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
 2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. In the
@@ -1328,7 +1328,7 @@ Change no product file in this stage.
 Write no test code in this stage.
 
 1. One `test_cases` row per ID the step plan's focused commands list; no other ID. A criterion that needs an
-   unlisted ID: report revise naming it.
+   unlisted ID: report send-back naming it.
 2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put surface
    (unit, public interface, real boundary, rendered UI; Real-boundary test guidance) and due phase, setup and
    fixture, action, teardown (or "stateless"), command row, registering suite and smoke membership in those fields
@@ -1343,7 +1343,7 @@ Write no test code in this stage.
    it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
 7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
    `assumption`; `check`; `consumer` = that outer stage; owner). Confirmed only by a check command or inspection: no
-   case; list it with its command in the summary. Untestable as written: report revise naming it.
+   case; list it with its command in the summary. Untestable as written: report send-back naming it.
 8. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
 """,
     "validate-existing": """\
@@ -1352,14 +1352,14 @@ Write no test code in this stage.
    discriminating observation find whether the fact or the check is wrong (Baseline-test guidance, Current-system
    baseline guide).
 2. Route each mismatch:
-   - check wrong, fact holds: report revise. Never edit or weaken a check here.
+   - check wrong, fact holds: report send-back. Never edit or weaken a check here.
    - `works` expectation broken, fix known and small: fix it in the working tree, touching only that expectation's
      paths, and commit nothing (ShipLoop commits it on accept as a separate preparatory commit).
    - environment lacks a tool, service or setting: fix it and record it in HOME/environment.md ## Commands or
      ## Targets and runtimes.
-   - `absent` finds something, `broken` does not reproduce, or the fix is unknown: report revise with what is true
+   - `absent` finds something, `broken` does not reproduce, or the fix is unknown: report send-back with what is true
      (the step plan reshapes the steps; a needed repair becomes an earlier step).
-   - fix lies outside this run (another system, a person's access): report blocked, blocked_by external or access,
+   - fix lies outside this run (another system, a person's access): report blocked, awaiting the outside service or the person's grant,
      naming the need.
 3. Start none of the item's own change.
 4. Revise names each mismatch in `failed_expectations`: `[{"id": "E1", "actual": "<what is true>", "route":
@@ -1367,7 +1367,7 @@ Write no test code in this stage.
    plan must change.
 
 On re-entry after implement, ShipLoop runs the checks in a temporary worktree at the item base (after any
-preparatory commit); a mismatch there is a revise.
+preparatory commit); a mismatch there is a send-back.
 """,
     "implement": """\
 1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
@@ -1391,7 +1391,7 @@ preparatory commit); a mismatch there is a revise.
 5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
    before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
    completion uses its recorded safe fallback or correction.
-6. **Unachievable as planned.** Stop the loop blocked and report revise, naming the criterion or command and the
+6. **Unachievable as planned.** Stop the loop blocked and report send-back, naming the criterion or command and the
    case, when:
    - a criterion contradicts another, the item or a protected file, shown by a check after all compatible work is
      done, with existing behaviour kept at the conflict point;
@@ -1401,7 +1401,7 @@ preparatory commit); a mismatch there is a revise.
    - the same check still fails after """ + _FIX_ATTEMPTS + """ genuine fix attempts;
    - the change invalidates a recorded command (moved module, new dependency or runtime; Target-native test
      selection) or needs a new prerequisite or authority boundary.
-   Report blocked, with blocked_by, only when the user, an access grant or an outside dependency must resolve it.
+   Report blocked, with awaiting, only when a person (a decision or a grant) or an outside service must resolve it.
 """ + _IMPLEMENT_CHAIN,
     "test": """\
 1. **Write the cases.** Each quoted test case becomes a test titled with its ID as its own word, in the suite and
@@ -1416,7 +1416,7 @@ preparatory commit); a mismatch there is a revise.
    A recorded completion does not prove a harness, fixture or target still works.
 3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
    sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
-   `<ID> (<letter>)`; none fits: report revise. Each new or changed public entry point gets rejection cases. Test a
+   `<ID> (<letter>)`; none fits: report send-back. Each new or changed public entry point gets rejection cases. Test a
    new error path or debug output, on and off, with safe diagnostic context.
 4. **Run and fix.** After each change run every recorded command, the red-check command and the lint command. Find
    each failure's cause with one small observation (product defect, invalid test, environment) and fix the product.
@@ -1426,7 +1426,7 @@ preparatory commit); a mismatch there is a revise.
    - validated: run, and the observation matches the oracle;
    - validated another way: the first method could not observe it, another ran and passed, still titled with the ID;
      the summary says what changed and why;
-   - unachievable: a named reason and the requirement left unverified; report revise.
+   - unachievable: a named reason and the requirement left unverified; report send-back.
    A case written but not run has no end state.
 6. **Result fields.** `red_na`: each new test passing on the item base without this change, `[{"id", "reason"}]`.
    `retired_tests`: each test this item deliberately retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires
@@ -1439,7 +1439,7 @@ preparatory commit); a mismatch there is a revise.
    could not run) when: a failure is proven unachievable (contradicts the spec or another requirement, needs an
    absent tool, access or authority, or would exceed the item); a recorded command is wrong or cannot run here; an
    existing suite the changed paths now affect must join the regression command; the step plan recorded no test
-   command for code this item changes. Report blocked, with blocked_by, only when the user, an access grant or an
+   command for code this item changes. Report blocked, with awaiting, only when the user, an access grant or an
    outside dependency must unblock it.
 """,
     "document": """\
@@ -1456,7 +1456,7 @@ preparatory commit); a mismatch there is a revise.
 5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
    behaviour needs no documentation, why the README did not change, or why an example cannot run here.
 6. **Commit nothing yourself.** """ + _ITEM_COMMIT + """
-7. Plan or criterion wrong as observed: report revise naming it. Report blocked only when a behaviour cannot be
+7. Plan or criterion wrong as observed: report send-back naming it. Report blocked only when a behaviour cannot be
    observed here, naming it.
 """,
     "verify": """\
@@ -1468,7 +1468,7 @@ in order; """ + _VERIFY_ONCE + """
    into RUN/tests/<action>-check-only.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
-   this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report revise.
+   this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report send-back.
 3. **Reconcile cases** (Test-case planning guidance). Classify each test-spec case passed, failed, blocked, not-run
    or justified N/A, and reconcile each affected requirement clause with its case, required surface and due phase,
    checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
@@ -1503,7 +1503,7 @@ in order; """ + _VERIFY_ONCE + """
 10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
     commit. """ + _ITEM_COMMIT + """
 11. **Summary:** as the template says.
-12. Criterion or check unachievable as planned: report revise naming it. Report blocked, with blocked_by, only when
+12. Criterion or check unachievable as planned: report send-back naming it. Report blocked, with awaiting, only when
     the user, an access grant or an outside dependency must unblock it.
 """,
     "carry-forward": """\
@@ -1576,7 +1576,7 @@ in order; """ + _VERIFY_ONCE + """
    below (the system-test obligations). The records in force are the ones listed under "Results this stage builds
    on" (each completed item's step-plan, test-spec and test result and its candidate run); infer no whole-product
    coverage from the last transition or item. The current OUTER plans are the latest done records after the most
-   recent accepted replan; pending, repeat and blocked results are not plan authority. `evidence_refs`: the action,
+   recent accepted add-work; pending and blocked results are not plan authority. `evidence_refs`: the action,
    result and test-note locators used.
 2. Choose cases: each due-later case from item 1 becomes a system case here or an open item with its due stage
    (item 7). Add cases for the real integration, consumer, runtime, security, accessibility, migration,
@@ -1608,7 +1608,7 @@ in order; """ + _VERIFY_ONCE + """
    open item in `assumptions`: `assumption` = case ID and the requirement left unverified; `check` = who does what
    and reports what; `owner`; `reason` it cannot run here; `consumer` = the due stage (handoff, or the stage whose
    external effect it gates). Continue with every runnable case. Report blocked only when nothing else can proceed,
-   replan when the plan is wrong.
+   add-work when product work is missing.
 8. The integrated test plan goes in `summary` under the catalog and in HOME/environment.md ## Harnesses and suites
    (OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands, lifecycle and
    sharing decisions, cost, prerequisites, execution owners; which checks run now at system-test and which need the
@@ -1616,11 +1616,11 @@ in order; """ + _VERIFY_ONCE + """
    rests on go in `summary`.
 """,
     "system-test": """\
-1. Name the plan you run: the latest done system-test-author record after the most recent accepted replan, and its
+1. Name the plan you run: the latest done system-test-author record after the most recent accepted add-work, and its
    integrated test plan in that summary and HOME/environment.md ## Harnesses and suites (OUTER test-planning
    handshake). Before running, revalidate its candidate, case selection, target and fixture assumptions. Its
-   locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as repeat,
-   blocked or replan; never guess a command or drop a required case.
+   locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as blocked
+   or add-work; never guess a command or drop a required case.
 2. Before running check prerequisites, fixtures, execution location, target, identity, authorization, remote
    framework availability, and the deployed or test revision. Add no deploy to unblock a test (a recorded command's
    own deploy step runs as recorded); use production only with authority.
@@ -1630,7 +1630,7 @@ in order; """ + _VERIFY_ONCE + """
    boundary. Check repeatability when fixtures changed. Never blindly replay an uncertain external effect.
    `evidence_refs`: each command, candidate and target, scope, cleanup outcome and unrun check.
 4. A recorded system command that fails here is no open item: ShipLoop refuses done while it fails. Fix the
-   candidate, report replan for missing product work, or blocked when nothing else can proceed.
+   candidate, report add-work for missing product work, or blocked when nothing else can proceed.
 5. After a material change to code, tests, fixtures, configuration or target, rerun the affected observations; reuse
    unaffected evidence only with its identity and relevance stated.
 6. Run any open item system-test-author recorded that this stage can now run, reporting each in the summary (not
@@ -1654,7 +1654,7 @@ in order; """ + _VERIFY_ONCE + """
     "product-acceptance": """\
 1. Gather: the original request and intake result, the accepted requirements in HOME/spec.md, the spec and
    architecture changes since the run began, the integrated test plan (latest done system-test-author record after
-   the most recent accepted replan, and HOME/environment.md ## Harnesses and suites; OUTER test-planning handshake),
+   the most recent accepted add-work, and HOME/environment.md ## Harnesses and suites; OUTER test-planning handshake),
    and the system-test result. Locators in `evidence_refs`.
 2. Assess the product against the original outcome, not only the spec: acceptance criteria, cross-cutting
    requirements, consumer impact (Consumer delivery guidance), test evidence, known limits. Reconcile new and
@@ -1676,7 +1676,7 @@ in order; """ + _VERIFY_ONCE + """
    and evidence. A pass on another surface only supports; source, HTTP or DOM structure alone cannot close a
    rendered interaction. Missing evidence for a due case stays incomplete. Check that no clause or case was
    dropped; claim no requirement met while a required observation is unrun.
-6. Route each gap: missing product work, stale evidence, or a failed or missing due check goes to replan with one
+6. Route each gap: missing product work, stale evidence, or a failed or missing due check goes to add-work with one
    corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for release-plan; blocked
    only when nothing can proceed. Acceptance executes no release and proves no remote consumer boundary.
 7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: request a Backchain
@@ -1684,12 +1684,12 @@ in order; """ + _VERIFY_ONCE + """
 """,
     "release-plan": """\
 1. Revalidate the integrated test plan for the release target: the latest done system-test-author record after the
-   most recent accepted replan, HOME/environment.md ## Harnesses and suites, the system-test result (OUTER
-   test-planning handshake); pending, repeat and blocked results are not plan authority. Use Target-native test
+   most recent accepted add-work, HOME/environment.md ## Harnesses and suites, the system-test result (OUTER
+   test-planning handshake); pending and blocked results are not plan authority. Use Target-native test
    selection for this payload and its deploy or promotion operation, including any revised gate. Reuse applicable
    tests and facilities (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and
    record each new facility's locator, interface, readiness or gap, owner and revalidation condition. An unmet
-   earlier deployment or test prerequisite: report replan with corrective work and evidence (ShipLoop reruns the
+   earlier deployment or test prerequisite: report add-work with corrective work and evidence (ShipLoop reruns the
    outer stages).
 2. Write the release steps in `summary` and HOME/environment.md (item 8): target and candidate identity, permission,
    prerequisites, user impact, monitoring, stop conditions. Every operation the user-visible outcome needs is a
@@ -1731,8 +1731,8 @@ in order; """ + _VERIFY_ONCE + """
 """,
     "release-check": """\
 1. Name the release plan you check: the latest done release-plan and system-test-author records after the last
-   accepted replan (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Guess no
-   missing plan: recover it, or report `repeat` (`replan` for missing product work).
+   accepted add-work (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Guess no
+   missing plan: recover it, or report blocked (`add-work` for missing product work).
 2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
    evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
    readiness, any target concurrency condition (Release operation guidance). Rerun prepare's read-only probe that the
@@ -1755,12 +1755,12 @@ in order; """ + _VERIFY_ONCE + """
 """,
     "release": """\
 1. Name the release plan and release-check result you act on: the latest done release-plan and system-test-author
-   records after the last accepted replan (OUTER test-planning handshake), and release-check's result; locators in
-   `evidence_refs`. Recover or report a missing plan (`repeat`, `replan` for missing product work); guess no command.
+   records after the last accepted add-work (OUTER test-planning handshake), and release-check's result; locators in
+   `evidence_refs`. Recover or report a missing plan (blocked, or `add-work` for missing product work); guess no command.
 2. Confirm the exact target, operation, authority (the recorded grant; Delivery authority mapping) and conditions
    are current and release-check's dry run passed against this candidate. If code, tests, fixtures, configuration or
    target changed since, rerun the affected checks first. Anything unmet: release nothing, report `blocked` or
-   `replan` with the reason.
+   `add-work` with the reason.
 3. Run the planned release operation once; save the provider's receipt in RUN/notes/<action>-release.md and cite it
    in `evidence_refs`.
 4. Follow it to a terminal state (accepted or running is not done; Release operation guidance). Check postconditions
@@ -1775,7 +1775,7 @@ in order; """ + _VERIFY_ONCE + """
 """,
     "release-verify": """\
 1. Name the plans you verify against: the latest done release-plan and system-test-author records after the last
-   accepted replan (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Recover or
+   accepted add-work (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Recover or
    report a missing plan; guess no command, drop no required case, deploy to make no check available.
 2. Run each `consumer_checks` command the release-plan result recorded against the current target (Release operation
    guidance). Keep source synchronization, artifact identity, operation receipt and real consumer behaviour as four
@@ -1801,7 +1801,7 @@ in order; """ + _VERIFY_ONCE + """
    the stage continues. Block again only when it answers none, or a required delivery-contract behavior obligation
    still has no passed observation (ask then only its lines).
 7. Isolated run: this stage cannot return (Which checkout release-verify observes). A defect the checks find in the
-   delivered result goes through `replan` with one corrective work item; release then returns the fix. Write
+   delivered result goes through `add-work` with one corrective work item; release then returns the fix. Write
    nothing inside the user's checkout (a file there makes the return receipt stale and blocks handoff).
 8. Local-only work: verify the current local candidate and its consumer behaviour; external activation N/A does not
    make these checks N/A.
@@ -1827,7 +1827,7 @@ in order; """ + _VERIFY_ONCE + """
    HOME/environment.md (Service handoff guidance).
 6. A justified N/A in `summary` only after assessing the actual operational boundary: what you assessed, why it does
    not apply.
-7. Name the release-plan and system-test-author records you rely on (latest done after the last accepted replan;
+7. Name the release-plan and system-test-author records you rely on (latest done after the last accepted add-work;
    OUTER test-planning handshake) with locators in `evidence_refs`. A material change to code, tests, fixtures,
    configuration or target invalidates the observations it affects: rerun those, reuse the rest only with identity
    and relevance stated. An already-due obligation still failed, blocked or unrun stays open, named in `summary`
@@ -1837,7 +1837,7 @@ in order; """ + _VERIFY_ONCE + """
 1. `summary`, one line each, evidence in `evidence_refs`: source (and its return), tests, integration, release,
    consumer behaviour, operations (Deployment and handoff guidance). Base each on a current observation; an intent,
    stale green result or conversation summary is not evidence. Name the release-plan and system-test-author records
-   relied on (latest done after the last accepted replan; OUTER test-planning handshake), locators in
+   relied on (latest done after the last accepted add-work; OUTER test-planning handshake), locators in
    `evidence_refs`.
 2. Classify every selected case passed, failed, blocked, not-run or justified N/A; reconcile each requirement clause
    with its case, required surface and due phase, checked surface, candidate, status and evidence. A pass on
@@ -1914,7 +1914,7 @@ still works.
 """
 OUTER_TEST_HANDOFF = """\
 OUTER test plans (OUTER test-planning handshake): the current plans are the latest done system-test-author and
-release-plan records after the most recent accepted replan; pending, repeat, and blocked results are not plan
+release-plan records after the most recent accepted add-work; pending and blocked results are not plan
 authority, and earlier records are history to revalidate. Name the plan you rely on and put its action, result and
 plan locators in `evidence_refs`. Revalidate it for the current candidate and target before relying on it. Recover
 a missing plan or report the incomplete or corrective outcome; never guess a command, drop required coverage, or
@@ -2276,7 +2276,7 @@ def _inline_planning_handoff() -> str:
 def _item_commit_rule(execution_mode: str | None) -> str:
     """The item commit rule document and verify print: ShipLoop's rule, then what happens to a file it leaves."""
     left = (stage_spec.item_left(execution_mode) if execution_mode else
-            "Any other changed file is not part of the item commit: if the product needs one, report revise so the "
+            "Any other changed file is not part of the item commit: if the product needs one, report send-back so the "
             "step plan declares it; otherwise delete generated output the product does not need.")
     return stage_spec.ITEM_COMMITS + " " + left
 

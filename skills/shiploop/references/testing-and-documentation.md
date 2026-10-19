@@ -82,7 +82,7 @@ Completion is phase-specific. A post-release case that is **not yet due** stays
 pending through pre-release acceptance; that alone does not block reaching the
 release that supplies its prerequisite. A required case already due but failed,
 blocked or not run prevents declaring that boundary complete. Retain corrective
-work through the existing repeat/blocked/replan routes. Do not postpone an
+work through the existing blocked and add-work routes. Do not postpone an
 already-due check simply to advance. A required case that only a person can run,
 where the discovery and test-strategy records show this host has no route to it,
 is not such a check: it is an open item owned by that person and due at handoff
@@ -117,10 +117,10 @@ cannot read passes only with `ids` that all appear; a regression command without
 `min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. After the
 `test` stage, `verify` may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
 since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
-because the plan changed is a plan change: report `revise` with the reason, and the redone step plan starts the count again.
-Every inner stage's `revise` needs its stopped Until Loop receipt; `test` also accepts `revise` once its runs used the 11 refused
+because the plan changed is a plan change: report `send-back` with the reason, and the redone step plan starts the count again.
+Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` once its runs used the 11 refused
 runs or its latest attempt could not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
-rerun commands another stage recorded and have no `revise` to lower a floor, so they are not held to one; a run whose count
+rerun commands another stage recorded and have no `send-back` to lower a floor, so they are not held to one; a run whose count
 ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
 to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
 needs a fixed count to be held to a floor; and the base run sees only tracked files and the dependency directories it links in
@@ -640,7 +640,7 @@ discovers every local skill folder. Validate frontmatter and referenced paths,
 exercise changed helpers/examples when applicable, and record unrun limitations
 honestly. A file-existence check is not proof the procedure works: run a
 created or updated skill once on this run's real procedure and keep its output
-in the run notes. Broader missing outputs use existing replan/pause routes.
+in the run notes. Broader missing outputs use existing add-work and pause routes.
 
 For changed skills, validate both the motivating example and an older supported
 use, plus meaningful default/override and failure cases. For a cold-context trial,
@@ -783,7 +783,7 @@ the whole product, not only the final item. Match the checks to every
 acceptance criterion. Review expected-versus-observed outcomes, test adequacy,
 function/API contracts, README accuracy, and environment identity. Required
 blocked/not-run checks remain unfinished. Product changes discovered here use
-corrective work items through `replan`, including documentation-only fixes, not
+corrective work items through `add-work`, including documentation-only fixes, not
 direct edits around the inner loop.
 
 If whole-product acceptance depends on a real deployment, plan authorized

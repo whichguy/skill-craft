@@ -193,12 +193,11 @@ class DagReplayTests(unittest.TestCase):
                 duplicate = next(event for event in report["events"] if event["command"] == command)
                 self.assertEqual(duplicate["pre_state_sha256"], duplicate["post_state_sha256"])
 
-    def test_pause_blocked_cold_recovery_repeat_revise_and_corrective_replan(self) -> None:
+    def test_pause_blocked_cold_recovery_send_back_and_corrective_add_work(self) -> None:
         expectations = {
             "synthetic-pause-blocked-cold-recovery": [],
-            "synthetic-repeat": [],
-            "synthetic-revise": [],
-            "synthetic-corrective-replan": ["W1", "W2"],
+            "synthetic-send-back": [],
+            "synthetic-corrective-add-work": ["W1", "W2"],
         }
         for name, completed_items in expectations.items():
             with self.subTest(name=name):
@@ -215,28 +214,25 @@ class DagReplayTests(unittest.TestCase):
                                if event["command"] in {"produce", "finish-improve"}
                                and event["expected"]["status"] == "blocked"]
                     self.assertEqual([("discovery", "produce"), ("spec", "finish-improve")], blocked)
-                if name == "synthetic-repeat":
-                    repeated = [event for event in report["events"] if event["from"] == "test-strategy"]
-                    # The parked repeat, the Improve-returned repeat and the done producer all stay put.
-                    self.assertEqual(["test-strategy"] * 3, [event["to"] for event in repeated[:3]])
-                    self.assertEqual("plan", repeated[-1]["to"])
-                if name == "synthetic-revise":
+                if name == "synthetic-send-back":
                     at_test = [event for event in report["events"] if event["from"] == "test"]
-                    self.assertIn("repeat is not an outcome at test", at_test[0]["engine_error"])
-                    self.assertEqual(at_test[0]["pre_state_sha256"], at_test[0]["post_state_sha256"])
+                    # repeat and revise are retired: both are refused, and the refusal changes nothing.
+                    for refused in at_test[:2]:
+                        self.assertIn("revise, replan and repeat are retired", refused["engine_error"])
+                        self.assertEqual(refused["pre_state_sha256"], refused["post_state_sha256"])
                     self.assertEqual(("produce", "step-plan", "W1"),
-                                     (at_test[1]["command"], at_test[1]["to"], at_test[1]["next_owner"]))
-                    self.assertFalse(at_test[1]["active_improve"])
+                                     (at_test[2]["command"], at_test[2]["to"], at_test[2]["next_owner"]))
+                    self.assertFalse(at_test[2]["active_improve"])
                     self.assertEqual("test-spec", report["events"][-1]["to"])
-                if name == "synthetic-corrective-replan":
-                    replan = next(
+                if name == "synthetic-corrective-add-work":
+                    added = next(
                         event for event in report["events"]
                         if event["from"] == "system-test" and event["to"] == "step-plan"
                     )
-                    self.assertEqual("W2", replan["next_owner"])
-                    self.assertEqual(["W1"], replan["completed_work_items"])
-                    self.assertEqual("produce", replan["command"])
-                    self.assertFalse(replan["active_improve"])
+                    self.assertEqual("W2", added["next_owner"])
+                    self.assertEqual(["W1"], added["completed_work_items"])
+                    self.assertEqual("produce", added["command"])
+                    self.assertFalse(added["active_improve"])
 
     def test_stale_malformed_and_wrong_edge_controls_cannot_turn_green(self) -> None:
         guarded = self._replay("synthetic-stale-and-malformed")

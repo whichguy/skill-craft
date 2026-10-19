@@ -31,7 +31,7 @@ NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 # A packet that is not a milestone carries this one line instead, "Where: <where> · Next: <next>"
 # (shiploop_navigator.status_line); the full block is printed only by `shiploop status` (packet review F6, 2026-10-17).
-LINE = re.compile(r"^Where: (?P<where>.+?) · (?P<label>Next|Waiting on you|Stopped): (?P<value>.+)$", re.M)
+LINE = re.compile(r"^Where: (?P<where>.+?) · (?P<label>Next|Waiting on you|Waiting on a service|Stopped): (?P<value>.+)$", re.M)
 HEADER = "ShipLoop navigator | "
 # The progress must end this early in stdout: the navigator's PRINT_LIMIT, the most a
 # packet prints whole, and a head (up to 20,000 characters) puts the progress block
@@ -211,7 +211,7 @@ def compact(block: str) -> str:
     if not rows.get("Where"):
         return block
     second = [f"Done: {rows['Done']}"] if rows.get("Done") else []
-    for label in ("Waiting on you", "Stopped", "Next"):
+    for label in ("Waiting on you", "Waiting on a service", "Stopped", "Next"):
         if rows.get(label):
             second.append(f"{label}: {rows[label]}")
             break

@@ -251,7 +251,7 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     item = action.get("workitem")
     if item and state.get("revisions", {}).get(item):
         lines.append(f"- {item} has gone back to step-plan {state['revisions'][item]} of "
-                     f"{stage_spec.MAX_REVISES} times")
+                     f"{stage_spec.MAX_SEND_BACKS} times")
     child = state.get("active_improve")
     if isinstance(child, Mapping) and child.get("skill"):
         import shiploop_standalone_improve as standalone  # lazy: only runs with a bound child

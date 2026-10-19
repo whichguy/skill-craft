@@ -221,6 +221,23 @@ def receipt(stage: str) -> dict[str, object]:
 
 
 
+# A blocked result waits on a person or an outside service and says which (run-insights N5: `awaiting` replaced
+# blocked_by).  Synthetic waits for the fixtures below; the old external value became a service wait, an access or
+# user value a present or answer wait.
+RELEASE_HOST_WAIT = {"kind": "service", "service": "the release host",
+                     "check": "test -f release-host.ready",
+                     "no_default": "Nothing can be released until the host is reachable."}
+STRATEGY_HOST_WAIT = {"kind": "service", "service": "the test-runner host",
+                      "check": "test -f test-runner.ready",
+                      "no_default": "No test strategy can be chosen without the host."}
+PLAN_HOST_WAIT = {"kind": "service", "service": "the supplier's storage service",
+                  "check": "test -f storage.ready",
+                  "no_default": "The storage prerequisite is the supplier's and no recorded default replaces it."}
+SPEC_ANSWER_WAIT = {"kind": "answer", "question": "Which fixture does the test spec use?",
+                    "options": ["the isolated fixture", "the shared fixture"],
+                    "no_default": "Either fixture changes what the cases observe and the request does not say."}
+
+
 _REAL_READ_TEXT = Path.read_text
 
 
@@ -578,7 +595,7 @@ class GuidanceTests(unittest.TestCase):
             "test": "Each case ends as:",
             "step-plan": "Confirm by: <command, observation or inspection>; pass when <expected result>",
             "implement": "Each iteration edits first.",
-            "verify": "Criterion or check unachievable as planned: report revise naming it.",
+            "verify": "Criterion or check unachievable as planned: report send-back naming it.",
             "product-acceptance": "pending release verification",
             "release-verify": "the consumer entry reached after authentication",
         }
@@ -723,7 +740,7 @@ class GuidanceTests(unittest.TestCase):
                 release_blocked_once = True
                 blocked, _action = self.produce(
                     recovered,
-                    outcome="blocked", blocked_by="external",
+                    outcome="blocked", awaiting=RELEASE_HOST_WAIT,
                     summary="Synthetic release evidence is partial.",
                     evidence_refs=partial_release_refs,
                 )
@@ -737,7 +754,7 @@ class GuidanceTests(unittest.TestCase):
                 self.assertNotIn(action["id"], blocked["improve_results"])
                 self.assertEqual(blocked_packet.count(RELEASE_OPERATION_ROUTE), 1, blocked_packet)
 
-                resumed = navigator.control(blocked, "resume")
+                resumed = navigator.control(blocked, "resume", observed="The release host answers its status check.")
                 state, resumed_packet = self.cold_packet(resumed)
                 self.assertEqual(state["status"], "active")
                 self.assertEqual(navigator.current_stage(state), stage)
@@ -1183,7 +1200,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertNotIn(str(selected_card), second_packet)
         self.assertNotIn(w1_selection, second_packet)
 
-    def test_ui_ownership_and_failed_readiness_survive_planning_review(self) -> None:
+    def test_ui_ownership_and_failed_readiness_survive_to_a_blocked_step_plan(self) -> None:
         """Synthetic host judgments test routing and blocking, not model quality."""
         locator = str(REFERENCES / "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner")
         docs = self.repo / "docs"
@@ -1213,20 +1230,20 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn(locator, packet)
         self.assertIn(context, packet)
         action = dict(navigator.current_action(state))
-        blocked = {"outcome": "blocked", "blocked_by": "external", "summary": "Host storage prerequisite is unavailable; supplier decision pending.",
+        blocked = {"outcome": "blocked", "awaiting": PLAN_HOST_WAIT,
+                   "summary": "Host storage prerequisite is unavailable; supplier decision pending.",
                    "evidence_refs": sources}
-        waiting = navigator.apply(state, action["id"], blocked)
-        waiting, review_packet = self.cold_packet(waiting)
-        self.assertEqual(waiting["active_improve"]["seed_result"], blocked)
-        for source in sources:
-            self.assertIn(source, review_packet)
-        # The host's actual review is replaced only for this structural fixture.
-        stopped = navigator.finish_improve(waiting, action["id"], receipt("step-plan"))
+        # Improve starts only on a done result (run-insights N5): a blocked step-plan is accepted as it stands, so the
+        # failed readiness is in the blocked run's packet itself, with the UI sources the result cited.
+        stopped = navigator.apply(state, action["id"], blocked)
+        self.assertIsNone(stopped["active_improve"])
+        self.assertEqual(stopped["accepted"][action["id"]]["evidence_refs"], sources)
         stopped, stopped_packet = self.cold_packet(stopped)
         self.assertEqual(stopped["status"], "blocked")
         self.assertEqual(navigator.current_stage(stopped), "step-plan")
         self.assertNotIn("W1", stopped["completed_work_items"])
         self.assertIn("Host storage prerequisite", stopped_packet)
+        self.assertIn("Blocked, waiting on an outside service:", stopped_packet)
 
     def test_ui_supersession_handoff_keeps_replacement_current_after_cold_recovery(self) -> None:
         """A reviewed plan can replace a UI premise without erasing its seed evidence."""
@@ -1374,19 +1391,19 @@ class GuidanceTests(unittest.TestCase):
         while True:
             stage = navigator.current_stage(state)
             if stage == "test-strategy":
-                for outcome in ("repeat", "blocked"):
-                    state, action_id = self.complete_stage(
-                        state,
-                        outcome=outcome,
-                        evidence_refs=["unrelated://test-strategy-" + outcome],
-                        **({"blocked_by": "external"} if outcome == "blocked" else {}),
-                    )
-                    rejected_actions.append(action_id)
-                    state = self.save_reload(state)
-                    if outcome == "blocked":
-                        self.assertEqual(state["status"], "blocked")
-                        state = navigator.control(state, "resume")
-                        state = self.save_reload(state)
+                # A blocked strategy is accepted history and stops the run; it is never the strategy a packet cites.
+                # (repeat, the other non-done outcome this loop once rejected, is retired.)
+                state, action_id = self.complete_stage(
+                    state,
+                    outcome="blocked",
+                    evidence_refs=["unrelated://test-strategy-blocked"],
+                    awaiting=STRATEGY_HOST_WAIT,
+                )
+                rejected_actions.append(action_id)
+                state = self.save_reload(state)
+                self.assertEqual(state["status"], "blocked")
+                state = navigator.control(state, "resume", observed="The test-runner host answers its status check.")
+                state = self.save_reload(state)
                 state, strategy_action = self.complete_stage(
                     state,
                     evidence_refs=[strategy_ref, long_ref],
@@ -1452,7 +1469,7 @@ class GuidanceTests(unittest.TestCase):
         changed_step_plan_ref = "docs/testing.md#revised-step-plan"
         draft_step_plan_ref = "untrusted://draft-step-plan"
         author_ref = "docs/testing.md#authored-case"
-        test_spec_repeat_ref = "untrusted://test-spec-repeat"
+        test_spec_blocked_ref = "untrusted://test-spec-blocked"
         w2_ref = "docs/testing.md#w2-decision"
         state = self.state()
         strategy_action = ""
@@ -1524,20 +1541,25 @@ class GuidanceTests(unittest.TestCase):
         self.assertNotIn(draft_step_plan_ref, packet)
         self.assertIn("Work item context: " + contexts["W1"], packet)
 
-        # A pending blocked proposal under review is not a test decision (repeat is no longer an inner
-        # outcome, 2026-10-10).
+        # A blocked test-spec result is not a test decision.  Improve starts only on a done result (run-insights N5), so
+        # the blocked result is accepted as it stands: no Improve child holds it pending (repeat, the other non-done
+        # inner outcome this once covered, is retired).
         blocked_action = dict(navigator.current_action(state))["id"]
-        waiting, _waiting_action = self.pending_improve(
-            state, outcome="blocked", blocked_by="external", evidence_refs=[test_spec_repeat_ref]
+        state, _blocked = self.produce(
+            state, outcome="blocked", awaiting=SPEC_ANSWER_WAIT, evidence_refs=[test_spec_blocked_ref]
         )
-        pending, packet = self.cold_packet(waiting)
-        self.assertIn("Current action: Improve the completed test-spec result.", packet)
-        assert_sources(packet, step_plan_action, changed_step_plan_ref)
+        self.assertIsNone(state["active_improve"])
+        self.assertEqual(state["status"], "blocked")
+        self.assertIn(blocked_action, state["accepted"])
+        self.assertNotIn(blocked_action, state["improve_results"])
+        state, packet = self.cold_packet(state)
+        self.assertIn("Blocked, waiting on the user:", packet)
+        # The blocked packet prints its sources (it has no "Results this stage builds on" list): the step plan is still
+        # the item's decision source, not the blocked test-spec result.
+        assert_sources(packet, step_plan_action, changed_step_plan_ref, printed=True, strategy_printed=True)
         self.assertNotIn("Current item test-decision source action: " + blocked_action, packet)
         self.assertNotIn("RUN/results/" + blocked_action + ".md", packet)
-        state = navigator.finish_improve(pending, blocked_action, receipt("test-spec"))
-        self.assertEqual(state["status"], "blocked")
-        state = navigator.control(state, "resume")
+        state = navigator.control(state, "resume", answer="Use the isolated fixture.")
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "test-spec")
         assert_sources(packet, step_plan_action, changed_step_plan_ref)
@@ -1709,14 +1731,14 @@ class GuidanceTests(unittest.TestCase):
             "Required MCP helper remains planned; readiness is not test execution.",
         )
 
-    def test_outer_test_handshake_recovers_replan_aware_sources_cold(self) -> None:
+    def test_outer_test_handshake_recovers_add_work_aware_sources_cold(self) -> None:
         """The packet routes existing records; it does not certify their contents."""
         label = "OUTER test-planning handshake"
         locator = "repeatable-test-suites.md#outer-test-planning-handshake"
         outer_sources = (
             "latest done system-test-author and release-plan records",
-            "most recent accepted replan",
-            "pending, repeat, and blocked results are not plan authority",
+            "most recent accepted add-work",
+            "pending and blocked results are not plan authority",
         )
 
         # The shared contract must reach each root-owned OUTER producer and its
@@ -1749,12 +1771,12 @@ class GuidanceTests(unittest.TestCase):
                 improve_packet = normalized(prompts.improve_prompt(stage))
                 # Packet re-cut (2026-10-11): OUTER_TEST_HANDOFF is no longer printed in a producer packet; each
                 # stage's duty names the handshake and, where it consumes a plan, the "latest done ... record(s)
-                # after the most recent/last accepted replan" in its own words.  The shared text stays whole in the
+                # after the most recent/last accepted add-work" in its own words.  The shared text stays whole in the
                 # Improve handoff (improve_prompt), where all three source phrases are still asserted.
                 self.assertIn(label, packet)
                 self.assertNotIn(prompts.OUTER_TEST_HANDOFF.split("\n")[0], packet)
                 if stage != "system-test-author":
-                    self.assertRegex(packet, r"(most recent|last) accepted\s+replan")
+                    self.assertRegex(packet, r"(most recent|last) accepted\s+add-work")
                 for source in outer_sources:
                     self.assertIn(source, improve_packet)
 
@@ -1882,20 +1904,20 @@ class GuidanceTests(unittest.TestCase):
         )
         self.assertEqual(navigator.current_stage(state), "release-check")
 
-        # An outer corrective replan is accepted history, then returns through a
+        # An outer corrective add-work is accepted history, then returns through a
         # new INNER item. Its predecessor records remain durable, but are no
         # longer presented as current outer-plan authority.
-        replan_result = result(
+        add_work_result = result(
             "release-check",
-            outcome="replan",
+            outcome="add-work",
             summary="A changed target needs a corrective compatibility item.",
-            evidence_refs=["docs/release.md#replan-target-change"],
+            evidence_refs=["docs/release.md#add-work-target-change"],
             work_items=[
                 {"id": "W3", "title": "Correct target compatibility", "context": "W3 new target fixture."}
             ],
         )
-        replan_action = dict(navigator.current_action(state))["id"]
-        state = navigator.apply(state, replan_action, replan_result)
+        add_work_action = dict(navigator.current_action(state))["id"]
+        state = navigator.apply(state, add_work_action, add_work_result)
         self.assertIsNone(state["active_improve"])
         state = self.save_reload(state)
         self.assertEqual(navigator.current_stage(state), "step-plan")
@@ -1924,12 +1946,12 @@ class GuidanceTests(unittest.TestCase):
         self.assertNotIn("If this action depends on earlier accepted context", packet)
         # The original records remain immutable/reachable in accepted state and
         # result files, while the recovery instructions mark them historical.
-        for action in (system_author_action, release_plan_action, replan_action):
+        for action in (system_author_action, release_plan_action, add_work_action):
             self.assertIn(action, state["accepted"])
             self.assertTrue((self.run / "results" / (action + ".md")).is_file())
-        self.assertEqual(state["accepted"][replan_action]["outcome"], "replan")
+        self.assertEqual(state["accepted"][add_work_action]["outcome"], "add-work")
         self.assertTrue(any(
-            entry["action"] == replan_action and entry["outcome"] == "replan"
+            entry["action"] == add_work_action and entry["outcome"] == "add-work"
             for entry in state["history"]
         ))
 
@@ -2557,7 +2579,7 @@ class ConsumerCheckLocationTests(unittest.TestCase):
     def test_release_verify_says_how_a_defect_is_fixed_and_what_may_touch_the_checkout(self) -> None:
         text = self.duty("release-verify")
         self.assertIn("Isolated run: this stage cannot return", text)
-        self.assertIn("through `replan`", text)
+        self.assertIn("through `add-work`", text)
         self.assertIn("Write nothing inside the user's checkout", text)
         self.assertIn("stale", text)
 
@@ -2638,8 +2660,8 @@ class CaseEndStateTests(unittest.TestCase):
                 self.assertIn("unachievable", text)
                 self.assertIn("not an end state", text)
 
-    # The outcomes a case is routed through; done and repeat are how any result ends, not where a case goes.
-    ROUTES = ("blocked", "revise", "replan")
+    # The outcomes a case is routed through; done is how any result ends, not where a case goes.
+    ROUTES = ("blocked", "send-back", "add-work")
 
     @staticmethod
     def sentence(stage: str) -> str:
@@ -2674,10 +2696,10 @@ class CaseEndStateTests(unittest.TestCase):
                 self.assertEqual(named & set(self.ROUTES), set(row.outcomes) & set(self.ROUTES), sentence)
                 self.assertIn("only when nothing else can proceed", sentence)
 
-    def test_an_unachievable_case_is_an_open_item_outside_the_item_and_revise_inside_it(self) -> None:
+    def test_an_unachievable_case_is_an_open_item_outside_the_item_and_send_back_inside_it(self) -> None:
         """P-sta-2, SPEC S-14: both Grok BLOCKED runs stopped on a case the host could not run (TC-16 needed a browser),
         while the packet said to record an open item and continue.  That route belongs to the outer test stages; an
-        inner stage's case goes back to the step plan (revise), which its gate accepts."""
+        inner stage's case goes back to the step plan (send-back), which its gate accepts."""
         sys.path.insert(0, str(SCRIPTS))
         import shiploop_stage_spec as spec
         for stage in self.STAGES:
@@ -2688,11 +2710,11 @@ class CaseEndStateTests(unittest.TestCase):
                                   "as its consumer, and continue", sentence)
                     self.assertIn("provided its command is not one ShipLoop reruns, since every rerun command must pass",
                                   sentence)
-                    self.assertNotIn("revise", sentence)
+                    self.assertNotIn("send-back", sentence)
                 else:
-                    self.assertIn("report revise so the step plan reroutes the case", sentence)
+                    self.assertIn("report send-back so the step plan reroutes the case", sentence)
                     self.assertNotIn("open item", sentence)
-                    self.assertNotIn("replan", sentence)
+                    self.assertNotIn("add-work", sentence)
         duty = normalized(prompts.DUTIES["system-test-author"])
         for clause in (
             "A case that cannot run here (a browser or account this host cannot reach) is unachievable",
@@ -2703,7 +2725,7 @@ class CaseEndStateTests(unittest.TestCase):
             "Report blocked only when nothing else can proceed",
         ):
             self.assertIn(clause, duty)
-        self.assertNotIn("blocked, blocked_by access", duty)
+        self.assertNotIn("blocked_by", duty)   # retired: a wait is `awaiting`, and only when nothing else can proceed
         self.assertNotIn("a route that fails when run", duty)
 
     def test_system_test_promises_no_done_past_a_failing_recorded_command(self) -> None:
@@ -2915,7 +2937,7 @@ class UnverifiedWordingTests(unittest.TestCase):
                        "listed in `unverified`", "while the run continues", "Carry in the open items earlier stages recorded",
                        "has no end state"):
             self.assertIn(phrase, duty)
-        self.assertNotIn("blocked_by access", duty)  # S-14: a person-only outcome does not stop the run
+        self.assertNotIn("blocked_by", duty)  # S-14: a person-only outcome does not stop the run (blocked_by is retired)
 
     def test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints(self) -> None:
         # S-3: the card agrees with the script. The four faults are the ones the stage's Checked-by line names.

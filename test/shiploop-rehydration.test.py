@@ -79,10 +79,10 @@ class IndexTests(unittest.TestCase):
             self.assertIn(f"- {record}", text)
             self.assertIn("ShipLoop test runs for this action: 1", text)
 
-    def test_revisions_show_in_progress(self) -> None:
+    def test_send_backs_show_in_progress(self) -> None:
         state = drive_to("implement")
         state = nav.apply(state, nav.current_action(state)["id"],
-                          {"outcome": "revise", "summary": "Criterion unachievable as planned."})
+                          {"outcome": "send-back", "summary": "Criterion unachievable as planned."})
         text = context_index.render(state, Path("/tmp/run"), nav.current_stage(state))
         self.assertIn("W1 has gone back to step-plan 1 of 2 times", text)
 
@@ -324,7 +324,9 @@ class GoalFirstTests(unittest.TestCase):
         self.assertEqual(seen, set(spec.STAGES))  # every one of the 24 stages issued a producer packet
 
 
-    def test_the_improve_packet_for_a_blocked_result_does_not_claim_the_result_meets_the_done_when(self) -> None:
+    def test_a_blocked_result_at_a_reviewed_stage_starts_no_improve_child_and_only_a_done_result_does(self) -> None:
+        # Improve starts only on a done result (run-insights N5): a blocked result waits for its reply, so no Improve
+        # packet exists to claim that the result meets the done-when.
         import shiploop_stage_spec as spec
         state = nav.new_state("/simulation-only/repo", "Blocked review fixture.", delegation=nav.DEFAULT_DELEGATION)
         for step in dry_run.activity():
@@ -332,14 +334,20 @@ class GoalFirstTests(unittest.TestCase):
             if stage in spec.reviewed_stages("stage"):
                 break
             state = nav.apply(state, nav.current_action(state)["id"], step["result"])
+        wait = {"kind": "service", "service": "the model gateway", "check": "true",
+                "no_default": "No recorded default replaces the gateway."}
         blocked = nav.apply(state, nav.current_action(state)["id"],
-                            {"outcome": "blocked", "blocked_by": "external", "summary": "Synthetic block.",
+                            {"outcome": "blocked", "awaiting": wait, "summary": "Synthetic block.",
                              "evidence_refs": ["synthetic://evidence"]})
-        self.assertIsNotNone(blocked["active_improve"])
-        packet = nav.improve_handoff_text(dry_run.CORE, dry_run.RUN, blocked)  # the review's goal lives in the handoff
+        self.assertIsNone(blocked["active_improve"])
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertEqual(nav.current_stage(blocked), stage)  # the stage is issued again once the service is back
+        done = nav.apply(state, nav.current_action(state)["id"],
+                         {"outcome": "done", "summary": "Synthetic result.", "evidence_refs": ["synthetic://evidence"]})
+        self.assertIsNotNone(done["active_improve"])
+        packet = nav.improve_handoff_text(dry_run.CORE, dry_run.RUN, done)  # the review's goal lives in the handoff
         self.assertIn("Reviewing the returned " + stage + " result. Goal: ", packet)
         self.assertIn("Done when (a done result must meet each", packet)
-        self.assertNotIn("accepted " + stage + " result", packet)  # the parent step stays pending until the Improve stage's complete
 
 
 class EvidenceGateTests(unittest.TestCase):

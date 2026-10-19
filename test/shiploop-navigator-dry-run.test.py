@@ -174,7 +174,7 @@ class NavigatorDryRunTests(unittest.TestCase):
 
     def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
         expected = {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35,
-                    'repeat-improve': 35, 'revise': 39, 'pause-resume': 35, 'halted': 1}
+                    'send-back': 39, 'pause-resume': 35, 'halted': 1}
         scenarios = driver.scenarios()
         self.assertEqual(set(scenarios), set(expected))
         for name, scenario in scenarios.items():
@@ -245,6 +245,29 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertEqual(w1_produce['next_owner'], 'W2')
         self.assertEqual(w1_produce['completed_instances'], ['W1'])
 
+    def test_the_blocked_resume_scenario_waits_on_a_service_and_the_send_back_scenario_returns_to_the_step_plan(self):
+        scenarios = driver.scenarios()
+        # repeat is retired and revise is send-back (N5), so neither old scenario name is declared.
+        self.assertFalse({'repeat-improve', 'revise'} & set(scenarios))
+        steps = scenarios['blocked-resume']['steps']
+        self.assertEqual((steps[0]['at'], steps[0]['result']['outcome'], steps[0]['result']['awaiting']['kind']),
+                         ('intake', 'blocked', 'service'))
+        self.assertEqual((steps[1]['command'], steps[1]['expect']), ('resume', 'intake'))
+        self.assertTrue(steps[1]['observed'])  # a service wait resumes on --observed, never without a reply
+        without = copy.deepcopy(scenarios['blocked-resume'])
+        del without['steps'][1]['observed']
+        refused = driver.run_scenario('no-reply', without)
+        self.assertFalse(refused['ok'])
+        self.assertIn('resume with --observed', refused['error'])
+        # An answer wait is not satisfied by an observation, so the dry run cannot be made to resume on the wrong flag.
+        wrong = copy.deepcopy(scenarios['blocked-resume'])
+        wrong['steps'][0]['result']['awaiting'] = {'kind': 'answer', 'question': 'Which prerequisite?',
+                                                   'no_default': 'Synthetic: only the user can choose.'}
+        self.assertFalse(driver.run_scenario('wrong-flag', wrong)['ok'])
+        back = next(row for row in scenarios['send-back']['steps'] if row['at'] == 'implement'
+                    and row.get('result', {}).get('outcome') == 'send-back')
+        self.assertEqual(back['expect'], 'step-plan')
+
     def test_wrong_edge_and_unknown_command_fail(self):
         wrong = copy.deepcopy(driver.scenarios()['delivery'])
         wrong['steps'][0]['expect'] = 'release'
@@ -276,7 +299,7 @@ class NavigatorDryRunTests(unittest.TestCase):
               patch.object(navigator, 'save', side_effect=forbidden),
               redirect_stdout(output)):
             self.assertEqual(protocol.main(ForbiddenCore(), ['graph-dry-run']), 0)
-        self.assertEqual(output.getvalue().count('PASS '), 7)
+        self.assertEqual(output.getvalue().count('PASS '), 6)
 
     def test_cli_custom_json_and_markdown_without_state_changes(self):
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-') as temporary:
@@ -292,7 +315,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             data = json.loads(result.stdout)
             self.assertTrue(data['simulation_only'])
-            self.assertEqual(len(data['scenarios']), 7)
+            self.assertEqual(len(data['scenarios']), 6)
             example = ROOT / 'skills/shiploop/references/graph-dry-run-scenario.json'
             custom = subprocess.run(cli + ['--script', str(example), '--format', 'markdown'],
                                     cwd=root, env=env, capture_output=True, text=True)
@@ -319,7 +342,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(data['protocol_version'], 4)
             self.assertEqual(set(item['name'] for item in data['scenarios']),
                              {'delivery', 'two-work-items', 'blocked-resume',
-                              'repeat-improve', 'revise', 'pause-resume', 'halted'})
+                              'send-back', 'pause-resume', 'halted'})
             self.assertEqual(state.read_bytes(), before)
 
     def test_every_listed_scenario_runs(self):
@@ -395,11 +418,11 @@ class NavigatorDryRunTests(unittest.TestCase):
         reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
                               'system-test-author', 'release-plan', 'implement'},
                     'none': {'system-test-author', 'release-plan', 'implement'}}
-        events = {'stage': {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35, 'repeat-improve': 35,
-                            'revise': 39, 'pause-resume': 35, 'halted': 1},
+        events = {'stage': {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35, 'send-back': 39,
+                            'pause-resume': 35, 'halted': 1},
                   # none drops one finish-improve row for each planning result the option covers
-                  'none': {'delivery': 28, 'two-work-items': 37, 'blocked-resume': 30, 'repeat-improve': 30,
-                           'revise': 32, 'pause-resume': 30, 'halted': 1}}
+                  'none': {'delivery': 28, 'two-work-items': 37, 'blocked-resume': 30, 'send-back': 32,
+                           'pause-resume': 30, 'halted': 1}}
         self.assertEqual(set(driver.REVIEWED3), set(navigator.PLANNING_REVIEW_MODES))
         for mode in navigator.PLANNING_REVIEW_MODES:
             self.assertEqual(driver.REVIEWED3[mode], reviewed[mode])
@@ -544,9 +567,9 @@ class BackchainStageTextTests(unittest.TestCase):
                 loop = stage == self.LOOP_STAGE
                 self.assertEqual("Selected Backchain and Until Loop resources" in packet, loop)
                 self.assertEqual("Backchain audit resource (" in packet, not loop)
-                self.assertEqual("Loop resources for a repair/revise request, under " in packet, not loop)
+                self.assertEqual("Loop resources for a repair or send-back request, under " in packet, not loop)
                 if not loop:
-                    self.assertIn(": all present", packet.split("Loop resources for a repair/revise request, under ")[1]
+                    self.assertIn(": all present", packet.split("Loop resources for a repair or send-back request, under ")[1]
                                   .splitlines()[0])
 
     def test_audit_stages_offer_the_audit_and_one_bounded_repair_and_not_the_loop_text(self):
@@ -732,7 +755,7 @@ class BackchainStageTextTests(unittest.TestCase):
             with self.subTest(label=label):
                 self.assertNotIn("  " + label + ": ", plan)
         self.assertIn("Backchain audit resource (", plan)
-        status = plan.split("Loop resources for a repair/revise request, under ")[1].splitlines()[0]
+        status = plan.split("Loop resources for a repair or send-back request, under ")[1].splitlines()[0]
         self.assertIn(": all present", status)
 
     def test_one_and_converge_still_print_the_whole_loop_and_the_six_file_block_at_plan(self):
@@ -746,7 +769,7 @@ class BackchainStageTextTests(unittest.TestCase):
                 for label in self.LOOP_ONLY_LABELS:
                     self.assertIn("  " + label + ": ", plan)
                 self.assertNotIn("Backchain audit resource (", plan)
-                self.assertNotIn("Loop resources for a repair/revise request", plan)
+                self.assertNotIn("Loop resources for a repair or send-back request", plan)
 
     def test_the_plan_packet_is_shorter_in_none_than_in_one_and_in_converge(self):
         words = {mode: len(self.packets_in(mode)[self.LOOP_STAGE].split()) for mode in guidance.BACKCHAIN_PASSES_MODES}

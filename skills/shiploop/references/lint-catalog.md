@@ -36,7 +36,7 @@ code and are not catalog options.
   hash the path, the message and the line's text, not its number, so they
   survive edits above the line. Findings present at the base or elsewhere in a
   file, uncovered files, missing tools, tool errors, timeouts and a pass that
-  cannot run never refuse. `revise` and `blocked` submissions are not linted.
+  cannot run never refuse. `send-back` and `blocked` submissions are not linted.
   At `test` and `verify` the gate runs before ShipLoop's own test runs, so the
   tests cover any auto-fix. The implement and test packets print the
   report-only `lint` command to run after each edit, and the latest gate record.

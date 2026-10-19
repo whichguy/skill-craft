@@ -57,6 +57,7 @@ Done means all of these hold:
 | S1.2 decision 19 | KNOWLEDGE replaces HOME as the printed symbol | navigator reference_paths, symbolic, REFERENCE_SYMBOLS, expand_result_roots; prompts; stage_spec goals; references and SKILL.md; obligation anchors | evidence_refs `KNOWLEDGE/x` accepted and `HOME/x` refused through `complete`; packet symbol tests ported |
 | S1.3 E3 | `REPEAT_STEP`: a person's or a service's action becomes blocked, an unachievable step becomes send-back | loops | contract text test |
 | S1.4 E4 | `check_loop_packet` tests the receipt status before the contract comparison | loops | a scratch runtime test: an active receipt from another contract names `next_argv`, not start |
+| S1.5 N5 outer send-back | system-test may send back to system-test-author, and release-verify to release-plan (run-insights N5, owner decision 10). Missing from this table until the S1.1 commit, 2026-10-18 | stage_spec outcomes and send-back targets; navigator `_apply_result` reroute; the outer packets' outcome lines | each route through `complete`: the target stage reruns with the result as evidence; a send-back over the budget is refused at check-only |
 
 ## Slice 2: plan data
 

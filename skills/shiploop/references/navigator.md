@@ -28,15 +28,15 @@ flowchart LR
   U -->|Accepted| C[Import evidence and final result]
   C --> F[Script routes the final result]
   F -->|done| N[Next producer]
-  F -->|repeat, prelude and outer only| P
   F -->|blocked| B[Wait for resume, then same stage]
-  F -->|replan, outer only| W[New work items enter the inner loop]
+  F -->|send-back, test-spec to verify| SB[The item goes back to its step plan]
+  F -->|add-work, outer only| W[New work items enter the inner loop]
   N --> P
 ```
 
 The route is the same for a direct result and an Improve child's final result.
 The child can change the result it imports, so a reviewed `done` can become
-`repeat`, `blocked` or, at an outer stage, `replan`.
+`blocked`, `send-back` where the stage allows it or, at an outer stage, `add-work`.
 
 The 24 producer stages are fixed by the stage table (`scripts/shiploop_stage_spec.py`):
 prelude `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
@@ -91,7 +91,7 @@ flowchart TD
     STA[system-test-author ✦] --> ST[system-test] --> PA[product-acceptance] --> RP[release-plan ✦]
     RP --> REL[release-check → release → release-verify → operations → handoff]
   end
-  OUTER -. "replan: new work items" .-> SP
+  OUTER -. "add-work: new work items" .-> SP
   REL --> done
 ```
 
@@ -105,21 +105,21 @@ finding; `test` is not accepted until ShipLoop's base run finds no new test ID p
 item's base and its candidate run passes every recorded command at its floor; and `verify` is not
 accepted until ShipLoop has rerun every recorded command and each exited 0. The outer
 `system-test` and `release-verify` rerun their own recorded commands the same way. After 11
-refused runs `done` is no longer accepted and the stage takes its own remedy: `revise` back to
-`step-plan` at an INNER stage, or `replan` with corrective work items at the two outer stages,
+refused runs `done` is no longer accepted and the stage takes its own remedy: `send-back` back to
+`step-plan` at an INNER stage, or `add-work` with corrective work items at the two outer stages,
 which have no step plan to revise. A command that times out, cannot start, or is skipped on
 budget refuses the stage but is recorded `could-not-run` and does not spend one of the 11; the
 stage's remedy is accepted after it on ShipLoop's own record, without a new loop packet. Each
 inner stage loops inside its bound Until Loop until its exit condition holds or the step reports
-`revise` (or `blocked` for what only the user, an access grant or an outside dependency can
+`send-back` (or `blocked` for what only the user, an access grant or an outside dependency can
 resolve).
 
 | | Inner loop | Outer loop |
 | --- | --- | --- |
-| Runs | once per work item, over one shared graph | once, unless `replan` reopens it |
+| Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
 | Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
-| Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `revise`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `repeat`, `blocked`, `replan` with new work items |
-| Going back | `revise` returns the item to `step-plan`; `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
+| Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `repeat`, `blocked`, `add-work` with new work items |
+| Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author` |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `check` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
@@ -438,28 +438,25 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done` or `blocked` at every stage; `repeat` at PRELUDE and OUTER stages (an INNER stage's Until Loop repeats instead); `revise` from `test-spec` through `verify`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews, every `implement` step and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
+| `outcome` | `done` or `blocked` (with `awaiting`: a person's decision, a person's action, or an outside service) at every stage; `send-back` from `test-spec` through `verify`; outer steps also allow `add-work` with new corrective work items (the four outcomes; `repeat` is retired: `next` reprints a stage's packet); `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews, every `implement` step and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line of at most 100 characters, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved. The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. A path may lead with `RUN/`, `HOME/`, `WORKTREE/` or `GUIDES/` (the packet's symbols): ShipLoop expands it before any check and stores the absolute path; another all-capital word and a slash is refused as an unknown root. An inner stage's Until Loop receipt is listed by ShipLoop when the result leaves it out. The template's placeholder is refused. |
-| `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
+| `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `add-work`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
 Stage results add their own fields where the stage needs them: `step-plan` records
 `steps`, `paths`, `criteria`, `test_commands` (or `test_commands_na`), `check_na`,
-`expectations` and each step's `skills`; `validate-existing`'s `revise` records
+`expectations` and each step's `skills`; `validate-existing`'s `send-back` records
 `failed_expectations`; `test` may record `red_na` and `retired_tests`; and a done
 `carry-forward` records its `skill` decision (see [the skill guide](inner-loop.md#the-inner-loop)).
 `test` and `document` are recorded as not applicable, with a history row and a
 result file, only on the script's proof; `validate-existing` is recorded done by
 script when every expectation check matches.
 
-At a PRELUDE or OUTER stage, after any bound child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
-with new information. `blocked` retains unfinished work; after the condition
-is resolved, `resume` returns the same node. Neither is a successful advance.
-Within the actual Improve child, normal review iterations continue internally. An explicit
-`repeat` restarts the attempt; it never counts as a completed review or clean
-pass. Each converged campaign submits one successful `done`.
+`blocked` retains unfinished work; after the condition is resolved, `resume` returns the same node. It is not a
+successful advance, and only a `done` starts an Improve review. Within the actual Improve child, normal review
+iterations continue internally. Each converged campaign submits one successful `done`.
 Each new run begins with `W1`, titled from the original goal. A `plan` result
 can replace the pending plan with ordered
 work items, while completed work-item records remain durable history; optional
@@ -508,7 +505,7 @@ and current work queue. It shows phase/run status, owner/current assignment,
 recorded completed and pending stages for the current phase or item, completed
 item counts/labels and queued items. A stage recorded not applicable, or done by
 script, is recorded like any other.
-Only accepted `done` completes a stage; `repeat` and `blocked` do not. These
+Only accepted `done` completes a stage; `blocked` does not. These
 records are host declarations, not independent evidence of tests or external
 effects. Workspace return/merge/push status still comes from the separate return
 plan and receipt, not graph position.
@@ -698,14 +695,14 @@ requirements and separate source/update/identity/behavior observations. The
 script checks declared coverage at the relevant boundary, while the host
 executes and judges checks. Pre-update checks can be refreshed during release
 planning and its Improve review. A material post-plan candidate or target change that
-needs replanning blocks for direction; `repeat` does not jump backward.
+needs replanning blocks for direction; no outcome jumps backward except a `send-back` to the step plan.
 An unchanged candidate with a completed update and blocked browser check resumes
 verification without automatically re-uploading. See the [full contract and
 recovery examples](consumer-delivery.md). No new stages or Improve counters apply.
 
 | Owner | Duties |
 | --- | --- |
-| Script | Persist mode/cursor/action IDs, return the current prompt, validate the small result envelope, route `done`, retain `repeat`, and resume `blocked`. |
+| Script | Persist mode/cursor/action IDs, return the current prompt, validate the small result envelope, route `done`, `send-back` and `add-work`, and resume `blocked`. |
 | Host agent | Inspect and interpret evidence; choose commands; plan and execute authorized work; write/refine tests; assess materiality, convergence, and applicability; record honest evidence. |
 | User | Sets desired outcome, scope, permission, and overrides such as no commit or no release. |
 

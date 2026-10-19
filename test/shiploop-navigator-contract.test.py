@@ -123,6 +123,21 @@ def result(*, outcome: str = "done", summary: str = "Synthetic producer result."
     return {"outcome": outcome, "summary": summary, **extra}
 
 
+# The three things a blocked result may await (run-insights N5): a person's decision, a person's action, or an outside
+# service.  Only a person or a service can unblock a run; each wait carries the reason no recorded default would do.
+WAIT_ANSWER = {"kind": "answer", "question": "Which synthetic option should the run take?",
+               "options": ["first", "second"], "no_default": "Each option changes the product."}
+WAIT_PRESENT = {"kind": "present", "steps": ["Grant the synthetic access."], "report": "Say when it is granted.",
+                "no_default": "Only the owner can grant it."}
+WAIT_SERVICE = {"kind": "service", "service": "synthetic-service", "check": "true",
+                "no_default": "Nothing else can proceed until the service is back."}
+
+
+def blocked_result(*, awaiting: dict | None = None, summary: str = "Synthetic prerequisite missing.", **extra):
+    """A blocked result that awaits an outside service unless ``awaiting`` says otherwise."""
+    return result(outcome="blocked", summary=summary, awaiting=dict(awaiting or WAIT_SERVICE), **extra)
+
+
 def _packet_path_from_stdout(stdout: str) -> Path | None:
     """The ``Full packet: <path>`` locator an active-state head prints, if any."""
     return head_packet_path(stdout)
@@ -591,11 +606,11 @@ class NavigatorContractTests(unittest.TestCase):
         # directly; no Improve child completes in between.
         while navigator.current_stage(state) != "validate-existing":
             state = self._produce(state, navigator.current_stage(state))
-        blocked = navigator.apply(state, self._action(state)["id"],
-                                  result(outcome="blocked", blocked_by="external"))
+        blocked = navigator.apply(state, self._action(state)["id"], blocked_result())
         self.assertEqual(blocked["status"], "blocked")
         self.assertNotIn(prefix, navigator.render(None, root, blocked))
-        resumed = navigator.control(blocked, "resume")
+        # A blocked run resumes only with the reply its wait asks for: --observed for a service.
+        resumed = navigator.control(blocked, "resume", observed="The synthetic service is back.")
         self.assertTrue(navigator.render(None, root, resumed).startswith(prefix))
 
     def test_every_stage_carries_generic_policy_content_in_both_packet_views(self) -> None:
@@ -627,7 +642,7 @@ class NavigatorContractTests(unittest.TestCase):
             self.assertEqual("Selected Backchain and Until Loop resources" in producer_packet, stage == "plan")
             self.assertEqual("Backchain audit resource (" in producer_packet,
                              stage in backchain_stages - {"plan"})
-            self.assertEqual("Loop resources for a repair/revise request, under " in producer_packet,
+            self.assertEqual("Loop resources for a repair or send-back request, under " in producer_packet,
                              stage in backchain_stages - {"plan"})
             # The requirement and handoff rules are no longer in the packet (re-cut, 2026-10-11): its RULES paragraph
             # points at reference#rules, and the long text (evidence_refs carry the requirement sections and test
@@ -656,7 +671,7 @@ class NavigatorContractTests(unittest.TestCase):
             # A bound Improve child never starts a whole loop: no resource list, no loop status, and (since the
             # re-cut) not even the audit resource line.
             self.assertNotIn("Selected Backchain and Until Loop resources", child_packet)
-            self.assertNotIn("Loop resources for a repair/revise request", child_packet)
+            self.assertNotIn("Loop resources for a repair or send-back request", child_packet)
             self.assertNotIn("Backchain audit resource (", child_packet)
             self.assertIn("Follow the packet's Reference handoff policy", child_packet)
             state = self._complete_improve(bound, action, stage)
@@ -715,6 +730,18 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertEqual(navigator.current_stage(state), "carry-forward")
                 self.assertEqual(self._action(state), action)
 
+    def test_the_retired_outcomes_are_refused_at_every_stage_and_name_the_four_outcomes(self) -> None:
+        """revise, replan and repeat are retired (N5, owner decision 10); revise is send-back, replan is add-work."""
+        state = self.state()
+        action = self._action(state)
+        before = copy.deepcopy(state)
+        for retired in ("revise", "replan", "repeat"):
+            with self.subTest(outcome=retired):
+                with self.assertRaisesRegex(navigator.NavigatorError, "revise, replan and repeat are retired"):
+                    navigator.apply(state, action["id"], result(outcome=retired))
+                self.assertEqual(state, before)
+        self.assertEqual(stage_spec.OUTCOMES, frozenset({"done", "blocked", "send-back", "add-work"}))
+
     def test_incomplete_child_and_blocked_producer_do_not_advance_parent(self) -> None:
         state = self._at_spec()
         waiting = self._pending(state)
@@ -725,26 +752,22 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(resumed["active_improve"], binding)
         self.assertEqual(navigator.current_stage(resumed), "spec")
 
-        # spec is a planning/contract checkpoint, so even a blocked result
-        # still requires Improve review before it actually blocks the run.
+        # spec is a planning/contract checkpoint, but only a done result is reviewed (N5): a blocked result stops the
+        # run at once, with no Improve child to complete, and it resumes at the same stage once its wait is answered.
         blocked_state = state
         while navigator.current_stage(blocked_state) != "spec":
             blocked_state = self._produce(blocked_state, navigator.current_stage(blocked_state))
         blocked_action = self._action(blocked_state)
-        waiting_blocked = navigator.apply(
-            blocked_state, blocked_action["id"],
-            result(outcome="blocked", blocked_by="external", summary="Synthetic prerequisite missing."),
-        )
-        self.assertEqual(waiting_blocked["status"], "active")
-        self.assertEqual(waiting_blocked["active_improve"]["action_id"], blocked_action["id"])
-        blocked = navigator.finish_improve(
-            waiting_blocked,
-            blocked_action["id"],
-            receipt("spec"),
-            result(outcome="blocked", blocked_by="external", summary="Synthetic prerequisite missing."),
-        )
+        blocked = navigator.apply(blocked_state, blocked_action["id"], blocked_result(awaiting=WAIT_ANSWER))
         self.assertEqual(blocked["status"], "blocked")
+        self.assertIsNone(blocked["active_improve"])
+        self.assertEqual(blocked["status_reason"], "answer: Synthetic prerequisite missing.")
         self.assertEqual(navigator.current_stage(blocked), "spec")
+        self.assertNotIn(blocked_action["id"], blocked["improve_results"])
+        resumed = navigator.control(blocked, "resume", answer="Take the first option.")
+        self.assertEqual(resumed["status"], "active")
+        self.assertEqual(navigator.current_stage(resumed), "spec")
+        self.assertNotEqual(self._action(resumed)["id"], blocked_action["id"])  # the stage is issued again
 
     def test_cold_recovery_preserves_the_pending_child_binding_without_advancing(self) -> None:
         state = self._at_spec()
@@ -1109,11 +1132,11 @@ class NavigatorContractTests(unittest.TestCase):
         return packet, fake_skills_root.resolve()
 
     def test_the_audit_stages_print_the_audit_resource_and_the_loop_status_not_the_list(self) -> None:
-        """A non-loop stage names the one resource its audit needs and reports the files a repair/revise needs."""
+        """A non-loop stage names the one resource its audit needs and reports the files a repair or send-back needs."""
         packet = navigator.render(None, self.repo / ".shiploop", self._at_spec())
         contract = (ROOT / "skills" / BACKCHAIN_RESOURCE_PATHS[1][1]).resolve()
         self.assertIn(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {contract}", packet)
-        self.assertIn(f"Loop resources for a repair/revise request, under {(ROOT / 'skills').resolve()}: all present", packet)
+        self.assertIn(f"Loop resources for a repair or send-back request, under {(ROOT / 'skills').resolve()}: all present", packet)
         self.assertNotIn("Selected Backchain and Until Loop resources", packet)
         self.assertNotIn("MISSING: skills/", packet)
         guide = " ".join(self.backchain_planning_guide.read_text(encoding="utf-8").split())
@@ -1127,7 +1150,7 @@ class NavigatorContractTests(unittest.TestCase):
         missing = (3, 6)
         packet, root = self._render_spec_with_files_missing(missing)
         labels = ", ".join(BACKCHAIN_RESOURCE_PATHS[index][0] for index in missing)
-        self.assertIn(f"Loop resources for a repair/revise request, under {root}: MISSING: {labels}", packet)
+        self.assertIn(f"Loop resources for a repair or send-back request, under {root}: MISSING: {labels}", packet)
         self.assertNotIn("operation review/audit): MISSING", packet)
 
     def test_the_audit_line_names_a_missing_audit_resource(self) -> None:
@@ -1153,14 +1176,14 @@ class NavigatorContractTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self.assertEqual("Selected Backchain and Until Loop resources" in packet, whole)
                 self.assertEqual("Backchain audit resource (" in packet, not whole)
-                self.assertEqual("Loop resources for a repair/revise request, under " in packet, not whole)
+                self.assertEqual("Loop resources for a repair or send-back request, under " in packet, not whole)
                 for label in loop_only:  # the six files only a whole loop reads
                     self.assertEqual(f"  {label}: " in packet, whole, label)
                 self.assertEqual(self._expected_backchain_resource_block(skills_root) in packet, whole)
                 self.assertEqual("You may also request one Backchain `plan` / `draft` through `source-aware-native`"
                                  in " ".join(packet.split()), whole)
                 self.assertEqual(
-                    f"Loop resources for a repair/revise request, under {skills_root.resolve()}: all present" in packet,
+                    f"Loop resources for a repair or send-back request, under {skills_root.resolve()}: all present" in packet,
                     not whole)
                 self.assertEqual(
                     f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {contract}" in packet,
@@ -1169,11 +1192,11 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertEqual(packet.count("Backchain graph check: "), 1)  # record-only, in every mode
 
     def test_mode_none_status_line_at_plan_names_a_missing_loop_file(self) -> None:
-        """A repair/revise can still start a loop in `none`, so the script reports which loop file is absent."""
+        """A repair or send-back can still start a loop in `none`, so the script reports which loop file is absent."""
         missing = (1, 3, 6)
         packet, root = self._render_spec_with_files_missing(missing, state=self._at_plan(self._state_in("none")))
         labels = ", ".join(BACKCHAIN_RESOURCE_PATHS[index][0] for index in missing)
-        self.assertIn(f"Loop resources for a repair/revise request, under {root}: MISSING: {labels}", packet)
+        self.assertIn(f"Loop resources for a repair or send-back request, under {root}: MISSING: {labels}", packet)
         self.assertIn(f"operation review/audit): MISSING: skills/{BACKCHAIN_RESOURCE_PATHS[1][1].as_posix()}", packet)
         self.assertNotIn("Selected Backchain and Until Loop resources", packet)
 
@@ -1282,16 +1305,16 @@ class NavigatorContractTests(unittest.TestCase):
         loop = (
             "Existing tests, check scripts, golden or fixture files and thresholds are checks",
             "download, install or fetch nothing",
-            "report revise, naming the criterion or command and the case",
+            "report send-back, naming the criterion or command and the case",
             "the criterion text does not say `Confirm by: unconfirmable here`",
             f"the same check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts",
             "with existing behaviour kept at the conflict point",
         )
         parent = (
             "Stale, skipped, missing or other-candidate, command, configuration or target evidence confirms nothing",
-            "whose `Confirm by:` needs execution: report revise",
-            # The verify duty keeps the revise route (its closing item) in the re-cut's wording.
-            "Criterion or check unachievable as planned: report revise naming it",
+            "whose `Confirm by:` needs execution: report send-back",
+            # The verify duty keeps the send-back route (its closing item) in the re-cut's wording.
+            "Criterion or check unachievable as planned: report send-back naming it",
         )
         for delegation in (prompts.ASK_AGENT, prompts.INLINE):
             for stage, phrases in (("step-plan", authoring), ("implement", loop), ("verify", parent)):
@@ -1740,7 +1763,7 @@ class NavigatorContractTests(unittest.TestCase):
                         normalized_packet,
                     )
 
-    def test_outer_replan_adds_corrective_work_without_rewinding_completed_work(self) -> None:
+    def test_outer_add_work_adds_corrective_work_without_rewinding_completed_work(self) -> None:
         state = self._to_outer(self.state())
         self.assertEqual(state["completed_work_items"], ["W1"])
         for completed_outer_stage in ("system-test-author", "system-test"):
@@ -1749,13 +1772,13 @@ class NavigatorContractTests(unittest.TestCase):
         stage = navigator.current_stage(state)
         self.assertEqual(stage, "product-acceptance")
         action = self._action(state)
-        # product-acceptance is not a checkpoint stage; a replan outcome
+        # product-acceptance is not a checkpoint stage; an add-work outcome
         # advances directly, with no Improve child to complete.
         revised = navigator.apply(
             state,
             action["id"],
             result(
-                outcome="replan",
+                outcome="add-work",
                 summary="A corrective capability is required.",
                 work_items=[{"id": "W2", "title": "Corrective item"}],
             ),
@@ -1764,12 +1787,12 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("W2", [item["id"] for item in revised["work_items"]])
         self.assertEqual(navigator.current_stage(revised), "step-plan")
         self.assertNotEqual(navigator.current_stage(revised), stage)
-        packet = navigator.render(None, self.repo.parent / "replan-progress", revised)
+        packet = navigator.render(None, self.repo.parent / "add-work-progress", revised)
         # The packet no longer restates the Progress snapshot (2026-10-11 dedupe); the projection and the report
         # (report.html keeps the snapshot) carry these lines.
         self.assertNotIn("Progress snapshot", packet)
         progress = "\n".join(navigator._progress_lines(revised))
-        report = navigator._render_report(revised, self.repo.parent / "replan-progress")
+        report = navigator._render_report(revised, self.repo.parent / "add-work-progress")
         for text in (progress, report):
             self.assertIn("Outer stages: 0/9 accepted done.", text)
             self.assertIn(
@@ -1952,13 +1975,13 @@ class NavigatorContractTests(unittest.TestCase):
                 blocked_state = navigator.apply(
                     state,
                     action["id"],
-                    result(outcome="blocked", blocked_by="external", summary="Audit target is temporarily unavailable."),
+                    blocked_result(summary="Audit target is temporarily unavailable."),
                 )
                 self.assertEqual(blocked_state["status"], "blocked")
                 self.assertEqual(navigator.current_stage(blocked_state), "verify")
                 self.assertEqual(blocked_state["work_index"], 2)
                 state = navigator.control(
-                    blocked_state, "resume", "Audit target became available."
+                    blocked_state, "resume", observed="Audit target became available."
                 )
                 self.assertEqual(navigator.current_stage(state), "verify")
                 self.assertEqual(state["work_index"], 2)
@@ -1975,7 +1998,7 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertNotIn(navigator.current_stage(state), EXPECTED_OUTER)
 
         # `repeat` is no longer an inner outcome (each stage iterates inside its Until Loop); the CLI gate's refusal
-        # is driven in EightStageInnerLoopCliTests.test_complete_refuses_repeat_at_an_inner_stage.
+        # is driven in EightStageInnerLoopCliTests.test_complete_refuses_the_retired_outcomes_at_an_inner_stage.
         self.assertTrue(blocked)
         for item_id in ("FEATURE", "INTEGRATION", "AUDIT"):
             with self.subTest(item=item_id):
@@ -2393,7 +2416,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(set(state), fields)
 
         blocked = navigator.apply(state, self._action(state)["id"],
-                                  result(outcome="blocked", blocked_by="external", summary="A synthetic prerequisite is unresolved."))
+                                  blocked_result(summary="A synthetic prerequisite is unresolved."))
         paused = navigator.control(state, "pause", "Pause the held verification.")
         for stopped in (blocked, paused):
             with self.subTest(status=stopped["status"]):
@@ -4224,7 +4247,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         refused = self.submit(result(summary="Claims every expectation matches."))
         self.assertNotEqual(refused.returncode, 0, refused.stdout)
         self.assertIn("complete-E2.txt", refused.stdout + refused.stderr)
-        self.assertIn("Keep working until each matches, or report revise with failed_expectations",
+        self.assertIn("Keep working until each matches, or report send-back with failed_expectations",
                       refused.stdout + refused.stderr)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
@@ -4277,14 +4300,19 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.accept(self.step_plan([dict(self.ABSENT_NOTES)]))
         self.assertEqual(self.state()["active_improve"]["action_id"], action)  # accepted; its child is pending
 
-    def test_complete_refuses_repeat_at_an_inner_stage(self) -> None:
+    def test_complete_refuses_the_retired_outcomes_at_an_inner_stage(self) -> None:
+        # repeat, revise and replan are retired (N5): the stage's Until Loop gate refuses a result that names one,
+        # and the run does not move.  The bound Until Loop repeats the work, so no outcome restarts a stage.
         self.start()
         self.drive_to_step_plan()
         before = (self.run_dir / "state.md").read_bytes()
-        refused = self.submit(result(outcome="repeat", summary="Run the step plan again."))
-        self.assertNotEqual(refused.returncode, 0, refused.stdout)
-        self.assertIn("the bound Until Loop repeats the work, not the graph", refused.stdout + refused.stderr)
-        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        for retired in ("repeat", "revise", "replan"):
+            with self.subTest(outcome=retired):
+                refused = self.submit(result(outcome=retired, summary="Run the step plan again."))
+                self.assertNotEqual(refused.returncode, 0, refused.stdout)
+                self.assertIn("step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph",
+                              refused.stdout + refused.stderr)
+                self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_a_version_4_state_is_refused_with_the_eight_stage_reason(self) -> None:
         saved = dict(navigator.new_state(str(self.repo), "Saved by the seventeen-stage loop."), version=4)

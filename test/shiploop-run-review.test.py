@@ -48,7 +48,7 @@ INNER = ("get-next-work-item", "step-plan", "test-spec", "baseline", "test-autho
 # (action, stage, minutes after T0 when accepted, outcome)
 ACCEPTS = [("intake", "intake", 5, "done"), ("spec", "spec", 15, "done"), ("test-strategy", "test-strategy", 35, "done"),
            ("plan", "plan", 95, "done"), ("get-next-work-item", "get-next-work-item", 97, "done"),
-           ("step-plan", "step-plan", 127, "done"), ("implement", "implement", 140, "revise")]
+           ("step-plan", "step-plan", 127, "done"), ("implement", "implement", 140, "send-back")]
 
 
 def iso(minutes: float) -> str:
@@ -226,7 +226,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual([(s["stage"], s["min"]) for s in run["stages"]],
                          [("intake", 5.0), ("spec", 10.0), ("test-strategy", 20.0), ("plan", 60.0),
                           ("get-next-work-item", 2.0), ("step-plan", 30.0), ("implement", 13.0)])
-        self.assertEqual(run["stages"][-1]["outcome"], "revise")
+        self.assertEqual(run["stages"][-1]["outcome"], "send-back")
         self.assertEqual((run["stages"][0]["packetBytes"], run["wallMin"], run["order"]),
                          (100, 140.0, int(T0.timestamp())))
         self.assertGreater(run["stages"][0]["resultBytes"], 0)
@@ -768,7 +768,7 @@ class RunVisitsTest(unittest.TestCase):
         run = self.context_run()
         by_action = {r["action"]: r.get("context") for r in run["stages"]}
         self.assertEqual(by_action[IDS["test-strategy"]], self.CTX[2])
-        self.assertEqual(by_action[IDS["implement"]], self.CTX[6])  # implement, revise
+        self.assertEqual(by_action[IDS["implement"]], self.CTX[6])  # implement, send-back
         self.assertEqual(by_action[IDS["extra"]], {"calls": 3, "compactions": 0})  # implement, done: no peak figure, omitted
         self.assertIsNone(by_action[IDS["plan"]])  # the harness could not attribute it: no context, not an empty one
         self.assertEqual(sum("context" in r for r in run["stages"]), 3)  # the trailing incomplete row joins no visit
@@ -776,10 +776,30 @@ class RunVisitsTest(unittest.TestCase):
         # VisitContextFollowsRowsTests for the whole rule)
         self.assertIn("5 of 8 visits carry no context", run["unmeasured"]["visitContext"])
 
+    def test_a_run_recorded_with_the_old_outcome_names_joins_its_rows_the_same_way(self):
+        # N5 renamed revise to send-back and replan to add-work. A run recorded before has the old names in state.md AND in
+        # metrics.json's stage rows (the harness copied them), and the export reads state.md's under the new names: the rows
+        # must be read the same way, or a historical run loses the context of every visit.
+        old_accepts = [*ACCEPTS[:-1], ("implement", "implement", 140, "revise"), ("extra", "system-test", 150, "replan")]
+        contexts = {**self.CTX, 7: {"calls": 3, "peak": 90_000, "peakPct": 9.0, "compactions": 0}}
+        out = make_run(self.fresh(), old_accepts, loops=False, metrics={"stages": harness_rows(old_accepts, contexts)})
+        run = self.build(out)[0]
+        self.assertEqual([row["outcome"] for row in run["stages"]][-2:], ["send-back", "add-work"])
+        by_action = {r["action"]: r.get("context") for r in run["stages"]}
+        self.assertEqual(by_action[IDS["test-strategy"]], self.CTX[2])
+        self.assertEqual(by_action[IDS["implement"]], self.CTX[6])  # the visit recorded as revise
+        self.assertEqual(by_action[IDS["extra"]], {"calls": 3, "peak": 90_000, "peakPct": 9.0, "compactions": 0})  # replan
+        self.assertNotIn("do not line up", run["unmeasured"].get("visitContext", ""))
+        # the same run recorded today (new names in both) joins to the same contexts
+        new_accepts = [*ACCEPTS[:-1], ("implement", "implement", 140, "send-back"), ("extra", "system-test", 150, "add-work")]
+        now = self.build(make_run(self.fresh(), new_accepts, loops=False,
+                                  metrics={"stages": harness_rows(new_accepts, contexts)}))[0]
+        self.assertEqual([r.get("context") for r in now["stages"]], [r.get("context") for r in run["stages"]])
+
     def test_rows_that_do_not_line_up_with_the_history_join_nothing_and_the_run_says_why(self):
         accepts = [*ACCEPTS, ("extra", "implement", 150, "done")]
         rows = harness_rows(accepts, self.CTX)
-        rows[6], rows[7] = rows[7], rows[6]  # revise and done swapped: the same stage name, a different outcome
+        rows[6], rows[7] = rows[7], rows[6]  # send-back and done swapped: the same stage name, a different outcome
         run = self.context_run(rows=rows)
         self.assertTrue(all("context" not in r for r in run["stages"]))
         self.assertIn("do not line up one to one", run["unmeasured"]["visitContext"])
@@ -1099,8 +1119,8 @@ class BackchainLoopRecordsTest(unittest.TestCase):
 def make_plan_run(root: Path, rows: list, delegation: str = "inline", queue: list | None = None,
                   loops: bool = False) -> Path:
     """A run whose history follows the engine's own shape. `rows` are (name, stage, outcome, workitem, result body):
-    the body holds what that visit's result carries (`steps` for a step plan, `work_items` for a plan or a replan).
-    `queue` is state.md's final work_items (default: every id a plan or replan row lists)."""
+    the body holds what that visit's result carries (`steps` for a step plan, `work_items` for a plan or an add-work).
+    `queue` is state.md's final work_items (default: every id a plan or add-work row lists)."""
     for name, *_ in rows:
         IDS.setdefault(name, f"nav-{hashlib.sha256(name.encode()).hexdigest()[:32]}")
     out = make_run(root, [(name, stage, 5 * (i + 1), outcome) for i, (name, stage, outcome, *_) in enumerate(rows)],
@@ -1120,20 +1140,21 @@ def steps_of(*ids: str) -> dict:
     return {"steps": [{"id": step, "task": f"do {step}"} for step in ids]}
 
 
-# W1 is planned; its first step plan has three steps, two are built, the third comes back `revise`; the second plan has two
-# steps, S1 needs one more attempt (`repeat`), both are built, and the item finishes. W2 is added by a replan at system-test:
-# its plan has two steps and the run stops after the first implement visit, so S2 is never executed.
+# W1 is planned; its first step plan has three steps, two are built, the third comes back `send-back`; the second plan has two
+# steps, S1 needs one more attempt (`repeat`, an outcome ShipLoop has retired and a historical run still holds), both are
+# built, and the item finishes. W2 is added by an add-work at system-test: its plan has two steps and the run stops after the
+# first implement visit, so S2 is never executed.
 PLAN_ROWS = [
     ("plan", "plan", "done", None, {"work_items": [{"id": "W1", "title": "First item"}]}),
     ("get-next-work-item", "get-next-work-item", "done", "W1", {}),
     ("sp1", "step-plan", "done", "W1", steps_of("S1", "S2", "S3")),
     ("i1", "implement", "done", "W1", {}), ("i2", "implement", "done", "W1", {}),
-    ("i3", "implement", "revise", "W1", {}),
+    ("i3", "implement", "send-back", "W1", {}),
     ("sp2", "step-plan", "done", "W1", steps_of("S1", "S2")),
     ("i4", "implement", "repeat", "W1", {}), ("i5", "implement", "done", "W1", {}), ("i6", "implement", "done", "W1", {}),
     ("test-green", "test-green", "done", "W1", {}),
     ("carry-forward", "carry-forward", "done", "W1", {"work_items": []}),
-    ("replan", "system-test", "replan", None, {"work_items": [{"id": "W2", "title": "Corrective item"}]}),
+    ("add-work", "system-test", "add-work", None, {"work_items": [{"id": "W2", "title": "Corrective item"}]}),
     ("get-next-work-item-2", "get-next-work-item", "done", "W2", {}),
     ("sp3", "step-plan", "done", "W2", steps_of("S1", "S2")),
     ("i7", "implement", "done", "W2", {}),
@@ -1164,12 +1185,12 @@ class PlanAndExecutionTest(unittest.TestCase):
         run, _ = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
         w1, w2 = run["workItems"]
         self.assertEqual((w1["id"], w1["title"], w1["origin"]), ("W1", "First item", "plan"))
-        self.assertEqual((w1["stepPlans"], w1["loops"], w1["revises"], w1["repeats"]), (2, 2, 1, 1))
-        self.assertEqual(w1["implementVisits"], {"done": 4, "repeat": 1, "revise": 1, "replan": 0, "blocked": 0})
+        self.assertEqual((w1["stepPlans"], w1["loops"], w1["sendBacks"], w1["repeats"]), (2, 2, 1, 1))
+        self.assertEqual(w1["implementVisits"], {"done": 4, "repeat": 1, "send-back": 1, "add-work": 0, "blocked": 0})
         # the steps of the LATEST accepted plan, each with the done visit that executed it (the repeat is not it)
         self.assertEqual([(s["id"], s["action"]) for s in w1["steps"]], [("S1", IDS["i5"]), ("S2", IDS["i6"])])
         self.assertEqual((w1["stepsPlanned"], w1["stepsExecuted"]), (2, 2))
-        self.assertEqual((w2["id"], w2["origin"], w2["stepPlans"], w2["loops"], w2["revises"]), ("W2", "replan", 1, 1, 0))
+        self.assertEqual((w2["id"], w2["origin"], w2["stepPlans"], w2["loops"], w2["sendBacks"]), ("W2", "add-work", 1, 1, 0))
         self.assertEqual(w2["implementVisits"]["done"], 1)
         self.assertEqual([(s["id"], s["action"]) for s in w2["steps"]], [("S1", IDS["i7"]), ("S2", None)])
         self.assertEqual((w2["stepsPlanned"], w2["stepsExecuted"]), (2, 1))
@@ -1184,12 +1205,33 @@ class PlanAndExecutionTest(unittest.TestCase):
         self.assertEqual(mark("plan"), {"workitem": None, "loop": None, "step": None})  # an outer stage has none
         self.assertEqual(mark("sp1"), {"workitem": "W1", "loop": 1, "step": None})
         self.assertEqual([mark(n)["step"] for n in ("i1", "i2", "i3")], ["S1", "S2", "S3"])  # the plan then in force
-        self.assertEqual(mark("i3")["loop"], 1)  # the revise visit ends loop 1
+        self.assertEqual(mark("i3")["loop"], 1)  # the send-back visit ends loop 1
         self.assertEqual(mark("sp2")["loop"], 2)
-        # a repeat is another attempt at the step that was still open
+        # a repeat (retired, still in a historical run) is another attempt at the step that was still open
         self.assertEqual([(mark(n)["loop"], mark(n)["step"]) for n in ("i4", "i5", "i6")], [(2, "S1"), (2, "S1"), (2, "S2")])
         self.assertEqual((mark("test-green")["workitem"], mark("i7")["workitem"], mark("i7")["step"]), ("W1", "W2", "S1"))
-        self.assertEqual(mark("replan")["workitem"], None)
+        self.assertEqual(mark("add-work")["workitem"], None)
+
+    def test_a_historical_runs_revise_and_replan_read_as_send_back_and_add_work(self):
+        # N5: ShipLoop renamed revise to send-back and replan to add-work and retired repeat. A run recorded before keeps its
+        # old names in state.md and the result records; the export reads them as the new names, so the whole run document is
+        # the one the same run recorded today would give, and a retired repeat stays countable under its own name.
+        old = {"send-back": "revise", "add-work": "replan"}
+        historical = [(name, stage, old.get(outcome, outcome), item, body) for name, stage, outcome, item, body in PLAN_ROWS]
+        self.assertEqual({o for _, _, o, _, _ in historical} & {"revise", "replan"}, {"revise", "replan"})
+        then, _ = self.build(make_plan_run(self.fresh(), historical))
+        now, _ = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
+        for doc in (then, now):  # only where each run lives and a result record's size (it follows its outcome's name) differ
+            doc.pop("evidence")
+            for row in doc["stages"]:
+                row.pop("resultBytes", None)
+        self.assertEqual(then, now)
+        w1, w2 = then["workItems"]
+        self.assertEqual((w1["sendBacks"], w1["loops"], w1["repeats"], w2["origin"]), (1, 2, 1, "add-work"))
+        self.assertEqual(w1["implementVisits"], {"done": 4, "repeat": 1, "send-back": 1, "add-work": 0, "blocked": 0})
+        outcomes = {row["outcome"] for row in then["stages"]}
+        self.assertTrue({"send-back", "add-work", "repeat"} <= outcomes)
+        self.assertFalse(outcomes & {"revise", "replan"}, outcomes)
 
     def test_a_not_yet_started_item_has_zero_loops_and_no_steps_and_a_title_is_cut_with_a_flag(self):
         rows = [*PLAN_ROWS[:1], PLAN_ROWS[1], PLAN_ROWS[2]]
@@ -1298,8 +1340,8 @@ class PlanAndExecutionTest(unittest.TestCase):
     def test_the_facts_line_reports_the_headline_numbers(self):
         _, facts = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
         line = next(f for f in facts if f.startswith("- Work items:"))
-        self.assertEqual(line, "- Work items: 2 (1 added by replan); 3 step plans; 3 passes through the steps loop "
-                               "(1 revises); 5 done implement visits; steps planned 4, executed 3")
+        self.assertEqual(line, "- Work items: 2 (1 added by add-work); 3 step plans; 3 passes through the steps loop "
+                               "(1 send-backs); 5 done implement visits; steps planned 4, executed 3")
 
     def test_the_table_of_stages_after_implement_is_the_engines(self):
         path = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
@@ -1310,15 +1352,15 @@ class PlanAndExecutionTest(unittest.TestCase):
         spec.loader.exec_module(stage_spec)
         inner = list(stage_spec.INNER)
         self.assertEqual(export.AFTER_IMPLEMENT, tuple(inner[inner.index("implement") + 1:]))
-        self.assertEqual((stage_spec.REVISE_TO, stage_spec.MAX_REVISES), ("step-plan", 2))  # SCHEMA.md says "at most twice"
+        self.assertEqual((stage_spec.SEND_BACK_TO, stage_spec.MAX_SEND_BACKS), ("step-plan", 2))  # SCHEMA.md says "at most twice"
 
     def test_schema_md_defines_loops_the_pairing_and_the_unknown_cases(self):
         text = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
-        for phrase in ("steps loop", "1 plus `revises`", "latest accepted (done) step plan", "implement_progress",
+        for phrase in ("steps loop", "1 plus `sendBacks`", "latest accepted (done) step plan", "implement_progress",
                        "k-th done implement visit", "ask-agent", "recorded by the E2E seed", "never 0",
                        "unmeasured.workItems", "unmeasured.stepsExecuted", "unmeasured.stepsPlanned"):
             self.assertIn(phrase, text, phrase)
-        for name in ("workItems", "stepsPlanned", "stepsExecuted", "titleTruncated", "implementVisits", "origin",
+        for name in ("workItems", "stepsPlanned", "stepsExecuted", "titleTruncated", "implementVisits", "origin", "sendBacks",
                      "stages[].workitem", "stages[].packetDoc"):
             self.assertIn(name, text, name)
 
@@ -1957,9 +1999,10 @@ class FindingsAndOptionsTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r'<rect class="ws-cell [^"]*\bhl\b', svg)), hits)
         self.assertIn(f"Plan: {hits} of 39 visits", svg)
         not_done = [r["outcome"] for r in rows if r["outcome"] != "done"]
-        self.assertEqual(len(not_done), 2)  # one revise, one blocked
+        self.assertEqual(len(not_done), 2)  # one send-back, one blocked
         self.assertEqual(svg.count('class="ws-mark"'), 2)
-        self.assertRegex(svg, r'>R</text>')
+        self.assertRegex(svg, r'>S</text>')
+        self.assertEqual(svg.count("ws-cell o-sendback"), 1)  # the cell classes the page's own styles colour amber
         self.assertRegex(svg, r'>B</text>')
         self.assertEqual(svg.count("ws-hatch"), 0)
         self.assertTrue(svg.startswith('<svg class="ws" viewBox="0 0 562 64"'))
@@ -1976,7 +2019,7 @@ class FindingsAndOptionsTests(unittest.TestCase):
 
     def test_the_where_strip_hatches_skipped_and_seeded_visits_and_escapes_what_it_prints(self) -> None:
         rows = [{"stage": "intake", "outcome": "done", "min": 1.5}, {"stage": "<script>x</script>", "outcome": "done", "skipped": True},
-                {"stage": "spec", "outcome": "replan", "seeded": True, "min": None}, {"stage": "plan", "outcome": "<b>bad</b>"}]
+                {"stage": "spec", "outcome": "add-work", "seeded": True, "min": None}, {"stage": "plan", "outcome": "<b>bad</b>"}]
         svg = run_logic("whereStrip(%s, {phase: 1})" % json.dumps({"stages": rows}))
         self.assertEqual(svg.count("<rect "), 4)
         self.assertEqual(svg.count('<path class="ws-hatch"'), 2)
@@ -1984,6 +2027,7 @@ class FindingsAndOptionsTests(unittest.TestCase):
         self.assertNotIn("<b>", svg)
         self.assertIn("&lt;script&gt;x&lt;/script&gt;", svg)
         self.assertIn("o-bbadb", svg)  # an outcome becomes a class name only as letters
+        self.assertIn("o-addwork", svg)  # add-work reads o-addwork, the class the page's styles colour amber
         self.assertIn("Specify: 1 of 4 visits", svg)
         self.assertIn("visit 2: ", svg)
         # the unknown stage takes the phase of the visit before it (here intake, then spec is Specify)
@@ -3138,17 +3182,19 @@ class CommittedEvidenceTest(unittest.TestCase):
     def test_luna_1_16_1_went_through_the_steps_loop_twice_and_built_all_five_steps_of_its_second_plan(self):
         run = self.run_doc("luna1")
         item = run["workItems"][0]
-        self.assertEqual((item["id"], item["origin"], item["revises"], item["repeats"]), ("W1", "plan", 1, 0))
-        self.assertEqual(item["implementVisits"], {"done": 7, "repeat": 0, "revise": 1, "replan": 0, "blocked": 0})
+        # the run recorded this send-back as `revise` (ShipLoop 1.16.1); the export reads it under today's name
+        self.assertEqual((item["id"], item["origin"], item["sendBacks"], item["repeats"]), ("W1", "plan", 1, 0))
+        self.assertEqual(item["implementVisits"], {"done": 7, "send-back": 1, "add-work": 0, "blocked": 0, "repeat": 0})
         self.assertEqual([s["id"] for s in item["steps"]], ["S1", "S2", "S3", "S4", "S5"])
         marks = [(r["loop"], r["step"], r["outcome"]) for r in run["stages"] if r["stage"] == "implement"]
-        self.assertEqual(marks, [(1, "S1", "done"), (1, "S2", "done"), (1, "S3", "revise")] + [
+        self.assertEqual(marks, [(1, "S1", "done"), (1, "S2", "done"), (1, "S3", "send-back")] + [
             (2, f"S{n}", "done") for n in range(1, 6)])
         self.assertTrue(item["steps"][2]["truncated"] and len(item["steps"][2]["task"]) == 200)
 
-    def test_hello_1_19_0_second_run_added_a_second_work_item_by_replan(self):
+    def test_hello_1_19_0_second_run_added_a_second_work_item_by_add_work(self):
+        # the run recorded the outcome as `replan` (ShipLoop 1.19.0); the export reads it as add-work
         first, second = self.run_doc("hello-1190b")["workItems"]
-        self.assertEqual((first["origin"], second["origin"]), ("plan", "replan"))
+        self.assertEqual((first["origin"], second["origin"]), ("plan", "add-work"))
         self.assertEqual(second["title"], "Correct the system-test plan so ShipLoop can judge ST-1")
 
     def test_packets_are_not_in_the_committed_files_and_every_visit_with_a_packet_file_has_a_document(self):
@@ -3781,7 +3827,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertEqual((luna[-1]["outcome"], luna[-1]["mark"], luna[-1]["stage"]), ("blocked", "B", "system-test"))
         self.assertEqual([(c["first"] + 1, c["mark"]) for c in luna if c["mark"]], [(16, "R"), (39, "B")])
         hello = self.models["hello-1190b"]["columns"]
-        self.assertEqual([(c["first"] + 1, c["mark"], c["outcome"]) for c in hello if c["mark"]], [(27, "P", "replan")])
+        self.assertEqual([(c["first"] + 1, c["mark"], c["outcome"]) for c in hello if c["mark"]], [(27, "A", "add-work")])
         self.assertTrue(all(c["mark"] == "" for c in luna if c["outcome"] == "done"))
 
     def test_the_visits_card_splits_work_from_skipped_and_the_improve_card_counts_passes(self) -> None:
@@ -3960,7 +4006,7 @@ class SequencePictureTests(unittest.TestCase):
             self.assertNotIn(absent, svg)
         self.assertEqual((svg.count(">x4</text>"), svg.count(">x3</text>"), svg.count(" skip\"")), (1, 1, 2))
         self.assertEqual(svg.count('class="sq-imp"'), 11)
-        self.assertEqual(len(re.findall(r">P</text>", svg)), 1)
+        self.assertEqual(len(re.findall(r">A</text>", svg)), 1)  # the one add-work visit; the run had no send-back
 
     def test_skipped_seeded_and_untimed_visits_are_drawn_apart_and_no_bar_has_zero_height(self) -> None:
         run = {"wallMin": 10, "stages": [
@@ -4087,7 +4133,7 @@ db={doc:function(path){return {get:function(){DB_CALLS.push(["get",path]);var d=
 live=true;
 """
 
-# A run with a revise in W1, a replan-added W2 and a planned step that was never executed, as the exporter writes it.
+# A run with a send-back in W1, an add-work-added W2 and a planned step that was never executed, as the exporter writes it.
 PLAN_RUN = {
     "key": "pr", "name": "Plan run", "order": 1, "release": "r", "time": "t", "imp": "i", "wallMin": 30,
     "phases": ["done", "done", "done", "running", "none", "none", "none", "none"],
@@ -4095,16 +4141,16 @@ PLAN_RUN = {
         {"stage": "plan", "outcome": "done", "min": 3, "action": "nav-p", "packetBytes": 40, "packetDoc": True},
         {"stage": "step-plan", "outcome": "done", "min": 2, "action": "nav-s1", "workitem": "W1", "loop": 1, "packetDoc": True},
         {"stage": "implement", "outcome": "done", "min": 5, "action": "nav-i1", "workitem": "W1", "loop": 1, "step": "S1", "packetDoc": True},
-        {"stage": "implement", "outcome": "revise", "min": 4, "action": "nav-i2", "workitem": "W1", "loop": 1, "step": "S2"},
+        {"stage": "implement", "outcome": "send-back", "min": 4, "action": "nav-i2", "workitem": "W1", "loop": 1, "step": "S2"},
         {"stage": "step-plan", "outcome": "done", "min": 2, "action": "nav-s2", "workitem": "W1", "loop": 2},
         {"stage": "implement", "outcome": "done", "min": 6, "action": "nav-i3", "workitem": "W1", "loop": 2, "step": "S1"},
         {"stage": "implement", "outcome": "done", "min": 6, "action": "nav-i4", "workitem": "W2", "loop": 1, "step": "S1"}],
     "workItems": [
-        {"id": "W1", "title": "First <b>item</b>", "origin": "plan", "stepPlans": 2, "loops": 2, "revises": 1, "repeats": 0,
-         "implementVisits": {"done": 2, "repeat": 0, "revise": 1, "replan": 0, "blocked": 0}, "stepsPlanned": 1, "stepsExecuted": 1,
+        {"id": "W1", "title": "First <b>item</b>", "origin": "plan", "stepPlans": 2, "loops": 2, "sendBacks": 1, "repeats": 0,
+         "implementVisits": {"done": 2, "send-back": 1, "add-work": 0, "blocked": 0, "repeat": 0}, "stepsPlanned": 1, "stepsExecuted": 1,
          "steps": [{"id": "S1", "task": "do S1 <script>alert(1)</script>", "action": "nav-i3"}]},
-        {"id": "W2", "title": "Corrective", "origin": "replan", "stepPlans": 1, "loops": 1, "revises": 0, "repeats": 0,
-         "implementVisits": {"done": 1, "repeat": 0, "revise": 0, "replan": 0, "blocked": 0}, "stepsPlanned": 2, "stepsExecuted": 1,
+        {"id": "W2", "title": "Corrective", "origin": "add-work", "stepPlans": 1, "loops": 1, "sendBacks": 0, "repeats": 0,
+         "implementVisits": {"done": 1, "send-back": 0, "add-work": 0, "blocked": 0, "repeat": 0}, "stepsPlanned": 2, "stepsExecuted": 1,
          "steps": [{"id": "S1", "task": "do S1", "action": "nav-i4"}, {"id": "S2", "task": "x" * 200, "truncated": True, "action": None}]}],
     "stepsPlanned": 3, "stepsExecuted": 2, "unmeasured": {}}
 
@@ -4126,14 +4172,14 @@ class PlanPanelTests(unittest.TestCase):
         self.assertTrue(luna["measured"])
         self.assertEqual((luna["headline"], luna["line"]), ("1 work item, 2 passes through the steps loop", "Steps planned 5, executed 5"))
         self.assertEqual((item["badge"], item["added"]), ("steps loop x2", ""))
-        self.assertEqual(item["counts"], "2 step plans, 8 implement visits: 7 done, 1 revise, 0 repeat")
+        self.assertEqual(item["counts"], "2 step plans, 8 implement visits: 7 done, 1 send-back")
         self.assertEqual([(c["id"], c["state"]) for c in item["cells"]], [(f"S{n}", "executed") for n in range(1, 6)])
         rows = evidence_run("luna1")["stages"]
         done = [i + 1 for i, r in enumerate(rows) if r["stage"] == "implement" and r["outcome"] == "done"][-5:]
         self.assertEqual([c["visit"] for c in item["cells"]], done)  # the visit each cell points at, 1-based
         hello = self.model(evidence_run("hello-1190b"))
         self.assertEqual([(i["badge"], i["added"]) for i in hello["items"]],
-                         [("steps loop once", ""), ("steps loop once", "added by replan")])
+                         [("steps loop once", ""), ("steps loop once", "added by add-work")])
         self.assertEqual(hello["headline"], "2 work items, 2 passes through the steps loop")
 
     def test_a_planned_step_no_visit_executed_is_never_and_a_run_whose_pairing_is_unknown_says_unknown(self) -> None:
@@ -4171,8 +4217,8 @@ class PlanPanelTests(unittest.TestCase):
         self.assertEqual(run_logic('[loopsBadge(1),loopsBadge(2),loopsBadge(7),loopsBadge(0),loopsBadge(undefined),loopsBadge("2")]'),
                          ["steps loop once", "steps loop x2", "steps loop x7", "steps loop not started",
                           "steps loop not recorded", "steps loop not recorded"])
-        self.assertEqual(run_logic('itemCounts({stepPlans:1,implementVisits:{done:1,blocked:2,replan:1,repeat:3}})'),
-                         "1 step plan, 7 implement visits: 1 done, 0 revise, 3 repeat, 1 replan, 2 blocked")
+        self.assertEqual(run_logic('itemCounts({stepPlans:1,implementVisits:{done:1,blocked:2,"add-work":1,repeat:3}})'),
+                         "1 step plan, 7 implement visits: 1 done, 0 send-back, 1 add-work, 3 repeat, 2 blocked")
         self.assertEqual(run_logic('itemCounts({})'), "step plans not recorded, implement visits not recorded")
 
     def test_the_panel_draws_one_row_per_item_a_filled_cell_per_executed_step_and_an_outlined_one_for_a_step_never_run(self) -> None:
@@ -4185,9 +4231,9 @@ class PlanPanelTests(unittest.TestCase):
         self.assertEqual((rows, kpis, hidden), (2, 6, False))  # still six cards: the panel is not a seventh
         self.assertIn("2 work items, 3 passes through the steps loop", text)
         self.assertIn("Steps planned 3, executed 2", text)
-        self.assertIn("2 step plans, 3 implement visits: 2 done, 1 revise, 0 repeat", text)
+        self.assertIn("2 step plans, 3 implement visits: 2 done, 1 send-back", text)
         self.assertEqual(cells, ["pl-cell executed|S1visit 6", "pl-cell executed|S1visit 7", "pl-cell never|S2not run"])
-        self.assertEqual(chips, ["steps loop x2", "steps loop once", "added by replan"])
+        self.assertEqual(chips, ["steps loop x2", "steps loop once", "added by add-work"])
         self.assertIn("S2: " + "x" * 200 + " (cut at 200 characters) [never executed]", tasks[1])
 
     def test_a_step_task_and_a_title_with_markup_are_text_never_elements(self) -> None:
@@ -4293,7 +4339,7 @@ class PacketBoxTests(unittest.TestCase):
 
     def test_without_the_database_or_a_packet_document_the_box_prints_nothing(self) -> None:
         self.assertEqual(self.probe('setCol(2);byClass("seqdetail","pkt").length', stored_db=False), 0)
-        # visit 4 (the revise) has no packetDoc: no box
+        # visit 4 (the send-back) has no packetDoc: no box
         self.assertEqual(self.probe('setCol(3);byClass("seqdetail","pkt").length'), 0)
         self.assertEqual(self.probe('setCol(2);byClass("seqdetail","pkt").length'), 1)
 
@@ -5344,16 +5390,27 @@ class CardRowFieldsTests(unittest.TestCase):
         self.assertTrue(carried_of(no_goal)["purpose"])  # the Step line alone says the purpose of an implement packet
 
     def test_current_recovery_requires_the_result_shape_and_both_current_stage_rules(self):
+        # N5 (ShipLoop's four outcomes): the outcome-shape line names who can unblock a blocked result and carries `awaiting`
         current = "\n".join((
-            'blocked: {"outcome": "blocked", "blocked_by": "user | access | external"}',
+            'blocked (only a person or an outside service can unblock it): {"outcome": "blocked", "summary": "<what stopped the work>", '
+            '"awaiting": <what it waits on: {"kind": "answer", "question": "<one decision>", "no_default": "<why>"}>}',
             "- Unattended: take the best default and record it as an assumption; a person-only step is an open item; report",
             "  blocked only when nothing can proceed without a person.",
         ))
         self.assertTrue(carried_of(current)["recovery"])
-        for marker in ('blocked: {"outcome": "blocked"', "take the best default and record it as an assumption",
-                       "blocked only when nothing can proceed without a person"):
+        for marker in ('blocked (only a person or an outside service can unblock it): {"outcome": "blocked"',
+                       "take the best default and record it as an assumption", "blocked only when nothing can proceed without a person"):
             with self.subTest(missing=marker):
                 self.assertFalse(carried_of(current.replace(marker, ""))["recovery"])
+
+    def test_the_1_22_recovery_shape_line_with_blocked_by_still_reads_for_the_runs_recorded_with_it(self):
+        historical = "\n".join((
+            'blocked: {"outcome": "blocked", "blocked_by": "user | access | external"}',
+            "- Unattended: take the best default and record it as an assumption; a person-only step is an open item; report",
+            "  blocked only when nothing can proceed without a person.",
+        ))
+        self.assertTrue(carried_of(historical)["recovery"])
+        self.assertFalse(carried_of(historical.replace('blocked: {"outcome": "blocked"', ""))["recovery"])
 
     def test_a_checked_by_line_is_an_additional_way_for_checked_to_be_found_and_nothing_needs_it(self):
         old, new = packet_fixture("packet-lines-1161.txt"), packet_fixture("packet-lines-1220.txt")
@@ -5486,7 +5543,7 @@ class StageCatalogPageTests(unittest.TestCase):
             self.assertIn(phrase, schema, phrase)
 
 
-# A run for the card tests: a real-shaped run with a revise, an Improve child's packet, skipped visits, a seeded one and a
+# A run for the card tests: a real-shaped run with a send-back, an Improve child's packet, skipped visits, a seeded one and a
 # visit whose packet text lacked its recovery sentence.
 CARRIED_KEYS = ("where", "purpose", "operates", "checked", "produces", "recovery", "inputs")  # a test keeps them equal to export.CARRIED
 ALL_CARRIED = {label: True for label in CARRIED_KEYS}
@@ -5505,15 +5562,15 @@ CARD_RUN = {
          "resultFile": True, "resultBytes": 300},
         {"stage": "skill-validate", "outcome": "done", "action": "nav-a5", "workitem": "W1", "loop": 1, "skipped": True, "min": 0,
          "resultFile": True, "resultBytes": 300},
-        {"stage": "implement", "outcome": "revise", "min": 6, "action": "nav-a6", "workitem": "W1", "loop": 1, "step": "S1",
+        {"stage": "implement", "outcome": "send-back", "min": 6, "action": "nav-a6", "workitem": "W1", "loop": 1, "step": "S1",
          "packetBytes": 40_677, "packetDoc": True, "resultFile": True, "resultBytes": 1_300, "summary": "S1 cannot be built",
          "carried": dict(ALL_CARRIED, recovery=False), "context": {"calls": 9, "peak": 100_000, "peakPct": 10, "compactions": 0}},
         {"stage": "implement", "outcome": "done", "min": 8, "action": "nav-a7", "workitem": "W1", "loop": 2, "step": "S1",
          "packetBytes": 41_000, "packetDoc": True, "resultFile": False, "summary": "Built S1", "carried": ALL_CARRIED,
          "context": {"calls": 12, "peak": 120_000, "peakPct": 12, "compactions": 1}},
         {"stage": "system-test-author", "outcome": "done", "seeded": True, "action": "nav-a8", "resultFile": True}],
-    "workItems": [{"id": "W1", "title": "The item", "stepPlans": 1, "loops": 2, "revises": 1, "repeats": 0,
-                   "implementVisits": {"done": 1, "repeat": 0, "revise": 1, "replan": 0, "blocked": 0}}]}
+    "workItems": [{"id": "W1", "title": "The item", "stepPlans": 1, "loops": 2, "sendBacks": 1, "repeats": 0,
+                   "implementVisits": {"done": 1, "send-back": 1, "add-work": 0, "blocked": 0, "repeat": 0}}]}
 
 
 def model_of(run: dict) -> str:
@@ -5562,8 +5619,8 @@ class StageCardLogicTests(unittest.TestCase):
         return {k: v for k, v in block}
 
     def test_a_work_visit_reads_purpose_check_checklist_sizes_and_declared_readers_from_the_catalog(self):
-        c = card(CARD_RUN, 5)  # the revise visit of implement
-        self.assertEqual((c["title"], c["stage"], c["kind"], c["outcome"]), ("Visit 6: Implement", "implement", "work", "revise"))
+        c = card(CARD_RUN, 5)  # the send-back visit of implement
+        self.assertEqual((c["title"], c["stage"], c["kind"], c["outcome"]), ("Visit 6: Implement", "implement", "work", "send-back"))
         self.assertEqual(c["purpose"], "Make the planned change")  # the 17-stage catalog's implement
         self.assertEqual(c["check"]["kind"], "script-run")
         self.assertIn("lint-gate", c["check"]["why"])
@@ -5575,10 +5632,10 @@ class StageCardLogicTests(unittest.TestCase):
         self.assertIn("not whether the model needed it", recovery["tip"])
         self.assertTrue(all("found in the packet text:" in i["tip"] for i in c["sent"]["carried"] if i["found"]))
         done = self.lines(c["done"]["lines"])
-        self.assertEqual(done["Outcome"], "revise (marked R)")
+        self.assertEqual(done["Outcome"], "send-back (marked R)")
         self.assertEqual(done["Minutes"], "6 min, 15% of elapsed")
         self.assertEqual((done["Work item"], done["Step"]), ("W1, steps-loop pass 1", "S1 (the step this packet named)"))
-        self.assertEqual(done["Revises of this item"], "1 (each sent it back to step-plan)")
+        self.assertEqual(done["Send-backs of this item"], "1 (each sent it back to step-plan)")
         self.assertEqual(done["Refusals"], "not recorded per visit; run-level: 13 (not attributed to a visit)")
         self.assertEqual(done["Context (main thread)"], "9 calls, peak 100,000 tokens (10% of the window), 0 compactions")
         written = self.lines(c["written"]["lines"])
@@ -5755,14 +5812,14 @@ class StageCardListTests(unittest.TestCase):
         self.assertEqual([(r["raw"], r["rawShown"]) for r in rows],
                          [("intake", False), ("spec", False), ("get-next-work-item", True), ("", False), ("implement", False),
                           ("implement", False), ("system-test-author", True)])
-        spec, skipped, revise = rows[1], rows[3], rows[4]
+        spec, skipped, sent_back = rows[1], rows[3], rows[4]
         self.assertEqual((spec["sent"], spec["written"], spec["check"], spec["outcome"], spec["min"]),
                          ("45.1 KB (the Improve child's)", "1.2 KB", "review loop", "done", "4 min"))
         self.assertEqual(spec["purpose"], "Define required behavior and acceptance criteria")
         self.assertEqual((skipped["outcome"], skipped["check"], skipped["sent"], skipped["written"], skipped["readBy"], skipped["purpose"]),
                          ("recorded by ShipLoop", "", "", "", None, ""))
-        self.assertEqual((revise["outcome"], revise["check"], revise["readBy"], revise["sent"], revise["written"]),
-                         ("revise", "script-run", 5, "39.7 KB", "1.3 KB"))
+        self.assertEqual((sent_back["outcome"], sent_back["check"], sent_back["readBy"], sent_back["sent"], sent_back["written"]),
+                         ("send-back", "script-run", 5, "39.7 KB", "1.3 KB"))
         self.assertEqual(rows[6]["outcome"], "seeded")
         self.assertEqual(rows[6]["min"], "")
 
@@ -5797,7 +5854,7 @@ class StageCardPageTests(unittest.TestCase):
                          'byClass("seqdetail","chip").map(function(c){return c.textContent;}),textOf("seqdetail")]', setup=card_setup())
         blocks, chips, text = out
         self.assertEqual(blocks, ["Sent: the packet", "Done: how the visit went", "Written: the result"])
-        self.assertIn("revise", chips)
+        self.assertIn("send-back", chips)
         self.assertIn("exit check: script-run", chips)
         self.assertIn("✓ where", chips)
         self.assertIn("✗ recovery", chips)
@@ -5836,7 +5893,7 @@ class StageCardPageTests(unittest.TestCase):
                          'rows()[4].onclick();var a=[pickedCol,rows()[4].className,rows()[4].attrs["aria-expanded"],rows()[0].attrs["aria-expanded"]];'
                          'rows()[3].onclick();[n,hidden,first,a,pickedCol,textOf("seqdetail").indexOf("Visits 4 to 5")>=0,rows()[3].textContent,bits]', setup=card_setup())
         self.assertEqual((out[0], out[1]), (7, False))
-        for part in ("6", "Implement", "revise", "script-run", "Make the planned change"):
+        for part in ("6", "Implement", "send-back", "script-run", "Make the planned change"):
             self.assertIn(part, out[2])
         self.assertEqual(out[7], ["6 min", "sent 39.7 KB", "written 1.3 KB", "declared readers 5"])  # one span each, so a phone wraps between them
         self.assertEqual(out[3], [4, "sc-row sel", "true", "false"])
@@ -6648,6 +6705,8 @@ class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
     """R22a gaps 5, 6 and 7: a blocked run's own words, the listeners the harness ended, and the unreturned product's checks."""
 
     KEY = RunReviewTest.KEY
+    # What a blocked result carries from ShipLoop's four outcomes on (N5): awaiting names who can unblock it (here an answer),
+    # and there is no blocked_by. The state's status_reason reads "<awaiting kind>: <summary>".
     AWAITING = {"kind": "answer", "no_default": "Recording a passing case would claim an observation that did not happen.",
                 "options": ["Accept the HTTP check and leave the browser steps unverified", "Wait until a browser can open the page"],
                 "question": "Headless Chrome does not finish loading the page and no browser tool is connected. How should TC-16 proceed?"}
@@ -6663,7 +6722,7 @@ class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
         self.assertEqual(export.validate_doc("runs", run), [])
         return run
 
-    def blocked_run(self, root: Path, reason: str = "access: SYS-SERVE passed. TC-16 did not run.", **body) -> Path:
+    def blocked_run(self, root: Path, reason: str = "answer: SYS-SERVE passed. TC-16 did not run.", **body) -> Path:
         out = make_run(root, loops=False, status="blocked")
         run_dir = run_dir_of(out)
         action = IDS["implement"]
@@ -6671,16 +6730,36 @@ class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
                                                          {"action": action, "stage": "implement", "outcome": "blocked",
                                                           "summary": "s", "workitem": "W1"}])
         record(run_dir / "results" / f"{action}.md", {"action": action, "stage": "implement", "result": {
-            "outcome": "blocked", "summary": "s", "blocked_by": "access", "headline": "TC-16 needs a browser",
+            "outcome": "blocked", "summary": "s", "headline": "TC-16 needs a browser",
             "awaiting": self.AWAITING, **body}})
         return out
 
-    def test_a_blocked_run_exports_its_class_reason_headline_question_options_and_why_no_default(self):
+    def test_a_blocked_run_exports_what_it_waits_on_its_reason_headline_question_options_and_why_no_default(self):
         run = self.build(self.blocked_run(self.tmp))
         self.assertEqual(run["status"], "blocked")
         self.assertEqual(run["blocked"], {
-            "by": "access", "reason": "access: SYS-SERVE passed. TC-16 did not run.", "headline": "TC-16 needs a browser",
+            "by": "answer", "reason": "answer: SYS-SERVE passed. TC-16 did not run.", "headline": "TC-16 needs a browser",
             "question": self.AWAITING["question"], "options": self.AWAITING["options"], "noDefault": self.AWAITING["no_default"]})
+
+    def test_a_present_or_service_wait_exports_its_kind_and_why_no_default_and_invents_no_question(self):
+        waits = ({"kind": "present", "steps": ["Open the page in a browser and press Start"], "report": "what the page showed",
+                  "no_default": "Only a person can open the page."},
+                 {"kind": "service", "service": "the staging API", "check": "curl -fsS https://staging.example/health",
+                  "no_default": "No recorded default makes the API answer."})
+        for awaiting in waits:
+            with self.subTest(kind=awaiting["kind"]):
+                run = self.build(self.blocked_run(Path(tempfile.mkdtemp(dir=self.tmp)), reason=f"{awaiting['kind']}: TC-16 did not run.",
+                                                  awaiting=awaiting))
+                self.assertEqual(run["blocked"], {"by": awaiting["kind"], "reason": f"{awaiting['kind']}: TC-16 did not run.",
+                                                  "headline": "TC-16 needs a browser", "noDefault": awaiting["no_default"]})
+
+    def test_a_historical_blocked_result_keeps_its_blocked_by_class_as_what_the_run_waited_on(self):
+        # before ShipLoop's four outcomes (N5) a blocked result carried blocked_by (user, access or external) beside a question-only awaiting
+        old = {"question": self.AWAITING["question"], "options": self.AWAITING["options"], "no_default": self.AWAITING["no_default"]}
+        run = self.build(self.blocked_run(self.tmp, reason="access: SYS-SERVE passed. TC-16 did not run.", blocked_by="access",
+                                          awaiting=old))
+        self.assertEqual(run["blocked"]["by"], "access")
+        self.assertEqual(run["blocked"]["question"], self.AWAITING["question"])
 
     def test_the_reason_is_cut_at_600_characters_and_a_run_that_is_not_blocked_has_no_blocked_object(self):
         run = self.build(self.blocked_run(self.tmp, reason="r" * 900))
@@ -7070,11 +7149,17 @@ class TailColumnTests(unittest.TestCase):
         self.assertEqual(legend(STOPPED_RUN), ["done", "tail"])
         self.assertEqual(legend(DONE_RUN), ["done"])
         mixed = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "improve": {"passes": 2}},
-                            {"stage": "spec", "outcome": "revise", "min": 2}, {"stage": "plan", "outcome": "blocked", "min": 3},
+                            {"stage": "spec", "outcome": "send-back", "min": 2}, {"stage": "plan", "outcome": "blocked", "min": 3},
                             {"stage": "step-plan", "outcome": "done", "min": None},
                             {"stage": "test-spec", "outcome": "done", "min": None, "seeded": True},
                             {"stage": "baseline", "outcome": "done", "min": 0, "skipped": True}]}
         self.assertEqual(legend(mixed), ["done", "rev", "blk", "skip", "seed", "na", "imp"])
+        added = {"stages": [{"stage": "system-test", "outcome": "add-work", "min": 2}]}
+        self.assertEqual(legend(added), ["rev"])  # an add-work visit draws the same kind as a send-back: amber, one legend entry
+        marks = run_logic("sequenceModel(%s,{}).columns.map(function(c){return c.mark;})" % json.dumps(
+            {"stages": [{"stage": "implement", "outcome": "send-back", "min": 1}, {"stage": "system-test", "outcome": "add-work", "min": 1},
+                        {"stage": "plan", "outcome": "blocked", "min": 1}]}))
+        self.assertEqual(marks, ["R", "A", "B"])  # S stays the seeded mark
         band = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 95, "compactions": 2}},
                            {"stage": "spec", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 20, "compactions": 0}}]}
         self.assertEqual(legend(band), ["done", "ctx", "warn", "tri"])
@@ -7087,6 +7172,18 @@ class TailColumnTests(unittest.TestCase):
                          setup=ended_page(STOPPED_RUN))
         self.assertEqual(out, ["done", "tail"])
         self.assertEqual(page_probe('REG.sqlegband.hidden', setup=ended_page(STOPPED_RUN)), True)
+
+    def test_the_legends_and_marks_name_send_back_and_add_work_and_the_page_has_no_retired_outcome_name(self):
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn("R send-back (returned to step-plan), A add-work", html)  # the picture's legend: the mark each outcome draws; S stays the seeded mark
+        self.assertIn("amber is send-back or add-work", html)  # the where strip's
+        self.assertIn("a send-back starts the loop again", html)  # the plan panel's
+        for retired in ("R revise, P replan", "revise or replan", "a revise starts"):
+            self.assertNotIn(retired, html)
+        # the styles the cells take (a class is the outcome's letters, so send-back is o-sendback and add-work is o-addwork)
+        for cls in (".ws-cell.o-sendback", ".ws-cell.o-addwork", ".sq-col.o-sendback", ".sq-col.o-addwork"):
+            self.assertIn(cls, html)
+        self.assertNotRegex(html, r"\.(?:ws-cell|sq-col)\.o-(?:revise|replan)")
 
 
 # ---------------------------------------------------------------- R22b: script checks, unverified outcomes, tool use, planning, graph checks
@@ -7197,7 +7294,7 @@ class VerifyAndUnverifiedExportTests(unittest.TestCase):
         long = dict(UNVERIFIED_ITEM, reason="r" * 400)
         for action, stage, items in ((IDS["step-plan"], "step-plan", [UNVERIFIED_ITEM, long]), (IDS["implement"], "implement", [])):
             record(run_dir / "results" / f"{action}.md", {"action": action, "stage": stage, "result": {
-                "outcome": "revise" if stage == "implement" else "done", "summary": "s", "unverified": items}})
+                "outcome": "send-back" if stage == "implement" else "done", "summary": "s", "unverified": items}})
         run, facts = self.build(out)
         first = self.row(run, "step-plan")["unverified"]
         self.assertEqual(first[0], {"outcome": UNVERIFIED_ITEM["outcome"], "reason": UNVERIFIED_ITEM["reason"],
@@ -10379,6 +10476,106 @@ class StepSliceTests(unittest.TestCase):
         self.assertEqual(run_logic('[sameKind({kind:"slice"},{}),sameKind({},{}),sameKind({kind:"slice"},{kind:"slice"}),'
                                    'chevronLabel({},0,"none"),headerFacts({release:"r",time:"t"})]'),
                          [False, True, True, "not reached", "r | t"])
+
+
+# ---------------------------------------------------------------- N5: the harness readers that feed the export accept both outcome names
+
+HARNESS_DIR = ROOT / "test" / "shiploop_e2e"
+
+
+def harness_module(name: str):
+    """test/shiploop_e2e/<name>.py by its plain name, the way the harness's own suites import it (its modules import each other)."""
+    if str(HARNESS_DIR) not in sys.path:
+        sys.path.insert(0, str(HARNESS_DIR))
+    return importlib.import_module(name)
+
+
+def blocked_state(awaiting: dict | None = None, blocked_by: str | None = None, status: str = "blocked") -> dict:
+    """A parsed state.md whose last history action is a blocked result with the given wait (and, in an old run, blocked_by)."""
+    body = {"outcome": "blocked", "summary": "s", **({"awaiting": awaiting} if awaiting is not None else {}),
+            **({"blocked_by": blocked_by} if blocked_by is not None else {})}
+    return {"status": status, "history": [{"action": "nav-1", "stage": "implement", "outcome": "blocked"}], "accepted": {"nav-1": body}}
+
+
+class HarnessReadersAcceptBothOutcomeNamesTests(unittest.TestCase):
+    """Run-insights plan N5 (owner decision 10): a blocked result carries `awaiting` (answer, present or the new service kind)
+    and no blocked_by, and revise is send-back. The harness grades historical runs too, so its readers keep reading blocked_by
+    and `revise` from those, and count send-back where they counted revise."""
+
+    ANSWER = {"kind": "answer", "question": "Which port?", "no_default": "Two ports are open and the choice is the owner's."}
+    PRESENT = {"kind": "present", "steps": ["Open the page"], "report": "what it showed", "no_default": ""}
+    SERVICE = {"kind": "service", "service": "the staging API", "check": "curl -fsS https://staging.example/health",
+               "no_default": "No recorded default makes the API answer."}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.metrics = harness_module("metrics")
+        cls.fidelity = harness_module("fidelity")
+        cls.packets = harness_module("packets")
+        cls.harness_run = harness_module("run")  # not `run`: that is TestCase.run
+
+    def test_the_blocked_detail_of_a_current_result_is_its_wait_kind_and_it_has_no_blocked_by(self):
+        detail = self.metrics.blocked_detail
+        self.assertEqual(detail(blocked_state(self.ANSWER)),
+                         {"blocked_by": None, "awaiting_kind": "answer", "awaiting_no_default": True})
+        self.assertEqual(detail(blocked_state(self.SERVICE)),
+                         {"blocked_by": None, "awaiting_kind": "service", "awaiting_no_default": True})
+        self.assertEqual(detail(blocked_state(self.PRESENT)),  # an empty no_default is a wait that gives no reason
+                         {"blocked_by": None, "awaiting_kind": "present", "awaiting_no_default": False})
+
+    def test_the_blocked_detail_of_a_historical_result_keeps_its_blocked_by(self):
+        detail = self.metrics.blocked_detail
+        self.assertEqual(detail(blocked_state(self.ANSWER, blocked_by="access")),
+                         {"blocked_by": "access", "awaiting_kind": "answer", "awaiting_no_default": True})
+        self.assertEqual(detail(blocked_state(blocked_by="external")),  # no wait was recorded: nothing is guessed about one
+                         {"blocked_by": "external", "awaiting_kind": None, "awaiting_no_default": None})
+        none = {"blocked_by": None, "awaiting_kind": None, "awaiting_no_default": None}
+        self.assertEqual(detail(blocked_state(self.SERVICE, status="active")), none)  # a block that was answered reads as nothing
+        self.assertEqual(detail({}), none)
+
+    def class_of(self, **facts) -> tuple:
+        return self.harness_run.outcome_class(False, {"engine_status": "blocked", "engine_stage": "implement", "process_status": "stopped",
+                                              "session_stops": [], "resume_stop": "ShipLoop run is blocked", **facts})
+
+    def test_the_outcome_class_says_who_a_blocked_run_awaits_for_a_current_result_and_a_historical_one(self):
+        cls, basis = self.class_of(engine_awaiting_kind="service", engine_awaiting_no_default=True)
+        self.assertEqual((cls, basis), ("BLOCKED", "engine blocked at implement; awaits an outside service (service), "
+                                                   "and states why no default would do"))
+        self.assertEqual(self.class_of(engine_awaiting_kind="answer", engine_awaiting_no_default=False),
+                         ("BLOCKED", "engine blocked at implement; awaits a person (answer), and gives no reason that no default would do"))
+        self.assertEqual(self.class_of(engine_blocked_by="access", engine_awaiting_kind="present", engine_awaiting_no_default=True),
+                         ("BLOCKED", "engine blocked at implement by access; awaits a person (present), and states why no default would do"))
+        self.assertEqual(self.class_of(engine_blocked_by="external"), ("BLOCKED", "engine blocked at implement by external"))
+        self.assertIn("no blocked result was read from the state", self.class_of()[1])  # neither: an old state, or none accepted
+
+    def test_the_end_state_and_its_report_line_name_the_wait_of_a_current_blocked_result(self):
+        current = self.fidelity.end_state(blocked_state(self.SERVICE))
+        self.assertEqual((current["status"], current["blocked_by"], current["awaiting"]),
+                         ("blocked", None, {"kind": "service", "no_default": True}))
+        old = self.fidelity.end_state(blocked_state(self.PRESENT, blocked_by="access"))
+        self.assertEqual((old["blocked_by"], old["awaiting"]), ("access", {"kind": "present", "no_default": False}))
+        line = lambda end_state: self.fidelity.lines({"end_state": end_state})[-1]
+        self.assertEqual(line(current), "end state blocked, blocked awaiting service")
+        self.assertEqual(line(old), "end state blocked, blocked by access")
+
+    def test_the_packet_report_counts_send_backs_under_both_names_and_reads_a_report_saved_under_the_old_key(self):
+        history = [{"stage": "implement", "outcome": outcome} for outcome in ("done", "send-back", "revise", "done", "add-work", "replan")]
+        with tempfile.TemporaryDirectory() as temp:
+            found = self.packets.effectiveness({"history": history}, Path(temp))
+        self.assertEqual(found["send_back_loops"], 2)  # the new name and the historical one; add-work and replan are not send-backs
+        self.assertNotIn("revise_loops", found)
+        self.assertEqual(self.packets.send_back_count(found), 2)
+        self.assertEqual(self.packets.send_back_count({"revise_loops": 3}), 3)  # a report saved before the four outcomes
+        self.assertEqual(self.metrics.SEND_BACK_OUTCOMES, ("send-back", "revise"))
+        self.assertEqual(self.metrics.ADD_WORK_OUTCOMES, ("add-work", "replan"))
+
+    def test_the_stage_rows_copy_the_outcome_as_the_run_wrote_it_so_the_exporter_folds_the_names(self):
+        # metrics.json rows are a verbatim record of state.md's history; the Run Review exporter joins them to the visits by
+        # stage and outcome, so it reads both sides under today's names (RunVisitsTest pins that join for a historical run).
+        history = [{"action": "nav-a", "stage": "implement", "outcome": "revise", "workitem": "W1"},
+                   {"action": "nav-b", "stage": "implement", "outcome": "send-back", "workitem": "W1"}]
+        rows = self.metrics.stage_results(None, {"history": history})
+        self.assertEqual([(row["action"], row["outcome"]) for row in rows], [("nav-a", "revise"), ("nav-b", "send-back")])
 
 
 if __name__ == "__main__":

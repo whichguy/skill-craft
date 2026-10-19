@@ -125,7 +125,7 @@ def _current_item(state: Mapping[str, Any]) -> str:
 def loop(run_dir: Path, state: Mapping[str, Any], result: Mapping[str, Any]) -> dict[str, Any]:
     """``result`` with the current inner action's loop receipt, the loop run through the real runtime.
 
-    done ends the loop satisfied; revise stops it blocked; blocked needs no receipt (the loop never started).
+    done ends the loop satisfied; send-back stops it blocked; blocked needs no receipt (the loop never started).
     Outside an inner stage the result is returned unchanged.
     """
     if loops.cursor(state) is None or result.get("outcome") == "blocked":

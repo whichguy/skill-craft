@@ -125,8 +125,10 @@ class NarrativeTests(unittest.TestCase):
         cases = {
             "paused": navigator.control(state, "pause", "Waiting for API access."),
             "halted": navigator.control(state, "halt", "User stopped the run."),
-            "blocked": self.driver.act(state, outcome="blocked", blocked_by="external",
-                                       summary="No credentials."),
+            # A blocked result always awaits a person or a service, so its stop kind is "awaiting".
+            "awaiting": self.driver.act(state, outcome="blocked", summary="No credentials.", awaiting={
+                "kind": "present", "steps": ["Provide the API credentials."], "report": "Say when they are set.",
+                "no_default": "Only the owner can provide credentials."}),
         }
         for kind, stopped in cases.items():
             with self.subTest(kind):

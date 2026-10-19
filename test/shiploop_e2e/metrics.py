@@ -488,15 +488,25 @@ def engine_position(run_dir: Path | None) -> dict | None:
             "last_accepted": None if last is None else {"stage": last.get("stage"), "action": last.get("action")}}
 
 
+# ShipLoop's four outcomes (run-insights plan N5, owner decision 10, 2026-10-18): done, blocked, send-back and add-work.
+# `revise` became send-back and `replan` became add-work, and `repeat` was retired. A run recorded before keeps the old names
+# in its state.md, and this harness grades those runs too, so a reader that counts an outcome accepts both names. Rows are
+# copied as the run wrote them (a historical run's stage rows say `revise`); only a count folds the two names together.
+SEND_BACK_OUTCOMES = ("send-back", "revise")
+ADD_WORK_OUTCOMES = ("add-work", "replan")
+
+
 def blocked_detail(state: dict) -> dict:
     """What the engine recorded when it blocked: the one reader of the blocked detail, over the parsed ``state.md``.
 
     Read from the accepted record of the last history action, and only while the engine is blocked and that action's
     outcome is blocked (a block that was answered leaves the last history entry blocked while the engine is active again, and
-    reads as nothing). ``blocked_by`` is who can unblock it (user, access or external), ``awaiting_kind`` the kind of wait it
-    asked for (answer or present), ``awaiting_no_default`` whether it stated why no recorded default would do (SPEC S-14; None
-    when it awaits no one). Each is None where the state holds no accepted blocked result (an old state): never a guess from the
-    prose of ``status_reason``.
+    reads as nothing). ``awaiting_kind`` is the kind of wait the blocked result asked for (answer or present: a person; service:
+    an outside service), ``awaiting_no_default`` whether it stated why no recorded default would do (SPEC S-14; None when it
+    awaits no one). ``blocked_by`` is who could unblock it (user, access or external) in a run recorded before the four outcomes,
+    where a blocked result carried it beside ``awaiting``; a current blocked result has none (the engine refuses it), so it is
+    None there. Each is None where the state holds no accepted blocked result (an old state): never a guess from the prose of
+    ``status_reason``.
     """
     detail = {"blocked_by": None, "awaiting_kind": None, "awaiting_no_default": None}
     if not isinstance(state, dict):
@@ -762,7 +772,7 @@ def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], sta
     """The planning window and its Improve share, from ShipLoop's own records: (block, token bounds, why no bounds).
 
     The window runs from the engine's start (timeline.json `started`) to the first accepted `test-spec` with outcome
-    done, the owner's planning rule (S-10 carve-out, 2026-10-05); a `revise` row does not close it. It is read on two
+    done, the owner's planning rule (S-10 carve-out, 2026-10-05); a `send-back` row (`revise` in an earlier run) does not close it. It is read on two
     labelled clocks: the engine's (`seconds`) and the host's (`host_seconds`, from the runner's first event), whose
     difference is `before_engine_seconds`. An open window reports `through`, the stage of its last stamped row, and is
     never 0. Anything that cannot be read is None with its reason in `unmeasured`, and a window the stamps cannot

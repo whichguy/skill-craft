@@ -1052,7 +1052,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="operations",
             final_result={
-                "outcome": "replan",
+                "outcome": "add-work",
                 "summary": "Synthetic late outer correction requires a second work item.",
                 "work_items": [{"id": "W2", "title": "Synthetic corrective item"}],
             },
@@ -1061,12 +1061,12 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(state["completed_work_items"], ["W1"])
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2"])
         self.assertTrue(previous_actions.issubset(state["improve_results"]))
-        # operations is not a planning/contract stage, so this outer replan
+        # operations is not a planning/contract stage, so this outer add-work
         # advances directly; no Improve child or evidence directory starts.
         self.assertFalse((run / "improve" / replan_context["action"]).exists())
-        # get-next-work-item and its repeat are gone (8-stage loop, 2026-10-10): the replan opens W2's step-plan.
+        # get-next-work-item and its repeat are gone (8-stage loop, 2026-10-10): the add-work opens W2's step-plan.
 
-        # The first late replan has no correction.  Its successor receives a
+        # The first late add-work has no correction.  Its successor receives a
         # delayed v2 contract from system-test and must still complete a new
         # release plan without retaining a stale replanning barrier.
         for stage in EXPECTED_INNER:
@@ -1106,7 +1106,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="release-check",
             final_result={
-                "outcome": "replan",
+                "outcome": "add-work",
                 "summary": (
                     "Synthetic late contract correction requires a third work item "
                     "and fresh current-candidate evidence."
@@ -1127,7 +1127,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._script(self.source_shiploop), "next", "--run-dir", run
         ).stdout
         self.assertIn("Delivery replanning required:", blocked_packet)
-        self.assertIn("accepted outer replan edge", blocked_packet)
+        self.assertIn("accepted add-work edge", blocked_packet)
 
         for stage in EXPECTED_INNER:
             state, _ = self._advance_stage(

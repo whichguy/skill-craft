@@ -2247,3 +2247,24 @@ of 46 packets whole in checkers-1 and worked from the head plus one slice, so ob
 The plan packet (55 KB in 1.22.0 and 1.26.0) has about 17 KB unique; a 11 to 12 KB form with a checklist of eight items and
 `reference#section` locators is proposed. Nothing is implemented; the owner decides which fixes ship. Evidence:
 `docs/experiments/packet-review-20261010/`.
+
+
+**Four outcomes, 2026-10-18 (template build plan slice 1, unit S1.1; run-insights plan N5).**
+*What changed.*
+- ShipLoop's results are now done, blocked, send-back (was revise) and add-work (was replan); repeat is retired, and a
+  blocked result carries `awaiting`, never `blocked_by`.
+- The export writes the new names and reads both. A historical run's `revise` and `replan` are mapped on load
+  (`_outcome_name`), including the harness's metrics rows that the per-visit context join compares.
+- Schema renames:
+  - item `revises` is now `sendBacks`;
+  - the `implementVisits` keys are done, send-back, add-work and blocked, plus repeat for historical runs;
+  - `origin` `replan` is now `add-work`;
+  - `blocked.by` shows the awaited kind.
+- On the page, a send-back draws R ("returned to step-plan"), because S stays the seeded mark, and add-work draws A.
+
+*Evidence regenerated.* The five committed exports in `test/shiploop_e2e/evidence/` were re-exported with the
+repository's own command (`export.py <run> --key ... --no-html`) from their runs under `~/e2e-runs/`. Their diffs also
+carry the fields the exporter gained since their last export.
+
+*Tests.* The Run Review suite (669) passes. A new test exports a historical run (revise/replan) and the same run recorded
+today, and checks they are equal.

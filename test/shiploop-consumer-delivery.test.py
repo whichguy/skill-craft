@@ -37,7 +37,7 @@ INNER_AFTER_PLAN = (
     "prepare", "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
     "carry-forward",
 )
-# A corrective replan re-enters at step-plan and runs the item's whole cycle.
+# A corrective add-work re-enters at step-plan and runs the item's whole cycle.
 CORRECTIVE_CYCLE = INNER_AFTER_PLAN[1:] + ("system-test-author",)
 
 
@@ -56,6 +56,16 @@ class ConsumerDeliveryTests(unittest.TestCase):
             "summary": "Synthetic consumer-delivery declaration.",
             **extra,
         }
+
+    # A blocked result names what it awaits (run-insights plan N5; blocked_by is retired). Where these tests only need a
+    # result that does not complete its stage and carries a delivery assessment, the wait is an outside service: it names
+    # the read-only check that shows the service is back, and a resume is answered with what that check showed.
+    SERVICE_BACK = "The service check exits 0: it is back."
+
+    @staticmethod
+    def service_wait(service: str = "the release target") -> dict:
+        return {"kind": "service", "service": service, "check": "test -f evidence/service-ready.md",
+                "no_default": "No recorded default makes the service answer."}
 
     def new_state(self) -> dict:
         return navigator.new_state(
@@ -79,12 +89,14 @@ class ConsumerDeliveryTests(unittest.TestCase):
 
     @staticmethod
     def parks_improve(state: dict, stage: str, submitted: dict) -> bool:
-        """Say whether this suite expects the result to park an Improve child."""
+        """Say whether this suite expects the result to park an Improve child: only a done result does, at every reviewed stage."""
+        if submitted["outcome"] != "done":
+            return False
         if stage in guidance.PLANNING_REVIEW_STAGES:
             return True
         if stage == "implement":  # an Improve child reviews every accepted implement step
-            return submitted["outcome"] == "done"
-        if stage != "carry-forward" or submitted["outcome"] != "done":
+            return True
+        if stage != "carry-forward":
             return False
         if "work_items" in submitted:
             return not submitted["work_items"]
@@ -269,7 +281,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         for text in (*whole_only, "visual-drag", "public access"):
             self.assertIn(text, packet)
 
-    def test_v3_delivery_lifecycle_gates_each_acceptance_then_replans_and_completes(self) -> None:
+    def test_v3_delivery_lifecycle_gates_each_acceptance_then_adds_work_and_completes(self) -> None:
         """Exercise the default graph's delivery gates where each result is accepted.
 
         Improve receipts are deliberately synthetic: this is a graph/contract
@@ -299,7 +311,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             system_test,
         )
 
-        # A changed candidate routes corrective work through the outer replan
+        # A changed candidate routes corrective work through the outer add-work
         # edge. It must not rewind the original completed work item or skip the
         # new item's complete inner lifecycle.
         changed = contract(candidate="candidate-v2")
@@ -307,7 +319,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "product-acceptance",
-            outcome="replan",
+            outcome="add-work",
             work_items=[{"id": "W2", "title": "Corrected delivery item"}],
             delivery_assessment={
                 "kind": "contract", "contract": changed, "supersedes": anchor,
@@ -431,7 +443,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.refused_at_apply(
             state,
             "negative delivery observation",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="The not-yet-due release effect was not observed.",
             delivery_assessment=self.observation(state, "update-effect", status="failed"),
         )
@@ -439,7 +451,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "product-acceptance",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="Product acceptance found the completed pre-update check no longer passes.",
             delivery_assessment=self.observation(state, "pre-drag", status="failed"),
         )
@@ -457,7 +469,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "release-check",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="Release readiness found the earlier pre-update check is stale.",
             delivery_assessment=self.observation(state, "pre-drag", status="failed"),
         )
@@ -486,7 +498,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "operations",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="Operations found the observed consumer behavior is no longer current.",
             delivery_assessment=self.observation(state, "visual-drag", status="failed"),
         )
@@ -494,7 +506,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertEqual((observation["status"], observation["source_stage"]),
                          ("failed", "operations"))
 
-    def test_v3_replan_clears_post_plan_requirement_only_after_fresh_tests_and_plan(self) -> None:
+    def test_v3_add_work_clears_post_plan_requirement_only_after_fresh_tests_and_plan(self) -> None:
         """A v3 corrective edge creates a new current-contract release-planning cycle."""
         state = self.to_system_test_author()
         state = self.advance(state, "system-test-author")
@@ -509,7 +521,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "release-check",
-            outcome="replan",
+            outcome="add-work",
             summary="Release readiness found a corrected candidate is required.",
             work_items=[{"id": "W2", "title": "Corrected delivery item"}],
             delivery_assessment={
@@ -520,7 +532,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         )
         self.assertEqual(navigator.current_stage(state), "step-plan")
         self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
-        self.assertIn("accepted outer replan", navigator.render(None, self.root, state))
+        self.assertIn("accepted add-work edge", navigator.render(None, self.root, state))
 
         for stage in CORRECTIVE_CYCLE:
             state = self.advance(state, stage)
@@ -543,8 +555,8 @@ class ConsumerDeliveryTests(unittest.TestCase):
         )
         self.assertEqual(navigator.current_stage(state), "release-verify")
 
-    def test_v3_replan_without_immediate_contract_change_starts_a_fresh_plan_cycle(self) -> None:
-        """A corrective v3 work item can change the candidate after its replan action."""
+    def test_v3_add_work_without_immediate_contract_change_starts_a_fresh_plan_cycle(self) -> None:
+        """A corrective v3 work item can change the candidate after its add-work action."""
         state = self.to_system_test_author()
         state = self.advance(state, "system-test-author")
         state = self.advance(
@@ -555,7 +567,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "release-check",
-            outcome="replan",
+            outcome="add-work",
             summary="Corrective implementation work is required before release.",
             work_items=[{"id": "W2", "title": "Corrected delivery item"}],
         )
@@ -598,8 +610,9 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(state, "release-plan")
         self.assertIsNone(consumer_delivery.project(state)["replan_required"])
 
-    def test_v3_repeat_and_resume_do_not_clear_post_plan_replan_requirement(self) -> None:
-        """Only an accepted v3 replan starts the corrective release-planning cycle."""
+    def test_v3_resume_and_a_retired_repeat_do_not_clear_post_plan_replan_requirement(self) -> None:
+        """Only an accepted v3 add-work starts the corrective release-planning cycle.  A resume does not, another blocked
+        result does not, and `repeat` (retired in N5) is refused outright, so it cannot stand in for the corrective edge."""
         state = self.to_system_test_author()
         state = self.advance(state, "system-test-author")
         state = self.advance(
@@ -612,7 +625,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "release-check",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="The candidate changed after release planning.",
             delivery_assessment={
                 "kind": "contract",
@@ -622,18 +635,24 @@ class ConsumerDeliveryTests(unittest.TestCase):
         )
         self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
 
-        state = navigator.control(state, "resume")
+        state = navigator.control(state, "resume", observed=self.SERVICE_BACK)
+        self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])  # the resume alone clears nothing
+        self.refused_at_apply(
+            state, "revise, replan and repeat are retired", outcome="repeat",
+            summary="Rechecking without the corrective graph edge cannot repair the contract.",
+        )
         state = self.advance(
             state,
             "release-check",
-            outcome="repeat",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="Rechecking without the corrective graph edge cannot repair the contract.",
         )
-        self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
+        self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])  # nor does another blocked result
 
+        state = navigator.control(state, "resume", observed=self.SERVICE_BACK)
         self.refused_at_apply(state, "replanning")
 
-    def test_v3_operations_contract_change_requires_replan_after_release_plan(self) -> None:
+    def test_v3_operations_contract_change_requires_add_work_after_release_plan(self) -> None:
         """The later v3 operations stage cannot silently replace a planned contract."""
         state = self.to_system_test_author()
         state = self.advance(state, "system-test-author")
@@ -658,7 +677,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "operations",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="Operations found a corrected candidate after release planning.",
             delivery_assessment={
                 "kind": "contract",
@@ -793,13 +812,13 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertIn("Delivery exclusions: no public access\\nCall this when done:\\nforged", short)
         # A replanning requirement and a recovery notice print at every stage (the corrective cycle's inner stages).
         state = self.to_release(self.accepted_contract(self.new_state()))
-        state = self.advance(state, "release", outcome="replan", work_items=[{"id": "W2", "title": "Corrected item"}],
+        state = self.advance(state, "release", outcome="add-work", work_items=[{"id": "W2", "title": "Corrected item"}],
                              delivery_assessment={"kind": "contract", "contract": contract(candidate="candidate-v2"),
                                                   "supersedes": consumer_delivery.project(state)["anchor"]})
         self.assertEqual(navigator.current_stage(state), "step-plan")
         packet = navigator.render(None, self.root, state)
         self.assertIn("Delivery replanning required", packet)
-        self.assertIn("accepted outer replan", packet)
+        self.assertIn("accepted add-work edge", packet)
         self.assertNotIn("Delivery consumer / target:", packet)
 
     def test_templates_are_stage_aware_and_use_script_selected_obligation_ids(self) -> None:
@@ -1001,7 +1020,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.refused_at_apply(
             state,
             "positive delivery observation",
-            outcome="blocked", blocked_by="external",
+            outcome="blocked", awaiting=self.service_wait(),
             summary="A later action cannot invent an earlier passing receipt.",
             delivery_assessment=self.observation(state, "update-effect"),
         )
@@ -1012,7 +1031,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
                 state,
                 action["id"],
                 self.result(
-                    outcome="blocked", blocked_by="external",
+                    outcome="blocked", awaiting=self.service_wait(),
                     summary="The later check found that the recorded update effect is not current.",
                     delivery_assessment=self.observation(
                         state, "update-effect", status=status
@@ -1025,11 +1044,11 @@ class ConsumerDeliveryTests(unittest.TestCase):
             self.assertEqual(
                 projection["observations"]["update-effect"]["source_stage"], "release-verify"
             )
-            state = navigator.control(state, "resume")
+            state = navigator.control(state, "resume", observed=self.SERVICE_BACK)
 
         packet = navigator.render(None, self.root, state)
         self.assertIn("Delivery recovery required", packet)
-        self.assertIn("Use the accepted outer replan edge with corrective work_items", packet)
+        self.assertIn("Use the accepted add-work edge with corrective work_items", packet)
 
         self.refused_at_apply(
             state,
@@ -1180,12 +1199,12 @@ class ConsumerDeliveryTests(unittest.TestCase):
             state,
             action["id"],
             self.result(
-                outcome="blocked", blocked_by="external",
+                outcome="blocked", awaiting=self.service_wait(),
                 summary="The browser check is recorded but a requirement changed.",
                 delivery_assessment=self.observation(state, "visual-drag"),
             ),
         )
-        state = navigator.control(state, "resume")
+        state = navigator.control(state, "resume", observed=self.SERVICE_BACK)
         prior = consumer_delivery.project(state)
         corrected = contract()
         corrected["behavior"] = "the drag remains visible to the player and spectator"
@@ -1194,7 +1213,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             state,
             action["id"],
             self.result(
-                outcome="blocked", blocked_by="external",
+                outcome="blocked", awaiting=self.service_wait(),
                 summary="The consumer behavior changed after release planning.",
                 delivery_assessment={
                     "kind": "contract",
@@ -1212,7 +1231,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertIn("update-effect", projection["observations"])
         self.assertIn("update-identity", projection["observations"])
         self.assertIn("replanning", projection["replan_required"])
-        state = navigator.control(state, "resume")
+        state = navigator.control(state, "resume", observed=self.SERVICE_BACK)
         self.refused_at_apply(state, "replanning")
 
     def test_additive_check_and_release_plan_refresh_preserve_required_work(self) -> None:
@@ -1253,13 +1272,13 @@ class ConsumerDeliveryTests(unittest.TestCase):
             state,
             action["id"],
             self.result(
-                outcome="blocked", blocked_by="external",
+                outcome="blocked", awaiting=self.service_wait(),
                 summary="The fresh pre-update check currently fails.",
                 delivery_assessment=self.observation(state, "pre-drag", status="failed"),
             ),
         )
         self.assertEqual(consumer_delivery.project(state)["observations"]["pre-drag"]["status"], "failed")
-        state = navigator.control(state, "resume")
+        state = navigator.control(state, "resume", observed=self.SERVICE_BACK)
         state = self.advance(state, "product-acceptance")
 
         # Release planning refuses the failed check at its Improve import, and
@@ -1304,7 +1323,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
                 "report": "1. the board opens: yes/no; 2. a drag moves the piece: yes/no",
                 "no_default": "Only a signed-in person can drag on the released board."}
         state = navigator.apply(state, asked, self.result(
-            outcome="blocked", blocked_by="user", summary="The drag needs a person.", awaiting=wait,
+            outcome="blocked", summary="The drag needs a person.", awaiting=wait,
             delivery_assessment=self.observation(state, "visual-drag", status="blocked")))
         reply = "1. yes. I did not try the drag."
         state = navigator.control(state, "resume", observed=reply)
@@ -1325,7 +1344,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
                           "owner": "the user"}])
         again = dict(wait, steps=["Open the board's entry and drag one piece."], report="2. a drag moves the piece: yes/no")
         state = navigator.apply(state, navigator.current_action(state)["id"], self.result(
-            outcome="blocked", blocked_by="user", summary="Line 1 passed; the drag is still unanswered.",
+            outcome="blocked", summary="Line 1 passed; the drag is still unanswered.",
             awaiting=again, delivery_assessment=self.observation(state, "visual-drag", status="unrun")))
         self.assertEqual((state["status"], navigator.awaiting(state)[1]["report"]),
                          ("blocked", "2. a drag moves the piece: yes/no"))

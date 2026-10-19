@@ -53,7 +53,7 @@ import shiploop_store as store
 
 # 5 since 2026-10-10: the inner loop has eight stages (stage_spec); a version-4 run is refused by retired_run_reason.
 # 6 since 2026-10-11: consumer contract hand-off fields (follows, test_cases, not_covered, lessons, open items).
-STATE_VERSION = 7
+STATE_VERSION = 8
 # Navigator protocol 4 is the only protocol; saved runs from earlier protocols
 # are refused by retired_run_reason.
 PROTOCOL_VERSION = 4
@@ -65,7 +65,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
+    "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered",
 ))
@@ -90,20 +90,25 @@ _NOT_AN_ANSWER = frozenset((
     "continue", "go", "go on", "go ahead", "resume", "proceed", "keep going", "carry on",
     "next", "ok", "okay", "k", "sure",
 ))
-# Who can unblock a blocked result.  Anything the run can fix itself is not blocked.
-BLOCKED_BY = ("user", "access", "external")
-BLOCKED_BY_RULE = (
-    "a blocked result must say who can unblock it in blocked_by: user (a decision only the user "
-    "can make), access (a sign-in or permission the user must grant) or external (a service or "
-    "dependency outside this run). Anything this run can fix itself -- a missing tool, a failed "
-    "install, a broken baseline, a failing test -- is not blocked: repair it in this stage")
-# The wait a blocked result may carry when only a person can proceed.  One definition: the packet prints it
-# under the blocked shape and the refusal that names a wrong or incomplete wait quotes the same text.
+# The status line's label for a run that waits (the status hook parses both).
+WAITING_ON_YOU = "Waiting on you"
+WAITING_ON_SERVICE = "Waiting on a service"
+# What a blocked result waits on (run-insights plan N5: `awaiting` replaces blocked_by).  Only a person or an outside
+# service can unblock a run; anything the run can fix itself -- a missing tool, a failed install, a broken baseline, a
+# failing test -- is not blocked: repair it in this stage.  One definition: the packet prints it under the blocked shape
+# and the refusal that names a wrong or missing wait quotes the same text.
+AWAITING_KINDS = ("answer", "present", "service")
 AWAITING_SHAPE = (
-    '{"kind": "present", "steps": ["<what the person does>"], "report": "<what they report back>", '
-    '"no_default": "<why nothing else can proceed>"} or {"kind": "answer", "question": "<the question>", '
-    '"no_default": "<why nothing else can proceed>"}')
-# Fields only a done result carries (work_items also a replan's).  A blocked, repeat, revise or replan result
+    '{"kind": "answer", "question": "<one decision>", "options": ["<first>", "<second>"] (optional), "no_default": '
+    '"<why no recorded default would do>"} or {"kind": "present", "steps": ["<what the person does>"], "report": '
+    '"<what they report back>", "no_default": "<why>"} or {"kind": "service", "service": "<the outside service>", '
+    '"check": "<a read-only command that shows it is back>", "no_default": "<why>"}')
+BLOCKED_RULE = (
+    "a blocked result says what it awaits: a person's decision (answer), a person's action such as a sign-in or a "
+    "grant (present), or an outside service (service). Anything this run can fix itself -- a missing tool, a failed "
+    "install, a broken baseline, a failing test -- is not blocked: repair it in this stage. The wait is "
+    + AWAITING_SHAPE)
+# Fields only a done result carries (work_items also an add-work's).  A blocked, send-back or add-work result
 # that still holds them, usually copied from the done template, is refused once with every one of them named.
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
@@ -451,8 +456,11 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     and release-plan), every accepted implement step, plus the successful carry-forward that leaves no work item
     pending (after its own queue revision), so one review covers all executed
     steps before OUTER system tests and release.  A later Improve that adds work
-    items moves that end review to the new last item's carry-forward.
+    items moves that end review to the new last item's carry-forward.  Only a done result is reviewed (N5): a blocked,
+    send-back or add-work result goes straight to its route.
     """
+    if result["outcome"] != "done":
+        return False
     if stage in stage_spec.reviewed_stages(recorded_planning_review(state)):
         return True
     # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option.
@@ -562,10 +570,11 @@ def _normalise_lint_waivers(value: Any) -> list[dict[str, str]]:
 
 
 def _normalise_awaiting(value: Any) -> dict[str, Any]:
-    """A blocked result's question for the user, or the steps a person must take.
+    """What a blocked result waits on: a person's decision, a person's action, or an outside service.
 
-    ``{"kind": "answer", "question": str, "options": [str, ...]?, "no_default": str}`` or
-    ``{"kind": "present", "steps": [str, ...], "report": str, "no_default": str}``.
+    ``{"kind": "answer", "question": str, "options": [str, ...]?, "no_default": str}``,
+    ``{"kind": "present", "steps": [str, ...], "report": str, "no_default": str}`` or
+    ``{"kind": "service", "service": str, "check": str, "no_default": str}``.
     ``no_default`` says why the run cannot proceed on a recorded default (SPEC S-14:
     runs are unattended; a person is prompted only as a last resort). New
     submissions must carry it (``_check_submitted_awaiting``); saved runs load without it.
@@ -584,7 +593,15 @@ def _normalise_awaiting(value: Any) -> dict[str, Any]:
                   "awaiting options must list at least two choices")
             awaiting["options"] = [_text(option, "awaiting option") for option in options]
         return awaiting
-    _need(kind == "present", "awaiting kind must be answer or present")
+    if kind == "service":
+        _need(set(value) - {"no_default"} == {"kind", "service", "check"},
+              "a service wait has kind, service, check and no_default")
+        service: dict[str, Any] = {"kind": kind, "service": _text(value["service"], "awaiting service"),
+                                   "check": _text(value["check"], "awaiting check")}
+        if "no_default" in value:
+            service["no_default"] = _text(value["no_default"], "awaiting no_default")
+        return service
+    _need(kind == "present", "awaiting kind must be answer, present or service")
     _need(set(value) - {"no_default"} == {"kind", "steps", "report"},
           "a present wait has kind, steps, report and no_default")
     steps = value["steps"]
@@ -634,16 +651,16 @@ def decision_path(action: str) -> str:
 
 
 def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
-    """After a replan whose corrective items changed only non-code paths, scope this outer stage to the delta.
+    """After an add-work whose corrective items changed only non-code paths, scope this outer stage to the delta.
 
     The stage still runs (the delivery contract needs its fresh evidence); the
     packet names what changed and the result this stage accepted before the
-    replan, so unchanged rows are cited rather than redone.
+    add-work, so unchanged rows are cited rather than redone.
     """
     if stage not in guidance.OUTER:
         return []
     history = state["history"]
-    replans = [index for index, row in enumerate(history) if row["outcome"] == "replan"]
+    replans = [index for index, row in enumerate(history) if row["outcome"] == "add-work"]
     if not replans:
         return []
     last_replan = replans[-1]
@@ -654,11 +671,11 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
         return []
     paths = sorted({path for item in corrective for path in item_scope.declared(state, item)})
     before = [row for row in history[:last_replan] if row["stage"] == stage and row["outcome"] == "done"]
-    lines = ["", "Delta after the replan at " + history[last_replan]["stage"] + ": the corrective item"
+    lines = ["", "Delta after the add-work at " + history[last_replan]["stage"] + ": the corrective item"
              + ("s " if len(corrective) > 1 else " ") + ", ".join(corrective)
              + " changed only non-code paths: " + ", ".join(paths) + "."]
     if before:
-        lines.append("This stage's result before the replan: " + str(root / "results" / (before[-1]["action"] + ".md"))
+        lines.append("This stage's result before the add-work: " + str(root / "results" / (before[-1]["action"] + ".md"))
                      + ". Keep its evidence for everything these paths do not affect and cite it; author, run, "
                      "plan or check only what they affect, and say in the summary which rows are new and which "
                      "are carried over.")
@@ -667,28 +684,28 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
     return lines
 
 
-# The inner stages a revise sends an item back through whose results hold rows with IDs: each one's first packet after
-# the revise says it is a revisit (packet review F5, C X1/X2: before 2026-10-17 only step-plan's file said so, and a
+# The inner stages a send-back sends an item back through whose results hold rows with IDs: each one's first packet after
+# the send-back says it is a revisit (packet review F5, C X1/X2: before 2026-10-17 only step-plan's file said so, and a
 # redone test spec searched the run for its own earlier result and resubmitted it unchanged).
-REVISIT_STAGES = (stage_spec.REVISE_TO, "test-spec", "implement")
-# How much of the revise result's summary a revisit head quotes (the record holds all of it).
+REVISIT_STAGES = (stage_spec.SEND_BACK_TO, "test-spec", "implement")
+# How much of the send-back result's summary a revisit head quotes (the record holds all of it).
 REVISIT_SUMMARY = 600
 
 
 class SentBack(NamedTuple):
     """What a revisited stage's packet names (``_sent_back_results``)."""
     count: int               # how many times the item has been sent back
-    previous: str | None     # this stage's last accepted result for the item before the latest revise; None if none
-    sent_back: str           # the revise result's action
-    plan_before: str | None  # the item's last accepted step plan before the latest revise
-    spec_before: str | None  # the item's last accepted test spec before the latest revise
+    previous: str | None     # this stage's last accepted result for the item before the latest send-back; None if none
+    sent_back: str           # the send-back result's action
+    plan_before: str | None  # the item's last accepted step plan before the latest send-back
+    spec_before: str | None  # the item's last accepted test spec before the latest send-back
 
 
 def _sent_back_results(state: Mapping[str, Any], stage: str, workitem: str | None) -> SentBack | None:
-    """For the first packet of a ``REVISIT_STAGES`` stage after the item's latest revise: what it is re-entering.
+    """For the first packet of a ``REVISIT_STAGES`` stage after the item's latest send-back: what it is re-entering.
 
     ``None`` for another stage, a first visit, an item never sent back, or once the stage has an accepted result after
-    the revise (a later implement step of the amended plan is no revisit).  A recorded revision always has a revise row,
+    the send-back (a later implement step of the amended plan is no revisit).  A recorded send-back always has its row,
     and a redone step plan an earlier accepted one, in the append-only history; a state without them did not come
     through the gate, so it is refused rather than rendered without them.
     """
@@ -696,8 +713,8 @@ def _sent_back_results(state: Mapping[str, Any], stage: str, workitem: str | Non
         return None
     history = state["history"]
     revised = [index for index, row in enumerate(history)
-               if row["workitem"] == workitem and row["outcome"] == "revise"]
-    _need(revised, "work item " + workitem + " records a revision but no revise result")
+               if row["workitem"] == workitem and row["outcome"] == "send-back"]
+    _need(revised, "work item " + workitem + " records a send-back but no send-back result")
     latest = revised[-1]
 
     def done(rows: Any, name: str) -> list[str]:
@@ -707,10 +724,10 @@ def _sent_back_results(state: Mapping[str, Any], stage: str, workitem: str | Non
     if done(history[latest + 1:], stage):
         return None
     earlier = done(history[:latest], stage)
-    if stage == stage_spec.REVISE_TO:
+    if stage == stage_spec.SEND_BACK_TO:
         _need(earlier, "work item " + workitem + " was sent back to " + stage + " without an earlier accepted "
               + stage + " result")
-    plans, specs = done(history[:latest], stage_spec.REVISE_TO), done(history[:latest], "test-spec")
+    plans, specs = done(history[:latest], stage_spec.SEND_BACK_TO), done(history[:latest], "test-spec")
     return SentBack(state["revisions"][workitem], earlier[-1] if earlier else None, history[latest]["action"],
                     plans[-1] if plans else None, specs[-1] if specs else None)
 
@@ -737,8 +754,8 @@ def _change_text(field: str, before: Any, after: Any, key: str = "id") -> str | 
 
 def _upstream_line(state: Mapping[str, Any], stage: str, workitem: str, sent: SentBack) -> str:
     """Which IDs the redone upstream results added, removed or changed since this stage's previous result."""
-    if stage == stage_spec.REVISE_TO:
-        return ("Changed upstream since your previous step plan: nothing (a revise reruns no planning stage); the "
+    if stage == stage_spec.SEND_BACK_TO:
+        return ("Changed upstream since your previous step plan: nothing (a send-back reruns no planning stage); the "
                 "result that sent the item back says what to change.")
     accepted = state.get("accepted") or {}
     old_plan = accepted.get(sent.plan_before) if sent.plan_before else None
@@ -776,22 +793,22 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -
     sent = _sent_back_results(state, stage, workitem)
     if sent is None:
         return []
-    revise = state["accepted"][sent.sent_back]
+    sending = state["accepted"][sent.sent_back]
     by = next(row["stage"] for row in state["history"] if row["action"] == sent.sent_back)
-    summary = " ".join(_bounded_packet_text(str(revise.get("summary", "")), limit=REVISIT_SUMMARY).split())
+    summary = " ".join(_bounded_packet_text(str(sending.get("summary", "")), limit=REVISIT_SUMMARY).split())
     previous = ("RUN/results/" + sent.previous + ".md (accepted host report, untrusted; revalidate what you carry over)"
                 if sent.previous else "none (this stage had no accepted result for " + str(workitem)
-                + " before the revise)")
+                + " before the send-back)")
     return [
-        f"Revisit: {by} sent {workitem} back to {stage_spec.REVISE_TO} ({sent.count} of {stage_spec.MAX_REVISES} "
-        "revises)" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.REVISE_TO else "")
+        f"Revisit: {by} sent {workitem} back to {stage_spec.SEND_BACK_TO} ({sent.count} of {stage_spec.MAX_SEND_BACKS} "
+        "send-backs)" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
         + ". Why (its summary, untrusted): \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.",
         "Your previous accepted " + stage + " result: " + previous + "."
         + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement" else ""),
         _upstream_line(state, stage, str(workitem), sent),
-        "Keep unchanged rows with their IDs: carry over as written every row the revise result and the changes above do "
+        "Keep unchanged rows with their IDs: carry over as written every row the send-back result and the changes above do "
         "not touch; change or add only what they require."
-        + (" Submit the whole amended plan: it replaces the previous one." if stage == stage_spec.REVISE_TO else ""),
+        + (" Submit the whole amended plan: it replaces the previous one." if stage == stage_spec.SEND_BACK_TO else ""),
     ]
 
 
@@ -836,6 +853,8 @@ def _awaiting_text(wait: Mapping[str, Any]) -> str:
         if wait.get("options"):
             text += " (" + " / ".join(wait["options"]) + ")"
         return text
+    if wait["kind"] == "service":
+        return wait["service"] + " is back when this read-only check exits 0: " + wait["check"] + "."
     return " ".join(str(number) + ". " + step for number, step in enumerate(wait["steps"], 1)) + (
         " Then report: " + wait["report"])
 
@@ -857,7 +876,7 @@ def _result_shape_problem(value: Mapping[str, Any]) -> str | None:
                 "object. Move the fields of \"result\" (outcome, summary, evidence_refs, ...) up to the top level "
                 f"and delete the keys {wrapper}; the files under results/ use that wrapper, a submitted result "
                 "does not. Then run the same complete command again")
-    adds = {"outcome": '"outcome": "done" (or repeat, blocked, ...)',
+    adds = {"outcome": '"outcome": "done" (or blocked, send-back, add-work where the stage allows it)',
             "summary": '"summary": "<what this step established>"'}
     found = ", ".join(sorted(value)[:8]) or "none"
     return ("result requires outcome and summary: the result is missing " + " and ".join('"' + name + '"' for name in missing)
@@ -870,8 +889,8 @@ def _canonical_result(
     value: Any, *, stage: str, delivery_contract: bool = False, spec_hint: str = ""
 ) -> dict[str, Any]:
     """Validate a submitted stage result and return its canonical form as a new ``dict``. The ``value`` must be a
-    mapping with only keys from ``_RESULT_KEYS``, a ``summary`` and an ``outcome`` of ``done``, ``repeat``,
-    ``blocked``, ``replan``, ``revise`` or ``reconcile``, where some outcomes are limited by ``stage``. Optional
+    mapping with only keys from ``_RESULT_KEYS``, a ``summary`` and an ``outcome`` of ``done``, ``blocked``,
+    ``send-back``, ``add-work`` or ``reconcile``, where some outcomes are limited by ``stage``. Optional
     fields such as ``work_items``, ``criteria`` or ``awaiting`` are accepted only at the stages and outcomes
     that own them. ``delivery_assessment`` needs ``delivery_contract`` true. ``spec_hint``
     (``expectations.requirement_ids_text``) is the line a test-spec shape refusal about ``requirement`` ends with.
@@ -881,31 +900,32 @@ def _canonical_result(
     keys = set(value)
     problem = _result_shape_problem(value)
     _need(problem is None, problem or "")
+    _need("blocked_by" not in keys,
+          "blocked_by is retired: " + BLOCKED_RULE + ". Replace blocked_by with awaiting and run the same complete "
+          "command again")
     unsupported = sorted(keys - _RESULT_KEYS)
     _need(not unsupported,
           "result has unsupported fields: " + ", ".join(unsupported) + ". Delete them and run the same complete "
           "command again; a result carries only: " + ", ".join(sorted(_RESULT_KEYS)))
     outcome = value.get("outcome")
-    _need(outcome in ("done", "repeat", "blocked", "replan", "revise", "reconcile"),
-          "result outcome must be done, repeat, blocked, revise, or a supported corrective replan")
-    if outcome == "revise":
+    _need(outcome in ("done", "blocked", "send-back", "add-work", "reconcile"),
+          "result outcome must be one of " + ", ".join(stage_spec.stage(stage).outcomes) + " at " + stage
+          + " (the four outcomes are done, blocked, send-back and add-work; revise, replan and repeat are retired)")
+    if outcome in ("send-back", "add-work"):
         _need(outcome in stage_spec.stage(stage).outcomes,
-              "revise sends a work item back to " + stage_spec.REVISE_TO + " and is allowed only at the "
-              "INNER stages from test-spec to verify")
-    if outcome == "repeat":
-        # Every inner stage runs one Until Loop, which repeats the work itself (owner decision 2026-10-10).
-        _need(outcome in stage_spec.stage(stage).outcomes,
-              "repeat is not an outcome at " + stage + ": its Until Loop repeats the work until the exit "
-              "condition holds; report " + " or ".join(o for o in stage_spec.stage(stage).outcomes) + " instead")
-    if outcome in ("blocked", "repeat", "revise", "replan"):
+              (outcome + " sends a work item back to " + stage_spec.SEND_BACK_TO + " and is allowed only at the "
+               "INNER stages from test-spec to verify" if outcome == "send-back" else
+               outcome + " adds corrective work items and is allowed only at the OUTER stages")
+              + "; report " + " or ".join(stage_spec.stage(stage).outcomes) + " instead")
+    if outcome in ("blocked", "send-back", "add-work"):
         stray = [field for field in _DONE_ONLY_FIELDS if field in value
-                 and not (field == "work_items" and outcome == "replan")]
+                 and not (field == "work_items" and outcome == "add-work")]
         _need(not stray,
               f"a {outcome} result does not carry {', '.join(stray)}: those fields belong to a done result. "
               f"Delete {'it' if len(stray) == 1 else 'them'} from the result and run the same complete command "
               "again, keeping outcome, summary, headline and evidence_refs"
-              + (", blocked_by and awaiting" if outcome == "blocked" else "")
-              + (" and work_items" if outcome == "replan" else ""))
+              + (" and awaiting" if outcome == "blocked" else "")
+              + (" and work_items" if outcome == "add-work" else ""))
     if outcome == "reconcile":
         _need(stage == "plan" and set(value) - {"headline"} == {
             "outcome", "summary", "evidence_refs", "reconciliation_target",
@@ -920,12 +940,11 @@ def _canonical_result(
               "what this step established")
         _need("\n" not in headline and len(headline.strip()) <= HEADLINE_LIMIT,
               f"headline must be one line of at most {HEADLINE_LIMIT} characters")
-    if outcome == "replan":
+    if outcome == "add-work":
         _need(stage in guidance.OUTER and "work_items" in value,
-              "replan requires corrective work_items at an outer stage")
-    if "blocked_by" in value:
-        _need(outcome == "blocked" and value["blocked_by"] in BLOCKED_BY,
-              "blocked_by is only for a blocked result and must be user, access or external")
+              "add-work requires corrective work_items at an outer stage")
+    if outcome == "blocked":
+        _need("awaiting" in value, BLOCKED_RULE)
     result: dict[str, Any] = {
         "outcome": outcome,
         "summary": _text(value.get("summary"), "result summary"),
@@ -948,9 +967,9 @@ def _canonical_result(
               "reconciliation_target is invalid")
         result["reconciliation_target"] = target
     if "work_items" in value:
-        _need(stage in ("plan", "carry-forward") or outcome == "replan",
-              "work_items are allowed only at plan or carry-forward")
-        _need(outcome in ("done", "replan"), "work_items require done or replan")
+        _need(stage in ("plan", "carry-forward") or outcome == "add-work",
+              "work_items are allowed only at plan or carry-forward, or on an add-work result")
+        _need(outcome in ("done", "add-work"), "work_items require done or add-work")
         result["work_items"] = _normalise_work_items(
             value["work_items"], allow_empty=stage == "carry-forward"
         )
@@ -981,9 +1000,6 @@ def _canonical_result(
     if "awaiting" in value:
         _need(outcome == "blocked", "awaiting is allowed only on a blocked result")
         result["awaiting"] = _normalise_awaiting(value["awaiting"])
-        # Only a person can answer or act, so the unblocker is the user (or their access grant).
-        _need(value.get("blocked_by") in ("user", "access"),
-              "a result awaiting a person has blocked_by user (a decision) or access (a sign-in or grant)")
     if "paths" in value:
         _need(stage == "step-plan" and outcome == "done", "paths are allowed only on a done step-plan result")
         try:
@@ -1015,8 +1031,8 @@ def _canonical_result(
         except expectations.ExpectationError as exc:
             raise NavigatorError(str(exc)) from exc
     if "failed_expectations" in value:
-        _need(stage == "validate-existing" and outcome == "revise",
-              "failed_expectations are allowed only on a revise validate-existing result")
+        _need(stage == "validate-existing" and outcome == "send-back",
+              "failed_expectations are allowed only on a send-back validate-existing result")
         try:
             result["failed_expectations"] = expectations.normalise_failed_expectations(value["failed_expectations"])
         except expectations.ExpectationError as exc:
@@ -1063,8 +1079,6 @@ def _canonical_result(
         except consumer_delivery.ConsumerDeliveryError as exc:
             raise NavigatorError(str(exc)) from exc
     _canonical_handoff(value, stage, outcome, result, spec_hint)
-    if "blocked_by" in value:
-        result["blocked_by"] = value["blocked_by"]
     return result
 
 
@@ -1341,9 +1355,9 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
 
     revisions = state.get("revisions")
     _need(isinstance(revisions, Mapping)
-          and all(key in item_ids and type(count) is int and 1 <= count <= stage_spec.MAX_REVISES
+          and all(key in item_ids and type(count) is int and 1 <= count <= stage_spec.MAX_SEND_BACKS
                   for key, count in revisions.items()),
-          "navigator revisions must map work item IDs to 1.." + str(stage_spec.MAX_REVISES))
+          "navigator revisions must map work item IDs to 1.." + str(stage_spec.MAX_SEND_BACKS))
 
     loops = state.get("inner_loops")
     _need(isinstance(loops, Mapping), "navigator inner loops are invalid")
@@ -1444,7 +1458,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     # A test stage recorded as not applicable to its item (no test command, only
     # non-code paths; derived from the item's own step plan) had nothing to review.
     planning = {entry["action"] for entry in history
-                if entry["stage"] in reviewed
+                if entry["stage"] in reviewed and entry["outcome"] == "done"
                 and not (entry["stage"] in item_scope.TEST_STAGES and entry["workitem"]
                          and item_scope.no_test_item(state, entry["workitem"]))}
     _need(planning <= set(records) <= expected,
@@ -2198,7 +2212,8 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     if status == "done":
         stop = {"kind": "done", "text": "the run is complete; the report is report.html"}
     elif wait is not None:
-        stop = {"kind": "awaiting", "text": _status_text(_awaiting_text(wait[1]), 300)}
+        stop = {"kind": "service" if wait[1]["kind"] == "service" else "awaiting",
+                "text": _status_text(_awaiting_text(wait[1]), 300)}
     elif status in ("paused", "blocked", "halted"):
         stop = {"kind": status, "text": _status_text(state["status_reason"], 200)}
 
@@ -2490,8 +2505,8 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
               "proves, or drop it if a test-spec case already covers it.")
 
 
-# Fields a stage's revise must carry (its gate refuses a revise without them).
-_STAGE_REVISE_FIELDS = {"validate-existing": ("failed_expectations",)}
+# Fields a stage's send-back must carry (its gate refuses a send-back without them).
+_STAGE_SEND_BACK_FIELDS = {"validate-existing": ("failed_expectations",)}
 
 # Result fields that are lists of records: (key, stage, outcomes, required string fields).
 _RECORD_FIELDS = (
@@ -3061,6 +3076,15 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     return sources
 
 
+def _need_send_back_left(state: Mapping[str, Any], item_id: Any) -> None:
+    """Refuse a send-back once the work item has used all of its send-backs (checked at check-only too, N5)."""
+    used = state["revisions"].get(item_id, 0)
+    _need(used < stage_spec.MAX_SEND_BACKS,
+          "work item " + str(item_id) + " has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing "
+          "further can proceed without the user: report blocked awaiting a decision ({\"kind\": \"answer\", "
+          "\"question\", \"options\", \"no_default\"}) so the user decides")
+
+
 def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve_record: Any = None) -> dict[str, Any]:
     """Accept one current result and return a new state without persisting it."""
     validate(state)
@@ -3098,10 +3122,8 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     updated["revision"] += 1
 
     if canonical["outcome"] == "blocked":
-        # Enforced for new results only; replays and saved history keep their shape.
-        _need(canonical.get("blocked_by") in BLOCKED_BY, BLOCKED_BY_RULE)
         updated["status"] = "blocked"
-        updated["status_reason"] = canonical["blocked_by"] + ": " + canonical["summary"]
+        updated["status_reason"] = canonical["awaiting"]["kind"] + ": " + canonical["summary"]
         if _is_inner_root(updated):
             _replace_inner_action(updated, stage)
         else:
@@ -3111,29 +3133,18 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
 
     updated.pop("status_reason", None)
     updated["status"] = "active"
-    if canonical["outcome"] == "revise":
+    if canonical["outcome"] == "send-back":
         # The item's goal proved wrong while building it: back to its step plan
         # with this result as evidence.  Enforced for new results only.
         item_id = _current_work_item(updated)
+        _need_send_back_left(updated, item_id)
         used = updated["revisions"].get(item_id, 0)
-        _need(used < stage_spec.MAX_REVISES,
-              "work item " + str(item_id) + " has used its " + str(stage_spec.MAX_REVISES) + " revisions; "
-              "nothing further can proceed without the user: report blocked with blocked_by user and an "
-              "awaiting question, with its no_default reason, so the user decides")
         updated["revisions"][item_id] = used + 1
-        _replace_inner_action(updated, stage_spec.REVISE_TO)
+        _replace_inner_action(updated, stage_spec.SEND_BACK_TO)
         validate(updated)
         return updated
 
-    if canonical["outcome"] == "repeat":
-        if _is_inner_root(updated):
-            _replace_inner_action(updated, stage)
-        else:
-            updated["action"] = _new_action(stage)
-        validate(updated)
-        return updated
-
-    if canonical["outcome"] == "replan":
+    if canonical["outcome"] == "add-work":
         prior_ids = {row["id"] for row in updated["work_items"]}
         _need(not prior_ids.intersection(row["id"] for row in canonical["work_items"]),
               "corrective work IDs must be new")
@@ -3439,8 +3450,10 @@ def control(state: Mapping[str, Any], command: str, reason: str = "", *,
             other = observed if wait["kind"] == "answer" else answer
             _need(not other, "this run waits for " + flag + ", not the other reply flag")
             _need(bool(reply.strip()) and reply.strip().lower().strip(" .!") not in _NOT_AN_ANSWER,
-                  "This run is waiting on the user: " + _awaiting_text(wait) + " A request to continue "
-                  "does not answer it. Ask the user, then resume with " + flag + " \"<their words>\".")
+                  ("This run is waiting on an outside service: " + _awaiting_text(wait) + " Run that check; when "
+                   "it exits 0, resume with " + flag + " \"<what the check printed>\".") if wait["kind"] == "service" else
+                  ("This run is waiting on the user: " + _awaiting_text(wait) + " A request to continue does not "
+                   "answer it. Ask the user, then resume with " + flag + " \"<their words>\"."))
         updated["status"] = "active"
         updated.pop("status_reason", None)
     else:
@@ -3677,7 +3690,7 @@ def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: An
     try:
         if stage == "step-plan" and outcome == "done":
             expectations.check_step_plan(root, state, submitted)
-        elif stage == "validate-existing" and outcome in ("done", "revise"):
+        elif stage == "validate-existing" and outcome in ("done", "send-back"):
             return expectations.check_complete(root, state, submitted,
                                                tag="check-only" if check_only else "complete")
         elif stage == "carry-forward" and outcome == "done":
@@ -3718,7 +3731,7 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
 
     The loop's receipt was checked first (``loops.check_terminal``).  On the item's base (after any preparatory fix)
     no new test ID may pass; on the candidate every recorded command must pass, run every listed ID and reach the
-    floor.  Each run writes its own record and counts toward the refused-run cap.  A revise is accepted without a
+    floor.  Each run writes its own record and counts toward the refused-run cap.  A send-back is accepted without a
     loop packet when ``test_loop.remedy_open`` says the cap left that route open.
 
     ``check_only`` (``complete --check-only``) changes nothing the run counts: the base rule runs as ``red_check`` and
@@ -3758,7 +3771,7 @@ def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id:
 
     The whole-plan ask-agent action is not gated (its chain runs the steps and the item's checks stay its own).  A
     refusal names both routes through the loop with its literal start command: fix the work and report done, or, when
-    the Proof cannot assess the step as planned, stop the loop blocked and report revise.  ``check_only`` runs the Proof
+    the Proof cannot assess the step as planned, stop the loop blocked and report send-back.  ``check_only`` runs the Proof
     without counting it (``test_loop.step_proof(count=False)``)."""
     if (not isinstance(submitted, Mapping) or submitted.get("outcome") != "done"
             or step_view(state, workitem) is None):
@@ -3776,8 +3789,9 @@ def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id:
                  if start else "In the stage's Until Loop, either ")
         raise NavigatorError(refusal + "\n" + route + "fix the work until the Proof passes (never the Proof or what it "
                              "expects) and report done, or, for a Proof that needs a later step, a test the test stage "
-                             "has not written, or a tool, access or authority that is absent, stop the loop blocked and "
-                             "report revise naming the Proof.")
+                             "has not written, or a tool that is absent, stop the loop blocked and report send-back "
+                             "naming the Proof; for access or authority that is absent, report blocked awaiting the "
+                             "person who grants it.")
     return ["Gates: " + line for line in lines]
 
 
@@ -4447,12 +4461,12 @@ def _return_route_lines(workspace_root: Path, *, rollback: bool) -> list[str]:
 
 
 def _accepted_done(state: Mapping[str, Any]) -> tuple[dict[tuple[str | None, str], str], int]:
-    """Return current accepted-done actions by (work item, stage) and the last replan index."""
+    """Return current accepted-done actions by (work item, stage) and the last add-work index."""
     outer = graph(state)[2]
     last_replan = max((index for index, entry in enumerate(state["history"])
-                       if entry["outcome"] == "replan"), default=-1)
+                       if entry["outcome"] == "add-work"), default=-1)
     # Reconciliation already removes an invalidated planning suffix; an outer
-    # replan likewise reopens every outer stage accepted before it.
+    # add-work likewise reopens every outer stage accepted before it.
     position = {entry["action"]: index for index, entry in enumerate(state["history"])}
     done = {
         key: action_id for key, action_id in planning_revision.current_actions(state).items()
@@ -4466,8 +4480,9 @@ STATUS_END = "=== end ShipLoop status ==="
 _STATUS_MARK = {"done": "\u2713", "current": "\u25b6", "pending": "\u00b7"}
 
 
-# An absolute or home-relative path inside host text, shown by its last segment.
-_STATUS_PATH = re.compile(r"(?<![\w.~/])(?:~|file:/)?/[^\s\"'`<>]*/([^\s\"'`<>/]+)")
+# An absolute or home-relative path inside host text, shown by its last segment. A URL's "//" follows a ":" and is
+# not a path: a service wait's check URL stays whole.
+_STATUS_PATH = re.compile(r"(?<![\w.~/:])(?:~|file:/)?/[^\s\"'`<>]*/([^\s\"'`<>/]+)")
 
 
 def _status_text(value: Any, limit: int) -> str:
@@ -4526,7 +4541,8 @@ def _status_next(state: Mapping[str, Any]) -> tuple[str, str]:
             return "Next", f"{IMPROVE_STAGE}: run the improve skill on the {child['stage']} result"
         return "Next", f"{stage}: {guidance.STAGE_PURPOSE[stage]}"
     if wait is not None:
-        return "Waiting on you", _status_text(_awaiting_text(wait[1]), 300)
+        return (WAITING_ON_SERVICE if wait[1]["kind"] == "service" else WAITING_ON_YOU), \
+            _status_text(_awaiting_text(wait[1]), 300)
     if status in ("paused", "blocked"):
         return "Stopped", (f"{status}: {_status_text(state['status_reason'], 140).rstrip('.')}. "
                            "The packet prints the resume command.")
@@ -4600,9 +4616,8 @@ def status_block(state: Mapping[str, Any]) -> str:
         last = state["history"][-1]
         label = (_status_text(last["workitem"], 32) + " " if last["workitem"] else "") + last["stage"]
         note = {"done": " (reviewed by Improve)" if last["action"] in state["improve_results"] else "",
-                "repeat": " (repeat requested)", "blocked": " (blocked)",
-                "revise": " (sent back to " + stage_spec.REVISE_TO + ")",
-                "replan": " (replan requested)", "reconcile": " (planning reconciled)"}
+                "blocked": " (blocked)", "send-back": " (sent back to " + stage_spec.SEND_BACK_TO + ")",
+                "add-work": " (work added)", "reconcile": " (planning reconciled)"}
         lines.append(f"Done:      {label}{note.get(last['outcome'], '')}: "
                      + _first_sentence(last["summary"], 140))
     else:
@@ -4812,7 +4827,7 @@ def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str
         if not state.get("active_improve"):
             # S-5: the script reports what the host would otherwise have to check by hand.
             missing = [label for label, path in resources if path.startswith("MISSING:")]
-            lines.append("Loop resources for a repair/revise request, under "
+            lines.append("Loop resources for a repair or send-back request, under "
                          + str(guidance.backchain_skills_root()) + ": "
                          + ("MISSING: " + ", ".join(missing) if missing else "all present"))
     if state["status"] == "active" and not state.get("active_improve"):
@@ -5005,18 +5020,32 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
         if wait["kind"] == "answer":
             ask = ["Question for the user: " + wait["question"]]
             ask += ["  - " + option for option in wait.get("options", ())]
+        elif wait["kind"] == "service":
+            ask = ["Waiting on an outside service: " + wait["service"],
+                   "It is back when this read-only check exits 0: " + wait["check"]]
         else:
             ask = ["Steps for the user:"] + ["  " + str(number) + ". " + step
                                              for number, step in enumerate(wait["steps"], 1)]
             ask.append("Ask them to report: " + wait["report"])
+        # status_reason is "<kind>: <summary>"; the line already names who the run waits on.
+        reason = state["status_reason"].removeprefix(wait["kind"] + ": ")
+        if wait["kind"] == "service":
+            # The check output is the reply, so the model may run it; only a 0 exit resumes the run.
+            wait_lines = ["End your turn with this, written to the user, and wait. When they say it is back, or ask "
+                          "you to check, run the check; resume only when it exits 0. \"continue\" or a question "
+                          "about the skill is not the service coming back.",
+                          "When it is back: " + _callback(core, root, "resume") + " " + flag
+                          + " \"<what the check printed>\""]
+        else:
+            wait_lines = ["End your turn with this, written to the user, and wait for their reply. Do not answer "
+                          "it yourself, and do not treat \"continue\" or a question about the skill as the reply.",
+                          "When they reply: " + _callback(core, root, "resume") + " " + flag + " \"<their words>\""]
         lines.extend(
             [
-                "Blocked, waiting on the user: " + _required_excerpt(state["status_reason"], root,
-                                                                     "status_reason"),
+                "Blocked, waiting on " + ("an outside service" if wait["kind"] == "service" else "the user") + ": "
+                + _required_excerpt(reason, root, "status_reason"),
                 *ask,
-                "End your turn with this, written to the user, and wait for their reply. Do not answer "
-                "it yourself, and do not treat \"continue\" or a question about the skill as the reply.",
-                "When they reply: " + _callback(core, root, "resume") + " " + flag + " \"<their words>\"",
+                *wait_lines,
             ]
         )
         return "\n".join(lines) + "\n"
@@ -5187,24 +5216,22 @@ def _outcome_shape_lines(stage: str) -> list[str]:
 
     The done template is the only complete result the packet prints, and a model that changes its outcome by
     hand keeps the done-only fields or drops the summary.  These lines are the shapes the gate checks:
-    ``AWAITING_SHAPE`` and ``BLOCKED_BY`` are the same constants its refusals quote.
+    ``AWAITING_SHAPE`` is the same constant its refusals quote.
     """
     allowed = stage_spec.stage(stage).outcomes
     shapes = []
-    if "repeat" in allowed:
-        shapes.append('repeat: {"outcome": "repeat", "summary": "<what is still open>"}')
     if "blocked" in allowed:
         shapes.append(
-            'blocked: {"outcome": "blocked", "blocked_by": "' + " | ".join(BLOCKED_BY) + '", "summary": "<what stopped '
-            'the work>"}; only when nothing can proceed without a person (blocked_by user or access), add "awaiting" '
-            'in the shape reference#blocked gives (a wrong shape is refused with that shape quoted)')
-    if "revise" in allowed:
-        shapes.append('revise: {"outcome": "revise", "summary": "<what in the step plan or test spec is wrong>"'
+            'blocked (only a person or an outside service can unblock it): {"outcome": "blocked", "summary": "<what '
+            'stopped the work>", "awaiting": {...}} with awaiting in the shape reference#blocked gives (a wrong shape '
+            'is refused with that shape quoted)')
+    if "send-back" in allowed:
+        shapes.append('send-back: {"outcome": "send-back", "summary": "<what in the step plan or test spec is wrong>"'
                       + (', "failed_expectations": [{"id": "E1", "actual": "<what is actually true>", "route": '
-                         '"steps"}]' if "failed_expectations" in _STAGE_REVISE_FIELDS.get(stage, ()) else "")
+                         '"steps"}]' if "failed_expectations" in _STAGE_SEND_BACK_FIELDS.get(stage, ()) else "")
                       + '}')
-    if "replan" in allowed:
-        shapes.append('replan: {"outcome": "replan", "summary": "<what the corrective items fix>", "work_items": '
+    if "add-work" in allowed:
+        shapes.append('add-work: {"outcome": "add-work", "summary": "<what the corrective items fix>", "work_items": '
                       '[{"id": "<new id>", "title": "...", "context": "..."}]}')
     return ['Fill the template: each key once, every placeholder (<...> and "...") replaced, "outcome" and "summary" '
             'top-level.' + (' Any other outcome keeps headline and evidence_refs and drops the other fields:' if shapes
@@ -5280,7 +5307,7 @@ _INNER_GATES = {
                   "criterion the step plan does not list or a requirement with no entry in HOME/spec.md",),
     "implement": ("for an item whose step plan records no test command and only non-code paths, a change to a code "
                   "or test path or to a path the step plan did not declare",),
-    "validate-existing": ("a revise without failed_expectations naming each expectation and what is actually true",),
+    "validate-existing": ("a send-back without failed_expectations naming each expectation and what is actually true",),
     "test": ("a red_na or retired_tests entry without an ID and a reason",),
     "carry-forward": ("a missing skill decision (none, reuse, update or create), or a created or updated skill whose "
                       "SKILL.md is missing or lacks name and description",),
@@ -5353,7 +5380,7 @@ PROSE_PATH_LINES = re.compile(
     r"Latest reconciliation finding and immutable evidence: |Spec and architecture changes since the run began: not computed|"
     r"State: |Repository knowledge \w+ \(host-authored|Test rerun: on done|Where and floors: |Commands ShipLoop ran \(|"
     r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
-    r"This stage's result before the replan: |"
+    r"This stage's result before the add-work: |"
     r"Proposed queue awaiting Improve: |"
     # The Improve handoff's lines that name the child's files as prose (its commit-message and review-evidence lines that
     # carry a command stay literal): the opening, the receipt, the owner record, the review and check files.
@@ -6003,7 +6030,7 @@ def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
     row = loops.worded_stage(stage, _implement_scope(state, stage))
     if state.get("active_improve"):
         # The parent packet a cleared model re-reads while the child runs: what the review judges the result against.
-        # The result is returned, not accepted (the parent step stays pending), and may be blocked or repeat, so the
+        # The result is returned, not accepted (the parent step stays pending), and may be blocked, so the
         # conditions are the ones a done result must meet.
         return ["Reviewing the returned " + stage + " result. Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
                 "Done when (a done result must meet each; correct the result, never the condition):",
@@ -6187,7 +6214,7 @@ def step_view(state: Mapping[str, Any], work_item: str | None) -> StepView | Non
 STEP_LOOP_LINE = ("Do this stage inside the /until-loop invocation at the end of this packet; everything between is its "
                   "material.")
 STEP_FILES_LINE = ("Files: ShipLoop commits the item's declared paths (its step plan's result: RUN/results/{plan}.md); a "
-                   "file this step needs outside them is a revise, so the step plan declares it.")
+                   "file this step needs outside them is a send-back, so the step plan declares it.")
 
 
 def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
@@ -6220,7 +6247,7 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
              "  Depends on: " + ("; ".join(dep + (" (accepted: RUN/results/" + str(accepted[dep]["action"]) + ".md)"
                                                   if dep in accepted else "") for dep in deps) or "none"),
              ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + check) if check else
-             "  Proof: none recorded in the step plan; report revise so the step plan records the step's check.",
+             "  Proof: none recorded in the step plan; report send-back so the step plan records the step's check.",
              "  Skills (use each; the summary says whether you did): "
              + (", ".join(str(skill.get("name")) for skill in step.get("skills") or () if isinstance(skill, Mapping))
                 or "none")]
@@ -6309,9 +6336,8 @@ def _improve_line(state: Mapping[str, Any], stage: str) -> str:
     if stage in stage_spec.reviewed_stages(mode):
         applies = ("applies the Planning review focus in this stage's guidance and "
                    if stage in guidance.REVIEW_FOCUS_DUTY_STAGES else "")
-        others = [o for o in ("blocked", "repeat") if o in stage_spec.stage(stage).outcomes]
-        when = ("Every " + stage + " result" + (", including " + " and ".join(others) if others else "")
-                + ", starts this action's Improve child. That review " + applies + "checks the result against the Done-when conditions above.")
+        when = ("A done " + stage + " result starts this action's Improve child. That review " + applies
+                + "checks the result against the Done-when conditions above.")
     elif stage in stage_spec.PLANNING_CHOICE_STAGES:
         when = ("no Improve child starts after this result in this run (planning_review: " + mode
                 + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
@@ -6332,15 +6358,16 @@ def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     row = stage_spec.stage(stage)
     described = []
     for outcome in row.outcomes:
-        if outcome == "replan":
-            described.append("replan (corrective work_items [{id, title, context}] whose IDs are not "
-                             "already in state.md work_items; they run through INNER, then OUTER restarts)")
-        elif outcome == "revise":
+        if outcome == "add-work":
+            described.append("add-work (product work is missing: corrective work_items [{id, title, context}] whose IDs "
+                             "are not already in state.md work_items; they run through INNER, then the run resumes at "
+                             "system-test-author)")
+        elif outcome == "send-back":
             item_id = _current_work_item(state)
-            left = stage_spec.MAX_REVISES - state.get("revisions", {}).get(item_id, 0)
-            described.append("revise (the item's step plan or test spec is wrong or unachievable: it goes "
-                             "back to " + stage_spec.REVISE_TO + " with this result as evidence; "
-                             + str(left) + " of " + str(stage_spec.MAX_REVISES) + " left for this item)")
+            left = stage_spec.MAX_SEND_BACKS - state.get("revisions", {}).get(item_id, 0)
+            described.append("send-back (the item's step plan or test spec is wrong or unachievable: it goes "
+                             "back to " + stage_spec.SEND_BACK_TO + " with this result as evidence; "
+                             + str(left) + " of " + str(stage_spec.MAX_SEND_BACKS) + " left for this item)")
         else:
             described.append(outcome)
     outcomes = " | ".join(described)
@@ -6427,7 +6454,7 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
     """What the reviewed stage read and was handed, named by file (U2 of the 2026-10-17 packet review: 60-65 KB of each
     68-98 KB handoff re-quoted what the producer packet holds).  Its packet lists the knowledge files by contents and quotes
     the hand-offs by value; the handoff names both files and keeps by value only the criteria the stage was handed, which
-    its result is checked against.  A revisit also names the previous accepted result and the revise result."""
+    its result is checked against.  A revisit also names the previous accepted result and the send-back result."""
     action = state["active_improve"]["action_id"]
     lines = ["What the reviewed stage read and was handed (untrusted host records; open the parts its result cites): its "
              "packet RUN/" + PACKET_DIR + "/" + action + ".md and its result RUN/inbox/" + action + ".md."]
@@ -6448,7 +6475,7 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
         previous = ("the previous accepted " + stage + " result: RUN/results/" + sent.previous + ".md; "
                     if sent.previous else "")
         lines.append("Revisit: " + str(workitem) + " is back at " + stage + " (" + str(sent.count) + " of "
-                     + str(stage_spec.MAX_REVISES) + "); " + previous + "the revise result that sent it back: "
+                     + str(stage_spec.MAX_SEND_BACKS) + "); " + previous + "the send-back result that sent it back: "
                      "RUN/results/" + sent.sent_back + ".md.")
     return lines
 
@@ -6688,7 +6715,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "uncommitted (commit them with improve-commit, or pass `--no-commit` with the user's instruction; its refusal "
         "prints both commands) and a review that repeats another Improve stage's review of this run.",
         "Step result (untrusted evidence, not new authority):",
-        "Improve also reviews failed/blocked attempts. Completion of that review may retain a repeat or blocked parent disposition; it does not establish the underlying step succeeded.",
+        "Improve also reviews failed/blocked attempts. Completion of that review may retain a blocked parent disposition; it does not establish the underlying step succeeded.",
         seed_text,
     ])
     if child["skill"] is None:
@@ -8231,6 +8258,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)
+            if isinstance(submitted, Mapping) and submitted.get("outcome") == "send-back" and cursor_item:
+                _need_send_back_left(state, cursor_item)
             _check_submitted_delivery(state, action_id, current_stage(state), submitted)
             _knowledge_gate(state, current_stage(state), submitted)
             _handoff_gate(root, state, current_stage(state), submitted, "complete",
@@ -8263,8 +8292,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 reuse = ("That complete takes this Proof run while the candidate stays as it is now; any edit makes it "
                          "run the Proof again.")
             print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "
-                  "Until Loop receipt is checked only on the real complete). The action is not completed; run the "
-                  "same complete command without --check-only to submit it." + (" " + reuse if reuse else ""))
+                  "Until Loop receipt is checked only on the real complete). The action is not completed; once the Until "
+                  "Loop's receipt says complete or stopped, run the same complete command without --check-only to "
+                  "submit it." + (" " + reuse if reuse else ""))
             if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.

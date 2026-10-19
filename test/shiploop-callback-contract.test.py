@@ -106,11 +106,11 @@ OPEN_ASSUMPTION = {"id": "A1", "assumption": "the export is checked by file test
 def write_block(path: Path, value: object, *, loop: bool = True) -> None:
     """Write a result file: Markdown whose one shiploop-state fence holds the JSON.
 
-    At an INNER stage a done or revise result first runs the stage's Until Loop through the real runtime (done ends it
-    satisfied, revise stops it blocked) and cites the receipt, as the printed template does; ``loop=False`` writes the
-    value as given, for the tests of the loop refusal itself.
+    At an INNER stage a done or send-back result first runs the stage's Until Loop through the real runtime (done ends
+    it satisfied, send-back stops it blocked) and cites the receipt, as the printed template does; ``loop=False`` writes
+    the value as given, for the tests of the loop refusal itself.
     """
-    if loop and isinstance(value, dict) and value.get("outcome") in ("done", "revise") and path.parent.name == "inbox":
+    if loop and isinstance(value, dict) and value.get("outcome") in ("done", "send-back") and path.parent.name == "inbox":
         run = path.parent.parent
         if (run / "state.md").is_file() and loops.cursor(store.read_record(run / "state.md")) is not None:
             receipt = finish_loop(run, outcome="done" if value["outcome"] == "done" else "blocked")
@@ -754,8 +754,12 @@ class RefusalRouteTests(RealCliCase):
 
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
-        command, path, _ = printed_callback(head)
-        blocked = {"outcome": "blocked", "blocked_by": "external", "summary": "A service this run needs is down.",
+        command, path, action = printed_callback(head)
+        blocked = {"outcome": "blocked",
+                   "awaiting": {"kind": "service", "service": "A deploy credential service.",
+                                "check": "curl -fsS https://deploy.example.test/health",
+                                "no_default": "Only the service coming back can unblock this."},
+                   "summary": "A service this run needs is down.",
                    "headline": "Waiting on a service.", "evidence_refs": [str(self.evidence)],
                    "work_items": [{"id": "W1", "title": "Build it", "context": "Everything."}],
                    "assumptions": [{"id": "A1", "assumption": "The service returns.", "disposition": "evidenced",
@@ -768,12 +772,13 @@ class RefusalRouteTests(RealCliCase):
         named = re.search(r"does not carry ([^:]+):", reply).group(1).split(", ")
         write_block(path, {k: v for k, v in blocked.items() if k not in named})
         self.accepted(command)
-        seed = self.state(run)["active_improve"]["seed_result"]
-        self.assertEqual((seed["outcome"], seed["blocked_by"]), ("blocked", "external"))
+        # A blocked result is not reviewed (N5): it is recorded straight to state.accepted, not an Improve seed.
+        recorded = self.recorded(run, action)
+        self.assertEqual((recorded["outcome"], recorded["awaiting"]["kind"]), ("blocked", "service"))
 
     def test_a_wait_without_no_default_is_told_where_it_goes(self) -> None:
         wait = {"kind": "present", "steps": ["Open the app and play one game."], "report": "Whether it played."}
-        base = {"outcome": "blocked", "blocked_by": "user", "summary": "A person must try the app."}
+        base = {"outcome": "blocked", "summary": "A person must try the app."}
         for label, block, expected in (
                 ("beside", {**base, "awaiting": wait, "no_default": "Only a person can play it."},
                  "The result has no_default beside awaiting: move it inside awaiting."),
@@ -970,10 +975,14 @@ class RefusalRouteTests(RealCliCase):
 
 
 def printed_shapes(head: str) -> dict[str, str]:
-    """The line the head prints for each outcome other than done: {"repeat": '{"outcome": ...}', ...}."""
+    """The line the head prints for each outcome other than done: {"blocked": '... {"outcome": ...} ...', ...}.
+
+    ``blocked``'s line carries a parenthetical ("only a person or an outside service can unblock it") between the
+    keyword and the colon; ``send-back`` and ``add-work`` have none.
+    """
     shapes = {}
     for line in head.splitlines():
-        found = re.match(r"(repeat|blocked|revise|replan): (\{.*)$", line)
+        found = re.match(r"(blocked|send-back|add-work)\b[^:]*: (\{.*)$", line)
         if found:
             shapes[found.group(1)] = found.group(2)
     return shapes
@@ -1021,7 +1030,7 @@ class PersonObservationRouteTests(RealCliCase):
         for words in ("step 1 reaches the consumer entry", "one yes/no line per case",
                       "The run's exclusions bind the run, not the person", "an unanswered case is not-run"):
             self.assertIn(words, guidance)  # the ask's shape and the partial-reply rule, before the person is asked
-        write_block(path, {"outcome": "blocked", "blocked_by": "user", "headline": "A person must play the board.",
+        write_block(path, {"outcome": "blocked", "headline": "A person must play the board.",
                            "summary": "Every other case passed; the board needs a signed-in person.",
                            "evidence_refs": [str(self.evidence)], "awaiting": self.WAIT})
         self.accepted(command)
@@ -1139,7 +1148,7 @@ class StepSizingRouteTests(RealCliCase):
 
     def test_a_check_may_be_a_recorded_command_and_one_that_needs_a_later_step_fails_its_proof(self) -> None:
         """T2: a step's check may equal a recorded focused or regression command (reuse is no defect); a check that needs
-        what a later step builds fails the Proof ShipLoop runs at implement, and the refusal's revise route is accepted.
+        what a later step builds fails the Proof ShipLoop runs at implement, and the refusal's send-back route is accepted.
         An existence-guarded check passes the script (no script reads a command's meaning), so the step-plan Improve
         focus names it for the reviewer (T25 keeps that false positive for semantic review)."""
         run, head = self.new_run("step-plan")
@@ -1179,13 +1188,13 @@ class StepSizingRouteTests(RealCliCase):
                 self.assertIn("step S1's Proof did not pass", refusal)
                 self.assertIn("test -f later.txt -> exit 1", refusal)
                 self.assertIn("a Proof that needs a later step", refusal)
-                # The route the refusal names: start the loop again with its literal command, stop it blocked, revise.
+                # The route the refusal names: start the loop again with its literal command, stop it blocked, send-back.
                 start = re.search(r"Start the Until Loop again with: (.+?)  \(it replaces the receipt\)", refusal).group(1)
                 words = shlex.split(start)
                 self.assertEqual(words[-2], "<")
                 subprocess.run(words[:-2], input=Path(words[-1]).read_text(), text=True, capture_output=True,
                                check=True, timeout=60)
-                write_block(step_path, {"outcome": "revise", "headline": "S1's Proof needs S2.",
+                write_block(step_path, {"outcome": "send-back", "headline": "S1's Proof needs S2.",
                                         "summary": "S1's check reads later.txt, which only S2 creates.",
                                         "evidence_refs": [str(self.evidence)]})
                 self.accepted(step_command)
@@ -1377,7 +1386,11 @@ class UnverifiedRouteTests(RealCliCase):
             nav.apply(state, nav.current_action(state)["id"], {**DONE, "unverified": []})
         run, _ = self.new_run("product-acceptance")
         state = self.state(run)
-        blocked = {"outcome": "blocked", "blocked_by": "external", "summary": "A service is down.", "unverified": []}
+        blocked = {"outcome": "blocked",
+                   "awaiting": {"kind": "service", "service": "The export service.",
+                                "check": "curl -fsS https://export.example.test/health",
+                                "no_default": "Only the service coming back can unblock this."},
+                   "summary": "A service is down.", "unverified": []}
         with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry unverified"):
             nav.apply(state, nav.current_action(state)["id"], blocked)
 
@@ -1389,17 +1402,18 @@ class OutcomeShapeTests(RealCliCase):
     def reference_text() -> str:
         return reference.render(nav.new_state("/simulation-only/repo", "Synthetic."), Path("/simulation-only/run"))
 
-    # test-red is folded into test, which has no repeat outcome (its Until Loop repeats the work).
-    STAGES = {"intake": ("repeat", "blocked"), "test": ("blocked", "revise"),
-              "system-test-author": ("repeat", "blocked", "replan")}
+    # repeat is retired everywhere (its Until Loop repeats the work instead, not the graph).
+    STAGES = {"intake": ("blocked",), "test": ("blocked", "send-back"),
+              "system-test-author": ("blocked", "add-work")}
 
     def fill(self, outcome: str, shape: dict) -> dict:
         """The minimum real content for a printed shape: its own fields, plus the evidence every result cites."""
         block = {**shape, "summary": "What happened in this stage.", "headline": "A step finished.",
                  "evidence_refs": [str(self.evidence)]}
         if outcome == "blocked":
-            block["blocked_by"] = "external"
-        if outcome == "replan":
+            block["awaiting"] = {"kind": "answer", "question": "Which way?",
+                                 "no_default": "Nothing else can proceed."}
+        if outcome == "add-work":
             block["work_items"] = [{"id": "W9", "title": "Corrective item", "context": "What it fixes."}]
         return block
 
@@ -1422,9 +1436,16 @@ class OutcomeShapeTests(RealCliCase):
                 with self.subTest(stage=stage, outcome=outcome):
                     run, head = self.new_run(stage)
                     command, path, action = printed_callback(head)
-                    shape = first_object(printed_shapes(head)[outcome])
-                    self.assertEqual(shape["outcome"], outcome)
-                    write_block(path, self.fill(outcome, shape))
+                    if outcome == "blocked":
+                        # blocked's printed line names no concrete awaiting (it varies by kind; reference#blocked
+                        # gives it, as test_the_printed_wait_shape_is_accepted_for_a_blocked_result checks), so this
+                        # does not parse printed_shapes(head)["blocked"] as JSON.
+                        block = self.fill("blocked", {"outcome": "blocked"})
+                    else:
+                        shape = first_object(printed_shapes(head)[outcome])
+                        self.assertEqual(shape["outcome"], outcome)
+                        block = self.fill(outcome, shape)
+                    write_block(path, block)
                     self.accepted(command)
                     self.assertEqual(self.recorded(run, action)["outcome"], outcome)
 
@@ -1436,15 +1457,17 @@ class OutcomeShapeTests(RealCliCase):
                 line = printed_shapes(head)["blocked"]
                 # The awaiting shapes are no longer printed in the packet (reference#blocked): take them from the source.
                 self.assertIn("reference#blocked", line)
-                forms = [first_object(text) for text in re.findall(r'\{"kind": [^}]*\}', nav.AWAITING_SHAPE)]
+                # "(optional)" is a prose annotation on the options field, not part of the JSON value.
+                forms = [first_object(text.replace(" (optional)", ""))
+                        for text in re.findall(r'\{"kind": [^}]*\}', nav.AWAITING_SHAPE)]
                 wait = next(form for form in forms if form["kind"] == kind)
                 wait = {key: ("Why nothing else can proceed." if key == "no_default" else
                               ["The person does the step."] if key == "steps" else
-                              "What they report." if key == "report" else "Which one?")
+                              "What they report." if key == "report" else
+                              ["First choice.", "Second choice."] if key == "options" else "Which one?")
                         for key in wait}
                 wait["kind"] = kind
-                write_block(path, {**self.fill("blocked", {"outcome": "blocked"}), "blocked_by": "user",
-                                   "awaiting": wait})
+                write_block(path, {**self.fill("blocked", {"outcome": "blocked"}), "awaiting": wait})
                 self.accepted(command)
                 self.assertEqual(self.state(run)["status"], "blocked")
 
@@ -1453,7 +1476,7 @@ class OutcomeShapeTests(RealCliCase):
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)
         template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
-        template.update(outcome="blocked", blocked_by="external", summary="Stopped.", headline="Stopped.",
+        template.update(outcome="blocked", summary="Stopped.", headline="Stopped.",
                         evidence_refs=[str(self.evidence)])
         write_block(path, template)
         self.assertIn("a blocked result does not carry work_items, assumptions", self.refused(command, run))
@@ -1521,10 +1544,10 @@ class LoopRefusalRouteTests(RealCliCase):
                 kept = (recorded["accepted"].get(action) or recorded["active_improve"]["seed_result"])["evidence_refs"]
                 self.assertEqual(kept, [*block["evidence_refs"], str(receipt)])
 
-    def test_revise_before_the_loop_stopped_is_told_to_run_it_until_it_stops_blocked(self) -> None:
+    def test_send_back_before_the_loop_stopped_is_told_to_run_it_until_it_stops_blocked(self) -> None:
         run, head = self.new_run("test", entered=True)
         command, path, _ = printed_callback(head)
-        block = {**self.done_fields(), "outcome": "revise", "summary": "The step plan cannot be met as written."}
+        block = {**self.done_fields(), "outcome": "send-back", "summary": "The step plan cannot be met as written."}
         write_block(path, block, loop=False)
         reply = self.refused(command, run)
         self.assertIn("the test loop has not run", reply)
@@ -1536,7 +1559,7 @@ class LoopRefusalRouteTests(RealCliCase):
         packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(BLOCKED_REPORT), text=True,
                                            capture_output=True, check=True, timeout=60).stdout)
         self.assertEqual(packet["status"], "stopped")
-        self.assertIn("Then submit revise again", reply)
+        self.assertIn("Then submit send-back again", reply)
         write_block(path, block, loop=False)
         self.accepted(command)
         self.assertEqual(nav.current_stage(self.state(run)), "step-plan")
@@ -1689,7 +1712,7 @@ class UncountedCommandRouteTests(RealCliCase):
     """A recorded command ShipLoop cannot count is refused where it runs, and the refusal names the exit that works.
 
     system-test runs commands that system-test-author recorded and cannot edit them, so "give the command ids" is
-    no way out there: the exit is a replan, and the command is recorded again as suite check.
+    no way out there: the exit is add-work, and the command is recorded again as suite check.
     """
 
     def at_system_test(self, command: str, suite: str = "focused") -> tuple[Path, str, str, Path]:
@@ -1704,37 +1727,37 @@ class UncountedCommandRouteTests(RealCliCase):
     @staticmethod
     def named_exit(reply: str) -> tuple[str, str]:
         """The outcome the refusal says to report and the result field it says to record the command in."""
-        outcome = re.search(r"Report outcome (\w+) now", reply).group(1)
+        outcome = re.search(r"Report outcome ([\w-]+) now", reply).group(1)
         field = re.search(r"as suite check in (\w+)\.", reply).group(1)
         return outcome, field
 
-    def test_an_uncounted_system_command_is_refused_naming_replan_and_check(self) -> None:
+    def test_an_uncounted_system_command_is_refused_naming_add_work_and_check(self) -> None:
         run, _, callback, _ = self.at_system_test(PIPELINE)
         reply = self.refused(callback, run)
         self.assertIn("could not read how many tests it ran", reply)
         self.assertIn("system-test-author recorded this command and system-test cannot edit it", reply)
         self.assertIn("belongs in suite `check`, judged by its exit code", reply)
-        self.assertEqual(self.named_exit(reply), ("replan", "system_commands"))
+        self.assertEqual(self.named_exit(reply), ("add-work", "system_commands"))
         # The two lines that sent the model the wrong way: edit the command, or fix the code.
         self.assertNotIn("Give the command ids", reply)
         self.assertNotIn("Fix the code so every command passes", reply)
-        self.assertIn("Refused runs for this action so far: 1 (base, candidate and mutation runs together); replan does not "
-                      "wait for them.", reply)
+        self.assertIn("Refused runs for this action so far: 1 (base, candidate and mutation runs together); add-work "
+                      "does not wait for them.", reply)
 
-    def test_the_replan_the_refusal_names_is_accepted_with_one_corrective_item(self) -> None:
+    def test_the_add_work_the_refusal_names_is_accepted_with_one_corrective_item(self) -> None:
         run, head, callback, path = self.at_system_test(PIPELINE)
         outcome, field = self.named_exit(self.refused(callback, run))
         # What to submit is read from the reply (outcome, the field to record in) and the packet's printed shape.
         shape = first_object(printed_shapes(head)[outcome])
         item = {"id": "W9", "title": "Record the system check", "context": f"Record `{PIPELINE}` as suite check in {field}."}
-        write_block(path, {**shape, "summary": "A recorded command is not a test runner.", "headline": "Replanning.",
+        write_block(path, {**shape, "summary": "A recorded command is not a test runner.", "headline": "Adding work.",
                            "evidence_refs": [str(self.evidence)], "work_items": [item]})
         self.accepted(callback)
         state = self.state(run)
         self.assertEqual([row["id"] for row in state["work_items"]][-1], "W9")
         self.assertNotEqual(nav.current_stage(state), "system-test")
 
-    def test_the_same_pipeline_as_done_is_still_refused_and_only_the_replan_re_records_it(self) -> None:
+    def test_the_same_pipeline_as_done_is_still_refused_and_only_add_work_re_records_it(self) -> None:
         run, _, callback, path = self.at_system_test(PIPELINE)
         self.named_exit(self.refused(callback, run))  # the refusal names its exit before the gate is tried again
         again = self.refused(callback, run)
@@ -1757,7 +1780,7 @@ class UncountedCommandRouteTests(RealCliCase):
         reply = self.refused(callback, run)
         self.assertIn("-> exit 1", reply)
         self.assertIn("Fix the code so every command passes", reply)
-        self.assertNotIn("Report outcome replan now", reply)
+        self.assertNotIn("Report outcome add-work now", reply)
 
     def test_at_a_stage_whose_commands_the_step_plan_recorded_the_reply_keeps_ids_and_a_flag_and_adds_check(self) -> None:
         recorded = {"step-plan": {**RESULTS["step-plan"], "test_commands": [
@@ -1770,7 +1793,7 @@ class UncountedCommandRouteTests(RealCliCase):
         reply = self.refused(callback, run)
         self.assertIn("Give the command ids and a runner flag that prints test names", reply)
         self.assertIn("for a command that is not a test runner, record it as suite `check`", reply)
-        self.assertNotIn("Report outcome replan now", reply)
+        self.assertNotIn("Report outcome add-work now", reply)
 
 
 class InnerGateRouteTests(RealCliCase):
@@ -2012,13 +2035,19 @@ class EveryStageRouteTests(RealCliCase):
         try:
             run, head = self.new_run(stage)
             command, path, action = printed_callback(head)
-            shape = first_object(printed_shapes(head)[outcome])
-            block = {**shape, "summary": "What happened in this stage.", "headline": "A step finished.",
-                     "evidence_refs": [str(self.evidence)]}
             if outcome == "blocked":
-                block["blocked_by"] = "external"
-            if outcome == "replan":
-                block["work_items"] = [{"id": "W9", "title": "Corrective item", "context": "What it fixes."}]
+                # blocked's printed line names no concrete awaiting (it varies by kind; reference#blocked gives
+                # it), so this builds a valid wait directly instead of parsing the printed line as JSON.
+                block = {"outcome": "blocked", "summary": "What happened in this stage.",
+                         "headline": "A step finished.", "evidence_refs": [str(self.evidence)],
+                         "awaiting": {"kind": "answer", "question": "Which way?",
+                                      "no_default": "Nothing else can proceed."}}
+            else:
+                shape = first_object(printed_shapes(head)[outcome])
+                block = {**shape, "summary": "What happened in this stage.", "headline": "A step finished.",
+                         "evidence_refs": [str(self.evidence)]}
+                if outcome == "add-work":
+                    block["work_items"] = [{"id": "W9", "title": "Corrective item", "context": "What it fixes."}]
             write_block(path, block)
             result = self.run_printed(command)
             if result.returncode != 0:
@@ -2030,7 +2059,6 @@ class EveryStageRouteTests(RealCliCase):
         return None
 
     def test_every_printed_outcome_shape_is_accepted_at_every_stage(self) -> None:
-        loops = ()  # write_block stops an INNER stage's loop blocked before a revise, so every revise is submitted
         pairs = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             heads = list(pool.map(lambda stage: self.new_run(stage)[1], EXPECTED_STAGES))
@@ -2040,9 +2068,11 @@ class EveryStageRouteTests(RealCliCase):
             self.assertEqual(sorted(printed_shapes(head)), sorted(o for o in allowed_outcomes(head) if o != "done"),
                              stage)
             self.assertNotIn("<", printed_callback(head)[0], stage)
-            pairs += [(stage, outcome) for outcome in sorted(printed_shapes(head))
-                      if not (outcome == "revise" and stage in loops)]
-        self.assertGreaterEqual(len(pairs), 55)  # 24 stages since the 8-stage inner loop (was 70 over 34)
+            pairs += [(stage, outcome) for outcome in sorted(printed_shapes(head))]
+        # 24 stages * blocked, + send-back on the 6 INNER stages, + add-work on the 9 OUTER stages = 39 (repeat is
+        # retired everywhere, which dropped it from every stage's default outcomes; was 55 over the 8-stage inner
+        # loop with repeat still counted, 70 over 34 stages before that).
+        self.assertEqual(len(pairs), 39)
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             problems = [p for p in pool.map(lambda pair: self.one_outcome(*pair), pairs) if p]
         self.assertEqual(problems, [])

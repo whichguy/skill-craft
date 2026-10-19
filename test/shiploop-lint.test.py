@@ -37,6 +37,9 @@ from shiploop_packet_view import packet_file_named  # noqa: E402
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=PACKAGE, REF_DIR=PACKAGE / "references")
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
+# What a blocked result waits on (run-insights plan N5: awaiting replaces blocked_by); an outside service here.
+SERVICE_WAIT = {"kind": "service", "service": "the package registry", "check": "true",
+                "no_default": "The dependency cannot be installed until the registry is back."}
 
 
 def _system_path() -> str:
@@ -1042,7 +1045,7 @@ class HookTests(Fixture):
             self.assertEqual(len(self.logged()), calls)
             # The bound Until Loop repeats the review, so the graph refuses repeat here.
             before = (self.run_dir / "state.md").read_bytes()
-            with self.assertRaisesRegex(nav.NavigatorError, "verify accepts only done, blocked, revise"):
+            with self.assertRaisesRegex(nav.NavigatorError, "verify accepts only done, blocked, send-back"):
                 complete(self.run_dir, state, dict(DONE, outcome="repeat"), loop=False)
             self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
             self.assertEqual(len(self.logged()), calls)
@@ -1060,7 +1063,7 @@ class HookTests(Fixture):
             self.assertIn("Status: stale. a.py changed after this pass", nav.render(CORE, self.run_dir, state))
             self.assertEqual(len(self.logged()), calls)
     def test_a_later_verify_entry_of_the_item_is_report_only(self):
-        """Auto-fix runs only on the item's first verify entry; after a revise the next entry reports what it would
+        """Auto-fix runs only on the item's first verify entry; after a send-back the next entry reports what it would
         fix and changes nothing (``static_entries`` counts the item's earlier verify entries)."""
         self.commit({"a.py": "x = 1\n"})
         self.start()
@@ -1071,7 +1074,7 @@ class HookTests(Fixture):
             state = store.read_record(self.run_dir / "state.md")
             first = nav.current_action(state)["id"]
             self.assertEqual(store.read_record(self.run_dir / "lint" / (first + ".md"))["applied"], ["a.py"])
-            complete(self.run_dir, state, dict(DONE, outcome="revise", summary="A finding needs a test-spec case."))
+            complete(self.run_dir, state, dict(DONE, outcome="send-back", summary="A finding needs a test-spec case."))
             state = drive(self.run_dir, "verify", edits={
                 "implement": lambda: None,
                 "document": lambda: self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})})
@@ -1482,7 +1485,7 @@ class GateTests(Fixture):
         state = self.start()
         self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
         with self.patched_env(), mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no pass")):
-            complete(self.run_dir, state, dict(DONE, outcome="blocked", blocked_by="external"))
+            complete(self.run_dir, state, dict(DONE, outcome="blocked", awaiting=SERVICE_WAIT))
 
     def test_a_pass_that_cannot_run_never_refuses(self):
         self.commit({"a.py": "x = 1\n"})
@@ -1502,7 +1505,7 @@ class GateTests(Fixture):
         # A blocked result carrying them is refused for the fields it must not carry (the refusal names them and says
         # to delete them); the stage-specific sentence above applies to a done result at another stage.
         with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry lint_waivers"):
-            nav._canonical_result(dict(DONE, outcome="blocked", blocked_by="external", lint_waivers=waivers), stage="implement")
+            nav._canonical_result(dict(DONE, outcome="blocked", awaiting=SERVICE_WAIT, lint_waivers=waivers), stage="implement")
         for stage in lint.GATE_STAGES:
             with self.subTest(stage=stage):
                 self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage=stage)["lint_waivers"],

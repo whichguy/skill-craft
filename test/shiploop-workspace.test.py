@@ -2388,7 +2388,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
 
         self.assertTrue(refusal, "a check that fails on the returned result must refuse done")
         self.assertIn("result returned to", refusal)
-        self.assertIn("replan", refusal)
+        self.assertIn("add-work", refusal)
         self.assertFalse(record["passed"])
         self.assertEqual(record["disposition"], "failed")
         self.assertEqual(record["observed"]["where"], "returned-result")
@@ -2588,12 +2588,12 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(record["disposition"], "could-not-run")
         self.assertEqual({run["status"] for run in record["runs"]}, {"error"})
         self.assertIn("export boom", refusal)
-        self.assertIn("replan", refusal)
+        self.assertIn("add-work", refusal)
         self.assertIn("could not start the 1 listed command, so none ran", refusal)
         self.assertNotIn("ran the 1 listed command", refusal)
         for wrong in ("yours to fix here", "Fix the code"):
             self.assertNotIn(wrong, refusal, "no command started: nothing in the item's code, test or fixture is at fault")
-        self.assertEqual(test_loop._remedy("release-verify"), "replan")
+        self.assertEqual(test_loop._remedy("release-verify"), "add-work")
         self.assertTrue(test_loop.remedy_open(root / "run", "A-rv"), "ShipLoop's own record opens the named route")
         self.assertEqual(test_loop.refused_runs(root / "run", "A-rv"), 0, "could-not-run is not a refused run")
 
@@ -2623,7 +2623,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                 self.assertNotIn("ran the 1 listed command", refusal)
                 self.assertNotIn("yours to fix here", refusal)
                 self.assertNotIn("Fix the code", refusal)
-                self.assertIn("replan", refusal)
+                self.assertIn("add-work", refusal)
                 self.assertIn("not currently known", packet)
 
     def test_a_copy_refusal_that_is_not_about_the_delivery_can_be_retried_with_done(self) -> None:
@@ -2708,7 +2708,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(record["disposition"], "failed")
         self.assertTrue(record["observed"]["ahead"])
         self.assertIn("work area is ahead of the return", refusal)
-        self.assertIn("replan", refusal)
+        self.assertIn("add-work", refusal)
         self.assertIn("release must return it again", refusal)
         # The exit it names: after release returns the fix again, the same check passes on the copy.
         self._plan(root)

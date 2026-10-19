@@ -48,17 +48,21 @@ COMPLETE_RUNS = frozenset({
 })
 EDITS = frozenset({"code", "tests", "docs"})
 PHASES = ("prelude", "inner", "outer")
-OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise"})
+# The four outcomes (run-insights plan N5, owner decision 10, 2026-10-18): done; blocked (only a person or an outside
+# service can unblock it, and the result says what it awaits); send-back (a record an earlier stage wrote is wrong: that
+# stage reruns with this result as evidence); add-work (product work is missing: new work items are built, then the run
+# resumes at system-test-author).  "repeat" is gone: it was never used in 1,845 results, and `next` restarts a stage.
+OUTCOMES = frozenset({"done", "blocked", "send-back", "add-work"})
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
 # and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.
 IMPROVE_RULES = ("always", "last-item", "step")
 
 # A work item whose goal proves wrong while it is being built goes back to its
-# step plan with the evidence, at most MAX_REVISES times; after that the user
-# decides (blocked, blocked_by user).
-REVISE_TO = "step-plan"
-MAX_REVISES = 2
+# step plan with the evidence, at most MAX_SEND_BACKS times; after that the user
+# decides (blocked, awaiting an answer).
+SEND_BACK_TO = "step-plan"
+MAX_SEND_BACKS = 2
 # The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
 STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied and none of the others is broken, shown "
@@ -67,7 +71,7 @@ STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied 
 # is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its check in the step plan) exited 0"
 # The step exit criteria's stopping rule (SPEC S-10 carve-out, owner decision 2026-10-10): the same check still failing
-# after this many genuine fix attempts ends the stage as revise. No script counts the attempts; the model applies it, and
+# after this many genuine fix attempts ends the stage as send-back. No script counts the attempts; the model applies it, and
 # test/shiploop-stage-spec.test.py pins every prose copy to this value.
 GENUINE_FIX_ATTEMPTS = 7
 
@@ -90,7 +94,7 @@ class Stage:
     improve: str | None = None             # one of IMPROVE_RULES, or None
     reads: tuple[str, ...] = ()            # accepted results to read first ("item:" = this item)
     blocks: frozenset[str] = field(default_factory=frozenset)
-    outcomes: tuple[str, ...] = ("done", "repeat", "blocked")
+    outcomes: tuple[str, ...] = ("done", "blocked")
     short_goal: str = ""                   # what a status line shows ("specify this item's tests"); default: goal up to its first colon
     cases: bool = False                    # the test text ends with case_end_states (added once outcomes are final)
     steps_goal: str | None = None          # the goal for an action that builds several steps at once ({steps}, {paths})
@@ -136,20 +140,20 @@ def case_end_states(row: "Stage") -> str:
 
     An OUTER test stage records an unachievable case as an open item and continues, but only for a case whose command
     ShipLoop does not rerun (the navigator's test-rerun gate refuses done while a recorded command fails); an INNER
-    stage sends it back to the step plan with revise.  Blocked and replan are named only where the row accepts them.
+    stage sends it back to the step plan with send-back.  Blocked and add-work are named only where the row accepts them.
     """
     if row.phase == "outer":
         routes = ["record it as an open item in the result's `assumptions`, with the stage it is due at as its "
                   "consumer, and continue, provided its command is not one ShipLoop reruns, since every rerun command "
                   "must pass"]
-    elif "revise" in row.outcomes:
-        routes = ["report revise so the step plan reroutes the case"]
+    elif "send-back" in row.outcomes:
+        routes = ["report send-back so the step plan reroutes the case"]
     else:
-        raise ValueError(f"{row.name}: an unachievable case needs an open-item or a revise route")
+        raise ValueError(f"{row.name}: an unachievable case needs an open-item or a send-back route")
     if "blocked" in row.outcomes:
-        routes.append("report blocked with blocked_by access only when nothing else can proceed")
-    if "replan" in row.outcomes:
-        routes.append("report replan when the plan is wrong")
+        routes.append("report blocked, awaiting a person's grant, only when nothing else can proceed")
+    if "add-work" in row.outcomes:
+        routes.append("report add-work when product work is missing")
     return _CASE_STATES.format(routes=routes[0] if len(routes) == 1 else ", ".join(routes[:-1]) + ", or " + routes[-1])
 
 
@@ -168,7 +172,7 @@ ITEM_COMMITS = (
 _LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
                     + " Delete generated output the product does not need.")
 _LEFT_IN_PLACE = ("ShipLoop commits no other changed file, and you commit nothing yourself: if the product needs one, "
-                  "report revise so the step plan declares it; otherwise delete it.")
+                  "report send-back so the step plan declares it; otherwise delete it.")
 
 
 def item_left(execution_mode: str) -> str:
@@ -361,7 +365,7 @@ _ROWS = (
     ),
     Stage(
         "validate-existing", "inner",
-        goal='Resolve each expectation that mismatched on the item base: fix it in WORKTREE or report revise with `failed_expectations`.',
+        goal='Resolve each expectation that mismatched on the item base: fix it in WORKTREE or report send-back with `failed_expectations`.',
         short_goal='validate the item base',
         done_when=(
             "every works expectation passes its check on the current checkout",
@@ -526,12 +530,12 @@ _ROWS = (
     ),
     Stage(
         "product-acceptance", "outer",
-        goal="Assess the product against the request: each outcome's end state in `summary`, gaps in `unverified`, missing work as replan.",
+        goal="Assess the product against the request: each outcome's end state in `summary`, gaps in `unverified`, missing work as add-work.",
         short_goal='accept the assembled product',
         done_when=(
             "every request outcome was observed by an executed check, or is listed in unverified with its reason, "
             "owner and due stage",
-            "missing product work is routed as replan",
+            "missing product work is routed as add-work",
         ),
         test="Assess the product against the original outcome, not only the spec.",
         reads=("intake", "spec", "system-test-author", "system-test"),
@@ -618,7 +622,8 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     """Add the outcomes that follow from a stage's place in the graph.
 
     INNER stages from test-spec through verify build the item against its step
-    plan, so a goal that proves wrong there goes back to the step plan (revise).  OUTER stages route missing product work as replan.
+    plan, so a goal that proves wrong there goes back to the step plan (send-back).  OUTER stages route missing product
+    work as add-work.
     A row that prints the case end states gets them here, from its final outcomes.
     """
     names = [row.name for row in rows]
@@ -626,9 +631,9 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     finished = []
     for index, row in enumerate(rows):
         if first <= index <= last:
-            row = replace(row, outcomes=row.outcomes + ("revise",))
+            row = replace(row, outcomes=row.outcomes + ("send-back",))
         elif row.phase == "outer":
-            row = replace(row, outcomes=row.outcomes + ("replan",))
+            row = replace(row, outcomes=row.outcomes + ("add-work",))
         if row.cases:
             row = replace(row, test=(row.test + " " if row.test else "") + case_end_states(row))
         finished.append(row)

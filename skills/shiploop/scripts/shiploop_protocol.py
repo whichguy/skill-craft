@@ -638,7 +638,8 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         if name == "resume":
             reply = sub.add_mutually_exclusive_group()
             reply.add_argument("--answer", help="the user's own reply to the question the run is waiting on")
-            reply.add_argument("--observed", help="what the person reported after the steps the run waits on")
+            reply.add_argument("--observed", help="what the person reported after the steps the run waits on, or what an "
+                               "outside service's check printed once it exits 0")
     args = parser.parse_args(argv)
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.

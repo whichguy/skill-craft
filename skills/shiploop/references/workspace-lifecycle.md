@@ -212,7 +212,7 @@ checkout by an absolute path runs there, not in the copy; write paths relative t
 the copy and put what a fresh consumer needs into the check itself. A check that
 fails only in the copy is refused with the copy's location, its usual causes (a path
 the plan excluded, an ignored or unmanaged file, a commit made after the return) and
-the one exit the stage has: `replan` with a corrective work item, so `release`
+the one exit the stage has: `add-work` with a corrective work item, so `release`
 returns the fix and `release-verify` observes it.
 
 ### Follow-up return
@@ -222,7 +222,7 @@ find a defect that needs a product fix. Where the check runs at a stage that may
 return (`release`, `handoff`), commit that fix in the execution
 checkout, rerun its checks, then run `plan-return` and `return` again. At
 `release-verify` the stage cannot return (`workspace return` is allowed only at
-`release` and `handoff`) and its copy still holds the old tree: report `replan` with
+`release` and `handoff`) and its copy still holds the old tree: report `add-work` with
 a corrective work item, and the next `release` returns the fix. The new
 plan still lists every path from the baseline; decisions already recorded for a path
 carry over and new paths are decided with `review-return`. The follow-up starts from the

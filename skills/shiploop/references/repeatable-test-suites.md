@@ -224,15 +224,15 @@ its authorized operation; planning does not authorize deployment. `handoff`
 retains repeatable commands, evidence, ownership and unresolved obligations.
 
 For cold recovery, select root-owned, latest `done` `system-test-author` and
-`release-plan` records after the most recent accepted `replan`, where those
+`release-plan` records after the most recent accepted `add-work`, where those
 producers have completed. Follow their relevant `evidence_refs`; keep pending
-Improve proposals separate from accepted plans. Pending, `repeat` and `blocked`
+Improve proposals separate from accepted plans. Pending and `blocked`
 attempts are not accepted plan sources. When a producer has not run yet, it owns
 creating its plan; a consumer with a missing source must recover it or use its
 supported incomplete/correction outcome. Do not require a future release plan
 to perform integrated system testing.
 
-A corrective replan makes earlier OUTER plans/results historical inputs. Reuse
+A corrective add-work makes earlier OUTER plans/results historical inputs. Reuse
 them only after reconciling the corrective INNER work and current candidate.
 Within the same OUTER pass, changes to product or test code, fixtures,
 configuration, dependencies, target or test definitions also invalidate affected

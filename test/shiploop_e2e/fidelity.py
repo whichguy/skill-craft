@@ -605,7 +605,8 @@ def refusals(tools, out: Path, run_dir: Path | None, state: dict) -> dict:
 
 def end_state(state: dict) -> dict:
     """The engine's own record of where the run stood: status, stage, the stage it never accepted, its stated reason; for a run that ended on
-    a blocked result, ``blocked_by`` and ``awaiting`` (the kind, and whether it states why no default would do), read through
+    a blocked result, ``blocked_by`` (a run recorded before the four outcomes; None in a current one) and ``awaiting`` (the kind: answer,
+    present or service, and whether it states why no default would do), read through
     ``metrics.blocked_detail``, the one reader of the blocked detail (outcome_class's ``termination`` reads it too): only while the engine
     is blocked on its last history action, so an answered block reads None; the product-acceptance ``unverified`` list of the last result
     that carries one (None when no result carries the key). Nothing here is a verdict."""
@@ -767,7 +768,8 @@ def lines(block: dict) -> list[str]:
         result.append(f"refusals unmeasured: {gone.get('refusals')}")
     s = block.get("end_state")
     result.append(f"end state {s['status']}" + (f" at {s['unaccepted_stage']}" if s["unaccepted_stage"] else "")
-                  + (f", blocked by {s['blocked_by']}" if s["blocked_by"] else "")
+                  + (f", blocked by {s['blocked_by']}" if s["blocked_by"]
+                     else f", blocked awaiting {s['awaiting']['kind']}" if s["awaiting"] and s["awaiting"].get("kind") else "")
                   + (f", unverified {s['unverified']['entries']}" if s["unverified"] else "") if s
                   else f"end state unmeasured: {gone.get('end_state')}")
     return result

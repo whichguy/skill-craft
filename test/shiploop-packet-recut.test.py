@@ -602,12 +602,13 @@ class TopBlockHelperTests(unittest.TestCase):
     def test_a_reported_outcome_the_stage_does_not_accept_is_found(self) -> None:
         """named_outcomes reads only 'report <outcome>' and 'Report outcome <outcome>'; unaccepted_outcomes compares them
         with the stage table (no outcome word is listed in the helper)."""
-        self.assertEqual(packet_view.named_outcomes("Report outcome replan now; or report blocked; report it, reported."),
-                         ["replan", "blocked"])
-        self.assertTrue({"done", "blocked", "revise", "replan"} <= packet_view.OUTCOME_WORDS)
-        self.assertEqual(packet_view.unaccepted_outcomes("test", "Report outcome replan now."), ["replan"])
-        self.assertEqual(packet_view.unaccepted_outcomes("system-test", "report revise rather than retrying it"), ["revise"])
-        self.assertEqual(packet_view.unaccepted_outcomes("test", "report revise, or report blocked"), [])
+        self.assertEqual(packet_view.named_outcomes("Report outcome add-work now; or report blocked; report it, reported."),
+                         ["add-work", "blocked"])
+        self.assertEqual({"done", "blocked", "send-back", "add-work"}, packet_view.OUTCOME_WORDS)
+        self.assertEqual(packet_view.unaccepted_outcomes("test", "Report outcome add-work now."), ["add-work"])
+        self.assertEqual(packet_view.unaccepted_outcomes("system-test", "report send-back rather than retrying it"),
+                         ["send-back"])
+        self.assertEqual(packet_view.unaccepted_outcomes("test", "report send-back, or report blocked"), [])
         self.assertEqual(packet_view.unaccepted_outcomes("system-test", "no instruction to report anything"), [])
 
 

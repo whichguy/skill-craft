@@ -108,19 +108,19 @@ REPEAT: Mapping[str, str] = {
         + " Stop blocked only when the plan no longer requires the item. " + _NEVER_CANCEL),
     "test-spec": (
         "Repeat while a criterion has no entry, an entry lacks a field, or the complete command with --check-only refuses an id; " + _NO_LIMIT
-        + " Stop blocked when a criterion cannot be tested as written (the stage then reports revise). "
+        + " Stop blocked when a criterion cannot be tested as written (the stage then reports send-back). "
         + _NEVER_CANCEL),
     "validate-existing": (
         "Repeat while an expectation is mismatched and the latest iteration fixed the environment or a known "
-        "defect; " + _NO_LIMIT + " Otherwise stop blocked: the stage reports revise for a wrong check, an unknown "
+        "defect; " + _NO_LIMIT + " Otherwise stop blocked: the stage reports send-back for a wrong check, an unknown "
         "fix or a fact that changes the plan, and blocked for a fix outside this run. " + _NEVER_CANCEL),
     "implement": (
         "Repeat while a check command fails or the lint command reports a new finding on a changed line and the "
-        "latest iteration changed code to fix it; " + _NO_LIMIT + " Stop blocked when the step is proven "
-        "unachievable as planned (a criterion contradicts another criterion, the item or a protected file; it "
-        "needs a tool, access or authority that is absent; or it would exceed the item), or when the same check "
-        f"still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts (the stage then reports "
-        "revise). " + _NEVER_CANCEL),
+        "latest iteration changed code to fix it; " + _NO_LIMIT + " Stop blocked when none remains: the stage "
+        "reports blocked when a person or an outside service must act (access, authority, a decision), and "
+        "send-back when the plan is proven unachievable as planned (a criterion contradicts another criterion, the "
+        "item or a protected file; it needs a tool that is absent; or it would exceed the item), or when the same "
+        f"check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts. " + _NEVER_CANCEL),
     "test": (
         "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
         "below the floor, a new ID passing on the base, a lint finding or a check-only refusal, and changed code or "
@@ -144,15 +144,17 @@ REPEAT: Mapping[str, str] = {
 }
 
 # The inline implement step's repeat rule (implement-step fix plan section 3.4): it continues while an exit condition is
-# unmet and a justified investigation or fix remains, and it reports revise with the attempts made otherwise.
+# unmet and a justified investigation or fix remains.  Otherwise it reports blocked when a person or an outside service
+# must act, and send-back, with the attempts made, when the step cannot be done as planned (E3, plan 8.5).
 # REPEAT["implement"] stays the ask-agent route's whole-plan rule, as its Work does (the fix plan's T31).
 REPEAT_STEP = (
     "Repeat while an exit condition is unmet (the Proof fails, a new lint finding stands on a changed line, a criterion "
-    "is not yet shown) and a justified investigation or fix remains; " + _NO_LIMIT + " Stop blocked and report revise, "
-    "with the blocker and the attempts made, when no justified next action remains, when the step is proven "
-    "unachievable as planned (it contradicts a requirement, a decision, the item or a protected file; it needs a tool, "
-    "access or authority that is absent; or it would exceed the item), or when the same underlying failure persists "
-    f"after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts. " + _NEVER_CANCEL)
+    "is not yet shown) and a justified investigation or fix remains; " + _NO_LIMIT + " Stop blocked when none "
+    "remains: report blocked when a person or an outside service must act (access, authority, a decision); report "
+    "send-back, with the blocker and the attempts made, when the step is proven unachievable as planned (it contradicts "
+    "a requirement, a decision, the item or a protected file; it needs a tool that is absent; or it would exceed the "
+    f"item), or when the same underlying failure persists after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts. "
+    + _NEVER_CANCEL)
 
 # Verify's review gate: one complete iteration that finds only trivial issues.  Every other stage completes on its
 # first iteration whose exit assessment is satisfied.
@@ -203,7 +205,7 @@ def step_anchors(plan: Mapping[str, Any], step: Mapping[str, Any]) -> dict[str, 
 
 
 # The last duty item a stage's loop does.  Every stage's loop does its whole duty but verify's: its last three items
-# (commit nothing, the summary, the revise route) follow the review loop.
+# (commit nothing, the summary, the send-back route) follow the review loop.
 _LOOP_LAST: Mapping[str, int] = {"verify": 9}
 
 
@@ -667,8 +669,9 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
     The packet must come from a run of ``expected`` (rebuilt from ShipLoop state).  ``complete`` supports only
     ``done``; its final report must assess the exit satisfied and, when the contract asks for trivial reviews, be
     trivial (with none asked, a non-trivial final report is accepted, as the runtime completes on it).  A
-    ``blocked`` stop supports ``revise`` or ``blocked``; a ``cancelled`` stop supports nothing; an active receipt is
-    a loop still running.
+    ``blocked`` stop supports ``send-back`` or ``blocked``; a ``cancelled`` stop supports nothing; an active receipt is
+    a loop still running.  The status is checked before the contract (E4, plan 8.5): a live run from another contract
+    must end first, because the runtime refuses a new start over an active receipt.
     """
     outcome = result.get("outcome")
     if start and not os.path.lexists(path):
@@ -689,6 +692,10 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
     _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping)
           and frozenset(progress) in _PROGRESS_KEYS,
           "the Until Loop terminal packet lacks its conditions or progress")
+    status = packet.get("status")
+    _need(status != "active",
+          "the " + label + " is still active: run the receipt's next_argv once, follow the returned packet until "
+          "its status is complete or stopped, then submit " + str(outcome) + " again")
     _need(packet.get("workspace") == expected["workspace"]
           and packet.get("work") == expected["work"]
           and conditions.get("exit") == expected["exit_condition"]
@@ -697,10 +704,6 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
           and packet.get("context") == expected["context"],
           "the terminal packet is not from a run of this action's contract " + contract_file
           + (": start the loop again with " + start if start else ""))
-    status = packet.get("status")
-    _need(status != "active",
-          "the " + label + " is still active: run the receipt's next_argv once, follow the returned packet until "
-          "its status is complete or stopped, then submit " + str(outcome) + " again")
     _need(status in ("complete", "stopped"),
           "the terminal packet must have status complete or stopped, found " + repr(status))
     state_file = packet.get("state_file")
@@ -725,8 +728,8 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
           "the " + label + " was cancelled after " + str(iterations) + " iterations; it has no iteration "
           "limit. A user's stop is the packet's pause command, not a cancelled loop: start the loop again"
           + (" with " + start if start else "") + " and run it until its exit condition holds")
-    _need(outcome in ("blocked", "revise"),
-          "a " + label + " stopped as blocked reports outcome blocked, with blocked_by, or revise when the "
+    _need(outcome in ("blocked", "send-back"),
+          "a " + label + " stopped as blocked reports outcome blocked, with awaiting, or send-back when the "
           "work proved wrong as planned")
 
 
@@ -740,9 +743,9 @@ def _remedy_open(root: Path, action_id: str) -> bool:
 
 
 def _verify_refused(root: Path, action_id: str) -> bool:
-    """verify's rerun refused at least once: its refusals name revise (a test below the floor, a check unachievable as
+    """verify's rerun refused at least once: its refusals name send-back (a test below the floor, a check unachievable as
     planned), and verify's review loop has already ended, so that route is accepted.  The test stage differs: one
-    refused run there is fixed and resubmitted as done, and revise opens only at the cap (``remedy_open``)."""
+    refused run there is fixed and resubmitted as done, and send-back opens only at the cap (``remedy_open``)."""
     import shiploop_test_loop as test_loop
 
     refused = getattr(test_loop, "refused_runs", None)
@@ -754,7 +757,7 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
 
     Reads the action's receipt, which ShipLoop derives (the result need not list it: ``cite_receipt`` adds it to
     evidence_refs once this check holds), and compares it with the contract rebuilt from state, never the contract
-    file.  Refused: ``repeat`` (the loop repeats, not the graph), an outcome the stage does not accept, a missing
+    file.  Refused: an outcome the stage does not accept, a missing
     receipt for any outcome but blocked, an active receipt, or a packet from another contract.  Returns the receipt
     it checked, or None when the result is accepted without one (a blocked result before the loop started, a route
     out of the test or verify stage).
@@ -763,14 +766,14 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     _need(found is not None, "the run is not in an inner stage, so it has no stage loop")
     stage, action_id, _ = found
     outcome = result.get("outcome") if isinstance(result, Mapping) else None
-    allowed = tuple(name for name in stage_spec.stage(stage).outcomes if name != "repeat")
+    allowed = stage_spec.stage(stage).outcomes
     _need(outcome in allowed,
           stage + " accepts only " + ", ".join(allowed) + "; the bound Until Loop repeats the work, not the graph")
     root = Path(root)
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
-        return None  # The loop never started (for example, no runtime resolves); the summary and blocked_by say why.
-    if outcome in ("revise", "blocked") and (
+        return None  # The loop never started (for example, no runtime resolves); the summary and awaiting say why.
+    if outcome in ("send-back", "blocked") and (
             (stage in ("test", "verify") and _remedy_open(root, action_id))
             or (stage == "verify" and _verify_refused(root, action_id))):
         return None

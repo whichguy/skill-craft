@@ -106,7 +106,7 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
     usable by source readers that receive a compact/synthetic state projection.
     It keeps the latest done result per (workitem, stage); a chronological
     reconcile row removes the root planning suffix beginning at its target,
-    and a revise row removes its work item's results from the step plan on.
+    and a send-back row removes its work item's results from the step plan on.
     """
     if not isinstance(state, Mapping):
         return {}
@@ -127,9 +127,9 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
             workitem = entry.get("workitem")
             result[(workitem if isinstance(workitem, str) else None, stage)] = action
             continue
-        if outcome == "revise":
+        if outcome == "send-back":
             workitem = entry.get("workitem")
-            reopened = frozenset(stage_spec.INNER[stage_spec.INNER.index(stage_spec.REVISE_TO):])
+            reopened = frozenset(stage_spec.INNER[stage_spec.INNER.index(stage_spec.SEND_BACK_TO):])
             for key in tuple(result):
                 if key[0] == workitem and key[1] in reopened:
                     result.pop(key)

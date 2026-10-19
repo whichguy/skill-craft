@@ -248,7 +248,7 @@ def head_packet_path(stdout: str) -> Optional[Path]:
 
 # The outcome words of the whole graph, read from the stage table, never listed here.
 OUTCOME_WORDS = frozenset(outcome for row in stage_spec.STAGE_SPEC.values() for outcome in row.outcomes)
-# Only these two phrases name an outcome to report ("report revise ...", "Report outcome replan now ..."): a wider reading
+# Only these two phrases name an outcome to report ("report send-back ...", "Report outcome add-work now ..."): a wider reading
 # would match "report it", "reported" and prose that is not an instruction.
 _NAMED_OUTCOME = re.compile(r"\b[Rr]eport (?:outcome )?(" + "|".join(sorted(OUTCOME_WORDS)) + r")\b")
 

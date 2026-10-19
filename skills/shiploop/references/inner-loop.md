@@ -1,6 +1,6 @@
 # The inner loop
 
-Split from the ShipLoop skill card (`../SKILL.md`). Read when an inner stage (`step-plan` through `carry-forward`) needs the rule behind its packet, or a stage reports `revise`.
+Split from the ShipLoop skill card (`../SKILL.md`). Read when an inner stage (`step-plan` through `carry-forward`) needs the rule behind its packet, or a stage reports `send-back`.
 
 Each work item runs 8 stages in 5 phases (`INNER` in
 `scripts/shiploop_stage_spec.py`):
@@ -34,7 +34,7 @@ Each work item runs 8 stages in 5 phases (`INNER` in
   [skill decision](#carry-forward-skill-decision).
 
 From `test-spec` through `verify`, a goal that proves wrong goes back to the
-step plan ([Revise](#revise-back-to-the-step-plan)).
+step plan ([Send-back](#send-back-back-to-the-step-plan)).
 
 ## Stage Until Loops
 
@@ -63,7 +63,7 @@ beside ShipLoop.
 
 At `complete` ShipLoop reads the receipt that the result names in `evidence_refs`
 and compares it with the contract rebuilt from run state, never the file on disk
-(`loops.check_terminal`). It refuses `repeat` (the loop repeats, not the graph),
+(`loops.check_terminal`). It refuses an outcome the stage does not accept,
 a missing or still-active receipt and a packet from another contract; `blocked`
 needs no receipt when the loop never started. `verify` exits only after one
 complete iteration that finds only trivial issues; every other stage exits on
@@ -94,7 +94,7 @@ that expectation's paths. Do not commit it: on `done` ShipLoop reruns every
 check, refuses a mismatch or a change outside those paths, and on accept commits
 the fix as its own preparatory commit. The test stage's base run starts from
 that commit. A wrong check, an unknown fix or a fact that changes the plan is
-`revise`, with `failed_expectations: [{"id", "actual", "route": "check" | "steps"}]`.
+`send-back`, with `failed_expectations: [{"id", "actual", "route": "check" | "steps"}]`.
 
 ## Carry-forward skill decision
 
@@ -104,17 +104,17 @@ For `update` and `create` ShipLoop refuses a `path` that is not an existing
 and on accept commits the skill's directory. When to create or update a skill:
 [carry-forward contract](carry-forward.md).
 
-## Revise: back to the step plan
+## Send-back: back to the step plan
 
 A fixable problem is never `blocked`. When a work item's goal proves wrong or
 unachievable while it is being built, from `test-spec` through
-`verify`, the stage reports `revise`: the item goes back to
+`verify`, the stage reports `send-back`: the item goes back to
 `step-plan` with that result as evidence, and its earlier results from the step
-plan on stop counting as current. Each work item may revise twice; after that
-ShipLoop refuses `revise` and the stage reports `blocked` with `blocked_by: user`
+plan on stop counting as current. Each work item may be sent back twice; after that
+ShipLoop refuses `send-back` and the stage reports `blocked` with `awaiting` a decision
 and a question. A script-run loop has no iteration limit: it runs until its
 exit condition holds. One that stops blocked because the item's goal proved wrong
-reports `revise`; a cancelled loop is refused, because a user's stop is the
+reports `send-back`; a cancelled loop is refused, because a user's stop is the
 packet's `pause` command. The per-item
 count is kept in `state.md` `revisions`. The redone step-plan packet names the
 item's previous step plan and the result that sent it back (both under
@@ -127,7 +127,5 @@ After the navigator accepts `carry-forward` and imports its bound Improve comple
 locked state transaction marks the completed item, retains its evidence, and
 either creates the next item's `step-plan` action or returns ownership to
 `system-test-author`. Root status and queue remain global. At a PRELUDE or OUTER
-stage a `repeat` replaces only the current producer action (an INNER stage's
-Until Loop repeats instead); an active Improve child resumes through its
-own recorded state. A blocked child or producer keeps the parent action
+stage an active Improve child resumes through its own recorded state. A blocked child or producer keeps the parent action
 incomplete rather than creating a hidden success edge.

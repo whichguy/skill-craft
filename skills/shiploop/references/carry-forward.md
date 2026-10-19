@@ -91,7 +91,7 @@ work cannot disappear just because no other item consumes it. A completed
 prerequisite invalidated by new evidence needs corrective work and revalidation
 before its consumer; do not rewrite past completion evidence.
 
-Outer stages use `replan` for corrective work items instead.
+Outer stages use `add-work` for corrective work items instead.
 
 ## Safe observations
 

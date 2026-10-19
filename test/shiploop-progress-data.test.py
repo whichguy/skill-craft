@@ -238,12 +238,10 @@ class ProgressDataTests(unittest.TestCase):
         self.assertFalse(first["graphs"][0]["dependencies_known"])
         self.assertEqual(first["graphs"][0]["edges"], [])
 
-        revise_action = navigator.current_action(state)["id"]
-        revise_stage = navigator.current_stage(state)
-        state = navigator.apply(state, revise_action,
-                                {"outcome": "revise", "summary": "Replace the parser plan."})
-        if state.get("active_improve"):
-            state = navigator.finish_improve(state, revise_action, _improve_receipt(revise_stage))
+        send_back_action = navigator.current_action(state)["id"]
+        state = navigator.apply(state, send_back_action,
+                                {"outcome": "send-back", "summary": "Replace the parser plan."})
+        self.assertIsNone(state.get("active_improve"))  # Improve starts only on a done result.
         state = self.accept(state, steps=[{"id": "S3", "task": "Use the revised parser"}])
         self.save_state(state)
         after = progress_data.build_snapshot(self.run_root)

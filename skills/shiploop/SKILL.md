@@ -53,7 +53,7 @@ purpose files; open one when its trigger holds, read it whole, once:
 - [Guides by stage](references/guide-map.md): discovery, research, spec and planning guides and the knowledge home.
 - [When Improve runs](references/improve-stages.md): which results an Improve child reviews and how its passes end.
 - [The Improve child](references/improve-child.md): an Improve stage is current, or you recover or restart one.
-- [The inner loop](references/inner-loop.md): an inner stage's rule, its Until Loop, expectations, `revise`.
+- [The inner loop](references/inner-loop.md): an inner stage's rule, its Until Loop, expectations, `send-back`.
 - [Test loop and confirmation](references/test-loop.md): test commands, base and candidate runs, floors, criteria.
 - [Chains: route and binding](references/chain-route.md) and [navigation](references/chain-navigation.md): a
   `delegation: ask-agent` run at `implement`, or any `chain` command.
@@ -371,9 +371,8 @@ question about the loop is not a stop: answer it and continue the packet.
 4. The owning agent writes the packet's generic Markdown result and runs its
    exact completion command (`complete`), retaining the action ID. At an Improve
    checkpoint a `done` outcome starts the bound Improve child rather
-   than advancing the graph directly; `repeat` requests another producer attempt
-   at a PRELUDE or OUTER stage, and `blocked`
-   preserves unfinished work. These are result outcomes, not permission to pick
+   than advancing the graph directly; `blocked` preserves unfinished work, `send-back` returns
+   the item to its step plan and `add-work` adds corrective items. These are result outcomes, not permission to pick
    an arbitrary successor. Consume the returned packet before beginning another
    stage.
 5. After interruption, use the saved recovery command (`next`) before repeating

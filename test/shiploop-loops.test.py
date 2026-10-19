@@ -37,6 +37,10 @@ TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continu
 MATERIAL = dict(TRIVIAL, classification="non-trivial", exit_assessment="unsatisfied")
 BLOCKED = dict(MATERIAL, continuation_assessment="blocked")
 CANCELLED = dict(MATERIAL, continuation_assessment="cancelled")
+# What a blocked result waits on (run-insights plan N5): the Until Loop runtime is an outside service, so these tests
+# block on a service wait, whose read-only check says when it is back.
+SERVICE_WAIT = {"kind": "service", "service": "the Until Loop runtime", "check": "true",
+                "no_default": "The loop cannot run without its runtime, and nothing else in this stage can proceed."}
 
 
 # The slash command for the loop, as a regular expression: "/until-loop" that is not the start of a path segment
@@ -217,6 +221,21 @@ class ContractTests(Synthetic):
         # its exits keep the steps' wording, and no step-proof gate applies to it (shiploop-test-loop, T31's gate test)
         self.assertTrue(value["exit_condition"].startswith("1. only the paths of steps S1 to S2"))
         self.assertEqual(value["repeat_condition"], loops.REPEAT["implement"])
+
+    def test_the_repeat_texts_route_a_person_or_a_service_to_blocked_and_an_unachievable_plan_to_send_back(self):
+        """Run-insights plan N5 (E3): when no further iteration helps, blocked is only for a person's or a service's action
+        (access, authority, a decision) and send-back is for a plan proven unachievable as planned; the retired outcome
+        names appear in no repeat text."""
+        for name, text in (("REPEAT_STEP", loops.REPEAT_STEP), ("REPEAT[implement]", loops.REPEAT["implement"])):
+            with self.subTest(text=name):
+                flat = " ".join(text.split())
+                self.assertIn("blocked when a person or an outside service must act (access, authority, a decision)", flat)
+                self.assertIn("send-back", flat)
+                self.assertIn("unachievable as planned", flat)
+        for name, text in {**loops.REPEAT, "REPEAT_STEP": loops.REPEAT_STEP}.items():
+            with self.subTest(retired_in=name):
+                for retired in ("revise", "replan"):
+                    self.assertNotIn(retired, text)
 
     def test_verify_writes_the_code_craft_rubric_its_contract_names(self):
         writes = self.write(self.state_for("verify"))
@@ -505,15 +524,29 @@ class CheckTerminalTests(Synthetic):
                 final = self.report(receipt, dict(TRIVIAL, classification=classification))
                 self.assertEqual(final["status"], "complete", final)
                 loops.check_terminal(self.root, state, {"outcome": "done", **refs})
+                # repeat is retired: the bound Until Loop repeats the work, so no outcome repeats the graph.
                 self.refused(state, {"outcome": "repeat", **refs},
-                             f"{stage} accepts only done, blocked, revise; the bound Until Loop repeats the work")
-                self.refused(state, {"outcome": "revise", **refs}, f"a complete {stage} loop reports outcome done")
+                             f"{stage} accepts only done, blocked, send-back; the bound Until Loop repeats the work")
+                self.refused(state, {"outcome": "send-back", **refs}, f"a complete {stage} loop reports outcome done")
                 # ShipLoop lists the receipt itself (U10, X-15): the check needs only the file, and returns it.
                 self.assertEqual(loops.check_terminal(self.root, state, {"outcome": "done", "evidence_refs": []}), receipt)
                 self.assertEqual(loops.cite_receipt({"outcome": "done", "evidence_refs": []}, receipt)["evidence_refs"],
                                  [str(receipt)])
                 self.refused(self.state_for(stage, title="Other title"), {"outcome": "done", **refs},
                              "not from a run of this action's contract")
+
+    def test_an_active_receipt_is_reported_before_the_contract_is_compared(self):
+        """E4 (run-insights plan 8.5): a live run from another contract must end first, because the runtime refuses a new
+        start over an active receipt, so a contract mismatch named first would send the model to a start command that is
+        refused.  Once the run ends, the same result is refused for its contract."""
+        state, receipt = self.start("verify")
+        other = self.state_for("verify", title="Other title")
+        refs = {"evidence_refs": [str(receipt)]}
+        self.refused(other, {"outcome": "done", **refs}, "the verify loop is still active")
+        self.refused(other, {"outcome": "send-back", **refs}, "the verify loop is still active")
+        self.report(receipt, TRIVIAL)
+        self.refused(other, {"outcome": "done", **refs}, "not from a run of this action's contract")
+        loops.check_terminal(self.root, state, {"outcome": "done", **refs})
 
     def test_cite_receipt_lists_the_checked_receipt_once_and_changes_nothing_else(self):
         receipt = Path("/run/loops/A-terminal.json")
@@ -557,15 +590,15 @@ class CheckTerminalTests(Synthetic):
                       str(caught.exception))
         self.assertIn("Start it with: " + start, str(caught.exception))
         loops.check_terminal(self.root, state, {"outcome": "blocked", "evidence_refs": []})
-        self.refused(state, {"outcome": "revise", "evidence_refs": []}, "carry-forward accepts only done, blocked;")
+        self.refused(state, {"outcome": "send-back", "evidence_refs": []}, "carry-forward accepts only done, blocked;")
 
-    def test_a_blocked_stop_supports_blocked_or_revise_and_a_cancelled_one_nothing(self):
+    def test_a_blocked_stop_supports_blocked_or_send_back_and_a_cancelled_one_nothing(self):
         state, receipt = self.start("test-spec")
         self.assertEqual(self.report(receipt, BLOCKED)["status"], "stopped")
-        for outcome in ("blocked", "revise"):
+        for outcome in ("blocked", "send-back"):
             loops.check_terminal(self.root, state, {"outcome": outcome, "evidence_refs": [str(receipt)]})
         self.refused(state, {"outcome": "done", "evidence_refs": [str(receipt)]},
-                     "a test-spec loop stopped as blocked reports outcome blocked")
+                     "a test-spec loop stopped as blocked reports outcome blocked, with awaiting, or send-back")
         state, receipt = self.start("step-plan")
         self.report(receipt, CANCELLED)
         for outcome in ("done", "blocked"):
@@ -667,7 +700,7 @@ class NavigatorLoopTests(fx.RunDriver):
         self.drive_to("verify")
         before = (self.run_dir / "state.md").read_bytes()
         for result, message in ((fx.DONE, "the verify loop has not run: no terminal packet exists at"),
-                                (dict(fx.DONE, outcome="repeat"), "verify accepts only done, blocked, revise")):
+                                (dict(fx.DONE, outcome="repeat"), "verify accepts only done, blocked, send-back")):
             with self.subTest(message=message), self.assertRaisesRegex(nav.NavigatorError, message):
                 self.submit(result)
         edits = {"work": lambda contract: contract.update(work="Something easier."),
@@ -722,9 +755,9 @@ class NavigatorLoopTests(fx.RunDriver):
         terminal = self.run_loop([MATERIAL] * 6 + [TRIVIAL])
         self.assertEqual(terminal["progress"]["action_number"], 7)
         refs = [str(self.receipt())]
-        for outcome in ("revise", "blocked"):
+        for outcome in ("send-back", "blocked"):
             with self.assertRaisesRegex(nav.NavigatorError, "a complete verify loop reports outcome done"):
-                self.submit(dict(fx.DONE, outcome=outcome, blocked_by="external", evidence_refs=refs))
+                self.submit(dict(fx.DONE, outcome=outcome, awaiting=SERVICE_WAIT, evidence_refs=refs))
         self.submit(dict(fx.DONE, evidence_refs=refs))
         self.assertEqual(nav.current_stage(self.state()), "carry-forward")
 
@@ -733,15 +766,15 @@ class NavigatorLoopTests(fx.RunDriver):
         self.drive_to("verify")
         self.run_loop([MATERIAL] * 4 + [CANCELLED])
         refs = [str(self.receipt())]
-        for outcome in ("done", "revise", "blocked"):
+        for outcome in ("done", "send-back", "blocked"):
             with self.assertRaisesRegex(nav.NavigatorError, "cancelled after 5 iterations; it has no iteration "
                                                              "limit.*pause command"):
-                self.submit(dict(fx.DONE, outcome=outcome, blocked_by="external", evidence_refs=refs))
+                self.submit(dict(fx.DONE, outcome=outcome, awaiting=SERVICE_WAIT, evidence_refs=refs))
         self.receipt().unlink()
         self.run_loop([BLOCKED])
         with self.assertRaisesRegex(nav.NavigatorError, "stopped as blocked reports outcome blocked"):
             self.submit(dict(fx.DONE, evidence_refs=refs))
-        self.submit(dict(fx.DONE, outcome="blocked", blocked_by="external",
+        self.submit(dict(fx.DONE, outcome="blocked", awaiting=SERVICE_WAIT,
                          summary="Material finding at iteration 1.", evidence_refs=refs))
         self.assertEqual(self.state()["status"], "blocked")
 
@@ -750,7 +783,7 @@ class NavigatorLoopTests(fx.RunDriver):
         self.start()
         self.drive_to("verify")
         self.assertFalse(self.receipt().exists())
-        self.submit(dict(fx.DONE, outcome="blocked", blocked_by="external", summary="Until Loop runtime unavailable."))
+        self.submit(dict(fx.DONE, outcome="blocked", awaiting=SERVICE_WAIT, summary="Until Loop runtime unavailable."))
         self.assertEqual(self.state()["status"], "blocked")
 
     def test_an_earlier_inner_stage_is_gated_the_same_way(self):
@@ -860,7 +893,7 @@ class WorkTextTests(Synthetic):
     DUTY_ITEMS = {"step-plan": 12, "test-spec": 8, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
                   "verify": 12, "carry-forward": 4}
     # The items each Work cites.  A stage's loop does its whole duty but verify's: items 10 to 12 (commit nothing, the
-    # summary, the revise route) follow the review loop, and its duty says items 1-7 repeat and 8-9 are done once.
+    # summary, the send-back route) follow the review loop, and its duty says items 1-7 repeat and 8-9 are done once.
     LOOP_LAST = {"verify": 9}
 
     def numbers(self, stage: str, route: str) -> list:
@@ -982,7 +1015,7 @@ class OneStepRunTests(unittest.TestCase):
         history = [{"action": "sp", "stage": "step-plan", "workitem": "W1", "outcome": "done"}]
         history += [{"action": "i" + str(n), "stage": "implement", "workitem": "W1", "outcome": "done"}
                     for n in range(implements)]
-        plan = {"outcome": "done" if plan_done else "revise"}
+        plan = {"outcome": "done" if plan_done else "send-back"}
         if steps is not None:
             plan["steps"] = [{"id": "S" + str(n + 1)} for n in range(steps)]
         return {"work_items": [{"id": "W" + str(n + 1)} for n in range(items)], "history": history,

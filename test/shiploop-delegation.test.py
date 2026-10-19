@@ -331,7 +331,7 @@ class StepTests(DelegationStateTests):
             self.assertNotIn(fence, line)
 
     def test_each_step_packet_carries_its_own_proof_and_no_item_check(self):
-        """Chess run 2026-10-17: S1 was given a grep for files only S3 creates, failed, and the revise merged S1-S3.
+        """Chess run 2026-10-17: S1 was given a grep for files only S3 creates, failed, and the send-back (then called revise) merged S1-S3.
 
         The step Proof replaces 603a709c's interim rule (a check due from the step that finishes its criteria): each step
         packet names the one command its step plan recorded for it, and the item's check rows stay with test and verify.
@@ -429,10 +429,10 @@ class StepTests(DelegationStateTests):
         self.assertNotIn("Step S1", self.render(state))
         self.assertNotEqual(nav.current_stage(self.done(state, "Chain finished.")), "implement")
 
-    def test_a_revised_step_plan_restarts_its_steps(self):
+    def test_a_sent_back_step_plan_restarts_its_steps(self):
         state = self.done(self.at_implement(), "divide() added.")
         state = nav.apply(state, nav.current_action(state)["id"],
-                          {"outcome": "revise", "summary": "S2 cannot be done as planned."})
+                          {"outcome": "send-back", "summary": "S2 cannot be done as planned."})
         self.assertEqual(nav.current_stage(state), "step-plan")
         action = nav.current_action(state)["id"]
         state = nav.apply(state, action, {"outcome": "done", "summary": "Revised plan.",
@@ -441,6 +441,23 @@ class StepTests(DelegationStateTests):
             state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         state = advance(state, "implement")
         self.assertIn("Step T1 (1 of 1)", self.render(state))
+
+    def test_only_a_done_result_starts_an_improve_child_at_every_reviewed_stage(self):
+        """N5: Improve starts only on a done result.  Before it, a blocked result at a planning stage parked an Improve
+        child as well; now it blocks the run with none, and the same stage's done result still parks one."""
+        wait = {"kind": "answer", "question": "Which of the two?", "no_default": "Both readings are consistent with the request."}
+        reviewed = sorted(nav.guidance.PLANNING_REVIEW_STAGES) + ["implement", "carry-forward"]
+        for stage in reviewed:
+            with self.subTest(stage=stage):
+                state = advance(self.state(), stage) if stage != "implement" else self.at_implement()
+                action = nav.current_action(state)["id"]
+                blocked = nav.apply(state, action, {"outcome": "blocked", "summary": "Needs a decision.", "awaiting": wait})
+                self.assertEqual((blocked["status"], blocked.get("active_improve")), ("blocked", None))
+                done = {"outcome": "done", "summary": "Synthetic " + stage + " declaration.",
+                        **({"work_items": [{"id": "W1", "title": "Synthetic item"}]} if stage == "plan" else {}),
+                        **({"steps": self.STEPS} if stage == "step-plan" else {})}
+                parked = nav.apply(state, action, done)
+                self.assertEqual((parked["status"], (parked.get("active_improve") or {}).get("stage")), ("active", stage))
 
     def test_step_dependencies_preserve_legacy_plans_and_reject_invalid_edges(self):
         legacy = [{"id": "S1", "task": "First"}, {"id": "S2", "task": "Second"}]
@@ -648,8 +665,9 @@ class PacketContractTests(DelegationStateTests):
         # U8: the label says why the command is run exactly as printed (no pipe, redirect, ";" or variable).
         self.assertIn(prompts.CALLBACK_REASON, callback_line(head))
         self.assertNotIn("Write the structured result to: ", entry)
-        # repeat is no longer an inner outcome (8-stage loop, 2026-10-10).
-        self.assertIn("\nAllowed outcomes: done | blocked | revise", entry)
+        # The four outcomes (run-insights plan N5): done and blocked everywhere, send-back from test-spec through verify,
+        # add-work at the outer stages; revise, replan and repeat are retired and no packet names them.
+        self.assertIn("\nAllowed outcomes: done | blocked | send-back (", entry)
         self.assertLess(entry.index("Current stage guidance:"), entry.index("\nAllowed outcomes: "))
         self.assertNotIn("Call this when done:", entry)
         self.assertEqual(entry.count("Callback for this stage"), 1)
@@ -660,7 +678,18 @@ class PacketContractTests(DelegationStateTests):
         self.assertNotIn("advances directly", entry)
         self.assertNotIn("If work cannot continue, submit outcome 'blocked'", entry)
         self.assertFalse([line for line in entry.splitlines() if line.startswith("Improve:")])
-        self.assertIn('blocked: {"outcome": "blocked", "blocked_by": "user | access | external"', entry)
+        # A blocked result says what only a person or an outside service can unblock, as `awaiting` of one of three kinds.  The
+        # packet's shape line leads to them (its own text or the run reference's #blocked, which holds the long form).
+        blocked_line = next(line for line in entry.splitlines() if line.startswith("blocked ("))
+        self.assertTrue(blocked_line.startswith('blocked (only a person or an outside service can unblock it): {"outcome": "blocked"'),
+                        blocked_line)
+        self.assertIn('"awaiting"', blocked_line)
+        long_form = reference.render(advance(self.state(), "verify"), Path("/simulation-only/run"))
+        for kind in ('{"kind": "answer", "question": ', '{"kind": "present", "steps": ', '{"kind": "service", "service": '):
+            self.assertIn(kind, blocked_line + "\n" + long_form)
+        self.assertIn('"no_default": "..."', long_form)  # why no recorded default would do, which ShipLoop requires of every wait
+        self.assertIn('\nsend-back: {"outcome": "send-back", "summary": "<what in the step plan or test spec is wrong>"}', entry)
+        self.assertNotIn("blocked_by", entry)
         # No route offers a pause for a context clear: the host cannot be cleared from a packet.
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
@@ -671,9 +700,12 @@ class PacketContractTests(DelegationStateTests):
         self.assertIn("replaces the queue after this item",
                       self.render(advance(self.state(), "carry-forward")))
         outer = self.render(advance(self.state(), "system-test-author"))
-        self.assertIn("Allowed outcomes: done | repeat | blocked | replan (corrective work_items", outer)
+        self.assertIn("Allowed outcomes: done | blocked | add-work (product work is missing: corrective work_items", outer)
+        self.assertIn('\nadd-work: {"outcome": "add-work", "summary": "<what the corrective items fix>", "work_items": [', outer)
         for packet in (entry, outer):
             self.assertNotIn("reconcile", packet.split("Allowed outcomes:", 1)[1].split("\n", 1)[0])
+            self.assertNotRegex(packet, r"\b(?:revise|replan|repeat)\b.{0,3}(?::|\|)")  # no retired name in an outcome list or shape
+            self.assertNotIn("blocked_by", packet)
 
     def test_fresh_contexts_find_the_skill_card_and_the_item_plan(self):
         state = advance(self.state(), "implement")
@@ -739,10 +771,12 @@ class PacketContractTests(DelegationStateTests):
                 self.assertNotIn("complete intended queue", self.render(waiting))
                 with self.assertRaisesRegex(nav.NavigatorError, "must list the complete intended queue"):
                     nav.finish_improve(waiting, action, receipt, {"outcome": "done", "summary": "Revised."})
-                # Non-done dispositions and an explicit queue are unaffected.
-                # carry-forward runs an Until Loop, so repeat is not one of its outcomes; blocked is its non-done one.
-                other = ({"outcome": "repeat", "summary": "Redo."} if "repeat" in nav.stage_spec.stage(stage).outcomes
-                         else {"outcome": "blocked", "summary": "Waiting on a service.", "blocked_by": "external"})
+                # Non-done dispositions and an explicit queue are unaffected.  Blocked is the one non-done outcome these
+                # stages have (repeat is retired), and it names what it awaits.
+                self.assertEqual(nav.stage_spec.stage(stage).outcomes, ("done", "blocked"))
+                other = {"outcome": "blocked", "summary": "Waiting on a service.",
+                         "awaiting": {"kind": "service", "service": "the registry", "check": "true",
+                                      "no_default": "No recorded default makes the registry answer."}}
                 nav.finish_improve(waiting, action, receipt, other)
                 nav.finish_improve(waiting, action, receipt,
                                    {"outcome": "done", "summary": "Revised.", "work_items": proposal})

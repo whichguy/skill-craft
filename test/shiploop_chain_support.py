@@ -145,27 +145,38 @@ class ChainFixture(unittest.TestCase):
         )
         self.historical_missing = self.planning_dir / "retired-discovery.md"
         self.planning_action_ids = []
-        repeated_discovery = False
+        blocked_discovery = False
         # Drive only the pure navigation API, explicitly synthetic Improve
         # receipts. Persist after every accepted action so the planning-context
         # collector sees the same durable history a real run would provide.
         while nav.current_stage(self.state) != "implement":
             aid = nav.current_action(self.state)["id"]
             stage = nav.current_stage(self.state)
-            if stage == "discovery" and not repeated_discovery:
-                repeated_discovery = True
-                value = {
-                    "outcome": "repeat",
+            if stage == "discovery" and not blocked_discovery:
+                # The history keeps one superseded discovery draft: a blocked result a user's answer later resolved
+                # ("repeat", which used to record it, is retired).
+                blocked_discovery = True
+                self.state = nav.apply(self.state, aid, {
+                    "outcome": "blocked",
                     "summary": "Synthetic discovery draft superseded by the reviewed decision.",
                     "evidence_refs": [str(self.historical_missing)],
-                }
-            else:
-                value = {
-                    "outcome": "done",
-                    "summary": "Synthetic " + stage
-                    + " decision: preserve the Architecture decision and reviewed context-code contract.",
-                    "evidence_refs": [str(self.architecture), str(self.test_strategy), str(self.planning_contract)],
-                }
+                    "awaiting": {
+                        "kind": "answer",
+                        "question": "Which reviewed decision supersedes this discovery draft?",
+                        "no_default": "The reviewed decision is the user's to name.",
+                    },
+                })
+                self.planning_action_ids.append(aid)
+                nav.save(self.run, self.state, None)
+                self.state = nav.control(self.state, "resume", answer="Use the reviewed context-code contract.")
+                nav.save(self.run, self.state, None)
+                continue
+            value = {
+                "outcome": "done",
+                "summary": "Synthetic " + stage
+                + " decision: preserve the Architecture decision and reviewed context-code contract.",
+                "evidence_refs": [str(self.architecture), str(self.test_strategy), str(self.planning_contract)],
+            }
             if stage == "plan":
                 value["work_items"] = [{
                     "id": "feature", "title": "Parallel feature",
@@ -437,10 +448,12 @@ class ChainFixture(unittest.TestCase):
         p = self.run / "inbox" / (self.action + ".md")
         result = {"outcome": outcome, "summary": "Synthetic chain integration complete"}
         if outcome == "blocked":
-            result["blocked_by"] = "external"  # every blocked result names who can unblock it
-        if outcome in ("done", "revise"):
-            # implement is an Until Loop: done (a satisfied loop) and revise (a loop stopped blocked) need its terminal
-            # receipt, so a refusal below is the chain's own.
+            # every blocked result says what it awaits; a fixture service wait needs no person
+            result["awaiting"] = {"kind": "service", "service": "Fixture service", "check": "true",
+                                  "no_default": "Only the fixture service can unblock this."}
+        if outcome in ("done", "send-back"):
+            # implement is an Until Loop: done (a satisfied loop) and send-back (a loop stopped blocked) need its
+            # terminal receipt, so a refusal below is the chain's own.
             result = with_receipt(result, finish_loop(self.run, outcome="done" if outcome == "done" else "blocked"))
         store.write_record(p, result)
         result = subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run),

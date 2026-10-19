@@ -372,8 +372,8 @@ SCHEMA = {
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
         "workItems": (("items", {
             "id": (S, True), "title": (S, False), "titleTruncated": (B, False),
-            "origin": (("enum", ("plan", "replan", "carry-forward")), False),
-            "stepPlans": (N, True), "loops": (N, True), "revises": (N, True), "repeats": (N, True),
+            "origin": (("enum", ("plan", "add-work", "carry-forward")), False),
+            "stepPlans": (N, True), "loops": (N, True), "sendBacks": (N, True), "repeats": (N, True),
             "implementVisits": (("map", N), True), "stepsPlanned": (N, False), "stepsExecuted": (N, False),
             "steps": (("items", {"id": (S, True), "task": (S, True), "truncated": (B, False),
                                  "action": (S, False)}), False)}), False),
@@ -1267,7 +1267,7 @@ def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None
     if not any(isinstance(r.get("context"), dict) for r in rows):
         return [None] * len(history), NO_VISIT_CONTEXT
     if len(rows) != len(history) or any(
-            (row.get("stage"), row.get("outcome")) != (entry.get("stage") or "?", entry.get("outcome"))
+            (row.get("stage"), _outcome_name(row.get("outcome"))) != (entry.get("stage") or "?", entry.get("outcome"))
             for row, entry in zip(rows, history)):
         return [None] * len(history), (f"the harness's {len(rows)} stage rows do not line up one to one with "
                                        f"state.md's {len(history)} visits, so no row is attributed")
@@ -1468,7 +1468,8 @@ def _ending(result: dict, state: dict, metrics: dict, packets: Path, ended: bool
 
 def _blocked(state: dict, history: list[dict], results: Path) -> dict:
     """A blocked run's own words ({} when the records say nothing): the status reason of state.md (cut at MAX_REASON), and,
-    when the last visit's result is the blocked one, its `blocked_by` class, `headline` and `awaiting` (the question put to a
+    when the last visit's result is the blocked one, what it waits on (`awaiting.kind`; `blocked_by` in a historical run),
+    its `headline` and `awaiting` (the question put to a
     person, its options and why no default was taken)."""
     found: dict = {}
     reason = _text(state.get("status_reason"))
@@ -1477,7 +1478,7 @@ def _blocked(state: dict, history: list[dict], results: Path) -> dict:
     awaiting = body.get("awaiting") if isinstance(body.get("awaiting"), dict) else {}
     if reason is None and isinstance(body.get("summary"), str):
         reason = _text(body["summary"])
-    for field, value in (("by", body.get("blocked_by")), ("headline", body.get("headline")),
+    for field, value in (("by", body.get("blocked_by") or awaiting.get("kind")), ("headline", body.get("headline")),
                          ("question", awaiting.get("question")), ("noDefault", awaiting.get("no_default"))):
         if _text(value):
             found[field] = " ".join(value.split())[:MAX_REASON if field != "headline" else 200]
@@ -2514,13 +2515,24 @@ def _plan_steps(body: dict) -> list[dict] | None:
     return steps
 
 
+# ShipLoop's four outcomes (run-insights plan N5, 2026-10-18) renamed revise to send-back and replan to add-work and retired
+# repeat. A historical run keeps its old names; the export reads both and writes the new ones (a retired repeat stays
+# countable as `repeat`).
+_RENAMED_OUTCOMES = {"revise": "send-back", "replan": "add-work"}
+
+
+def _outcome_name(value: object) -> object:
+    """``value`` with a historical outcome name mapped to the current one."""
+    return _RENAMED_OUTCOMES.get(value, value) if isinstance(value, str) else value
+
+
 def _produced(history: list[dict], results: Path, state: dict) -> dict[str, str]:
-    """{work item id: the stage that produced it}: `plan`, `replan` (an outer stage's corrective item) or
+    """{work item id: the stage that produced it}: `plan`, `add-work` (an outer stage's corrective item) or
     `carry-forward`, from the work_items of each accepted result that carries some (the first producer wins)."""
     found: dict[str, str] = {}
     for entry in history:
         stage, outcome = entry.get("stage"), entry.get("outcome")
-        origin = "replan" if outcome == "replan" else stage if stage in ("plan", "carry-forward") and outcome == "done" else None
+        origin = "add-work" if outcome == "add-work" else stage if stage in ("plan", "carry-forward") and outcome == "done" else None
         if origin is None:
             continue
         items = _result_body(results, state, entry.get("action")).get("work_items")
@@ -2536,7 +2548,7 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
 
     Every number comes from state.md (its work_items queue and history) and the accepted results, never from
     summary text. Per item (SCHEMA.md): `stepPlans` is the item's accepted step-plan visits of any outcome; `loops` is
-    the times it went through the steps loop, 1 once it has any visit plus one per accepted `revise` (each sends it back
+    the times it went through the steps loop, 1 once it has any visit plus one per accepted `send-back` (each sends it back
     to step-plan); `implementVisits` counts the item's implement visits by outcome. `steps` are the steps of the latest
     accepted (done) step plan. On the inline route ShipLoop issues one implement packet per step, in order, and only a
     done visit moves on (shiploop_navigator.implement_progress): so the k-th done implement visit after that plan
@@ -2569,13 +2581,13 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
         item_id = queued["id"]
         rows = rows_of.get(item_id, [])
         title, cut = _clip(queued["title"]) if isinstance(queued.get("title"), str) else (None, False)
-        counts = {name: 0 for name in ("done", "repeat", "revise", "replan", "blocked")}
+        counts = {name: 0 for name in ("done", "send-back", "add-work", "blocked", "repeat")}
         for _, entry in rows:
             if entry.get("stage") == "implement" and entry.get("outcome") in counts:
                 counts[entry["outcome"]] += 1
-        revises = sum(1 for _, e in rows if e.get("outcome") == "revise")
+        send_backs = sum(1 for _, e in rows if e.get("outcome") == "send-back")
         doc: dict = {"id": item_id, "stepPlans": sum(1 for _, e in rows if e.get("stage") == "step-plan"),
-                     "loops": 1 + revises if rows else 0, "revises": revises,
+                     "loops": 1 + send_backs if rows else 0, "sendBacks": send_backs,
                      "repeats": sum(1 for _, e in rows if e.get("outcome") == "repeat"), "implementVisits": counts}
         if title is not None:
             doc["title"] = title
@@ -2598,7 +2610,7 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
                         mark["step"] = steps[len(executed)]["id"]
                     if outcome == "done":
                         executed.append(entry.get("action"))
-            if outcome == "revise":
+            if outcome == "send-back":
                 loop += 1
             marks[index] = mark
         if steps is None and not readable:
@@ -2649,16 +2661,18 @@ CARRIED = (
       ((r"^Checked by:",),))),
     ("produces", "the 'Result template:' and the 'Allowed outcomes:' line",
      (((r"^Result template:",), (r"^Allowed outcomes:",)),)),
-    ("recovery", "the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line "
-                 "from 1.22.0) and either the historical self-repair sentence or the current best-default/assumption and person-only blocking rules",
+    ("recovery", "the blocked sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line "
+                 "from 1.22.0, a 'blocked (only a person or an outside service can unblock it): {...}' line from the four "
+                 "outcomes) and either the historical self-repair sentence or the current best-default/assumption and "
+                 "person-only blocking rules",
      (
          (
-             (r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
+             (r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"', r'^blocked \(only a person or an outside service can unblock it\): \{"outcome": "blocked"'),
              (r"a problem this run can fix itself is repaired in this stage, not blocked",
               r"Anything this run can fix itself --.*is not blocked: repair it in this stage"),
          ),
          (
-             (r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
+             (r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"', r'^blocked \(only a person or an outside service can unblock it\): \{"outcome": "blocked"'),
              (r"take the best default and record it as an assumption",),
              (r"blocked only when nothing can proceed without a person",),
          ),
@@ -2838,7 +2852,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         raise ExportError(_no_unmeasured_message(out, state.get("status")))
     unmeasured = {str(name): str(reason) for name, reason in metrics["unmeasured"].items()}
 
-    history = [h for h in state.get("history") or [] if isinstance(h, dict)]
+    history = [{**h, "outcome": _outcome_name(h.get("outcome"))} for h in state.get("history") or [] if isinstance(h, dict)]
     started = _when(timeline.get("started"))
     stamps = {}  # action id -> (accept moment, the stamp as written)
     for action, stamp in timeline["accepted"].items():
@@ -2876,7 +2890,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         record = _record(results / f"{action}.md")
         if record is not None:
             body = record.get("result") if isinstance(record.get("result"), dict) else {}
-            stage, outcome = record.get("stage"), record.get("outcome") or body.get("outcome")
+            stage, outcome = record.get("stage"), _outcome_name(record.get("outcome") or body.get("outcome"))
         else:
             stage, outcome = entry.get("stage"), entry.get("outcome")
             from_state.append(action)
@@ -3140,14 +3154,14 @@ def _plan_line(run) -> str:
     unmeasured, items = run["unmeasured"], run.get("workItems")
     if items is None:
         return f"- Work items and steps loop: not measured ({unmeasured.get('workItems', 'no reason recorded')})"
-    added = sum(1 for item in items if item.get("origin") == "replan")
+    added = sum(1 for item in items if item.get("origin") == "add-work")
     done = sum(item["implementVisits"].get("done", 0) for item in items)
 
     def total(field, label):
         return f"{label} {run[field]}" if field in run else f"{label} not measured ({unmeasured.get(field, 'no reason recorded')})"
-    return (f"- Work items: {len(items)}" + (f" ({added} added by replan)" if added else "")
+    return (f"- Work items: {len(items)}" + (f" ({added} added by add-work)" if added else "")
             + f"; {sum(i['stepPlans'] for i in items)} step plans; {sum(i['loops'] for i in items)} passes through the "
-              f"steps loop ({sum(i['revises'] for i in items)} revises); {done} done implement visits; "
+              f"steps loop ({sum(i['sendBacks'] for i in items)} send-backs); {done} done implement visits; "
             + total("stepsPlanned", "steps planned") + ", " + total("stepsExecuted", "executed"))
 
 

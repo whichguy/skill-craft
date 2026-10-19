@@ -201,23 +201,46 @@ class StatusBlockTests(unittest.TestCase):
         paused = navigator.control(state, "pause", "Waiting for API access.")
         self.assertEqual(line(navigator.status_block(paused), "Stopped"),
                          "Stopped:   paused: Waiting for API access. The packet prints the resume command.")
-        blocked = self.act(state, outcome="blocked", blocked_by="external", summary="No credentials for the staging org.")
-        block = navigator.status_block(blocked)
-        self.assertEqual(line(block, "Done"), "Done:      research (blocked): No credentials for the staging org.")
-        self.assertEqual(line(block, "Stopped"), "Stopped:   blocked: external: No credentials for the staging org. "
-                                                 "The packet prints the resume command.")
+        # A blocked result says what it awaits, so the run shows the wait (not a bare "blocked") and the packet's
+        # resume command is the one that carries the reply.
+        waits = {
+            "answer": ({"kind": "answer", "question": "Which staging org should the run use?",
+                        "options": ["sandbox", "uat"], "no_default": "Each org holds different data."},
+                       "Which staging org should the run use? (sandbox / uat)"),
+            "present": ({"kind": "present", "steps": ["Grant the run access to the staging org."],
+                         "report": "Say when the grant is in place.", "no_default": "Only the org owner can grant it."},
+                        "1. Grant the run access to the staging org. Then report: Say when the grant is in place."),
+            "service": ({"kind": "service", "service": "staging-org", "check": "curl -fsS https://staging.example.test/health",
+                         "no_default": "The org is down and nothing else can proceed."},
+                        "staging-org is back when this read-only check exits 0: curl -fsS https://staging.example.test/health."),
+        }
+        for kind, (wait, text) in waits.items():
+            with self.subTest(kind):
+                blocked = self.act(state, outcome="blocked", awaiting=wait, summary="No credentials for the staging org.")
+                self.assertEqual(blocked["status_reason"], kind + ": No credentials for the staging org.")
+                block = navigator.status_block(blocked)
+                self.assertEqual(line(block, "Done"), "Done:      research (blocked): No credentials for the staging org.")
+                # A service wait is not the user's to act on, so it reads as a service wait, not "Waiting on you".
+                label = navigator.WAITING_ON_SERVICE if kind == "service" else navigator.WAITING_ON_YOU
+                self.assertEqual(line(block, label), label + ": " + text)
+                self.assertNotIn("Stopped:", block)
         halted = navigator.control(state, "halt", "User stopped the run.")
         self.assertEqual(line(navigator.status_block(halted), "Stopped"),
                          "Stopped:   halted at research: User stopped the run.")
-        repeated = self.act(state, outcome="repeat", summary="Retry the API probe.")
-        self.assertEqual(line(navigator.status_block(repeated), "Done"),
-                         "Done:      research (repeat requested): Retry the API probe.")
+        # repeat is retired: its result is refused, and the run does not move.
+        with self.assertRaisesRegex(navigator.NavigatorError, "revise, replan and repeat are retired"):
+            self.act(state, outcome="repeat", summary="Retry the API probe.")
+
+        sent_back = self.act(self.advance_to(self.planned(self.ROWS[:1]), "implement"), outcome="send-back",
+                             summary="Criterion unachievable as planned. Details.")
+        self.assertEqual(line(navigator.status_block(sent_back), "Done"),
+                         "Done:      W1 implement (sent back to step-plan): Criterion unachievable as planned.")
 
         outer = self.advance_to(self.planned(self.ROWS[:1]), "system-test")
-        replanned = self.act(outer, outcome="replan", summary="System test found a gap. Details.",
-                             work_items=[{"id": "W9", "title": "Close the gap"}])
-        self.assertEqual(line(navigator.status_block(replanned), "Done"),
-                         "Done:      system-test (replan requested): System test found a gap.")
+        added = self.act(outer, outcome="add-work", summary="System test found a gap. Details.",
+                         work_items=[{"id": "W9", "title": "Close the gap"}])
+        self.assertEqual(line(navigator.status_block(added), "Done"),
+                         "Done:      system-test (work added): System test found a gap.")
 
     # --- safety and bounds -------------------------------------------------
 

@@ -497,7 +497,8 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
                 "why": f"run cannot be read: {status.get('error', 'run changed')}"}
     if status["status"] != "active":
         reason = status.get("status_reason")
-        waiting = " (waiting on the user)" if status.get("awaiting") else ""
+        waiting = ((" (waiting on an outside service)" if status.get("awaiting") == "service" else " (waiting on the user)")
+                   if status.get("awaiting") else "")
         return {"decision": "allow", "drop": True,
                 "why": f"run is {status['status']}{waiting}" + (f": {reason}" if reason else "")}
     if not claim_owner(binding["run_dir"], host, session):
@@ -520,10 +521,10 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
                     "notice": ("ShipLoop keepalive: " + str(STUCK_CONTINUATIONS) + " continuations "
                                "produced no accepted result for this action, so the turn may end. Read "
                                "the last refusal; if it cannot be fixed in this run, submit outcome "
-                               "blocked (or revise) with the reason: blocked only for what the user, an "
-                               "access grant or an outside dependency must supply, and the outcome the "
-                               "refusal names (revise, or replan at the outer stages) when a recorded "
-                               "command or plan is what is wrong. Resume with: " + status["next"])}
+                               "blocked (or send-back) with the reason: blocked, with awaiting, only for what "
+                               "a person or an outside service must supply, and the outcome the refusal names "
+                               "(send-back, or add-work at the outer stages) when a recorded command or plan "
+                               "is what is wrong. Resume with: " + status["next"])}
     binding["last_block_progress"] = progress
     binding["turn_blocks"] = int(binding.get("turn_blocks", 0)) + 1
     cap = CONTINUATION_CAPS.get(host)

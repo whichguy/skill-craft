@@ -192,7 +192,7 @@ RULES: tuple[Rule, ...] = (
     # rows, one instruction line and the obligation rows ("- <id> [required; ...]"); it ends at the first line of another shape.
     _r("consumer-delivery", r"^Consumer-delivery declarations ", "before",
        r"^(?!(Consumer-delivery declarations |Delivery |For an observation, copy|- \S+ \[(required|optional);|"
-       r"During the renewed planning suffix|Use the accepted outer replan edge|This action cannot positively repair))"),
+       r"During the renewed planning suffix|Use the accepted (outer replan|add-work) edge|This action cannot positively repair))"),
     # --- last accepted transition and Improve lessons
     # The block ends at its END marker; its Evidence references lines (printed only when there are any) and, in a saved
     # run, the trailing "If this action depends on earlier accepted context" sentence are claimed by the rules after it.

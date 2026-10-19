@@ -311,7 +311,7 @@ confirmable item failed or was not confirmed, naming the items. An item reported
 `inspected` or `unconfirmable` whose `Confirm by:` required execution means the
 step contract cannot be met here: treat it as BLOCKED for planning, not as
 accepted. A BLOCKED result with a proven-unachievable item goes back to planning
-(plan revision or replan), not to a blind `retry`.
+(plan revision or add-work), not to a blind `retry`.
 
 Successful `done` evidence is a JSON object with `passed:true`, actual checks,
 and `integration` containing the exact `source_commit`, `expected_target`,

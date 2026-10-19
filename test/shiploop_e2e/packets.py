@@ -229,6 +229,12 @@ def gate_facts(run_dir: Path | None) -> dict | None:
         return None
 
 
+def send_back_count(effectiveness_block: dict) -> int:
+    """The send-back loops of an effectiveness block: its `send_back_loops`, or, in a report saved before the four outcomes
+    (run-insights plan N5), the same count under its old name `revise_loops`."""
+    return effectiveness_block["send_back_loops"] if "send_back_loops" in effectiveness_block else effectiveness_block["revise_loops"]
+
+
 def effectiveness(state: dict, out: Path, run_dir: Path | None = None) -> dict:
     """Script facts on whether the stages did their job (the slice verdicts when slice.py wrote them)."""
     history = [row for row in state.get("history") or [] if isinstance(row, dict)]
@@ -237,7 +243,8 @@ def effectiveness(state: dict, out: Path, run_dir: Path | None = None) -> dict:
     build = order.index("implement") if "implement" in order else None
     found = {"stage_outcomes": [{"stage": row.get("stage"), "outcome": row.get("outcome"), "work_item": row.get("workitem")}
                                 for row in history],
-             "revise_loops": sum(1 for row in history if row.get("outcome") == "revise"),
+             # a send-back, which a run recorded before the four outcomes (run-insights plan N5) wrote as `revise`
+             "send_back_loops": sum(1 for row in history if row.get("outcome") in metrics.SEND_BACK_OUTCOMES),
              "test_spec_before_implement": None if spec is None or build is None else spec < build,
              "gates": gate_facts(run_dir)}
     try:
@@ -626,7 +633,7 @@ def render(report: dict) -> str:
         verdicts = ", ".join(f"{name} {'PASS' if ok else 'FAIL'}" for name, ok in slice_result.get("verdicts", {}).items())
         lines += [f"**Slice {'PASS' if slice_result.get('pass') else 'FAIL'}**: {verdicts}", ""]
     eff = report["effectiveness"]
-    lines += [f"Revise loops {eff['revise_loops']}; test-spec before implement: {_cell(eff['test_spec_before_implement'])}.",
+    lines += [f"Send-back loops {send_back_count(eff)}; test-spec before implement: {_cell(eff['test_spec_before_implement'])}.",
               gates_line(eff.get("gates")), "",
               "## Packets", "",
               "| # | stage | kind | outcome | chars | ~tokens | emissions | next | repeated | skill refs | missing | largest section |",

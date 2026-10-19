@@ -24,6 +24,7 @@ import shiploop_store as store  # noqa: E402
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=PACKAGE, REF_DIR=PACKAGE / "references")
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
+AWAITING = {"kind": "answer", "question": "Which plan should the run follow?", "no_default": "Only the owner decides."}
 IMPROVE = {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"],
            "check_refs": ["synthetic://c"]}
 
@@ -92,14 +93,15 @@ class ShapeTests(unittest.TestCase):
                                      evidenced("A2", "https://x.test/doc")])
 
     def test_navigator_allows_the_field_only_on_a_done_plan(self):
-        # A done result at another stage keeps the stage sentence; a repeat result at plan is refused for carrying a
+        # A done result at another stage keeps the stage sentence; a blocked result at plan is refused for carrying a
         # done-only field (the refusal names the field and says to delete it).
         # Since the consumer contract (X10) the open-item stages after plan carry the list too; the sentence names them all.
         allowed = "only on a done carry-forward, plan, release-plan, release-verify, system-test, system-test-author, "
         for stage, outcome, message in (("research", "done", allowed), ("spec", "done", allowed), ("test", "done", allowed),
-                                        ("plan", "repeat", "a repeat result does not carry assumptions")):
+                                        ("plan", "blocked", "a blocked result does not carry assumptions")):
+            extra = {"awaiting": AWAITING} if outcome == "blocked" else {}
             with self.assertRaisesRegex(nav.NavigatorError, message):
-                nav._canonical_result(dict(DONE, outcome=outcome, assumptions=[]), stage=stage)
+                nav._canonical_result(dict(DONE, outcome=outcome, assumptions=[], **extra), stage=stage)
         # Pure graph functions validate a present list but do not require one.
         self.assertNotIn("assumptions", nav._canonical_result(DONE, stage="plan"))
 
@@ -165,8 +167,9 @@ class GateTests(unittest.TestCase):
         self.assertEqual([row["id"] for row in child["seed_result"]["assumptions"]], ["A1", "A2"])
 
     def test_non_done_plan_needs_no_list(self):
-        self.complete(dict(DONE, outcome="repeat"))
+        self.complete(dict(DONE, outcome="blocked", awaiting=AWAITING))
         self.assertEqual(nav.current_stage(self.state()), "plan")
+        self.assertEqual(self.state()["status"], "blocked")
 
 
 if __name__ == "__main__":

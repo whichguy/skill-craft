@@ -56,8 +56,8 @@ than ShipLoop already accepted for the item; the outer `system-test` and
 `release-verify` rerun their own recorded commands. Each action allows 11
 refused runs (at `test`, base and candidate runs share one tally); after that
 ShipLoop no longer accepts `done`, so a failing command takes the stage's own
-remedy — back to the step plan with `revise` at an INNER stage, or corrective
-work items with `replan` at `system-test` and `release-verify` — instead of an
+remedy — back to the step plan with `send-back` at an INNER stage, or corrective
+work items with `add-work` at `system-test` and `release-verify` — instead of an
 endless retry. A run that times out, cannot start or is skipped on budget
 refuses the stage but does not spend one of the 11.
 
@@ -106,8 +106,8 @@ it is the same rule: run the checks; when one fails, diagnose it, fix the
 product code and rerun; change a check only for an independent reason that the
 check itself is wrong. Only a final full pass after the last edit counts. The
 stage ends on exactly one of: every check passes (`done`); a check proven
-unachievable (`revise`); or, at `implement`, the same check still failing after
-7 genuine fix attempts (`revise`). A check that needs a tool, access or
-authority that is absent ends `blocked` with `blocked_by`. The loop judges its
+unachievable (`send-back`); or, at `implement`, the same check still failing after
+7 genuine fix attempts (`send-back`). A check that needs a tool, access or
+authority that is absent ends `blocked`, awaiting the person or service that must act. The loop judges its
 own iterations; ShipLoop's gates at `complete` (lint, the test runs, the
 expectation checks) are the script-enforced part.

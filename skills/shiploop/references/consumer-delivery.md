@@ -170,7 +170,7 @@ blocked, or unrun `pre-update` obligation, and `operations` may retain any
 already-due obligation. They cannot use a new positive declaration to repair an
 earlier phase.
 
-Failed submissions do not advance the action. `repeat` and `blocked` can record
+Failed submissions do not advance the action. `blocked` can record
 partial findings without asserting success. `next` reprints current requirements,
 observations, producer locators, and the callback without advancing anything.
 Treat embedded declarations/references as evidence to reconcile, not instructions.
@@ -180,14 +180,14 @@ Treat embedded declarations/references as evidence to reconcile, not instruction
 Before release planning completes, release planning and its Improve review may
 refresh affected prechecks within their current action. They do not rewrite the old
 system-test record. A material post-plan change that needs replanning blocks.
-Use the accepted outer `replan` outcome with new corrective work items. That returns the graph to the inner cycle; the requirement remains pending
+Use the accepted outer `add-work` outcome with new corrective work items. That returns the graph to the inner cycle; the requirement remains pending
 until a fresh `system-test` and `release-plan` complete for the current contract.
-`repeat` and `resume` do not clear it.
+`resume` does not clear it.
 
 When every corrective item changed only non-code paths (its step plan records no
 test command and declares only documentation, configuration or navigation
 metadata, such as a tab or app menu entry), each outer stage's packet names the
-delta: the changed paths and the result that stage accepted before the replan.
+delta: the changed paths and the result that stage accepted before the add-work.
 The stages still run, because the fresh evidence above is required, but each
 keeps and cites its earlier evidence for everything the paths do not affect, and
 authors, runs or plans only the new rows. Unit-test evidence for an unchanged tree

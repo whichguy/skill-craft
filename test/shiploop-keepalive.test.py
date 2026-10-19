@@ -187,7 +187,8 @@ class RepeatPacketTests(KeepaliveTestCase):
 
 
 class AwaitingUserTests(KeepaliveTestCase):
-    """A run blocked on the user's reply stops quietly and resumes only with that reply."""
+    """A run blocked on a reply (a person's answer or observation, or an outside service's return) stops quietly and
+    resumes only with that reply."""
 
     QUESTION = {"kind": "answer", "question": "May this run deploy to org de?", "options": ["yes", "no"],
                 "no_default": "A deploy needs the user's grant; no default may stand in for it."}
@@ -197,7 +198,7 @@ class AwaitingUserTests(KeepaliveTestCase):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps({"outcome": "blocked", "summary": "Needs the deploy decision.",
-                                     "blocked_by": "user", "awaiting": awaiting}, "test result"))
+                                     "awaiting": awaiting}, "test result"))
         result = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
         self.assertEqual(result.returncode, 0, result.stderr)
         return action
@@ -209,6 +210,7 @@ class AwaitingUserTests(KeepaliveTestCase):
         self.assertIsNone(self.hook("stop", "claude", self.payload("claude", "stop")))
         self.assertIsNone(keepalive.load_binding("claude", "session-1"))
         packet = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertIn("Blocked, waiting on the user: Needs the deploy decision.", packet)
         self.assertIn("Question for the user: May this run deploy to org de?", packet)
         self.assertIn('--answer "<their words>"', packet)
         self.assertIn("Waiting on you: May this run deploy to org de? (yes / no)",
@@ -246,21 +248,60 @@ class AwaitingUserTests(KeepaliveTestCase):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         question = {k: v for k, v in self.QUESTION.items() if k != "no_default"}
-        path.write_text(store.dumps({"outcome": "blocked", "summary": "Needs a decision.", "blocked_by": "user",
+        path.write_text(store.dumps({"outcome": "blocked", "summary": "Needs a decision.",
                                      "awaiting": question}, "test result"))
         refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
         self.assertNotEqual(refused.returncode, 0)
         self.assertIn("ShipLoop runs unattended: take a stated default", refused.stderr)
         self.assertEqual(self.status()["status"], "active")
 
-    def test_awaiting_needs_a_person_as_the_unblocker(self) -> None:
+    def test_a_blocked_result_must_say_what_it_awaits_and_blocked_by_is_retired(self) -> None:
+        """Only a person or an outside service can unblock a run, so a blocked result carries awaiting (N5)."""
         action = self.status()["action"]
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
-        path.write_text(store.dumps({"outcome": "blocked", "summary": "x", "blocked_by": "external",
-                                     "awaiting": self.QUESTION}, "test result"))
-        refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
-        self.assertIn("a result awaiting a person has blocked_by user", refused.stderr)
+        before = (self.run_dir / "state.md").read_bytes()
+        for label, result, message in (
+                ("no awaiting", {"outcome": "blocked", "summary": "x"}, "a blocked result says what it awaits"),
+                ("blocked_by with awaiting", {"outcome": "blocked", "summary": "x", "blocked_by": "user",
+                                              "awaiting": self.QUESTION}, "blocked_by is retired"),
+                ("blocked_by alone", {"outcome": "blocked", "summary": "x", "blocked_by": "external"},
+                 "blocked_by is retired")):
+            with self.subTest(label):
+                path.write_text(store.dumps(result, "test result"))
+                refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action,
+                                   "--result", str(path))
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertIn(message, refused.stderr)
+                self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_an_outside_service_wait_takes_an_observation_and_names_its_read_only_check(self) -> None:
+        """A service wait is not a question for the user: the run waits for the service and resumes on --observed."""
+        action = self.block_on({"kind": "service", "service": "the staging org", "check": "curl -fsS https://staging.example.test/health",
+                                "no_default": "Nothing can be verified until the org is back."})
+        self.assertEqual(self.status()["awaiting"], "service")
+        self.assertIsNone(self.hook("stop", "claude", self.payload("claude", "stop")))
+        packet = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertIn("Blocked, waiting on an outside service: Needs the deploy decision.", packet)
+        self.assertIn("Waiting on an outside service: the staging org", packet)
+        self.assertIn("It is back when this read-only check exits 0: curl -fsS https://staging.example.test/health", packet)
+        self.assertIn('--observed "<what the check printed>"', packet)
+        self.assertIn("resume only when it exits 0", packet)
+        self.assertNotIn("Do not answer it yourself", packet)
+        self.assertNotIn("Question for the user", packet)
+        # A bare resume names the check to run, not a question to answer.
+        for argv, message in ((["resume"], "Run that check; when it exits 0, resume with --observed"),
+                              (["resume", "--answer", "yes"], "waits for --observed")):
+            with self.subTest(argv=argv):
+                refused = shiploop(*argv, "--run-dir", str(self.run_dir))
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertIn(message, refused.stderr)
+        self.assertEqual(self.status()["status"], "blocked")
+        resumed = shiploop("resume", "--run-dir", str(self.run_dir), "--observed", "the health check exits 0; the org is up")
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertEqual(self.status()["status"], "active")
+        decision = store.read_record(self.run_dir / "decisions" / (action + ".md"))
+        self.assertEqual((decision["kind"], decision["reply"]), ("service", "the health check exits 0; the org is up"))
 
     def test_a_run_not_waiting_refuses_a_reply_and_awaiting_needs_blocked(self) -> None:
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
@@ -468,7 +509,7 @@ class ProgressAndTurnTests(KeepaliveTestCase):
             (self.run_dir / "callback-attempts").write_text("99")
             stuck = stop()
             self.assertEqual((stuck["decision"], stuck["why"]), ("allow", "stuck: no accepted result"))
-            self.assertIn("submit outcome blocked (or revise)", stuck["notice"])
+            self.assertIn("submit outcome blocked (or send-back)", stuck["notice"])
             # An accepted result (a new revision) starts the count again.
             shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
             shiploop("resume", "--run-dir", str(self.run_dir))

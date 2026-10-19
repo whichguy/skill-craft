@@ -35,7 +35,7 @@ accept as one preparatory commit.
 
 Where the checks run (``check_place``): on a first entry, in the checkout, which nothing has changed yet, so a
 preparatory fix made there is checked there.  On re-entry -- the item already ran implement and the checkout holds
-changes to the item's paths since its lint base, as after a revise back to step-plan -- every check runs in a temporary
+changes to the item's paths since its lint base, as after a send-back back to step-plan -- every check runs in a temporary
 detached worktree at the item's base (the lint base, moved to the preparatory commit when one was made), or an absent
 expectation would fail on the item's own new files.  The entry record keeps the choice, and ``check_complete`` reruns
 in the same place.  On re-entry no preparatory change is accepted: an edit in the checkout cannot change a check run
@@ -68,7 +68,7 @@ STATES = ("works", "absent", "broken")
 # The states that cover a path present on the item's base, and those that cover a path that is not.
 EXISTING_STATES = ("works", "broken")
 NEW_STATES = ("absent",)
-# How a revise result says the mismatch goes back to step-plan: the check is wrong (the fact holds), or the fact is
+# How a send-back result says the mismatch goes back to step-plan: the check is wrong (the fact holds), or the fact is
 # false and the steps must change (a needed repair becomes an earlier step).
 ROUTES = ("check", "steps")
 KEYS = frozenset(("id", "state", "statement", "steps", "paths", "check", "from"))
@@ -260,9 +260,9 @@ def normalise_skills(value: Any, step: str = "") -> List[Dict[str, str]]:
 
 
 def normalise_failed_expectations(value: Any) -> List[Dict[str, str]]:
-    """The canonical ``failed_expectations`` of a validate-existing revise result."""
+    """The canonical ``failed_expectations`` of a validate-existing send-back result."""
     _need(isinstance(value, list) and value,
-          'a validate-existing revise result lists failed_expectations: [{"id": "E1", "actual": "<what is true>", '
+          'a validate-existing send-back result lists failed_expectations: [{"id": "E1", "actual": "<what is true>", '
           '"route": "check" (the check is wrong; actual gives the corrected check) | "steps" (the fact is false; '
           'step-plan reshapes the steps)}]')
     rows: List[Dict[str, str]] = []
@@ -467,7 +467,7 @@ def requirement_ids_text(repo: Path, label: str) -> str:
     import shiploop_knowledge_home as knowledge
     found = knowledge.entries(Path(repo), "spec.md")
     if not found:
-        return label + " lists no R-<n> entry: report revise naming the missing requirement."
+        return label + " lists no R-<n> entry: report send-back naming the missing requirement."
     return label + " lists " + ", ".join(ident + (" (retired)" if found[ident].retired else "")
                                          for ident in sorted(found, key=_requirement_order)) + "."
 
@@ -562,7 +562,7 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
     unlisted = [case["id"] for case in cases if case["id"] not in focused]
     if unlisted:
         return ("Fix the case IDs in {result}", "fixes the case IDs",
-                ["Give every case an ID this item's focused commands list, or report revise so the step plan lists it.",
+                ["Give every case an ID this item's focused commands list, or report send-back so the step plan lists it.",
                  "Not listed by a focused command of " + str(work_item) + ": " + ", ".join(unlisted) + "."])
     have = {case["id"] for case in cases}
     missing = [ident for ident in focused if ident not in have]
@@ -834,7 +834,7 @@ def check_preparatory_changes(repo: Path, base: Optional[Mapping[str, Any]],
     _need(not stray, "validate-existing changed paths outside the paths of the works expectations that did not match "
           "(" + (", ".join(allowed) or "none") + "): " + ", ".join(stray) + ". " + DONE_WHEN_PREPARATORY[0].upper()
           + DONE_WHEN_PREPARATORY[1:] + ". Undo these changes; the item's own change belongs to implement, and a "
-          "needed repair elsewhere is a revise (route steps) so step-plan adds it as an earlier step.")
+          "needed repair elsewhere is a send-back (route steps) so step-plan adds it as an earlier step.")
     return sorted(changed)
 
 
@@ -844,7 +844,7 @@ def check_complete(root: Path, state: Mapping[str, Any], result: Mapping[str, An
 
     done: reruns every check where the entry ran them (the record's ``place``) and refuses a mismatch, then
     ``check_preparatory_changes`` against the entry snapshot; at the base (re-entry) any change since entry is
-    refused and nothing is returned.  revise: requires ``failed_expectations`` naming known expectations.  blocked:
+    refused and nothing is returned.  send-back: requires ``failed_expectations`` naming known expectations.  blocked:
     nothing.  ``tag`` names the saved outputs (``check-only`` for ``complete --check-only``, which commits nothing).
     Raises ExpectationError.
     """
@@ -854,12 +854,12 @@ def check_complete(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     rows = _plan_expectations(state, work_item)
     known = {row["id"] for row in rows}
     outcome = result.get("outcome")
-    if outcome == "revise":
+    if outcome == "send-back":
         failed = normalise_failed_expectations(result.get("failed_expectations"))
         unknown = [row["id"] for row in failed if row["id"] not in known]
         _need(not unknown, "failed_expectations name expectations the step plan does not list: " + ", ".join(unknown))
         return []
-    _need("failed_expectations" not in result, "failed_expectations belong only on a revise result")
+    _need("failed_expectations" not in result, "failed_expectations belong only on a send-back result")
     if outcome != "done":
         return []
     repo = Path(str(state["repo"]))
@@ -871,7 +871,7 @@ def check_complete(root: Path, state: Mapping[str, Any], result: Mapping[str, An
         ["ShipLoop reran every expectation check; these do not match their state:"]
         + ["- " + row["id"] + " " + row["state"] + ": " + row["check"] + " -> " + row["summary"] + " (output: "
            + str(Path(root) / row["output"]) + ")" for row in wrong]
-        + ["Keep working until each matches, or report revise with failed_expectations [{id, actual, route}] "
+        + ["Keep working until each matches, or report send-back with failed_expectations [{id, actual, route}] "
            "(route check: the check is wrong; route steps: the fact is false), or blocked when the fix lies outside "
            "this run."]))
     if place == "base":
@@ -879,7 +879,7 @@ def check_complete(root: Path, state: Mapping[str, Any], result: Mapping[str, An
         stray = [path for path in changed or () if not _knowledge(path)]
         _need(not stray, "validate-existing ran its checks at the item's base, because the checkout already holds "
               "this item's changes, so no preparatory change is accepted here; these paths changed since it began: "
-              + ", ".join(stray) + ". Undo them; a needed repair is a revise (route steps) so step-plan adds it "
+              + ", ".join(stray) + ". Undo them; a needed repair is a send-back (route steps) so step-plan adds it "
               "as an earlier step.")
         return []
     return check_preparatory_changes(repo, record.get("checkout"), rows, record.get("results") or [],

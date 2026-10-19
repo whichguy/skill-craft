@@ -248,7 +248,7 @@ class ProgressTests(unittest.TestCase):
 
 
 class ProgressChainTests(ChainFixture):
-    def test_legacy_child_status_is_unknown_and_revised_plan_retires_old_graph(self):
+    def test_legacy_child_status_is_unknown_and_sent_back_plan_retires_old_graph(self):
         import shiploop_progress_data as data
 
         self.bind()
@@ -271,8 +271,8 @@ class ProgressChainTests(ChainFixture):
         self.assertTrue(any("identity or state mismatch" in message for message in mismatched["warnings"]))
         child_path.write_bytes(child_bytes)
         state = store.loads((self.run / "state.md").read_text())
-        revised = navigator.apply(state, self.action, {"outcome": "revise", "summary": "Replan the implementation."})
-        navigator.save(self.run, revised)
+        sent_back = navigator.apply(state, self.action, {"outcome": "send-back", "summary": "Replan the implementation."})
+        navigator.save(self.run, sent_back)
         after = data.build_snapshot(self.run)
         self.assertFalse(any(row["id"] == self.action for row in after["graphs"]))
 

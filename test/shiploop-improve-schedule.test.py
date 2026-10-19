@@ -22,6 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
+SERVICE_WAIT = {"kind": "service", "service": "the synthetic upstream", "check": "curl -fsS https://upstream.example.test/health",
+                "no_default": "Nothing else can proceed until it answers."}
 
 
 def receipt(stage):
@@ -117,8 +119,9 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertNotIn("advances directly", text)
         self.assertNotIn("If work cannot continue, submit outcome 'blocked'", text)
         self.assertFalse([line for line in lines if line.startswith("Improve:")])
-        self.assertIn("Allowed outcomes: done | repeat | blocked.", text)
-        self.assertIn('blocked: {"outcome": "blocked", "blocked_by": "user | access | external"', text)
+        self.assertIn("Allowed outcomes: done | blocked.", text)
+        self.assertIn('blocked (only a person or an outside service can unblock it): {"outcome": "blocked", '
+                      '"summary": "<what stopped the work>", "awaiting": {...}}', text)
 
     def test_template_placeholder_is_refused(self):
         state = self.new()
@@ -200,12 +203,12 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertEqual(len(state["work_items"]), 1)
         action = nav.current_action(state)["id"]
         records = copy.deepcopy(state["improve_results"])
-        blocked = nav.apply(state, action, dict(DONE, outcome="blocked", blocked_by="external", summary="Synthetic block."))
+        blocked = nav.apply(state, action, dict(DONE, outcome="blocked", awaiting=SERVICE_WAIT, summary="Synthetic block."))
         self.assertIsNone(blocked["active_improve"])
         self.assertEqual(blocked["status"], "blocked")
         self.assertEqual(blocked["improve_results"], records)
-        # carry-forward runs an Until Loop that repeats the work itself, so repeat is not one of its outcomes.
-        with self.assertRaisesRegex(nav.NavigatorError, "repeat is not an outcome at carry-forward"):
+        # repeat is retired at every stage: carry-forward's Until Loop repeats the work itself.
+        with self.assertRaisesRegex(nav.NavigatorError, "must be one of done, blocked at carry-forward .*repeat are retired"):
             nav.apply(state, action, dict(DONE, outcome="repeat", summary="Synthetic retry."))
 
     def test_improve_record_for_an_unrecorded_action_is_refused(self):
@@ -306,7 +309,7 @@ class ImproveScheduleTests(unittest.TestCase):
             "paused": nav.control(fresh, "pause", "Synthetic pause."),
             "paused-child": nav.control(waiting, "pause", "Synthetic pause with a parked child."),
             "blocked": nav.apply(fresh, nav.current_action(fresh)["id"],
-                                 dict(DONE, outcome="blocked", blocked_by="external", summary="Synthetic block.")),
+                                 dict(DONE, outcome="blocked", awaiting=SERVICE_WAIT, summary="Synthetic block.")),
             "halted": nav.control(self.new(), "halt", "Synthetic stop."),
             "done": done,
         }

@@ -217,7 +217,7 @@ than duplicating work, but do not erase unfulfilled outcomes when documenting
 an external blocker. A local constructible fixture may have an authorized
 producer; an unavailable external approval cannot be manufactured by one.
 
-Use the current `carry-forward` or outer `replan` result for permitted future or
+Use the current `carry-forward` or outer `add-work` result for permitted future or
 corrective work; do not edit accepted state or declare a missing prerequisite
 satisfied. A prerequisite that blocks the active step needs resolution or a
 pause now, not a journal entry that permits premature completion. Preserve
