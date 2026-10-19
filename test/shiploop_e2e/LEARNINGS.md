@@ -2464,3 +2464,17 @@ Evidence: `/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/` (+ `.log`, `-resu
 - **Still open (L2):** the Grok host idled after the done packet until the 45-minute timeout (`process FAIL rc=-9`); not killed by hand, so `--keep-platform` held.
 
 Evidence: `/Users/dadleet/e2e-runs/20261018/bs-release-update-436528/` (+ `.log`, `-regrade.log`, `result.json`).
+
+## Full Battleship on Grok, stopped by the owner at W2 carry-forward: about 4 hours of mostly avoidable ceremony (2026-10-18, skill-craft 2.6.0 from the marketplace) — status: interim (n=1, one host)
+
+`run.py --case battleship --host grok --model grok-4.7 --effort medium --source marketplace --timeout 7200`, then `--resume-run` with the same timeout after the cap. Planning review on (`stage`, the harness default). Stopped by the owner at 232 min (last accept), with W1 done, W2 at carry-forward and the nine outer stages not started: 30 actions accepted, 17 Improve children, 6 host sessions, 1,511 host tool calls, about 836K output tokens. No delivery was returned, so every case check failed. That is not a product verdict; no baseline was written.
+
+- **Planning: 48 min against 17-20 in the Grok runs of 10-07/10-08, which had planning review off.** Drafting took 14 min; Improve took 34 (spec 3 passes, test-strategy 7, plan 4). The stop rule (a first unchanged pass, or two trivial passes in a row) forces at least two more passes after any edit, and the review focus has no materiality bar. Across 36 passes up to 174 min, 4 were material.
+- **Reading ShipLoop's source: 512 of 1,511 calls by the end (240 of 1,090 at 174 min, about 28 min).** The model predicted the result gate, how the test stage judges test IDs, and the Improve stop rule from the scripts. No `--check-only` was refused for its content, so the packets lacked the schema, an example and those rules (run-insights M1).
+- **Per-step Proof checks: about 24 min.** W2's step plan carries six one-line JavaScript checks of 4.5-7.4 KB each, because each step must prove itself before the tests exist. W2 step-plan took 37 min.
+- **Restarts and refusals: about 20 min.** The 2 h `--timeout` was the operator's choice (the default is 10800) and killed the host mid W2 step-plan, costing about 12 min of re-orientation. Four compound shell commands (`cd ... && ...`, `VAR=... cmd`) were refused by headless Grok, and each ended the turn.
+- **Compaction: 10 times, about 19 min.** Packets of 28-44 KB filled the context about every 15 min.
+- **Also:** `improve-pass` was refused because the review loop had already ended, and `complete` was called before its result file existed (seconds each). ShipLoop's `shiploop_progress.py --watch` outlived the stopped run as an orphan (PPID 1) and was killed by hand.
+- **Before the run, main's CI was red** on two harness tests, which blocked the preflight: Git LFS filters in the runner's system config, and the Python path length in the audit figures. Fixed in 20d8e11c.
+
+Next (owner): stop running, fold these into the optimization plan. Quick harness levers: `--planning-review none` and `--timeout 14400` for full runs. The prompt and engine fixes are in the analysis. Analysis: `docs/experiments/battleship-grok-2026-10-18/inefficiency-analysis.md` (118d6f7d); hand-off brief: `inner-loop-brief.md` beside it. Evidence: `~/e2e-runs/2026-10-18/battleship-1/` (+ `-resume.log`).

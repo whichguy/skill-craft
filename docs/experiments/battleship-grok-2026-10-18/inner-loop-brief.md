@@ -1,0 +1,28 @@
+# Hand-off to the inner-loop session: Battleship-on-Grok inefficiencies (2026-10-18)
+
+**Status (final, 18:20 local):** the owner STOPPED the run at 232 min (W1 done, W2 at carry-forward, nine outer stages not started; 30 actions accepted, 17 Improve children, 6 host sessions, 1,511 tool calls of which 512 read ShipLoop/Improve source, ~836K output tokens). Nothing is running; the run directory is now safe to read and to replay against. The owner wants these findings folded into the optimization plan, not more runs for now. Journal: test/shiploop_e2e/LEARNINGS.md (last entry). Delivery to this session by message was held and expired (permission modes differ), so this file is the hand-off.
+
+---
+
+From the E2E session [c1fb97], on the owner's request (2026-10-18): the owner asks you to handle the ShipLoop inefficiencies a live E2E run exposed. The owner's questions are below, then context and references. Please investigate each, propose and (as the owner approves) build fixes; journal and commit per the usual rules.
+
+OWNER'S QUESTIONS (their words, lightly condensed)
+1. Why didn't the Improve reviews of the planning documents exit earlier?
+2. Why did reading ShipLoop's own scripts take so long, and why was Grok guessing? What would make this better?
+3. Explain how step-plan requires every step to prove itself before the tests exist. Should that be removed?
+4. Why did the time cap fire? Move the E2E cap to 4 hours if need be.
+
+THE RUN
+Full Battleship case, host Grok grok-4.7 medium, published skill-craft 2.6.0 / ShipLoop 1.6.0 (origin/main 20d8e11c at launch), planning_review=stage (the harness default), started 21:25Z. Run root ~/e2e-runs/2026-10-18/battleship-1 (events.jsonl, sessions.jsonl, stderr.txt; resumed-run log ~/e2e-runs/2026-10-18/battleship-1-resume.log); ShipLoop run dir .shiploop-runs/work-20261018-212526-5fb41b/run (state.md, timeline.json, packets/, improve/<action>/evidence/*review-N.md); product worktree beside it. It was stopped by the owner at W2 carry-forward (232 min); see the status above.
+
+ANALYSIS (committed on main 118d6f7d, local, not yet pushed): docs/experiments/battleship-grok-2026-10-18/inefficiency-analysis.md: per-stage table, ranked sinks with evidence, fix list with minutes saved. Headlines (first 174 min):
+- Planning 48 min (Improve 34, drafting 14; earlier Grok runs with planning review off planned in 17-20 min). Improve passes: spec 3, test-strategy 7 (17.4 min), plan 4. Across 36 planning/item Improve passes only 4 were material fixes. Test-strategy reviews polished e.g. PORT=0 failure, ports 1/65535, exact JSON per TC. Stop rule (2.6.0, upstream Until Loop 0.10.0, decision S-10 in docs/shiploop-run-insights-plan-2026-10-18.md section 8.2): a first unchanged pass, or two consecutive trivial passes after any change, so any edit forces at least two more passes; the review focus has no materiality bar. (Q1)
+- 240 of 1,090 host tool calls (22%) read ShipLoop/Improve source (~28 min): predicting the result gate (94 calls), how the test stage judges test IDs (36), the Improve stop rule (37). No --check-only was refused for content, so it was avoidable: packets lack the full result schema, a worked example, the test-ID rule and the stop rule inline. This is the run-insights plan's M1 (the packet is the contract). (Q2)
+- Per-step hand-written check programs ~24 min: W2's step plan holds six one-line JS checks of 4.5-7.4 KB; W2 step-plan alone took 37 min (32 drafting). Source: the step Proof from 12151c49 (shiploop_prompts.py implement duties "Check. After each meaningful change run the step's Proof (the Step block)... ShipLoop runs the Proof itself at done"; the step-plan duty that each step carries a check). The analysis suggests check_na or short checks for steps the test stage proves (18-20 min). Owner asks whether to remove it. (Q3)
+- Restarts ~20 min: the 2 h cap was MY choice (--timeout 7200 on the launch; run.py's default is 10800). It killed the host mid W2 step-plan; the new session took ~12 min to re-orient. Owner wants up to 4 h (14400) for full runs: consider the default and the README runbook. Also 4 refused compound shell commands (`cd ... && rm -rf probe && mkdir probe && ...`, `BASE=... cd "$BASE/probe" ...`, `SKILL_ROOT=...`) each ended a headless Grok turn (harness resumed it). (Q4)
+- Context compaction ~19 min: 10 compactions; packets 28-44 KB fill Grok's context about every 15 min.
+- Two shiploop command failures (seconds each): improve-pass "This review loop has already ended", complete "no result file".
+
+QUICK HARNESS FIXES ALREADY IDENTIFIED: --planning-review none (~55 min) and a longer --timeout (~12 min). Prompt fixes: scratch probes as a script file run with one plain command; full result schema + example + "use --check-only, not the scripts" in step-plan/test-spec; materiality bar for planning reviews; stop rule inline in the Improve handoff. Engine: check_na/short step checks; one confirming clean pass for planning reviews (an upstream Until Loop change needs the owner's go); smaller packets.
+
+Related: docs/shiploop-run-insights-plan-2026-10-18.md (M1, E1-E9, D-items, N1 templates), docs/experiments/run-insights-2026-10-18/fix-catalogue.json. Note the owner today said to drop the re-planning/mapping of that plan and just run end to end, so treat it as reference, not a work order. Please reply to E2E [c1fb97] with your answers to the four questions and what you will change; I will relay to the owner.
