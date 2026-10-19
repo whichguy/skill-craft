@@ -232,6 +232,41 @@ Open: the guard's default-scope deploy block on `.gitkeep` (a deploy of an empty
 and mutation steps cannot read Apex test output from the human reporter (a platform-declared test adapter, in `references/platforms/salesforce.md`); a longer cap
 or a faster loop is needed before this case can pass.
 
+### F10. Live run 3: a resolved send-back, a clean context-gap recovery, and a fourth work item stopped at the 4h cap (firm for the counts, 2026-10-19; interim for the causes; n=1)
+
+Grok 4.7 medium, ShipLoop 1.7.0 / skill-craft 2.7.0 from the marketplace, `chess-salesforce`, org `de`, prefix `SLChess`, raw flags (`--source marketplace --timeout 14400 --keep-platform`, no `--seed-at`, no `--planning-review` override). The owner explicitly requested this run and authorized `--keep-platform`.
+
+Before this run, the platform preflight refused once: org `de` already held a kept `SLChess*` app (classes, LWC bundle, tab, app) left from an earlier session. The coordinator stopped and reported per the run's instructions rather than touching the org; on the owner's go, the main session removed the kept app (the case's own cleanup command, plus by hand the `SLChess_Access` permission set and its one assignment, which is outside this case's declared prefix scope but was left behind by it) and the preflight then reported the org clean. That refused attempt never started a host and is recorded separately (evidence below) for the record.
+
+**Outcome: STOPPED, not a pass.** ShipLoop was still active (stage `inner-loop`, `test-spec` of work item 4 of 4, never accepted) when the harness's `--timeout 14400` deadline landed (SIGKILL). 4 sessions (3 ended "cancelled" via Grok's own headless keepalive resume, the 4th ended by the timeout kill), 3 resumes, 922 turns (lower bound), cost at least $15.92, 14 compactions, 25 truncated outputs, 16 Improve children. `committed FAIL`: HEAD held 0 files, nothing was returned to the user's repository.
+
+| Check | Result |
+|---|---|
+| `project` (committed sources) | FAIL: nothing committed |
+| `deployed` (engine, controller, bundle, tab, app, two test classes) | FAIL: work item 4 (tab/app/permission set) never reached implement |
+| `tests` (>=8 Apex methods) | PASS |
+| `rules` (perft, check, promotion, controller, two full games) | PASS |
+
+**Four work items, one resolved send-back.** The plan stage split the build into 4 work items this time (not the 2 of run 2 / F9). Work item 1's `test` stage hit a failing base-gate check (`W1-root`, raising `AssertionError` before printing its marker); the model traced ShipLoop's own navigator/loop scripts to understand the mechanism, then sent the step plan back — the first live instance of the four-outcomes `send-back` path (build plan S1.1/S1.3/S1.4, commit c6c82b16) observed in this case family. The next packet correctly resumed at the `step-plan` stage that had written the plan (the send-back-to-writing-stage design of commit c4fc5608), not a restart of the item or the run; the model fixed the check script itself (so it correctly prints `FAILED W1-root` or the version string on each path) and resubmitted, after which step-plan/test-spec/implement/test/document/verify/carry-forward all completed cleanly for W1. No `add-work` instance was observed: work item 4 was in the original plan from the start, not created live mid-run.
+
+**A session-boundary context gap recovered without incident.** At one resume the model noted that two state revisions ("35 and 36") were never shown to it directly (likely a compaction or session boundary that skipped packets shown), and recovered by reading the saved packet/state from disk and continuing, rather than treating the gap as a failure — a small, live confirmation of the "context is cleared between stages" design tenet holding under a real session boundary, not only a planned one.
+
+**Five ShipLoop-script refusals, all distinct, none repeated.** `metrics.json`'s `shiploop_failures` (`complete` exit 2 x5): a plan-assumption citation (`AD-8`) whose consumer was not the current item; a `check-only` dry run the base run would have refused; an expectation marked `works` for a path absent from the item's lint base; a non-empty `red_na` list; and an Improve pass accepted as trivial-unchanged when `.sf/orgs/.../localSourceTracking` files had in fact changed since the review was bound. The model corrected each and resubmitted rather than retrying past the refusal.
+
+**The mutation-gate-vs-hosted-platform defect recurred on a second case.** `fidelity.records` shows "gates not exercised... mutation W1 (the unmutated copy did not pass its focused commands)" — the same defect already named in the Salesforce Battleship live run 1 (2026-10-18, `docs/e2e-salesforce-battleship-journal.md`): the mutation gate mutates a local copy while the case's focused commands test the copy already deployed to the org, so it cannot judge mutants for any hosted-platform case. Confirmed generic, not case-specific; still unfixed.
+
+**Platform.** `guard_coverage`: `{model_sf_commands: 16, guard_calls: 143, direct_sf_commands: 0, bypassed: false}` — a valid trial, no bypass. `model_bin_resolution.ok: true`. Because the stop was unfinished and the `deployed` keep-check failed, `--keep-platform` was **not** honoured (`platform.keep_not_honoured`: "the host timed out; not kept as an unfinished run either: the keep check(s) deployed did not pass"); the ordinary cleanup ran and verified the org against the before snapshot (13 metadata types unchanged by name; removed only the 4 SLChess Apex classes this run had itself deployed). Nothing was left behind.
+
+**Where the 4 hours went** (engine seconds, `metrics.json` `stages`): outer planning (intake/discovery/research/spec/test-strategy/plan/prepare) 59.4 min; work item 1 51.8 min including the send-back cycle; work item 2 69.4 min; work item 3 38.8 min; work item 4 20.6 min partial (`step-plan` done, `test-spec` stopped, never accepted). Total 240.0 min — exactly the cap. 16 Improve children ran across the run; the planning window alone (through W1's first `test-spec`) was 78.8 min host / 78.1 min engine, with 5 Improve children taking 46.6 of those minutes.
+
+**What this changes in the earlier notes.** F9's two-work-item plan was this model's own choice for that run, not a fixed shape: this run planned 4. F9's wrapper/guard lesson held again (`guard_coverage.bypassed: false`). New here: the send-back and context-gap-recovery mechanisms, previously only designed (build plan S1.1-S1.5) and unit-tested, now have a first live positive observation each; the mutation-gate defect is now confirmed on two different hosted-platform cases.
+
+**Budget decision: did not resume.** The run ended at about 4h02m of wall clock against this run's ~4.5h total ceiling. The harness's own printed resume command carries a fresh 4h `--timeout`, and the per-work-item pace above (40-70 min each, with the entire 6-stage outer release phase still untouched) made reaching `done` inside the ~28 minutes of remaining budget implausible; resuming with that timeout as printed risked far exceeding the ceiling with no bound on where it would stop. Reported instead, per the run's own instructions.
+
+Open: whether a longer cap (or a lighter planning/Improve regimen, as the efficiency work already proposes) lets this case reach `done`; the mutation-gate-vs-hosted-platform fix is still unimplemented; a kept-app preflight refusal (as this run hit first) means an operator must run the case's printed cleanup, or have the owner do so, before the next `--keep-platform` run of the same case and prefix.
+
+Evidence: `/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25b/` (+ `.log`, `-coordinator-notes.md`, `result.json`, `metrics.json`, `mismatch.md`, `review-export/run-review.html`); the refused first attempt at `/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25/` (+ `.log`, `-coordinator-notes.md`). Pointer: `test/shiploop_e2e/LEARNINGS.md`, same date.
+
 ## 2026-10-17: the Battleship case reuses this case's checks (pointer)
 
 `battleship-salesforce` (owner request 2026-10-17) loads `checks/chess_salesforce.py` as its Salesforce library. Three chess functions
