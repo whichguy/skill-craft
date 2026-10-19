@@ -3,11 +3,13 @@ template: step-plan
 version: 2
 consumer: The packet's reader is the model that plans one work item, in a fresh context, from this print alone, once per item (and again after a send-back). The result's reader is ShipLoop's step-plan gate, which parses the Result form at `complete`; test-spec, validate-existing, implement, test and verify then read its accepted fields by value.
 print_budget: 19500
-requires: A1 concern map (plan.concerns rows; `concerns` in _RESULT_KEYS and its gate) · T-D2 producer bounds (plan: work item context 2500, concern rows 1200, open assumptions 1200) · N2 commit look-back (recent_commits) · N5 outcome names · C6/G1 platform card `## Testing` section and the environment-to-card mapping · N5 awaiting kinds answer, present, service · decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired) · placeholder registry read from this form (navigator._placeholders) · loops Work cites the template's Method items (_duty_items counts them) · engine E3/E4 (plan 8.5) · lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit
+shrink: last_summary, env_skills, arch_toc, spec_toc, env_commands, platform_testing, recent_commits, revisit_block
+requires: A1 concern map (plan.concerns rows; `concerns` in _RESULT_KEYS and its gate) · T-D2 producer bounds (plan: work item context 2500, concern rows 1200, open assumptions 1200) · N2 commit look-back (recent_commits) · N5 outcome names · C6/G1 platform card `## Testing` section and the environment-to-card mapping · N5 awaiting kinds answer, present, service · decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired) · placeholder registry read from this form (navigator._placeholders) · loops Work cites the template's Method items (_duty_items counts them) · engine E3/E4 (plan 8.5) · E5: a test pins that the runtime's printed start, next and done packets (stdout, not the receipt) carry the contract's Work, Exit and Repeat (decision 20; U-up keeps them) · E6: shiploop_narrative caps the progress block at 900 · lands with: obligation ledger rows (the until-loop row rewritten for decision 20), head-order tests, packet_view and counters repointed in the same commit
 flags:
 | flag | source |
 |---|---|
 | loop_started | file exists: RUN/loops/<action>-terminal.json |
+| loop_unavailable | loops.contract or loops.runtime raised (today's invoke_lines prints the same line) |
 | revisit | state.revisions[item] > 0 (the item came back by send-back; navigator _sent_back_results) |
 | inline | state.delegation == "inline" (the ask-agent route also prints Method 10, the execution graph) |
 | worktree_run | the run has an isolated product checkout (execution mode navigator-worktree) |
@@ -20,20 +22,21 @@ slots:
 | next_command | cmd | cli next --run-dir=RUN | cli+run+24 | refuse | - |
 | pause_command | cmd | cli pause --run-dir=RUN '--reason=<who asked and why>' | cli+run+56 | refuse | - |
 | callback_command | cmd | cli complete --run-dir=RUN --action=<action> | cli+run+74 | refuse | - |
-| keepalive_marker | scalar | "SHIPLOOP-RUN run=<run_id> rev=<revision> dir=<RUN>" | run+65 | refuse | - |
+| keepalive_marker | scalar | "SHIPLOOP-RUN run=<run_id> rev=<revision> dir=<RUN>" (revision up to six digits) | run+72 | refuse | - |
 | packet_abs | scalar | RUN/packets/<action>.md, absolute | run+48 | refuse | - |
 | inbox_abs | scalar | RUN/inbox/<action>.md, absolute | run+46 | refuse | - |
 | loop_start_command | cmd | until-loop start --receipt <receipt> < <contract> | root+run+run+208 | refuse | - |
-| loop_argument | block | loops.contract(): the ARGUMENT block as loops.invoke_lines prints it (Work, Exit, Repeat, Contract, Receipt); ShipLoop-built from stage_spec and loops tables | 2800 | refuse | - |
+| loop_error | scalar | the LoopError text when the loop cannot be built | 300 | excerpt | - |
+| contract_abs | scalar | RUN/loops/<action>-contract.json, absolute | run+57 | refuse | - |
 | receipt_abs | scalar | RUN/loops/<action>-terminal.json, absolute | run+57 | refuse | - |
-| progress | block | narrative partial at a milestone, else the one-line Where/Next status (shiploop_narrative) | 900 | refuse | - |
+| progress | block | narrative partial at a milestone, else the one-line Where/Next status (producer bound: shiploop_narrative caps it at 900, E6) | 900 | refuse | - |
 | item_id | scalar | state.work_items[work_index].id | 12 | refuse | - |
 | item_pos | scalar | "<work_index+1> of <len(work_items)>" | 12 | refuse | - |
 | item_title | scalar | state.work_items[work_index].title | 240 | refuse | - |
 | item_context | include | result:plan.work_items[id=<item_id>].context, whole (producer bound: plan gate, T-D2) | 2500 | refuse | - |
 | open_assumptions | block | result:plan.assumptions[disposition=open, consumer=<item_id>], row assumption (producer bound: plan gate, T-D2) | 1200 | refuse | - |
 | plan_concerns | block | result:plan.concerns[item=<item_id>, applies=yes], row concern (only the rows Method 8 maps; producer bound: plan gate, A1 + T-D2) | 1200 | refuse | - |
-| revisit_block | block | D3: the accepted step-plan result to amend (locator), the send-back result (locator, headline, summary cut at 600 as REVISIT_SUMMARY) and the IDs it invalidates | 1000 | excerpt | - |
+| revisit_block | block | D3: the accepted step-plan result to amend (locator), the send-back result (locator, headline, summary cut at 600 as REVISIT_SUMMARY) and the IDs it invalidates; its pointer names both locators | 1000 | excerpt | - |
 | recent_commits | block | git log from the item's starting HEAD: the last two commits that are not ShipLoop bookkeeping (its knowledge-record and leftover commits); step and review commits count; subject and its Key learnings line, row commit (N2) | 900 | excerpt | - |
 | env_commands | include | home:environment.md#Commands, code only: each command with its one-line label (G3) | 1500 | excerpt | inputs |
 | platform_card | scalar | the card KNOWLEDGE/environment.md ## Targets and runtimes names (GUIDES/platforms/<card>.md), or "none" for a target without a card | 120 | refuse | - |
@@ -103,10 +106,9 @@ result:
 ---
 {{> frame}}
 Goal: Plan work item {{item_id}}: ordered steps, each proven by its own command, with the item's criteria, test commands, expectations, paths, follows and concern mapping.
-Done when: every exit condition in the Until Loop argument below holds. Checked at `complete` by the rules in the Method and the form; `--check-only` shows the first refusal.
+Done when: every exit condition of this stage's Until Loop holds (the loop prints them when it starts). Checked at `complete` by the rules in the Method and the form; `--check-only` shows the first refusal.
 
 {{> loop-invoke}}
-{{loop_argument}}
 {{> loop-result}}
 
 {{progress}}
@@ -119,7 +121,7 @@ Open assumptions this item settles:
 {{open_assumptions}}
 Concern rows the plan marked applies-yes for {{item_id}}:
 {{plan_concerns}}
-{{#if revisit}}Send-back to amend (amend the accepted plan below and submit it whole; keep every row this evidence does not touch, with its ID):
+{{#if revisit}}Send-back to amend (open the accepted plan and the send-back result named below, amend the plan and submit it whole; keep every row the evidence does not touch, with its ID):
 {{revisit_block}}
 {{/if}}Recent commits (the last two that are not ShipLoop bookkeeping; what earlier work learned):
 {{recent_commits}}
@@ -141,7 +143,7 @@ Last accepted: {{last_summary}}
 <!-- DUTIES['step-plan'] 3 -->
 3. `criteria`: `<condition>. Confirm by: <command, observation or inspection>; pass when <result>. Serves R-<n>.` A condition no command can confirm here is an open item in `summary` (who does what, what they report back). A new or changed public entry point adds a criterion that it rejects invalid arguments, confirmed by its rejection tests.
 <!-- DUTIES['step-plan'] 4 (rewrite R1, B1, B2); deps rule stated (review SP-13) -->
-4. `steps`, in order (one is fine); ShipLoop issues one implement packet per step. A step is one behaviour-level change its `check` proves: split at a second separately confirmable behaviour, a module or layer boundary (interface first) or an "and" between outcomes; fold scaffolding no check confirms alone into the step that uses it. Tests are not a step (the test stage writes them). Each step: `deps` (earlier step IDs only), `criteria` (IDs from `criteria`), `task` (cites IDs, not their text), `check`, optional `paths`, `skills` (`{"name", "why", "locator"}` per concrete use with a locator that exists, else []).
+4. `steps`, in order (one is fine); ShipLoop issues one implement packet per step. A step is one behaviour-level change its `check` proves: split at a second separately confirmable behaviour, a module or layer boundary (interface first) or an "and" between outcomes; fold scaffolding no check confirms alone into the step that uses it. Tests are not a step unless the whole item is tests (the test stage writes them); every criterion is in some step's `criteria`. Each step: `deps` (earlier step IDs only), `criteria` (IDs from `criteria`), `task` (cites IDs, not their text), `check`, optional `paths`, `skills` (`{"name", "why", "locator"}` per concrete use with a locator that exists, else []).
    `check`: one command from the repository root; ShipLoop runs it at the step's done. It observes behaviour: matching the implementation's own text (a literal, a call shape) or skipping a missing file proves nothing. It needs no later step, unwritten test or release artifact. Behaviour that runs only on a remote target: deploy only this step's paths to the recorded development target, then run a read-only probe the run's authority covers. A probe longer than one line is a script, inside the item's paths, that the check runs.
 <!-- DUTIES['step-plan'] 5 + ID_WORD_RULE; the coverage, check-row and id rules the gates apply (review SP-4) -->
 5. `test_commands` (test and verify run exactly these): every criterion is named by at least one row's `criteria`, and every name is a listed criterion. Focused rows carry this item's case IDs (no spaces, each once) and a reporter printing one pass or fail line per test name (platform card; never dot or junit); an ID counts only as its own word in a test name (`TC-4 (a)`, not `TC-4a`); `min_tests` where a command must run at least that many. Regression rows: the retained suites the changed paths affect. Check rows: the lint, type and build commands ## Commands records, judged by exit code alone (no `ids`, no `min_tests`) and safe to repeat; with none, `check_na` with the reason, never both. `test_commands_na` only for an item with no criteria. A row naming a criterion runs code on that criterion's paths.

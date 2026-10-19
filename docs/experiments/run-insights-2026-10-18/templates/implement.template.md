@@ -3,11 +3,13 @@ template: implement
 version: 2
 consumer: The packet's reader is the model that builds one step of one work item, in a fresh context, from this print alone, once per step (inline route; the ask-agent route builds every step in one action and keeps today's packet until its own template). The result's reader is ShipLoop's implement gate (loop receipt, lint gate, step Proof, the evidence and hand-off fields) at `complete`, then ShipLoop's step commit, then the step's Improve review, which receives the same Step and Anchors blocks.
 print_budget: 19500
-requires: criterion-evidence gate (`criterion_evidence` in _RESULT_KEYS; fix plan 3.3) · N2 step commits (learned, decisions, learned_from; the step commit; recent_commits) · N5 outcome names (send-back) · T-D2 producer bounds (step-plan: task 700, criteria 1200, check 600) · A1 concern rows (step_concerns) · A2 card selection (step_cards) · A0 port: the eight considerations and the implement-record gate, one name and shape for criterion evidence (this form follows fix plan 3.3; the branch's `evidence` has 6 fields) · N3 write-back at implement (an acceptance line in spec.md, marked with the step; the A0 guidance's "never edit spec.md here" yields to N3) · D3 per-step revisit · N5 awaiting kinds answer, present, service · decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired) · placeholder registry read from this form (navigator._placeholders) · loops Work cites the template's Method items (_duty_items counts them) · engine E3/E4 (plan 8.5) · lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit
+shrink: env_commands, arch_structure, step_cards, item_decisions, step_requirements, step_cases, later_steps, accepted_steps, step_concerns, recent_commits, revisit_block
+requires: criterion-evidence gate (`criterion_evidence` in _RESULT_KEYS; fix plan 3.3) · N2 step commits (learned, decisions, learned_from; the step commit; recent_commits) · N5 outcome names (send-back) · T-D2 producer bounds (step-plan: task 700, criteria 1200, check 600) · A1 concern rows (step_concerns) · A2 card selection (step_cards) · A0 port: the eight considerations and the implement-record gate, one name and shape for criterion evidence (this form follows fix plan 3.3; the branch's `evidence` has 6 fields) · N3 write-back at implement (an acceptance line in spec.md, marked with the step; the A0 guidance's "never edit spec.md here" yields to N3) · D3 per-step revisit · fix plan 3.3's implement done_when (stage_spec) · N5 awaiting kinds answer, present, service · decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired) · placeholder registry read from this form (navigator._placeholders) · loops Work cites the template's Method items (_duty_items counts them) · engine E3/E4 (plan 8.5) · E5: a test pins that the runtime's printed start, next and done packets (stdout, not the receipt) carry the contract's Work, Exit and Repeat (decision 20; U-up keeps them) · E6: shiploop_narrative caps the progress block at 900 · lands with: obligation ledger rows (the until-loop row rewritten for decision 20), head-order tests, packet_view and counters repointed in the same commit
 flags:
 | flag | source |
 |---|---|
 | loop_started | file exists: RUN/loops/<action>-terminal.json |
+| loop_unavailable | loops.contract or loops.runtime raised (today's invoke_lines prints the same line) |
 | code_step | the step's paths (else the item's) hold a code path (item_scope.behavioural); prints the Code craft titles (decision 18) |
 | revisit | this step ID has an earlier implement result in this item (D3) |
 | worktree_run | the run has an isolated product checkout (execution mode navigator-worktree) |
@@ -21,13 +23,14 @@ slots:
 | pause_command | cmd | cli pause --run-dir=RUN '--reason=<who asked and why>' | cli+run+56 | refuse | - |
 | callback_command | cmd | cli complete --run-dir=RUN --action=<action> | cli+run+74 | refuse | - |
 | lint_command | cmd | cli lint --run-dir=RUN --action=<action> | cli+run+70 | refuse | - |
-| keepalive_marker | scalar | "SHIPLOOP-RUN run=<run_id> rev=<revision> dir=<RUN>" | run+65 | refuse | - |
+| keepalive_marker | scalar | "SHIPLOOP-RUN run=<run_id> rev=<revision> dir=<RUN>" (revision up to six digits) | run+72 | refuse | - |
 | packet_abs | scalar | RUN/packets/<action>.md, absolute | run+48 | refuse | - |
 | inbox_abs | scalar | RUN/inbox/<action>.md, absolute | run+46 | refuse | - |
 | loop_start_command | cmd | until-loop start --receipt <receipt> < <contract> | root+run+run+208 | refuse | - |
-| loop_argument | block | loops.contract(): the ARGUMENT block as loops.invoke_lines prints it (Work, Exit, Repeat, Contract, Receipt); ShipLoop-built from stage_spec, loops and the step's anchors | 3000 | refuse | - |
+| loop_error | scalar | the LoopError text when the loop cannot be built | 300 | excerpt | - |
+| contract_abs | scalar | RUN/loops/<action>-contract.json, absolute | run+57 | refuse | - |
 | receipt_abs | scalar | RUN/loops/<action>-terminal.json, absolute | run+57 | refuse | - |
-| progress | block | narrative partial at a milestone, else the one-line Where/Next status | 900 | refuse | - |
+| progress | block | narrative partial at a milestone, else the one-line Where/Next status (producer bound: shiploop_narrative caps it at 900, E6) | 900 | refuse | - |
 | item_id | scalar | state.work_items[work_index].id | 12 | refuse | - |
 | step_id | scalar | result:step-plan.steps[current].id | 8 | refuse | - |
 | step_n | scalar | position of the current step, from 1 | 4 | refuse | - |
@@ -39,7 +42,7 @@ slots:
 | step_deps | block | result:step-plan.steps[current].deps, each with its accepted result, row dep; "none" when empty | 300 | refuse | - |
 | step_skills | block | result:step-plan.steps[current].skills, row skill; "none" when empty | 400 | refuse | - |
 | accepted_steps | block | history: accepted implement results of earlier steps of this item with ShipLoop's step commit, row accepted (N2) | 600 | excerpt | - |
-| later_steps | block | result:step-plan.steps[after current], row later (ID, its criteria, the task's first sentence cut at 160) | 800 | excerpt | - |
+| later_steps | block | result:step-plan.steps[after current], row later (ID, its criteria, the task cut at 160) | 800 | excerpt | - |
 | plan_result | scalar | RUN/results/<step-plan action>.md | 120 | refuse | - |
 | test_spec_result | scalar | RUN/results/<test-spec action>.md | 120 | refuse | - |
 | step_cases | block | result:test-spec.test_cases[criterion in step.criteria], row case | 500 | excerpt | - |
@@ -50,9 +53,9 @@ slots:
 | item_decisions | include | home:architecture.md#AD-<n> for each AD-<n> in the item's follows: heading and its Choice sentence, 200 characters each | 1600 | excerpt | anchors |
 | arch_structure | include | home:architecture.md#Structure | 1000 | excerpt | anchors |
 | env_commands | include | home:environment.md#Commands, code only: each command with its one-line label | 1000 | excerpt | anchors |
-| step_concerns | block | result:step-plan.concerns[steps contains step_id], row concern (A1) | 600 | excerpt | anchors |
+| step_concerns | block | result:step-plan.concerns[steps contains step_id], row concern (A1) | 400 | excerpt | - |
 | step_cards | block | card locators selected for the step's concerns, row card (A2) | 600 | excerpt | anchors |
-| revisit_block | block | D3: this step's previous result (locator, headline) and its step commit (N2), the send-back result (locator, summary cut at 600 as REVISIT_SUMMARY) and the upstream-change line | 1000 | excerpt | - |
+| revisit_block | block | D3: this step's previous result (locator, headline) and its step commit (N2), the send-back result (locator, summary cut at 600 as REVISIT_SUMMARY) and the upstream-change line; its pointer names both locators | 1000 | excerpt | - |
 | send_back_target | scalar | stage_spec send-back target for implement: "step-plan" | 20 | refuse | - |
 | send_backs_left | scalar | "<MAX_REVISES - used> of <MAX_REVISES>" | 8 | refuse | - |
 | done_next | scalar | the navigator's successor for this done step | 120 | refuse | - |
@@ -72,7 +75,7 @@ rows:
 | dep | `{id} (accepted: RUN/results/{action}.md)` |
 | skill | `{name}: {why} ({locator})` |
 | accepted | `- {id} {commit}: {headline}` |
-| later | `{id} ({criteria}): {task_first_sentence}` |
+| later | `{id} ({criteria}): {task_start}` |
 | case | `{id} ({criterion}, {requirement})` |
 | commit | `- {short} {subject}: {learning}` |
 | concern | `{concern} ({check})` |
@@ -105,7 +108,7 @@ result:
 | outcome | enum done, blocked, send-back | im-outcome |
 | headline | string <= 100 | common-headline |
 | summary | string; says per listed skill whether it was used | common-summary |
-| considerations | map of consideration -> handling and anchor, or why untouched | criterion-evidence |
+| considerations | map of the eight keys whole_step, interactions, build, deploy, state, operations, existing, proof -> handling and anchor, or why untouched | criterion-evidence |
 | criterion_evidence | list of {criterion, case, ran_or_inspected, observed, output, establishes, limits} | criterion-evidence |
 | not_covered | list of {behaviour, reason}, may be empty | not-covered |
 | learned | list of lines, or ["none"] | n2-fields |
@@ -116,7 +119,7 @@ result:
 ---
 {{> frame}}
 Goal: Implement step {{step_id}} ({{step_n}} of {{step_total}}) of work item {{item_id}} in WORKTREE so its criteria hold; ShipLoop runs its Proof at done, then commits the step.
-Done when: every exit condition in the Until Loop argument at the end of this packet holds. Checked by: the Gates below, at `complete`. Start that Until Loop before any work; everything before it is its material.
+Done when: every exit condition of this stage's Until Loop holds (the loop prints them when it starts). Checked by: the Gates below, at `complete`. Start that Until Loop before any work; everything before it is its material.
 
 == Step {{step_id}}: the only work for this packet ==
 Task: {{step_task}}
@@ -125,9 +128,9 @@ Serves (the step plan's words):
 Proof (ShipLoop runs it at done with /bin/sh for at most 600 s; it must exit 0, and a runner that reports 0 tests fails it; run it the same way):
   cd {{worktree}} && {{step_check}}
 Depends on: {{step_deps}} · Skills (use each; the summary says whether you did): {{step_skills}}
-Accepted earlier steps (step, its commit, headline): {{accepted_steps}}
-Later steps (ShipLoop issues each after this one; keep their work out of this change): {{later_steps}}
-Test cases of these criteria (the test stage writes them; every case of the item is in {{test_spec_result}}): {{step_cases}}
+Accepted earlier steps (commit, headline): {{accepted_steps}}
+Later steps (each gets its own packet; keep their work out of this change): {{later_steps}}
+Test cases of these criteria (the test stage writes them; all the item's cases: {{test_spec_result}}): {{step_cases}}
 Files: when it accepts done, ShipLoop commits this step's changes within the item's declared paths ({{plan_result}}); commit nothing yourself. A file this step needs outside those paths is a send-back.
 {{#if revisit}}Revisit of {{step_id}} (amend that result; keep what this evidence does not touch):
 {{revisit_block}}
@@ -154,14 +157,14 @@ KNOWLEDGE/environment.md ## Commands (commands only):
 <!-- _IMPLEMENT_CHECK_INLINE + DUTIES['implement'] 3 tail; the lint_waivers shape printed (review IM gate map) -->
 3. After each meaningful change run the Proof and `{{lint_command}}`; write each exit code in RUN/notes/{{action}}.md. Fix a failure by changing the work, never the Proof or what it expects. A lint finding that must stay goes in `lint_waivers` ({"id", "reason"} each). Install or fetch nothing.
 <!-- DUTIES['implement'] 4, fix plan 3.3 evidence, N2 fields, N3 write-back -->
-4. Answer each consideration in `considerations`. Record `criterion_evidence` (per assigned criterion: the case or justified inspection, what ran, what it showed, where the output is, what it establishes and its limits; a description of the change or a future check is not evidence), `not_covered` (each added behaviour no test case covers, and why), `learned` and `decisions` (one line each, or ["none"]), and `learned_from` for each earlier commit that helped. A learning that changes a stored document goes there now: an implicit requirement made explicit becomes an acceptance line under its R-<n> in KNOWLEDGE/spec.md marked with this step, a new structural decision the next AD-<n> under ## Decisions, a working command a line under ## Commands. Changing an existing R-<n> or AD-<n> is a send-back. ShipLoop commits these with the step.
+4. Answer each consideration in `considerations`. Record `criterion_evidence` (per assigned criterion: case or inspection, what ran, what it showed, where the output is, what it establishes, its limits; a description of the change is not evidence), `not_covered` (each added behaviour no test case covers, and why), `learned` and `decisions` (one line each, or ["none"]), and `learned_from` for each earlier commit that helped. A learning that changes a stored document goes there now: an implicit requirement made explicit becomes an acceptance line under its R-<n> in KNOWLEDGE/spec.md marked with this step, a new structural decision the next AD-<n> under ## Decisions, a working command a line under ## Commands. Changing an existing R-<n> or AD-<n> is a send-back. ShipLoop commits these with the step.
 <!-- DUTIES['implement'] 6, now the send-back and blocked outcomes below -->
 5. When the plan cannot be met as written, send it back (Outcomes) instead of working around it; report blocked only when a person or an outside service must act.
 {{> considerations-titles}}
 {{#if code_step}}{{> code-craft-titles}}{{/if}}
 
 == Gates beyond the exit conditions (ShipLoop refuses at `complete`; `--check-only` shows the first) ==
-- lint: once after it auto-fixes files (rerun every check, then submit done again), and on an unwaived new finding on a line this step changed
+- lint: once after it auto-fixes files (rerun the checks, then submit again), and on an unwaived new finding on a line this step changed
 - scope: a changed code, test or undeclared file outside the item's declared paths
 - `assumptions`: this stage's form has none; state a default in `summary`
 - a send-back with none left for this item
@@ -174,7 +177,7 @@ KNOWLEDGE/environment.md ## Commands (commands only):
   "outcome": "done",
   "headline": "<under 100 characters: what this step established>",
   "summary": "<decisions and defaults only this result records; per listed skill, used or why not>",
-  "considerations": {"<consideration number and name>": "<the concrete handling and its anchor, or why the step does not touch it>"},
+  "considerations": {"<each of the eight keys above>": "<the concrete handling and its anchor, or why the step does not touch it>"},
   "criterion_evidence": [{"criterion": "<criterion ID>", "case": "<case ID or justified inspection>", "ran_or_inspected": "<command or file>", "observed": "<what it showed>", "output": "<path of the saved output>", "establishes": "<what it shows>", "limits": "<what it does not show>"}],
   "not_covered": [{"behaviour": "<behaviour this step added that no test case covers>", "reason": "<why no test case covers it>"}],
   "learned": ["<what this step taught a later step or run, or none>"],
@@ -191,10 +194,9 @@ Outcomes:
 {{> result-rules}}
 
 {{> loop-invoke}}
-{{loop_argument}}
 {{> loop-result}}
 
 <!-- appendix: file only -->
 {{> appendix}}
 {{> considerations}}
-{{> code-craft}}
+{{#if code_step}}{{> code-craft}}{{/if}}

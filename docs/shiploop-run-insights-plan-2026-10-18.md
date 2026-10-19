@@ -218,6 +218,12 @@ rubric in the packet file and in the step's Improve review, where it is applied.
     RUN, WORKTREE, KNOWLEDGE (= WORKTREE/docs/shiploop) and GUIDES. They are defined on the frame's Symbols line ("shorthand
     for reading; commands and file tools take the absolute path"), and every command and file-tool path stays absolute.
 
+20. **The Until Loop argument (owner, 2026-10-18: "Pointer").** Inner-stage packets print the RUN line, the start
+    command and a Contract and Receipt line, not the Work, Exit and Repeat text, which the runtime prints in every
+    packet it returns. This narrows the 2026-10-16 rule ("say RUN with the explicit argument and command"), whose
+    reason was a Skill-tool argument the model had to type (route removed in ee3a1175). Basis and numbers: section
+    8.5.
+
     Evidence (`template-review/partials.json` `symbols`): 0 of 2,169 live tool calls used a literal symbol path, and
     neither run folder has a stray symbol directory. `expand_result_roots` already reads bare roots in `evidence_refs`.
 
@@ -503,7 +509,12 @@ a template.
 | Static worst case, argument printed | 21,768 | 22,249 |
 | Static worst case, argument as a pointer | 19,198 | 19,479 |
 
-**Decision pending (the owner).** The packet would replace the Until Loop ARGUMENT block with a one-line pointer.
+**Decision 20, taken (owner, 2026-10-18: "Pointer").** The packet replaces the Until Loop ARGUMENT block with the
+Contract and Receipt line, and says the loop prints its Work, Exit and Repeat in every packet it returns. The
+measured static worst case is then 19,366 (step-plan) and 19,396 (implement) at the reference install, and 19,666 and
+19,758 at the Battleship install, under Grok's 20,000 cut. That needs one more trim: the considerations line and
+Method 4. Engine change **E5:** `loops.invoke_lines` prints the pointer, and a test pins that the runtime's start, next
+and done packets carry the contract's Work, Exit and Repeat. Basis:
 - The runtime prints Work, Exit and Repeat verbatim in every start, next and done packet (verified by running 0.10.0 on
   both Battleship contracts).
 - The 2026-10-16 rule ("say RUN with the explicit argument and command") was made when the model had to type the
@@ -512,6 +523,55 @@ a template.
   - a test pins the runtime's echo;
   - the test stage keeps its own command list;
   - upstream lean returns (U-up) must keep Work and Repeat.
+
+**Round 3 (final review round, 2026-10-18).** Evidence: `template-review/*-r3.json`.
+- Every round-2 P0 and P1 was confirmed fixed.
+- Decision 20 holds on Until Loop 0.10.0: the reviewers ran start, next and done, active, complete and stopped.
+- New findings:
+  - P0: an unbounded progress narrative (1,327 characters at W4 of 7);
+  - P0: a keepalive bound that broke at revision 100;
+  - P0: the A0 gate's exact `considerations` keys (whole_step, interactions, build, deploy, state, operations,
+    existing, proof);
+  - P0: the ported considerations text's "report revise";
+  - P1: a revisit pointer that loses the plan to amend;
+  - P1: unquoted install lengths;
+  - P1: a renderer that refused at emit;
+  - P1: four rules visible only after the loop starts;
+  - P1: two renderer pool bugs.
+- All are fixed in this commit:
+  - E6: the narrative is capped at 900 where it is produced;
+  - the keepalive bound holds to six-digit revisions;
+  - the considerations line names the eight keys;
+  - send-back replaces revise in the ported text;
+  - the revisit pointer names both files;
+  - install lengths are measured shell-quoted;
+  - the renderer shrinks inputs in a declared `shrink` order, recomputes the pools each pass and never refuses at emit;
+  - the validator checks the budget at the reference install and Grok's cut at the longest supported install (120, 120,
+    160);
+  - the Contract and Receipt line prints only once the loop has started, since the start command already names both;
+  - the moved rules are back: "never stop it cancelled", the test-only-step exception, every criterion in some step.
+- E5 now tests the printed stdout: the lean runtime of the live Grok install printed only Exit.
+
+Final measurements (Battleship data):
+
+| | step-plan | implement |
+|---|---|---|
+| Printed | 19,239 | 18,871 |
+| Static worst case, reference install | 19,350 | 19,237 |
+| Static worst case, Battleship install | 19,624 | 19,573 |
+| Static worst case, longest supported install | 19,962 | 19,987 |
+
+The budget is 19,500 and Grok cuts at 20,000. Gate anchors: 23 and 18, each present in the print. Placeholders listed:
+20 and 19.
+
+**Status.** No P0 or P1 is known open. Open P2 and P3 items stay in the r3 files:
+- a start over a finished receipt replaces the run;
+- compound placeholders are matched by their parts;
+- the "run once" label;
+- a few duplicate wordings.
+
+Each template lands when its `requires` land: wave A features, decisions 19 and 20, and E1-E6, with the ledger and
+head-order tests repointed in the same commit.
 
 ## 9. Verification
 

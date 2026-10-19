@@ -6,6 +6,6 @@ row "rules" anchors it.
 - the reference#rules locator goes: it is undefined in the print. -->
 RULES:
 - Do only this stage, then run its callback; ShipLoop picks the next stage.
-- Unattended: take the best default and record it in the result (in `assumptions` where the form has that key, otherwise in `summary`). A step only a person can do is an open item. Report blocked only when a person or an outside service must act before any work can continue.
+- Unattended: take the best default and record it (`assumptions` where the form has it, else `summary`); a person-only step is an open item; report blocked only when a person or an outside service must act before any work can continue.
 - Run ShipLoop commands in the foreground, and never end the turn while one runs.
 - Temporary files go in RUN/scratch, never /tmp. Never read, keep or report credential-store or session contents.

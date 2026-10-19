@@ -1,5 +1,5 @@
 <!-- partial: considerations. The eight domain-neutral considerations, word for word from the implement-step fix plan's
-references/implement-guidance.md (branch shiploop/implement-prompt-2d6ecc, 45894aff; ported by A0). File only: the implement
+references/implement-guidance.md (branch shiploop/implement-prompt-2d6ecc, 45894aff; ported by A0), with N5's send-back in place of revise. File only: the implement
 packet prints considerations-titles in its head and this text in its appendix, as decision 18 does for Code craft. -->
 === Considerations (full text) ===
 Answer each in `considerations`: the concrete handling and its anchor, or why the step does not touch it. "Handled",
@@ -10,7 +10,7 @@ Answer each in `considerations`: the concrete handling and its anchor, or why th
 2. Interactions [criteria · ## Interfaces and boundaries · interaction AD-n] that the step affects or its criteria need.
    People: what they see and do; waiting, error and empty states; accessible use. Systems: contracts, untrusted input
    and its validation, who may do what, sensitive output, slow, failed or repeated messages, compatibility with
-   existing consumers. Work outside the step: report revise.
+   existing consumers. Work outside the step: send back (N5).
 3. Building [## Stack · ## Commands]: a valid artifact, built or validated the project's way; no tool or dependency
    without a present need, and record any added.
 4. Deploying [## Targets and runtimes · ## Access and accounts · ## Platform facts · ## Real-boundary checks]: target,

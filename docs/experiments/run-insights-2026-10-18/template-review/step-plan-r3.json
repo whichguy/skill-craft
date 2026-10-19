@@ -1,0 +1,169 @@
+{
+ "reviewer": "step-plan",
+ "round": 3,
+ "date": "2026-10-18",
+ "file": "templates/step-plan.template.md (04242a9f plus the working tree: decision 20 pointer, contract_abs slot, E5 in requires), read as tmpl-v2/step-plan.filled.md with the partials as they print there (frame, loop-invoke, loop-result, rules, outcome-done, outcome-blocked, result-rules, appendix)",
+ "verifications": [
+  {"question": "Was the reviewed print rendered with the budget enforced?", "answer": "no", "evidence": "tmpl-v2/step-plan.values.json carries \"allow_over_budget\": true (prep_values.py does not write it). tmpl.render skips both the shrink loop and the over-budget refusal under that key. The print happens to fit: printed_chars 19,498 against 19,500, shrunk_to_pointer []."},
+  {"question": "What does the renderer do when the budget is enforced on a send-back?", "answer": "it shrinks the revisit block, and the re-render empties the pool", "evidence": "Ran tmpl.render in scratchpad/tmpl-review/r3-sp/ with allow_over_budget false, revisit true and a 940-character revisit block (two locators, headline, 600-character summary, IDs). With the run's real 3,308-character context: shrunk ['recent_commits', 'revisit_block'], and platform_testing and env_commands also become pointers, final 18,684. With the context cut to the T-D2 2,500: shrunk ['recent_commits'], but platform_testing and env_commands still become pointers, final 18,716. With a scratch copy of tmpl.py that re-renders from the initial pool (tmpl_fixed.py): the 3,308 revisit raises 'printed 19520 characters, 20 over print_budget 19500', and at 2,500 it shrinks recent_commits and revisit_block, keeping platform_testing whole and env_commands at 253 (final 18,712)."},
+  {"question": "Is the progress slot (refuse, 900) bounded where it is produced?", "answer": "no", "evidence": "grep of shiploop_narrative.py finds no limit. navigator.narrative_facts lists up to 3 completed items (title cut at 50, headline at 100), the current item, up to 3 upcoming titles and 'N more work items'. Live narratives: step-plan 672 and 677, implement 782-787 (1-item runs), prepare 947 and 958, release-check 1,110 and 1,111 (report-bs, report-chess). shiploop_narrative.markdown on facts calibrated to the live step-plan narrative (W1 of 1: 645 against 672 live) gives W2 of 3: 883, W2 of 4: 943, W3 of 4: 1,045, W4 of 7: 1,327. tmpl.render with a 953-character progress raises 'value of 953 characters over its bound 900'."},
+  {"question": "Does the keepalive marker fit its bound at every revision?", "answer": "no: only up to revision 99", "evidence": "The marker is 'SHIPLOOP-RUN run=' (17) + the 36-character run id + ' rev=' (5) + revision + ' dir=' (5) + RUN, that is run+63+digits. The bound is run+65. tmpl.render at revision 100 raises 'value of 162 characters over its bound 161'. Live runs reached revision 50 (Battleship handoff) after one item; an item took about 32 revisions (step-plan 10 to product-acceptance 43)."},
+  {"question": "Do the command bounds survive a quoted path?", "answer": "no", "evidence": "navigator._callback joins with shlex.quote and loops.start_command with shlex.join. shlex.join(['python3', '/Users/a b/x/shiploop', 'complete', '--run-dir=/Users/a b/run', ...]) prints python3 '/Users/a b/x/shiploop' complete '--run-dir=/Users/a b/run' ..., 2 characters per quoted argument. The bounds cli+run+74, cli+run+24, root+run+run+208, run+57 and so on are the unquoted lengths (the render report shows chars == bound for each cmd slot)."},
+  {"question": "What did decision 20 remove from the packet?", "answer": "four rules, none with a gates row", "evidence": "The filled head no longer contains 'Never stop cancelled', 'every criterion is satisfied by a step', 'unless the whole item is tests' or 'Stop blocked only' (python3 substring check of the head). They live only in the contract that the runtime prints (scratchpad/tmpl-review/r2-loop-sp/start.json: work, conditions.exit, conditions.repeat and instruction). All 23 gate anchors still print (render report gates_anchored 23), because none of these refusals has a gates row."}
+ ],
+ "status": [
+  {"id": "SP-2", "was": "P0, partly", "status": "partly", "severity_now": "P1", "why": "platform_card may now be \"none\" (slot source). platform_testing still has no rendering for 'none': its source 'guide:platforms/<card>.md#Testing' names a file that does not exist, and Methods 2 and 5 still send the model to 'the platform card'. Same as SP2-2."},
+  {"id": "SP-5", "was": "P1, partly", "status": "partly", "severity_now": "P2", "why": "requires lists 'placeholder registry read from this form (navigator._placeholders)'. The registry the validator builds still holds the parts '<condition>', '<command>', '<result>' and '<n>' (render report placeholders), not the criterion string '<condition>. Confirm by: <command>; pass when <result>. Serves R-<n>.'. An exact-match gate passes a criterion copied from the form unchanged. Every other form string is whole and would be caught, so this drops to P2. Fix: the validator registers each whole JSON string value of the form that contains '<'."},
+  {"id": "SP-6", "was": "P1, open", "status": "partly", "severity_now": "P2", "why": "The realistic print is 19,498, but it was rendered with allow_over_budget true (see verifications). The static worst case is 19,366 at the reference install. At the Battleship install it is 19,666, which the template's own validator refuses ('static budget: max printed 19666 > print_budget 19500'), but it is under Grok's 20,000. The render refuses an over-budget print (tmpl.render 'printed N characters, M over print_budget'), so at a long run path a worst-case item prints nothing. Fix: refuse only above the host cut minus a margin (19,900) and count the 19,500 overrun as a notice, or check the static budget per install at init."},
+  {"id": "SP-8", "was": "P1, partly", "status": "partly", "severity_now": "P3", "why": "revisit_block's source now names the accepted step-plan result to amend, the send-back result and its summary at 600. The missing upstream line is moot for step-plan: navigator._upstream_line returns the constant 'Changed upstream since your previous step plan: nothing' when stage is REVISE_TO. What is left: 'the IDs it invalidates' names a field no send-back result has (outcome-send-back keys: outcome, headline, summary, evidence_refs), and no revisit example is rendered (prep_values sets revisit_block ''). The budget problem with this block is new: SP3-3."},
+  {"id": "SP-14", "was": "P2, open", "status": "open", "severity_now": "P2", "why": "Method 8 is unchanged ('a row with no decision is an open item in `summary` for the stage that must decide it'). The filled rows 'concurrency' and 'accessibility' still read 'no decision recorded ... owner step-plan'."},
+  {"id": "SP-15", "was": "P2, open", "status": "partly", "severity_now": "P3", "why": "requires now ends 'lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit' (test/shiploop_packet_view.py and test/shiploop_e2e/counters.py exist). Not named: the Run Review export (skills/shiploop-run-review/scripts/export.py CARRIED keys on '^Checked by:', '^Result template:', '^Allowed outcomes:' and the 'Done when (' list) and test/shiploop_e2e/packet_anatomy.py ('checked-by' r'^Checked by:', 'result-contract' r'^Result template:$'). head-order's P0 tokens '\\nReceipt: ', ARGUMENT_BEGIN and 'Exit when ALL of these hold:' also go with decision 20 (test/shiploop-head-order.test.py). Fix: add 'Run Review export CARRIED and packet_anatomy rules' to the lands-with note."},
+  {"id": "SP-16", "was": "P2, open", "status": "open", "severity_now": "P2", "why": "Method 2 still reads 'Take the test route from ## Commands and the platform card'. ## Harnesses and suites is named only inside this run's item context ('Harness: docs/shiploop/environment.md ## Harnesses and suites')."},
+  {"id": "SP-17", "was": "P2, open", "status": "open", "severity_now": "P2", "why": "env_commands is still 'code only' (prep_values commands_code). In the reference print it is excerpted to 253 characters: three identity commands, with the Focused, Smoke and Full suite commands gone and the third command cut mid-quote (SP3-9)."},
+  {"id": "SP-18", "was": "P2, open", "status": "open", "severity_now": "P2", "why": "Method 4's remote-target sentence is unchanged."},
+  {"id": "SP-19", "was": "P2, open", "status": "open", "severity_now": "P2", "why": "Method 10 still reads '(Parallel-chain guide)', with no locator. Method 4's 'ShipLoop issues one implement packet per step' still prints on the ask-agent route. Only the inline example is rendered (values flags inline true)."},
+  {"id": "SP-20", "was": "P2, partly", "status": "fixed", "why": "The print holds no HOME/ (grep). The pointers read KNOWLEDGE/spec.md, KNOWLEDGE/architecture.md and KNOWLEDGE/environment.md ## Skills (prep_values SP_LOCATORS), and requires lists decision 19 (reference_paths, symbolic, expand_result_roots, excerpt locators). 'RUN the Until Loop now' stays wont-fix: it is the owner's wording."},
+  {"id": "SP-22", "was": "P3, partly", "status": "fixed", "why": "With decision 20 the exit conditions no longer print. Method 4 and Method 6 are the packet's one wording of those rules, and the runtime's copy is the contract's."},
+  {"id": "SP-23", "was": "P3, open", "status": "open", "severity_now": "P3", "why": "Method 9 still reads 'a newly working command goes under ## Commands', right after KNOWLEDGE/architecture.md. Fix: 'goes under KNOWLEDGE/environment.md ## Commands'."},
+  {"id": "SP-24", "was": "P3, partly", "status": "fixed", "why": "loop-result prints '{{stop_outcomes}}', which renders 'a stopped one blocked'. That matches check_terminal ('step-plan accepts only done, blocked')."},
+  {"id": "SP-25", "was": "P3, open", "status": "open", "severity_now": "P3", "why": "Method 4 still reads 'ShipLoop runs it at the step's done'."},
+  {"id": "SP-26", "was": "P3, open", "status": "open", "severity_now": "P3", "why": "Method 7 still reads '(one under ## Superseded or ## Retired counts)'. Deleting it saves 46 characters."},
+  {"id": "SP-27", "was": "P3, open", "status": "open", "severity_now": "P3", "why": "This is still a second wording of prompts.ID_WORD_RULE."},
+  {"id": "SP-28", "was": "P3, open", "status": "open", "severity_now": "P3", "why": "This is code and unchanged: the check-only success print reads '(the Until Loop receipt is checked only on the real complete). The action is not completed; run the same complete command without --check-only to submit it.' (shiploop_navigator.py check_only branch; the text dates from d7388043). Inside an active loop the real complete is refused, but that refusal names next_argv."},
+  {"id": "SP2-1", "was": "P0", "status": "fixed", "why": "revisit_block is 'block | ... summary cut at 600 as REVISIT_SUMMARY ... | 1000 | excerpt', so a long send-back summary no longer raises. Its new budget failure is SP3-3."},
+  {"id": "SP2-2", "was": "P1", "status": "partly", "severity_now": "P1", "why": "See SP-2. Fix: flag `card` (the mapping names a card); with no card print 'Platform card: none for this target (cards: GUIDES/platforms/); take the reporter and deploy order from KNOWLEDGE/environment.md ## Harnesses and suites.'"},
+  {"id": "SP2-3", "was": "P1", "status": "fixed", "why": "The pool fills in body order with platform_testing first. In the reference print it prints whole (747, 'rendered: whole'), with the TAP reporter and deploy-first rules. A shrink can still drop it through a renderer bug (SP3-5)."},
+  {"id": "SP2-4", "was": "P2", "status": "fixed", "why": "Decision 19 is in requires, and the generated locators say KNOWLEDGE/."},
+  {"id": "SP2-5", "was": "P2", "status": "fixed", "why": "requires lists 'loops Work cites the template's Method items (_duty_items counts them)' (E1). The ask-agent count (1-10) is still unrendered (SP-19)."},
+  {"id": "SP2-6", "was": "P2", "status": "fixed", "why": "stop_outcomes is a slot ('blocked' for step-plan)."},
+  {"id": "SP2-7", "was": "P2", "status": "fixed", "why": "The started branch reads 'do not start it again unless a refusal names the start command'."},
+  {"id": "SP2-8", "was": "P2", "status": "partly", "severity_now": "P2", "why": "Method 6 now reads 'whose `from` names it', and result-rules says 'a key that neither the form nor the Method names'. The A1 owner-stage shape is still unnamed: the result table has {concern, owner_stage}, but neither the form nor Method 8 ('or to the later stage that owns it') prints `owner_stage`. The input rows print 'owner release-plan', which invites a key named owner, and result-rules says an unnamed key is refused. Fix, Method 8: '... or to the later stage that owns it (`{\"concern\", \"owner_stage\"}`)'."},
+  {"id": "SP2-9", "was": "P2", "status": "open", "severity_now": "P2", "why": "These are still missing from the print: 'Keep the change inside the item', test_commands 'run from the repository root', 'a run that executes no test is refused, so check the filter', and 'then omit `criteria`' (navigator 'criteria must be a nonempty list')."},
+  {"id": "SP2-10", "was": "P2", "status": "partly", "severity_now": "P2", "why": "render now shrinks the non-refuse, non-pooled slots and raises over print_budget. The elastic pool still takes max(1000, rest), and its slots are outside the shrink order. The static rule counts them at 110 each, so the renderer and the static check disagree (SP3-3, SP3-5)."},
+  {"id": "SP2-11", "was": "P2", "status": "open", "severity_now": "P2", "why": "There are still 23 gates rows. None covers 'no step satisfies', 'only changes test files', the read-only check (write_problem), the nonempty and unique criteria, common-headline and common-summary, the blocked keys, awaiting no_default or the cancelled loop. sp-outcome's anchor is still '- blocked:'. Decision 20 shows the cost: four rules left the packet and the anchor check could not see it (verifications)."},
+  {"id": "SP2-12", "was": "P3", "status": "open", "severity_now": "P2", "why": "Raised by decision 20. Exit 3's 'every criterion is satisfied by a step' (_check_step_sizing 'no step satisfies C') and 'unless the whole item is tests' now print only in the loop's own packet. Method 4's 'Tests are not a step' is stricter than the gate, so for an all-tests item the packet forbids what the gate accepts. Fix, Method 4: '`criteria` (IDs from `criteria`; every criterion is in some step's)' and 'Tests are not a step (the test stage writes them), unless the whole item is tests.' (+75 characters)."},
+  {"id": "SP2-13", "was": "P3", "status": "open", "severity_now": "P3", "why": "outcome-done still reads 'ShipLoop runs the Gates', and there is no Gates block."},
+  {"id": "SP2-14", "was": "P3", "status": "open", "severity_now": "P3", "why": "The Goal is still hand-written, not stage_spec.goal."},
+  {"id": "SP2-15", "was": "P3", "status": "fixed", "why": "The label reads 'the last two that are not ShipLoop bookkeeping'."},
+  {"id": "SP2-16", "was": "P3", "status": "partly", "severity_now": "P3", "why": "env_skills's pointer names its section. The others name whole files (platform_testing's locator is 'GUIDES/platforms/salesforce.md', not the ## Testing section), and spent-pool pointers are still one line each (4 lines, 323 characters)."}
+ ],
+ "findings": [
+  {
+   "id": "SP3-1",
+   "category": "problem",
+   "severity": "P0",
+   "where": "front matter 'progress | block | narrative partial at a milestone, else the one-line Where/Next status (shiploop_narrative) | 900 | refuse'",
+   "evidence": "Nothing bounds the narrative where it is produced (shiploop_narrative.py has no limit; narrative_facts lists up to 3 achieved items with 100-character headlines and up to 3 upcoming titles). Live outer-stage narratives reach 947-1,111. A calibrated synthetic step-plan narrative is 943 at W2 of 4, 1,045 at W3 of 4 and 1,327 at W4 of 7. W2's step-plan follows W1's carry-forward, a group end, so it is a milestone (navigator milestone: last['stage'] in _GROUP_ENDS). tmpl.render raises on a 953-character value. So in any run with four or more items, the step-plan packet (and implement's, which declares the same slot) never prints. This is the class round 2 fixed for the revisit blocks (a refuse slot nothing upstream bounds). tmpl.validate checks 'producer bound' only for include slots, so it did not catch this. Not run on a multi-item engine state.",
+   "fix": "Slot source: 'the narrative partial at a milestone when it is at most 900 characters, else the one-line Where/Next status (navigator status block)'. The fallback is short and bounded. Make tmpl.validate require a producer bound or a computed bound for every refuse-class slot, not only includes. Add a test that renders narrative_facts at the structural maxima.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP3-2",
+   "category": "problem",
+   "severity": "P0",
+   "where": "front matter 'keepalive_marker | scalar | \"SHIPLOOP-RUN run=<run_id> rev=<revision> dir=<RUN>\" | run+65 | refuse'",
+   "evidence": "The marker is run+63+digits(revision), so run+65 fits only revisions up to 99. tmpl.render at revision 100 raises 'value of 162 characters over its bound 161'. One item took about 32 revisions in the Battleship run, and that 1-item run ended at revision 50, so a 3-4 item run passes 100 inside its later items. From then on every packet of both templates fails to render (implement declares the same bound). The keepalive hook's MARKER regex reads rev=(?P<rev>\\d+), so it accepts any length.",
+   "fix": "keepalive_marker bound: run+69 (6 revision digits, matching the revision slot's bound 6). Better, derive the bound of every install- and state-built scalar from its formula's parts.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP3-3",
+   "category": "problem",
+   "severity": "P1",
+   "where": "'Send-back to amend (amend the accepted plan below and submit it whole; ...):\\n{{revisit_block}}'; slot revisit_block 'excerpt'; budget rule 'every other slot can shrink to a pointer ... last in body order first'",
+   "evidence": "The static worst case (19,366) counts revisit_block as a 110-character pointer, so the budget holds only if the block can be shrunk. Counted at 1,000 it would be about 20,256, over Grok's cut. The renderer shrinks recent_commits, then revisit_block, while the elastic pool keeps its 1,000 floor (pooled slots are outside the shrink order). Verified with a corrected copy of the renderer: the Battleship send-back at the T-D2 context (2,500) prints the block as '[not quoted: the packet's budget is spent; read RUN/results/<send-back>.md]', while the card section (747) and 253 characters of ## Commands stay. A pointer holds one locator. The accepted step-plan result to amend is then named nowhere in the print: source_results is fixed to plan, prepare and test-strategy, and planning_revision.current_actions drops the earlier results (the _revisit_lines docstring). The model is asked to amend 'the accepted plan below' without it. A new plan with new IDs breaks test-spec's case IDs, which costs another send-back. prep_values' locator for the block is 'the revise result', not a path.",
+   "fix": "Split the slot into revisit_locators (refuse, 250: 'Amend: RUN/results/<previous step-plan>.md · Sent back by <stage>: RUN/results/<send-back>.md · <headline>') and revisit_summary (excerpt, 650, shrinkable). Make the shrink order really last-in-body-first, pooled slots included (the pool floor yields first). On a revisit, list the previous step-plan result in source_results. Static cost +140, paid by SP3-6 (-58) and SP3-11 (-38) plus SP-26 (-46).",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP3-4",
+   "category": "problem",
+   "severity": "P1",
+   "where": "front matter cmd and path bounds: 'callback_command ... cli+run+74 | refuse', 'next_command ... cli+run+24', 'loop_start_command ... root+run+run+208', 'contract_abs/receipt_abs ... run+57', 'inbox_abs run+46', 'packet_abs run+48'",
+   "evidence": "Each bound is the unquoted length (render report: chars == bound for every cmd slot). navigator._callback quotes each argv item (shlex.quote), and loops.start_command uses shlex.join. A path with a space adds 2 characters per quoted argument: python3 '/Users/a b/x/shiploop' complete '--run-dir=/Users/a b/run' (ran). Every cmd slot is then over its refuse bound, and no packet renders for a repository or install path that needs quoting. The hooks accept such paths (keepalive MARKER dir=[^\\r\\n]+). Not run on an engine.",
+   "fix": "cmd and path scalars take their bound from the value ShipLoop builds (install- and state-derived, so never over), and the static check measures the rendered command for the install. Or add +2 per path term to each formula.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP3-5",
+   "category": "problem",
+   "severity": "P2",
+   "where": "packets-tools/tmpl.py render: 'text, report = _render_text(full, slots, rows, values, install, dict(left), report)' inside the shrink loop",
+   "evidence": "The first _render_text call subtracts each pooled slot's length from `left`, and the shrink loop re-renders from a copy of that spent dict. After any shrink, every pooled slot becomes a pointer, even when it fits. Ran: the Battleship send-back at the T-D2 context needs only recent_commits shrunk, yet platform_testing (the G1 input SP2-3 fixed) and env_commands also print as pointers (18,716, 784 under budget). The tmpl-v2 print was rendered with allow_over_budget true, so this path never ran for the reviewed print. Plan 8.4 makes this loader the engine's template engine.",
+   "fix": "Keep start = dict(left) before the first render and re-render from dict(start). Render the reviewed examples with the budget enforced (drop allow_over_budget from the values).",
+   "confidence": "high"
+  },
+  {
+   "id": "SP3-6",
+   "category": "insufficient",
+   "severity": "P2",
+   "where": "loop-result: 'Done-report fields: ... continuation_assessment allowed|blocked|cancelled, plus evidence and handoff (nonblank text).'",
+   "evidence": "Decision 20 removed the Repeat line, and with it 'Never stop cancelled: a user's stop is the ShipLoop packet's pause command' (REPEAT['step-plan']). The packet now offers cancelled as a value with no rule. check_loop_packet refuses a cancelled loop ('... A user's stop is the packet's pause command, not a cancelled loop: start the loop again'), which costs a full restart of the loop. The pause command prints only in the file appendix, which the frame describes as 'a file-only appendix of locators'. The runtime's report_schema lists the same enums with descriptions (r2-loop-sp/start.json), so the line's enum list is a duplicate.",
+   "fix": "Replace the line with: 'Done report: the fields its report_schema lists; never continuation_assessment cancelled (a user's stop is the pause command in the packet file).' (about 150 characters, -58). Frame: '(this print plus a file-only appendix: the pause and halt commands and locators)'.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP3-7",
+   "category": "problem",
+   "severity": "P2",
+   "where": "'Recent commits (...):\\n{{recent_commits}}'; slot 'recent_commits | block | git log ... | 900 | excerpt'",
+   "evidence": "recent_commits is the last non-refuse, non-pooled slot in body order, so it is the first the renderer shrinks (both strict renders above shrank it first). Its pointer has no locator and prints the slot's source text: '[not quoted: the packet's budget is spent; read git log from the item's starting HEAD: the last two commits that are not ShipLoop bookkeeping ...]' (270 characters, r3-sp/revisit-strict.filled.md). Owner rule 3 (2026-10-18): 'When a step begins (planning or implementing), the packet references the last 2-3 commit messages and the model incorporates them.'",
+   "fix": "Print the subject lines refuse-class (row '- {short} {subject}', subject at most 100: N2 bounds it), and let only the Key learnings lines shrink. Or give the pointer a real reference: 'Recent commits: 8947618, 0333d88 (git -C <WORKTREE abs> show -s <sha>)'.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP3-8",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "rules: 'Report blocked only when a person or an outside service must act before any work can continue.'; outcome-blocked: 'only a person or an outside service can unblock it'",
+   "evidence": "The loop's own packet (REPEAT['step-plan'], printed by the runtime since decision 20) says 'Stop blocked only when the plan no longer requires the item.' Two different 'only' rules for one outcome, now in two prints. No gate is affected: check_terminal accepts blocked either way.",
+   "fix": "In loops (with E2): REPEAT['step-plan'] '... Stop blocked only when a person or an outside service must act before the plan can continue, for example when the accepted plan no longer requires the item.' Add it to requires.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP3-9",
+   "category": "problem",
+   "severity": "P3",
+   "where": "filled: '- Non-mutating org read: sf data query --target-org de --query \"SELECT OrganizationType, InstanceName, IsSandbox FROM [excerpt; whole: KNOWLEDGE/environment.md ## Commands]'",
+   "evidence": "tmpl._cut falls back to a mid-line cut when no '. ' or newline lies past half the room. A code-only include then prints a broken command with an unbalanced quote, which a model may copy.",
+   "fix": "For a code include, cut only at a line boundary: drop the partial line, and keep the excerpt tail.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP3-10",
+   "category": "problem",
+   "severity": "P3",
+   "where": "front matter 'item_title | ... | 240 | refuse', 'item_id | ... | 12 | refuse'",
+   "evidence": "The plan gate only `_text`s the title (navigator work_items normaliser), and T-D2 bounds context, concerns and assumptions only. Today's packet excerpts the title ('_required_excerpt(work[\"title\"], ..., limit=240)'). A longer title or ID raises at render.",
+   "fix": "item_title over 'excerpt' (as today), or add the title to T-D2's plan bounds. Bound item_id where the plan gate normalises IDs.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP3-11",
+   "category": "unnecessary",
+   "severity": "P3",
+   "where": "'Done when: every exit condition of this stage's Until Loop holds (the loop prints them when it starts).' beside loop-invoke 'The loop prints its Work, Exit and Repeat (the Contract file's) in every packet it returns'",
+   "evidence": "One fact in two wordings, two lines apart ('when it starts' against 'in every packet it returns').",
+   "fix": "'Done when: every Exit condition the loop prints holds. Checked at `complete` by the rules in the Method and the form; `--check-only` shows the first refusal.' (-38)",
+   "confidence": "high"
+  }
+ ],
+ "decision_20": {
+  "what_it_kept": "A fresh model still knows what 'done' means. 'Done when' points at the loop's Exit, and the packet says to start the loop before any work. The runtime's start packet prints work, conditions.exit and conditions.repeat (verified in round 2, and E5 is in requires). Methods 4-7 and the form state the formats and most gate rules. Every gate anchor still prints. The callback stays the third line after the header, and the keepalive line is unchanged. A refusal for a loop that never started names the start command (check_loop_packet 'has not run ... Start it with').",
+  "what_it_moved_out": "Four rules: 'Never stop cancelled' (SP3-6), exit 3's 'every criterion is satisfied by a step' and 'unless the whole item is tests' (SP2-12), and the step-plan Repeat's blocked rule (SP3-8). The model sees them only after starting the loop. None stalls a run, and --check-only names the step rules. They went unnoticed because none of them has a gates row (SP2-11).",
+  "contradictions": "Method 4's 'Tests are not a step' is stricter than the gate's test-only exception, and RULES' blocked rule differs from the loop Repeat's."
+ },
+ "verdict": {
+  "sufficient": "partly",
+  "necessary": "partly",
+  "open_p0": 2,
+  "open_p1": 3,
+  "open_ids": {"P0": ["SP3-1", "SP3-2"], "P1": ["SP2-2 (= SP-2)", "SP3-3", "SP3-4"]},
+  "summary": "Round 3 fixes most of round 2. SP2-1's P0 is gone (the revisit block is excerpt-class with the summary at 600). Fixed: the stop outcomes, the restart guard, the KNOWLEDGE locators, the look-back label, E1 in requires, and the card's ## Testing printing whole. Decision 20 broke no route. 'Done' is still defined by the Method, the form and the loop's own Exit, which the runtime prints at start. It moved four rules into the loop's print only, and the gates table, missing those rows, could not notice. The template is not ready to land once requires are met. Two refuse-class slots that nothing bounds would stall real runs: the progress narrative at 900 (943 at W2 of a 4-item run, 1,327 at W4 of 7) and the keepalive marker at run+65, which fails from revision 100 (both verified in the renderer). The budget's static guarantee relies on shrinking the revisit block to a single-locator pointer, which loses the plan the model must amend. The command bounds assume unquoted paths. Also, the reviewed print was rendered with allow_over_budget true; with the budget enforced, a renderer bug turns the card section and ## Commands into pointers after any shrink. Each of these is a bound or slot-class fix of a few lines. None needs a new feature.",
+  "top_changes": [
+   "Bound every refuse-class slot where it is produced, or compute its bound. progress falls back to the one-line status above 900. The keepalive marker gets run+69. cmd and path slots take the built value's length, so quoting cannot overflow them. Make tmpl.validate refuse a refuse-class slot of any kind without a producer or computed bound (SP3-1, SP3-2, SP3-4, SP3-10).",
+   "Make the budget rule protect the send-back. Split revisit_block into refuse-class locators (250) plus a shrinkable summary, list the previous step-plan result in source_results, shrink pooled slots first, and re-render from the initial pool. Render the examples with the budget enforced (SP3-3, SP3-5, SP3-7, SP2-10).",
+   "Put back in the packet what decision 20 moved out, and pay for it with duplicates. Method 4 gets 'every criterion is in some step's' and the test-only exception. The Done-report line becomes 'never cancelled; a user's stop is the pause command'. Add gates rows for the step-sizing, cancelled-loop and read-only-check refusals, so the anchor check guards them. Drop the Done-when parenthetical and the SP-26 clause, and name `owner_stage` in Method 8 (SP2-12, SP3-6, SP2-11, SP3-11, SP2-8)."
+  ]
+ }
+}

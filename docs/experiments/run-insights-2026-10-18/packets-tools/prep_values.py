@@ -60,7 +60,7 @@ def common(action, rev, stage):
         "keepalive_marker": f"SHIPLOOP-RUN run={RUN_ID} rev={rev} dir={RUN}",
         "loop_start_command": f"{LOOP} start --receipt {RUN}/loops/{action}-terminal.json < {RUN}/loops/{action}-contract.json",
         "receipt_abs": f"{RUN}/loops/{action}-terminal.json", "run_dir": RUN, "guides_dir": PLUG + "/skills/shiploop/references",
-        "worktree": WT, "loop_argument": loop_argument(action, stage),
+        "worktree": WT, "contract_abs": f"{RUN}/loops/{action}-contract.json", "loop_error": "",
     }
 
 
@@ -175,18 +175,19 @@ sp_values.update({
                        {"label": "test-strategy", "path": "RUN/results/nav-088f95cdd24f443eb6f9ad95232a38dd.md"}],
     "last_accepted": "prepare, done, nav-efea99357d1d42569d26ae3f529d51a5",
 })
-INSTALL = {"run": len(RUN), "root": len(PLUG), "cli": len(CLI) - len("python3 ")}
+import shlex
+INSTALL = {"run": len(shlex.quote(RUN)), "root": len(shlex.quote(PLUG)), "cli": len(shlex.quote(CLI[len("python3 "):]))}
 SP_LOCATORS = {"env_commands": "KNOWLEDGE/environment.md ## Commands", "spec_toc": "KNOWLEDGE/spec.md", "arch_toc": "KNOWLEDGE/architecture.md",
                "platform_testing": "GUIDES/platforms/salesforce.md", "last_summary": "RUN/results/nav-efea99357d1d42569d26ae3f529d51a5.md",
                "open_assumptions": "RUN/results/nav-723e52564fb0414fb9351ed4164c4a32.md, field assumptions",
-               "env_skills": "KNOWLEDGE/environment.md ## Skills", "revisit_block": "the revise result"}
+               "env_skills": "KNOWLEDGE/environment.md ## Skills", "revisit_block": "the accepted step-plan result and the send-back result (RUN/results/)"}
 # This run predates the T-D2 producer bounds: its plan wrote a 3,308-character context, which the plan gate would refuse
 # at 2,500. The illustration renders the real value and says so (bound_overrides, reported in the render report).
 # The concern rows are an illustration (A1 is not built) and also run over the 1,200 bound the plan gate would enforce.
 concern_rows = "\n".join("- {}: {}; {} ({}; owner {})".format(*c) for c in CONCERNS if c[1] == "yes")
 SP_OVERRIDES = {"item_context": max(2500, len(w1["context"])), "plan_concerns": max(1200, len(concern_rows))}
 (out / "step-plan.values.json").write_text(json.dumps({"install": INSTALL, "locators": SP_LOCATORS,
-                                                        "flags": {"loop_started": False, "revisit": False, "inline": True, "worktree_run": True},
+                                                        "flags": {"loop_started": False, "loop_unavailable": False, "revisit": False, "inline": True, "worktree_run": True},
                                                         "bound_overrides": SP_OVERRIDES, "slots": sp_values}, indent=1))
 
 # ---------------------------------------------------------------- implement S1 (revision 14)
@@ -242,7 +243,7 @@ im_values.update({
     "send_back_target": "step-plan", "send_backs_left": "2 of 2",
     "done_next": "commits the step and issues step " + sp["steps"][1]["id"], "stop_outcomes": "blocked or send-back",
     "anchor_ids": ", ".join("R-%d" % n for n in named) + "; " + ", ".join(sorted({d for d in sp["follows"] if d.startswith("AD-")}, key=lambda x: int(x[3:]))),
-    "later_steps": [{"id": s["id"], "criteria": ", ".join(s["criteria"]), "task_first_sentence": s["task"].split(". ")[0][:160]} for s in sp["steps"][1:]],
+    "later_steps": [{"id": s["id"], "criteria": ", ".join(s["criteria"]), "task_start": s["task"][:160].rsplit(" ", 1)[0] + "…"} for s in sp["steps"][1:]],
     "plan_result": "RUN/results/nav-03cbb489abfe48ce8bf8ab1cfb207729.md",
     "step_cases": [{"id": c["id"], "criterion": c["criterion"], "requirement": c.get("requirement", "")}
                    for c in ts["test_cases"] if c["criterion"] in s1["criteria"]],
@@ -271,7 +272,7 @@ crit_rows = "\n".join("  " + c + ": " + crit[c] for c in s1["criteria"])
 IM_OVERRIDES = {k: n for k, n, b in (("step_task", len(s1["task"]), 700), ("step_check", len(s1["check"]), 600),
                                      ("step_criteria", len(crit_rows), 1200)) if n > b}
 (out / "implement.values.json").write_text(json.dumps({"install": INSTALL, "locators": IM_LOCATORS,
-                                                        "flags": {"loop_started": False, "code_step": True, "revisit": False, "worktree_run": True},
+                                                        "flags": {"loop_started": False, "loop_unavailable": False, "code_step": True, "revisit": False, "worktree_run": True},
                                                         "bound_overrides": IM_OVERRIDES, "slots": im_values}, indent=1))
 print("overrides:", SP_OVERRIDES, IM_OVERRIDES)
 print("named R-n for S1:", named)

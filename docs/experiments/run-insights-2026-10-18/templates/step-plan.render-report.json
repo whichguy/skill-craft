@@ -1,8 +1,8 @@
 {
- "printed_chars": 21132,
- "file_chars": 22492,
+ "printed_chars": 19239,
+ "file_chars": 20599,
  "pools": {
-  "inputs": -323
+  "inputs": 1000
  },
  "slots": {
   "stage": {
@@ -73,7 +73,7 @@
    "kind": "scalar",
    "chars": 161,
    "source_chars": 161,
-   "bound": 161,
+   "bound": 168,
    "pool": null,
    "rendered": "whole"
   },
@@ -90,14 +90,6 @@
    "chars": 499,
    "source_chars": 499,
    "bound": 499,
-   "pool": null,
-   "rendered": "whole"
-  },
-  "loop_argument": {
-   "kind": "block",
-   "chars": 2058,
-   "source_chars": 2058,
-   "bound": 2800,
    "pool": null,
    "rendered": "whole"
   },
@@ -305,13 +297,14 @@
   "<the step's outcome, citing C1>",
   "<under 100 characters: what this plan established>"
  ],
- "over_budget": 1632,
+ "over_budget": 0,
  "shrunk_to_pointer": [],
  "validate_reference_install": {
   "template": "step-plan.template.md",
-  "slots": 35,
+  "slots": 36,
   "flags": [
    "loop_started",
+   "loop_unavailable",
    "revisit",
    "inline",
    "worktree_run"
@@ -327,11 +320,11 @@
    "placeholder registry read from this form (navigator._placeholders)",
    "loops Work cites the template's Method items (_duty_items counts them)",
    "engine E3/E4 (plan 8.5)",
-   "lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit"
+   "E5: a test pins that the runtime's printed start, next and done packets (stdout, not the receipt) carry the contract's Work, Exit and Repeat (decision 20; U-up keeps them)",
+   "E6: shiploop_narrative caps the progress block at 900",
+   "lands with: obligation ledger rows (the until-loop row rewritten for decision 20), head-order tests, packet_view and counters repointed in the same commit"
   ],
-  "problems": [
-   "static budget: max printed 21768 > print_budget 19500"
-  ],
+  "problems": [],
   "placeholders": [
    "<...>",
    "<R-<n> or AD-<n> this item follows>",
@@ -359,188 +352,397 @@
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": false,
      "worktree_run": false
     },
-    "fixed": 9880,
-    "slot_bounds": 11621,
-    "max_printed": 21527
+    "fixed": 10045,
+    "slot_bounds": 8828,
+    "max_printed": 18899
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": false,
      "worktree_run": true
     },
-    "fixed": 9880,
-    "slot_bounds": 11621,
-    "max_printed": 21527
+    "fixed": 10045,
+    "slot_bounds": 8828,
+    "max_printed": 18899
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": true,
      "worktree_run": false
     },
-    "fixed": 9670,
-    "slot_bounds": 11621,
-    "max_printed": 21317
+    "fixed": 9835,
+    "slot_bounds": 8828,
+    "max_printed": 18689
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": true,
      "worktree_run": true
     },
-    "fixed": 9670,
-    "slot_bounds": 11621,
-    "max_printed": 21317
+    "fixed": 9835,
+    "slot_bounds": 8828,
+    "max_printed": 18689
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": true,
      "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10221,
+    "slot_bounds": 8938,
+    "max_printed": 19185
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10221,
+    "slot_bounds": 8938,
+    "max_printed": 19185
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
      "worktree_run": false
     },
     "fixed": 10011,
-    "slot_bounds": 11731,
-    "max_printed": 21768
+    "slot_bounds": 8938,
+    "max_printed": 18975
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": true,
-     "inline": false,
+     "inline": true,
      "worktree_run": true
     },
     "fixed": 10011,
-    "slot_bounds": 11731,
-    "max_printed": 21768
+    "slot_bounds": 8938,
+    "max_printed": 18975
    },
    {
     "flags": {
      "loop_started": false,
-     "revisit": true,
-     "inline": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
      "worktree_run": false
     },
-    "fixed": 9801,
-    "slot_bounds": 11731,
-    "max_printed": 21558
+    "fixed": 10100,
+    "slot_bounds": 8938,
+    "max_printed": 19064
    },
    {
     "flags": {
      "loop_started": false,
-     "revisit": true,
-     "inline": true,
-     "worktree_run": true
-    },
-    "fixed": 9801,
-    "slot_bounds": 11731,
-    "max_printed": 21558
-   },
-   {
-    "flags": {
-     "loop_started": true,
-     "revisit": false,
-     "inline": false,
-     "worktree_run": false
-    },
-    "fixed": 9776,
-    "slot_bounds": 11184,
-    "max_printed": 20986
-   },
-   {
-    "flags": {
-     "loop_started": true,
+     "loop_unavailable": true,
      "revisit": false,
      "inline": false,
      "worktree_run": true
     },
-    "fixed": 9776,
-    "slot_bounds": 11184,
-    "max_printed": 20986
+    "fixed": 10100,
+    "slot_bounds": 8938,
+    "max_printed": 19064
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": false,
      "inline": true,
      "worktree_run": false
     },
-    "fixed": 9566,
-    "slot_bounds": 11184,
-    "max_printed": 20776
+    "fixed": 9890,
+    "slot_bounds": 8938,
+    "max_printed": 18854
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": false,
      "inline": true,
      "worktree_run": true
     },
-    "fixed": 9566,
-    "slot_bounds": 11184,
-    "max_printed": 20776
+    "fixed": 9890,
+    "slot_bounds": 8938,
+    "max_printed": 18854
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": false,
      "worktree_run": false
     },
-    "fixed": 9907,
-    "slot_bounds": 11294,
-    "max_printed": 21227
+    "fixed": 10276,
+    "slot_bounds": 9048,
+    "max_printed": 19350
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": false,
      "worktree_run": true
     },
-    "fixed": 9907,
-    "slot_bounds": 11294,
-    "max_printed": 21227
+    "fixed": 10276,
+    "slot_bounds": 9048,
+    "max_printed": 19350
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": true,
      "worktree_run": false
     },
-    "fixed": 9697,
-    "slot_bounds": 11294,
-    "max_printed": 21017
+    "fixed": 10066,
+    "slot_bounds": 9048,
+    "max_printed": 19140
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": true,
      "worktree_run": true
     },
-    "fixed": 9697,
-    "slot_bounds": 11294,
-    "max_printed": 21017
+    "fixed": 10066,
+    "slot_bounds": 9048,
+    "max_printed": 19140
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9960,
+    "slot_bounds": 8671,
+    "max_printed": 18657
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9960,
+    "slot_bounds": 8671,
+    "max_printed": 18657
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9750,
+    "slot_bounds": 8671,
+    "max_printed": 18447
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9750,
+    "slot_bounds": 8671,
+    "max_printed": 18447
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10136,
+    "slot_bounds": 8781,
+    "max_printed": 18943
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10136,
+    "slot_bounds": 8781,
+    "max_printed": 18943
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9926,
+    "slot_bounds": 8781,
+    "max_printed": 18733
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9926,
+    "slot_bounds": 8781,
+    "max_printed": 18733
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10015,
+    "slot_bounds": 8781,
+    "max_printed": 18822
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10015,
+    "slot_bounds": 8781,
+    "max_printed": 18822
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9805,
+    "slot_bounds": 8781,
+    "max_printed": 18612
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9805,
+    "slot_bounds": 8781,
+    "max_printed": 18612
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10191,
+    "slot_bounds": 8891,
+    "max_printed": 19108
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10191,
+    "slot_bounds": 8891,
+    "max_printed": 19108
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9981,
+    "slot_bounds": 8891,
+    "max_printed": 18898
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9981,
+    "slot_bounds": 8891,
+    "max_printed": 18898
    }
   ],
-  "max_printed": 21768,
+  "max_printed": 19350,
   "print_budget": 19500
  },
  "validate_this_install": {
   "template": "step-plan.template.md",
-  "slots": 35,
+  "slots": 36,
   "flags": [
    "loop_started",
+   "loop_unavailable",
    "revisit",
    "inline",
    "worktree_run"
@@ -556,11 +758,11 @@
    "placeholder registry read from this form (navigator._placeholders)",
    "loops Work cites the template's Method items (_duty_items counts them)",
    "engine E3/E4 (plan 8.5)",
-   "lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit"
+   "E5: a test pins that the runtime's printed start, next and done packets (stdout, not the receipt) carry the contract's Work, Exit and Repeat (decision 20; U-up keeps them)",
+   "E6: shiploop_narrative caps the progress block at 900",
+   "lands with: obligation ledger rows (the until-loop row rewritten for decision 20), head-order tests, packet_view and counters repointed in the same commit"
   ],
-  "problems": [
-   "static budget: max printed 22042 > print_budget 19500"
-  ],
+  "problems": [],
   "placeholders": [
    "<...>",
    "<R-<n> or AD-<n> this item follows>",
@@ -588,181 +790,827 @@
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": false,
      "worktree_run": false
     },
-    "fixed": 9880,
-    "slot_bounds": 11895,
-    "max_printed": 21801
+    "fixed": 10045,
+    "slot_bounds": 9102,
+    "max_printed": 19173
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": false,
      "worktree_run": true
     },
-    "fixed": 9880,
-    "slot_bounds": 11895,
-    "max_printed": 21801
+    "fixed": 10045,
+    "slot_bounds": 9102,
+    "max_printed": 19173
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": true,
      "worktree_run": false
     },
-    "fixed": 9670,
-    "slot_bounds": 11895,
-    "max_printed": 21591
+    "fixed": 9835,
+    "slot_bounds": 9102,
+    "max_printed": 18963
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": false,
      "inline": true,
      "worktree_run": true
     },
-    "fixed": 9670,
-    "slot_bounds": 11895,
-    "max_printed": 21591
+    "fixed": 9835,
+    "slot_bounds": 9102,
+    "max_printed": 18963
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": true,
      "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10221,
+    "slot_bounds": 9212,
+    "max_printed": 19459
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10221,
+    "slot_bounds": 9212,
+    "max_printed": 19459
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
      "worktree_run": false
     },
     "fixed": 10011,
-    "slot_bounds": 12005,
-    "max_printed": 22042
+    "slot_bounds": 9212,
+    "max_printed": 19249
    },
    {
     "flags": {
      "loop_started": false,
+     "loop_unavailable": false,
      "revisit": true,
-     "inline": false,
+     "inline": true,
      "worktree_run": true
     },
     "fixed": 10011,
-    "slot_bounds": 12005,
-    "max_printed": 22042
+    "slot_bounds": 9212,
+    "max_printed": 19249
    },
    {
     "flags": {
      "loop_started": false,
-     "revisit": true,
-     "inline": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
      "worktree_run": false
     },
-    "fixed": 9801,
-    "slot_bounds": 12005,
-    "max_printed": 21832
+    "fixed": 10100,
+    "slot_bounds": 9212,
+    "max_printed": 19338
    },
    {
     "flags": {
      "loop_started": false,
-     "revisit": true,
-     "inline": true,
-     "worktree_run": true
-    },
-    "fixed": 9801,
-    "slot_bounds": 12005,
-    "max_printed": 21832
-   },
-   {
-    "flags": {
-     "loop_started": true,
-     "revisit": false,
-     "inline": false,
-     "worktree_run": false
-    },
-    "fixed": 9776,
-    "slot_bounds": 11396,
-    "max_printed": 21198
-   },
-   {
-    "flags": {
-     "loop_started": true,
+     "loop_unavailable": true,
      "revisit": false,
      "inline": false,
      "worktree_run": true
     },
-    "fixed": 9776,
-    "slot_bounds": 11396,
-    "max_printed": 21198
+    "fixed": 10100,
+    "slot_bounds": 9212,
+    "max_printed": 19338
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": false,
      "inline": true,
      "worktree_run": false
     },
-    "fixed": 9566,
-    "slot_bounds": 11396,
-    "max_printed": 20988
+    "fixed": 9890,
+    "slot_bounds": 9212,
+    "max_printed": 19128
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": false,
      "inline": true,
      "worktree_run": true
     },
-    "fixed": 9566,
-    "slot_bounds": 11396,
-    "max_printed": 20988
+    "fixed": 9890,
+    "slot_bounds": 9212,
+    "max_printed": 19128
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": false,
      "worktree_run": false
     },
-    "fixed": 9907,
-    "slot_bounds": 11506,
-    "max_printed": 21439
+    "fixed": 10276,
+    "slot_bounds": 9322,
+    "max_printed": 19624
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": false,
      "worktree_run": true
     },
-    "fixed": 9907,
-    "slot_bounds": 11506,
-    "max_printed": 21439
+    "fixed": 10276,
+    "slot_bounds": 9322,
+    "max_printed": 19624
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": true,
      "worktree_run": false
     },
-    "fixed": 9697,
-    "slot_bounds": 11506,
-    "max_printed": 21229
+    "fixed": 10066,
+    "slot_bounds": 9322,
+    "max_printed": 19414
    },
    {
     "flags": {
-     "loop_started": true,
+     "loop_started": false,
+     "loop_unavailable": true,
      "revisit": true,
      "inline": true,
      "worktree_run": true
     },
-    "fixed": 9697,
-    "slot_bounds": 11506,
-    "max_printed": 21229
+    "fixed": 10066,
+    "slot_bounds": 9322,
+    "max_printed": 19414
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9960,
+    "slot_bounds": 8909,
+    "max_printed": 18895
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9960,
+    "slot_bounds": 8909,
+    "max_printed": 18895
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9750,
+    "slot_bounds": 8909,
+    "max_printed": 18685
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9750,
+    "slot_bounds": 8909,
+    "max_printed": 18685
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10136,
+    "slot_bounds": 9019,
+    "max_printed": 19181
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10136,
+    "slot_bounds": 9019,
+    "max_printed": 19181
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9926,
+    "slot_bounds": 9019,
+    "max_printed": 18971
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9926,
+    "slot_bounds": 9019,
+    "max_printed": 18971
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10015,
+    "slot_bounds": 9019,
+    "max_printed": 19060
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10015,
+    "slot_bounds": 9019,
+    "max_printed": 19060
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9805,
+    "slot_bounds": 9019,
+    "max_printed": 18850
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9805,
+    "slot_bounds": 9019,
+    "max_printed": 18850
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10191,
+    "slot_bounds": 9129,
+    "max_printed": 19346
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10191,
+    "slot_bounds": 9129,
+    "max_printed": 19346
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9981,
+    "slot_bounds": 9129,
+    "max_printed": 19136
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9981,
+    "slot_bounds": 9129,
+    "max_printed": 19136
    }
   ],
-  "max_printed": 22042,
+  "max_printed": 19624,
+  "print_budget": 19500
+ },
+ "validate_longest_install": {
+  "template": "step-plan.template.md",
+  "slots": 36,
+  "flags": [
+   "loop_started",
+   "loop_unavailable",
+   "revisit",
+   "inline",
+   "worktree_run"
+  ],
+  "requires": [
+   "A1 concern map (plan.concerns rows; `concerns` in _RESULT_KEYS and its gate)",
+   "T-D2 producer bounds (plan: work item context 2500, concern rows 1200, open assumptions 1200)",
+   "N2 commit look-back (recent_commits)",
+   "N5 outcome names",
+   "C6/G1 platform card `## Testing` section and the environment-to-card mapping",
+   "N5 awaiting kinds answer, present, service",
+   "decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired)",
+   "placeholder registry read from this form (navigator._placeholders)",
+   "loops Work cites the template's Method items (_duty_items counts them)",
+   "engine E3/E4 (plan 8.5)",
+   "E5: a test pins that the runtime's printed start, next and done packets (stdout, not the receipt) carry the contract's Work, Exit and Repeat (decision 20; U-up keeps them)",
+   "E6: shiploop_narrative caps the progress block at 900",
+   "lands with: obligation ledger rows (the until-loop row rewritten for decision 20), head-order tests, packet_view and counters repointed in the same commit"
+  ],
+  "problems": [],
+  "placeholders": [
+   "<...>",
+   "<R-<n> or AD-<n> this item follows>",
+   "<case ID>",
+   "<command or case ID>",
+   "<command>",
+   "<concern row>",
+   "<condition>",
+   "<fact>",
+   "<file>",
+   "<focused command>",
+   "<lint, type or build command>",
+   "<n>",
+   "<one sentence naming the change and its checks; then harness choices, decisions, defaults, open items and owners>",
+   "<read-only command>",
+   "<regression command>",
+   "<repository-relative file>",
+   "<result>",
+   "<the command that proves C1>",
+   "<the step's outcome, citing C1>",
+   "<under 100 characters: what this plan established>"
+  ],
+  "gates": 23,
+  "combos": [
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10045,
+    "slot_bounds": 9440,
+    "max_printed": 19511
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10045,
+    "slot_bounds": 9440,
+    "max_printed": 19511
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9835,
+    "slot_bounds": 9440,
+    "max_printed": 19301
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9835,
+    "slot_bounds": 9440,
+    "max_printed": 19301
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10221,
+    "slot_bounds": 9550,
+    "max_printed": 19797
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10221,
+    "slot_bounds": 9550,
+    "max_printed": 19797
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 10011,
+    "slot_bounds": 9550,
+    "max_printed": 19587
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 10011,
+    "slot_bounds": 9550,
+    "max_printed": 19587
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10100,
+    "slot_bounds": 9550,
+    "max_printed": 19676
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10100,
+    "slot_bounds": 9550,
+    "max_printed": 19676
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9890,
+    "slot_bounds": 9550,
+    "max_printed": 19466
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9890,
+    "slot_bounds": 9550,
+    "max_printed": 19466
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10276,
+    "slot_bounds": 9660,
+    "max_printed": 19962
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10276,
+    "slot_bounds": 9660,
+    "max_printed": 19962
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 10066,
+    "slot_bounds": 9660,
+    "max_printed": 19752
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 10066,
+    "slot_bounds": 9660,
+    "max_printed": 19752
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9960,
+    "slot_bounds": 9226,
+    "max_printed": 19212
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9960,
+    "slot_bounds": 9226,
+    "max_printed": 19212
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9750,
+    "slot_bounds": 9226,
+    "max_printed": 19002
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9750,
+    "slot_bounds": 9226,
+    "max_printed": 19002
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10136,
+    "slot_bounds": 9336,
+    "max_printed": 19498
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10136,
+    "slot_bounds": 9336,
+    "max_printed": 19498
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9926,
+    "slot_bounds": 9336,
+    "max_printed": 19288
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9926,
+    "slot_bounds": 9336,
+    "max_printed": 19288
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10015,
+    "slot_bounds": 9336,
+    "max_printed": 19377
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10015,
+    "slot_bounds": 9336,
+    "max_printed": 19377
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9805,
+    "slot_bounds": 9336,
+    "max_printed": 19167
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9805,
+    "slot_bounds": 9336,
+    "max_printed": 19167
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10191,
+    "slot_bounds": 9446,
+    "max_printed": 19663
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10191,
+    "slot_bounds": 9446,
+    "max_printed": 19663
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9981,
+    "slot_bounds": 9446,
+    "max_printed": 19453
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "loop_unavailable": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9981,
+    "slot_bounds": 9446,
+    "max_printed": 19453
+   }
+  ],
+  "max_printed": 19962,
   "print_budget": 19500
  }
 }

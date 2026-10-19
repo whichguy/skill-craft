@@ -101,6 +101,11 @@ def outcome_check(name: str, full: str) -> list[str]:
 # Install lengths a bound may name: the run directory, the skill package root and the CLI path (test/shiploop_head_budget.py
 # reference install: 83, 63, 96).
 REFERENCE_INSTALL = {"run": 83, "root": 63, "cli": 96}
+# Lengths are as printed, shell-quoted (round 3 SP3-4). The longest install ShipLoop supports: the static worst case must
+# stay under the host cut there (round 3 R3-2), while the print budget holds at the reference install. Battleship's Grok
+# install was 96, 99 and 132.
+MAX_INSTALL = {"run": 120, "root": 120, "cli": 160}
+HOST_CUT = 20000
 # What a pooled slot prints when its pool is spent: a one-line pointer to its source (counted in the static budget).
 POINTER_ALLOWANCE = 110
 
@@ -184,8 +189,10 @@ def validate(path: Path, partials: Path, install: dict = REFERENCE_INSTALL) -> d
         combos.append({"flags": fl, "fixed": fixed, "slot_bounds": bound, "max_printed": total})
         worst = max(worst, total)
     budget = int(meta.get("print_budget", "0") or 0)
-    if worst > budget:
+    if worst > budget and install == REFERENCE_INSTALL:
         problems.append(f"static budget: max printed {worst} > print_budget {budget}")
+    if install == MAX_INSTALL and worst > HOST_CUT:
+        problems.append(f"static budget at the longest install: max printed {worst} > host cut {HOST_CUT}")
     printed_all = strip_comments(apply_flags(full, {f: True for f in flags}))
     return {"template": path.name, "slots": len(slots), "flags": list(flags), "requires": meta["requires"],
             "problems": problems, "placeholders": form_placeholders(printed_all), "gates": len(meta["gates"]),
@@ -219,44 +226,46 @@ def render(path: Path, partials: Path, values: dict) -> tuple[str, dict]:
     for name, bound in values.get("bound_overrides", {}).items():
         slots[name] = {**slots[name], "bound": str(bound)}
     full = strip_comments(apply_flags(expand(body, partials), values["flags"]))
-    report = {}
-    left = dict(meta["pools"])
-    if meta["elastic"]:
-        # first pass: everything but the pooled slots, to learn what the budget leaves for the elastic pools
-        probe = {**values, "slots": {k: ("" if slots.get(k, {}).get("pool") else v) for k, v in values["slots"].items()}}
-        probe_meta_pools = {p: 10**9 for p in meta["pools"]}
-        printed0 = _render_text(full, slots, rows, probe, install, probe_meta_pools, {})[0].split("=== appendix (file only) ===")[0]
-        pooled = len([s for s in SLOT.findall(full.split("=== appendix (file only) ===")[0]) if slots[s]["pool"]])
-        rest = int(meta.get("print_budget", "0")) - len(printed0) - len(HEAD_END) - 1 - POINTER_ALLOWANCE * pooled
-        for p in meta["elastic"]:
-            left[p] = max(meta["pools"][p], rest)
-    text, report = _render_text(full, slots, rows, values, install, left, report)
     budget = int(meta.get("print_budget", "0") or 0)
-    order = [n for n in dict.fromkeys(SLOT.findall(full.split("=== appendix (file only) ===")[0]))
-             if slots[n]["over"] != "refuse" and not slots[n]["pool"]]
+    order = [n.strip() for n in meta.get("shrink", "").split(",") if n.strip()]
+    printed_names = set(SLOT.findall(full.split("=== appendix (file only) ===")[0]))
+    order = [n for n in order if n in printed_names and slots[n]["over"] != "refuse"]
     shrunk = []
-    while budget and not values.get("allow_over_budget") and order and \
-            len(text.split("=== appendix (file only) ===")[0]) + len(HEAD_END) + 1 > budget:
-        name = order.pop()
-        slots[name] = {**slots[name], "bound": str(POINTER_ALLOWANCE)}
-        shrunk.append(name)
-        report = {}
-        text, report = _render_text(full, slots, rows, values, install, dict(left), report)
+    while True:
+        work = {n: ({**spec, "bound": str(POINTER_ALLOWANCE), "pool": None} if n in shrunk else spec) for n, spec in slots.items()}
+        text, report, left = _render_pass(full, work, rows, values, install, meta, budget)
+        printed = text.split("=== appendix (file only) ===")[0]
+        if not budget or len(re.sub(r"\n{3,}", "\n\n", printed).rstrip("\n")) + len(HEAD_END) + 1 <= budget or not order:
+            break
+        shrunk.append(order.pop(0))
     if "{{" in text:
         raise TemplateError("unrendered marker left: " + text[text.index("{{"):][:60])
     printed, _, appendix = text.partition("=== appendix (file only) ===")
     printed = re.sub(r"\n{3,}", "\n\n", printed).rstrip("\n") + "\n" + HEAD_END + "\n"
     whole = printed + "=== appendix (file only) ===" + appendix
-    budget = int(meta.get("print_budget", "0") or 0)
     over = len(printed) - budget if budget and len(printed) > budget else 0
-    if over and not values.get("allow_over_budget"):
-        raise TemplateError(f"printed {len(printed)} characters, {over} over print_budget {budget}")
     missing = [g["gate"] for g in meta["gates"] if g["anchor"] not in printed]
     if missing:
         raise TemplateError("gate anchors missing from the print: " + ", ".join(missing))
     return whole, {"printed_chars": len(printed), "file_chars": len(whole), "pools": left, "slots": report,
                    "bound_overrides": values.get("bound_overrides", {}), "gates_anchored": len(meta["gates"]),
                    "placeholders": form_placeholders(printed), "over_budget": over, "shrunk_to_pointer": shrunk}
+
+
+def _render_pass(full, slots, rows, values, install, meta, budget):
+    """One render: the elastic pools get what the budget leaves after every non-pooled slot (recomputed on each pass)."""
+    left = dict(meta["pools"])
+    if meta["elastic"]:
+        probe = {**values, "slots": {k: ("" if slots.get(k, {}).get("pool") else v) for k, v in values["slots"].items()}}
+        printed0 = _render_text(full, slots, rows, probe, install, {p: 10**9 for p in meta["pools"]}, {})[0]
+        printed0 = printed0.split("=== appendix (file only) ===")[0]
+        pooled = len([s for s in SLOT.findall(full.split("=== appendix (file only) ===")[0]) if slots[s]["pool"]])
+        rest = budget - len(printed0) - len(HEAD_END) - 1 - POINTER_ALLOWANCE * pooled
+        for p in meta["elastic"]:
+            left[p] = max(meta["pools"][p], rest)
+    report = {}
+    text, report = _render_text(full, slots, rows, values, install, dict(left), report)
+    return text, report, left
 
 
 def _render_text(full, slots, rows, values, install, left, report):
@@ -297,6 +306,7 @@ def main():
     Path(sys.argv[5]).write_text(whole)
     rep["validate_reference_install"] = validate(tpl, partials)
     rep["validate_this_install"] = validate(tpl, partials, values.get("install", REFERENCE_INSTALL))
+    rep["validate_longest_install"] = validate(tpl, partials, MAX_INSTALL)
     Path(sys.argv[6]).write_text(json.dumps(rep, indent=1))
     print(json.dumps({k: rep[k] for k in ("printed_chars", "file_chars")}))
 
