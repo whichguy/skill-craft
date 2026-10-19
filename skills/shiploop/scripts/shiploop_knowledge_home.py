@@ -422,7 +422,7 @@ def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
 
 
 def unnamed_commands(state: Mapping[str, Any], commands: Sequence[str]) -> List[str]:
-    """The entries of ``commands`` that HOME/environment.md's '## Commands' section does not name, in their order.
+    """The entries of ``commands`` that KNOWLEDGE/environment.md's '## Commands' section does not name, in their order.
 
     A command is named when its text, whitespace collapsed, appears in the section's text, whitespace collapsed; the section is
     every heading that starts with 'Commands' (the ``section_notices`` rule).  An absent or unreadable file names none.  Reads

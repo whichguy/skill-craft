@@ -578,13 +578,13 @@ class RemovalTests(HomeFixture):
                 with self.subTest(file=str(path.relative_to(ROOT)), pattern=pattern):
                     self.assertEqual(re.findall(pattern, text), [])
 
-    SKILL_INDEX_TEMPLATE = "each skill index file outside HOME/ and SHIPLOOP.md"
+    SKILL_INDEX_TEMPLATE = "each skill index file outside KNOWLEDGE/ and SHIPLOOP.md"
 
     def test_engine_scripts_name_shiploop_md_only_in_the_host_authored_locator_line(self) -> None:
         for name in self.ENGINE_SCRIPTS:
             for number, line in enumerate((ROOT / "skills/shiploop/scripts" / name).read_text(encoding="utf-8").splitlines(), 1):
                 if self.SKILL_INDEX_TEMPLATE in line:
-                    continue  # the carry-forward result template says a skill index outside HOME/ may sit beside SHIPLOOP.md
+                    continue  # the carry-forward result template says a skill index outside KNOWLEDGE/ may sit beside SHIPLOOP.md
                 if "SHIPLOOP.md" in line or "Repository knowledge index" in line:
                     with self.subTest(file=name, line=number):
                         self.assertIn(self.LOCATOR, line)
@@ -797,9 +797,9 @@ class SectionsTests(HomeFixture):
     @classmethod
     def named_in_the_scripts(cls) -> dict:
         """Each living file -> the headings the scripts' packet and loop text name for it (``<file>.md (## A, ## B)`` or
-        ``<file>.md ## A``, bare or as the packet's ``HOME/<file>.md``). The consult note it also read is gone: a stage
+        ``<file>.md ## A``, bare or as the packet's ``KNOWLEDGE/<file>.md``). The consult note it also read is gone: a stage
         reads whole files now (knowledge.READS, consumer contract D1)."""
-        pattern = re.compile(r"(?:(?<=HOME/)|(?<![\w/{}-]))(" + "|".join(cls.DUTY_FILES)
+        pattern = re.compile(r"(?:(?<=KNOWLEDGE/)|(?<![\w/{}-]))(" + "|".join(cls.DUTY_FILES)
                              + r")\.md (?:\(([^)]*)\)|## ([^;:,.()]*))")
         found = {name + ".md": set() for name in cls.DUTY_FILES}
         for script in sorted((ROOT / "skills/shiploop/scripts").glob("shiploop_*.py")):

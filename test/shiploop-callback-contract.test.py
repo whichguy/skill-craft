@@ -541,7 +541,7 @@ class RefusalRouteTests(RealCliCase):
         command, path, action = printed_callback(head)
         full = full_packet_text(head)
         checked = next(row for row in full.splitlines() if row.startswith("Checked by: "))
-        self.assertIn("a HOME file this stage must have written, missing or empty", checked)
+        self.assertIn("a KNOWLEDGE file this stage must have written, missing or empty", checked)
         # the run the line used to name alone, by its list and count (packet review 2026-10-17, F-14)
         self.assertIn("reruns the 1 command in release-plan's consumer_checks", checked)
         done = full[full.index("Done when"):full.index("Checked by: ")]
@@ -1616,7 +1616,7 @@ class PathHandlingRouteTests(RealCliCase):
         (home / "spec.md").write_text("# Spec\n")
         guide = nav._reference_dir(None) / "navigator.md"
         symbols = {"RUN/notes/x.md": run / "notes" / "x.md", "RUN/notes/x.md#top": str(run / "notes" / "x.md") + "#top",
-                   "WORKTREE/a.txt": repo / "a.txt", "HOME/spec.md": home / "spec.md", "GUIDES/navigator.md": guide}
+                   "WORKTREE/a.txt": repo / "a.txt", "KNOWLEDGE/spec.md": home / "spec.md", "GUIDES/navigator.md": guide}
         write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), *symbols]})
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["evidence_refs"],
@@ -1631,7 +1631,12 @@ class PathHandlingRouteTests(RealCliCase):
         write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), "SCRATCH/x.md"]})
         reply = self.refused(command, run)
         self.assertIn("evidence_refs[1] starts with SCRATCH/, which is not a root ShipLoop defines "
-                      "(GUIDES, HOME, RUN, WORKTREE); write the absolute path", reply)
+                      "(GUIDES, KNOWLEDGE, RUN, WORKTREE); write the absolute path", reply)
+        # HOME was the knowledge home's symbol until decision 19 (2026-10-18): one supported version, so it is refused
+        # like any other unknown root, and the refusal names KNOWLEDGE among the roots.
+        write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), "HOME/spec.md"]})
+        self.assertIn("evidence_refs[1] starts with HOME/, which is not a root ShipLoop defines "
+                      "(GUIDES, KNOWLEDGE, RUN, WORKTREE)", self.refused(command, run))
         write_block(path, self.done_fields())  # the correction the refusal names
         self.accepted(command)
         self.assertIn(action, self.state(run)["accepted"])

@@ -774,7 +774,7 @@ _PROCEDURE_ITEM = textwrap.fill(
 _TEST_SPEC_PROCEDURE = textwrap.fill(
     "4. A case's setup and actions are an ordered procedure. " + PROCEDURE_WALK + " An unreachable start is an open "
     "prerequisite (item 7); an impossible action or unobservable oracle is revised here (a forbidden action is its own "
-    "failure case). A procedure another record holds (HOME/architecture.md ## Real-boundary checks): its locator in "
+    "failure case). A procedure another record holds (KNOWLEDGE/architecture.md ## Real-boundary checks): its locator in "
     "`oracle` or the open item's `check`. A plan is not a run; a setup change makes an earlier observation stale.",
     width=117, subsequent_indent="   ", break_on_hyphens=False) + "\n"
 
@@ -835,7 +835,7 @@ _CARRY_FORWARD_ONE_STEP = """\
    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
    queue, rows `{"id", "title", "context"}`, and say why in the summary.
 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeated. Inspect
-   the repository skill index (HOME/environment.md ## Skills) and your host's skills and list them in evidence_refs,
+   the repository skill index (KNOWLEDGE/environment.md ## Skills) and your host's skills and list them in evidence_refs,
    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n> says the
    procedure will recur (put it in `skill.evidence`): follow Repository-local skill guidance and write the trial to
    RUN/notes/<action>-skill-trial.md.
@@ -930,7 +930,7 @@ DUTIES = {
    expected repair RED. Only a pass is healthy. Change no product file to turn it green. A failed baseline lets
    discovery finish and leaves dependent feature work unready.
 3. Inspect Git and worktree state, instructions, code, tests, docs, consumers and project knowledge. Record in
-   HOME/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
+   KNOWLEDGE/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
    - ## Targets and runtimes: development, test, integration and delivery boundaries; runtime and dependency
      versions;
    - ## Commands: linters, formatters, type checkers, test runners;
@@ -996,7 +996,7 @@ DUTIES = {
    The allowance is shared with discovery; reaching it stops exploration, not the run: record open gaps as
    assumptions or open items in `summary`.
 4. Confirm access to each delivery target with a safe non-mutating probe (Access-readiness policy). Record each
-   proven access need under HOME/environment.md ## Access and accounts as an open item: who can grant it, the gate
+   proven access need under KNOWLEDGE/environment.md ## Access and accounts as an open item: who can grant it, the gate
    it blocks.
 5. For each need, in order: reuse unchanged, compose, augment, build new (Reuse-before-build guidance). Record the
    choice in RUN/notes/research.md, and why earlier options fail for augment or new. Assess skills, MCP servers,
@@ -1014,7 +1014,7 @@ DUTIES = {
    facilities. Record each unknown and its dependent work in RUN/notes/research.md.
 10. Resolve the open interaction and state questions (Interaction design guide): actors, channels, events, connection
     lifecycle, state ownership, runtime and layer offers. Answers in RUN/notes/research.md; runtime facts under
-    HOME/environment.md ## Platform facts.
+    KNOWLEDGE/environment.md ## Platform facts.
 11. RUN/notes/research.md ## Assumptions: each load-bearing assumption (its failure would change a plan decision,
     consumer or acceptance check), marked evidenced (locator), probed (command and saved output) or open (the check
     that would settle it, why not run). Plan builds its `assumptions` from it.
@@ -1022,47 +1022,47 @@ DUTIES = {
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Start from HOME/spec.md (read it whole), the research and discovery results and RUN/notes/current-system-baseline.md
+1. Start from KNOWLEDGE/spec.md (read it whole), the research and discovery results and RUN/notes/current-system-baseline.md
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
    its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
    or tests.
-2. Write each requirement under HOME/spec.md ## Requirements as R-<n> with its acceptance criteria inside
+2. Write each requirement under KNOWLEDGE/spec.md ## Requirements as R-<n> with its acceptance criteria inside
    (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each criterion: positive,
    failure and boundary expectations, each only where it says something the others do not, otherwise `n/a: <reason>`;
    the consumer surface where it is observed; how it is confirmed. Split independently verifiable clauses; keep
    bundled behaviours visible under one ID.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
-   HOME/architecture.md ## Decisions, never in HOME/spec.md; a product decision never takes the AD- prefix.
+   KNOWLEDGE/architecture.md ## Decisions, never in KNOWLEDGE/spec.md; a product decision never takes the AD- prefix.
 4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Mark
-   each unresolved prerequisite or user decision as an open gap under its R-<n> in HOME/spec.md.
+   each unresolved prerequisite or user decision as an open gap under its R-<n> in KNOWLEDGE/spec.md.
 5. In each R-<n> this run adds or changes, state its request or decision basis, preserved and changed behaviour,
    source-section locators, evidence limits, and pending implementation and checks. ShipLoop derives the added,
    changed and retired IDs from the spec diff; list none by hand.
-6. Assess non-functional requirements under HOME/spec.md ## Non-functional requirements (Requirements definition
+6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, measurable bound or observable criterion, verification method, justified
    exclusion, or unresolved target. Invent no target. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready.
-7. State and data assessment: under the R-<n> it affects in HOME/spec.md, write the affected resources, target
+7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
    versus revocation, incremental state, async completion and recovery, owned event coverage. Mark an inapplicable
    concern in one line; add no service to fill a template.
 9. Decide the state and information lifecycle (Interaction design guide), in proportion to the request, as
-   requirements in HOME/spec.md. Per piece of state: owner and location; who may read it (information one user must
+   requirements in KNOWLEDGE/spec.md. Per piece of state: owner and location; who may read it (information one user must
    not see, such as an opponent's hidden game state or another person's record, stays off that client; what a lone
    user could only misuse against themselves may stay); how simultaneous changes resolve; what ends and removes it;
    the runtime quotas it meets. Personal or secret data: where shown, stored, logged, how long kept, how removed.
    Map each to what the runtime offers. Add no identity, sharing or persistence the request does not need; record a
    default for an open choice as an assumption in `summary`. Affected UI: component, interaction and skin premises
    and truthful async feedback as consumer-visible behaviour.
-""" + _duty_focus(10, "HOME/spec.md", "spec") + """\
+""" + _duty_focus(10, "KNOWLEDGE/spec.md", "spec") + """\
 11. """ + _BACKCHAIN_ITEM + """
-12. A complete spec establishes criteria, not implementation or test success. `evidence_refs`: HOME/spec.md, each
+12. A complete spec establishes criteria, not implementation or test success. `evidence_refs`: KNOWLEDGE/spec.md, each
     requirement section and source used.
 """,
     "test-strategy": """\
-1. Build a risk-based strategy from HOME/spec.md and the spec changes since the run began (quoted below) before any
-   code. Under HOME/environment.md
+1. Build a risk-based strategy from KNOWLEDGE/spec.md and the spec changes since the run began (quoted below) before any
+   code. Under KNOWLEDGE/environment.md
    ## Harnesses and suites plan, per requirement: layers (unit, integration, system, consumer), negative cases,
    fixtures and data, environment and authorization needs, required surface, due stage, owner, prerequisites; for a
    state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
@@ -1081,7 +1081,7 @@ DUTIES = {
    (Reusable test facilities); never assume a named skill or MCP is available. Record each facility's locator,
    interface, readiness or gap, owner and revalidation condition under ## Harnesses and suites. A missing facility
    goes in `summary` as plan's prerequisite work; its owning stage builds and validates it first.
-6. Under HOME/architecture.md ## Real-boundary checks record, per check, where it runs and its target: local, client
+6. Under KNOWLEDGE/architecture.md ## Real-boundary checks record, per check, where it runs and its target: local, client
    against a deployed target, or remote-resident. For remote tests: framework, availability, access, deployment
    prerequisites, and the authorized route to define or register, install and invoke them. A local pass is not a
    remote pass; do not narrow a behaviour list to a render smoke.
@@ -1091,12 +1091,12 @@ DUTIES = {
 8. Consume discovery's baseline (Initial repository baseline guide): record its coverage and limits, telling a
    passing subset from failed, blocked, intermittent, missing-test or expected-RED. In `summary` name each setup,
    repair or bootstrap prerequisite and the evidence it needs before dependent feature checks.
-9. Write the focused, smoke and full-suite commands under HOME/environment.md ## Commands, each in a fenced code
+9. Write the focused, smoke and full-suite commands under KNOWLEDGE/environment.md ## Commands, each in a fenced code
    block, never in a Markdown table cell (an escaped `\\|` becomes a literal pipe, matches nothing and can exit 0).
    Per command: inclusion rule, expected cost, environment and fixture prerequisites, the test IDs it may print.
    A passing command names the IDs or cases it ran. This section owns the suite commands; fix any stale copy. Plan
    durable regression tests, not one-off probes. Smoke is a bounded subset, never evidence for the full suite.
-10. Under HOME/environment.md ## ID convention declare each ID as tests will be titled; choose IDs legal in the
+10. Under KNOWLEDGE/environment.md ## ID convention declare each ID as tests will be titled; choose IDs legal in the
     runner's test names (`TC_1` where a hyphen is not). """ + ID_WORD_RULE + """
 11. A case needing a host tool (browser, device, account, service): name it (the host's tool listing is the probe that
     it exists) and probe it now by doing the case's first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
@@ -1109,12 +1109,12 @@ DUTIES = {
     Write it under ## Real-boundary checks as an ordered procedure from its start (actor, entry route, initial state),
     with an ID later stages cite. Otherwise record the outcome unverified with owner and due stage (handoff, or the
     stage whose external effect it gates). An HTTP response alone is neither.
-""" + _duty_focus(13, "HOME/environment.md or HOME/architecture.md", "strategy") + """\
-14. `evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.
+""" + _duty_focus(13, "KNOWLEDGE/environment.md or KNOWLEDGE/architecture.md", "strategy") + """\
+14. `evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output and source used.
 """,
     "plan": """\
 1. Reopen the accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research,
-   current-system-baseline}.md, the spec changes since the run began, HOME/environment.md ## Harnesses and suites, HOME/architecture.md
+   current-system-baseline}.md, the spec changes since the run began, KNOWLEDGE/environment.md ## Harnesses and suites, KNOWLEDGE/architecture.md
    and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
    contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
    boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
@@ -1122,7 +1122,7 @@ DUTIES = {
    (item 17). Order readiness, implementation, integration and release so no consumer runs before its
    prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
    boundaries, correction route. The plan implies no unrun test and no authorized external operation.
-3. Apply Initial-plan reconciliation to HOME/architecture.md, HOME/spec.md, the non-functional requirements and the
+3. Apply Initial-plan reconciliation to KNOWLEDGE/architecture.md, KNOWLEDGE/spec.md, the non-functional requirements and the
    State and data assessment: map each applicable obligation and every acceptance criterion to its work item,
    prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
    need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof.
@@ -1139,7 +1139,7 @@ DUTIES = {
    locator, readiness gap and owner. Readiness is not test execution.
 6. Include environment preparation and delivery work as items; ask for delivery authority at the first concrete
    boundary that needs it (Delivery authority guidance).
-7. Code or stored data added: write the namespace and data entries in HOME/architecture.md ## Structure with an AD-<n> per
+7. Code or stored data added: write the namespace and data entries in KNOWLEDGE/architecture.md ## Structure with an AD-<n> per
    decision; each item's entries go in its `context`:
    - every execution environment the code runs in or reaches (local checkout, remote runtime behind an MCP server,
      API or CLI, hosted platform, each service);
@@ -1153,11 +1153,11 @@ DUTIES = {
      storage policy (authority, retention, sensitive fields, quotas).
    Plan no empty package or directory for a hypothetical future.
 8. Decide the interaction structure (Interaction design guide); record each decision as an AD-<n> in
-   HOME/architecture.md:
-   - placement: the simplest that meets HOME/spec.md. A single-user game or tool with no shared or lasting state
+   KNOWLEDGE/architecture.md:
+   - placement: the simplest that meets KNOWLEDGE/spec.md. A single-user game or tool with no shared or lasting state
      runs entirely in the client. Add server state, identity, a store or live channel only for a requirement that
      needs it, and use the runtime's native storage, identity, cache, workflow and notification services first;
-   - safeguards at every placement: HOME/spec.md's personal-data handling, a server-side check on every action by a
+   - safeguards at every placement: KNOWLEDGE/spec.md's personal-data handling, a server-side check on every action by a
      caller the product does not control, validation and abuse limits on anonymous input, a record of every
      background or async failure that reaches whoever must act;
    - channels: per hop the lightest that meets the stated freshness (request/response; polling at a stated interval;
@@ -1176,7 +1176,7 @@ DUTIES = {
    Allocate each UI decision to the item that owns it (UI planning ownership guide) and put it, with planned check
    locators, in that item's `context` and `evidence_refs`. Reuse accepted choices for unaffected scope. Start no
    nested review.
-9. HOME/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
+9. KNOWLEDGE/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
    ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
    and ## Interfaces and boundaries where this plan changes them.
 10. Give each work item a compact `context` a fresh reader can act on, full locators in `evidence_refs`, longer notes
@@ -1189,7 +1189,7 @@ DUTIES = {
     - test strategy: the ## Harnesses and suites locator and the item's compact test decisions (execution and target
       location, fixture and suite choices, what to recheck);
     - baseline and spec: exact sections, gaps and revalidation conditions of RUN/notes/current-system-baseline.md and
-      HOME/spec.md;
+      KNOWLEDGE/spec.md;
     - service decisions: note locators and revalidation conditions;
     - readiness checks of the item's prerequisites.
     A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
@@ -1218,12 +1218,12 @@ DUTIES = {
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
-    `evidence_refs`: HOME/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
+    `evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
     handoff.
 19. """ + _BACKCHAIN_ITEM + """
 """,
     "prepare": """\
-1. Prepare or verify the development and test environments the plan's items and HOME/environment.md name
+1. Prepare or verify the development and test environments the plan's items and KNOWLEDGE/environment.md name
    (Environment preparation guidance), using what the repository declares. Install nothing without authority.
 2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
    baseline identity (Workspace and return guidance).
@@ -1237,10 +1237,10 @@ DUTIES = {
    conflict in `summary` as unresolved. Never return early, deploy, or bypass the final-handoff return guard.
 6. The consumer's access: name the consumer's account or role, the entry route the plan gives them and what reaching
    it needs (account, role, visibility, permission). Check it read-only, with the probe the target's platform guide
-   names where it has one (GUIDES/platforms/), and record each prerequisite under HOME/environment.md ## Access and
+   names where it has one (GUIDES/platforms/), and record each prerequisite under KNOWLEDGE/environment.md ## Access and
    accounts; one still unresolved stays open there with its owner (who can grant it) and the stage that needs it.
    Create no grant; it does not block this stage.
-7. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
+7. Record readiness under KNOWLEDGE/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
    commands that start each runner, the observations. Record not-applicable only when this candidate needs no
    preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
 """,
@@ -1251,7 +1251,7 @@ Change no product file in this stage.
    blocked (`awaiting` an answer: drop or keep) citing the superseding result; never skip the item
    or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
    widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
-2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. In the
+2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. In the
    summary say which you retain, refine or supersede and why; locators in evidence_refs. Revalidate harness, suite
    and browser tools for the changed surfaces (Repeatable test-suite guide); reuse supported choices or record a
    justified revision. A remote-resident case needs its framework and an authorized setup, invocation, result
@@ -1289,7 +1289,7 @@ Change no product file in this stage.
      pytest `-v`, others: GUIDES/platforms/; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
-   - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
+   - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
      The test and verify stages run these; implement runs only each step's own `check`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
@@ -1301,9 +1301,9 @@ Change no product file in this stage.
      reported failure still reproduces: `! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q 'TypeError'`.
    - An open plan assumption this item consumes becomes an expectation whose `from` names it.
 7. **`paths`**: every file the item changes (repository-relative files or globs), including the test files the test
-   stage writes. The item commit takes these, the changed documentation and HOME/. No test command and only non-code
+   stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document.
-8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in HOME/spec.md or HOME/architecture.md.
+8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md.
 9. **Plan record** in the item's `context` or the summary (supporting reference; each step's task and criteria stay
    its only directive), for the topics this item touches only:
    - outcome and invariants kept; contracts and responsibilities that change;
@@ -1317,9 +1317,9 @@ Change no product file in this stage.
    - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
      interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
      topic, opening only its matching section.
-10. **Knowledge.** A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
-    step. A newly working command: HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
-    in HOME/.
+10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
+    step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
+    in KNOWLEDGE/.
 """ + _STEP_PLAN_GRAPH + """\
 12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
     used.
@@ -1355,7 +1355,7 @@ Write no test code in this stage.
    - check wrong, fact holds: report send-back. Never edit or weaken a check here.
    - `works` expectation broken, fix known and small: fix it in the working tree, touching only that expectation's
      paths, and commit nothing (ShipLoop commits it on accept as a separate preparatory commit).
-   - environment lacks a tool, service or setting: fix it and record it in HOME/environment.md ## Commands or
+   - environment lacks a tool, service or setting: fix it and record it in KNOWLEDGE/environment.md ## Commands or
      ## Targets and runtimes.
    - `absent` finds something, `broken` does not reproduce, or the fix is unknown: report send-back with what is true
      (the step plan reshapes the steps; a needed repair becomes an earlier step).
@@ -1386,8 +1386,8 @@ preparatory commit); a mismatch there is a send-back.
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
 4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. Record a
-   departure from HOME/architecture.md as a new AD-<n> under ## Decisions, and a newly working command in
-   HOME/environment.md ## Commands.
+   departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions, and a newly working command in
+   KNOWLEDGE/environment.md ## Commands.
 5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
    before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
    completion uses its recorded safe fallback or correction.
@@ -1408,11 +1408,11 @@ preparatory commit); a mismatch there is a send-back.
    command its case names (Repeatable test-suite guide, Target-native test selection), asserting the spec's oracle,
    never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities); never
    assume a named skill or MCP is available. Build a missing facility within this item and validate it before the
-   tests that use it; record it in HOME/environment.md ## Harnesses and suites (locator, interface, readiness,
+   tests that use it; record it in KNOWLEDGE/environment.md ## Harnesses and suites (locator, interface, readiness,
    owner, revalidation condition). Write no case due at a later stage.
-2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. Record a
+2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. Record a
    harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
-   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.
+   KNOWLEDGE/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.
    A recorded completion does not prove a harness, fixture or target still works.
 3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
    sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
@@ -1449,7 +1449,7 @@ preparatory commit); a mismatch there is a send-back.
    docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
    authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
    working. Durable facts go in the repository's docs, never only in run notes.
-3. **Decisions.** A design or service decision implement did not record: an AD-<n> under HOME/architecture.md
+3. **Decisions.** A design or service decision implement did not record: an AD-<n> under KNOWLEDGE/architecture.md
    ## Decisions (a service choice with contract, owner and revalidation trigger).
 4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
    as-of baseline (Current-system baseline guide).
@@ -1481,11 +1481,11 @@ in order; """ + _VERIFY_ONCE + """
    finding; a test added for an untested path is titled `<ID> (<letter>)` under the case it extends. An entry point
    missing from the inventory is untraced.
 5. **Review** the whole diff against the step plan's steps, paths and justified revisions, affected consumers, Code
-   craft, the Coding decision selection and HOME/architecture.md. Look for: missing argument checks or contract
+   craft, the Coding decision selection and KNOWLEDGE/architecture.md. Look for: missing argument checks or contract
    docstrings at an entry point; missing error paths; silent failures; restating or stale comments; dead code; user
    text concatenated or bypassing the catalog; names outside the planned namespace or exported too wide; stored data
    off the planned schema; a near-copy of existing logic; a plain interaction where the plan called for a rich one; a
-   deviation from HOME/architecture.md with no new AD-<n>. Reconcile tests, docs, error behaviour, diagnostics,
+   deviation from KNOWLEDGE/architecture.md with no new AD-<n>. Reconcile tests, docs, error behaviour, diagnostics,
    dependencies and limitations. ShipLoop linted and auto-fixed safe formatting on entry: keep or revert each
    auto-fix the lint record names. The lint record supports this review; it does not replace it.
 6. **Services** (Service discovery guidance): verify the item's service and observability contracts' due outcomes,
@@ -1499,7 +1499,7 @@ in order; """ + _VERIFY_ONCE + """
 """ + _VERIFY_ASSEMBLY + """\
 9. **Later checks.** Each system, release or real-boundary check the criteria need is an open item in `assumptions`
    with its consumer (the stage it is due at) and owner; add any missing one. A boundary no local test proves stays
-   pending with its owner in HOME/architecture.md ## Real-boundary checks (Real-boundary test guidance).
+   pending with its owner in KNOWLEDGE/architecture.md ## Real-boundary checks (Real-boundary test guidance).
 10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
     commit. """ + _ITEM_COMMIT + """
 11. **Summary:** as the template says.
@@ -1508,14 +1508,14 @@ in order; """ + _VERIFY_ONCE + """
 """,
     "carry-forward": """\
 1. **Knowledge home.** Update in place; keep completed evidence apart from future plans, never rewriting it:
-   - HOME/environment.md ## Commands: every command that worked.
-   - HOME/architecture.md ## Decisions: each AD-<n> this item added; a superseded one moves to ## Superseded, never
+   - KNOWLEDGE/environment.md ## Commands: every command that worked.
+   - KNOWLEDGE/architecture.md ## Decisions: each AD-<n> this item added; a superseded one moves to ## Superseded, never
      deleted.
-   - HOME/environment.md ## Harnesses and suites: suites; focused, smoke and full commands; harness and case
+   - KNOWLEDGE/environment.md ## Harnesses and suites: suites; focused, smoke and full commands; harness and case
      locators; fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation
      condition.
-   - HOME/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
-   - HOME/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
+   - KNOWLEDGE/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
+   - KNOWLEDGE/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
      included (State and data assessment). Keep unaffected clauses, and never relax one to fit the code or tests.
      Test IDs live only in test code: write none here.
    - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
@@ -1537,7 +1537,7 @@ in order; """ + _VERIFY_ONCE + """
    order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or supersession in
    the summary. Omit `work_items` to keep the queue.
 3. **Skill decision**, in `skill`:
-   1. *Inspect* the repository skill index (the directory HOME/environment.md ## Skills names, or README or AGENTS.md
+   1. *Inspect* the repository skill index (the directory KNOWLEDGE/environment.md ## Skills names, or README or AGENTS.md
       skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence_refs.
    2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance): `none` (no repeated
       procedure, or a code, test or doc change already captures it); `reuse` (an existing skill covers it unchanged;
@@ -1552,7 +1552,7 @@ in order; """ + _VERIFY_ONCE + """
    4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (when to use
       it and when not). Body: what it produces and why; each input (type, required, default and its source); exact
       steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests and
-      HOME/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credentials,
+      KNOWLEDGE/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credentials,
       machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
       `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
       success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md runs
@@ -1562,16 +1562,16 @@ in order; """ + _VERIFY_ONCE + """
       RUN/notes/<action>-skill-trial.md (an update also runs one retained older use). The note says whether a fresh
       reader (given only the index, the skill and a new task) tried it, or "cold-context reuse untested". Presence or
       installation is not proof it runs.
-   6. *Register:* a line with the skill's path, when to use it and its inputs in HOME/environment.md ## Skills, and a
-      link from the repository skill index; list any index file outside HOME/ in `skill.index`.
+   6. *Register:* a line with the skill's path, when to use it and its inputs in KNOWLEDGE/environment.md ## Skills, and a
+      link from the repository skill index; list any index file outside KNOWLEDGE/ in `skill.index`.
    7. *Record:* `skill` = `{"decision", "reason", "path", "evidence", "index"}` (`path` = the SKILL.md for `update` or
       `create`; name a reused skill in `reason`); the trial note in evidence_refs. On accept ShipLoop commits the
       skill directory and the `index` files as their own commit.
    An earlier selection or passing trial is an input, not authority: revalidate for each new task.
-4. **Commit nothing.** On accept ShipLoop commits HOME/ (and the skill, item 3.7).
+4. **Commit nothing.** On accept ShipLoop commits KNOWLEDGE/ (and the skill, item 3.7).
 """,
     "system-test-author": """\
-1. Gather: the test strategy (HOME/environment.md ## Harnesses and suites, HOME/architecture.md ## Real-boundary
+1. Gather: the test strategy (KNOWLEDGE/environment.md ## Harnesses and suites, KNOWLEDGE/architecture.md ## Real-boundary
    checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), and the open items quoted
    below (the system-test obligations). The records in force are the ones listed under "Results this stage builds
    on" (each completed item's step-plan, test-spec and test result and its candidate run); infer no whole-product
@@ -1587,7 +1587,7 @@ in order; """ + _VERIFY_ONCE + """
    case is owned by release-verify and never waived.
 4. Write the tests. Reuse the existing harness, frameworks and helpers (Repeatable test-suite guide, Reusable test
    facilities); build only the smallest missing facility; never assume a named skill or MCP is available. Record each
-   facility's locator, interface, readiness or gap, owner and revalidation condition in HOME/environment.md
+   facility's locator, interface, readiness or gap, owner and revalidation condition in KNOWLEDGE/environment.md
    ## Harnesses and suites. Add the system cases and retained INNER cases to the repeatable full-suite entry point,
    keep the smoke selection, and copy no tests into another suite. Each new test file names the requirement or test
    IDs it covers in its opening lines; shared helpers check their arguments. Check shared setup cost, independent
@@ -1609,15 +1609,15 @@ in order; """ + _VERIFY_ONCE + """
    and reports what; `owner`; `reason` it cannot run here; `consumer` = the due stage (handoff, or the stage whose
    external effect it gates). Continue with every runnable case. Report blocked only when nothing else can proceed,
    add-work when product work is missing.
-8. The integrated test plan goes in `summary` under the catalog and in HOME/environment.md ## Harnesses and suites
+8. The integrated test plan goes in `summary` under the catalog and in KNOWLEDGE/environment.md ## Harnesses and suites
    (OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands, lifecycle and
    sharing decisions, cost, prerequisites, execution owners; which checks run now at system-test and which need the
-   authorized release first. Cite HOME/environment.md in `evidence_refs`; the decisions and constraints the plan
+   authorized release first. Cite KNOWLEDGE/environment.md in `evidence_refs`; the decisions and constraints the plan
    rests on go in `summary`.
 """,
     "system-test": """\
 1. Name the plan you run: the latest done system-test-author record after the most recent accepted add-work, and its
-   integrated test plan in that summary and HOME/environment.md ## Harnesses and suites (OUTER test-planning
+   integrated test plan in that summary and KNOWLEDGE/environment.md ## Harnesses and suites (OUTER test-planning
    handshake). Before running, revalidate its candidate, case selection, target and fixture assumptions. Its
    locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as blocked
    or add-work; never guess a command or drop a required case.
@@ -1652,9 +1652,9 @@ in order; """ + _VERIFY_ONCE + """
    met while a required observation is unrun.
 """,
     "product-acceptance": """\
-1. Gather: the original request and intake result, the accepted requirements in HOME/spec.md, the spec and
+1. Gather: the original request and intake result, the accepted requirements in KNOWLEDGE/spec.md, the spec and
    architecture changes since the run began, the integrated test plan (latest done system-test-author record after
-   the most recent accepted add-work, and HOME/environment.md ## Harnesses and suites; OUTER test-planning handshake),
+   the most recent accepted add-work, and KNOWLEDGE/environment.md ## Harnesses and suites; OUTER test-planning handshake),
    and the system-test result. Locators in `evidence_refs`.
 2. Assess the product against the original outcome, not only the spec: acceptance criteria, cross-cutting
    requirements, consumer impact (Consumer delivery guidance), test evidence, known limits. Reconcile new and
@@ -1684,14 +1684,14 @@ in order; """ + _VERIFY_ONCE + """
 """,
     "release-plan": """\
 1. Revalidate the integrated test plan for the release target: the latest done system-test-author record after the
-   most recent accepted add-work, HOME/environment.md ## Harnesses and suites, the system-test result (OUTER
+   most recent accepted add-work, KNOWLEDGE/environment.md ## Harnesses and suites, the system-test result (OUTER
    test-planning handshake); pending and blocked results are not plan authority. Use Target-native test
    selection for this payload and its deploy or promotion operation, including any revised gate. Reuse applicable
    tests and facilities (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and
    record each new facility's locator, interface, readiness or gap, owner and revalidation condition. An unmet
    earlier deployment or test prerequisite: report add-work with corrective work and evidence (ShipLoop reruns the
    outer stages).
-2. Write the release steps in `summary` and HOME/environment.md (item 8): target and candidate identity, permission,
+2. Write the release steps in `summary` and KNOWLEDGE/environment.md (item 8): target and candidate identity, permission,
    prerequisites, user impact, monitoring, stop conditions. Every operation the user-visible outcome needs is a
    named step with its exact command and authorization status: the deploy, each access or visibility change (for
    example granting a role or permission, activating an app or menu entry), each browser session a consumer check needs with
@@ -1701,14 +1701,14 @@ in order; """ + _VERIFY_ONCE + """
    operation guidance, State and data assessment).
 3. Record each step's delivery authority in `summary`. A plan authorizes and performs no external operation; a
    required target or authority gap is blocked.
-4. Write the rollback procedure in `summary` and HOME/environment.md ## Commands. Isolated run: write it for the
+4. Write the rollback procedure in `summary` and KNOWLEDGE/environment.md ## Commands. Isolated run: write it for the
    source return the packet states (return route and rollback recipes come from workspace.md), as plain `git`
    commands with that route's SHAs and branch names, never this run's absolute paths, never for another route
    (Workspace return guidance). Source return happens at release or handoff, not here. Use an authorized delivery
    route from the execution checkout when available (Environment promotion guidance). If the return must precede
    the consumer checks, record the ordering conflict and keep the disposition incomplete; never claim an earlier
    check observed a future return-triggered effect.
-5. Write the release test plan in `summary` and HOME/environment.md ## Harnesses and suites: pre and post check
+5. Write the release test plan in `summary` and KNOWLEDGE/environment.md ## Harnesses and suites: pre and post check
    owners, commands or case selectors, independent expected outcomes, prerequisites, execution versus target
    locations, remote test-definition revision, setup, test and teardown, fixture isolation, sharing and cost,
    cleanup and stop conditions. State what release-check must establish before release, what release-verify
@@ -1725,9 +1725,9 @@ in order; """ + _VERIFY_ONCE + """
    applies: empty list with `consumer_checks_na` and the reason.
 7. `consumer_entry`: `how` a person reaches the result (app or menu entry name and URL path, command, page) and the
    repository `sources` files that create that entry.
-8. Update HOME/environment.md: target under ## Targets and runtimes; deploy, dry-run, rollback and confirm commands
+8. Update KNOWLEDGE/environment.md: target under ## Targets and runtimes; deploy, dry-run, rollback and confirm commands
    under ## Commands; approvals and accounts under ## Access and accounts.
-9. Cite HOME/environment.md in `evidence_refs`; the decisions and constraints the plan rests on go in `summary`.
+9. Cite KNOWLEDGE/environment.md in `evidence_refs`; the decisions and constraints the plan rests on go in `summary`.
 """,
     "release-check": """\
 1. Name the release plan you check: the latest done release-plan and system-test-author records after the last
@@ -1736,17 +1736,17 @@ in order; """ + _VERIFY_ONCE + """
 2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
    evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
    readiness, any target concurrency condition (Release operation guidance). Rerun prepare's read-only probe that the
-   consumer can reach the entry (HOME/environment.md ## Access and accounts; the target's platform guide names one
+   consumer can reach the entry (KNOWLEDGE/environment.md ## Access and accounts; the target's platform guide names one
    where it has one) and save its output beside the dry run's. A gap this run may not fix stays open there with who
    can grant it, for release-verify's step 1; create no grant.
 3. Run the dry-run form of the planned deploy (for example the deploy tool's validate or check-only mode) once; save the output in
    RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
 4. Run each `consumer_checks` post-release confirm command once against the current target; save its "not there yet"
    output in the same file. A confirm command that cannot tell present from absent is fixed now in
-   HOME/environment.md ## Commands and rerun.
+   KNOWLEDGE/environment.md ## Commands and rerun.
 5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
    dry run; decisions are kept for the return at release). Compare review-return's expected return with the
-   procedure in HOME/environment.md; if they differ, correct the procedure and rerun plan-return.
+   procedure in KNOWLEDGE/environment.md; if they differ, correct the procedure and rerun plan-return.
 6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A
    material change to code, tests, fixtures, configuration or target invalidates the observations it affects: rerun
    those through the planned route, reuse the rest only with identity and relevance stated.
@@ -1809,10 +1809,10 @@ in order; """ + _VERIFY_ONCE + """
    rerun those, reuse the rest only with identity and relevance stated.
 10. `lessons`, each in detail: `learned`, `considerations` (decisions and risks that matter), `open_next` (what a
     later run should pick up). ShipLoop commits them as the run's learnings, read at intake.
-11. Update HOME/environment.md with what the release showed about targets, commands and access.
+11. Update KNOWLEDGE/environment.md with what the release showed about targets, commands and access.
 """,
     "operations": """\
-1. Reopen the observability coverage in HOME/environment.md and HOME/architecture.md; cite the sections used in
+1. Reopen the observability coverage in KNOWLEDGE/environment.md and KNOWLEDGE/architecture.md; cite the sections used in
    `evidence_refs`.
 2. Check each against the running system and record in `summary`: monitoring, alerting, log and diagnostic access,
    recovery ownership (who restores and how; the rollback works), support documentation, cleanup, revalidation needs
@@ -1824,7 +1824,7 @@ in order; """ + _VERIFY_ONCE + """
 4. Close only evidenced gaps this run owns. Duplicate no provider logs; treat not every failure as an incident; keep
    the required audit-failure and recovery policy.
 5. Write the current log and audit retrieval and recovery locators, with observation date and open limits, to
-   HOME/environment.md (Service handoff guidance).
+   KNOWLEDGE/environment.md (Service handoff guidance).
 6. A justified N/A in `summary` only after assessing the actual operational boundary: what you assessed, why it does
    not apply.
 7. Name the release-plan and system-test-author records you rely on (latest done after the last accepted add-work;
@@ -1853,10 +1853,10 @@ in order; """ + _VERIFY_ONCE + """
    plan-return, decide every undecided path with review-return, run its return command (Workspace return guidance);
    receipt path in `evidence_refs`.
 6. From the returned project, without the run directory, check the knowledge survives: durable documentation links
-   resolve in the returned repository (HOME/spec.md, HOME/environment.md, HOME/architecture.md); the AD-<n> entries
-   in HOME/architecture.md hold the current service decisions, ownership, unresolved boundaries and revalidation
+   resolve in the returned repository (KNOWLEDGE/spec.md, KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md); the AD-<n> entries
+   in KNOWLEDGE/architecture.md hold the current service decisions, ownership, unresolved boundaries and revalidation
    conditions (Service discovery guidance); their source and check locators open for a fresh reader. Keep the prior
-   baseline's as-of account (Current-system baseline guide). Fix a broken link or missing entry in HOME/ now.
+   baseline's as-of account (Current-system baseline guide). Fix a broken link or missing entry in KNOWLEDGE/ now.
    Work-item context and earlier result references are not a durable index.
 7. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
    `summary` and report any conflict with what you observed.
@@ -1907,7 +1907,7 @@ validates it, within its scope, before the checks that depend on it. Readiness i
 reopens the recorded definition instead of inventing another facility.
 """
 TEST_DECISION_HANDOFF = """\
-Test decisions: reopen the item's test decision and the harness and suite decisions in HOME/environment.md. In the
+Test decisions: reopen the item's test decision and the harness and suite decisions in KNOWLEDGE/environment.md. In the
 summary, say which decisions you retain, refine or supersede, and why; put their locators and the step plan's in
 evidence_refs. Reassess a missing decision here. A recorded completion does not prove a harness, fixture or target
 still works.
@@ -2513,7 +2513,7 @@ base (below) and fix, within the item's paths, any of these:
   ordering): run a one-line probe or read its primary documentation;
 - a public function without its contract docstring, a comment that restates
   code, or dead code (rules 3-4);
-- code placed outside HOME/architecture.md's ## Structure or ## Conventions, or a
+- code placed outside KNOWLEDGE/architecture.md's ## Structure or ## Conventions, or a
   departure with no new AD-<n> under ## Decisions; a name that collides or is
   exported wider than needed (rule 8);
 - a near-copy of existing logic, a new unit where an existing one could be

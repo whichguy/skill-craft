@@ -606,7 +606,7 @@ class PlanRecordTests(unittest.TestCase):
     GUIDE = ROOT / "skills/shiploop/references/plan-record.md"
     # What each moved bullet said (a phrase of it, checked verbatim): the obligation stays whole in the guide.
     MOVED = (
-        "Reopen the namespace and data entries in HOME/architecture.md ## Structure and each touched environment's tree",
+        "Reopen the namespace and data entries in KNOWLEDGE/architecture.md ## Structure and each touched environment's tree",
         "collision check (import or load test, deploy validation, or name search)",
         "migration (unneeded, earlier step, this step, deploy obligation), round-trip check",
         "Reason for a changed placement or schema (Namespace and placement guidance, Schema and storage guidance, State and data assessment)",

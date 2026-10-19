@@ -111,3 +111,33 @@ Done means all of these hold:
 | A0's branch was built on an older base | Diff each mechanism against main first; port only the delta |
 | Budget drift with real data | The validator is the guarantee, plus a live-data render case in CI (the Battleship values) |
 | Old runs in flight on the hosts | They are refused at load (one supported version); the release note says so |
+
+## Progress (journal)
+
+Each entry: the unit, its result, what it found, and the evidence. Entries are edited later rather than deleted.
+
+- **2026-10-18, S1.1, S1.3 and S1.4 (the four outcomes; firm).** Commit `5c3f3828`.
+  - **Result:** done, blocked (`awaiting`: answer, present or the new service kind), send-back and add-work. `repeat`,
+    `revise`, `replan` and `blocked_by` are refused with the new names. Improve starts only on done. Check-only enforces
+    the send-back budget. State version 8.
+  - **Found by porting the tests** (38 test files, five Sonnet workers and this session), five engine defects, each fixed
+    in the unit:
+    - validation demanded Improve records for non-done results;
+    - the ask-agent step-plan head was 20,124 characters, over the cut;
+    - the dry run's blocked-resume raised a KeyError on a service wait;
+    - the status text cut URLs as paths (`https:health`);
+    - the service-wait packet repeated its kind and gave contradictory resume instructions.
+  - **Gap found:** the outer send-backs of N5 were missing from this table; added as S1.5.
+  - **Evidence:** the quick tier passed with `--changed-from origin/main`, and all 95 ShipLoop suites plus the audit harness
+    unit tests passed.
+- **2026-10-18, S1.2 (decision 19, `KNOWLEDGE`; firm).**
+  - **Result:** 146 engine sites, plus SKILL.md, four references and the complete command, now print `KNOWLEDGE`.
+    `HOME/` in `evidence_refs` is refused as an unknown root (route test:
+    `test_a_missing_symbol_led_path_and_an_unknown_root_are_refused_and_the_absolute_path_is_accepted`).
+  - **Size:**
+    - heads grew by 6 to 51 characters; `head_table.json` was re-measured, and the tightest, inline step-plan, is 19,971
+      against the 20,000 cut;
+    - the context-index map is 3,618 characters against a bound of 3,650 (was 3,600).
+  - **Hand-off fingerprints:** 26 of 33 changed. Writing KNOWLEDGE back as HOME reproduces every old hash, so the symbol
+    is the only difference.
+  - **Harness:** `packet_anatomy` and `metrics` read both symbols, because saved runs before 2026-10-18 print HOME.

@@ -1386,15 +1386,15 @@ class NavigatorContractTests(unittest.TestCase):
         for clause in ("platform/library", "browser"):
             self.assertIn(clause, guide)
 
-        self.assertIn("`evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output", strategy)
+        self.assertIn("`evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output", strategy)
         for stage in ("plan", "system-test-author"):
             with self.subTest(stage=stage, check="saved test strategy consumption"):
                 # The shared handoff is folded into these duties (re-cut, 2026-10-11): the strategy is the
-                # HOME/environment.md ## Harnesses and suites section, which each duty names.
+                # KNOWLEDGE/environment.md ## Harnesses and suites section, which each duty names.
                 self.assertIn("## Harnesses and suites", prompts.prompt(stage))
                 self.assertIn("test strategy", " ".join(prompts.prompt(stage).split()))
         with self.subTest(stage="test", check="saved test strategy consumption"):
-            self.assertIn("HOME/environment.md's harness and suite decisions",
+            self.assertIn("KNOWLEDGE/environment.md's harness and suite decisions",
                           " ".join(prompts.prompt("test").split()))
         with self.subTest(stage="step-plan", check="saved test strategy consumption"):
             # step-plan's duty no longer carries the shared handoff text (2026-10-11 dedupe); its packet's References
@@ -1408,7 +1408,7 @@ class NavigatorContractTests(unittest.TestCase):
             # Consumer contract D1: step-plan reads environment.md, where the harnesses and suites live once
             # test-strategy.md merges into it (contract 3.6), listed by contents (owner decision D1, 2026-10-17); the
             # strategy stage result stays listed.
-            self.assertRegex(packet, r"(?m)^Knowledge files this stage reads, listed by contents(?s:.*)^HOME/environment\.md[: ]")
+            self.assertRegex(packet, r"(?m)^Knowledge files this stage reads, listed by contents(?s:.*)^KNOWLEDGE/environment\.md[: ]")
             self.assertRegex(packet, r"(?m)^- test-strategy stage result: RUN/results/")
         self.assertIn(
             "harness and case locators; fixture lifecycle",
@@ -1427,7 +1427,7 @@ class NavigatorContractTests(unittest.TestCase):
                                   "supersedes, and why", prompts.summary_placeholder(stage))
                     self.assertIn("the harness and suite decision locators", instruction)
                 else:
-                    self.assertIn("Reopen the item's test decision and HOME/environment.md's harness and suite "
+                    self.assertIn("Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite "
                                   "decisions", instruction)
                     self.assertIn("retain, refine or supersede and why", instruction)
                 if stage == "test":

@@ -1,5 +1,5 @@
 {
- "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), re-measured 2026-10-17 on the merge of wave 2 (U2 not yet merged) into the integration branch: every head fits the 20,000-character host cut (inline step-plan 19,988 is the tightest); raised 2026-10-17 by U25 (structure wording: each result template's summary placeholder, +86 per inner stage without its own placeholder, +30 test-spec, +179 ask-agent step-plan with the step-plan duty wording; verify -7): the 20,000 cut and the 19,500 required-text bound still hold (shiploop-head-order); re-measured 2026-10-17 on the merge of U8 (pointer lines, callback reason) into the integration branch with packets.offline_packets(..., printed=True, measure_for=budget.reference_measure) and at_reference_install, as PrintedHeadTests does: every head fits the 20,000-character host cut (inline step-plan 19,894 and ask-agent step-plan 19,673 are the tightest); carry-forward fell by about 4,000 (head and whole) since the last measure (5e0ef0d0) through the units merged in between; raised 2026-10-17 by the step-scoped checks fix (chess run: an item-wide check sent S1 back and the revise merged three steps into one): the step-plan check duty states when a check is due (+117 ask-agent step-plan) and the implement exit condition names the Step lines' checks (+18 implement); the 20,000 cut and the 19,500 required-text bound still hold (shiploop-head-order); re-measured 2026-10-17 by packet-review U3/U4 (feat/pr-u3-head-1b7a72): every head now prints the guides its duties cite (the guides lookup block, after the References symbols: +170 to +1,200, carry-forward the most), the Backchain lines with the line or paragraph that cites them, and the one-line pass, floor and ratchet rules (-172 at test and verify); inline step-plan 19,923 (it now leaves out the builds-on list and the progress view for its 767-character guides block) and ask-agent verify 19,045 are the tightest; every head still fits the 20,000 cut and the 19,500 required-text bound (shiploop-head-order); re-measured 2026-10-17 on the merge of the packet-review units U1-U10 (knowledge as a table of contents, slim hand-off, head cites and revisits, one progress block, gates stated, person check, one run per command) into the integration branch: whole packets fall 0.8-3.4 KB per stage; inline step-plan head 19,989 is the tightest and still fits the 20,000 cut; re-measured 2026-10-17 by packet-review wave 2 W2-A/W2-B (feat/pr-w2-proof-75e8ad): step-plan asks each step for its check, the Proof implement runs at done (step-plan whole +581 inline, +699 ask-agent; heads 19,989 -> 19,961 inline, 19,224 -> 19,923 ask-agent), and implement's exit conditions name the step's criteria and its Proof (inline +212, ask-agent +120); every head still fits the 20,000 cut and the 19,500 required-text bound (shiploop-head-order); re-measured 2026-10-17 on the merge of W2-A/B (step Proof, one step block) and W2-C (procedure walk, test-spec +749) into the integration branch",
+ "_comment": "The journaled value of each producer stage's printed head and of its whole text on the offline node-fix-bug case, at the reference install of test/shiploop_head_budget.py (run dir 83 characters, skill root 63, CLI path 96), re-measured 2026-10-17 on the merge of wave 2 (U2 not yet merged) into the integration branch: every head fits the 20,000-character host cut (inline step-plan 19,988 is the tightest); raised 2026-10-17 by U25 (structure wording: each result template's summary placeholder, +86 per inner stage without its own placeholder, +30 test-spec, +179 ask-agent step-plan with the step-plan duty wording; verify -7): the 20,000 cut and the 19,500 required-text bound still hold (shiploop-head-order); re-measured 2026-10-17 on the merge of U8 (pointer lines, callback reason) into the integration branch with packets.offline_packets(..., printed=True, measure_for=budget.reference_measure) and at_reference_install, as PrintedHeadTests does: every head fits the 20,000-character host cut (inline step-plan 19,894 and ask-agent step-plan 19,673 are the tightest); carry-forward fell by about 4,000 (head and whole) since the last measure (5e0ef0d0) through the units merged in between; raised 2026-10-17 by the step-scoped checks fix (chess run: an item-wide check sent S1 back and the revise merged three steps into one): the step-plan check duty states when a check is due (+117 ask-agent step-plan) and the implement exit condition names the Step lines' checks (+18 implement); the 20,000 cut and the 19,500 required-text bound still hold (shiploop-head-order); re-measured 2026-10-17 by packet-review U3/U4 (feat/pr-u3-head-1b7a72): every head now prints the guides its duties cite (the guides lookup block, after the References symbols: +170 to +1,200, carry-forward the most), the Backchain lines with the line or paragraph that cites them, and the one-line pass, floor and ratchet rules (-172 at test and verify); inline step-plan 19,923 (it now leaves out the builds-on list and the progress view for its 767-character guides block) and ask-agent verify 19,045 are the tightest; every head still fits the 20,000 cut and the 19,500 required-text bound (shiploop-head-order); re-measured 2026-10-17 on the merge of the packet-review units U1-U10 (knowledge as a table of contents, slim hand-off, head cites and revisits, one progress block, gates stated, person check, one run per command) into the integration branch: whole packets fall 0.8-3.4 KB per stage; inline step-plan head 19,989 is the tightest and still fits the 20,000 cut; re-measured 2026-10-17 by packet-review wave 2 W2-A/W2-B (feat/pr-w2-proof-75e8ad): step-plan asks each step for its check, the Proof implement runs at done (step-plan whole +581 inline, +699 ask-agent; heads 19,989 -> 19,961 inline, 19,224 -> 19,923 ask-agent), and implement's exit conditions name the step's criteria and its Proof (inline +212, ask-agent +120); every head still fits the 20,000 cut and the 19,500 required-text bound (shiploop-head-order); re-measured 2026-10-17 on the merge of W2-A/B (step Proof, one step block) and W2-C (procedure walk, test-spec +749) into the integration branch; raised 2026-10-18 by the four outcomes (S1.1) and decision 19 (S1.2, feat/shiploop-templates-6d625a): the knowledge-home symbol HOME became KNOWLEDGE (+5 characters per use), +6 to +51 per head and +24 to +51 per whole text; inline step-plan 19,971 is the tightest and every head still fits the 20,000 cut and the 19,500 required-text bound (shiploop-head-order)",
  "reference": {
   "run_dir_length": 83,
   "root_length": 63,
@@ -8,70 +8,70 @@
  "heads": {
   "inline": {
    "step-plan": {
-    "head": 19961,
-    "whole": 23959
+    "head": 19971,
+    "whole": 24010
    },
    "test-spec": {
-    "head": 15463,
-    "whole": 15463
+    "head": 15491,
+    "whole": 15491
    },
    "validate-existing": {
-    "head": 15123,
-    "whole": 15123
+    "head": 15173,
+    "whole": 15173
    },
    "implement": {
-    "head": 16104,
-    "whole": 18427
+    "head": 16110,
+    "whole": 18453
    },
    "test": {
-    "head": 17982,
-    "whole": 19864
+    "head": 17992,
+    "whole": 19889
    },
    "document": {
-    "head": 14263,
-    "whole": 14263
+    "head": 14270,
+    "whole": 14270
    },
    "verify": {
-    "head": 18201,
-    "whole": 20280
+    "head": 18220,
+    "whole": 20304
    },
    "carry-forward": {
-    "head": 14616,
-    "whole": 17794
+    "head": 14628,
+    "whole": 17832
    }
   },
   "ask-agent": {
    "step-plan": {
-    "head": 19923,
-    "whole": 27468
+    "head": 19933,
+    "whole": 27519
    },
    "test-spec": {
-    "head": 13750,
-    "whole": 17031
+    "head": 13773,
+    "whole": 17059
    },
    "validate-existing": {
-    "head": 12503,
-    "whole": 16691
+    "head": 12538,
+    "whole": 16741
    },
    "implement": {
-    "head": 17544,
-    "whole": 21435
+    "head": 17550,
+    "whole": 21461
    },
    "test": {
-    "head": 17982,
-    "whole": 21432
+    "head": 17992,
+    "whole": 21457
    },
    "document": {
-    "head": 15831,
-    "whole": 15831
+    "head": 15838,
+    "whole": 15838
    },
    "verify": {
-    "head": 18715,
-    "whole": 22268
+    "head": 18734,
+    "whole": 22292
    },
    "carry-forward": {
-    "head": 16016,
-    "whole": 20628
+    "head": 16034,
+    "whole": 20666
    }
   }
  },

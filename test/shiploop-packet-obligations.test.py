@@ -32,7 +32,7 @@ import shiploop_packet_view as packet_view  # noqa: E402
 
 # The obligations the plan says hold at every stage, as ledger row ids (the narrative and the home commit are conditional rows).
 PLAN_SEVEN = {"callback": "callback", "result shape": "result-shape", "Checked by": "checked-by", "RULES": "rules",
-              "narrative": "narrative", "pause and recovery frame": "pause-recovery", "HOME commit and close": "home-commit"}
+              "narrative": "narrative", "pause and recovery frame": "pause-recovery", "KNOWLEDGE commit and close": "home-commit"}
 
 
 class LedgerShapeTests(unittest.TestCase):

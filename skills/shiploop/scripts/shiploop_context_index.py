@@ -75,9 +75,9 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/report.html, progress.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
      ".progress-disabled, transaction.md, .lock, callback-attempts", "report, progress view, display files, save "
      "journal, lock, counter; no workflow state", "the user asks how the run stands"),
-    ("HOME/spec.md", "the living spec: R-<n> requirements", "a stage quotes it"),
-    ("HOME/architecture.md", "stack, structure, AD-<n> decisions", "a stage quotes it"),
-    ("HOME/environment.md", "commands, harnesses and suites, platform facts", "you need a command or suite"),
+    ("KNOWLEDGE/spec.md", "the living spec: R-<n> requirements", "a stage quotes it"),
+    ("KNOWLEDGE/architecture.md", "stack, structure, AD-<n> decisions", "a stage quotes it"),
+    ("KNOWLEDGE/environment.md", "commands, harnesses and suites, platform facts", "you need a command or suite"),
     ("GUIDES/", "the skill's guides: navigator.md (protocol), state-files.md (every run file), platforms/",
      "a packet cites one: open that section"),
 )
@@ -106,7 +106,7 @@ def map_lines(state: Mapping[str, Any], root: Path, stage: str) -> list[str]:
              "",
              "## What is where",
              "",
-             f"RUN = {root} · HOME = {repo / knowledge.HOME} · GUIDES = {GUIDES}",
+             f"RUN = {root} · KNOWLEDGE = {repo / knowledge.HOME} · GUIDES = {GUIDES}",
              "",
              "| Path | Holds | Read it when |", "|---|---|---|"]
     lines.extend(f"| {path} | {holds} | {when} |" for path, holds, when in MAP_ROWS)

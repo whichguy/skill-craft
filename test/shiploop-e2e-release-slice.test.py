@@ -191,7 +191,7 @@ class SeedTest(unittest.TestCase):
         self.assertIn("sf apex run test --target-org de --class-names SLBattleEngineTest", packet)
         self.assertIn("- A1: SYS-ORG-SUITE", packet)
         for name in ("spec.md", "environment.md", "architecture.md"):
-            self.assertIn(f"HOME/{name}", packet)
+            self.assertIn(f"KNOWLEDGE/{name}", packet)
         self.assertNotIn("not written yet", packet)
         self.assertNotIn("not recorded by", packet)
 

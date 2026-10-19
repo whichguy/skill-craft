@@ -152,7 +152,7 @@ class PromptTests(unittest.TestCase):
         self.assertIn("narrowest visibility a present consumer needs", rubric)
         self.assertIn("names outside the planned namespace or exported too wide", VERIFY_REVIEW)
         plan = " ".join(prompts.prompt("plan").split())
-        self.assertIn("Code or stored data added: write the namespace and data entries in HOME/architecture.md "
+        self.assertIn("Code or stored data added: write the namespace and data entries in KNOWLEDGE/architecture.md "
                       "## Structure with an AD-<n> per decision", plan)
         self.assertIn("remote runtime behind an MCP server", plan)
         self.assertIn("each service", plan)
@@ -161,7 +161,7 @@ class PromptTests(unittest.TestCase):
         step = " ".join(prompts.prompt("step-plan").split())
         self.assertIn("when the item adds or moves code or stored data", step)
         self.assertIn("GUIDES/plan-record.md", step)
-        self.assertIn("Reopen the namespace and data entries in HOME/architecture.md ## Structure and each touched "
+        self.assertIn("Reopen the namespace and data entries in KNOWLEDGE/architecture.md ## Structure and each touched "
                       "environment's tree", PLAN_RECORD)
         self.assertIn("Stored data follows the planned schema", rubric)
         self.assertIn("Per stored field, key, table or payload: owning environment, migration", PLAN_RECORD)

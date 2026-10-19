@@ -659,7 +659,7 @@ class TestLoopTests(unittest.TestCase):
                          .replace("{action}", self.action()))
 
     def test_carry_forward_names_the_verify_commands_environment_md_lacks_and_its_notice_never_refuses(self):
-        """VR-3: the commands that passed at verify and HOME/environment.md does not name, in the packet, and one counted
+        """VR-3: the commands that passed at verify and KNOWLEDGE/environment.md does not name, in the packet, and one counted
         notice when carry-forward is accepted."""
         self.start()
         state = self.drive_to("carry-forward")
@@ -669,7 +669,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(nav._verify_passed_commands(self.run_dir, state, "W1"),
                          ["sh check.sh fixed.txt", "test -f retained.txt"])
         line = next(row for row in self.packet().splitlines() if row.startswith("Commands that passed at verify"))
-        self.assertEqual(line, "Commands that passed at verify and are not named in HOME/environment.md: "
+        self.assertEqual(line, "Commands that passed at verify and are not named in KNOWLEDGE/environment.md: "
                                "`test -f retained.txt`. Write each under ## Commands, or say in the summary why one "
                                "does not belong.")
         self.complete(DONE)

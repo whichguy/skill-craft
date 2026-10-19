@@ -98,7 +98,9 @@ class MasterIndexTests(unittest.TestCase):
     (the "Run records" line that the packet's second pointer line relies on, unit U8), so a model that lost its context
     finds every other file of the run from here.  It stays a derived view (the existing tests)."""
 
-    MAP_LIMIT = 3_600  # "about 3 KB" of map (3,500 until U17 added the RUN/request.md row); paths take the rest
+    # "about 3 KB" of map (3,500 until U17 added the RUN/request.md row; 3,600 until decision 19 renamed HOME to KNOWLEDGE,
+    # +20 over four uses); paths take the rest
+    MAP_LIMIT = 3_650
 
     @staticmethod
     def map_text(text: str) -> str:
@@ -134,7 +136,7 @@ class MasterIndexTests(unittest.TestCase):
             self.assertTrue(lines[1].startswith("- Next command: the callback at the top of that packet"), lines[1])
             self.assertIn(nav._callback(dry_run.CORE, root, "next"), lines[2])  # the packet's own recovery command
             self.assertIn("moves nothing", lines[2])
-            self.assertIn(f"RUN = {root} · HOME = {Path(state['repo']) / 'docs/shiploop'} · GUIDES = "
+            self.assertIn(f"RUN = {root} · KNOWLEDGE = {Path(state['repo']) / 'docs/shiploop'} · GUIDES = "
                           f"{context_index.GUIDES}", head)
             self.assertTrue((context_index.GUIDES / "state-files.md").is_file())  # GUIDES is the real references directory
 
@@ -194,7 +196,7 @@ class MasterIndexTests(unittest.TestCase):
         state = drive_to("implement")
         text = context_index.render(state, Path("/simulation-only/run"), "implement")
         for name in knowledge.LIVING:
-            self.assertIn("| HOME/" + name + " |", text)
+            self.assertIn("| KNOWLEDGE/" + name + " |", text)
         self.assertIn("| GUIDES/ |", text)
         self.assertIn("| RUN/reference.md |", text)
         for anchor in ("rules", "blocked", "outcomes", "recovery", "policies"):  # the sections reference.md really has

@@ -1,6 +1,6 @@
 """Generated knowledge homes for offline packet measurements: a long one and a small one (ShipLoop efficiency plan, unit U5).
 
-A packet quotes the knowledge files its stage reads whole (HOME/spec.md, environment.md, architecture.md under the repository's
+A packet quotes the knowledge files its stage reads whole (KNOWLEDGE/spec.md, environment.md, architecture.md under the repository's
 docs/shiploop), so how many characters a change saves depends on how much the home holds. A recorded long hosted-platform run had files of
 16.3, 14.2 and 5.8 KB; a one-line bug fix has none. This module writes both kinds, neutral and deterministic (no domain words, the
 same bytes every time), and walks the navigator's dry-run delivery graph over them with no model and no project:

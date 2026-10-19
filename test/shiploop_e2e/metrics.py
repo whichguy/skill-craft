@@ -1917,8 +1917,9 @@ BARE_FILES = ((re.compile(r"(?<![\w/.-])handoff\.md\b"), "handoff"),
               (re.compile(r"(?<![\w/.-])(?:packet\.json|parent-return\.md|opening\.md)\b"), "child_record"),
               (re.compile(r"(?<![\w/.-])ADAPTER\.md\b"), "adapter"))
 RUNTIME_SCRIPT = re.compile(r"until_loop_ephemeral\.py")
-SYMBOL_DEFINITION = re.compile(r"\b(HOME|RUN|WORKTREE|GUIDES|FEATURE) = (/\S+)")
-SYMBOL_PATH = re.compile(r"\b(HOME|RUN|WORKTREE|GUIDES|FEATURE)/([\w.@+~/<>-]*[\w@+~>-])")
+# KNOWLEDGE replaced HOME as the knowledge-home symbol on 2026-10-18 (decision 19); saved runs before it print HOME.
+SYMBOL_DEFINITION = re.compile(r"\b(KNOWLEDGE|HOME|RUN|WORKTREE|GUIDES|FEATURE) = (/\S+)")
+SYMBOL_PATH = re.compile(r"\b(KNOWLEDGE|HOME|RUN|WORKTREE|GUIDES|FEATURE)/([\w.@+~/<>-]*[\w@+~>-])")
 READER = re.compile(r"\b(?:cat|head|tail|sed|grep|egrep|awk|less|more|rg|nl|wc|jq)\b")
 SLICING_COMMAND = re.compile(r"\|\s*(?:head|tail|sed|grep|awk)\b|^\s*(?:head|tail|sed|grep|awk)\b|\b(?:sed -n|grep)\b")
 SHELL_VARIABLE_ANY = re.compile(r"\$[\w{(]")
@@ -2405,7 +2406,8 @@ def _run_dir_counters(run_dir: Path | None, order: list, tools: "ToolLog", class
     else:
         opened = {"measured": True, "count": sum(1 for r in opens.values() if r["mode"] != "none"), "of": len(opens),
                   "stages": sorted(opens.values(), key=lambda r: r["action"])}
-        # Pointers: the files a producer packet names through its path symbols (HOME/spec.md, RUN/results/<id>.md, GUIDES/...),
+        # Pointers: the files a producer packet names through its path symbols (KNOWLEDGE/spec.md, HOME/spec.md before 2026-10-18,
+        # RUN/results/<id>.md, GUIDES/...),
         # each resolved against the symbol definitions in the packet's own References block.
         listed: dict[str, str] = {}
         for path in packets.values():
@@ -2419,7 +2421,7 @@ def _run_dir_counters(run_dir: Path | None, order: list, tools: "ToolLog", class
                 if cls in ("packet_file",) or "/inbox/" in full or "/loops/" in full or "/scratch/" in full:
                     continue  # the packet itself, the result it asks for, the Until Loop's files and the model's scratch space
                 listed.setdefault(full, "result_record" if cls == "result_record" else "guide" if symbol == "GUIDES" or cls == "reference"
-                                  else "knowledge" if cls == "knowledge" or symbol == "HOME" else cls or "other")
+                                  else "knowledge" if cls == "knowledge" or symbol in ("KNOWLEDGE", "HOME") else cls or "other")
         # Opened: the target of a Read or read_file call, or named by a command that reads it (a redirect target is a write).
         touched = " ".join(
             tools.calls[k]["file"] if not tools.calls[k]["command"]

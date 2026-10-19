@@ -75,7 +75,7 @@ class StepPacketTests(unittest.TestCase):
     def test_a_guide_named_by_the_guides_symbol_counts_and_must_exist(self) -> None:
         """Packets print guides as GUIDES/<file> (2026-10-16): the check expands the symbol, so it still finds a bad one."""
         guides = ROOT / "skills/shiploop/references"
-        definition = "HOME = /h (knowledge home) · RUN = /r (run records) · GUIDES = " + str(guides) + " (the skill's guides)"
+        definition = "KNOWLEDGE = /h (knowledge home) · RUN = /r (run records) · GUIDES = " + str(guides) + " (the skill's guides)"
         found = packets.references(definition + "\nCoding decision guide: GUIDES/coding-guidance.md#select-guidance\n")
         self.assertEqual((found["skill_references"], found["missing"]), (1, []))
         gone = packets.references(definition + "\nCoding decision guide: GUIDES/no-such-guide.md#x\n")

@@ -197,7 +197,7 @@ class NoAdvanceImproveTests(unittest.TestCase):
 
 class ActionGoalTests(unittest.TestCase):
     # A goal names where its outcome goes: a result field in backticks, a knowledge or run file, or the product.
-    OUTPUT = re.compile(r"`[a-z_]+`|HOME/|RUN/|WORKTREE|\b(spec|environment|architecture)\.md\b|evidence_refs|"
+    OUTPUT = re.compile(r"`[a-z_]+`|KNOWLEDGE/|RUN/|WORKTREE|\b(spec|environment|architecture)\.md\b|evidence_refs|"
                         r"\bsummary\b|\bresult\b|checkout|repository|commit")
 
     def test_every_goal_is_one_action_that_names_its_output(self) -> None:

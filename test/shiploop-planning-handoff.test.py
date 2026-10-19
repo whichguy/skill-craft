@@ -83,9 +83,9 @@ class PlanningHandoffTests(unittest.TestCase):
         "intake": "`evidence_refs`: each source used.",
         "discovery": "`evidence_refs`: command, cwd, target, result, coverage limits, output file.",
         "research": "also every file written and source used",
-        "spec": "`evidence_refs`: HOME/spec.md, each requirement section and source used.",
-        "test-strategy": "`evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.",
-        "plan": "`evidence_refs`: HOME/architecture.md, any execution graph, every source used. An unrecorded "
+        "spec": "`evidence_refs`: KNOWLEDGE/spec.md, each requirement section and source used.",
+        "test-strategy": "`evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output and source used.",
+        "plan": "`evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded "
                 "conversation is not a handoff.",
         "prepare": "save the output and list each file in `evidence_refs`",
         "step-plan": "absolute paths of every planning file written, and the requirement sections and test locators "
@@ -93,7 +93,7 @@ class PlanningHandoffTests(unittest.TestCase):
         "test-spec": "evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections "
                      "used.",
         "system-test-author": "`evidence_refs`: the action, result and test-note locators used.",
-        "release-plan": "Cite HOME/environment.md in `evidence_refs`",
+        "release-plan": "Cite KNOWLEDGE/environment.md in `evidence_refs`",
     }
 
     def test_every_planning_stage_registers_its_files_for_the_next_stage(self) -> None:

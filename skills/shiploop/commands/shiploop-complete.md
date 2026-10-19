@@ -19,7 +19,7 @@ python3 "$SKILL_ROOT/scripts/shiploop" complete \
 The producer result file is the packet's template, filled in: one `outcome`
 (`done`, `repeat` or `blocked`; outer steps may also `replan`), a nonempty
 `summary`, and `evidence_refs` naming the files this step wrote or the check
-output it recorded (an absolute path, or one led by `RUN/`, `HOME/`, `WORKTREE/` or `GUIDES/`,
+output it recorded (an absolute path, or one led by `RUN/`, `KNOWLEDGE/`, `WORKTREE/` or `GUIDES/`,
 which ShipLoop expands; an inner stage's Until Loop receipt is listed by ShipLoop when the
 result leaves it out). The template placeholder is refused. The script refuses an
 omitted, stale or conflicting action ID and never infers an advance from the

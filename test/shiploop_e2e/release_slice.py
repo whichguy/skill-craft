@@ -2,7 +2,7 @@
 
 `run.py --seed-at release-plan` (or `system-test-author`) records every stage before the seed point as done without doing it, as
 `--seed-at step-plan` does, and also hands the run a product: the case's prebuilt project is committed in the run's worktree as the
-delivered candidate of its only work item, and the knowledge home the outer stages read (HOME/spec.md, architecture.md,
+delivered candidate of its only work item, and the knowledge home the outer stages read (KNOWLEDGE/spec.md, architecture.md,
 environment.md) is the case's own, committed before the run's baseline. The host then plans, checks, performs and verifies the
 release with ShipLoop's own packets, so a run costs minutes of the platform and none of the build.
 

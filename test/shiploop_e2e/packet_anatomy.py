@@ -102,7 +102,7 @@ RULES: tuple[Rule, ...] = (
     # --- the References block (_reference_lines): the symbols HOME, FEATURE, RUN and WORKTREE with the files under them,
     # the stage's consult note and what it builds on; it ends at the first line of another shape
     _r("references", r"^References \(", "before",
-       r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Knowledge files: |Run records: |Consult at this stage|Results this stage builds on))"),
+       r"^(?!(- |KNOWLEDGE = |HOME = |FEATURE = |RUN = |WORKTREE = |Knowledge files: |Run records: |Consult at this stage|Results this stage builds on))"),
     # --- an inner stage's Until Loop block (shiploop_loops.invoke_lines): heading, the RUN line and the literal start command
     # (or, once the receipt exists, the resume line), the follow line, the argument between its two marker lines, the
     # result line and the loop rule, which ends it (2026-10-17: one start route; saved runs of the 2026-10-16 layout end
@@ -210,11 +210,11 @@ RULES: tuple[Rule, ...] = (
     # --- quoted knowledge files and hand-offs (QUOTE blocks): the heads, the unwritten-file rows and the hand-off rows.
     # A quoted body is every line under its label that starts with the two-space quote prefix (navigator.QUOTE "  | ").
     _r("carried-sources", r"^(Knowledge files this stage reads|Handed off by earlier stages)"),
-    _r("carried-sources", r"^HOME/\S+: not written yet"),
-    _r("carried-sources", r"^HOME/\S+ \(source: HOME/\S+, whole file\):$", "indent"),
+    _r("carried-sources", r"^(?:KNOWLEDGE|HOME)/\S+: not written yet"),
+    _r("carried-sources", r"^(?:KNOWLEDGE|HOME)/\S+ \(source: (?:KNOWLEDGE|HOME)/\S+, whole file\):$", "indent"),
     # Since 2026-10-17 (owner decision D1) a file is listed by contents, and a new file's diff is a pointer with them.
-    _r("carried-sources", r"^HOME/\S+ \(\d+ bytes, \d+ lines?\)(, contents:|, no headings)$", "indent"),
-    _r("carried-sources", r"^HOME/\S+: new since the baseline, so its diff is the whole file", "indent"),
+    _r("carried-sources", r"^(?:KNOWLEDGE|HOME)/\S+ \(\d+ bytes, \d+ lines?\)(, contents:|, no headings)$", "indent"),
+    _r("carried-sources", r"^(?:KNOWLEDGE|HOME)/\S+: new since the baseline, so its diff is the whole file", "indent"),
     _r("carried-sources", r"^open items for \S+:$", "listing"),
     _r("carried-sources", r"^(open items( for \S+)?: none open|[a-z_]+ \([^)]*\):( not recorded.*)?$)", "listing"),
     _r("carried-sources", r"^If a carried decision is missing"),
@@ -226,10 +226,10 @@ RULES: tuple[Rule, ...] = (
     _r("step-context", r"^(Step \S+ \(\d+ of \d+\), the only work|Accepted step |Later steps \(ShipLoop issues|Item plan:)"),
     # --- repository knowledge home (knowledge.stage_lines)
     _r("knowledge-home", r"^Inherited learnings:", "indent"),
-    _r("knowledge-home", r"^(Repository knowledge home|This stage keeps these up to date|If this stage changes (HOME/|docs/shiploop)|"
+    _r("knowledge-home", r"^(Repository knowledge home|This stage keeps these up to date|If this stage changes (KNOWLEDGE/|HOME/|docs/shiploop)|"
        r"On done ShipLoop checks these files|outcome\.md must have|spec\.md is the living spec|"
-       r"Written by earlier stages|ShipLoop refuses [a-z-]+ if any|(HOME/)?architecture\.md is how the product is built|"
-       r"If (HOME/)?architecture\.md is missing|Begin .*/plan\.md with this exact first line|In .*/README\.md link the feature list|"
+       r"Written by earlier stages|ShipLoop refuses [a-z-]+ if any|((?:KNOWLEDGE|HOME)/)?architecture\.md is how the product is built|"
+       r"If ((?:KNOWLEDGE|HOME)/)?architecture\.md is missing|Begin .*/plan\.md with this exact first line|In .*/README\.md link the feature list|"
        r"At this handoff ShipLoop checks)"),
     # --- environment discovery
     _r("environment-discovery", r"^(Environment discovery requirement|One investigation allowance|"
@@ -264,7 +264,7 @@ RULES: tuple[Rule, ...] = (
     _r("lint", r"^ShipLoop lint \(", "until", r"^END lint data"),
     # --- reading list: a "Label: /absolute/path[#anchor]" line (_run_rules policies and guides, STAGE_REFERENCES)
     _r("reading-list", r"^Repository knowledge index "),
-    _r("reading-list", r"^[^:\n]{3,140}: (/|GUIDES/|HOME/|RUN/)[^ \n]+$"),
+    _r("reading-list", r"^[^:\n]{3,140}: (/|GUIDES/|KNOWLEDGE/|HOME/|RUN/)[^ \n]+$"),
     _r("reading-list", r"^[^:\n]{3,140}: [A-Za-z0-9_.-]+\.md$"),
     # One pointer line replaces every locator the packet's stage text does not name (2026-10-11 dedupe).
     _r("reading-list", r"^Every other policy and guide"),

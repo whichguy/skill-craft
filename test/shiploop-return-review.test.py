@@ -705,7 +705,7 @@ class ReturnRouteTests(ReturnReviewCase):
         # note moved to the workspace lifecycle reference (it says plan-return commits leftovers onto the run branch).
         for part in ("run the packet's plan-return command, then decide every undecided path with review-return",
                      "a dry run; decisions are kept for the return at release",
-                     "Compare review-return's expected return with the procedure in HOME/environment.md",
+                     "Compare review-return's expected return with the procedure in KNOWLEDGE/environment.md",
                      "rerun plan-return"):
             self.assertEqual(check.count(part), 1, part)
         lifecycle = " ".join((ROOT / "skills/shiploop/references/workspace-lifecycle.md").read_text(encoding="utf-8").split())

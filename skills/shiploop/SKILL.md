@@ -245,7 +245,7 @@ Work toward that goal and keep going until every condition holds; a passing
 test that ShipLoop ran is the evidence.
 
 Every packet opens, after its goal, with a **References** block that defines each
-path once: `HOME` (the knowledge home `docs/shiploop/`, each file with its
+path once: `KNOWLEDGE` (the knowledge home `docs/shiploop/`, each file with its
 sections, a missing one marked with the stage that writes it), `RUN` (the run
 directory), `WORKTREE` (the execution checkout) and `GUIDES` (this skill's
 references directory). Its heading reads "symbols expand to these absolute paths;

@@ -214,7 +214,7 @@ _ROWS = (
     ),
     Stage(
         "discovery", "prelude",
-        goal='Inspect the repository and baseline tests; write the facts to HOME/environment.md and the baseline run to `evidence_refs`.',
+        goal='Inspect the repository and baseline tests; write the facts to KNOWLEDGE/environment.md and the baseline run to `evidence_refs`.',
         short_goal='discover the repository and baseline',
         done_when=(
             "the existing suite (full, or smoke if full is impractical) ran on the unchanged checkout, "
@@ -231,7 +231,7 @@ _ROWS = (
     ),
     Stage(
         "research", "prelude",
-        goal='Resolve the consequential unknowns with evidence in RUN/notes/research.md; durable facts go to HOME/environment.md.',
+        goal='Resolve the consequential unknowns with evidence in RUN/notes/research.md; durable facts go to KNOWLEDGE/environment.md.',
         short_goal='research the open unknowns',
         done_when=(
             "every consequential unknown is resolved with evidence, or recorded with an owner and the gate it blocks",
@@ -245,7 +245,7 @@ _ROWS = (
     ),
     Stage(
         "spec", "prelude",
-        goal="Define each requirement and its acceptance criteria as R-<n> in HOME/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
+        goal="Define each requirement and its acceptance criteria as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
         short_goal='specify the requirements',
         done_when=(
             "every request outcome maps to at least one acceptance criterion",
@@ -262,7 +262,7 @@ _ROWS = (
     ),
     Stage(
         "test-strategy", "prelude",
-        goal='Map each requirement to the checks that prove it: harnesses and commands in HOME/environment.md, boundaries in HOME/architecture.md.',
+        goal='Map each requirement to the checks that prove it: harnesses and commands in KNOWLEDGE/environment.md, boundaries in KNOWLEDGE/architecture.md.',
         short_goal='plan the test strategy',
         done_when=(
             "every criterion maps to a check, its surface and the stage it is due",
@@ -281,7 +281,7 @@ _ROWS = (
     ),
     Stage(
         "plan", "prelude",
-        goal='Plan dependencies and the queue: ordered `work_items`, `assumptions`, and structure decisions in HOME/architecture.md.',
+        goal='Plan dependencies and the queue: ordered `work_items`, `assumptions`, and structure decisions in KNOWLEDGE/architecture.md.',
         short_goal='plan the work items',
         done_when=(
             "every criterion is owned by a work item",
@@ -297,7 +297,7 @@ _ROWS = (
     ),
     Stage(
         "prepare", "prelude",
-        goal='Ready the development and test environment; record readiness in HOME/environment.md and runner output in `evidence_refs`.',
+        goal='Ready the development and test environment; record readiness in KNOWLEDGE/environment.md and runner output in `evidence_refs`.',
         short_goal='prepare the environment',
         done_when=(
             "each planned check's runner starts in the prepared environment",
@@ -543,7 +543,7 @@ _ROWS = (
     ),
     Stage(
         "release-plan", "outer",
-        goal='Plan the release without performing it: steps and rollback in `summary` and HOME/environment.md, `consumer_checks`, `consumer_entry`.',
+        goal='Plan the release without performing it: steps and rollback in `summary` and KNOWLEDGE/environment.md, `consumer_checks`, `consumer_entry`.',
         short_goal='plan the release',
         done_when=(
             "release, rollback and post-release verification steps are planned",
@@ -597,7 +597,7 @@ _ROWS = (
     ),
     Stage(
         "operations", "outer",
-        goal='Confirm the release can be monitored, recovered and supported: evidence in `summary`, locators in HOME/environment.md.',
+        goal='Confirm the release can be monitored, recovered and supported: evidence in `summary`, locators in KNOWLEDGE/environment.md.',
         short_goal='confirm operational readiness',
         done_when=("monitoring, recovery and support readiness are confirmed, or justified not-applicable",),
         deploy="Confirm monitoring and rollback work.",
