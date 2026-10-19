@@ -924,13 +924,15 @@ def _remedy(stage: str) -> str:
     """The outcome this stage offers when its own runs keep refusing, from the stage contract.
 
     INNER stages take the item back to its step plan (``send-back``); the OUTER ``system-test`` and ``release-verify``
-    take corrective work items (``add-work``).  ``verify`` is also called with a label that is not a graph stage -- the
-    navigator's ``end-of-work review`` gate -- which has no remedy outcome and must not raise here.
+    take corrective work items (``add-work``): their runs refused, so the product, not their plan, is what failed.  They
+    also accept send-back since S1.5, for a wrong plan, which a refused run does not show; add-work is checked first.
+    ``verify`` is also called with a label that is not a graph stage -- the navigator's ``end-of-work review`` gate --
+    which has no remedy outcome and must not raise here.
     """
     row = stage_spec.STAGE_SPEC.get(stage)
     if row is None:
         return ""
-    for candidate in ("send-back", "add-work"):
+    for candidate in ("add-work", "send-back"):
         if candidate in row.outcomes:
             return candidate
     return ""

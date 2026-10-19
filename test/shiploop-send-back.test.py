@@ -144,12 +144,16 @@ class SendBackTests(unittest.TestCase):
                 nav.validate(after)
 
     def test_send_back_is_allowed_only_where_the_stage_table_allows_it(self) -> None:
-        self.assertEqual(spec.with_outcome("send-back")[0], "test-spec")
-        self.assertEqual(spec.with_outcome("send-back")[-1], "verify")
-        for stage in ("intake", "plan", "step-plan", "carry-forward"):
+        # The INNER stages from test-spec to verify send an item back to its step plan; two OUTER stages send the run back
+        # to the stage that wrote their plan (run-insights N5, build plan S1.5).
+        self.assertEqual(spec.with_outcome("send-back"),
+                         ("test-spec", "validate-existing", "implement", "test", "document", "verify", "system-test",
+                          "release-verify"))
+        for stage in ("intake", "plan", "step-plan", "carry-forward", "system-test-author", "release-plan", "release"):
             with self.subTest(stage=stage):
                 state = drive_to(stage)
-                with self.assertRaisesRegex(nav.NavigatorError, "send-back sends a work item back"):
+                with self.assertRaisesRegex(nav.NavigatorError, "send-back sends a result back to the stage that wrote "
+                                            "the wrong record and is allowed only at"):
                     submit(state, SEND_BACK)
 
     def test_earlier_results_of_a_sent_back_item_are_no_longer_current(self) -> None:
@@ -371,6 +375,86 @@ class SendBackTests(unittest.TestCase):
     def test_revisions_must_name_real_items_within_the_budget(self) -> None:
         state = drive_to("implement")
         for bad in ({"W9": 1}, {"W1": 0}, {"W1": 3}):
+            broken = deepcopy(state)
+            broken["revisions"] = bad
+            with self.subTest(revisions=bad), self.assertRaisesRegex(nav.NavigatorError, "revisions must map"):
+                nav.validate(broken)
+
+
+OUTER_SEND_BACK = {"outcome": "send-back", "summary": "A case the plan records cannot observe the clause it names."}
+
+
+def outer_rows(start: str, stop: str) -> list:
+    """The dry-run declarations from ``start``'s producer row up to, not including, ``stop``'s."""
+    rows = dry_run.activity()
+    first = next(i for i, row in enumerate(rows) if row["at"] == start and row["command"] == "produce")
+    last = next(i for i, row in enumerate(rows) if i > first and row["at"] == stop and row["command"] == "produce")
+    return rows[first:last]
+
+
+class OuterSendBackTests(unittest.TestCase):
+    """system-test sends the run back to system-test-author, and release-verify to release-plan (N5, S1.5)."""
+
+    PAIRS = (("system-test", "system-test-author"), ("release-verify", "release-plan"))
+
+    def test_an_outer_send_back_reruns_the_stage_that_wrote_the_plan_with_a_fresh_action(self) -> None:
+        for stage, target in self.PAIRS:
+            with self.subTest(stage=stage):
+                state = drive_to(stage)
+                sent = submit(state, OUTER_SEND_BACK)
+                nav.validate(sent)
+                self.assertEqual((nav.current_stage(sent), sent["status"]), (target, "active"))
+                self.assertEqual(sent["revisions"], {target: 1})
+                self.assertIsNone(sent["active_improve"])
+                self.assertNotIn(nav.current_action(sent)["id"], state["accepted"])
+                # The stages after the target run again in order, back to the stage that sent it.
+                again = walk(sent, outer_rows(target, stage))
+                self.assertEqual(nav.current_stage(again), stage)
+
+    def test_the_outer_budget_is_two_send_backs_per_target_then_the_user_decides(self) -> None:
+        for stage, target in self.PAIRS:
+            with self.subTest(stage=stage):
+                state = drive_to(stage)
+                for count in (1, 2):
+                    state = walk(submit(state, OUTER_SEND_BACK), outer_rows(target, stage))
+                    self.assertEqual(state["revisions"], {target: count})
+                with self.assertRaisesRegex(nav.NavigatorError, "has used its 2 send-backs.*report blocked"):
+                    submit(state, OUTER_SEND_BACK)
+
+    def test_the_packet_states_the_target_and_the_redone_stage_names_the_send_back_result(self) -> None:
+        for stage, target in self.PAIRS:
+            with self.subTest(stage=stage):
+                state = drive_to(stage)
+                packet = nav.render(dry_run.CORE, dry_run.RUN, state)
+                self.assertIn("send-back (", packet)
+                self.assertIn("back to " + target, packet)
+                self.assertIn("2 of 2 left", packet)
+                sent = submit(state, OUTER_SEND_BACK)
+                action = last_action(sent, stage, "send-back", item=None)
+                packet = nav.render(dry_run.CORE, dry_run.RUN, sent)
+                self.assertIn("Revisit: " + stage + " sent the run back to " + target + " (1 of 2 send-backs)", packet)
+                self.assertIn("RUN/results/" + action + ".md", packet)
+                previous = last_action(state, target, "done", item=None)
+                self.assertIn("Your previous accepted " + target + " result: RUN/results/" + previous + ".md", packet)
+                # Once the target has an accepted result after the send-back, its next packet is no revisit.
+                again = walk(sent, outer_rows(target, stage))
+                self.assertNotIn("Revisit:", nav.render(dry_run.CORE, dry_run.RUN, again))
+
+    def test_the_status_names_the_target(self) -> None:
+        sent = submit(drive_to("release-verify"), OUTER_SEND_BACK)
+        self.assertIn("release-verify (sent back to release-plan)", nav.status_block(sent))
+
+    def test_a_refused_run_tally_still_ends_in_add_work_at_the_outer_test_stages(self) -> None:
+        import shiploop_test_loop as test_loop
+        self.assertEqual({stage: test_loop._remedy(stage) for stage in ("test", "system-test", "release-verify")},
+                         {"test": "send-back", "system-test": "add-work", "release-verify": "add-work"})
+
+    def test_outer_revisions_must_name_a_send_back_target_within_the_budget(self) -> None:
+        state = drive_to("release-verify")
+        good = deepcopy(state)
+        good["revisions"] = {"W1": 1, "system-test-author": 2, "release-plan": 1}
+        nav.validate(good)
+        for bad in ({"release": 1}, {"release-plan": 3}):
             broken = deepcopy(state)
             broken["revisions"] = bad
             with self.subTest(revisions=bad), self.assertRaisesRegex(nav.NavigatorError, "revisions must map"):

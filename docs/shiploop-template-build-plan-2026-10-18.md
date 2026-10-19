@@ -141,3 +141,16 @@ Each entry: the unit, its result, what it found, and the evidence. Entries are e
   - **Hand-off fingerprints:** 26 of 33 changed. Writing KNOWLEDGE back as HOME reproduces every old hash, so the symbol
     is the only difference.
   - **Harness:** `packet_anatomy` and `metrics` read both symbols, because saved runs before 2026-10-18 print HOME.
+- **2026-10-19, S1.5 (outer send-backs; firm).**
+  - **Result:** system-test sends back to system-test-author, and release-verify to release-plan. Each target has its
+    own budget of two (`state.revisions` keyed by the target), checked at the gate and at `--check-only`. The target's
+    packet prints three revisit lines (why, the previous result, amend it). The status names the target.
+  - **Decisions:**
+    - the test loop's refused-run remedy at those stages stays add-work, because a refused run shows the product
+      failing, not the plan;
+    - release, rerun after a send-back, runs only what the amended plan changed, so nothing deploys twice;
+    - the navigator reference's outer outcome row still listed `repeat` (missed in S1.1), fixed here.
+  - **Tests (fail-first):**
+    - `OuterSendBackTests` in shiploop-send-back: the route and rerun, the budget, the packet lines, the status, the
+      remedy and the revisions validation;
+    - the check-only budget through the real CLI in shiploop-handoff (`SendBackBudgetCliTests`).

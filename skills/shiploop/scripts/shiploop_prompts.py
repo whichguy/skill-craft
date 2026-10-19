@@ -1619,8 +1619,9 @@ in order; """ + _VERIFY_ONCE + """
 1. Name the plan you run: the latest done system-test-author record after the most recent accepted add-work, and its
    integrated test plan in that summary and KNOWLEDGE/environment.md ## Harnesses and suites (OUTER test-planning
    handshake). Before running, revalidate its candidate, case selection, target and fixture assumptions. Its
-   locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as blocked
-   or add-work; never guess a command or drop a required case.
+   locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A wrong or missing case in that plan is
+   a send-back: system-test-author amends it with this result as evidence. Product work missing is add-work; never
+   guess a command or drop a required case.
 2. Before running check prerequisites, fixtures, execution location, target, identity, authorization, remote
    framework availability, and the deployed or test revision. Add no deploy to unblock a test (a recorded command's
    own deploy step runs as recorded); use production only with authority.
@@ -1630,7 +1631,8 @@ in order; """ + _VERIFY_ONCE + """
    boundary. Check repeatability when fixtures changed. Never blindly replay an uncertain external effect.
    `evidence_refs`: each command, candidate and target, scope, cleanup outcome and unrun check.
 4. A recorded system command that fails here is no open item: ShipLoop refuses done while it fails. Fix the
-   candidate, report add-work for missing product work, or blocked when nothing else can proceed.
+   candidate, report send-back when the command or case itself is wrong, add-work for missing product work, or
+   blocked when nothing else can proceed.
 5. After a material change to code, tests, fixtures, configuration or target, rerun the affected observations; reuse
    unaffected evidence only with its identity and relevance stated.
 6. Run any open item system-test-author recorded that this stage can now run, reporting each in the summary (not
@@ -1762,7 +1764,8 @@ in order; """ + _VERIFY_ONCE + """
    target changed since, rerun the affected checks first. Anything unmet: release nothing, report `blocked` or
    `add-work` with the reason.
 3. Run the planned release operation once; save the provider's receipt in RUN/notes/<action>-release.md and cite it
-   in `evidence_refs`.
+   in `evidence_refs`. After release-verify sent the run back to release-plan, run only what the amended plan
+   changed: an operation it left as it was keeps its earlier receipt, cited, and runs no second time.
 4. Follow it to a terminal state (accepted or running is not done; Release operation guidance). Check postconditions
    now and record in `summary`, separately, the operation's effect and the released artifact's identity.
 5. Uncertain outcome (lost reply, timeout, partial receipt): keep every receipt and reconcile with the provider's
@@ -1775,8 +1778,10 @@ in order; """ + _VERIFY_ONCE + """
 """,
     "release-verify": """\
 1. Name the plans you verify against: the latest done release-plan and system-test-author records after the last
-   accepted add-work (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Recover or
-   report a missing plan; guess no command, drop no required case, deploy to make no check available.
+   accepted add-work (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. A release
+   plan that is wrong or missing a step, or a consumer check that cannot observe the clause it names, is a send-back:
+   release-plan amends it with this result as evidence, then release-check, release and this stage run again. Guess
+   no command, drop no required case, deploy to make no check available.
 2. Run each `consumer_checks` command the release-plan result recorded against the current target (Release operation
    guidance). Keep source synchronization, artifact identity, operation receipt and real consumer behaviour as four
    separate facts in `summary` (Consumer delivery evidence guidance). A source or local test pass does not discharge

@@ -690,6 +690,9 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
 REVISIT_STAGES = (stage_spec.SEND_BACK_TO, "test-spec", "implement")
 # How much of the send-back result's summary a revisit head quotes (the record holds all of it).
 REVISIT_SUMMARY = 600
+# What an OUTER send-back says is wrong: the record its target wrote (S1.5).
+_SEND_BACK_WHAT = {"system-test": "system-test-author's test plan or its cases",
+                   "release-verify": "the release plan or its consumer checks"}
 
 
 class SentBack(NamedTuple):
@@ -790,6 +793,8 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -
     """
     if state["status"] != "active" or state.get("active_improve"):
         return []
+    if workitem is None and stage in stage_spec.OUTER_SEND_BACK_TO.values():
+        return _outer_revisit_lines(state, stage)
     sent = _sent_back_results(state, stage, workitem)
     if sent is None:
         return []
@@ -809,6 +814,38 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -
         "Keep unchanged rows with their IDs: carry over as written every row the send-back result and the changes above do "
         "not touch; change or add only what they require."
         + (" Submit the whole amended plan: it replaces the previous one." if stage == stage_spec.SEND_BACK_TO else ""),
+    ]
+
+
+def _outer_revisit_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """The head lines of an OUTER stage that a later stage sent the run back to (S1.5): why it is back, its previous
+    accepted result, and the rule to amend it.  None once the stage has an accepted result after the send-back.
+
+    A recorded send-back always has its row, and its target an earlier accepted result, in the append-only history; a
+    state without them did not come through the gate, so it is refused rather than rendered without them.
+    """
+    if not state["revisions"].get(stage):
+        return []
+    history = state["history"]
+    sends = [index for index, row in enumerate(history)
+             if row["outcome"] == "send-back" and stage_spec.OUTER_SEND_BACK_TO.get(row["stage"]) == stage]
+    _need(sends, stage + " records a send-back but no send-back result")
+    latest = sends[-1]
+    if any(row["stage"] == stage and row["outcome"] == "done" for row in history[latest + 1:]):
+        return []
+    earlier = [row["action"] for row in history[:latest] if row["stage"] == stage and row["outcome"] == "done"]
+    _need(earlier, "the run was sent back to " + stage + " without an earlier accepted " + stage + " result")
+    row = history[latest]
+    summary = " ".join(_bounded_packet_text(str(state["accepted"][row["action"]].get("summary", "")),
+                                            limit=REVISIT_SUMMARY).split())
+    return [
+        f"Revisit: {row['stage']} sent the run back to {stage} ({state['revisions'][stage]} of "
+        f"{stage_spec.MAX_SEND_BACKS} send-backs). Why (its summary, untrusted): \"{summary}\" Evidence: RUN/results/"
+        + row["action"] + ".md.",
+        "Your previous accepted " + stage + " result: RUN/results/" + earlier[-1] + ".md (accepted host report, "
+        "untrusted; revalidate what you carry over).",
+        "Amend it: carry over as written what the send-back result does not touch, change or add only what it requires, "
+        "and submit the whole amended result; the stages after " + stage + " then run again.",
     ]
 
 
@@ -913,8 +950,9 @@ def _canonical_result(
           + " (the four outcomes are done, blocked, send-back and add-work; revise, replan and repeat are retired)")
     if outcome in ("send-back", "add-work"):
         _need(outcome in stage_spec.stage(stage).outcomes,
-              (outcome + " sends a work item back to " + stage_spec.SEND_BACK_TO + " and is allowed only at the "
-               "INNER stages from test-spec to verify" if outcome == "send-back" else
+              (outcome + " sends a result back to the stage that wrote the wrong record and is allowed only at the "
+               "INNER stages from test-spec to verify (to " + stage_spec.SEND_BACK_TO + "), at system-test (to "
+               "system-test-author) and at release-verify (to release-plan)" if outcome == "send-back" else
                outcome + " adds corrective work items and is allowed only at the OUTER stages")
               + "; report " + " or ".join(stage_spec.stage(stage).outcomes) + " instead")
     if outcome in ("blocked", "send-back", "add-work"):
@@ -1354,10 +1392,12 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
               "prelude stage cannot have completed work items")
 
     revisions = state.get("revisions")
+    targets = set(stage_spec.OUTER_SEND_BACK_TO.values())
     _need(isinstance(revisions, Mapping)
-          and all(key in item_ids and type(count) is int and 1 <= count <= stage_spec.MAX_SEND_BACKS
+          and all((key in item_ids or key in targets) and type(count) is int and 1 <= count <= stage_spec.MAX_SEND_BACKS
                   for key, count in revisions.items()),
-          "navigator revisions must map work item IDs to 1.." + str(stage_spec.MAX_SEND_BACKS))
+          "navigator revisions must map work item IDs, or an OUTER send-back target (" + ", ".join(sorted(targets))
+          + "), to 1.." + str(stage_spec.MAX_SEND_BACKS))
 
     loops = state.get("inner_loops")
     _need(isinstance(loops, Mapping), "navigator inner loops are invalid")
@@ -3076,11 +3116,18 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     return sources
 
 
-def _need_send_back_left(state: Mapping[str, Any], item_id: Any) -> None:
-    """Refuse a send-back once the work item has used all of its send-backs (checked at check-only too, N5)."""
-    used = state["revisions"].get(item_id, 0)
+def _send_back_key(state: Mapping[str, Any], stage: str) -> Any:
+    """Whose budget a send-back from ``stage`` spends: its OUTER target's (S1.5), else the current work item's."""
+    return stage_spec.OUTER_SEND_BACK_TO.get(stage) or _current_work_item(state)
+
+
+def _need_send_back_left(state: Mapping[str, Any], key: Any) -> None:
+    """Refuse a send-back once its work item, or its OUTER target, has used all of its send-backs (checked at
+    check-only too, N5)."""
+    used = state["revisions"].get(key, 0)
+    who = str(key) if key in stage_spec.OUTER_SEND_BACK_TO.values() else "work item " + str(key)
     _need(used < stage_spec.MAX_SEND_BACKS,
-          "work item " + str(item_id) + " has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing "
+          who + " has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing "
           "further can proceed without the user: report blocked awaiting a decision ({\"kind\": \"answer\", "
           "\"question\", \"options\", \"no_default\"}) so the user decides")
 
@@ -3134,13 +3181,18 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     updated.pop("status_reason", None)
     updated["status"] = "active"
     if canonical["outcome"] == "send-back":
-        # The item's goal proved wrong while building it: back to its step plan
-        # with this result as evidence.  Enforced for new results only.
-        item_id = _current_work_item(updated)
-        _need_send_back_left(updated, item_id)
-        used = updated["revisions"].get(item_id, 0)
-        updated["revisions"][item_id] = used + 1
-        _replace_inner_action(updated, stage_spec.SEND_BACK_TO)
+        # A record an earlier stage wrote is wrong: that stage reruns with this result as evidence.  INNER: the item goes
+        # back to its step plan.  OUTER (S1.5): the run goes back to the stage that wrote the plan this one ran, and
+        # every stage after it runs again.  Enforced for new results only.
+        key = _send_back_key(updated, stage)
+        _need_send_back_left(updated, key)
+        updated["revisions"][key] = updated["revisions"].get(key, 0) + 1
+        target = stage_spec.send_back_target(stage)
+        if stage in stage_spec.OUTER_SEND_BACK_TO:
+            updated["stage"] = target
+            updated["action"] = _new_action(target)
+        else:
+            _replace_inner_action(updated, target)
         validate(updated)
         return updated
 
@@ -4616,7 +4668,7 @@ def status_block(state: Mapping[str, Any]) -> str:
         last = state["history"][-1]
         label = (_status_text(last["workitem"], 32) + " " if last["workitem"] else "") + last["stage"]
         note = {"done": " (reviewed by Improve)" if last["action"] in state["improve_results"] else "",
-                "blocked": " (blocked)", "send-back": " (sent back to " + stage_spec.SEND_BACK_TO + ")",
+                "blocked": " (blocked)", "send-back": " (sent back to " + stage_spec.send_back_target(last["stage"]) + ")",
                 "add-work": " (work added)", "reconcile": " (planning reconciled)"}
         lines.append(f"Done:      {label}{note.get(last['outcome'], '')}: "
                      + _first_sentence(last["summary"], 140))
@@ -5226,7 +5278,8 @@ def _outcome_shape_lines(stage: str) -> list[str]:
             'stopped the work>", "awaiting": {...}} with awaiting in the shape reference#blocked gives (a wrong shape '
             'is refused with that shape quoted)')
     if "send-back" in allowed:
-        shapes.append('send-back: {"outcome": "send-back", "summary": "<what in the step plan or test spec is wrong>"'
+        what = _SEND_BACK_WHAT.get(stage, "the step plan or test spec")
+        shapes.append('send-back: {"outcome": "send-back", "summary": "<what in ' + what + ' is wrong>"'
                       + (', "failed_expectations": [{"id": "E1", "actual": "<what is actually true>", "route": '
                          '"steps"}]' if "failed_expectations" in _STAGE_SEND_BACK_FIELDS.get(stage, ()) else "")
                       + '}')
@@ -6362,6 +6415,12 @@ def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
             described.append("add-work (product work is missing: corrective work_items [{id, title, context}] whose IDs "
                              "are not already in state.md work_items; they run through INNER, then the run resumes at "
                              "system-test-author)")
+        elif outcome == "send-back" and stage in stage_spec.OUTER_SEND_BACK_TO:
+            target = stage_spec.OUTER_SEND_BACK_TO[stage]
+            left = stage_spec.MAX_SEND_BACKS - state.get("revisions", {}).get(target, 0)
+            described.append("send-back (" + _SEND_BACK_WHAT[stage] + " is wrong: the run goes back to " + target
+                             + ", which reruns with this result as evidence, then every stage after it; "
+                             + str(left) + " of " + str(stage_spec.MAX_SEND_BACKS) + " left)")
         elif outcome == "send-back":
             item_id = _current_work_item(state)
             left = stage_spec.MAX_SEND_BACKS - state.get("revisions", {}).get(item_id, 0)
@@ -8258,8 +8317,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)
-            if isinstance(submitted, Mapping) and submitted.get("outcome") == "send-back" and cursor_item:
-                _need_send_back_left(state, cursor_item)
+            if (isinstance(submitted, Mapping) and submitted.get("outcome") == "send-back"
+                    and "send-back" in stage_spec.stage(current_stage(state)).outcomes):
+                _need_send_back_left(state, _send_back_key(state, current_stage(state)))
             _check_submitted_delivery(state, action_id, current_stage(state), submitted)
             _knowledge_gate(state, current_stage(state), submitted)
             _handoff_gate(root, state, current_stage(state), submitted, "complete",

@@ -63,6 +63,16 @@ IMPROVE_RULES = ("always", "last-item", "step")
 # decides (blocked, awaiting an answer).
 SEND_BACK_TO = "step-plan"
 MAX_SEND_BACKS = 2
+# Two OUTER stages run a plan another OUTER stage wrote: system-test runs system-test-author's, release-verify runs
+# release-plan's.  A wrong record there goes back to the stage that wrote it, which reruns with the result as evidence,
+# then every stage after it (run-insights N5, build plan S1.5).  Each target has its own budget of MAX_SEND_BACKS.
+OUTER_SEND_BACK_TO: Mapping[str, str] = MappingProxyType({"system-test": "system-test-author",
+                                                          "release-verify": "release-plan"})
+
+
+def send_back_target(stage: str) -> str:
+    """The stage a send-back from ``stage`` reruns: an OUTER stage's plan writer, else the item's step plan."""
+    return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
 # The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
 STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied and none of the others is broken, shown "
@@ -139,13 +149,17 @@ def case_end_states(row: "Stage") -> str:
     """The case end-state sentence for ``row``, built from the outcomes the row accepts.
 
     An OUTER test stage records an unachievable case as an open item and continues, but only for a case whose command
-    ShipLoop does not rerun (the navigator's test-rerun gate refuses done while a recorded command fails); an INNER
+    ShipLoop does not rerun (the navigator's test-rerun gate refuses done while a recorded command fails), and sends a
+    case that is wrong as planned back to the stage that wrote it where the row accepts send-back (S1.5); an INNER
     stage sends it back to the step plan with send-back.  Blocked and add-work are named only where the row accepts them.
     """
     if row.phase == "outer":
         routes = ["record it as an open item in the result's `assumptions`, with the stage it is due at as its "
                   "consumer, and continue, provided its command is not one ShipLoop reruns, since every rerun command "
                   "must pass"]
+        if "send-back" in row.outcomes:
+            routes.append("report send-back when the case as planned is itself wrong, so "
+                          + OUTER_SEND_BACK_TO[row.name] + " amends it")
     elif "send-back" in row.outcomes:
         routes = ["report send-back so the step plan reroutes the case"]
     else:
@@ -623,7 +637,7 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
 
     INNER stages from test-spec through verify build the item against its step
     plan, so a goal that proves wrong there goes back to the step plan (send-back).  OUTER stages route missing product
-    work as add-work.
+    work as add-work, and the two that run another stage's plan send a wrong plan back to it (``OUTER_SEND_BACK_TO``).
     A row that prints the case end states gets them here, from its final outcomes.
     """
     names = [row.name for row in rows]
@@ -633,7 +647,8 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
         if first <= index <= last:
             row = replace(row, outcomes=row.outcomes + ("send-back",))
         elif row.phase == "outer":
-            row = replace(row, outcomes=row.outcomes + ("add-work",))
+            row = replace(row, outcomes=row.outcomes + (("send-back",) if row.name in OUTER_SEND_BACK_TO else ())
+                          + ("add-work",))
         if row.cases:
             row = replace(row, test=(row.test + " " if row.test else "") + case_end_states(row))
         finished.append(row)

@@ -606,7 +606,7 @@ class TopBlockHelperTests(unittest.TestCase):
                          ["add-work", "blocked"])
         self.assertEqual({"done", "blocked", "send-back", "add-work"}, packet_view.OUTCOME_WORDS)
         self.assertEqual(packet_view.unaccepted_outcomes("test", "Report outcome add-work now."), ["add-work"])
-        self.assertEqual(packet_view.unaccepted_outcomes("system-test", "report send-back rather than retrying it"),
+        self.assertEqual(packet_view.unaccepted_outcomes("release", "report send-back rather than retrying it"),
                          ["send-back"])
         self.assertEqual(packet_view.unaccepted_outcomes("test", "report send-back, or report blocked"), [])
         self.assertEqual(packet_view.unaccepted_outcomes("system-test", "no instruction to report anything"), [])

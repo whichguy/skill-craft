@@ -1174,7 +1174,9 @@ class TestLoopTests(unittest.TestCase):
         corrective = [{"id": "W2", "title": "Make the recorded command fit its budget"}]
         shape = {"blocked": {"awaiting": SERVICE_WAIT}, "add-work": {"work_items": corrective}}
         for stage in test_loop.VERIFY_STAGES:
-            remedy = next(outcome for outcome in ("send-back", "add-work") if outcome in stage_spec.STAGE_SPEC[stage].outcomes)
+            # A refused run at an OUTER stage shows the product failing, so its remedy is add-work even where the stage
+            # also accepts send-back for a wrong plan (S1.5); an INNER stage's is send-back.
+            remedy = "add-work" if stage_spec.STAGE_SPEC[stage].phase == "outer" else "send-back"
             with self.subTest(stage=stage):
                 done, refusal = self.reach_could_not_run(stage)
                 named = packet_view.named_outcomes(refusal)
@@ -2858,8 +2860,7 @@ class UnavailableExecutionTests(unittest.TestCase):
 
     def test_the_remedy_named_at_the_cap_is_the_one_its_stage_allows(self):
         for stage in test_loop.VERIFY_STAGES:
-            outcomes = stage_spec.STAGE_SPEC[stage].outcomes
-            expected = "send-back" if "send-back" in outcomes else "add-work"
+            expected = "add-work" if stage_spec.STAGE_SPEC[stage].phase == "outer" else "send-back"  # S1.5
             with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
                 (root / "tests").mkdir()

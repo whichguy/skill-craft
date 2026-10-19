@@ -1678,6 +1678,43 @@ class SendBackBudgetCliTests(inner.RunDriver):
         self.assertEqual(self.state()["status"], "blocked")
         self.assertEqual(self.state()["status_reason"], "answer: " + self.SEND_BACK["summary"])
 
+    def test_check_only_refuses_a_third_outer_send_back_to_the_same_target(self) -> None:
+        """system-test sends the run back to system-test-author (S1.5); the target's budget is checked at check-only.
+
+        The fixture's synthetic results do not fill the OUTER stages' fields, so the state comes from the dry run's
+        declarations (each through the real gate) and only the check-only call goes through the CLI."""
+        import shiploop_navigator_dry_run as dry_run
+        outer = {"outcome": "send-back", "summary": "A case in the system test plan cannot observe its clause."}
+        rows = dry_run.activity()
+        first = next(i for i, row in enumerate(rows) if row["at"] == "system-test-author" and row["command"] == "produce")
+        state = navigator.new_state(str(self.repo), "Inner fixture.", improve_skill=str(inner.IMPROVE_CARD),
+                                    lint_option="off")
+
+        def walk(state: dict, steps: list) -> dict:
+            for step in steps:
+                action = navigator.current_action(state)["id"]
+                state = (navigator.apply(state, action, step["result"]) if step["command"] == "produce" else
+                         navigator.finish_improve(state, action, step["receipt"], step.get("final_result")))
+            return state
+
+        upto = next(i for i, row in enumerate(rows) if row["at"] == "system-test" and row["command"] == "produce")
+        state = walk(state, rows[:upto])
+        for used in (1, 2):
+            state = navigator.apply(state, navigator.current_action(state)["id"], outer)
+            self.assertEqual(state["revisions"], {"system-test-author": used})
+            state = walk(state, rows[first:upto])
+        self.assertEqual(navigator.current_stage(state), "system-test")
+        navigator.save(self.run_dir, state)
+        action = navigator.current_action(state)["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        store.write_record(path, dict(outer), "result")
+        refused = self.cli(action, path, "--check-only")
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("system-test-author has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing "
+                      "further can proceed without the user: report blocked awaiting a decision", refused.stderr)
+        self.assertEqual(self.state()["revisions"], {"system-test-author": stage_spec.MAX_SEND_BACKS})
+
 
 class CaseRowCliTests(inner.RunDriver):
     """The test-spec cases through the real CLI: the refusal's spec line and the check-only coverage notice (U12)."""

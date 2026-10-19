@@ -2710,7 +2710,13 @@ class CaseEndStateTests(unittest.TestCase):
                                   "as its consumer, and continue", sentence)
                     self.assertIn("provided its command is not one ShipLoop reruns, since every rerun command must pass",
                                   sentence)
-                    self.assertNotIn("send-back", sentence)
+                    # An unachievable case stays an open item; send-back (S1.5) is only for a case wrong as planned,
+                    # and only where the stage runs another stage's plan.
+                    if "send-back" in spec.stage(stage).outcomes:
+                        self.assertIn("report send-back when the case as planned is itself wrong, so "
+                                      + spec.OUTER_SEND_BACK_TO[stage] + " amends it", sentence)
+                    else:
+                        self.assertNotIn("send-back", sentence)
                 else:
                     self.assertIn("report send-back so the step plan reroutes the case", sentence)
                     self.assertNotIn("open item", sentence)

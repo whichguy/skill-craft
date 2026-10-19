@@ -2074,10 +2074,10 @@ class EveryStageRouteTests(RealCliCase):
                              stage)
             self.assertNotIn("<", printed_callback(head)[0], stage)
             pairs += [(stage, outcome) for outcome in sorted(printed_shapes(head))]
-        # 24 stages * blocked, + send-back on the 6 INNER stages, + add-work on the 9 OUTER stages = 39 (repeat is
-        # retired everywhere, which dropped it from every stage's default outcomes; was 55 over the 8-stage inner
-        # loop with repeat still counted, 70 over 34 stages before that).
-        self.assertEqual(len(pairs), 39)
+        # 24 stages * blocked, + send-back on the 6 INNER stages and on system-test and release-verify (S1.5), + add-work
+        # on the 9 OUTER stages = 41 (repeat is retired everywhere, which dropped it from every stage's default outcomes;
+        # was 55 over the 8-stage inner loop with repeat still counted, 70 over 34 stages before that).
+        self.assertEqual(len(pairs), 41)
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             problems = [p for p in pool.map(lambda pair: self.one_outcome(*pair), pairs) if p]
         self.assertEqual(problems, [])
