@@ -1,0 +1,3 @@
+<!-- partial: outcome-blocked (N5: awaiting replaces blocked_by), with both awaiting kinds the navigator's
+_normalise_awaiting accepts; key lists instead of a full JSON example keep the rare outcomes short. -->
+- blocked: only a person or an outside service can unblock it; the run waits here and resumes with their reply. Keys: outcome, headline, summary (what stopped the work, what was tried), evidence_refs, awaiting, one of: a decision {"kind": "answer", "question", "options" (optional, two or more), "no_default"}, an action {"kind": "present", "steps", "report", "no_default"}, or a service {"kind": "service", "service", "check" (a read-only command that shows it is back), "no_default"}.

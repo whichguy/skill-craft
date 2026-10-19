@@ -1,0 +1,259 @@
+{
+ "reviewer": "step-plan",
+ "round": 2,
+ "file": "docs/experiments/run-insights-2026-10-18/templates/step-plan.template.md version 2, read as step-plan.filled.md with the partials as they print (frame, loop-invoke, loop-result, rules, outcome-done, outcome-blocked, result-rules, appendix)",
+ "date": "2026-10-18",
+ "verifications": [
+  {
+   "question": "Does the printed loop argument now equal the contract ShipLoop builds and check_terminal compares?",
+   "answer": "yes, apart from the one declared Work change",
+   "evidence": "python3 (shiploop_loops): the filled exit lines == loops.exit_condition('step-plan') -> True; the filled Repeat == loops.REPEAT['step-plan'] -> True; the filled Work with 'Method items 1-9' put back to 'duty items 1-12' == the run's contract file work -> True. loops._duty_items('step-plan', 'inline') and ('step-plan', 'ask-agent') both return '1-12' today."
+  },
+  {
+   "question": "Does the Until Loop runtime print Work, Exit and Repeat in the packets it returns?",
+   "answer": "yes, verified by running it",
+   "evidence": "Ran the vendored R/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py `start --isolated --directory <scratch>/state --receipt <scratch>/receipt.json < <copy of the Battleship step-plan contract>`, then `next --state <state_file>`, in scratchpad/tmpl-review/r2-loop-sp/. Both packets (12,747 characters each) carry `work`, `conditions.exit` (7 lines) and `conditions.repeat`, each equal to the contract file. Their `instruction` repeats all three ('Execution condition (Work): ...', 'Exit condition: ...', 'Continuation condition: ...'). `report_schema` (1,131 characters) lists the done-report enums. `_metadata` builds these fields for every packet. `_write_receipt` saves each packet to the receipt. Live: the model's first CALL was the loop start (SP/11-step-plan.actions.md, 'CALL run_terminal_command: ... until_loop_ephemeral.py start --receipt ...'). Its OUT showed conditions.exit, and the model later read the receipt file for the full packet ('CALL read_file: .../loops/nav-03cbb489abfe48ce8bf8ab1cfb207729-terminal.json')."
+  },
+  {
+   "question": "Does today's gate refuse the version-2 form's placeholders?",
+   "answer": "no, except by accident",
+   "evidence": "python3 `_canonical_result(form, stage='step-plan')` on the filled form, with only these changes: `concerns` removed (A1), ids set to ['TC-1'], follows ['R-1'], and E1's check filled. It is ACCEPTED, and `_placeholders` returns []. headline '<under 100 characters: ...>', summary, criteria text, steps task and check, paths and every test command string are still placeholders. Only '<case ID>' (space), the follows string (shape) and '<read-only command>' (write_problem: 'found > ') are refused, as shape errors."
+  },
+  {
+   "question": "Is a KNOWLEDGE/ path accepted where the print says 'an existing path (absolute, or under a Symbol)'?",
+   "answer": "no, refused today",
+   "evidence": "python3 `_expand_root('KNOWLEDGE/spec.md', {HOME, RUN, WORKTREE, GUIDES}, 'evidence_refs[0]')` -> 'starts with KNOWLEDGE/, which is not a root ShipLoop defines (GUIDES, HOME, RUN, WORKTREE); write the absolute path'. `reference_paths` maps HOME only."
+  },
+  {
+   "question": "Can a send-back summary exceed the revisit_block refuse bound?",
+   "answer": "yes",
+   "evidence": "No gate bounds `summary` (`_canonical_result` only `_text`s it; git grep finds no SUMMARY_LIMIT). In the Battleship and chess run results, 2 of 4 test-spec summaries are 1,364 and 1,431 characters. Across all 62 results the 90th percentile is 1,665 and the maximum 5,050. Today `_revisit_lines` excerpts the summary at REVISIT_SUMMARY = 600. tmpl.py `_cut` raises TemplateError for a refuse slot over its bound."
+  }
+ ],
+ "round1": [
+  {"id": "SP-1", "status": "fixed", "why": "requires lists 'A1 concern map (plan.concerns rows; `concerns` in _RESULT_KEYS and its gate)'. Today's refusal ('result has unsupported fields: concerns', re-run) is the expected state before A1 lands."},
+  {"id": "SP-2", "status": "partly", "why": "requires now lists the card's `## Testing` section, the environment-to-card mapping (C6/G1) and the plan's context bound (T-D2, 2500). A target with no card still has no rendering: the slot is left unfilled and the render raises (new SP2-2)."},
+  {"id": "SP-3", "status": "fixed", "why": "`{{loop_argument}}` is rendered from the run's contract file. Its Exit and Repeat equal loops.exit_condition and REPEAT (verified). The Work's 'Method items' wording is an engine change that `requires` does not list (new SP2-5)."},
+  {"id": "SP-4", "status": "fixed", "why": "Method 5 now says 'every criterion is named by at least one row's `criteria`, and every name is a listed criterion' and '`test_commands_na` only for an item with no criteria'. The gates sp-criteria-covered, sp-criteria-known and sp-commands-na anchor these lines in the print."},
+  {"id": "SP-5", "status": "partly", "why": "tmpl.py `form_placeholders` lists every <...> string. The gate side does not exist and is not in `requires`: HEADLINE_PLACEHOLDER and `_summary_placeholders` hold today's strings, and `_placeholders` walks only follows, test_cases, not_covered and lessons. The verbatim form passes `_canonical_result` (verification 3). Even when built, an exact-match registry cannot catch the composite criterion text (SP2-11). Still P1."},
+  {"id": "SP-6", "status": "open", "why": "The print grew from 19,643 to 21,395 characters (the Method grew by about 470 with the gate rules; open assumptions and recent commits are now unpooled). At the T-D2 bounds it is 20,587: over the 19,500 budget and over Grok's 20,000 cut. The static worst case is 25,282 at the reference install and 25,605 at this one, and the template fails its own validator ('static budget: max printed 25282 > print_budget 19500'). On Grok the print loses its middle from character 10,000, inside the Input block: the end of the context, A8 and the first concern rows. Still P1."},
+  {"id": "SP-7", "status": "fixed", "why": "open_assumptions is unpooled (over refuse, 1,200, producer bound in requires) and prints before the pool. The filled print quotes A8 whole."},
+  {"id": "SP-8", "status": "partly", "why": "The flag reads `state.revisions`, the block is unpooled, and the label asks for the whole amended plan with IDs kept. Still missing: the previous accepted step-plan result's locator (`_revisit_lines` 'Your previous accepted step-plan result: RUN/results/<prev>.md'; `planning_revision.current_actions` drops it from the sources, and the appendix lists only plan, prepare and test-strategy) and the upstream-changes line (`_upstream_line`). Without them the model cannot find the plan it must amend. The source 'the rows it invalidates' names a field no result has. Still P1."},
+  {"id": "SP-9", "status": "fixed", "why": "The loop-invoke fresh branch prints 'If the Receipt below already exists and is active, run its next_argv instead (a second start is refused)'. This matches runtime `_check_start_receipt` ('receipt already exists and is not a finished Until Loop receipt ... Nothing was started')."},
+  {"id": "SP-10", "status": "fixed", "why": "The print has no 'Improve' (grep of the printed region)."},
+  {"id": "SP-11", "status": "fixed", "why": "Method 2 now reads 'or the test stage records `red_na` for its IDs'."},
+  {"id": "SP-12", "status": "fixed", "why": "Method 7 now reads 'prefer exact paths (a glob's `*` also matches across `/`)', which matches fnmatch.fnmatchcase in `_check_step_sizing`."},
+  {"id": "SP-13", "status": "fixed", "why": "Method 4 now reads '`deps` (earlier step IDs only)', with the sp-deps anchor. The 'list order is no dependency' clause was dropped, which is harmless."},
+  {"id": "SP-14", "status": "open", "why": "Method 8 is unchanged. In the filled rows, 'concurrency' and 'accessibility' are 'no decision recorded ... owner step-plan', so the rule defers the decision to the stage that is reading it."},
+  {"id": "SP-15", "status": "open", "why": "v2 has no 'Checked by:' line at all, and 'Done when:' has no '('. export.py CARRIED still keys on ^Current stage guidance:, ^Checked by:, ^Result template: and ^Results this stage builds on, so the Run Review page reports operates, checked, produces and inputs as not found. These readers also key on today's labels: test/shiploop-head-order.test.py P0 tokens ('Checked by: ', 'RULES (', 'Result template:', 'Allowed outcomes: ', 'Fill the template: ', 'Result: when the Receipt'), test/shiploop-e2e-packet-anatomy.test.py ('Pause without consuming the action:') and the packet_obligations.json anchors. None of them is named as a consumer in the front matter or the requires list."},
+  {"id": "SP-16", "status": "open", "why": "Method 2 still reads 'Take the test route from ## Commands and the platform card'. KNOWLEDGE/environment.md ## Harnesses and suites (8,061 characters at 2449835) is neither quoted nor named, although the item context names it as the harness."},
+  {"id": "SP-17", "status": "open", "why": "env_commands is still 'code only' (prep_values `commands_code` keeps only bullets with a backtick, plus fenced blocks). The filled block drops 'No formatter, linter, type checker, package manager, or local test runner is configured', which decides check_na. It also drops the Focused, Smoke and Full suite labels of the three fenced commands (focused vs regression), the deploy-first ordering line and the '--api-version 68.0' fallback. Fenced commands print with a literal '$ ' prefix. G3 ('quote ## Commands whole (bounded)') asks for the section whole."},
+  {"id": "SP-18", "status": "open", "why": "Method 4 is unchanged: 'deploy only this step's paths to the recorded development target, then run a read-only probe the run's authority covers'. Only the probe is bound to the authority, and behaviour that no channel can observe still has no route."},
+  {"id": "SP-19", "status": "open", "why": "Method 10 still reads '(Parallel-chain guide)', with no locator. Method 4's 'ShipLoop issues one implement packet per step' also prints on the ask-agent route, where `implement_scope` is one action for every step. The form shows no step `paths` on that route. Only the inline example was rendered."},
+  {"id": "SP-20", "status": "partly", "why": "The frame defines 'KNOWLEDGE = WORKTREE/docs/shiploop (the knowledge home, not $HOME)'. The Contract and Receipt lines and the Packet file line print absolute. 'RUN the Until Loop now' is the owner's 2026-10-16 wording (comment above BLOCK_HEADING), so that part is wont-fix. HOME/ still prints in three pointer locators, and the code does not accept KNOWLEDGE/ (new SP2-4)."},
+  {"id": "SP-21", "status": "fixed", "why": "Method 5 now reads 'judged by exit code alone (no `ids`, no `min_tests`) ... never both', with anchors sp-check-row and sp-check-suite."},
+  {"id": "SP-22", "status": "partly", "why": "'A row naming a criterion runs code on that criterion's paths' is now stated once. Method 6 ('every existing path a step changes or relies on is `works` or `broken`; every new path is `absent`') still restates exit 5, and Method 4's 'It needs no later step...' restates exit 3."},
+  {"id": "SP-23", "status": "open", "why": "Method 9 still reads 'a newly working command goes under ## Commands', right after a sentence about KNOWLEDGE/architecture.md."},
+  {"id": "SP-24", "status": "partly", "why": "The partial now names outcomes, but it says 'a stopped one blocked or send-back', and step-plan accepts only done and blocked (new SP2-6)."},
+  {"id": "SP-25", "status": "open", "why": "Method 4 still reads 'ShipLoop runs it at the step's done'."},
+  {"id": "SP-26", "status": "open", "why": "Method 7 still reads '(one under ## Superseded or ## Retired counts)'."},
+  {"id": "SP-27", "status": "open", "why": "This is still a second wording of prompts.ID_WORD_RULE. The template says 'an ID counts only as its own word in a test name (`TC-4 (a)`, not `TC-4a`)'; ID_WORD_RULE says 'A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` does not show `TC-4`: title it `TC-4 (a)`)'."},
+  {"id": "SP-28", "status": "open", "why": "This is code, outside the template, and unchanged: the shiploop_navigator.py check-only success print still says 'run the same complete command without --check-only to submit it', which is refused while the loop is active."}
+ ],
+ "findings": [
+  {
+   "id": "SP2-1",
+   "category": "problem",
+   "severity": "P0",
+   "where": "front matter: 'revisit_block | block | the send-back result: its locator, summary and the rows it invalidates (producer bound: the sending stage's summary bound) | 1500 | refuse'",
+   "evidence": "No sending stage bounds its summary, and neither T-D2 (packets-audit.json decision T-D2: context, concern rows, step task, Proof) nor `requires` (plan bounds only) adds such a bound. Live test-spec summaries reach 1,364 and 1,431 characters (verification 5). With the locator and the label, such a send-back already exceeds 1,500. A refuse slot over its bound raises (tmpl.py `_cut`; packets-audit.json 'render time: ... a value over a refuse bound ... raises'), so the revisit packet never prints and the run stalls on the send-back route. Today's `_revisit_lines` excerpts the summary at REVISIT_SUMMARY = 600. No result field holds 'the rows it invalidates' (`_RESULT_KEYS`). Not verified on an engine, because none exists yet.",
+   "fix": "revisit_block: keep the locator lines refuse-class and print the summary with over excerpt at 600, as today ('[excerpt; whole: RUN/results/<send-back action>.md]'). Drop 'and the rows it invalidates' until a send-back field holds them. Or add 'T-D2 send-back summary bound (every stage that can send back)' to requires and to those stages' gates.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-2",
+   "category": "problem",
+   "severity": "P1",
+   "where": "Input: 'Platform card {{platform_card}}, testing: {{platform_testing}}'; slots platform_card (over refuse) and platform_testing (guide:platforms/<card>.md#Testing)",
+   "evidence": "references/platforms/ holds 11 cards (apps-script, aws, bash, cloudflare-workers, gcp, node-express, python, salesforce, ui-frameworks, ui, vercel). A target outside them has no card. The template has no flag or absent rendering, and an unfilled slot or a missing file or heading raises (packets-audit.json validator and static_text_proposal: 'no fallback'). This breaks the owner rule 'generic, not tailored to one app'. Not verified on an engine.",
+   "fix": "Add flag `card` (the mapping names a card): '{{#if card}}Platform card {{platform_card}}, ## Testing:\\n{{platform_testing}}\\n{{/if}}{{#if !card}}Platform card: none for this target (cards: GUIDES/platforms/); take the reporter and deploy order from KNOWLEDGE/environment.md ## Harnesses and suites.\\n{{/if}}'",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-3",
+   "category": "insufficient",
+   "severity": "P1",
+   "where": "slot 'platform_testing | include | guide:platforms/<card>.md#Testing ... | 1000 | excerpt | inputs'; filled 'Platform card GUIDES/platforms/salesforce.md, testing: [not quoted: the packet's budget is spent; read GUIDES/platforms/salesforce.md]'",
+   "evidence": "In step-plan.render-report.json, platform_testing renders as 'pointer' (source 747) and the inputs pool ends at -350. env_commands takes the pool first. The card section is the G1/C6 input (fix-catalogue G1: 'The Salesforce card (deploy before test, TAP) never reached test-strategy, plan or step-plan'; C6: 'a focused Apex command deploys the tree before testing; TAP'), and Methods 2 and 5 send the model to it for the test route and the reporter. The quoted commands use `--result-format human`. At realistic sizes, the input this template was designed to bring in does not print, and test commands planned without it risk a refused test run and a send-back.",
+   "fix": "Make platform_testing unpooled (over refuse, bound 800; the card's ## Testing size is checked in CI like the head budget), printed right after env_commands, and pay for it with the budget cuts below. Its locator names the section: 'GUIDES/platforms/<card>.md ## Testing'.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-4",
+   "category": "problem",
+   "severity": "P2",
+   "where": "frame Symbols 'KNOWLEDGE = WORKTREE/docs/shiploop'; result-rules 'an existing path (absolute, or under a Symbol)'; filled pointers 'read HOME/spec.md', 'read HOME/architecture.md', 'read HOME/environment.md ## Skills'",
+   "evidence": "`_expand_root` refuses 'KNOWLEDGE/...' (verification 4), and `reference_paths` and `symbolic()` know HOME only. So a KNOWLEDGE/ evidence_ref the print allows is refused, and engine prose still prints HOME/, which the v2 Symbols line no longer defines. Decision 19's rename is not in `requires`. prep_values SP_LOCATORS and the spec_toc/arch_toc values also use 'HOME/'.",
+   "fix": "requires: add 'decision 19: KNOWLEDGE in reference_paths, the _ROOT_PREFIX roots, symbolic() and every prose locator'. Rename the slot source prefix home: to knowledge:, and in prep_values use 'KNOWLEDGE/spec.md', 'KNOWLEDGE/architecture.md' and 'KNOWLEDGE/environment.md ## Skills'.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP2-5",
+   "category": "problem",
+   "severity": "P2",
+   "where": "argument 'Work: Do Method items 1-9 of <packet>'; template '{{#if !inline}}10. Execution graph ...'",
+   "evidence": "`loops._duty_items` returns '1-12' on both routes (ran), and WORK['step-plan'] says 'Do duty items {items} of'. prep_values METHOD_ITEMS replaces 'duty items 1-12' with 'Method items 1-9' on every route, but the ask-agent print has 10 items. check_loop_packet compares the work with contract(), so this is an engine change (WORK, `_duty_items` counting the template's Method items). `requires` does not list it. Without it, the Work cites 12 'duty items' the packet does not have.",
+   "fix": "requires: add 'loops.WORK and _duty_items count the template's Method items per route (step-plan: 1-9 inline, 1-10 ask-agent)'. Render and check the ask-agent example as well.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP2-6",
+   "category": "confusing",
+   "severity": "P2",
+   "where": "loop-result: 'Result: a complete Receipt reports done, a stopped one blocked or send-back'",
+   "evidence": "check_terminal: 'step-plan accepts only done, blocked'. stage_spec.stage('step-plan').outcomes = ('done', 'blocked'). The printed Outcomes list done and blocked, so the partial contradicts the template.",
+   "fix": "loop-result: 'a stopped one {{stop_outcomes}}', where stop_outcomes is a slot from stage_spec ('blocked' for step-plan, 'blocked or send-back' for test-spec through verify).",
+   "confidence": "high"
+  },
+  {
+   "id": "SP2-7",
+   "category": "confusing",
+   "severity": "P2",
+   "where": "loop-invoke started branch: 'The loop has started: never start it again.' vs loop-result 'run the command the refusal names'",
+   "evidence": "The check_loop_packet refusals for a cancelled loop ('start the loop again with <start>') and for another contract (': start the loop again with <start>') name the start command. The runtime `_check_start_receipt` accepts a start over a finished receipt. A packet reprinted by `next` after the loop finished forbids the route the refusal gives.",
+   "fix": "'The loop has started: while its receipt is active never start it again (a start is refused); run its next_argv once and follow the packet it prints. When it is complete or stopped, submit this stage's result; if a refusal names the start command, run it.'",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-8",
+   "category": "confusing",
+   "severity": "P2",
+   "where": "result-rules 'ShipLoop refuses a key the form does not show' vs Method 6 'an expectation whose `from` names it', Method 4 'optional `paths`', Method 8 'or to the later stage that owns it'",
+   "evidence": "The unsupported-fields gate is top-level only (`keys - _RESULT_KEYS` in `_canonical_result`). The form's E1 has no `from`, yet check_step_plan refuses a result without it ('open plan assumptions A8 name W1 as consumer; add an expectation for each with \"from\"'). The A1 owner-stage shape ({concern, owner_stage} in the result table) has no key name in Method 8 or the form.",
+   "fix": "result-rules: 'ShipLoop refuses a top-level key the form does not show'. Method 6: 'Each open assumption above becomes an expectation with `\"from\": \"<assumption ID>\"`.' Method 8: '... or to the later stage that owns it (`{\"concern\", \"owner_stage\"}`)'.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-9",
+   "category": "insufficient",
+   "severity": "P2",
+   "where": "Method 1 and Method 5 (rules dropped in the compression)",
+   "evidence": "Today's DUTIES['step-plan'] item 1: 'Keep the change inside the item: available APIs and other parts of the request do not widen it'. Item 5: '`test_commands` ... run from the repository root' and 'ShipLoop refuses a run that executed no test, so check the filter'. None of these is in v2. `_normalise_criteria` refuses an empty list ('criteria must be a nonempty list'), so the no-criteria route must omit the key, which the form ('each key once') does not say.",
+   "fix": "Method 1, append: 'Keep the change inside the item: available APIs and other parts of the request do not widen it.' Method 5: '`test_commands` (run from the repository root; test and verify run exactly these) ... `min_tests` where a command must run at least that many; a run that executes no test is refused, so check the filter. ... `test_commands_na` only for an item with no criteria (then omit `criteria`).'",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-10",
+   "category": "problem",
+   "severity": "P2",
+   "where": "front matter 'print_budget: 19500', 'pools: inputs | rest>=1000'; packets-tools/tmpl.py render",
+   "evidence": "tmpl.py render sets `left[p] = max(meta['pools'][p], rest)` and never compares printed_chars with print_budget. The reference print renders at 21,395 with no error, and the render report shows pools.inputs = -350, because pointers are charged after the pool is spent. The pool's floor forces a print over budget instead of turning into pointers.",
+   "fix": "The pool takes max(0, rest); a spent pool prints one pointer line. Render reports, and in CI refuses, a print over print_budget. The static check guarantees that fixed text, refuse bounds and pointer allowances stay within the budget.",
+   "confidence": "high"
+  },
+  {
+   "id": "SP2-11",
+   "category": "insufficient",
+   "severity": "P2",
+   "where": "front matter gates table (23 rows) and result table gate ids",
+   "evidence": "These code refusals have no gates row: `_check_step_sizing` ('must record its check', 'no step satisfies', 'only changes test files'), write_problem ('a check is read-only: it may redirect output only to /dev/null or another descriptor', ran), `_normalise_criteria` ('criteria must be a nonempty list', 'criterion ids must be unique'), `_canonical_result` (blocked done-only fields), `_check_submitted_awaiting` (no_default) and check_loop_packet (cancelled). The result table cites common-headline and common-summary, which the gates table lacks, and tmpl.py validate never reads the result table. The sp-outcome anchor '- blocked:' is a line prefix, not the rule. An exact-match placeholder registry cannot catch the composite criterion text '<condition>. Confirm by: <command>; pass when <result>. Serves R-<n>.', because `form_placeholders` lists only its parts.",
+   "fix": "Add rows: sp-step-check ('one command from the repository root'), sp-served ('every criterion is in some step's `criteria`', see SP2-12), sp-test-only ('Tests are not a step'), sp-read-only ('one read-only `check`'), common-headline ('under 100 characters'), common-summary, blocked-keys ('carries only the keys its line shows'), awaiting ('no_default') and loop-cancel ('Never stop cancelled'). The validator must check that every result-table gate id exists. Set sp-outcome's anchor to 'Outcomes:'. Register each whole form string (the composite criterion text included) in the placeholder registry.",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-12",
+   "category": "insufficient",
+   "severity": "P3",
+   "where": "Method 4: 'Each step: `deps` (earlier step IDs only), `criteria` (IDs from `criteria`) ...'; 'Tests are not a step (the test stage writes them).'",
+   "evidence": "`_check_step_sizing` refuses 'no step satisfies C' and allows a test-only step when the whole item is tests. Both are stated only in exit 3 of the argument, so the Method must carry them if the argument becomes a pointer (budget).",
+   "fix": "'`criteria` (IDs from `criteria`; every criterion is in some step's)'; 'Tests are not a step (the test stage writes them), unless the whole item is tests.'",
+   "confidence": "high"
+  },
+  {
+   "id": "SP2-13",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "outcome-done: 'ShipLoop runs the Gates, then issues test-spec for W1.'",
+   "evidence": "Version 2 has no Gates block (grep '== Gates': none), so 'the Gates' names nothing in the print.",
+   "fix": "'- done: the work is finished and every exit condition holds. ShipLoop runs its gates, then {{done_next}}. Shape: the form above.'",
+   "confidence": "high"
+  },
+  {
+   "id": "SP2-14",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "'Goal: Plan work item {{item_id}}: ordered steps, each proven by its own command, ... and concern mapping.'",
+   "evidence": "The goal is hand-written. stage_spec.goal is 'Plan this item's change: `criteria`, `steps`, `test_commands`; `expectations`, `paths`, `follows` in the result.', and the Improve review quotes it ('Reviewing the returned ' + stage + ' result. Goal: ' in shiploop_navigator.py). This is root cause 1 of plan 8.3: the code owns this text.",
+   "fix": "Make it a slot `{{goal}}` from stage_spec.goal, and move the new wording into stage_spec 'step-plan'.goal (with A1's concern clause when A1 lands).",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-15",
+   "category": "confusing",
+   "severity": "P3",
+   "where": "'Recent commits (the last two not written by ShipLoop itself; what earlier work learned):'",
+   "evidence": "Under N2, ShipLoop itself writes each step commit ('feat(<item>/<step>): <headline>' with Key learnings), and those are the commits the look-back exists to show. prep_values `recent_commits` skips only BOOKKEEPING (knowledge records, leftover-file commits).",
+   "fix": "'Recent commits (the last two that are not ShipLoop bookkeeping; what earlier work learned):'",
+   "confidence": "medium"
+  },
+  {
+   "id": "SP2-16",
+   "category": "insufficient",
+   "severity": "P3",
+   "where": "pool pointers: 'read GUIDES/platforms/salesforce.md', 'read HOME/spec.md'",
+   "evidence": "The pointer for an include of a section ('guide:platforms/<card>.md#Testing') names the whole file, against the owner rule 'open only the section a step needs'. Five pointer lines cost 597 characters.",
+   "fix": "Locator = file plus heading ('GUIDES/platforms/<card>.md ## Testing'), and the pointers of a spent pool merge into one line: 'Not quoted (budget): <locator> · <locator> · ...'.",
+   "confidence": "medium"
+  }
+ ],
+ "budget": {
+  "measured": {
+   "printed": 21395,
+   "file": 22376,
+   "at_TD2_bounds": 20587,
+   "how_TD2": "21,395 - (3,308 - 2,500) for item_context. plan_concerns (1,079) is already under 1,200.",
+   "print_budget": 19500,
+   "host_cut": 20000,
+   "static_worst_reference_install": 25282,
+   "static_worst_this_install": 25605,
+   "fixed_text_by_flags": "9,483 to 9,950",
+   "slot_bounds_by_flags": "13,369 to 15,629",
+   "blocks": {"frame": 2372, "goal_done": 339, "loop_invoke": 1007, "argument": 2058, "loop_result": 532, "narrative": 674, "input": 7248, "method": 4197, "rules": 556, "form": 1513, "outcomes_fill": 898},
+   "hook_positions": "The narrative ends at 6,951, inside the status hook's 16,000 WINDOW. The callback is the third line after the header. The keepalive marker is one line, at 2,192.",
+   "grok_cut_effect": "Any print over 20,000 loses its middle from character 10,000. That is the Input block: the end of the item context, open assumption A8 (gate-checked through `from`) and the first concern rows. A revisit print is about 21.3K at T-D2 and loses about 1.3K there.",
+   "growth_vs_v1": "+1,752 (19,643 to 21,395): the Method gained the gate rules (+470), open assumptions and recent commits are unpooled (415 + 479), and the loop block grew with the guard."
+  },
+  "cuts": [
+   {"cut": "Loop ARGUMENT block -> one pointer line, keeping the Receipt line", "chars": -1745, "static": -2650, "note": "owner decision; see pointer_option"},
+   {"cut": "or, partial: drop the argument's Work (419) and Contract (164) lines", "chars": -583, "static": -400, "note": "The Work restates the Method and the form path, and the Contract path is in the start command"},
+   {"cut": "Done-report fields line (loop-result)", "chars": -208, "static": -208, "note": "Each runtime packet's report_schema lists the same enums (verification 2)"},
+   {"cut": "Merge the spent pool's pointer lines into one; drop last_summary (prepare's summary is not this stage's directive, and the appendix lists its result)", "chars": -400, "static": -430},
+   {"cut": "SP-26 clause, recent-commits label (SP2-15)", "chars": -97, "static": -97},
+   {"cut": "If the argument stays printed: Method 6's first sentence and Method 4's 'It needs no later step ...' (they restate exits 5 and 3)", "chars": -200, "static": -200}
+  ],
+  "totals": {
+   "pointer_route": "20,587 - 1,745 - 208 - 400 - 97 = about 18,140. That leaves about 1.3K for the card's ## Testing (747, unpooled per SP2-3) and the spec and architecture tables of contents.",
+   "partial_route": "20,587 - 583 - 208 - 400 - 97 - 200 = about 19,100. Under 19,500, but the card's ## Testing stays a pointer (SP2-3 is unresolved).",
+   "static": "No text trim reaches 19,500 on its own. The pointer route brings the worst case to about 21.9K. The rest needs shared producer bounds: one item's context, open assumptions and concern rows together at most 3,600 at the plan gate (-1,300); revisit_block 900 with the summary excerpted at 600 (-600, see SP2-1); recent_commits 700 (-200); progress 900 (-200); pool floor 800 (-200). That gives about 19.4K. The partial route stays about 2K over even with those bounds, so the static rule would have to change."
+  },
+  "pointer_option": {
+   "verified": "Yes. The runtime's start and next packets, and every active packet (`_metadata` plus `_active_packet`), print `work`, `conditions.exit` and `conditions.repeat` equal to the contract file, and repeat them in `instruction`. The receipt holds the same packet. In the live run the model started the loop as its first CALL and read the receipt for the full packet (verification 2). check_terminal compares the runtime packet with contract(), never the printed copy, so the print is display only.",
+   "for": "It saves about 1.7-1.9K realistic and 2.65K static. It removes a third copy of the contract (the file, the packet fields, the instruction) and the Method-vs-exit duplication (SP-22). It is the only cut that lets the static check pass and makes room for the card's testing rules. The model sees the exit conditions in the output of its first command, before any work.",
+   "against": "Owner rule of 2026-10-16 (comment above BLOCK_HEADING: 'say \"RUN\" with the explicit argument and command, not in generalities ... it is shown, not passed'). Obligation `until-loop` (test/shiploop_e2e/packet_obligations.json: 'the BEGIN marker of its argument, the literal start command and its exit conditions in the printed text'). test/shiploop-head-order.test.py P0 tokens ('\\nWork: ', 'Exit when ALL of these hold:', '\\nContract: ', and each done_when line). The owner's tenet that each packet restates how its stage is judged. The 12.7K one-line runtime JSON passes Grok's 20,000 cut. Codex's tool-output limit was not verified.",
+   "recommendation": "Put the full pointer to the owner as the recommended option, because without it the template cannot pass its own static check. Proposed text: 'Argument: the Contract file in the start command. The loop prints its Work, Exit and Repeat when it starts, in every packet it returns and in the Receipt, so meet every Exit condition it prints.' Keep the Receipt line. Done when: 'every Exit condition the loop prints holds; the Method states each rule its gates apply.' Add SP2-12 to the Method. In the same change, amend the 2026-10-16 comment, the `until-loop` obligation and the head-order tokens. If the owner keeps the printed argument, take the partial route (Work and Contract lines, the Done-report line, merged pointers), accept that the card's Testing stays a pointer, and redefine the static check to use shared producer bounds."
+  }
+ },
+ "verdict": {
+  "sufficient": "partly",
+  "necessary": "partly",
+  "open_p0": 1,
+  "open_p1": 5,
+  "open_ids": {"P0": ["SP2-1"], "P1": ["SP-5", "SP-6", "SP-8", "SP2-2", "SP2-3"]},
+  "summary": "Version 2 fixes 10 of the 28 round-1 findings (SP-1, 3, 4, 7, 9, 10, 11, 12, 13, 21). The loop argument is now the contract's own text: Exit and Repeat equal stage_spec and REPEAT, verified. The criterion-coverage, deps, check-row and na rules the gate applies are stated and anchored. The open assumption A8 prints whole, and the Improve mention is gone. Six are partly fixed (SP-2, 5, 8, 20, 22, 24) and twelve are open. What still blocks landing is mostly what `requires` misses. revisit_block is refuse-class at 1,500 with no summary bound anywhere: live test-spec summaries reach 1,431, and today's code excerpts at 600, so a send-back can stall the run. A target with no platform card has no rendering. The placeholder registry, the KNOWLEDGE root (refused today, verified) and the Work's Method-item count are engine changes the template relies on but does not list. The revisit block still omits the previous step-plan result it asks the model to amend. The print grew to 21,395 (20,587 at T-D2), above both the 19,500 budget and Grok's 20,000 cut, and its static worst case of 25.3K fails the template's own validator. At realistic sizes the card's ## Testing section, the G1 input, prints only as a pointer.",
+  "top_changes": [
+   "Close the requires gaps that stall or refuse: give revisit_block an excerpted summary (600) or a summary producer bound (SP2-1); add an absent-card flag (SP2-2); add the placeholder registry and full-field walk (SP-5), the decision-19 KNOWLEDGE root (SP2-4) and the WORK/_duty_items Method count (SP2-5) to `requires`.",
+   "Make the budget real. Take the argument pointer (owner go) or the partial cut, plus the Done-report line and the merged pointers. Make the card's ## Testing unpooled. Have the renderer refuse an over-budget print, and give the static check shared producer bounds (SP-6, SP2-3, SP2-10).",
+   "Make the revisit and loop routes match the code: print the previous accepted step-plan result and the upstream line (SP-8), print the stop outcomes from stage_spec (SP2-6), and let a finished loop be restarted when a refusal names the start command (SP2-7)."
+  ]
+ }
+}

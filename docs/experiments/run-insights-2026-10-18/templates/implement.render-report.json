@@ -1,0 +1,869 @@
+{
+ "printed_chars": 21756,
+ "file_chars": 29394,
+ "pools": {
+  "anchors": -341
+ },
+ "slots": {
+  "stage": {
+   "kind": "scalar",
+   "chars": 9,
+   "source_chars": 9,
+   "bound": 12,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "revision": {
+   "kind": "scalar",
+   "chars": 2,
+   "source_chars": 2,
+   "bound": 6,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "next_command": {
+   "kind": "cmd",
+   "chars": 252,
+   "source_chars": 252,
+   "bound": 252,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "packet_abs": {
+   "kind": "scalar",
+   "chars": 144,
+   "source_chars": 144,
+   "bound": 144,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "callback_command": {
+   "kind": "cmd",
+   "chars": 302,
+   "source_chars": 302,
+   "bound": 302,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "run_dir": {
+   "kind": "scalar",
+   "chars": 96,
+   "source_chars": 96,
+   "bound": 96,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "worktree": {
+   "kind": "scalar",
+   "chars": 101,
+   "source_chars": 101,
+   "bound": 101,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "guides_dir": {
+   "kind": "scalar",
+   "chars": 126,
+   "source_chars": 126,
+   "bound": 129,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "keepalive_marker": {
+   "kind": "scalar",
+   "chars": 161,
+   "source_chars": 161,
+   "bound": 161,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_id": {
+   "kind": "scalar",
+   "chars": 2,
+   "source_chars": 2,
+   "bound": 8,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_n": {
+   "kind": "scalar",
+   "chars": 1,
+   "source_chars": 1,
+   "bound": 4,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_total": {
+   "kind": "scalar",
+   "chars": 1,
+   "source_chars": 1,
+   "bound": 4,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "item_id": {
+   "kind": "scalar",
+   "chars": 2,
+   "source_chars": 2,
+   "bound": 12,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_task": {
+   "kind": "include",
+   "chars": 1130,
+   "source_chars": 1130,
+   "bound": 1130,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_criteria": {
+   "kind": "block",
+   "chars": 966,
+   "source_chars": 966,
+   "bound": 1200,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_check": {
+   "kind": "include",
+   "chars": 973,
+   "source_chars": 973,
+   "bound": 973,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_deps": {
+   "kind": "block",
+   "chars": 4,
+   "source_chars": 4,
+   "bound": 300,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_skills": {
+   "kind": "block",
+   "chars": 4,
+   "source_chars": 4,
+   "bound": 400,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "accepted_steps": {
+   "kind": "block",
+   "chars": 27,
+   "source_chars": 27,
+   "bound": 600,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "later_steps": {
+   "kind": "block",
+   "chars": 61,
+   "source_chars": 61,
+   "bound": 800,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "test_spec_result": {
+   "kind": "scalar",
+   "chars": 51,
+   "source_chars": 51,
+   "bound": 120,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_cases": {
+   "kind": "block",
+   "chars": 46,
+   "source_chars": 46,
+   "bound": 500,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "plan_result": {
+   "kind": "scalar",
+   "chars": 51,
+   "source_chars": 51,
+   "bound": 120,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "recent_commits": {
+   "kind": "block",
+   "chars": 515,
+   "source_chars": 515,
+   "bound": 900,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "anchor_ids": {
+   "kind": "scalar",
+   "chars": 82,
+   "source_chars": 82,
+   "bound": 200,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "item_other_reqs": {
+   "kind": "scalar",
+   "chars": 25,
+   "source_chars": 25,
+   "bound": 200,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "step_requirements": {
+   "kind": "include",
+   "chars": 862,
+   "source_chars": 1521,
+   "bound": 2400,
+   "pool": "anchors",
+   "rendered": "excerpt"
+  },
+  "item_decisions": {
+   "kind": "include",
+   "chars": 138,
+   "source_chars": 654,
+   "bound": 1600,
+   "pool": "anchors",
+   "rendered": "excerpt"
+  },
+  "step_concerns": {
+   "kind": "block",
+   "chars": 116,
+   "source_chars": 148,
+   "bound": 600,
+   "pool": "anchors",
+   "rendered": "pointer"
+  },
+  "step_cards": {
+   "kind": "block",
+   "chars": 53,
+   "source_chars": 53,
+   "bound": 600,
+   "pool": "anchors",
+   "rendered": "whole"
+  },
+  "arch_structure": {
+   "kind": "include",
+   "chars": 87,
+   "source_chars": 955,
+   "bound": 1000,
+   "pool": "anchors",
+   "rendered": "pointer"
+  },
+  "env_commands": {
+   "kind": "include",
+   "chars": 85,
+   "source_chars": 963,
+   "bound": 1000,
+   "pool": "anchors",
+   "rendered": "pointer"
+  },
+  "progress": {
+   "kind": "block",
+   "chars": 782,
+   "source_chars": 782,
+   "bound": 900,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "lint_command": {
+   "kind": "cmd",
+   "chars": 298,
+   "source_chars": 298,
+   "bound": 298,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "action": {
+   "kind": "scalar",
+   "chars": 36,
+   "source_chars": 36,
+   "bound": 40,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "inbox_abs": {
+   "kind": "scalar",
+   "chars": 142,
+   "source_chars": 142,
+   "bound": 142,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "receipt_abs": {
+   "kind": "scalar",
+   "chars": 153,
+   "source_chars": 153,
+   "bound": 153,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "done_next": {
+   "kind": "scalar",
+   "chars": 35,
+   "source_chars": 35,
+   "bound": 120,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "send_back_target": {
+   "kind": "scalar",
+   "chars": 9,
+   "source_chars": 9,
+   "bound": 20,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "send_backs_left": {
+   "kind": "scalar",
+   "chars": 6,
+   "source_chars": 6,
+   "bound": 8,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "loop_start_command": {
+   "kind": "cmd",
+   "chars": 499,
+   "source_chars": 499,
+   "bound": 499,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "loop_argument": {
+   "kind": "block",
+   "chars": 2317,
+   "source_chars": 2317,
+   "bound": 3000,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "stop_outcomes": {
+   "kind": "scalar",
+   "chars": 20,
+   "source_chars": 20,
+   "bound": 40,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "pause_command": {
+   "kind": "cmd",
+   "chars": 284,
+   "source_chars": 284,
+   "bound": 284,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "source_results": {
+   "kind": "block",
+   "chars": 198,
+   "source_chars": 198,
+   "bound": 400,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "last_accepted": {
+   "kind": "block",
+   "chars": 61,
+   "source_chars": 61,
+   "bound": 160,
+   "pool": null,
+   "rendered": "whole"
+  }
+ },
+ "bound_overrides": {
+  "step_task": 1130,
+  "step_check": 973
+ },
+ "gates_anchored": 18,
+ "placeholders": [
+  "<...>",
+  "<a choice this step made, and why, or none>",
+  "<behaviour this step added that no test case covers>",
+  "<case ID or justified inspection>",
+  "<command or file>",
+  "<consideration number and name>",
+  "<criterion ID>",
+  "<decisions and defaults only this result records; per listed skill, used or why not>",
+  "<n>",
+  "<path of the saved output>",
+  "<short commit that helped>",
+  "<the concrete handling and its anchor, or why the step does not touch it>",
+  "<under 100 characters: what this step established>",
+  "<what it does not show>",
+  "<what it showed>",
+  "<what it shows>",
+  "<what it taught this step>",
+  "<what this step taught a later step or run, or none>",
+  "<why no test case covers it>"
+ ],
+ "over_budget": 2256,
+ "shrunk_to_pointer": [],
+ "validate_reference_install": {
+  "template": "implement.template.md",
+  "slots": 47,
+  "flags": [
+   "loop_started",
+   "code_step",
+   "revisit",
+   "worktree_run"
+  ],
+  "requires": [
+   "criterion-evidence gate (`criterion_evidence` in _RESULT_KEYS; fix plan 3.3)",
+   "N2 step commits (learned, decisions, learned_from; the step commit; recent_commits)",
+   "N5 outcome names (send-back)",
+   "T-D2 producer bounds (step-plan: task 700, criteria 1200, check 600)",
+   "A1 concern rows (step_concerns)",
+   "A2 card selection (step_cards)",
+   "A0 port: the eight considerations and the implement-record gate, one name and shape for criterion evidence (this form follows fix plan 3.3; the branch's `evidence` has 6 fields)",
+   "N3 write-back at implement (an acceptance line in spec.md, marked with the step; the A0 guidance's \"never edit spec.md here\" yields to N3)",
+   "D3 per-step revisit",
+   "N5 awaiting kinds answer, present, service",
+   "decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired)",
+   "placeholder registry read from this form (navigator._placeholders)",
+   "loops Work cites the template's Method items (_duty_items counts them)",
+   "engine E3/E4 (plan 8.5)",
+   "lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit"
+  ],
+  "problems": [
+   "static budget: max printed 22249 > print_budget 19500"
+  ],
+  "placeholders": [
+   "<...>",
+   "<a choice this step made, and why, or none>",
+   "<behaviour this step added that no test case covers>",
+   "<case ID or justified inspection>",
+   "<command or file>",
+   "<consideration number and name>",
+   "<criterion ID>",
+   "<decisions and defaults only this result records; per listed skill, used or why not>",
+   "<n>",
+   "<path of the saved output>",
+   "<short commit that helped>",
+   "<the concrete handling and its anchor, or why the step does not touch it>",
+   "<under 100 characters: what this step established>",
+   "<what it does not show>",
+   "<what it showed>",
+   "<what it shows>",
+   "<what it taught this step>",
+   "<what this step taught a later step or run, or none>",
+   "<why no test case covers it>"
+  ],
+  "gates": 18,
+  "combos": [
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 9741,
+    "slot_bounds": 11184,
+    "max_printed": 20951
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 9741,
+    "slot_bounds": 11184,
+    "max_printed": 20951
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 9815,
+    "slot_bounds": 11302,
+    "max_printed": 21143
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 9815,
+    "slot_bounds": 11302,
+    "max_printed": 21143
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 10847,
+    "slot_bounds": 11184,
+    "max_printed": 22057
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 10847,
+    "slot_bounds": 11184,
+    "max_printed": 22057
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 10921,
+    "slot_bounds": 11302,
+    "max_printed": 22249
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 10921,
+    "slot_bounds": 11302,
+    "max_printed": 22249
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 9637,
+    "slot_bounds": 10747,
+    "max_printed": 20410
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 9637,
+    "slot_bounds": 10747,
+    "max_printed": 20410
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 9711,
+    "slot_bounds": 10865,
+    "max_printed": 20602
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 9711,
+    "slot_bounds": 10865,
+    "max_printed": 20602
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 10743,
+    "slot_bounds": 10747,
+    "max_printed": 21516
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 10743,
+    "slot_bounds": 10747,
+    "max_printed": 21516
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 10817,
+    "slot_bounds": 10865,
+    "max_printed": 21708
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 10817,
+    "slot_bounds": 10865,
+    "max_printed": 21708
+   }
+  ],
+  "max_printed": 22249,
+  "print_budget": 19500
+ },
+ "validate_this_install": {
+  "template": "implement.template.md",
+  "slots": 47,
+  "flags": [
+   "loop_started",
+   "code_step",
+   "revisit",
+   "worktree_run"
+  ],
+  "requires": [
+   "criterion-evidence gate (`criterion_evidence` in _RESULT_KEYS; fix plan 3.3)",
+   "N2 step commits (learned, decisions, learned_from; the step commit; recent_commits)",
+   "N5 outcome names (send-back)",
+   "T-D2 producer bounds (step-plan: task 700, criteria 1200, check 600)",
+   "A1 concern rows (step_concerns)",
+   "A2 card selection (step_cards)",
+   "A0 port: the eight considerations and the implement-record gate, one name and shape for criterion evidence (this form follows fix plan 3.3; the branch's `evidence` has 6 fields)",
+   "N3 write-back at implement (an acceptance line in spec.md, marked with the step; the A0 guidance's \"never edit spec.md here\" yields to N3)",
+   "D3 per-step revisit",
+   "N5 awaiting kinds answer, present, service",
+   "decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired)",
+   "placeholder registry read from this form (navigator._placeholders)",
+   "loops Work cites the template's Method items (_duty_items counts them)",
+   "engine E3/E4 (plan 8.5)",
+   "lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit"
+  ],
+  "problems": [
+   "static budget: max printed 22585 > print_budget 19500"
+  ],
+  "placeholders": [
+   "<...>",
+   "<a choice this step made, and why, or none>",
+   "<behaviour this step added that no test case covers>",
+   "<case ID or justified inspection>",
+   "<command or file>",
+   "<consideration number and name>",
+   "<criterion ID>",
+   "<decisions and defaults only this result records; per listed skill, used or why not>",
+   "<n>",
+   "<path of the saved output>",
+   "<short commit that helped>",
+   "<the concrete handling and its anchor, or why the step does not touch it>",
+   "<under 100 characters: what this step established>",
+   "<what it does not show>",
+   "<what it showed>",
+   "<what it shows>",
+   "<what it taught this step>",
+   "<what this step taught a later step or run, or none>",
+   "<why no test case covers it>"
+  ],
+  "gates": 18,
+  "combos": [
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 9741,
+    "slot_bounds": 11520,
+    "max_printed": 21287
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 9741,
+    "slot_bounds": 11520,
+    "max_printed": 21287
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 9815,
+    "slot_bounds": 11638,
+    "max_printed": 21479
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 9815,
+    "slot_bounds": 11638,
+    "max_printed": 21479
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 10847,
+    "slot_bounds": 11520,
+    "max_printed": 22393
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 10847,
+    "slot_bounds": 11520,
+    "max_printed": 22393
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 10921,
+    "slot_bounds": 11638,
+    "max_printed": 22585
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 10921,
+    "slot_bounds": 11638,
+    "max_printed": 22585
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 9637,
+    "slot_bounds": 11021,
+    "max_printed": 20684
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 9637,
+    "slot_bounds": 11021,
+    "max_printed": 20684
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 9711,
+    "slot_bounds": 11139,
+    "max_printed": 20876
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": false,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 9711,
+    "slot_bounds": 11139,
+    "max_printed": 20876
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": false
+    },
+    "fixed": 10743,
+    "slot_bounds": 11021,
+    "max_printed": 21790
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": false,
+     "worktree_run": true
+    },
+    "fixed": 10743,
+    "slot_bounds": 11021,
+    "max_printed": 21790
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": false
+    },
+    "fixed": 10817,
+    "slot_bounds": 11139,
+    "max_printed": 21982
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "code_step": true,
+     "revisit": true,
+     "worktree_run": true
+    },
+    "fixed": 10817,
+    "slot_bounds": 11139,
+    "max_printed": 21982
+   }
+  ],
+  "max_printed": 22585,
+  "print_budget": 19500
+ }
+}

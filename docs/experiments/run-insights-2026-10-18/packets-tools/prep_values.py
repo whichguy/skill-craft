@@ -1,4 +1,4 @@
-"""Build the slot values for the two filled examples from the Battleship run's own records (analysis tool).
+"""Build the slot values for the two filled examples from the Battleship run's own records (analysis tool; version 2).
 
     python3 -I prep_values.py <inputs_dir> <packets_dir> <out_dir>
 
@@ -9,6 +9,7 @@ rows restate decisions the run recorded (AD-n, R-n) and mark the two concerns th
 """
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -59,8 +60,57 @@ def common(action, rev, stage):
         "keepalive_marker": f"SHIPLOOP-RUN run={RUN_ID} rev={rev} dir={RUN}",
         "loop_start_command": f"{LOOP} start --receipt {RUN}/loops/{action}-terminal.json < {RUN}/loops/{action}-contract.json",
         "receipt_abs": f"{RUN}/loops/{action}-terminal.json", "run_dir": RUN, "guides_dir": PLUG + "/skills/shiploop/references",
-        "worktree": WT,
+        "worktree": WT, "loop_argument": loop_argument(action, stage),
     }
+
+
+# Version 2 prints the loop argument from the contract ShipLoop wrote (loops.invoke_lines), with the two engine changes the
+# template migration makes: the Work line cites the template's Method items instead of today's duty items, and N5 renames
+# revise to send-back. Exit conditions are stage_spec's, verbatim from the contract.
+METHOD_ITEMS = {"step-plan": ("duty items 1-12", "Method items 1-9"), "implement": ("duty items 1-7", "Method items 1-5")}
+
+
+def loop_argument(action, stage):
+    c = json.loads(Path(f"{RUN}/loops/{action}-contract.json").read_text())
+    old, new = METHOD_ITEMS[stage]
+    work = c["work"].replace(old, new)
+    repeat = (c["repeat_condition"].replace("Stop blocked and report revise", "Stop blocked and report send-back")
+              .replace("the stage then reports revise", "the stage then reports send-back"))
+    if stage == "implement":
+        repeat = E3_REPEAT_STEP
+    return "\n".join(["----- BEGIN until-loop ARGUMENT -----", "Work: " + work, "Exit when ALL of these hold:",
+                      c["exit_condition"], repeat, f"Contract: {RUN}/loops/{action}-contract.json",
+                      f"Receipt: {RUN}/loops/{action}-terminal.json", "----- END until-loop ARGUMENT -----"])
+
+
+# E3 (plan 8.5): loops.REPEAT_STEP with the N5 names and one route per cause.
+E3_REPEAT_STEP = ("Repeat while an exit condition is unmet (the Proof fails, a new lint finding stands on a changed line, a "
+                  "criterion is not yet shown) and a justified investigation or fix remains; there is no iteration limit. "
+                  "Stop blocked when none remains: report blocked when a person or an outside service must act (access, "
+                  "authority, a decision); report send-back, with the blocker and the attempts made, when the step is proven "
+                  "unachievable as planned (it contradicts a requirement, a decision, the item or a protected file; it needs a "
+                  "tool that is absent; or it would exceed the item), or when the same underlying failure persists after 7 "
+                  "genuine fix attempts. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.")
+
+
+# N2: the last two commits that are not ShipLoop bookkeeping (its knowledge records and leftover commits), from a HEAD.
+BOOKKEEPING = re.compile(r"^(docs\(shiploop\): record .* knowledge|chore\(shiploop\): commit files written)")
+
+
+def recent_commits(head, count=2):
+    out = subprocess.run(["git", "-C", WT, "log", "--format=%h%x1f%s%x1f%b%x1e", head], capture_output=True, text=True,
+                         check=True).stdout
+    rows = []
+    for rec in out.split("\x1e"):
+        parts = rec.strip("\n").split("\x1f")
+        if len(parts) < 3 or BOOKKEEPING.match(parts[1]):
+            continue
+        lines = [l for l in parts[2].strip().splitlines() if l.strip()]
+        learning = next((l.split(":", 1)[1].strip() for l in lines if l.startswith("Key learnings:")), lines[0] if lines else "")
+        rows.append({"short": parts[0], "subject": parts[1], "learning": learning})
+        if len(rows) == count:
+            break
+    return rows
 
 
 def narrative(packet):
@@ -108,15 +158,17 @@ sp_values.update({
     "open_assumptions": [{"id": a["id"], "assumption": a["assumption"], "check": a.get("check", ""),
                           "reason": a.get("reason", "")} for a in plan["assumptions"]
                          if a.get("disposition") == "open" and a.get("consumer") == w1["id"]],
-    "plan_concerns": [dict(zip(("concern", "applies", "decision", "anchor", "owner_stage"), c)) for c in CONCERNS],
-    "spec_toc": "HOME/spec.md: " + " · ".join(reqs),
-    "arch_toc": ("HOME/architecture.md: " + " · ".join(decisions) + "; Real-boundary checks: " + " · ".join(checks)
+    "plan_concerns": [dict(zip(("concern", "applies", "decision", "anchor", "owner_stage"), c)) for c in CONCERNS if c[1] == "yes"],
+    "spec_toc": "KNOWLEDGE/spec.md: " + " · ".join(reqs),
+    "arch_toc": ("KNOWLEDGE/architecture.md: " + " · ".join(decisions) + "; Real-boundary checks: " + " · ".join(checks)
                  + "; Procedures: " + ", ".join(procedures)),
     "env_commands": commands_code(section(env_a, "Commands")),
     "env_skills": section(env_a, "Skills"),
     "platform_card": "GUIDES/platforms/salesforce.md",
     "platform_testing": " ".join(tap.group(1).split()) if tap else "",
     "revisit_block": "",
+    "recent_commits": recent_commits("2449835"),
+    "done_next": "issues test-spec for " + w1["id"], "stop_outcomes": "blocked",
     "last_summary": "prepare (done): " + prep["summary"],
     "source_results": [{"label": "plan", "path": "RUN/results/nav-723e52564fb0414fb9351ed4164c4a32.md"},
                        {"label": "prepare", "path": "RUN/results/nav-efea99357d1d42569d26ae3f529d51a5.md"},
@@ -124,12 +176,18 @@ sp_values.update({
     "last_accepted": "prepare, done, nav-efea99357d1d42569d26ae3f529d51a5",
 })
 INSTALL = {"run": len(RUN), "root": len(PLUG), "cli": len(CLI) - len("python3 ")}
-SP_LOCATORS = {"env_commands": "HOME/environment.md ## Commands", "spec_toc": "HOME/spec.md", "arch_toc": "HOME/architecture.md",
+SP_LOCATORS = {"env_commands": "KNOWLEDGE/environment.md ## Commands", "spec_toc": "KNOWLEDGE/spec.md", "arch_toc": "KNOWLEDGE/architecture.md",
                "platform_testing": "GUIDES/platforms/salesforce.md", "last_summary": "RUN/results/nav-efea99357d1d42569d26ae3f529d51a5.md",
                "open_assumptions": "RUN/results/nav-723e52564fb0414fb9351ed4164c4a32.md, field assumptions",
-               "env_skills": "HOME/environment.md ## Skills", "revisit_block": "the revise result"}
-(out / "step-plan.values.json").write_text(json.dumps({"install": INSTALL, "locators": SP_LOCATORS, "flags": {"loop_started": False, "revisit": False, "inline": True},
-                                                        "slots": sp_values}, indent=1))
+               "env_skills": "KNOWLEDGE/environment.md ## Skills", "revisit_block": "the revise result"}
+# This run predates the T-D2 producer bounds: its plan wrote a 3,308-character context, which the plan gate would refuse
+# at 2,500. The illustration renders the real value and says so (bound_overrides, reported in the render report).
+# The concern rows are an illustration (A1 is not built) and also run over the 1,200 bound the plan gate would enforce.
+concern_rows = "\n".join("- {}: {}; {} ({}; owner {})".format(*c) for c in CONCERNS if c[1] == "yes")
+SP_OVERRIDES = {"item_context": max(2500, len(w1["context"])), "plan_concerns": max(1200, len(concern_rows))}
+(out / "step-plan.values.json").write_text(json.dumps({"install": INSTALL, "locators": SP_LOCATORS,
+                                                        "flags": {"loop_started": False, "revisit": False, "inline": True, "worktree_run": True},
+                                                        "bound_overrides": SP_OVERRIDES, "slots": sp_values}, indent=1))
 
 # ---------------------------------------------------------------- implement S1 (revision 14)
 home_b = inputs / "home-fcd65c9"
@@ -178,9 +236,16 @@ im_values.update({
     "step_criteria_ids": ", ".join(s1["criteria"]),
     "step_check": s1["check"],
     "step_deps": "none", "step_skills": "none", "accepted_steps": "none (S1 is the first step)",
-    "later_steps": [{"id": s["id"], "task_first_sentence": s["task"].split(".")[0]} for s in sp["steps"][1:]],
+    "test_spec_result": "RUN/results/nav-ec9a068812f245398a414b6fb80f4ea9.md",
+    "recent_commits": recent_commits("fcd65c9"),
+    "item_other_reqs": ", ".join(r for r in sp["follows"] if r.startswith("R-") and int(r[2:]) not in named) or "no other requirement",
+    "send_back_target": "step-plan", "send_backs_left": "2 of 2",
+    "done_next": "commits the step and issues step " + sp["steps"][1]["id"], "stop_outcomes": "blocked or send-back",
+    "anchor_ids": ", ".join("R-%d" % n for n in named) + "; " + ", ".join(sorted({d for d in sp["follows"] if d.startswith("AD-")}, key=lambda x: int(x[3:]))),
+    "later_steps": [{"id": s["id"], "criteria": ", ".join(s["criteria"]), "task_first_sentence": s["task"].split(". ")[0][:160]} for s in sp["steps"][1:]],
     "plan_result": "RUN/results/nav-03cbb489abfe48ce8bf8ab1cfb207729.md",
-    "step_cases": [{"id": c["id"]} for c in ts["test_cases"] if c["criterion"] in s1["criteria"]],
+    "step_cases": [{"id": c["id"], "criterion": c["criterion"], "requirement": c.get("requirement", "")}
+                   for c in ts["test_cases"] if c["criterion"] in s1["criteria"]],
     "step_requirements": reqs_by_value,
     "item_decisions": decisions_by_value,
     "arch_structure": section(arch_b, "Structure"),
@@ -190,18 +255,24 @@ im_values.update({
                       {"concern": "security", "check": "S1 Proof (no System.debug); hiddenShips at test"}],
     "step_cards": [{"locator": "GUIDES/coding-practices.md#schema-and-storage (state)"}],
     "revisit_block": "",
-    "fix_attempts": "7", "revises_left": "2 of 2",
+    "fix_attempts": "7",
     "source_results": [{"label": "step-plan", "path": "RUN/results/nav-03cbb489abfe48ce8bf8ab1cfb207729.md"},
                        {"label": "test-spec", "path": "RUN/results/nav-ec9a068812f245398a414b6fb80f4ea9.md"},
                        {"label": "validate-existing", "path": "RUN/results/nav-366008403f6f4e4c806304d9afc97344.md"}],
     "last_accepted": "validate-existing, done, nav-366008403f6f4e4c806304d9afc97344",
 })
-IM_LOCATORS = {"step_requirements": "HOME/spec.md (R-n sections)", "item_decisions": "HOME/architecture.md ## Decisions",
-               "arch_structure": "HOME/architecture.md ## Structure", "env_commands": "HOME/environment.md ## Commands",
+IM_LOCATORS = {"step_requirements": "KNOWLEDGE/spec.md (R-n sections)", "item_decisions": "KNOWLEDGE/architecture.md ## Decisions",
+               "arch_structure": "KNOWLEDGE/architecture.md ## Structure", "env_commands": "KNOWLEDGE/environment.md ## Commands",
                "step_concerns": "RUN/results/nav-03cbb489abfe48ce8bf8ab1cfb207729.md, field concerns",
                "step_cards": "GUIDES/coding-guidance.md (Conditional index)", "later_steps": "RUN/results/nav-03cbb489abfe48ce8bf8ab1cfb207729.md, field steps",
                "step_cases": "RUN/results/nav-ec9a068812f245398a414b6fb80f4ea9.md, field test_cases"}
-(out / "implement.values.json").write_text(json.dumps({"install": INSTALL, "locators": IM_LOCATORS, "flags": {"loop_started": False, "code_step": True, "revisit": False},
-                                                        "slots": im_values}, indent=1))
+# Over the T-D2 producer bounds in this pre-T-D2 run (step-plan would refuse them): S1's task and Proof, and its criteria.
+crit_rows = "\n".join("  " + c + ": " + crit[c] for c in s1["criteria"])
+IM_OVERRIDES = {k: n for k, n, b in (("step_task", len(s1["task"]), 700), ("step_check", len(s1["check"]), 600),
+                                     ("step_criteria", len(crit_rows), 1200)) if n > b}
+(out / "implement.values.json").write_text(json.dumps({"install": INSTALL, "locators": IM_LOCATORS,
+                                                        "flags": {"loop_started": False, "code_step": True, "revisit": False, "worktree_run": True},
+                                                        "bound_overrides": IM_OVERRIDES, "slots": im_values}, indent=1))
+print("overrides:", SP_OVERRIDES, IM_OVERRIDES)
 print("named R-n for S1:", named)
 print("sizes:", {k: len(json.dumps(v)) for k, v in im_values.items() if len(json.dumps(v)) > 600})

@@ -1,0 +1,203 @@
+{
+ "reviewer": "implement",
+ "round": 2,
+ "date": "2026-10-18",
+ "inputs": {
+  "template": "docs/experiments/run-insights-2026-10-18/templates/implement.template.md (version 2)",
+  "filled": "docs/experiments/run-insights-2026-10-18/templates/implement.filled.md (printed 20,471)",
+  "render_report": "docs/experiments/run-insights-2026-10-18/templates/implement.render-report.json",
+  "partials": "templates/partials/ (frame, loop-invoke, loop-result, rules, result-rules, appendix, code-craft-titles, outcome-done, outcome-blocked, outcome-send-back)",
+  "code": "skill-craft main 768f0e34 (gate code unchanged since round 1's 3cc22efd)",
+  "scratch": "SP/../tmpl-review/r2-implement-loop (Until Loop start/next/second start on a copy of the S1 contract), SP/../tmpl-review/r2-implement-budget (tmpl.py renders and validations of budget variants)"
+ },
+ "round1": [
+  {"id": "IM-01", "was": "P0", "status": "fixed", "why": "Lands with its feature: requires lists 'criterion-evidence gate (criterion_evidence in _RESULT_KEYS; fix plan 3.3)'. Exit 4 in the printed argument is today's contract text (the run's contract file), so exit and gate no longer contradict. The row shape still matches no gate design: see IM2-02."},
+  {"id": "IM-02", "was": "P1", "status": "fixed", "why": "loop_argument is a slot from the contract. Verified: the four Exit lines equal the run's nav-2a6055...-contract.json exit_condition byte for byte; Work and Repeat differ only by prep_values.loop_argument's two substitutions ('duty items 1-7' -> 'Method items 1-5', 'report revise' -> 'report send-back'). The first substitution is an engine change requires does not list (IM2-09)."},
+  {"id": "IM-03", "was": "P0", "status": "fixed", "why": "Slot bounds are now T-D2's (step_task 700, step_criteria 1200, step_check 600), T-D2 is in requires, and the filled header declares bound_overrides {step_task: 1130, step_check: 973}. The static validator still reports 'max printed 25104 > print_budget 19500' (see budget)."},
+  {"id": "IM-04", "was": "P1", "status": "partly", "why": "Added and verified in the print: recent_commits (2 rows, 515 characters), accepted rows with the step commit, learned/decisions/learned_from in the form, and 'commit nothing yourself' on the Files line. Still open: the recent_commits source excludes the step commits N2 makes ShipLoop write (IM2-03); a revisit does not quote the step's own previous commit (IM2-04); the learned_from reachability rule is printed nowhere (IM2-12)."},
+  {"id": "IM-05", "was": "P1", "status": "fixed", "why": "0 matches for 'revise' in the printed region; outcomes come from N5 partials; N5 is in requires. Residual: the three outcome partials are hand-included, not the {{outcomes}} slot 8.4 describes (IM2-14)."},
+  {"id": "IM-06", "was": "P1", "status": "partly", "why": "'they are complete' is gone and the heading says 'excerpts: open the named section ...'. Open: the excerpt markers name no omitted ID and point at HOME/, which the frame no longer defines (IM2-08, IM2-01)."},
+  {"id": "IM-07", "was": "P2", "status": "fixed", "why": "The Improve-import bullet is gone. Gates now cover the lint auto-fix, scope, assumptions and send-back budget; the Proof label states 600 s and the 0-tests rule; the not_covered and lint_waivers shapes print. Residual: the scope bullet states a universal rule for a gate that applies only to no-test items (IM2-12)."},
+  {"id": "IM-08", "was": "P2", "status": "fixed", "why": "The form prints the not_covered row with HANDOFF_SHAPES' placeholders. Verified: navigator._placeholders flags not_covered[0].behaviour and not_covered[0].reason when they are left unfilled."},
+  {"id": "IM-09", "was": "P2", "status": "partly", "why": "The not_covered placeholders are now registered. Verified with python3 (navigator._canonical_result): the v2 done form, minus its unsupported keys, is ACCEPTED with headline '<under 100 characters: what this step established>'. Its summary placeholder is not in _summary_placeholders() (guidance.SUMMARY_PLACEHOLDERS has no 'implement'). The registry change 8.4 describes is not in requires (IM2-09)."},
+  {"id": "IM-10", "was": "P2", "status": "partly", "why": "'<criterion ID>' replaced the hard-coded C1. The row still has 4 fields against fix plan 3.3's 7 plus a 'considerations' map, and it is the plan requires names. Raised to P1 as IM2-02."},
+  {"id": "IM-11", "was": "P2", "status": "fixed", "why": "The case row is '{id} ({criterion}, {requirement})' and renders 'fleet (C2, R-3); miss (C2, R-5); hit (C2, R-5)'. The test-spec locator prints in the Step block, and no '## Procedures' locator remains."},
+  {"id": "IM-12", "was": "P2", "status": "open", "why": "The Repeat (contract text: shiploop_loops.REPEAT_STEP with the N5 rename) still says 'Stop blocked and report send-back ... it needs a tool, access or authority that is absent'. Method 5, outcome-blocked ('only a person or an outside service can unblock it') and RULES send that case to blocked. _step_proof_gate's refusal also routes 'a tool, access or authority that is absent' to revise. 'Stop blocked' (loop stop) next to 'report blocked' (outcome) is still mixed. Fix in REPEAT_STEP: 'Stop the loop (continuation blocked) and report send-back when the step plan cannot be met as written (it contradicts a requirement, a decision, the item or a protected file; it needs a tool the plan did not provide; it would exceed the item), or the same underlying failure persists after 7 genuine fix attempts; report blocked when only a person can grant missing access or authority. Never stop cancelled: ...'"},
+  {"id": "IM-13", "was": "P2", "status": "partly", "why": "loop-result now says 'run the command the refusal names'. The fresh branch's guard matches runtime 0.10.0: in a scratch run a second start over an active receipt exited 2 with 'Nothing was started and the file is unchanged'. Open: the loop_started branch forbids a restart that refusals require, and the step-proof refusal names a start that fails at check-only (IM2-06)."},
+  {"id": "IM-14", "was": "P2", "status": "fixed", "why": "The titles point at 'the packet file's appendix', which includes the code-craft partial (the filled file carries all 9 rules after the appendix). No Improve mention remains. Residual: the frame calls the appendix 'locators' (IM2-16)."},
+  {"id": "IM-15", "was": "P2", "status": "open", "why": "'Checked by: the Gates below, at `complete`.' is unchanged. No line says that ShipLoop does not judge exits 1 and 4. Lowered to P3, because the contract's exit 1 says 'shown by a command or file after the last edit' and the runtime prints it each iteration. Fix: 'Checked by: at `complete` ShipLoop checks the loop receipt, reruns the Proof and runs the Gates below; exits 1 and 4 are yours to show with a command or file.'"},
+  {"id": "IM-16", "was": "P2", "status": "fixed", "why": "The rules partial says 'record it in the result (in `assumptions` where the form has that key, otherwise in `summary`)'. Gates says implement has no assumptions key. The two now agree, but say it twice (budget cut 3)."},
+  {"id": "IM-17", "was": "P2", "status": "fixed", "why": "Declared in consumer: 'the ask-agent route ... keeps today's packet until its own template'. Note: 8.4 says 'There are no feature flags and no dual path', so record this as a scoped exception in 8.4."},
+  {"id": "IM-18", "was": "P3", "status": "partly", "why": "The label now gives /bin/sh, 600 s, exit 0 and the 0-tests rule (step_proof: COMMAND_TIMEOUT_SECONDS = 600.0, judge no-tests). The cd path is still unquoted: 'cd {{worktree}} && ...'; use shlex.quote(WORKTREE)."},
+  {"id": "IM-19", "was": "P3", "status": "open", "why": "Still the first sentence of each later step's task, and the real rows are 'S2 Satisfy C3; S3 Satisfy C4; S4 Satisfy C5', which carry no scope. Raised to P2 as IM2-07."},
+  {"id": "IM-20", "was": "P3", "status": "partly", "why": "A1 and A2 are in requires, and revisit_block is now a refuse-class block keyed by the step. No rendering is declared for a step with no concern. The revisit block's refuse bound has unbounded sources (IM2-04)."},
+  {"id": "IM-21", "was": "P3", "status": "partly", "why": "The template comment claims 'start no later step is said once, in the Step block'. The print still words it four ways: Step 'keep their work out of this change', Method 2 'Build only this step', Work 'start no later step' and Exit 1 'no later step's work is in the change'. Only the contract copies are needed."},
+  {"id": "IM-22", "was": "P3", "status": "partly", "why": "'Done when' now says the argument is 'at the end of this packet' and to start the loop first. 'everything before it is its material' remains, but Gates, RULES and the form are instructions. Fix: 'Start that Until Loop before any work, and do the Method inside it.'"},
+  {"id": "IM-23", "was": "P3", "status": "fixed", "why": "The Pause command is in the frame (filled line 'Pause, only when the user asks ...'), so the Repeat's 'the ShipLoop packet's pause command' resolves in the print."},
+  {"id": "IM-24", "was": "P3", "status": "open", "why": "There is no work item title or context line. test/shiploop-head-order.test.py P1 tokens 'Work item: <id> (n/N) — <title>' and 'Work item context: ', and also 'Lint each implementation step (report-only): ' and navigator.STEP_LOOP_LINE, fail against this print. No test change is listed with the template."},
+  {"id": "IM-25", "was": "P3", "status": "open", "why": "Raised to P2. No 'Unavailable' branch exists. With loop_argument 'refuse' and no value (loops.runtime or loops.contract raising LoopError), tmpl._render_text raises 'slot loop_argument left unfilled', so no packet prints. Today's invoke_lines prints 'Unavailable: <reason>. Report outcome blocked with this reason.' Fix: flag loop_unavailable (loops.argument_ready false) that prints that line instead of the start command and the argument."}
+ ],
+ "findings": [
+  {
+   "id": "IM2-01", "category": "problem", "severity": "P1",
+   "where": "frame Symbols 'KNOWLEDGE = WORKTREE/docs/shiploop'; result-rules 'an existing path (absolute, or under a Symbol)'; Method 4 'KNOWLEDGE/spec.md'; Anchors '[excerpt; whole: HOME/spec.md (R-n sections)]' and three more 'HOME/' locators",
+   "evidence": "navigator.reference_paths defines only HOME, RUN, WORKTREE and GUIDES. python3: navigator._expand_root('KNOWLEDGE/spec.md', ...) -> 'evidence_refs[0] starts with KNOWLEDGE/, which is not a root ShipLoop defines (GUIDES, HOME, RUN, WORKTREE); write the absolute path'. The printed region has 4 'HOME/' locators (at chars 8599, 8819, 9162 and 9299, from prep_values IM_LOCATORS), and the Symbols line no longer defines HOME. In the engine these locators come from navigator.symbolic, which writes HOME. requires does not list decision 19. The refusal names its fix, so this costs one call, not a stall.",
+   "fix": "requires: add 'decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired)'. In prep_values, write KNOWLEDGE/ in IM_LOCATORS and SP_LOCATORS. Route test: evidence_refs ['KNOWLEDGE/spec.md'] accepted through the real complete --check-only.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-02", "category": "problem", "severity": "P1",
+   "where": "Result form '\"criterion_evidence\": [{\"criterion\": \"<criterion ID>\", \"ran_or_inspected\": ..., \"observed\": ..., \"output\": ...}]'; front matter result row 'list of {criterion, ran_or_inspected, observed, output}'; requires '... fix plan 3.3'",
+   "evidence": "The fix plan (docs/shiploop-implement-step-fix-plan-2026-10-17.md, '### 3.3 Result fields') has the row {criterion, case, ran_or_inspected, observed, output, establishes, limits} and a 'considerations' map. Plan section 8 (A0) ports 'considerations and criterion_evidence with an implement-record gate'. Round 1 found the branch's key 'evidence' with 6 EVIDENCE_FIELDS. That makes three shapes, and the template's 4-field row matches none of them. When the gate it requires lands, either this done form is refused or the gate is narrowed to the template without a decision.",
+   "fix": "Name the shape in requires: 'criterion-evidence gate: one row per assigned criterion with criterion, case, ran_or_inspected, observed, output, establishes, limits; considerations kept|dropped (decision)'. Render the rows from the gate's table: '\"criterion_evidence\": [{{criterion_evidence_rows}}]', one row per {{step_criteria}} ID, such as {\"criterion\": \"C1\", \"case\": \"<case ID or justified inspection>\", \"ran_or_inspected\": \"<command or file>\", \"observed\": \"<what it showed>\", \"output\": \"<path of the saved output>\", \"establishes\": \"<what this shows>\", \"limits\": \"<what it does not show>\"}, with each placeholder registered.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-03", "category": "problem", "severity": "P1",
+   "where": "slot recent_commits 'git log from this step's starting HEAD: the last two commits ShipLoop did not write itself'; Step 'Recent commits (the last two not written by ShipLoop itself; what earlier steps learned):'",
+   "evidence": "N2 (plan section 3) has ShipLoop write each step commit ('feat(<item>/<step>): <headline>' with Key learnings and Key decisions from the result) and quote 'the last two non-bookkeeping commit messages'. Read as written, this source drops exactly the step commits that carry learned and decisions. With an empty Improve diff, S2 would see no S1 commit at all. prep_values.recent_commits excludes only its BOOKKEEPING regex (knowledge records, leftover files), so the example and the definition disagree. 'Written by ShipLoop' cannot be an author test either: every Battleship commit has author 'ShipLoop E2E' (git -C <worktree> log --format=%an). Plan 8.4 repeats the wording. For S1 the two rows are planning-stage commits, not 'what earlier steps learned'.",
+   "fix": "Source: 'git log from this step's starting HEAD: the last two commits that are not ShipLoop bookkeeping (subjects docs(shiploop): record ... knowledge ... and chore(shiploop): commit files written ...); step commits and review commits count; subject and its Key learnings line, row commit (N2)'. Label: 'Recent commits (the last two that are not ShipLoop bookkeeping; what earlier stages and steps learned):'. Make the same change in step-plan and in 8.4.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-04", "category": "problem", "severity": "P0",
+   "where": "slot 'revisit_block | block | this step's previous implement result (locator, headline, summary) and the send-back evidence that touched it (D3) | 1000 | refuse'",
+   "evidence": "No producer bounds a summary: navigator._canonical_result takes summary = _text(...) with no length limit; only today's revisit view cuts it (REVISIT_SUMMARY = 600). This run's S1 revisit had a previous S1 summary of 476 characters (SP/16-implement.result.md) and a test revise summary of 962 (SP/24-test.result.md); chess has an implement revise summary of 602. Today's revisit lines for that packet total 1,509 characters (SP/30-implement.packet.md, 'Revisit:' through 'Keep unchanged rows'). tmpl._cut raises TemplateError for a refuse slot over its bound, so this run's S1 revisit packet would not render and the run would stop at the send-back. 8.4's condition 'bounded where they are produced' is unmet, and D3 is not in requires. Not verified: what D3 will put in the block (no D3 code exists).",
+   "fix": "'revisit_block | block | D3: this step's previous result locator and headline, its step commit (N2), the send-back result's locator and its summary cut at 600 (REVISIT_SUMMARY), and the upstream-change line | 1000 | excerpt | -' (locator: the send-back result). Add 'D3 per-step revisit' to requires. Route test: render the Battleship S1 revisit (send-back 24-test).",
+   "confidence": "medium"
+  },
+  {
+   "id": "IM2-05", "category": "confusing", "severity": "P2",
+   "where": "Method 3 'A lint finding that must stay goes in `lint_waivers` ({\"id\", \"reason\"} each)' vs result-rules 'ShipLoop refuses a key the form does not show'",
+   "evidence": "The parsed form keys are outcome, headline, summary, criterion_evidence, not_covered, learned, decisions, learned_from and evidence_refs. lint_waivers is not among them, although navigator._RESULT_KEYS accepts it on done. Two printed rules contradict each other. A model that follows result-rules drops its waiver and is refused by the lint gate.",
+   "fix": "Replace the line under the form with: '`not_covered` and `learned_from` may be []; `learned` and `decisions` take [\"none\"]; add `lint_waivers` only on done, as Method 3 says.'",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-06", "category": "problem", "severity": "P2",
+   "where": "loop-invoke loop_started branch 'The loop has started: never start it again.'; loop-result 'run the command the refusal names'",
+   "evidence": "_step_proof_gate also runs at --check-only (the complete path passes check_only through and skips only check_terminal). Its refusal says 'Start the Until Loop again with: <start>  (it replaces the receipt)'. Live, the model ran check-only inside the active loop in 7 of 8 implement steps (grep -c check-only SP/*-implement.actions.md; in SP/16-implement.actions.md the check-only CALL precedes the loop's done). In the scratch run, a start over an active receipt exited 2: 'receipt already exists and is not a finished Until Loop receipt ... Nothing was started'. check_loop_packet's contract-mismatch and cancelled refusals also say to start again, which the loop_started branch, printed on every `next` after the start, forbids. Each conflict self-corrects through the runtime's error packet, at the cost of a wasted call.",
+   "fix": "Engine: under check_only, _step_proof_gate says '... fix the work in the loop's next iteration until the Proof passes (never the Proof or what it expects) ...', with no start command. Partial, loop_started branch: 'The loop has started: never start it while its receipt is active. While active, run its next_argv once and follow the packet it prints; when it is complete or stopped, submit this stage's result. If a refusal names the start command, run it: it replaces a finished receipt.'",
+   "confidence": "medium"
+  },
+  {
+   "id": "IM2-07", "category": "insufficient", "severity": "P2",
+   "where": "Step 'Later steps (ShipLoop issues each after this one; keep their work out of this change): S2 Satisfy C3; S3 Satisfy C4; S4 Satisfy C5'",
+   "evidence": "step-plan.template.md Method 4 tells tasks to cite IDs ('`task` (cites IDs, not their text)'), so every task opens 'Satisfy C<n>.' (SP/11-step-plan.result.md, all 4 steps). The texts of C3-C5 are not in this print. The one-step rule's own check, exit 1 'no later step's work is in the change', cannot be judged from these rows. Each step declares paths (S2: SLBattleController.cls and its meta), and the template prints neither this step's paths nor the later steps'.",
+   "fix": "row later: `{id} ({paths})` cut at 120, falling back to the task cut at 120 when a step has no paths. After Task add 'Paths (step plan): {{step_paths}}' (block, 300, excerpt, source result:step-plan.steps[current].paths, 'the item's paths' when absent). Record in N2 that later steps print by ID and paths, not as a count.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-08", "category": "insufficient", "severity": "P2",
+   "where": "Anchors 'R-5 ... [excerpt; whole: HOME/spec.md (R-n sections)]'; 'AD-1 Stateless game JSON: The fleet and the fired cells live in the JSON string the caller [excerpt; whole: HOME/architecture.md ## Decisions]'",
+   "evidence": "C2 serves R-1, 3, 4, 5, 6, 7, 11 and 12. The print quotes R-1, R-3, R-4 and R-5, drops R-6, R-7, R-11 and R-12, and names none of the dropped IDs. Decisions quotes only AD-1, cut mid-sentence, of the AD-1 to AD-7 the Work names. render-report: step_requirements excerpt 857 of 1,521 characters, item_decisions 142 of 654, anchors pool -330. tmpl._cut's tail is only '[excerpt; whole: <locator>]'.",
+   "fix": "For row-shaped includes, cut at a row boundary and name what was left out: '[excerpt: R-6, R-7, R-11, R-12 not quoted; whole: KNOWLEDGE/spec.md]'. Spend the budget the argument pointer frees on the anchors: measured at T-D2, R-n, AD-n and the concerns print whole (budget).",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-09", "category": "insufficient", "severity": "P2",
+   "where": "front matter 'requires: criterion-evidence gate · N2 step commits · N5 outcome names · T-D2 producer bounds · A1 concern rows · A2 card selection'",
+   "evidence": "The print depends on engine changes requires does not list. (1) The Work's 'Do Method items 1-5': shiploop_loops.WORK_STEP says 'Do duty items {items}', and _duty_items counts numbered lines of prompts.duty(stage); the example gets the wording only from prep_values' .replace. (2) The placeholder registry: _placeholders checks only follows, test_cases, not_covered and lessons, and _canonical_result checks only HEADLINE_PLACEHOLDER and _summary_placeholders(). Verified: the unfilled v2 headline passes. (3) N3 write-back: Method 4's acceptance line, next AD-n and Commands line, and 'ShipLoop commits these with the step'. Today the home is a separate bookkeeping commit (knowledge.check docstring; 'docs(shiploop): record ... knowledge' commits), and N3's field (whether a learning changes a stored document) is not in the form. (4) D3 (IM2-04) and decision 19 (IM2-01).",
+   "fix": "requires += 'loops: Work cites the template's Method items (_duty_items reads the template)' · 'placeholder registry reads the template's form placeholders' · 'N3 write-back route and field' · 'D3 per-step revisit' · 'decision 19 KNOWLEDGE symbol'.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-10", "category": "confusing", "severity": "P2",
+   "where": "Method 4 'Changing an existing R-<n> or AD-<n> is a send-back.'; outcome-send-back 'a record step-plan wrote is wrong ...; step-plan reruns'",
+   "evidence": "stage_spec.REVISE_TO = 'step-plan' is implement's only target. R-<n> and AD-<n> are written by earlier stages (spec, plan), and N3 says spec.md changes only 'through this route or a send-back to spec'. The route Method 4 names sends the problem to a stage that cannot change it, and it costs one of MAX_REVISES = 2.",
+   "fix": "'An existing R-<n> or AD-<n> that is wrong is not this step's to change: report blocked with a decision naming it and the evidence.' Keep this until N5 gives implement a send-back to spec.",
+   "confidence": "medium"
+  },
+  {
+   "id": "IM2-11", "category": "confusing", "severity": "P3",
+   "where": "outcome-done 'ShipLoop runs the Gates, then commits the step and issues step S2.' (done_next)",
+   "evidence": "stage_spec.IMPROVE_RULES 'step': the action after an accepted inline step is that step's review (SP/17-improve-implement follows SP/16-implement), so 'issues step S2' is wrong. The owner rule improve-packet-minimal forbids naming the review.",
+   "fix": "done_next = 'commits the step and moves on (`next` shows what follows)'.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-12", "category": "insufficient", "severity": "P3",
+   "where": "gates rows n2-fields '\"learned\"', criterion-evidence '\"criterion_evidence\"', scope 'outside the item's declared paths'; result rows 'common-headline', 'common-summary'",
+   "evidence": "Two anchors are key names that state no rule. N2's 'learned_from ... which complete checks are reachable from HEAD' is printed nowhere (0 matches for 'reachable'). item_scope.scope_refusal applies only to an item whose test stage is left out (no_test_item); a code item's undeclared file is not refused at implement. The gate ids common-headline and common-summary are not defined in any gates table, so the renderer's anchor check skips them. form_placeholders registers '<n>' and '<...>' from prose (render-report placeholders).",
+   "fix": "Method 4: '... and `learned_from` for each earlier commit that helped (each must be reachable from HEAD)'; n2-fields anchor 'must be reachable from HEAD'. Scope bullet: 'scope, for an item whose step plan declares only non-code paths: a changed code, test or undeclared file'. Define common-* in a partial's gates or drop them. Exclude prose placeholders from the registry list.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-13", "category": "insufficient", "severity": "P3",
+   "where": "slot step_check '(producer bound: step-plan gate, T-D2; a longer probe is a script the check runs)'; Method 3 'never the Proof or what it expects'",
+   "evidence": "T-D2's 600-character Proof bound would have refused 3 of 4 Battleship Proofs (S1 973, S3 704, S4 1,036; SP/11-step-plan.result.md), and S1's task (1,130 > 700). The step plan writes no files, so the script lands in a step's change (CF16: 'a committed test-support path inside the item's paths'). Method 3 protects the Proof line, not the script it runs.",
+   "fix": "Method 3: 'never the Proof, a script it runs, or what they expect'. T-D2 must name who writes that script and when, for example an earlier step or a prepare-stage file reviewed before the step that it proves.",
+   "confidence": "medium"
+  },
+  {
+   "id": "IM2-14", "category": "unnecessary", "severity": "P3",
+   "where": "'Outcomes:\\n{{> outcome-done}}\\n{{> outcome-blocked}}\\n{{> outcome-send-back}}'",
+   "evidence": "Plan 8.4 and the result-rules comment say '{{outcomes}} is the stage's outcomes (stage_spec, N5 names)'. The template hard-codes three includes, which is root cause 1 of 8.3 again.",
+   "fix": "'Outcomes:\\n{{outcomes}}', with one outcome partial per name in stage_spec.stage('implement').outcomes.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-15", "category": "confusing", "severity": "P3",
+   "where": "contract context.authority (printed by the runtime): 'Commit nothing: ShipLoop commits the item when verify is accepted.' vs Files 'when it accepts done, ShipLoop commits this step's changes'",
+   "evidence": "The run's contract file has that authority line. until_loop_ephemeral._metadata puts context.authority in every packet: the scratch start packet's context.authority begins 'Edit only in scope...'. The instruction calls the authority immutable. The two texts agree on 'commit nothing' and disagree on when ShipLoop commits.",
+   "fix": "With N2, the contract builder writes 'Commit nothing: ShipLoop commits this step when its done is accepted.' List it under N2 in requires.",
+   "confidence": "high"
+  },
+  {
+   "id": "IM2-16", "category": "confusing", "severity": "P3",
+   "where": "frame 'Packet file: ... (this print plus a file-only appendix of locators)'; appendix comment 'never an instruction the stage needs'",
+   "evidence": "implement's appendix also holds the full Code craft rubric (the filled file, after 'If this stage changes KNOWLEDGE/'), which the printed titles cite by number. Those are instructions, not locators.",
+   "fix": "frame: '(this print plus a file-only appendix: locators and, where the print cites them, full rules)'. The partials reviewer owns this.",
+   "confidence": "medium"
+  },
+  {
+   "id": "IM2-17", "category": "insufficient", "severity": "P3",
+   "where": "Method 3 'run the Proof and `{{lint_command}}`'; Gates 'lint: once after it auto-fixes files ...'",
+   "evidence": "navigator._lint_gate runs only when the lint mode is fix or report, and auto-fixes only in fix. Today lint.command_lines prints no lint command when lint is off, and the lint CLI prints 'ShipLoop lint: off ...; nothing ran'. The template has no lint flag and does not print the mode, so the auto-fix bullet reads as always possible. Harmless, but the head-order test's P1 token 'Lint each implementation step (report-only): ' goes with it.",
+   "fix": "flag lint_on (state.lint in fix|report) around Method 3's lint clause and the Gates bullet. Print 'lint mode {{lint_mode}}' in the bullet: 'lint (mode fix: ShipLoop may auto-fix once and refuse; rerun every check, then submit done again): ...'.",
+   "confidence": "high"
+  }
+ ],
+ "budget": {
+  "measured": {
+   "filled_as_rendered": "20,471 printed with the pre-T-D2 values (task 1,130, Proof 973). That is over Grok's 20,000 cut, and grok_view would drop characters 10,000-10,471: the narrative's end, '== Method, in order ==', Method 1 and half of 2.",
+   "at_T-D2": "19,668 (tmpl.py render with the task cut to 700 and the Proof to 600): 168 over the 19,500 budget, 332 under the cut. The elastic anchors pool is spent: R-n excerpt, 1 of 7 AD-n, concerns, Structure and Commands as pointers.",
+   "static_worst": "25,104 for a code step with a revisit (render-report validate_reference_install). Fixed text is 9,531; the printed slot bounds outside the pool sum to 13,763, the largest being loop_argument 3,000, step_criteria 1,200, progress 1,100, revisit_block 1,000, recent_commits 900 and accepted_steps/later_steps 600 each; the pool minimum is 1,000.",
+   "argument_block": "2,269 in this print: Work 622, Exit 28+197+103+97+139, Repeat 676, Contract 163, Receipt 162, markers 72."
+  },
+  "runtime_prints_argument": "Verified twice. Code: until_loop_ephemeral._metadata puts work, conditions.exit and conditions.repeat (plus context.authority/scope/resources) in every active and terminal packet, and _active_packet's instruction repeats them as 'Execution condition (Work): ...', 'Exit condition: ...', 'Continuation condition: ...'. Run: in a scratch copy of the S1 contract, `start --receipt` printed a 14,184-byte packet with work equal to the contract and conditions.exit equal to its exit_condition. `next --state` (14,311 bytes) and the receipt file carry the same text. So once the loop starts, the model reads Work, Exit and Repeat in every runtime packet, and the live steps started the loop with their first call (SP/16-implement.actions.md line 1; 8 of 8 in round 1).",
+  "owner_rule": "shiploop_loops.py, above BLOCK_HEADING: 'owner, 2026-10-16: say \"RUN\" with the explicit argument and command, not in generalities ... the argument sits between two marker lines ... so it is shown, not passed'. A pointer keeps the literal command and the RUN line but no longer shows the argument in the ShipLoop packet. That narrows an owner rule, so it needs the owner's go.",
+  "options": [
+   {"name": "keep (today's v2)", "printed_at_T-D2": 19668, "static_worst": 25104, "note": "Over budget, and the step's anchors are squeezed to pointers. Each exit condition is worded twice in one print (Method 2-4 and Exit)."},
+   {"name": "E: keep the Exit lines from the contract, replace Work, Repeat, Contract and Receipt with one pointer line", "printed_at_T-D2": 19145, "static_worst_with_pool_and_revisit_cuts": 20544, "note": "Measured. R-n then print whole. The done definition stays in the packet, rendered from the contract, so it cannot drift."},
+   {"name": "P: one-line pointer for the whole argument ('Argument: the Contract file named in the start command (Work, Exit and Repeat); the runtime prints all three in every packet it returns, and you work and judge by them there.')", "printed_at_T-D2": 18887, "static_worst_with_pool_and_revisit_cuts": 19894, "note": "Measured. R-n, AD-n, concerns and cards print whole, and Structure as an excerpt. The pool reabsorbs the saving, so the 2K buys the step's inputs by value instead of a copy the runtime prints anyway. The packet's Method and Step still state every exit's how-to (Proof, lint, not_covered, skills)."}
+  ],
+  "cuts_regardless": [
+   "1. Method 2's 'meet its criteria, break none of the item's other requirements, write no tests' and Step's 'keep their work out of this change' restate Exit 1 and the Work: keep the contract's wording only (~250).",
+   "2. With the argument kept, drop its Contract: and Receipt: lines. The start command holds both paths and the form holds the Receipt; loop-invoke's 'the Receipt below' becomes 'the --receipt file' (~325).",
+   "3. Gates' assumptions bullet repeats RULES: delete it and anchor the gate on RULES' 'otherwise in `summary`' (~90).",
+   "4. Merge the '`not_covered` and `learned_from` may be [] ...' line with Method 4's '(one line each, or [\"none\"])' (~100).",
+   "5. Static only: put accepted_steps, later_steps and step_cases (excerpt slots with locators) in an elastic pool, and keep recent_commits refuse-class at 600 (two rows of 300), so N2's look-back is never the slot that is cut. Bound revisit_block's parts (IM2-04). Measured with the pointer, pooling and revisit at 700: 19,894; with cuts 1-4 about 19.2K (estimated).",
+   "Not cut: recent_commits (N2), the Code craft titles (decision 18), progress (status hook), the outcome lines."
+  ],
+  "recommendation": "Take option P with the owner's go, plus cuts 1, 3, 4 and 5. It is the only measured variant under 19,500 both as printed (18,887) and in the static worst case (about 19.2K after the dedupe), and it removes the last packet copy of contract text, so the drift root cause of 8.3 cannot recur. Safeguards: 'Done when' becomes 'every exit condition of this step's Until Loop holds; the runtime prints them in its first packet, so start it before any work'; one route test asserts that the start packet's conditions.exit equals stage_spec's done_when for the step; the head-order test's P0 tokens move from the argument markers to the pointer line. If the owner keeps the 2026-10-16 rule, take option E with cuts 1-5. It measures 19,145 printed, and its static worst case stays about 0.3K over 19,500, in the code-step plus revisit combination only, which is under the 20,000 cut. In that case, set the static check to 20,000 for revisit packets or bound progress at 900 (T-D2's figure)."
+ },
+ "symbol_notes": [
+  "The 4 printed 'HOME/' locators are now undefined, because the Symbols line defines KNOWLEDGE (IM2-01).",
+  "result-rules 'under a Symbol' invites KNOWLEDGE/ in evidence_refs, which today's gate refuses (IM2-01).",
+  "Method 1 'a one-line probe in RUN/scratch' and Method 3 'RUN/notes/<action>.md' are prose paths, consistent with decision 19. Live, the model wrote the absolute path (SP/16-implement.actions.md CALL write .../run/notes/...).",
+  "render-report registers '<n>' (from 'R-<n>') and '<...>' as form placeholders: prose, not fill-ins (IM2-12)."
+ ],
+ "verdict": {
+  "sufficient": "partly",
+  "necessary": "yes, mostly",
+  "open_p0": 1,
+  "open_p1": 3,
+  "summary": "Version 2 fixes most of round 1. The loop argument is the contract's text (Exit byte-identical; Work and Repeat differ only by the two declared engine substitutions). The outcomes are N5's, with 0 'revise' in the print. The refusal routes match runtime 0.10.0 (a second start is refused, verified). The Proof label carries /bin/sh, 600 s and the 0-tests rule. The not_covered shape, the lint auto-fix and the send-back budget at 0 are stated. The Improve mentions are gone. The one-step intent is mostly met: one Step block, one Proof, the item's other R-n named as must-stay-unbroken. The N2 look-back now quotes two commits by value, and accepted steps carry their commits. What remains: (1) a refuse-class revisit block whose sources nothing bounds; this run's own S1 revisit would not render (P0, medium confidence). (2) The look-back's definition, 'not written by ShipLoop', excludes the step commits N2 makes ShipLoop write, which are the carrier of each step's learnings (P1). (3) The criterion_evidence row matches neither the fix plan it requires nor the branch (P1). (4) The KNOWLEDGE symbol the frame defines is refused as an evidence root, and four HOME/ locators still print (P1). Lesser gaps: requires misses the Method-items Work line, the placeholder registry, N3 and D3; later steps print as 'Satisfy C3', which tells the model nothing about scope; anchors drop R-n and AD-n without naming them; lint_waivers is invited by Method 3 and excluded by result-rules. On budget, the runtime does print Work, Exit and Repeat in every packet, so the argument pointer is safe. It is the only measured variant that meets 19,500 printed and static, and the freed space returns as anchors by value. It needs the owner's go against the 2026-10-16 rule.",
+  "top_changes": [
+   "Bound revisit_block's parts where they are made (previous summary as a locator plus headline, the send-back summary cut at 600, the step's own commit), with an excerpt policy and D3 in requires. Route-test this run's S1 revisit.",
+   "Fix the N2 look-back to 'the last two commits that are not ShipLoop bookkeeping; step and review commits count', in this template, step-plan and 8.4. Print later steps by ID and paths and this step's own paths, so exit 1 can be judged.",
+   "Complete requires and render the variable shapes from the gates: decision 19's KNOWLEDGE root, the criterion_evidence row from the gate's field table (fix plan 3.3's 7 fields; considerations decided), the placeholder registry, the Method-items Work line, N3 and D3. Then take the argument pointer (option P) with the owner's go, or option E without it."
+  ]
+ }
+}

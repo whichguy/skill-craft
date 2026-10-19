@@ -46,7 +46,7 @@ def parse(path: Path):
     while i < len(head):
         line = head[i]
         m = re.match(r"^([a-z_]+):\s*(.*)$", line)
-        if m and m.group(1) in ("flags", "slots", "rows", "result", "pools"):
+        if m and m.group(1) in ("flags", "slots", "rows", "result", "pools", "gates"):
             rows, i = _table(head, i + 1)
             tables[m.group(1)] = rows
             continue
@@ -61,7 +61,41 @@ def parse(path: Path):
     meta["elastic"] = {r[0] for r in tables.get("pools", []) if r[1].startswith("rest")}
     flags = {r[0]: r[1] for r in tables.get("flags", [])}
     rows = {r[0]: r[1].strip("`") for r in tables.get("rows", [])}
+    meta["gates"] = [{"gate": r[0], "refusal": r[1], "anchor": r[2]} for r in tables.get("gates", [])]
+    meta["requires"] = [x.strip() for x in meta.get("requires", "").split(" · ") if x.strip()]
     return meta, slots, flags, rows, tables.get("result", []), body
+
+
+# A form placeholder: <...> with at most one nested <...> (for example "<R-<n> or AD-<n> this item follows>").
+PLACEHOLDER = re.compile(r"<[^<>\n]*(?:<[^<>\n]*>[^<>\n]*)*>")
+RESULT_HEAD = "== Result form"
+
+
+def form_placeholders(printed: str) -> list[str]:
+    """Every <...> string the Result form section and its outcome shapes print: the exact strings the gate's placeholder
+    registry must refuse (template review SP-5, F17: never a <...> regex, because real results hold XML)."""
+    section = printed.split(RESULT_HEAD, 1)[1] if RESULT_HEAD in printed else ""
+    section = section.split("=== appendix (file only) ===")[0]
+    return sorted(set(PLACEHOLDER.findall(section)))
+
+
+# N5 names for today's stage_spec outcomes; repeat is dropped.
+N5 = {"done": "done", "blocked": "blocked", "revise": "send-back", "replan": "add-work"}
+
+
+def outcome_check(name: str, full: str) -> list[str]:
+    """The outcome partials a template includes must be exactly the stage's outcomes in stage_spec, under N5 names."""
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "skills/shiploop/scripts"))
+    try:
+        import shiploop_stage_spec as spec
+    except ImportError:
+        return ["stage_spec not importable; outcome check skipped"]
+    if name not in spec.STAGES:
+        return []
+    want = {N5[o] for o in spec.stage(name).outcomes if o in N5}
+    have = set(re.findall(r"\{\{> outcome-([a-z-]+)\}\}", full))
+    return [] if want == have else [f"outcome partials {sorted(have)} differ from stage_spec {sorted(want)} (N5 names)"]
 
 
 # Install lengths a bound may name: the run directory, the skill package root and the CLI path (test/shiploop_head_budget.py
@@ -108,9 +142,9 @@ def apply_flags(text: str, flags: dict) -> str:
 
 def validate(path: Path, partials: Path, install: dict = REFERENCE_INSTALL) -> dict:
     meta, slots, flags, rows, result, body = parse(path)
+    problems = outcome_check(path.name.split(".")[0], body)
     full = expand(body, partials)
     used_flags = {m.group(2) for m in IF.finditer(full)}
-    problems = []
     for f in used_flags - set(flags):
         problems.append(f"undeclared flag {f}")
     for f in set(flags) - used_flags:
@@ -127,6 +161,8 @@ def validate(path: Path, partials: Path, install: dict = REFERENCE_INSTALL) -> d
             problems.append(f"slot {name}: unknown over policy {spec['over']}")
         if spec["pool"] and (spec["pool"] not in meta["pools"] or spec["over"] == "refuse"):
             problems.append(f"slot {name}: pool {spec['pool']} undeclared, or a refuse slot in a pool")
+        if spec["kind"] == "include" and spec["over"] == "refuse" and "producer bound" not in spec["source"]:
+            problems.append(f"slot {name}: a refuse-class include must name the producer gate that bounds it")
         if spec["kind"] == "block" and "row " in spec["source"]:
             row = spec["source"].split("row ")[1].split()[0].rstrip(",;")
             if row not in rows:
@@ -140,16 +176,19 @@ def validate(path: Path, partials: Path, install: dict = REFERENCE_INSTALL) -> d
         printed = printed.split("=== appendix (file only) ===")[0]
         fixed = len(SLOT.sub("", printed))
         names = [s for s in SLOT.findall(printed) if s in slots]
-        bound = sum(bound_of(slots[s], install) for s in names if not slots[s]["pool"])
-        bound += sum(meta["pools"][p] for p in {slots[s]["pool"] for s in names if slots[s]["pool"]})
-        bound += POINTER_ALLOWANCE * len([s for s in names if slots[s]["pool"]])
+        # Plan 8.5: a refuse-class slot prints whole at most its bound; any other slot can always shrink to a one-line
+        # pointer, which the renderer does (last in body order first) before a print would pass its budget.
+        bound = sum(bound_of(slots[s], install) for s in names if slots[s]["over"] == "refuse")
+        bound += sum(min(bound_of(slots[s], install), POINTER_ALLOWANCE) for s in names if slots[s]["over"] != "refuse")
         total = fixed + bound + len(HEAD_END) + 1
         combos.append({"flags": fl, "fixed": fixed, "slot_bounds": bound, "max_printed": total})
         worst = max(worst, total)
     budget = int(meta.get("print_budget", "0") or 0)
     if worst > budget:
         problems.append(f"static budget: max printed {worst} > print_budget {budget}")
-    return {"template": path.name, "slots": len(slots), "flags": list(flags), "problems": problems,
+    printed_all = strip_comments(apply_flags(full, {f: True for f in flags}))
+    return {"template": path.name, "slots": len(slots), "flags": list(flags), "requires": meta["requires"],
+            "problems": problems, "placeholders": form_placeholders(printed_all), "gates": len(meta["gates"]),
             "combos": combos, "max_printed": worst, "print_budget": budget}
 
 
@@ -177,6 +216,8 @@ def _cut(text: str, bound: int, over: str, locator: str) -> tuple[str, str]:
 def render(path: Path, partials: Path, values: dict) -> tuple[str, dict]:
     install = values.get("install", REFERENCE_INSTALL)
     meta, slots, flags, rows, result, body = parse(path)
+    for name, bound in values.get("bound_overrides", {}).items():
+        slots[name] = {**slots[name], "bound": str(bound)}
     full = strip_comments(apply_flags(expand(body, partials), values["flags"]))
     report = {}
     left = dict(meta["pools"])
@@ -190,12 +231,32 @@ def render(path: Path, partials: Path, values: dict) -> tuple[str, dict]:
         for p in meta["elastic"]:
             left[p] = max(meta["pools"][p], rest)
     text, report = _render_text(full, slots, rows, values, install, left, report)
+    budget = int(meta.get("print_budget", "0") or 0)
+    order = [n for n in dict.fromkeys(SLOT.findall(full.split("=== appendix (file only) ===")[0]))
+             if slots[n]["over"] != "refuse" and not slots[n]["pool"]]
+    shrunk = []
+    while budget and not values.get("allow_over_budget") and order and \
+            len(text.split("=== appendix (file only) ===")[0]) + len(HEAD_END) + 1 > budget:
+        name = order.pop()
+        slots[name] = {**slots[name], "bound": str(POINTER_ALLOWANCE)}
+        shrunk.append(name)
+        report = {}
+        text, report = _render_text(full, slots, rows, values, install, dict(left), report)
     if "{{" in text:
         raise TemplateError("unrendered marker left: " + text[text.index("{{"):][:60])
     printed, _, appendix = text.partition("=== appendix (file only) ===")
     printed = re.sub(r"\n{3,}", "\n\n", printed).rstrip("\n") + "\n" + HEAD_END + "\n"
     whole = printed + "=== appendix (file only) ===" + appendix
-    return whole, {"printed_chars": len(printed), "file_chars": len(whole), "pools": left, "slots": report}
+    budget = int(meta.get("print_budget", "0") or 0)
+    over = len(printed) - budget if budget and len(printed) > budget else 0
+    if over and not values.get("allow_over_budget"):
+        raise TemplateError(f"printed {len(printed)} characters, {over} over print_budget {budget}")
+    missing = [g["gate"] for g in meta["gates"] if g["anchor"] not in printed]
+    if missing:
+        raise TemplateError("gate anchors missing from the print: " + ", ".join(missing))
+    return whole, {"printed_chars": len(printed), "file_chars": len(whole), "pools": left, "slots": report,
+                   "bound_overrides": values.get("bound_overrides", {}), "gates_anchored": len(meta["gates"]),
+                   "placeholders": form_placeholders(printed), "over_budget": over, "shrunk_to_pointer": shrunk}
 
 
 def _render_text(full, slots, rows, values, install, left, report):

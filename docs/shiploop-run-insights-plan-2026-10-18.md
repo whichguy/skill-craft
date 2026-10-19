@@ -388,6 +388,131 @@ The hooks keep working: the callback is still the third line, and the keepalive 
    - The Gates lines announce the Improve review (against the owner's rule).
    - The rules partial's "record it as an assumption" invites a field implement refuses.
 
+### 8.4 Template revision 2 (owner: "plan and improve", 2026-10-18)
+
+This revision applies section 8.3 to the drafts (`docs/experiments/run-insights-2026-10-18/templates/`, version 2) and to
+the prototype renderer (`packets-tools/tmpl.py`, `prep_values.py`). It re-renders the Battleship examples, then reruns
+the three reviewers until no P0 or P1 finding remains (at most three rounds).
+
+**What the code owns becomes a slot.**
+- `{{loop_argument}}` is rendered from the loop contract (Work, Exit, Repeat, Contract and Receipt), exactly as
+  `loops.invoke_lines` prints it. The examples render it from the run's own contract files.
+- A better exit wording is a proposed stage_spec change (listed below), never template text.
+- `{{outcomes}}` is the stage's outcomes (stage_spec, N5 names), each rendered from `partials/outcome-<name>.md`.
+
+**New front matter.**
+- `requires:` lists the features a template prints that are not on main yet. The engine's loader refuses a template
+  until each one is registered: A1 concern map, T-D2 producer bounds, N2 step commits and fields, N5 outcomes, the
+  criterion-evidence gate, and the card `## Testing` section. There are no feature flags and no dual path.
+- `gates:` maps each refusal the stage's gates can raise to the anchor text that states it. The renderer refuses a print
+  that lacks an anchor; in the engine this becomes the route test of section 8.3.
+- Every `<...>` placeholder in the result form is listed by the validator. The gate's exact-match registry reads that
+  list, so a form placeholder is always refused.
+
+**Slots that direct the work are never pooled.**
+- Open assumptions and the revisit block become refuse-class slots, bounded where they are produced.
+- The revisit flag reads `revisions`, and the revisit block names the previous result and asks for the whole amended
+  plan.
+- A refuse-class include names the producer gate that bounds it.
+
+**Partials.**
+- frame:
+  - KNOWLEDGE symbol (decision 19), with the paths before the Symbols line printed absolute;
+  - the pause command printed in the head;
+  - no wholeness claim; "--check-only names any rule this packet leaves out".
+- loop-invoke and loop-result: Until Loop 0.10.0 behaviour (a second start over a live receipt is refused) and the
+  refusal routes (run the command the refusal names).
+- result-rules: split into fill rules plus `outcome-done`, `outcome-blocked` (both `awaiting` kinds), `outcome-send-back`
+  and `outcome-add-work`.
+- rules: no "record it as an assumption", and blocked worded as N5 words it.
+- code-craft-titles: restores the dropped clauses and points at the full rubric in the packet file's appendix.
+- appendix: no duplicate recovery command and no context-index; the WORKTREE line only on a worktree run.
+
+**step-plan.**
+- States the gate rules it missed: every criterion named by a test command, `test_commands_na` only without criteria,
+  deps earlier, unique paths, check rows without ids, expectation steps that exist.
+- Method gives formats only, not a second copy of the exit conditions.
+- Wording fixes: red_na belongs to the test stage; a glob's `*` crosses `/`; no Improve mention.
+- `{{recent_commits}}` (N2): the last two commit messages ShipLoop did not write itself, read from the item's starting
+  HEAD.
+
+**implement.**
+- `{{recent_commits}}` and accepted steps with their short commit (N2).
+- `learned`, `decisions` and optional `learned_from` in the form (N2), and "ShipLoop commits this step; commit nothing
+  yourself".
+- Anchors labelled as excerpts, the item's other R-n IDs listed, case rows from test-spec fields (no `## Procedures`
+  locator).
+- Gates state the lint auto-fix refusal, the Proof's 0-tests and timeout rules, scope, lint_waivers and not_covered
+  shapes, and the send-back budget at 0. The Improve-import bullet goes.
+
+**Proposed stage_spec done_when changes (they reach the packet through the contract).**
+- step-plan gains A1's concern-mapping condition when A1 lands (fix catalogue A1).
+- implement's fourth condition names the evidence form once its gate lands.
+
+### 8.5 Rounds 2 and 3 (2026-10-18)
+
+**Round 2.** The same three reviewers re-checked version 2 (evidence: `template-review/*-r2.json`).
+- Round-1 findings: step-plan 10 of 28 fixed and 6 partly; implement 11 of 25 fixed and 9 partly; partials 17 of 30 fixed
+  and 7 partly.
+- New findings: three P0s, each the same kind of route problem:
+  - a revisit block refused over its limit, which nothing upstream bounds (step-plan and implement);
+  - loop-result offering send-back where step-plan refuses it (partials).
+- Also flagged:
+  - `requires` gaps (decision-19 rename, placeholder registry, Method-item count, N5 awaiting kinds, A0, N3, D3);
+  - a commit look-back wording that would skip step commits;
+  - `HOME/` still printed in generated locators;
+  - three different routes for absent access.
+
+**Round 3 (version 2, this commit).**
+- The revisit blocks become excerpt-class (the send-back summary cut at 600, with its locator, as `REVISIT_SUMMARY` does
+  today).
+- The loop stop outcomes become a stage_spec slot (`stop_outcomes`).
+- The look-back is "not ShipLoop bookkeeping", so step and review commits count.
+- The generated locators say KNOWLEDGE/.
+- The fill rules state what the gates actually refuse.
+- `awaiting` gains a service kind.
+- implement:
+  - adopts A0's eight considerations, one line each in the head with the full text in the file appendix (as decision 18
+    does for Code craft);
+  - adopts fix plan 3.3's seven-field `criterion_evidence`;
+  - prints later steps with their criteria and the full anchor ID list.
+- `requires` lists every dependency, with a lands-with note.
+- The renderer refuses an over-budget print.
+
+**Engine changes the templates assume.** These are text the code owns; they go through stage_spec or loops, never through
+a template.
+- **E1:** loops Work cites "Method items", and `_duty_items` counts the template's Method.
+- **E2:** the N5 rename in the loops Repeat texts (revise becomes send-back).
+- **E3:** `REPEAT_STEP` routes a person's or a service's action (access, authority, a decision) to blocked, and an
+  unachievable step to send-back.
+- **E4:** `check_loop_packet` tests the receipt status before the contract comparison. Today an active receipt from
+  another contract yields a refusal that names a start command the runtime refuses.
+- One conflict noted for A0: its guidance's "never edit spec.md here" yields to N3's write-back at implement (owner
+  direction 3).
+
+**Budget rule (static validator).**
+- A refuse-class slot counts at its bound.
+- Every other slot counts as one pointer line. The renderer shrinks those to pointers, last in body order first, before
+  a print would pass its budget.
+- The progress block's bound drops to 900.
+
+| | step-plan | implement |
+|---|---|---|
+| Realistic print at the T-D2 limits, argument printed | 20,324 | 20,953 |
+| Realistic print at the T-D2 limits, argument as a pointer | 18,496 | 18,866 |
+| Static worst case, argument printed | 21,768 | 22,249 |
+| Static worst case, argument as a pointer | 19,198 | 19,479 |
+
+**Decision pending (the owner).** The packet would replace the Until Loop ARGUMENT block with a one-line pointer.
+- The runtime prints Work, Exit and Repeat verbatim in every start, next and done packet (verified by running 0.10.0 on
+  both Battleship contracts).
+- The 2026-10-16 rule ("say RUN with the explicit argument and command") was made when the model had to type the
+  argument into a Skill-tool call. That route is gone (ee3a1175).
+- Guards, if adopted:
+  - a test pins the runtime's echo;
+  - the test stage keeps its own command list;
+  - upstream lean returns (U-up) must keep Work and Repeat.
+
 ## 9. Verification
 
 1. Offline per unit: render diff, head tables, footprint suites, route tests for every changed gate; one quick tier per wave.

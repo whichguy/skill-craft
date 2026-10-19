@@ -1,0 +1,768 @@
+{
+ "printed_chars": 21132,
+ "file_chars": 22492,
+ "pools": {
+  "inputs": -323
+ },
+ "slots": {
+  "stage": {
+   "kind": "scalar",
+   "chars": 9,
+   "source_chars": 9,
+   "bound": 12,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "revision": {
+   "kind": "scalar",
+   "chars": 2,
+   "source_chars": 2,
+   "bound": 6,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "next_command": {
+   "kind": "cmd",
+   "chars": 252,
+   "source_chars": 252,
+   "bound": 252,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "packet_abs": {
+   "kind": "scalar",
+   "chars": 144,
+   "source_chars": 144,
+   "bound": 144,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "callback_command": {
+   "kind": "cmd",
+   "chars": 302,
+   "source_chars": 302,
+   "bound": 302,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "run_dir": {
+   "kind": "scalar",
+   "chars": 96,
+   "source_chars": 96,
+   "bound": 96,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "worktree": {
+   "kind": "scalar",
+   "chars": 101,
+   "source_chars": 101,
+   "bound": 101,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "guides_dir": {
+   "kind": "scalar",
+   "chars": 126,
+   "source_chars": 126,
+   "bound": 129,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "keepalive_marker": {
+   "kind": "scalar",
+   "chars": 161,
+   "source_chars": 161,
+   "bound": 161,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "item_id": {
+   "kind": "scalar",
+   "chars": 2,
+   "source_chars": 2,
+   "bound": 12,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "loop_start_command": {
+   "kind": "cmd",
+   "chars": 499,
+   "source_chars": 499,
+   "bound": 499,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "loop_argument": {
+   "kind": "block",
+   "chars": 2058,
+   "source_chars": 2058,
+   "bound": 2800,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "stop_outcomes": {
+   "kind": "scalar",
+   "chars": 7,
+   "source_chars": 7,
+   "bound": 40,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "progress": {
+   "kind": "block",
+   "chars": 672,
+   "source_chars": 672,
+   "bound": 900,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "item_pos": {
+   "kind": "scalar",
+   "chars": 6,
+   "source_chars": 6,
+   "bound": 12,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "item_title": {
+   "kind": "scalar",
+   "chars": 45,
+   "source_chars": 45,
+   "bound": 240,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "item_context": {
+   "kind": "include",
+   "chars": 3308,
+   "source_chars": 3308,
+   "bound": 3308,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "open_assumptions": {
+   "kind": "block",
+   "chars": 415,
+   "source_chars": 415,
+   "bound": 1200,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "plan_concerns": {
+   "kind": "block",
+   "chars": 1079,
+   "source_chars": 1079,
+   "bound": 1200,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "recent_commits": {
+   "kind": "block",
+   "chars": 479,
+   "source_chars": 479,
+   "bound": 900,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "platform_card": {
+   "kind": "scalar",
+   "chars": 30,
+   "source_chars": 30,
+   "bound": 120,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "platform_testing": {
+   "kind": "include",
+   "chars": 747,
+   "source_chars": 747,
+   "bound": 1000,
+   "pool": "inputs",
+   "rendered": "whole"
+  },
+  "env_commands": {
+   "kind": "include",
+   "chars": 253,
+   "source_chars": 963,
+   "bound": 1500,
+   "pool": "inputs",
+   "rendered": "excerpt"
+  },
+  "spec_toc": {
+   "kind": "include",
+   "chars": 66,
+   "source_chars": 323,
+   "bound": 600,
+   "pool": "inputs",
+   "rendered": "pointer"
+  },
+  "arch_toc": {
+   "kind": "include",
+   "chars": 74,
+   "source_chars": 532,
+   "bound": 700,
+   "pool": "inputs",
+   "rendered": "pointer"
+  },
+  "env_skills": {
+   "kind": "include",
+   "chars": 83,
+   "source_chars": 134,
+   "bound": 300,
+   "pool": "inputs",
+   "rendered": "pointer"
+  },
+  "last_summary": {
+   "kind": "include",
+   "chars": 100,
+   "source_chars": 435,
+   "bound": 600,
+   "pool": "inputs",
+   "rendered": "pointer"
+  },
+  "inbox_abs": {
+   "kind": "scalar",
+   "chars": 142,
+   "source_chars": 142,
+   "bound": 142,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "receipt_abs": {
+   "kind": "scalar",
+   "chars": 153,
+   "source_chars": 153,
+   "bound": 153,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "done_next": {
+   "kind": "scalar",
+   "chars": 23,
+   "source_chars": 23,
+   "bound": 80,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "pause_command": {
+   "kind": "cmd",
+   "chars": 284,
+   "source_chars": 284,
+   "bound": 284,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "action": {
+   "kind": "scalar",
+   "chars": 36,
+   "source_chars": 36,
+   "bound": 40,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "source_results": {
+   "kind": "block",
+   "chars": 187,
+   "source_chars": 187,
+   "bound": 400,
+   "pool": null,
+   "rendered": "whole"
+  },
+  "last_accepted": {
+   "kind": "block",
+   "chars": 51,
+   "source_chars": 51,
+   "bound": 160,
+   "pool": null,
+   "rendered": "whole"
+  }
+ },
+ "bound_overrides": {
+  "item_context": 3308,
+  "plan_concerns": 1200
+ },
+ "gates_anchored": 23,
+ "placeholders": [
+  "<...>",
+  "<R-<n> or AD-<n> this item follows>",
+  "<case ID>",
+  "<command or case ID>",
+  "<command>",
+  "<concern row>",
+  "<condition>",
+  "<fact>",
+  "<file>",
+  "<focused command>",
+  "<lint, type or build command>",
+  "<n>",
+  "<one sentence naming the change and its checks; then harness choices, decisions, defaults, open items and owners>",
+  "<read-only command>",
+  "<regression command>",
+  "<repository-relative file>",
+  "<result>",
+  "<the command that proves C1>",
+  "<the step's outcome, citing C1>",
+  "<under 100 characters: what this plan established>"
+ ],
+ "over_budget": 1632,
+ "shrunk_to_pointer": [],
+ "validate_reference_install": {
+  "template": "step-plan.template.md",
+  "slots": 35,
+  "flags": [
+   "loop_started",
+   "revisit",
+   "inline",
+   "worktree_run"
+  ],
+  "requires": [
+   "A1 concern map (plan.concerns rows; `concerns` in _RESULT_KEYS and its gate)",
+   "T-D2 producer bounds (plan: work item context 2500, concern rows 1200, open assumptions 1200)",
+   "N2 commit look-back (recent_commits)",
+   "N5 outcome names",
+   "C6/G1 platform card `## Testing` section and the environment-to-card mapping",
+   "N5 awaiting kinds answer, present, service",
+   "decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired)",
+   "placeholder registry read from this form (navigator._placeholders)",
+   "loops Work cites the template's Method items (_duty_items counts them)",
+   "engine E3/E4 (plan 8.5)",
+   "lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit"
+  ],
+  "problems": [
+   "static budget: max printed 21768 > print_budget 19500"
+  ],
+  "placeholders": [
+   "<...>",
+   "<R-<n> or AD-<n> this item follows>",
+   "<case ID>",
+   "<command or case ID>",
+   "<command>",
+   "<concern row>",
+   "<condition>",
+   "<fact>",
+   "<file>",
+   "<focused command>",
+   "<lint, type or build command>",
+   "<n>",
+   "<one sentence naming the change and its checks; then harness choices, decisions, defaults, open items and owners>",
+   "<read-only command>",
+   "<regression command>",
+   "<repository-relative file>",
+   "<result>",
+   "<the command that proves C1>",
+   "<the step's outcome, citing C1>",
+   "<under 100 characters: what this plan established>"
+  ],
+  "gates": 23,
+  "combos": [
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9880,
+    "slot_bounds": 11621,
+    "max_printed": 21527
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9880,
+    "slot_bounds": 11621,
+    "max_printed": 21527
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9670,
+    "slot_bounds": 11621,
+    "max_printed": 21317
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9670,
+    "slot_bounds": 11621,
+    "max_printed": 21317
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10011,
+    "slot_bounds": 11731,
+    "max_printed": 21768
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10011,
+    "slot_bounds": 11731,
+    "max_printed": 21768
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9801,
+    "slot_bounds": 11731,
+    "max_printed": 21558
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9801,
+    "slot_bounds": 11731,
+    "max_printed": 21558
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9776,
+    "slot_bounds": 11184,
+    "max_printed": 20986
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9776,
+    "slot_bounds": 11184,
+    "max_printed": 20986
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9566,
+    "slot_bounds": 11184,
+    "max_printed": 20776
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9566,
+    "slot_bounds": 11184,
+    "max_printed": 20776
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9907,
+    "slot_bounds": 11294,
+    "max_printed": 21227
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9907,
+    "slot_bounds": 11294,
+    "max_printed": 21227
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9697,
+    "slot_bounds": 11294,
+    "max_printed": 21017
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9697,
+    "slot_bounds": 11294,
+    "max_printed": 21017
+   }
+  ],
+  "max_printed": 21768,
+  "print_budget": 19500
+ },
+ "validate_this_install": {
+  "template": "step-plan.template.md",
+  "slots": 35,
+  "flags": [
+   "loop_started",
+   "revisit",
+   "inline",
+   "worktree_run"
+  ],
+  "requires": [
+   "A1 concern map (plan.concerns rows; `concerns` in _RESULT_KEYS and its gate)",
+   "T-D2 producer bounds (plan: work item context 2500, concern rows 1200, open assumptions 1200)",
+   "N2 commit look-back (recent_commits)",
+   "N5 outcome names",
+   "C6/G1 platform card `## Testing` section and the environment-to-card mapping",
+   "N5 awaiting kinds answer, present, service",
+   "decision 19 KNOWLEDGE symbol (reference_paths, symbolic, expand_result_roots, excerpt locators; HOME retired)",
+   "placeholder registry read from this form (navigator._placeholders)",
+   "loops Work cites the template's Method items (_duty_items counts them)",
+   "engine E3/E4 (plan 8.5)",
+   "lands with: obligation ledger rows, head-order tests, packet_view and counters repointed in the same commit"
+  ],
+  "problems": [
+   "static budget: max printed 22042 > print_budget 19500"
+  ],
+  "placeholders": [
+   "<...>",
+   "<R-<n> or AD-<n> this item follows>",
+   "<case ID>",
+   "<command or case ID>",
+   "<command>",
+   "<concern row>",
+   "<condition>",
+   "<fact>",
+   "<file>",
+   "<focused command>",
+   "<lint, type or build command>",
+   "<n>",
+   "<one sentence naming the change and its checks; then harness choices, decisions, defaults, open items and owners>",
+   "<read-only command>",
+   "<regression command>",
+   "<repository-relative file>",
+   "<result>",
+   "<the command that proves C1>",
+   "<the step's outcome, citing C1>",
+   "<under 100 characters: what this plan established>"
+  ],
+  "gates": 23,
+  "combos": [
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9880,
+    "slot_bounds": 11895,
+    "max_printed": 21801
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9880,
+    "slot_bounds": 11895,
+    "max_printed": 21801
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9670,
+    "slot_bounds": 11895,
+    "max_printed": 21591
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9670,
+    "slot_bounds": 11895,
+    "max_printed": 21591
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 10011,
+    "slot_bounds": 12005,
+    "max_printed": 22042
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 10011,
+    "slot_bounds": 12005,
+    "max_printed": 22042
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9801,
+    "slot_bounds": 12005,
+    "max_printed": 21832
+   },
+   {
+    "flags": {
+     "loop_started": false,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9801,
+    "slot_bounds": 12005,
+    "max_printed": 21832
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9776,
+    "slot_bounds": 11396,
+    "max_printed": 21198
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9776,
+    "slot_bounds": 11396,
+    "max_printed": 21198
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9566,
+    "slot_bounds": 11396,
+    "max_printed": 20988
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": false,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9566,
+    "slot_bounds": 11396,
+    "max_printed": 20988
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": false
+    },
+    "fixed": 9907,
+    "slot_bounds": 11506,
+    "max_printed": 21439
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": false,
+     "worktree_run": true
+    },
+    "fixed": 9907,
+    "slot_bounds": 11506,
+    "max_printed": 21439
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": false
+    },
+    "fixed": 9697,
+    "slot_bounds": 11506,
+    "max_printed": 21229
+   },
+   {
+    "flags": {
+     "loop_started": true,
+     "revisit": true,
+     "inline": true,
+     "worktree_run": true
+    },
+    "fixed": 9697,
+    "slot_bounds": 11506,
+    "max_printed": 21229
+   }
+  ],
+  "max_printed": 22042,
+  "print_budget": 19500
+ }
+}
