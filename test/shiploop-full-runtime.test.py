@@ -469,10 +469,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(packet["status"], "active")
         binding = context["binding"]
         contract = json.loads((packet_path.parent / "start.json").read_text(encoding="utf-8"))
-        # The frozen contract is ShipLoop's: the binding line, workspace, two required reviews and its locators.
+        # The frozen contract is ShipLoop's: the binding line, workspace, one required trivial review (2026-10-20)
+        # and its locators.
         self.assertEqual(packet["context"], contract["context"])
         self.assertEqual(packet["context"]["request"].splitlines()[0], binding["contract_marker"])
-        self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
+        self.assertEqual(packet["progress"]["required_trivial_reviews"], 1)
         resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
         self.assertEqual(resources["latest child packet receipt"], str(packet_path))
         self.assertEqual(resources["ShipLoop parent state"], str(context["run"] / "state.md"))
@@ -555,7 +556,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             context["packet_path"].write_bytes(raw)
         self.assertEqual(packet["status"], "complete")
         self.assertEqual(packet["progress"]["trivial_streak"], 2)
-        self.assertEqual(packet["progress"]["required_trivial_reviews"], 2)
+        self.assertEqual(packet["progress"]["required_trivial_reviews"], 1)
         self.assertIsNone(packet["next_argv"])
         self.assertIsNone(packet["done_argv"])
         self.assertFalse(child["state_file"].exists())

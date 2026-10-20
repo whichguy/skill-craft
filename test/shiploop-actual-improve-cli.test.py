@@ -362,8 +362,10 @@ class ImproveCliFixture(unittest.TestCase):
         self.notes_path.write_text(lessons + "\n", encoding="utf-8")
         flags = ["--notes", str(self.notes_path)]
         receipt = {
-            "summary": "Improve reviewed the " + self.bound["stage"] + " result; it ended on 2 trivial passes.",
-            "review_refs": [str(review_one), str(review_two)],
+            # One trivial pass ends the review now (owner decision 2026-10-20): the derived summary and the
+            # selected review file follow IMPROVE_TRIVIAL_REVIEWS (1), not the last two review-<n>.md files.
+            "summary": "Improve reviewed the " + self.bound["stage"] + " result; it ended on 1 trivial pass.",
+            "review_refs": [str(review_two)],
             "check_refs": [str(checks)],
             "lessons": lessons,
         }
@@ -856,7 +858,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         final_review["handoff"] = third["last_report"]["handoff"]
         terminal_raw, terminal = self.done_ephemeral(third, final_review)
         self.assertEqual(terminal["status"], "complete")
-        self.assertEqual(terminal["progress"], {"action_number": 3, "trivial_streak": 2, "required_trivial_reviews": 2})
+        self.assertEqual(terminal["progress"], {"action_number": 3, "trivial_streak": 2, "required_trivial_reviews": 1})
         self.assertFalse(state_file.exists())
         self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
         self.assertEqual(terminal["context"], self.child_context())
@@ -941,7 +943,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(Path(first["state_file"]).parent, self.run / "until-loop")
         contract = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
         self.assertEqual(contract["workspace"], self.bound["workspace"])
-        self.assertEqual(contract["required_trivial_reviews"], 2)
+        self.assertEqual(contract["required_trivial_reviews"], 1)
         owner = str(receipt.with_name("host-owner.md"))
         locators = [row["locator"] for row in contract["context"]["resources"]]
         # The delegated route's worker coordinates through the owner record; inline has none.
@@ -1718,7 +1720,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                                         "evidence_refs": self.parent_evidence_refs})
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", input_path)
         self.assertEqual(store.read_record(self.run / "state.md")["status"], "done")
-        self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on 2 trivial passes.")
+        self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on 1 trivial pass.")
 
 
 class LoopContractShapeTests(unittest.TestCase):
@@ -1850,69 +1852,52 @@ class ImproveCommitContractTests(ImproveCliFixture):
         return self.git("log", "-1", "--format=%B").rstrip("\n") + "\n"
 
     def test_a_change_after_an_unchanged_first_pass_restarts_through_the_named_exit(self):
-        """Fail-first: the refusal said to run the loop's next review, but the loop was already complete and
-        --restart-stopped refused a complete child, so a live run (node-add-route, 2026-10-11) had to pause."""
+        """Ported for the one-pass stop rule (owner decision 2026-10-20): the restart dance this test pinned
+        (node-add-route, 2026-10-11) existed only because a trivial-but-unchanged first pass completed early while
+        every other first pass still needed a second confirming review, so a later committed edit left the loop
+        looking "complete but under-reviewed" and had to restart.  With required_trivial_reviews=1 every first
+        trivial, satisfied pass completes the same way (no ``unchanged_first_pass`` special case: see
+        ``until_loop_ephemeral`` lines ~1090-1104), so a fix committed afterward imports directly with no restart."""
         self.begin()
         _raw, first = self.start_ephemeral_child()
         _raw, terminal = self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
-        self.assertTrue(terminal["progress"]["unchanged_first_pass"])
+        self.assertEqual(terminal["status"], "complete")
+        self.assertNotIn("unchanged_first_pass", terminal["progress"])
         self.edit()  # a fix made after the bind, then committed through improve-commit
         self.write("docs: fix the example\n\nKey learnings: none\n")
         self.invoke(*self.commit_args)
-        completion, _receipt = self.completion_receipt()
-        stderr = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve,
-                             *completion, status=2).stderr
-        line = self.line_one(stderr)
-        self.assertIn("product/contracts/cold-recovery.md", line)
-        # The refusal names its whole route on line 1: restart the review, run the improve skill on it, then complete.
-        # Run the restart command it prints through the real CLI (the exit the refusal names must work).
-        restart = shlex.split(re.search(r"start the review again with (.+? --restart-stopped)", line).group(1))
-        self.assertEqual(restart[2:], ["improve-start", "--run-dir=" + str(self.run), "--action=" + self.improve,
-                                       "--restart-stopped"])
-        self.assertEqual(shlex.split(line.rsplit("then run: ", 1)[1])[2:],
-                         ["complete", "--run-dir=" + str(self.run), "--action=" + self.improve])
-        restarted = self.run_argv(restart)
-        self.assertIn("Archived the stopped child", restarted.stderr)
-        # ShipLoop wrote a fresh opening and started the new child itself; the model writes and starts nothing.
-        receipt = bridge.receipt_path(self.bound)
-        self.assertTrue(receipt.with_name("opening.md").is_file())
-        self.finish_ephemeral(json.loads(receipt.read_text(encoding="utf-8")))
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
 
     def test_a_restarted_review_that_honestly_finds_nothing_more_is_accepted(self):
-        """Review of 2026-10-12: the restart a refused unchanged pass names kept the original bind snapshot, so a
-        restarted review that found nothing more to change ended on one unchanged pass and was refused again, with the
-        same message, until the model contrived another edit.  The restart takes a fresh snapshot of the committed tree."""
+        """Ported for the one-pass stop rule: the 2026-10-12 restart-then-rebind flow this test pinned applied only
+        to a child that ended on the retired ``unchanged_first_pass`` shortcut (the only case ``improve-start
+        --restart-stopped`` ever accepted for a non-stopped child).  A required_trivial_reviews=1 child never sets
+        that key, so a legitimately complete child is simply done: restarting it is refused outright, the same way
+        an active one is."""
         self.begin()
         _raw, first = self.start_ephemeral_child()
-        self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
-        self.edit()
-        self.write("docs: fix the example\n\nKey learnings: none\n")
-        self.invoke(*self.commit_args)
-        completion, _receipt = self.completion_receipt()
-        line = self.line_one(self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve,
-                                         *completion, status=2).stderr)
-        restart = shlex.split(re.search(r"start the review again with (.+? --restart-stopped)", line).group(1))
-        self.run_argv(restart)
-        receipt = bridge.receipt_path(self.bound)
-        restarted = json.loads(receipt.read_text(encoding="utf-8"))
-        # the second review reads the committed tree and finds nothing: one honest unchanged pass
-        _raw, done = self.done_ephemeral(restarted, self.child_report("trivial", "satisfied", "allowed", "nothing more"))
-        self.assertTrue(done["progress"]["unchanged_first_pass"])
+        _raw, terminal = self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
+        self.assertEqual(terminal["status"], "complete")
+        stderr = self.invoke(CLI, "improve-start", "--run-dir", self.run, "--action", self.improve,
+                             "--restart-stopped", status=2).stderr
+        self.assertIn("still running", self.line_one(stderr))
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
 
     def test_restarting_after_an_unchanged_pass_refuses_while_the_edit_is_uncommitted(self):
-        """The fresh baseline must not hide an uncommitted edit: the restart names improve-commit first."""
+        """Ported for the one-pass stop rule: the fresh baseline that used to matter only on a restart now applies
+        to the ordinary import.  A single trivial, satisfied pass completes directly; an edit left uncommitted after
+        the bind still refuses the stage's own complete with the commit gate (no restart involved)."""
         self.begin()
         _raw, first = self.start_ephemeral_child()
         self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
         self.edit()  # not committed
-        stderr = self.invoke(CLI, "improve-start", "--run-dir", self.run, "--action", self.improve,
-                             "--restart-stopped", status=2).stderr
+        completion, _receipt = self.completion_receipt()
+        stderr = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve,
+                             *completion, status=2).stderr
         self.assertIn("Commit this review's changes first", self.line_one(stderr))
 
     def test_check_only_on_the_improve_stage_is_refused_and_imports_nothing(self):

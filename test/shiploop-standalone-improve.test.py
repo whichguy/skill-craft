@@ -295,12 +295,15 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.assertNotEqual(bridge.receipt_path(first).parent, bridge.receipt_path(second).parent)
         self.assertTrue(all("/" not in name and name == name.strip(".") for name in names))
 
-    def test_ephemeral_terminal_requires_two_review_minimum_even_when_runtime_gate_is_one(self) -> None:
+    def test_ephemeral_terminal_requires_one_trivial_review_even_when_runtime_gate_is_zero(self) -> None:
+        # Improve completes at its first trivial pass (owner decision 2026-10-20); a terminal that needed none is refused.
         packet, raw = self.terminal_ephemeral(required_reviews=1)
         self.assertEqual(packet["progress"]["required_trivial_reviews"], 1)
         self.write_evidence()
-        self.save_terminal_packet(raw)
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "two-review minimum"):
+        none_required = copy.deepcopy(packet)
+        none_required["progress"]["required_trivial_reviews"] = 0
+        self.save_terminal_packet(json.dumps(none_required))
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "minimum of one trivial review"):
             bridge.complete(self.ephemeral_binding, self.receipt())
 
     def test_ephemeral_terminal_rejects_wrong_status_context_and_progress(self) -> None:

@@ -32,7 +32,7 @@
     {"id": "experiment-informed-planning", "obligation": "plan-time experiments and reconciliation through the packet's callback", "old": "## Experiment-informed planning", "home": "improve-stages.md", "section": "## Experiment-informed planning", "trigger": "references/improve-stages.md",
      "anchors": ["experiments during planning", "Graphs are not replaced after dispatch"]},
     {"id": "when-improve-runs", "obligation": "which results start an Improve child, the skill-call gate, how passes end, review commits", "old": "### When Improve runs", "home": "improve-stages.md", "section": "## When Improve runs", "trigger": "references/improve-stages.md",
-     "anchors": ["Three kinds of result start an actual Improve child", "refuses until it holds a call to the improve skill", "The two consecutive trivial passes an Improve child needs are self-passes"]},
+     "anchors": ["Three kinds of result start an actual Improve child", "refuses until it holds a call to the improve skill", "it completes at the first pass that finds only trivial"]},
     {"id": "improve-child", "obligation": "how ShipLoop sets the child up, who runs it on each route, its completion and restart", "old": "## Follow the current packet (step 3)", "home": "improve-child.md", "section": "## Running the child", "trigger": "references/improve-child.md",
      "anchors": ["run `complete --action=<improve id>`", "--restart-stopped", "ShipLoop imports only a packet the runtime wrote there"]},
     {"id": "inner-loop", "obligation": "the eight inner stages and what each records", "old": "### The inner loop", "home": "inner-loop.md", "section": "# The inner loop", "trigger": "references/inner-loop.md",

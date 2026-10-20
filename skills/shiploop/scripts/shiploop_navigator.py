@@ -3903,15 +3903,15 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any, root: Path | N
                              state: Mapping[str, Any] | None = None, core: Any = None) -> dict[str, Any]:
     """The completion record, built from what ShipLoop already knows (plan P12).
 
-    The review references are the last one or two ``review-<n>.md`` files (one when the
-    terminal packet ended on an unchanged first pass), the check reference is
+    The review references are the last ``IMPROVE_TRIVIAL_REVIEWS`` ``review-<n>.md`` files (the trivial passes the
+    loop ended on; one since 2026-10-20), the check reference is
     ``checks.md``; the model supplies only lessons, a changed decision and a
     no-commit reason, each optional.
     """
     reviews = improve_reviews_dir(child)
     found = sorted((int(match.group(1)), path) for path in (reviews.iterdir() if reviews.is_dir() else ())
                    if (match := REVIEW_FILE.fullmatch(path.name)) and path.is_file())
-    count = 1 if _unchanged_first_pass(child) else 2
+    count = 1 if _unchanged_first_pass(child) else IMPROVE_TRIVIAL_REVIEWS
     names = ", ".join(path.name for _, path in found) or "none"
     _need(len(found) >= count,
           "Improve completion needs the last " + str(count) + " review file(s) in " + str(reviews)
@@ -7517,6 +7517,10 @@ def _opening_sections(text: str) -> dict[str, str]:
     return found
 
 
+# An Improve child completes at its first trivial pass (owner decision 2026-10-20).
+IMPROVE_TRIVIAL_REVIEWS = 1
+
+
 def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], opening: str) -> dict[str, Any]:
     """The Until Loop start contract for the bound child, frozen from ShipLoop's own fields.
 
@@ -7547,15 +7551,16 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
                  "materially change a decision in this provisional plan or determine whether its consumer may "
                  "proceed; reuse sufficient evidence; zero experiments is valid. Scratch writes stay in the "
                  "planning scratch directory named in context.scope.")
-    exit_condition = ("Two consecutive full review passes find nothing material to change, or the first "
-                      "full pass changes nothing and the runtime sees an unchanged Git tree; no material "
-                      "defect remains in the candidate; the applicable checks are recorded.")
+    # One trivial pass ends the review (owner decision 2026-10-20): a second confirming pass took about 21% of a live
+    # run's 52 Improve passes and found nothing.
+    exit_condition = ("A full review pass finds nothing material to change (at most trivial polish, committed); no "
+                      "material defect remains in the candidate; the applicable checks are recorded.")
     repeat = ("Repeat while a warranted change or a required qualifying review remains. Stop incomplete "
               "on an actual blocker or a user stop. Never push.")
     if planning:
         exit_condition += (" Planning experiment exit: coherent current planning artifacts, a complete "
                            "assumption list with no open entry a bounded probe could settle now, and the "
-                           "two qualifying reviews.")
+                           "qualifying review.")
         repeat += (" If a finding invalidates an accepted discovery, research, spec or test-strategy "
                    "premise, finish the current bounded work and report classification unresolved or "
                    "non-trivial, exit_assessment unsatisfied or unknown, and continuation_assessment "
@@ -7584,7 +7589,7 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
     return loop_contract.contract(
         workspace=child["workspace"], work=work,
         exit_condition=exit_condition + loop_contract.stage_exit(child["stage"]),
-        repeat_condition=repeat, required_trivial_reviews=2, request=request, scope=scope,
+        repeat_condition=repeat, required_trivial_reviews=IMPROVE_TRIVIAL_REVIEWS, request=request, scope=scope,
         authority=authority, environment=sections["Environment"], resources=resources)
 
 

@@ -303,16 +303,14 @@ and submit the exact `done_argv`. It does not remember or choose the next state.
 Relevant resources still have to be available; a locator does not embed their
 contents or grant authority to change them.
 
-For example, with `required_trivial_reviews: 2` (Improve's own stop rule, the same for every
-reviewed stage), a material repair reported as
-`non-trivial` leaves the streak at zero. A qualifying `trivial` review raises it
-to one and returns another active action. A second trivial self-pass raises it
-to two; with `exit_assessment: satisfied`, Until Loop returns `status: complete`
-and deletes its temporary file. These are three separate execution/report
-cycles. The LLM judges the evidence and classification; the runtime applies the
+For example, with `required_trivial_reviews: 1` (Improve's own stop rule since 2026-10-20, the same
+for every reviewed stage), a material repair reported as `non-trivial` leaves the streak at zero
+and returns another active action. A qualifying `trivial` review raises it to one; with
+`exit_assessment: satisfied`, Until Loop returns `status: complete` and deletes its temporary
+file. These are two separate execution/report cycles. The LLM judges the evidence and classification; the runtime applies the
 counter and transition. ShipLoop validates the terminal packet's parent/workspace
 identity, context and gate, then archives it as `improve/<reviewed action>/terminal.json`
-alongside the final review files (two, or one for an unchanged first pass) and current check evidence. Only an
+alongside the final review file and current check evidence. Only an
 accepted import releases the parent action. Duplicate matching parent callbacks
 remain idempotent.
 

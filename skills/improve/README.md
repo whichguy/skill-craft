@@ -12,8 +12,8 @@ flowchart LR
 ~~~
 
 Improve reviews a repository candidate, makes worthwhile changes, checks the
-result, and repeats until two consecutive passes make no changes, or the first
-pass completes with no change (the runtime confirms "no change" from Git). It reads the last seven full Git commit messages
+result, and repeats until a pass finds only trivial changes or none (owner decision 2026-10-20: a second confirming
+pass added time without results). It reads the last seven full Git commit messages
 for every review. A material finding or fix resets the count, even when the fix
 is small and succeeds.
 
@@ -117,7 +117,7 @@ completion. A worker never executes parent callbacks.
 | What is material? | Behavior fixes, public-contract changes, security or data-integrity corrections, and missing required regression coverage are material. Non-semantic spelling, formatting, or explanatory polish can be trivial only with evidence behavior is unchanged. |
 | When are commits made? | After applicable checks pass, commit authorized scoped work with Review, Plan, Changes, Validation, Key learnings, and Remaining work. Preserve unrelated staged and unstaged hunks. |
 | What if a review changes nothing? | Keep an honest host record. Do not manufacture an edit or empty commit unless an explicit audit-commit-every-iteration request authorizes the identified no-change audit commit. |
-| When is it complete? | The exit condition, current relevant checks, and every other requested condition are satisfied, with two consecutive passes that make no changes (or a first pass that completes with no change) and no unresolved material finding. |
+| When is it complete? | The exit condition, current relevant checks, and every other requested condition are satisfied, with a pass that finds only trivial changes or none and no unresolved material finding. |
 
 ### Influences, decisions, and new learnings
 

@@ -642,8 +642,8 @@ def _ephemeral_terminal_packet(
     required_reviews = _integer(
         progress.get("required_trivial_reviews"), "Until Loop terminal required trivial reviews"
     )
-    _need(required_reviews >= 2,
-          "Until Loop terminal packet does not meet Improve's two-review minimum")
+    _need(required_reviews >= 1,
+          "Until Loop terminal packet does not meet Improve's minimum of one trivial review")
     # The runtime closes on one trivial pass only when it saw the workspace unchanged (Git tree).
     _need(trivial_streak >= required_reviews
           or (unchanged_first_pass and trivial_streak == 1 and action_number == 1),
@@ -740,10 +740,12 @@ def _complete_ephemeral(
     _runtime_wrote_receipt(packet, binding, "Until Loop terminal packet")
     checked_receipt = _receipt(receipt, workspace, workspace_value)
     single = bool(packet["progress"].get("unchanged_first_pass"))
-    _need(len(checked_receipt["review_refs"]) == (1 if single else 2),
+    # The trivial passes the loop ended on: its required_trivial_reviews (one since 2026-10-20), or the one unchanged pass.
+    streak = 1 if single else int(packet["progress"]["required_trivial_reviews"])
+    _need(len(checked_receipt["review_refs"]) == streak,
           "Improve receipt lists " + str(len(checked_receipt["review_refs"])) + " review references; this run "
           + ("ended on one unchanged trivial pass, so list that one review"
-             if single else "needs the two trivial-streak reviews"))
+             if single else "needs its " + str(streak) + " trivial-streak review" + ("s" if streak > 1 else "")))
     evidence_digests = _reference_digests(workspace, checked_receipt)
     prefix = f"improve/{action}"
     archive: dict[str, str] = {
