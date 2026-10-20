@@ -148,6 +148,12 @@ def mutation_check_only_path(action: str) -> str:
     return "tests/" + action + "-mutation-check-only.md"
 
 
+# What a one-line refusal adds (the check, the step check and the test command): a live run read three validators'
+# source to learn that an escaped newline inside the JSON string still makes two lines (a live run, 2026-10-19).
+ONE_LINE_HINT = ("; join steps with && or ; on that line (a \\n written inside the JSON string is decoded to a "
+                 "newline before this check runs, so it fails it)")
+
+
 def normalise_commands(value: Any) -> List[Dict[str, Any]]:
     """Validate a step plan's ``test_commands``.
 
@@ -169,7 +175,7 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
               "each test command has command and suite, and optionally ids, min_tests and criteria")
         command = entry.get("command")
         _need(isinstance(command, str) and command.strip() != "" and "\n" not in command
-              and "\0" not in command, "a test command must be one nonblank line")
+              and "\0" not in command, "a test command must be one nonblank line" + ONE_LINE_HINT)
         _need(entry.get("suite") in SUITES, "a test command's suite must be focused, regression or check")
         _need(entry.get("suite") != "check" or not {"ids", "min_tests"} & set(entry),
               "a check command is judged by its exit code and takes no ids or min_tests")
@@ -1660,7 +1666,8 @@ def _explain_base(run: Mapping[str, Any]) -> str:
     if status == "not-run":
         return ("did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its output names "
                 "a file this item adds. A new test must fail on the base, or fail to load only because a file this "
-                "item adds is missing there.")
+                "item adds is missing there. A command that fails before it prints (an assert or exception ahead of the "
+                "print) shows no ID: make it print the ID and its outcome on every exit.")
     return _explain(run)
 
 

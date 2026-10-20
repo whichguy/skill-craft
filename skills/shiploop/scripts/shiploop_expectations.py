@@ -147,7 +147,7 @@ def write_problem(command: str) -> Optional[str]:
     shape check; ``run`` also refuses a check that changed the checkout.
     """
     if not isinstance(command, str) or not command.strip() or "\n" in command or "\r" in command or "\0" in command:
-        return "a check must be one nonblank line"
+        return "a check must be one nonblank line" + test_loop.ONE_LINE_HINT
     try:
         lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
         lexer.whitespace_split = True

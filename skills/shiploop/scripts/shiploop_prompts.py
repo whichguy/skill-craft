@@ -989,7 +989,9 @@ DUTIES = {
 1. Start from the open unknowns in the intake and discovery results and RUN/notes/discovery.md. Revise that frontier
    with Discovery investigation guidance (check its triggers first, and again when evidence conflicts); write a
    triggered plan and outcome to RUN/notes/research.md. Investigate directly only when no trigger applies.
-2. Resolve each consequential unknown with repository, primary-interface or other fit evidence. In
+2. Resolve each consequential unknown with repository, primary-interface or other fit evidence: the repository and
+   GUIDES/platforms/ first, then the web one question at a time, writing each answer down before the next search
+   (fetched pages stay in context). In
    RUN/notes/research.md record the conclusion, source, uncertainty, affected requirement, consumer, prerequisite,
    reuse choice and verification need; leave an unsupported question open there with owner and the gate it blocks. A
    recalled fact is not evidence.
@@ -1205,7 +1207,9 @@ DUTIES = {
 14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
     prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
     fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
-    change may be one item; no minimum, quota or scaffolding item. Preservation and negative requirements are checks
+    change may be one item; no minimum or quota. Every item pays a fixed round of eight stages and its reviews, so a
+    project skeleton, configuration or tool setup goes in the first item that builds on it, never in an item of its
+    own. Preservation and negative requirements are checks
     on the affected item unless they need their own change. Add no item for step planning, validation, build, test,
     documentation, verification, commit or review (each item already gets them). Keep a cross-item or
     later-environment check at the boundary where it is due.
@@ -1244,6 +1248,9 @@ DUTIES = {
 7. Record readiness under KNOWLEDGE/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
    commands that start each runner, the observations. Record not-applicable only when this candidate needs no
    preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
+8. Tool state: a tool that writes its own files inside the checkout (the platform guide's ## Tool state names them)
+   needs them in .gitignore before any build; add the missing lines and list .gitignore in `evidence_refs`. An
+   unignored tool file reads as a product change to ShipLoop's checks.
 """,
     "step-plan": """\
 Change no product file in this stage.
@@ -1287,7 +1294,8 @@ Change no product file in this stage.
 5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test and
    verify stages run exactly these.
    - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
-     pytest `-v`, others: GUIDES/platforms/; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
+     pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID and outcome on
+     every exit, a failure too. """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
@@ -1329,7 +1337,8 @@ Change no product file in this stage.
 Write no test code in this stage.
 
 1. One `test_cases` row per ID the step plan's focused commands list; no other ID. A criterion that needs an
-   unlisted ID: report send-back naming it.
+   unlisted ID: report send-back naming it. A row names one `criterion`; a criterion no row names gets a coverage
+   notice, and the result is still accepted.
 2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put surface
    (unit, public interface, real boundary, rendered UI; Real-boundary test guidance) and due phase, setup and
    fixture, action, teardown (or "stateless"), command row, registering suite and smoke membership in those fields

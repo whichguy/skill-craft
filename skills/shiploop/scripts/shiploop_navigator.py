@@ -2441,7 +2441,8 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
         if "check" in entry:
             check = entry["check"]
             _need(isinstance(check, str) and check.strip() != "" and "\n" not in check and "\0" not in check,
-                  "step " + step_id + "'s check must be one nonblank command line, run from the repository root")
+                  "step " + step_id + "'s check must be one nonblank command line, run from the repository root"
+                  + test_loop.ONE_LINE_HINT)
             row["check"] = check.strip()
         if "skills" in entry:
             # Helper skills chosen at step-plan for this step (owner, 2026-10-10); the implement packet prints them.

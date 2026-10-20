@@ -2958,5 +2958,53 @@ class UnverifiedWordingTests(unittest.TestCase):
         self.assertIn("listed in its `unverified` result with the stage that reports it", reference)
 
 
+class LiveRunGuidanceTests(unittest.TestCase):
+    """The texts a live four-item run (2026-10-19, run folder chess-sf-full-05fe25b) showed missing: each answers a
+    question the model otherwise answered by reading ShipLoop's source, or a cost it did not know (build plan S2.4-S2.6,
+    the transcript analysis's RC-1 and RC-3)."""
+
+    def test_the_plan_duty_puts_scaffolding_in_the_first_item_that_builds_on_it(self):
+        duty = normalized(prompts.DUTIES["plan"])
+        self.assertIn("Every item pays a fixed round of eight stages and its reviews, so a project skeleton, "
+                      "configuration or tool setup goes in the first item that builds on it, never in an item of its own",
+                      duty)
+
+    def test_the_step_plan_says_a_hand_written_check_prints_its_id_on_every_exit(self):
+        for delegation in prompts.DELEGATIONS:
+            with self.subTest(delegation=delegation):
+                self.assertIn("a hand-written check prints its ID and outcome on every exit, a failure too",
+                              normalized(prompts.duty("step-plan", delegation=delegation)))
+
+    def test_the_test_spec_says_an_uncovered_criterion_is_a_notice_not_a_refusal(self):
+        self.assertIn("a criterion no row names gets a coverage notice, and the result is still accepted",
+                      normalized(prompts.DUTIES["test-spec"]))
+
+    def test_research_searches_the_web_one_question_at_a_time(self):
+        self.assertIn("the repository and GUIDES/platforms/ first, then the web one question at a time, writing each "
+                      "answer down before the next search", normalized(prompts.DUTIES["research"]))
+
+    def test_prepare_ignores_a_tools_own_state_and_the_salesforce_card_names_it(self):
+        self.assertIn("Tool state: a tool that writes its own files inside the checkout (the platform guide's ## Tool "
+                      "state names them) needs them in .gitignore before any build", normalized(prompts.DUTIES["prepare"]))
+        card = (ROOT / "skills/shiploop/references/platforms/salesforce.md").read_text(encoding="utf-8")
+        section = card.split("## Tool state", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("`.sf/`", section)
+        self.assertIn("`.sfdx/`", section)
+
+    def test_each_one_line_refusal_says_how_to_join_steps(self):
+        import shiploop_expectations as expectations
+        import shiploop_test_loop as test_loop
+        with self.assertRaisesRegex(test_loop.TestLoopError, "one nonblank line; join steps with && or ;"):
+            test_loop.normalise_commands([{"command": "make build\nmake test", "suite": "check"}])
+        self.assertIn("join steps with && or ;", expectations.write_problem("a\nb") or "")
+        self.assertIn("decoded to a newline before this check runs", test_loop.ONE_LINE_HINT)
+
+    def test_a_not_run_base_names_a_command_that_fails_before_it_prints(self):
+        import shiploop_test_loop as test_loop
+        text = test_loop._explain_base({"status": "not-run", "ids_unrun": ["W1-root"]})
+        self.assertIn("A command that fails before it prints (an assert or exception ahead of the print) shows no ID",
+                      text)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

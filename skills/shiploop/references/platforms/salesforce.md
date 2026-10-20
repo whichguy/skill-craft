@@ -134,6 +134,13 @@ route, and record the alias and page path. Keep the URL out of evidence and
 logs: it is a session credential. Ask the user only when the CLI has no working
 authentication for the target org.
 
+## Tool state
+
+The `sf` CLI writes its own state inside the project: `.sf/` (org source tracking, caches) and `.sfdx/`. Both belong in
+`.gitignore`, never in a commit. `sf project generate` writes a `.gitignore` that lists them; a project written by hand
+adds the two lines itself. Unignored, they change whenever an `sf` command runs, and ShipLoop's checks read them as
+product changes (a live run's Improve review was refused for `.sf/orgs/<id>/localSourceTracking` files).
+
 ## Consumer entry access (read-only probe)
 
 A deployed tab or app is hidden from a user whom no profile or permission set
