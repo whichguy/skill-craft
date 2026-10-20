@@ -2128,7 +2128,6 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     if stage in inner and workitem is not None:
         blocks.append(_work_item_block(root, state))
     blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem, root)))
-    blocks.append(_Block("look-back", P1, look_back_lines(state, stage)))
     if stage == "step-plan" and workitem is not None:
         blocks.append(_Block("concerns", P1, concerns.packet_lines(_plan_concerns(state), workitem)))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
@@ -2232,6 +2231,11 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         + " (only when the user asks or a real blocker stops authorized work)"]))
     consumer = _without_step_criteria(_consumer_lines(root, state, stage), state, stage, workitem)
     blocks.append(_Block("quoted", QUOTED, consumer))
+    # Other commits' messages, quoted (build plan S3.2): last, so a head that cannot carry them still holds every lookup
+    # and hand-off; the packet file always has them.  The head keeps optional blocks as a prefix.
+    look_back = look_back_lines(state, stage)
+    if look_back:
+        blocks.append(_Block("look-back", QUOTED, look_back))
     blocks.append(_Block("pass-log", FILE_ONLY, pass_log))
     blocks.append(_Block("halt", FILE_ONLY, [HALT_LINE]))
     blocks.append(_Block("unverified", FILE_ONLY, _unverified_lines(state, stage)))
@@ -4397,8 +4401,8 @@ _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
 _CONSUMER_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
-_STEP_NOTE_PLACEHOLDERS = {"learned": "<what this step taught the steps after it, or none>",
-                           "decisions": "<a choice this step made and why, or none>"}
+_STEP_NOTE_PLACEHOLDERS = {"learned": "<lesson for later steps, or none>",
+                           "decisions": "<choice made and why, or none>"}
 HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
                         *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
@@ -5571,13 +5575,11 @@ def _requirement_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 
 def _handoff_shape_lines(stage: str, template: str) -> list[str]:
     """The optional hand-off fields the template leaves out: implement's not_covered and learned_from (the required
-    ones are in it)."""
+    ones are in it; duty item 4 says what learned_from holds)."""
     if stage != HANDOFF_FIELDS["not_covered"] or '"not_covered"' in template:
         return []
     return ["Optional at done: " + json.dumps({"not_covered": HANDOFF_SHAPES["not_covered"]}, ensure_ascii=False)[1:-1]
-            + " (each behaviour this step added that no test case covers); "
-            + json.dumps({"learned_from": HANDOFF_SHAPES["learned_from"]}, ensure_ascii=False)[1:-1]
-            + " (the commits whose learnings this step used)"]
+            + "; \"learned_from\": [\"<commit ID>\"]"]
 
 
 def _outcome_shape_lines(stage: str) -> list[str]:
@@ -8664,6 +8666,13 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
+                view = step_view(state, cursor_item)
+                if not refusal and view is not None:  # an inline step's spec write-back (build plan S3.3)
+                    refusal = knowledge.step_spec_refusal(Path(str(state["repo"])),
+                                                          cursor_item + "/" + str(view.step.get("id")))
+                if refusal and not check_only:
+                    # Both refusals name send-back as a fix; the step's loop has completed, so open that route.
+                    loops.open_send_back(root, action_id, refusal)
                 _need(not refusal, refusal)
             if cursor_stage == "intake" and isinstance(submitted, Mapping) and submitted.get("outcome") == "done":
                 # Counted notice (a request sentence the summary does not cite, RUN/request.md): never a refusal.

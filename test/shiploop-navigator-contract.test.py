@@ -4323,6 +4323,47 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                       stray.stdout + stray.stderr)
         self.assertEqual(self.git("rev-parse", "HEAD"), head)  # nothing committed on a refusal
 
+    def spec_path(self) -> Path:
+        return self.repo / "docs" / "shiploop" / "spec.md"
+
+    def test_a_steps_acceptance_line_in_the_spec_is_accepted_and_committed_with_the_step(self) -> None:
+        # Build plan S3.3: a step that settles what a requirement should say writes it back as a marked line inside the
+        # requirement's entry; the step commit carries it.
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        spec = self.spec_path()
+        self.assertIn("R-1: Synthetic requirement.\n", spec.read_text())
+        spec.write_text(spec.read_text().replace(
+            "R-1: Synthetic requirement.\n",
+            "R-1: Synthetic requirement.\n  Acceptance: notes.md opens with a level-one title. (W1/S1)\n"))
+        (self.repo / "notes.md").write_text("# Notes\n")
+        self.accept(result(summary="Wrote notes.md."))
+        self.assertEqual(sorted(self.git("show", "--name-only", "--format=", "HEAD").split()),
+                         ["docs/shiploop/spec.md", "notes.md"])
+        self.assertIn("(W1/S1)", self.git("show", "HEAD:docs/shiploop/spec.md"))
+
+    def test_a_changed_requirement_at_implement_is_refused_and_send_back_is_the_accepted_exit(self) -> None:
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        spec = self.spec_path()
+        spec.write_text(spec.read_text().replace("R-1: Synthetic requirement.", "R-1: A different requirement."))
+        (self.repo / "notes.md").write_text("# Notes\n")
+        refused = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
+        self.assertNotEqual(refused.returncode, 0)
+        text = refused.stdout + refused.stderr
+        self.assertIn("to change a requirement, report send-back naming it", text)
+        self.assertIn("changed or removed: R-1: Synthetic requirement.", text)
+        # An unmarked line is refused too, with the mark it needs.
+        spec.write_text(self.git("show", "HEAD:docs/shiploop/spec.md").replace(
+            "R-1: Synthetic requirement.\n", "R-1: Synthetic requirement.\n  Acceptance: unmarked.\n"))
+        unmarked = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
+        self.assertIn("without the step's mark: Acceptance: unmarked.", unmarked.stdout + unmarked.stderr)
+        # The named exit goes through the real gate.
+        self.accept(result(outcome="send-back", summary="R-1 must name the notes title; the step plan should say so."))
+        self.assertEqual(navigator.current_stage(self.state()), "step-plan")
+
     def test_the_look_back_quotes_the_last_two_commits_that_are_not_shiploop_records(self) -> None:
         self.start()
         for name, subject in (("one.txt", "feat(W0/S1): first"), ("two.txt", "fix: second"),

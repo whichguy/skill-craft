@@ -676,15 +676,11 @@ file cold with no run history. Every rule serves that reader.
    share one meaning, not merely similar code: a near-copy of existing logic
    is a defect, and so is a parameter that fuses two different rules. State
    the option chosen and why in one line.
-10. Concurrency only for a shown gain: bounded, ordered where it matters, every
-    task's error surfaced.
-11. Platform first: use what the runtime, platform or a service provides before
-    writing infrastructure.
-12. Bound every remote call: a timeout, idempotent-only retries with backoff and
-    a limit, paged lists, the contract checked.
-13. Configuration, not constants: no hard-coded URLs, IDs, credentials, limits
-    or environment names.
-14. Seams for determinism: inject the clock, randomness and I/O.
+10. Concurrency only for a shown gain: bounded, ordered, each error surfaced.
+11. Platform services before hand-written infrastructure.
+12. Bound remote calls: timeout, idempotent retries with backoff, paged lists.
+13. No hard-coded URLs, IDs, credentials, limits or environment names.
+14. Inject the clock, randomness and I/O.
 """
 
 
@@ -1395,23 +1391,23 @@ preparatory commit); a mismatch there is a send-back.
    accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
    reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
    change one only when a criterion says to.
-2. **Build.** Each iteration edits first. Before the first edit, settle each consideration the step touches
-   (Implement considerations). Follow the step plan's Coding decision selection (Coding decision guide), reading only
-   its matching sections; check current code, versions and consumers before reusing or augmenting a unit. Read
-   history or earlier reviews only when a check fails or a question needs one section. Apply Code craft and
-   House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow it);
-   the summary says per skill whether you used it, and why not.
+2. **Build.** Each iteration edits first. First settle the considerations it touches (Implement considerations).
+   Follow the step plan's Coding decision selection (Coding decision guide), reading only its matching sections;
+   check current code, versions and consumers before reusing or augmenting a unit. Read history or earlier reviews
+   only when a check fails or a question needs one section. Apply Code craft and House-style guidance. Use each
+   listed step skill for its purpose (invoke it, or read its SKILL.md and follow it); the summary says per skill
+   whether you used it, and why not.
 3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
    exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
    command.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
-4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. `learned`
-   and `decisions`: what this step taught the steps after it and the choices it made, with why (["none"] when
-   nothing); an inline step's commit carries them, and later packets quote it. `learned_from`: the look-back commits
-   you used. Record a departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions,
-   and a newly working command in KNOWLEDGE/environment.md ## Commands.
+4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. `learned`,
+   `decisions`: lessons for later steps and choices made, with why; the step commit carries them. Write back a
+   departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions, a newly working command under
+   KNOWLEDGE/environment.md ## Commands, and an acceptance detail as a line in its R-<n> entry of KNOWLEDGE/spec.md
+   ending (<item>/<step>).
 5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
    before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
    completion uses its recorded safe fallback or correction.

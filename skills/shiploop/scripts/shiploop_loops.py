@@ -253,6 +253,23 @@ def terminal_path(action_id: str) -> str:
     return LOOP_DIR + "/" + action_id + "-terminal.json"
 
 
+def send_back_open_path(root: Path, action_id: str) -> Path:
+    """The marker a refused implement done leaves when its fix is a send-back (``open_send_back``)."""
+    return Path(root) / LOOP_DIR / (action_id + "-send-back-open")
+
+
+def open_send_back(root: Path, action_id: str, reason: str) -> None:
+    """Record that a gate refused this implement action's done and named send-back as the fix.
+
+    The step's Until Loop has completed by the time a done is submitted, and a completed loop supports only done, so the
+    refusal's own exit was refused in turn (build plan S3.3's route test).  The marker lets that one action's send-back
+    through, as ``_remedy_open`` does for the test stage; it holds the refusal's first line, for the record.
+    """
+    path = send_back_open_path(root, action_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(reason.splitlines()[0] + "\n" if reason else "\n", encoding="utf-8")
+
+
 def receipt_path(root: Path, action_id: str) -> Path:
     """Absolute receipt path of an inner action's loop."""
     _need(isinstance(action_id, str) and bool(action_id), "a loop receipt needs an action id")
@@ -773,6 +790,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
         return None  # The loop never started (for example, no runtime resolves); the summary and awaiting say why.
+    if outcome == "send-back" and stage == "implement" and send_back_open_path(root, action_id).is_file():
+        return None  # a gate refused this action's done and named send-back (open_send_back)
     if outcome in ("send-back", "blocked") and (
             (stage in ("test", "verify") and _remedy_open(root, action_id))
             or (stage == "verify" and _verify_refused(root, action_id))):
@@ -828,6 +847,8 @@ __all__ = (
     "WORK_STEP",
     "check_loop_packet",
     "check_terminal",
+    "open_send_back",
+    "send_back_open_path",
     "cite_receipt",
     "command_listing",
     "condition_lines",

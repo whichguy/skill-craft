@@ -7,5 +7,6 @@ bump: minor
   - An implement result's `learned` and `decisions` are required there, each a list of lines (`["none"]` allowed,
     1,200 characters each).
   - `learned_from` names the commits whose learnings the step used; each must be reachable from HEAD.
-  - Each implement packet quotes the last two commits that are not ShipLoop records as its look-back.
+  - Each inline implement packet quotes the last two commits that are not ShipLoop records as its look-back,
+    after the other quoted blocks.
   - Verify's item commit takes what changed after the last step.

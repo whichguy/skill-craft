@@ -676,7 +676,11 @@ summary and its Key learnings, Key decisions, Evidence and Related commits
 sections, from the result's `learned`, `decisions`, `evidence_refs` and
 `learned_from`. Each inline implement packet quotes the last two commits that
 are not ShipLoop records (knowledge or leftover commits) as its look-back. A
-redone step after a send-back names its own previous result and commit.
+redone step after a send-back names its own previous result and commit. A step
+may add an acceptance line inside an existing R-<n> entry of `spec.md`, ending
+`(<item>/<step>)`, which its commit carries; any other spec change at implement is
+refused, and its refusal opens that action's send-back even though the step's
+Until Loop has completed.
 
 The inner path makes post-code quality visible: the expectations are checked
 before any change, each implement step is reviewed by its own Improve child,

@@ -22,6 +22,7 @@ per living file that lacks a named section (``section_notices``); it is a notice
 
 from __future__ import annotations
 
+import difflib
 import re
 import subprocess
 from pathlib import Path
@@ -589,6 +590,48 @@ def entries(repo: Path, name: str) -> Dict[str, Entry]:
     return _entries(text, prefix) if text.strip() else {}
 
 
+def step_spec_refusal(repo: Path, marker: str) -> str:
+    """Refusal text when an implement step's uncommitted spec.md edit does more than add acceptance lines ('' when it
+    adds only those, or leaves spec.md as HEAD holds it).
+
+    A step learns what a requirement should say and records it where the next reader of the spec finds it (build plan
+    S3.3): a new line inside an existing, current R-<n> entry, ending ``(<marker>)`` (``W1/S2``), so the line names the
+    step that added it and its commit.  Changing or removing a line of the committed spec changes the contract, which
+    is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are committed with their steps, so
+    HEAD is this step's baseline.
+    """
+    path = Path(repo) / HOME / "spec.md"
+    old = _committed(Path(repo), "spec.md")
+    new = path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+    if old == new or not old.strip():
+        return ""
+    before, after = old.splitlines(), new.splitlines()
+    spans = [entry.text.splitlines() for entry in _entries(new, "R").values() if not entry.retired]
+    changed: List[str] = []
+    unmarked: List[str] = []
+    outside: List[str] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, before, after, autojunk=False).get_opcodes():
+        if tag in ("delete", "replace"):
+            changed += [line for line in before[i1:i2] if line.strip()]
+        if tag in ("insert", "replace"):
+            for line in after[j1:j2]:
+                if not line.strip() or tag == "replace" and line in before[i1:i2]:
+                    continue
+                if not line.rstrip().endswith("(" + marker + ")"):
+                    unmarked.append(line.strip())
+                elif not any(line in span for span in spans):
+                    outside.append(line.strip())
+    if not (changed or unmarked or outside):
+        return ""
+    found = [label + ": " + "; ".join(lines) for label, lines in (
+        ("changed or removed", changed), ("without the step's mark", unmarked), ("outside a current R-<n> entry", outside))
+        if lines]
+    return ("Restore " + str(path) + " to what HEAD holds plus this step's acceptance lines, then run the same complete "
+            "command again; to change a requirement, report send-back naming it.\n"
+            "At implement, spec.md takes only new acceptance lines inside an existing R-<n> entry, each ending (" + marker
+            + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
+
+
 def entry_text(repo: Path, ident: str) -> Optional[str]:
     """The entry of requirement ``R-<n>`` (spec.md) or decision ``AD-<n>`` (architecture.md), uncut; None when there is none.
 
@@ -824,6 +867,7 @@ def in_home(path: str) -> bool:
 
 
 __all__ = ("ARCHITECTURE",
+           "step_spec_refusal",
            "ARCHITECTURE_HOLDS",
            "CLOSES",
            "Entry",
