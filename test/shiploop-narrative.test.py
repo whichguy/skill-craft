@@ -175,6 +175,25 @@ class NarrativeTests(unittest.TestCase):
         self.assertNotIn("/Users/x", text)
 
 
+class NarrativeBoundTests(unittest.TestCase):
+    """Run-insights E6: the narrative is capped at NARRATIVE_LIMIT (900) where it is produced; the oldest achieved rows
+    fold into one line, and the current stage and what is ahead stay."""
+
+    def test_a_long_run_folds_its_oldest_achieved_rows_within_the_limit(self) -> None:
+        facts = navigator.narrative_facts(navigator.new_state("/simulation-only/repo", "Bound fixture.", improve_skill=""))
+        facts = dict(facts, achieved=[{"label": f"W{n} implement", "text": "a finished step that " + "x" * 60}
+                                      for n in range(1, 41)])
+        text = narrative.markdown(facts)
+        self.assertLessEqual(len(text), narrative.NARRATIVE_LIMIT)
+        self.assertRegex(text, r"- \*\*\d+ earlier steps\*\* — done")
+        self.assertIn("W40 implement", text)  # the newest rows stay
+        self.assertIn("Now", text)
+
+    def test_a_short_narrative_is_unchanged(self) -> None:
+        facts = navigator.narrative_facts(navigator.new_state("/simulation-only/repo", "Short.", improve_skill=""))
+        self.assertEqual(narrative.markdown(facts), narrative._markdown(facts))
+
+
 class TimelineAndPacketTests(unittest.TestCase):
     def setUp(self) -> None:
         temp = tempfile.TemporaryDirectory(prefix="shiploop-narrative-")

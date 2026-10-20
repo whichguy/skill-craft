@@ -94,8 +94,28 @@ def _rows(facts: Mapping[str, Any]) -> list[tuple[str, list[tuple[str, str]] | s
     return sections
 
 
+# The narrative's bound (run-insights E6): the stage templates print it in a slot of this size, so it is capped where it
+# is produced.  The oldest achieved rows fold into one line first; the current stage, what is ahead and the pace stay.
+NARRATIVE_LIMIT = 900
+
+
 def markdown(facts: Mapping[str, Any]) -> str:
-    """Render the run narrative for ``facts`` as Markdown."""
+    """Render the run narrative for ``facts`` as Markdown, at most ``NARRATIVE_LIMIT`` characters."""
+    text = _markdown(facts)
+    achieved = list(facts.get("achieved") or ())
+    folded = 0
+    while len(text) > NARRATIVE_LIMIT and achieved:
+        achieved.pop(0)
+        folded += 1
+        rows = ([{"label": f"{folded} earlier step" + ("s" if folded > 1 else ""), "text": "done"}] + achieved)
+        text = _markdown({**facts, "achieved": rows})
+    if len(text) > NARRATIVE_LIMIT:
+        text = text[:NARRATIVE_LIMIT - 1].rstrip() + "\u2026"
+    return text
+
+
+def _markdown(facts: Mapping[str, Any]) -> str:
+    """The narrative's Markdown, unbounded."""
     phases_md, _ = _phase_line(facts["phases"])
     lines = [f"#### \U0001f6a2 ShipLoop — {facts['goal']}", phases_md, ""]
     for heading, rows in _rows(facts):
