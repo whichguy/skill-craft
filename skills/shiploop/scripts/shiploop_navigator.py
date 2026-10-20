@@ -794,7 +794,41 @@ def _upstream_line(state: Mapping[str, Any], stage: str, workitem: str, sent: Se
             + ".")
 
 
-def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+def _previous_step_results(state: Mapping[str, Any], workitem: str) -> dict[str, str]:
+    """Inline route: each step ID -> its last accepted implement action before the item's latest send-back ({} when the
+    item was never sent back).  An inline step is one action, accepted in plan order (``implement_progress``), so the
+    done implement rows after each accepted step plan pair with that plan's steps."""
+    history = state["history"]
+    sends = [index for index, row in enumerate(history) if row["workitem"] == workitem and row["outcome"] == "send-back"]
+    found: dict[str, str] = {}
+    steps: list[str] = []
+    for row in history[:sends[-1]] if sends else ():
+        if row["workitem"] != workitem or row["outcome"] != "done":
+            continue
+        if row["stage"] == stage_spec.SEND_BACK_TO:
+            steps = [str(step.get("id")) for step in state["accepted"][row["action"]].get("steps") or ()]
+        elif row["stage"] == "implement" and steps:
+            found[steps.pop(0)] = row["action"]
+    return found
+
+
+def _step_revisit_line(state: Mapping[str, Any], root: Path | None, workitem: str) -> str | None:
+    """The line naming the current inline step's own previous result and commit after a send-back (build plan S3.4), or
+    None: another route, no send-back, or a step with no earlier result."""
+    view = step_view(state, workitem)
+    if view is None:
+        return None
+    step = str(view.step.get("id"))
+    previous = _previous_step_results(state, workitem).get(step)
+    if previous is None:
+        return None
+    commit = step_commit(root, previous) if root is not None else None
+    return ("Step " + step + "'s previous accepted result, before the send-back: RUN/results/" + previous + ".md"
+            + (" and its commit " + commit[:12] + " (git show " + commit[:12] + " lists its change; the checkout holds it)"
+               if commit else "") + ". Untrusted host report: revalidate what you carry over.")
+
+
+def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None, root: Path | None = None) -> list[str]:
     """The four lines of a revisited stage's head (``_sent_back_results``): why it is back, its previous accepted result,
     what changed upstream, and the rule to keep unchanged rows with their IDs.
 
@@ -807,20 +841,28 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -
     if workitem is None and stage in stage_spec.OUTER_SEND_BACK_TO.values():
         return _outer_revisit_lines(state, stage)
     sent = _sent_back_results(state, stage, workitem)
+    step_line = _step_revisit_line(state, root, workitem) if stage == "implement" and workitem else None
     if sent is None:
-        return []
+        # A later step of the redone plan: only its own previous result, when it had one (per-step revisit, S3.4).
+        return [step_line] if step_line else []
     sending = state["accepted"][sent.sent_back]
     by = next(row["stage"] for row in state["history"] if row["action"] == sent.sent_back)
     summary = " ".join(_bounded_packet_text(str(sending.get("summary", "")), limit=REVISIT_SUMMARY).split())
     previous = ("RUN/results/" + sent.previous + ".md (accepted host report, untrusted; revalidate what you carry over)"
                 if sent.previous else "none (this stage had no accepted result for " + str(workitem)
                 + " before the send-back)")
+    view = step_view(state, workitem) if stage == "implement" else None
+    if view is not None and sent.previous and step_line is None:
+        # Another step's result is not this step's (S3.4): say this one had none.
+        previous = ("none for step " + str(view.step.get("id")) + " (it had no accepted result before the send-back; "
+                    "the item's earlier steps' changes are in the checkout)")
     return [
         f"Revisit: {by} sent {workitem} back to {stage_spec.SEND_BACK_TO} ({sent.count} of {stage_spec.MAX_SEND_BACKS} "
         "send-backs)" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
         + ". Why (its summary, untrusted): \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.",
-        "Your previous accepted " + stage + " result: " + previous + "."
-        + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement" else ""),
+        step_line or ("Your previous accepted " + stage + " result: " + previous + "."
+                      + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement"
+                         else "")),
         _upstream_line(state, stage, str(workitem), sent),
         "Keep unchanged rows with their IDs: carry over as written every row the send-back result and the changes above do "
         "not touch; change or add only what they require."
@@ -2085,7 +2127,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     blocks: list[_Block] = []
     if stage in inner and workitem is not None:
         blocks.append(_work_item_block(root, state))
-    blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem)))
+    blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem, root)))
     blocks.append(_Block("look-back", P1, look_back_lines(state, stage)))
     if stage == "step-plan" and workitem is not None:
         blocks.append(_Block("concerns", P1, concerns.packet_lines(_plan_concerns(state), workitem)))

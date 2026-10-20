@@ -311,6 +311,40 @@ class SendBackTests(unittest.TestCase):
         self.assertIn("Step S2 (2 of 2)", head_of(state))
         self.assertNotIn("Revisit: ", head_of(state))
 
+    def test_each_redone_step_names_its_own_previous_result_not_the_last_steps(self) -> None:
+        """Build plan S3.4: after a send-back from test, the redone S1's head named the item's last implement result (S2's),
+        so a fresh context amended the wrong step's work.  Each redone step now names its own previous result."""
+        head_of = lambda state: nav.packet_head(dry_run.CORE, dry_run.RUN, state, dry_run.RUN / "packets" / "x.md")
+        rows = dry_run.activity()
+        produced = next(row["result"] for row in rows if row["at"] == "step-plan")
+        two_steps = dict(produced, steps=[*produced["steps"], {"id": "S2", "task": "Second synthetic step.", "deps": ["S1"]}])
+        test_spec = next(i for i, row in enumerate(rows) if row["at"] == "test-spec")
+        until = next(i for i, row in enumerate(rows) if row["at"] == "implement")
+        step = [row for row in rows[until:] if row["at"] in ("implement", nav.IMPROVE_STAGE)][:2]
+
+        def plan_to_implement(state: dict) -> dict:
+            state = submit(state, two_steps)
+            state = nav.finish_improve(state, nav.current_action(state)["id"], dry_run._improve_receipt("step-plan"), None)
+            return walk(state, rows[test_spec:until])
+
+        state = plan_to_implement(drive_to("step-plan"))
+        state = walk(state, step)
+        first = last_action(state, "implement", "done")
+        state = walk(state, step)
+        second = last_action(state, "implement", "done")
+        self.assertEqual(nav.current_stage(state), "test")
+        state = plan_to_implement(submit(state, SEND_BACK))
+
+        head = head_of(state)
+        self.assertIn("Step S1 (1 of 2)", head)
+        self.assertIn("Step S1's previous accepted result, before the send-back: " + result_path(first), head)
+        self.assertNotIn(result_path(second), head)
+        state = walk(state, step)
+        head = head_of(state)
+        self.assertIn("Step S2 (2 of 2)", head)
+        self.assertIn("Step S2's previous accepted result, before the send-back: " + result_path(second), head)
+        self.assertNotIn(result_path(first), head)
+
     def test_an_amended_step_plan_is_accepted_through_the_gate(self) -> None:
         state = submit(drive_to("implement"), SEND_BACK)
         amended = {"outcome": "done",
