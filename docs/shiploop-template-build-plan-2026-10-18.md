@@ -192,3 +192,15 @@ Each entry: the unit, its result, what it found, and the evidence. Entries are e
   - **Plan rows from the run:** S2.4 (fold scaffolding), S2.5 (a check must fail visibly), S2.6 (tool-state paths), and the
     slice 4 measures above.
 
+- **2026-10-20, the chess-run-3 fixes (firm for the code; the effect is measured by the TODO rerun).** On the build
+  branch, unreleased:
+  - `f368dfa2`: Improve reviews step-plan and test-spec for the first work item and after a send-back only.
+  - `e184c23f`: harness cleanup by prefix (a Sonnet worker).
+  - `c00b17f2`: live-run guidance texts (S2.4 to S2.6, RC-1, RC-3, research).
+  - `7a194ae4`: the mutation check skips focused commands a platform card lists under Remote tests; Tool state
+    sections for the Python and Node cards.
+  - `5e377ff7`: Improve completes at its first trivial pass (owner, 2026-10-20: "the current criteria may iterate far too
+    often without results"; 11 of 16 reviews spent a pass only confirming).
+  - Owner direction (2026-10-19): rank work by its gain in ShipLoop's code production on any project; the probe
+    app does not matter in itself.
+  - Not yet changed: RC-2 (the Improve hand-off contract re-read at each Improve stage), owned by slice 4.
