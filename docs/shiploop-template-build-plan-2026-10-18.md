@@ -217,3 +217,26 @@ Each entry: the unit, its result, what it found, and the evidence. Entries are e
   - Owner direction (2026-10-19): rank work by its gain in ShipLoop's code production on any project; the probe
     app does not matter in itself.
   - Not yet changed: RC-2 (the Improve hand-off contract re-read at each Improve stage), owned by slice 4.
+
+- **2026-10-20, slices 2 and 3 on main (firm for the code; unreleased; the effect is measured by the TODO rerun).**
+  - **Slice 2:** S2.1 producer limits `d45c3f80`, S2.2 concern map `fff7fa13`, S2.3 platform testing guide `6925d454`.
+    Main CI on `6925d454` failed in shiploop-e2e-fidelity: a test picked its record by glob order (static-checks on
+    Linux, system-test on macOS). Fixed by stage in `5d490033`, then green.
+  - **Slice 3** (`6be0a670`..`d1f63406`):
+    - S3.5 narrative cap 900 (`6be0a670`);
+    - S3.1 A0, lean port (`5a6d9265`): the owner chose guidance by reference and Code craft 10-14 as one line each,
+      with no per-step considerations or evidence fields and no gate;
+    - S3.2 step commits with learned/decisions/learned_from, plus the inline look-back (`32e66660`);
+    - S3.4 per-step revisit (`34946141`);
+    - S3.3 spec acceptance write-back, plus a send-back route after a refused implement done (`d1f63406`).
+  - **Findings:**
+    - **Route (firm):** a refusal at implement that named send-back was a dead end once the step's Until Loop had
+      completed. The existing item-scope refusal had the same gap. Fixed by `loops.open_send_back`, and the N3 test
+      submits that exit through the real gate.
+    - **Budget (firm):** A0+N2+N3 grew the inline implement required text to 18,974 on the two-item fixture. The head
+      then lost its guide lookups, because optional blocks are kept as a prefix under the 19,500 bound. The slice's own
+      text was cut to its obligations (18,534, 44 to spare), and the look-back moved after the quoted blocks. Slice 4's
+      templates own this budget next.
+    - **Fixtures (interim):** a required result field now costs about eight fixture ports across suites
+      (inner_fixture.fill, full-runtime, callback-contract, the eight-stage helper). A shared per-stage fixture default
+      would cut that; deferred.
