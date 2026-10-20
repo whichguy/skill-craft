@@ -90,8 +90,10 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.PLANNING_REVIEW_MODES, ("stage", "none"))
         self.assertEqual(spec.DEFAULT_PLANNING_REVIEW, "stage")
         self.assertIn(spec.DEFAULT_PLANNING_REVIEW, spec.PLANNING_REVIEW_MODES)
-        # `stage` is today's behaviour: every stage whose rule is `always` starts an Improve child.
-        self.assertEqual(spec.reviewed_stages("stage"), spec.with_improve("always"))
+        # `stage`: every stage whose rule is `always` starts an Improve child, and a `first-item` stage (step-plan,
+        # test-spec) does for the first work item and an item that was sent back (owner, 2026-10-19).
+        self.assertEqual(spec.with_improve("first-item"), frozenset({"step-plan", "test-spec"}))
+        self.assertEqual(spec.reviewed_stages("stage"), spec.with_improve("always") | spec.with_improve("first-item"))
         self.assertEqual(spec.reviewed_stages("stage"), frozenset({
             "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
         # `none` starts no child at the five planning stages the option covers; the children after
@@ -101,9 +103,9 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.reviewed_stages("none"), frozenset({"system-test-author", "release-plan"}))
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
         for mode in spec.PLANNING_REVIEW_MODES:
-            self.assertLessEqual(spec.reviewed_stages(mode), spec.with_improve("always"))
+            self.assertLessEqual(spec.reviewed_stages(mode), spec.with_improve("always") | spec.with_improve("first-item"))
         # the seven-stage set the option does not redefine still drives the source-printing packets
-        self.assertEqual(prompts.PLANNING_REVIEW_STAGES, spec.with_improve("always"))
+        self.assertEqual(prompts.PLANNING_REVIEW_STAGES, spec.reviewed_stages("stage"))
         with self.assertRaises(ValueError):
             spec.reviewed_stages("two")
 

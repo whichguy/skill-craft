@@ -85,8 +85,9 @@ class BattleshipMeasurementTests(unittest.TestCase):
         counts = host_work_per_item({"W1": CODE_ITEM, "W2": METADATA_ITEM})
         # W1 walks all 8 INNER stages; its step-plan, test-spec and its implement step get Improve reviews.
         self.assertEqual(counts["W1"], {"packets": 8, "reviews": 3})
-        # W2 loses the test stage (no command, only non-code paths); the end-of-work review is added.
-        self.assertEqual(counts["W2"], {"packets": 7, "reviews": 4})
+        # W2 loses the test stage (no command, only non-code paths); the end-of-work review is added. Its step-plan and
+        # test-spec follow W1's reviewed pattern (rule first-item, 2026-10-19): implement and carry-forward remain.
+        self.assertEqual(counts["W2"], {"packets": 7, "reviews": 2})
 
     def test_without_proof_a_no_command_item_still_walks_every_stage(self):
         code_without_commands = {"paths": ["src/**"], "test_commands": [],
@@ -173,7 +174,8 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertTrue(printed_somewhere)
 
     def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
-        expected = {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35,
+        # two-work-items: 44 until rule first-item (2026-10-19) dropped W2's step-plan and test-spec reviews.
+        expected = {'delivery': 33, 'two-work-items': 42, 'blocked-resume': 35,
                     'send-back': 39, 'pause-resume': 35, 'halted': 1}
         scenarios = driver.scenarios()
         self.assertEqual(set(scenarios), set(expected))
@@ -213,8 +215,11 @@ class NavigatorDryRunTests(unittest.TestCase):
                 self.assertEqual({event['from'] for event in finishes} - {'improve'}, set())
                 reviewed = reviewed_stages(report['events'])
                 self.assertTrue(set(reviewed) <= checkpoint_stages)
+                # Rule first-item (2026-10-19): a later item's step-plan and test-spec advance without a review.
                 planning_produces = sorted(event['from'] for event in produces
-                                           if event['from'] in guidance.PLANNING_REVIEW_STAGES)
+                                           if event['from'] in guidance.PLANNING_REVIEW_STAGES
+                                           and not (event['from'] in ('step-plan', 'test-spec')
+                                                    and event['owner'] not in ('root', 'W1')))
                 planning_finishes = sorted(stage for stage in reviewed
                                            if stage in guidance.PLANNING_REVIEW_STAGES)
                 self.assertEqual(planning_produces, planning_finishes)
@@ -418,7 +423,7 @@ class NavigatorDryRunTests(unittest.TestCase):
         reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
                               'system-test-author', 'release-plan', 'implement'},
                     'none': {'system-test-author', 'release-plan', 'implement'}}
-        events = {'stage': {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35, 'send-back': 39,
+        events = {'stage': {'delivery': 33, 'two-work-items': 42, 'blocked-resume': 35, 'send-back': 39,
                             'pause-resume': 35, 'halted': 1},
                   # none drops one finish-improve row for each planning result the option covers
                   'none': {'delivery': 28, 'two-work-items': 37, 'blocked-resume': 30, 'send-back': 32,

@@ -555,13 +555,12 @@ class NavigatorContractTests(unittest.TestCase):
             [entry for entry in observed if entry[1] == "producer"],
             [(stage, "producer", item) for item in (0, 1) for stage in EXPECTED_INNER],
         )
-        # Inner Improve children exist at the planning stages, after each accepted implement step (one step per
-        # item here) and at the final carry-forward.
+        # Inner Improve children exist at the first item's step-plan and test-spec (rule first-item, 2026-10-19),
+        # after each accepted implement step (one step per item here) and at the final carry-forward.
         self.assertEqual(
             [entry for entry in observed if entry[1] == "improve"],
             [("step-plan", "improve", 0), ("test-spec", "improve", 0), ("implement", "improve", 0),
-             ("step-plan", "improve", 1), ("test-spec", "improve", 1), ("implement", "improve", 1),
-             ("carry-forward", "improve", 1)],
+             ("implement", "improve", 1), ("carry-forward", "improve", 1)],
         )
         self.assertFalse(navigator.render(None, root, state).startswith(prefix))
 

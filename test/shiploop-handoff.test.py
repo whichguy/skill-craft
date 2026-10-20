@@ -1365,6 +1365,8 @@ class SameBlockDuplicateTests(LongHomeCase):
 # quote each followed entry by value; the 7 blocks of the stages that read none (discovery, research, spec, carry-forward,
 # release-verify, handoff) are unchanged.  Re-pinned 2026-10-18 by decision 19 (S1.2): the same 26 blocks name the knowledge
 # files KNOWLEDGE/<file> where they said HOME/<file>; with KNOWLEDGE written back as HOME every block hashes as before.
+# Renumbered 2026-10-19 by rule first-item: a later item's step-plan and test-spec start no Improve packet, so the
+# walk's packet numbers after W1 shift; every block's hash, in order, is unchanged.
 SMALL_HOME_FINGERPRINTS: dict = {
     "01-intake": "20425423036e",
     "02-discovery": "e3b0c44298fc",
@@ -1383,22 +1385,22 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "24-verify": "1bd3e4515b2b",
     "25-carry-forward": "644fb96deb86",
     "26-step-plan": "6d1756f3cf4b",
-    "28-test-spec": "a6f458c2ef70",
-    "30-validate-existing": "fd56ae387ab8",
-    "31-implement": "7f5ec4c052ae",
-    "33-test": "3aa81f32adf2",
-    "34-document": "c945cd95cb8d",
-    "35-verify": "fc69229dd486",
-    "36-carry-forward": "50e264bc8291",
-    "38-system-test-author": "9c09062ca617",
-    "40-system-test": "5c1876049e88",
-    "41-product-acceptance": "d957aea6fbd1",
-    "42-release-plan": "d18a852bbe13",
-    "44-release-check": "283571c24c3a",
-    "45-release": "283571c24c3a",
-    "46-release-verify": "3bf63126c3e6",
-    "47-operations": "283571c24c3a",
-    "48-handoff": "7e50c8910839",
+    "27-test-spec": "a6f458c2ef70",
+    "28-validate-existing": "fd56ae387ab8",
+    "29-implement": "7f5ec4c052ae",
+    "31-test": "3aa81f32adf2",
+    "32-document": "c945cd95cb8d",
+    "33-verify": "fc69229dd486",
+    "34-carry-forward": "50e264bc8291",
+    "36-system-test-author": "9c09062ca617",
+    "38-system-test": "5c1876049e88",
+    "39-product-acceptance": "d957aea6fbd1",
+    "40-release-plan": "d18a852bbe13",
+    "42-release-check": "283571c24c3a",
+    "43-release": "283571c24c3a",
+    "44-release-verify": "3bf63126c3e6",
+    "45-operations": "283571c24c3a",
+    "46-handoff": "7e50c8910839",
 }
 
 SMALL_HOME = {

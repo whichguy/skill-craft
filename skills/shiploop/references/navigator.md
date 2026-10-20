@@ -50,7 +50,8 @@ Plan (`step-plan`, `test-spec`), Validate existing (`validate-existing`), Build
 forward (`carry-forward`). Every instantiated producer records a result,
 including a justified N/A output. The planning producers (`spec`,
 `test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`,
-`release-plan`), every accepted `implement` step and the successful
+`release-plan`; `step-plan` and `test-spec` only for the first work item and for an
+item that was sent back), every accepted `implement` step and the successful
 `carry-forward` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
@@ -118,7 +119,7 @@ resolve).
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
-| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`), at most twice per target |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `check` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |

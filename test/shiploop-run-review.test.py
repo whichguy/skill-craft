@@ -5210,8 +5210,8 @@ class StageCatalogTests(unittest.TestCase):
 
     def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
         self.assertEqual({e["stage"] for e in self.catalog if e.get("planningChoice")}, set(self.spec.PLANNING_CHOICE_STAGES))
-        for stage in self.spec.PLANNING_CHOICE_STAGES:  # only a stage the Improve rule `always` covers can be the option's
-            self.assertEqual(self.by_name[stage]["improve"], "always", stage)
+        for stage in self.spec.PLANNING_CHOICE_STAGES:  # only a stage the rule `always` or `first-item` covers can be the option's
+            self.assertIn(self.by_name[stage]["improve"], ("always", "first-item"), stage)
         # A stage whose script check ends it (every inner stage's Until Loop) reads script-run in every mode: the review
         # loop label is for a stage whose only check is its Improve child.
         scripted = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs}

@@ -56,7 +56,11 @@ OUTCOMES = frozenset({"done", "blocked", "send-back", "add-work"})
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
 # and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.
-IMPROVE_RULES = ("always", "last-item", "step")
+# "first-item" starts one only for the first work item, and for an item that was sent back (its redone plan is
+# reviewed): later items follow the pattern the first item's review set (owner, 2026-10-19: in a live four-item run
+# the step plan's review took 5-14 min on every item, and Improve was 42% of the run).  The planning review option governs it as it
+# governs "always".
+IMPROVE_RULES = ("always", "last-item", "step", "first-item")
 
 # A work item whose goal proves wrong while it is being built goes back to its
 # step plan with the evidence, at most MAX_SEND_BACKS times; after that the user
@@ -354,7 +358,7 @@ _ROWS = (
               "commands that cover the changed files.",
         entry_runs=("lint-base", "loop-contract"),
         complete_runs=("loop-terminal",),
-        improve="always",
+        improve="first-item",
         reads=("spec", "test-strategy", "plan", "prepare"),
         # Its duty carries the test-facility, test-decision and design-basis points itself (2026-10-11 dedupe), so
         # the prompt skips those shared texts here; the blocks stay for the navigator's source lookups.
@@ -373,7 +377,7 @@ _ROWS = (
         test="Specify cases before code: positive, failure and boundary.",
         entry_runs=("loop-contract",),
         complete_runs=("loop-terminal",),
-        improve="always",
+        improve="first-item",
         reads=("spec", "test-strategy", "plan", "item:step-plan"),
         blocks=frozenset({"test-facility", "test-decision"}),        outcomes=("done", "blocked"),
     ),
@@ -717,12 +721,14 @@ PLANNING_CHOICE_STAGES = frozenset(("spec", "test-strategy", "plan", "step-plan"
 
 
 def reviewed_stages(mode: str) -> frozenset[str]:
-    """Stages whose accepted result starts an Improve child under planning review ``mode``."""
+    """Stages whose accepted result can start an Improve child under planning review ``mode`` (a "first-item" stage
+    only for the first work item and for an item that was sent back)."""
     if mode not in PLANNING_REVIEW_MODES:
         raise ValueError(f"unknown planning review option: {mode!r}")
+    reviewed = with_improve("always") | with_improve("first-item")
     if mode == "none":
-        return with_improve("always") - PLANNING_CHOICE_STAGES
-    return with_improve("always")
+        return reviewed - PLANNING_CHOICE_STAGES
+    return reviewed
 
 
 def _check_table() -> None:

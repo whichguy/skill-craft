@@ -66,6 +66,9 @@ Done means all of these hold:
 | S2.1 T-D2 | Producer bounds: plan work-item context 2,500, concern rows 1,200, open assumptions per item 1,200; step-plan task 700, criteria 1,200, check 600 | plan and step-plan gates | over-bound refused with the bound named; at-bound accepted |
 | S2.2 A1 | The plan writes concern rows per work item (15 concerns: id, applies, decision or reason, anchor, owner_stage); step-plan maps applies-yes rows to steps and a check, or an owner stage; `concerns` joins `_RESULT_KEYS`; the step-plan done_when gains its condition | stage_spec, navigator result keys and gates, prompts (plan duty) | an unmapped yes row is refused; a docs-only item with all rows no and a reason is accepted |
 | S2.3 C6/G1 | Each platform card has a `## Testing` section; the environment file names its card (`## Targets and runtimes`), or none | references/platforms/*.md; a card lookup in knowledge_home | every card has the heading; the lookup returns the card or none |
+| S2.4 run-3 sizing | The plan duty folds pure scaffolding (a project skeleton, config) into the first item that builds on it, and states the fixed cost of each item when it sizes the queue (chess run 3: W1 only generated the DX project and took 52 min) | plan duty (prompts), with S2.2 | a plan whose first item has no requirement of its own is refused, or names why it stands alone |
+| S2.5 run-3 checks | Step-plan runs each step's focused command once on the item base and refuses one whose failure does not name its case (chess run 3: W1's check asserted before printing and cost a send-back, about 23 min) | step-plan gate, with S2.1 | a check that exits 1 with empty output on the base is refused with the fix named |
+| S2.6 run-3 tool state | A platform card lists its tool-state paths (Salesforce: `.sf/`, `.sfdx/`), and prepare adds them to `.gitignore`, so a tool's own files do not trip the Improve change gate (chess run 3, refusal 5) | references/platforms, prepare duty, with S2.3 | the Salesforce card lists them; prepare's done-when names the ignore |
 
 ## Slice 3: the implement record
 
@@ -88,6 +91,15 @@ Done means all of these hold:
 | S4.5 registry | The placeholder gate reads each template's placeholder list | navigator `_placeholders` | an unfilled form is refused through `complete` |
 | S4.6 ledger | Obligation rows (until-loop rewritten), head-order, packet_view and counters repointed | test/shiploop_e2e | the obligations and head-order suites |
 
+Chess run 3 adds two measures to slice 4: compaction, with 14 in 236 min and about 108 min of re-orienting in total
+(26-91 tool calls after each, packets up to 36.5 KB), is the bounded head's target; and refusals that name the rule
+and the next valid command (E1, E5) target the 63 or more reads of ShipLoop's scripts at the gates.
+
+Outside the slices, from chess run 3: the mutation gate mutates a local copy while the focused commands test the deployed
+one (second case after Battleship); one research call reached 498,847 input tokens (cause unknown); the harness cleanup
+compares the whole org with an old snapshot, so it reports failure when another kept app is present; and the cap for a
+full run is sized again after fixes 1 to 3.
+
 ## Verification and release
 
 - **Per unit:** the unit's tests, fail-first, then the changed suites.
@@ -102,6 +114,17 @@ Done means all of these hold:
     keeping the app in org `de`;
   - its learnings committed;
   - the hosts refreshed.
+
+### TODO (owner, 2026-10-19): rerun chess on Salesforce once every chess-run-3 fix lands
+
+- [ ] When all the fixes from chess run 3 are built (fix 1, the Improve schedule; S2.4 to S2.6; the refusal and duty
+  texts; the mutation gate on hosted platforms; the harness cleanup), release them.
+- [ ] Then rerun the raw full case exactly as run 3 did, so the two compare:
+  `run.py --case chess-salesforce --host grok --model grok-4.7 --effort medium --source marketplace --timeout 14400
+  --keep-platform --output <a fresh durable folder>`, coordinated by a Sonnet agent, org `de`. Check the preflight
+  first: a kept SLChess app blocks it.
+- [ ] Compare with run 3: the stage reached, Improve minutes, compactions and re-orientation calls, reads of ShipLoop's
+  scripts, and per-item time. Journal it in LEARNINGS.md and the chess journal (F11), and update the summary artifact.
 
 ## Risks
 
@@ -154,3 +177,18 @@ Each entry: the unit, its result, what it found, and the evidence. Entries are e
     - `OuterSendBackTests` in shiploop-send-back: the route and rerun, the budget, the packet lines, the status, the
       remedy and the revisions validation;
     - the check-only budget through the real CLI in shiploop-handoff (`SendBackBudgetCliTests`).
+- **2026-10-19, chess run 3 and fix 1 (the Improve schedule; firm for the code, interim for the effect).**
+  - **Run:** the raw full chess-salesforce case on 2.7.0 stopped at the 4 h cap at W4 test-spec. Improve took 98.9 of
+    236 min (52 passes), and the step plan's review took 5-14 min on every item. Evidence:
+    `/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25b/`, LEARNINGS on main `b0bbba4a`, and the summary artifact
+    https://claude.ai/artifact/Noh6HwBwhsKFnCRnDV647s.
+  - **Owner decision:** "do 1". Improve now reviews `step-plan` and `test-spec` only for the first work item and for an
+    item that was sent back (rule `first-item` in the stage table). The planning stages, every implement step, the last
+    carry-forward, system-test-author and release-plan are unchanged. On this run it would have skipped W2-W4's step-plan
+    and W2-W3's test-spec reviews: 36.6 min.
+  - **Tests (fail-first):** `FirstItemReviewTests` in shiploop-improve-schedule (only the first item's two reviews start;
+    a sent-back item's redo is reviewed; a later item advances straight to test-spec; the first item's record is still
+    required). The two expected schedules in that suite were updated.
+  - **Plan rows from the run:** S2.4 (fold scaffolding), S2.5 (a check must fail visibly), S2.6 (tool-state paths), and the
+    slice 4 measures above.
+

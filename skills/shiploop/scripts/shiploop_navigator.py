@@ -462,6 +462,8 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     if result["outcome"] != "done":
         return False
     if stage in stage_spec.reviewed_stages(recorded_planning_review(state)):
+        if stage in stage_spec.with_improve("first-item"):
+            return _first_item_review(state, _current_work_item(state), state["history"])
         return True
     # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option.
     if stage in stage_spec.with_improve("step"):
@@ -471,6 +473,13 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     if "work_items" in result:
         return not result["work_items"]
     return state["work_index"] + 1 >= len(state["work_items"])
+
+
+def _first_item_review(state: Mapping[str, Any], item: Any, earlier: Any) -> bool:
+    """Whether a "first-item" stage's result for ``item`` is reviewed: the run's first work item, or an item whose
+    send-back is in ``earlier`` (the history before that result), so a redone plan is reviewed (owner, 2026-10-19)."""
+    first = state["work_items"][0]["id"] if state["work_items"] else None
+    return item == first or any(row["workitem"] == item and row["outcome"] == "send-back" for row in earlier)
 
 
 def delegation(state: Mapping[str, Any]) -> str:
@@ -1497,10 +1506,13 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     expected = {entry["action"] for entry in history}
     # A test stage recorded as not applicable to its item (no test command, only
     # non-code paths; derived from the item's own step plan) had nothing to review.
-    planning = {entry["action"] for entry in history
+    first_item = stage_spec.with_improve("first-item")
+    planning = {entry["action"] for index, entry in enumerate(history)
                 if entry["stage"] in reviewed and entry["outcome"] == "done"
                 and not (entry["stage"] in item_scope.TEST_STAGES and entry["workitem"]
-                         and item_scope.no_test_item(state, entry["workitem"]))}
+                         and item_scope.no_test_item(state, entry["workitem"]))
+                and not (entry["stage"] in first_item
+                         and not _first_item_review(state, entry["workitem"], history[:index]))}
     _need(planning <= set(records) <= expected,
           "Improve results must belong to completed steps, including every planning-stage result "
           "this run's planning_review option reviews")

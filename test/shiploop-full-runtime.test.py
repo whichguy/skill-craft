@@ -681,6 +681,12 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         review; every other stage (and every other carry-forward outcome)
         advances directly.
         """
+        if stage in ("step-plan", "test-spec") and outcome == "done":
+            # Rule first-item (2026-10-19): reviewed for the first work item, or for an item that was sent back.
+            state = self._state(run)
+            item = state["work_items"][state["work_index"]]["id"]
+            return item == state["work_items"][0]["id"] or any(
+                row["workitem"] == item and row["outcome"] == "send-back" for row in state["history"])
         if stage in CHECKPOINT_STAGES:
             return True
         if stage != "carry-forward" or outcome != "done":

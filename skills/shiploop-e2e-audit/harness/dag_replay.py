@@ -70,6 +70,9 @@ _OUTER = (
 # producer result is accepted directly.  Every accepted (done) implement step also
 # parks for Improve, under either option (owner decision 2026-10-10).
 _STEP_CHECKPOINTS = frozenset(("implement",))
+# Rule first-item (ShipLoop, 2026-10-19): these planning stages are reviewed only for the run's first work item and for
+# an item that was sent back; a later item follows the reviewed pattern.  Declared here, independent of the engine.
+_FIRST_ITEM_CHECKPOINTS = frozenset(("step-plan", "test-spec"))
 _PLANNING_CHECKPOINTS = {
     "stage": frozenset((
         "spec", "test-strategy", "plan", "step-plan", "test-spec",
@@ -250,7 +253,7 @@ def _receipt(stage: str, *, marker: str = "complete") -> dict[str, Any]:
 
 def _path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | None = None,
                    active_owner: str = "W1", terminal_target: str | None = None,
-                   planning_review: str = "stage") -> list[dict[str, Any]]:
+                   planning_review: str = "stage", first_owner: str = "W1") -> list[dict[str, Any]]:
     """Build independent expected edges for the producer/Improve schedule.
 
     A literal checkpoint producer parks its action and a synthetic Improve
@@ -263,7 +266,9 @@ def _path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | N
         target = stages[index + 1] if index + 1 < len(stages) else (terminal_target or "done")
         if stage == "carry-forward":
             item_index += 1
-        checkpoint = stage in _PLANNING_CHECKPOINTS[planning_review] or stage in _STEP_CHECKPOINTS or (
+        later_item = (stage in _FIRST_ITEM_CHECKPOINTS and item_index < len(item_ids)
+                      and item_ids[item_index] != first_owner)
+        checkpoint = (stage in _PLANNING_CHECKPOINTS[planning_review] and not later_item) or stage in _STEP_CHECKPOINTS or (
             stage == "carry-forward" and item_index >= len(item_ids)
         )
         edge: dict[str, Any] = {"expect": target, "status": "done" if target == "done" else "active"}
@@ -681,6 +686,11 @@ def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any, plan
     """
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return False
+    if stage in _FIRST_ITEM_CHECKPOINTS and stage in _PLANNING_CHECKPOINTS[planning_review]:
+        items = before["work_items"]
+        item = items[before["work_index"]]["id"] if before["work_index"] < len(items) else None
+        return item == items[0]["id"] or any(row["workitem"] == item and row["outcome"] == "send-back"
+                                             for row in before["history"])
     if stage in _PLANNING_CHECKPOINTS[planning_review] or stage in _STEP_CHECKPOINTS:
         return True
     if stage != "carry-forward":

@@ -81,9 +81,9 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertEqual(reviewed, [
             ("spec", None), ("test-strategy", None), ("plan", None),
             ("step-plan", "W1"), ("test-spec", "W1"), ("implement", "W1"),
-            ("step-plan", "W2"), ("test-spec", "W2"), ("implement", "W2"), ("carry-forward", "W2"),
+            ("implement", "W2"), ("carry-forward", "W2"),
             ("system-test-author", None), ("release-plan", None),
-        ])
+        ])  # W2's step-plan and test-spec follow W1's reviewed pattern (rule first-item, owner 2026-10-19)
         self.assertEqual(state["status"], "done")
 
     def test_end_review_that_adds_work_moves_to_the_new_last_item(self):
@@ -364,8 +364,9 @@ ITEMS = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
 SCHEDULED_RECORDS = r"every planning-stage result this run's planning_review option reviews"
 # Declared here, independently of stage_spec: the children a two-item run starts, by planning_review.
 # implement's per-step Improve runs in both modes (owner decisions 5 and 6, 2026-10-10).
+# step-plan and test-spec are reviewed for the first item only (rule first-item, owner 2026-10-19, chess run 3).
 STAGE_CHILDREN = [("spec", None), ("test-strategy", None), ("plan", None), ("step-plan", "W1"),
-                  ("test-spec", "W1"), ("implement", "W1"), ("step-plan", "W2"), ("test-spec", "W2"),
+                  ("test-spec", "W1"), ("implement", "W1"),
                   ("implement", "W2"), ("carry-forward", "W2"), ("system-test-author", None), ("release-plan", None)]
 NONE_CHILDREN = [("implement", "W1"), ("implement", "W2"), ("carry-forward", "W2"), ("system-test-author", None),
                  ("release-plan", None)]
@@ -806,6 +807,65 @@ class ReceiptCountTests(unittest.TestCase):
                                         "got 3; leave earlier material reviews on disk"):
                 standalone._receipt({"summary": "s", "review_refs": refs, "check_refs": [refs[0]]},
                                     workspace, "receipt")
+
+
+class FirstItemReviewTests(unittest.TestCase):
+    """step-plan and test-spec are reviewed for the first work item and for an item that was sent back (rule
+    first-item, owner 2026-10-19). Chess run 3 spent 99 of 236 min in Improve; the step plan's review alone took
+    5-14 min on every item, although later items follow the pattern the first item's review set."""
+
+    ITEMS = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}, {"id": "W3", "title": "Third"}]
+
+    def new(self):
+        return nav.new_state("/simulation-only/repo", "Schedule fixture.", improve_skill="")
+
+    def to(self, state, stage, item):
+        """Drive with synthetic results (finishing any Improve child) until ``stage`` of ``item`` is current."""
+        for _ in range(300):
+            if (nav.current_stage(state), nav._current_work_item(state)) == (stage, item) \
+                    and state["active_improve"] is None:
+                return state
+            current, action = nav.current_stage(state), nav.current_action(state)["id"]
+            state = nav.apply(state, action, dict(DONE, work_items=self.ITEMS) if current == "plan" else DONE)
+            if state["active_improve"] is not None:
+                state = nav.finish_improve(state, action, receipt(current))
+        raise AssertionError("did not reach " + stage + " of " + item)
+
+    def test_only_the_first_items_step_plan_and_test_spec_start_a_child(self):
+        state, reviewed = walk(self.new(), plan_items=self.ITEMS)
+        planned = [entry for entry in reviewed if entry[0] in ("step-plan", "test-spec")]
+        self.assertEqual(planned, [("step-plan", "W1"), ("test-spec", "W1")])
+        self.assertEqual([entry for entry in reviewed if entry[0] == "implement"],
+                         [("implement", "W1"), ("implement", "W2"), ("implement", "W3")])
+        nav.validate(state)  # no Improve record is required for a later item's step plan or test spec
+
+    def test_a_sent_back_items_redone_plan_and_spec_are_reviewed(self):
+        state = self.to(self.new(), "implement", "W2")
+        state = nav.apply(state, nav.current_action(state)["id"],
+                          {"outcome": "send-back", "summary": "W2's step plan cannot meet a criterion."})
+        self.assertEqual((nav.current_stage(state), state["active_improve"]), ("step-plan", None))
+        for stage in ("step-plan", "test-spec"):
+            with self.subTest(stage=stage):
+                self.assertEqual(nav.current_stage(state), stage)
+                action = nav.current_action(state)["id"]
+                state = nav.apply(state, action, DONE)
+                self.assertIsNotNone(state["active_improve"], stage + " of a sent-back item is reviewed")
+                state = nav.finish_improve(state, action, receipt(stage))
+        nav.validate(state)
+
+    def test_a_later_items_done_step_plan_advances_straight_to_its_test_spec(self):
+        state = self.to(self.new(), "step-plan", "W2")
+        state = nav.apply(state, nav.current_action(state)["id"], DONE)
+        self.assertIsNone(state["active_improve"])
+        self.assertEqual((nav.current_stage(state), nav._current_work_item(state)), ("test-spec", "W2"))
+
+    def test_a_missing_record_for_the_first_items_step_plan_is_still_refused(self):
+        state, _ = walk(self.new(), plan_items=self.ITEMS)
+        action = next(e["action"] for e in state["history"] if e["stage"] == "step-plan" and e["workitem"] == "W1")
+        broken = dict(state, improve_results={key: value for key, value in state["improve_results"].items()
+                                              if key != action})
+        with self.assertRaisesRegex(nav.NavigatorError, SCHEDULED_RECORDS):
+            nav.validate(broken)
 
 
 if __name__ == "__main__":

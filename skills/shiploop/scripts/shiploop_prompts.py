@@ -75,7 +75,7 @@ DELEGATIONS = (INLINE, ASK_AGENT)
 # check).  Planning stages write the contracts later work is built on: a sentence,
 # example or expected result there can look done and still be wrong.  Each accepted
 # implement step has its own rule ("step"), whatever the planning review option says.
-PLANNING_REVIEW_STAGES = stage_spec.with_improve("always")
+PLANNING_REVIEW_STAGES = stage_spec.with_improve("always") | stage_spec.with_improve("first-item")
 
 INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit its callback
@@ -489,7 +489,8 @@ source is missing, report the gap rather than inventing a locator or omitting it
 A justified N/A is still an output that states
 what was assessed and why it does not apply. ShipLoop starts an Improve child
 after planning results (spec, test-strategy, plan, step-plan, test-spec,
-system-test-author, release-plan), after each accepted implement step, and after
+system-test-author, release-plan; step-plan and test-spec only for the first work
+item and after a send-back), after each accepted implement step, and after
 the carry-forward that leaves no work item pending. Run only the checks this step's change needs. When this step changes no
 product file, its check is the named command, its exit code and its required output
 substrings: record them, cite the earlier accepted stage that ran the same command,
@@ -2343,7 +2344,8 @@ _NONE_REVIEWED = ", ".join(_graph_order(stage_spec.reviewed_stages("none")))
 _NO_REVIEW_SWAPS = (
     ("*", """\
 after planning results (spec, test-strategy, plan, step-plan, test-spec,
-system-test-author, release-plan), after each accepted implement step, and after""",
+system-test-author, release-plan; step-plan and test-spec only for the first work
+item and after a send-back), after each accepted implement step, and after""",
      "after planning results (" + _NONE_REVIEWED + "),\n"
      "after each accepted implement step, and after"),
 )

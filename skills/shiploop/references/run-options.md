@@ -84,8 +84,9 @@ pass).
 `--planning-review stage|none` at `init` or `workspace start` records the run option
 `planning_review` (default `stage`): which planning results start an Improve child.
 `stage` starts one after each of `spec`, `test-strategy`, `plan`, `step-plan` and
-`test-spec`, as every run did before the option existed; its packets are the same as
-before. With `--planning-review none` no Improve child starts after any of the five:
+`test-spec`; `step-plan` and `test-spec` are reviewed only for the first work item and
+for an item that was sent back, and later items follow the pattern that review set
+(rule `first-item`, 2026-10-19). With `--planning-review none` no Improve child starts after any of the five:
 each result is accepted on ShipLoop's own checks at `complete` (cited files exist, the
 plan's assumption list, the step plan's commands, criteria and paths, the knowledge
 home's checks), the graph advances, and no Improve child reviews it in this run. The

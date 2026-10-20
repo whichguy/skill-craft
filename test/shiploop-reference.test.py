@@ -104,7 +104,8 @@ class ReviewScheduleSentenceTests(unittest.TestCase):
     def listed(self, text: str) -> list:
         found = re.search(r"starts an Improve child after planning results \(([^)]*)\)", _rules_section(text))
         self.assertTrue(found, "the rules section names no planning results")
-        return found.group(1).split(", ")
+        # After "; " the stage mode says when the first-item stages are reviewed (rule first-item, 2026-10-19).
+        return found.group(1).split(";")[0].split(", ")
 
     def test_the_listed_planning_results_are_the_stages_the_mode_reviews_in_graph_order(self):
         for mode in stage_spec.PLANNING_REVIEW_MODES:
@@ -116,6 +117,8 @@ class ReviewScheduleSentenceTests(unittest.TestCase):
     def test_none_lists_the_two_planning_results_it_still_reviews_and_stage_lists_seven(self):
         self.assertEqual(self.listed(self.render("none", "inline")), ["system-test-author", "release-plan"])
         self.assertEqual(len(self.listed(self.render("stage", "inline"))), 7)
+        self.assertIn("step-plan and test-spec only for the first work item and after a send-back",
+                      " ".join(_rules_section(self.render("stage", "inline")).split()))
 
     def test_the_rest_of_the_rules_text_is_the_same_in_both_modes(self):
         """Only the schedule's list differs: nothing else in the section is swapped."""

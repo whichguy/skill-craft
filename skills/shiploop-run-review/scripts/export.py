@@ -479,7 +479,7 @@ SCHEMA = {
                "stages": (("items", {"stage": (S, True), "purpose": (S, True),
                                      "exitCheck": (("enum", EXIT_CHECKS), True),
                                      "completeRuns": (("list", S), False),
-                                     "improve": (("enum", ("always", "last-item", "step")), False),
+                                     "improve": (("enum", ("always", "first-item", "last-item", "step")), False),
                                      "planningChoice": (B, False), "reads": (("list", S), True)}), False),
                # config/stages-v4 only: the 17-stage phase-3..5 expectation texts (defaults/stages-v4.json), for 17-stage runs
                "phaseTexts": (("map", ("object", {"title": (S, True), "short": (S, True), "text": (S, True)})), False)},
@@ -3696,7 +3696,7 @@ def exit_check(complete_runs, improve) -> str:
 
     `script-run`: the row has `complete_runs`, so the script runs a gate or the recorded commands (lint gate, test loop,
     the focused or every test command, the quality loop's terminal check) before it accepts done. Else `review loop`:
-    the row has an `improve` rule (`always`, `last-item` or `step`), so an Improve child reviews the result before the
+    the row has an `improve` rule (`always`, `first-item`, `last-item` or `step`), so an Improve child reviews the result before the
     graph advances. Else `model judgement`: the model decides against the row's `done_when` and nothing script-run or
     reviewed follows. A row with both is `script-run`: every inner stage runs its Until Loop's terminal check
     (`loop-terminal`), and implement (`step`) and carry-forward (`last-item`) also have an Improve child. The mode is not
