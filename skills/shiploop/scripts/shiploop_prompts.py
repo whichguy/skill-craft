@@ -268,6 +268,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
     ),
     "implement": (
+        ("Implement considerations", "implement-guidance.md#considerations"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("House-style guidance", "house-style.md#match-while-building"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
@@ -675,6 +676,15 @@ file cold with no run history. Every rule serves that reader.
    share one meaning, not merely similar code: a near-copy of existing logic
    is a defect, and so is a parameter that fuses two different rules. State
    the option chosen and why in one line.
+10. Concurrency only for a shown gain: bounded, ordered where it matters, every
+    task's error surfaced.
+11. Platform first: use what the runtime, platform or a service provides before
+    writing infrastructure.
+12. Bound every remote call: a timeout, idempotent-only retries with backoff and
+    a limit, paged lists, the contract checked.
+13. Configuration, not constants: no hard-coded URLs, IDs, credentials, limits
+    or environment names.
+14. Seams for determinism: inject the clock, randomness and I/O.
 """
 
 
@@ -1385,11 +1395,12 @@ preparatory commit); a mismatch there is a send-back.
    accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
    reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
    change one only when a criterion says to.
-2. **Build.** Each iteration edits first. Follow the step plan's Coding decision selection (Coding decision guide),
-   reading only its matching sections; check current code, versions and consumers before reusing or augmenting a
-   unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
-   and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
-   it); the summary says per skill whether you used it, and why not.
+2. **Build.** Each iteration edits first. Before the first edit, settle each consideration the step touches
+   (Implement considerations). Follow the step plan's Coding decision selection (Coding decision guide), reading only
+   its matching sections; check current code, versions and consumers before reusing or augmenting a unit. Read
+   history or earlier reviews only when a check fails or a question needs one section. Apply Code craft and
+   House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow it);
+   the summary says per skill whether you used it, and why not.
 3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
    exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
    command.
