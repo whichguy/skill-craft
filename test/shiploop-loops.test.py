@@ -794,7 +794,7 @@ class NavigatorLoopTests(fx.RunDriver):
         with self.assertRaisesRegex(nav.NavigatorError, "the implement loop has not run"):
             self.submit(fx.DONE)
         self.run_loop([MATERIAL, dict(MATERIAL, exit_assessment="satisfied", continuation_assessment="allowed")])
-        self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())]))
+        self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())], learned=["none"], decisions=["none"]))
         # Accepted: the step's Improve child (owner decision 6) now reviews it.
         self.assertEqual(self.state()["active_improve"]["stage"], "implement")
 

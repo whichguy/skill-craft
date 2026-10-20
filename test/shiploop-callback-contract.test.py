@@ -81,6 +81,8 @@ LIVING_SPEC = "# Spec\n\n## Requirements\n\n- R-1: built.txt exists.\n"
 RESULTS = {
     "step-plan": dict(STEP_PLAN, follows=[]),
     "test-spec": {"test_cases": TEST_CASES, "assumptions": []},
+    # An inline step's notes (build plan S3.2): ShipLoop writes them into the step's commit.
+    "implement": {"learned": ["none"], "decisions": ["none"]},
     "verify": {"assumptions": []},
     "carry-forward": {"skill": SKILL_NONE, "assumptions": []},
     "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}], "assumptions": []},

@@ -4148,6 +4148,9 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         return self.cli(*argv, *(["--check-only"] if check_only else []))
 
     def accept(self, result: dict, **options: Any) -> None:
+        if navigator.current_stage(self.state()) == "implement" and result.get("outcome") == "done":
+            # An inline step's notes (build plan S3.2), which its commit carries.
+            result = {"learned": ["none"], "decisions": ["none"], **result}
         done = self.submit(result, **options)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
@@ -4280,6 +4283,60 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertIn("ShipLoop recorded this stage without running it", outcomes["document"])
         # The documentation-only item also has no test command, so the test stage is recorded the same way.
         self.assertTrue(outcomes["test"].startswith(item_scope.NOT_APPLICABLE), outcomes["test"])
+
+    def test_an_accepted_inline_step_is_committed_with_its_notes_before_its_improve_stage(self) -> None:
+        # Build plan S3.2: each accepted inline step is its own commit, made at the producer's complete (the Improve
+        # stage after it has not started), with the Key learnings, Key decisions, Evidence and Related commits sections.
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        base = self.git("rev-parse", "HEAD").strip()
+        (self.repo / "notes.md").write_text("# Notes\n")
+        self.accept(result(summary="Wrote notes.md.", headline="Add the notes file.",
+                           learned=["The notes file needs no build step."],
+                           decisions=["Plain Markdown, no front matter: nothing reads metadata."], learned_from=[base]))
+        subject, body = self.git("log", "-1", "--format=%s%x00%b").split("\0")
+        self.assertEqual(subject, "feat(W1/S1): Add the notes file")
+        for line in ("Wrote notes.md.", "Key learnings:\n- The notes file needs no build step.",
+                     "Key decisions:\n- Plain Markdown, no front matter: nothing reads metadata.", "Evidence:\n- ",
+                     "Related commits:\n- " + base):
+            self.assertIn(line, body)
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), ["notes.md"])
+        # The step's Improve stage is pending: the commit came first, so the review's diff is its own.
+        child = self.state()["active_improve"]
+        self.assertEqual(child["stage"], "implement")
+        self.assertEqual(navigator.step_commit(self.run_dir, child["action_id"]), self.git("rev-parse", "HEAD").strip())
+
+    def test_step_notes_are_required_and_learned_from_must_be_reachable(self) -> None:
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        (self.repo / "notes.md").write_text("# Notes\n")
+        head = self.git("rev-parse", "HEAD")
+        missing = self.submit(result(summary="Wrote notes.md."))
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("Add learned and decisions to", missing.stdout + missing.stderr)
+        stray = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"],
+                                   learned_from=["0123456789abcdef0123456789abcdef01234567"]))
+        self.assertNotEqual(stray.returncode, 0)
+        self.assertIn("Not reachable from HEAD: 0123456789abcdef0123456789abcdef01234567",
+                      stray.stdout + stray.stderr)
+        self.assertEqual(self.git("rev-parse", "HEAD"), head)  # nothing committed on a refusal
+
+    def test_the_look_back_quotes_the_last_two_commits_that_are_not_shiploop_records(self) -> None:
+        self.start()
+        for name, subject in (("one.txt", "feat(W0/S1): first"), ("two.txt", "fix: second"),
+                              ("docs-note.txt", "docs(shiploop): record a run's knowledge")):
+            (self.repo / name).write_text(name)
+            self.git("add", name)
+            self.git("commit", "-qm", subject + "\n\nKey learnings:\n- " + name)
+        lines = navigator.look_back_lines(self.state(), "implement")
+        text = "\n".join(lines)
+        self.assertIn("fix: second", text)
+        self.assertIn("feat(W0/S1): first", text)
+        self.assertNotIn("docs(shiploop)", text)
+        self.assertNotIn("base", text.split("\n", 1)[1])        # two commits only
+        self.assertEqual(navigator.look_back_lines(self.state(), "test"), [])
 
     def test_complete_check_only_runs_the_gates_and_accepts_nothing(self) -> None:
         self.start()

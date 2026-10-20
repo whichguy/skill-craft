@@ -94,6 +94,10 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
     if result.get("outcome") != "done":
         return result
     repo = Path(str(state["repo"]))
+    if stage == "implement":
+        # An inline step's notes (build plan S3.2), which its commit carries; none to record in a fixture.
+        result.setdefault("learned", ["none"])
+        result.setdefault("decisions", ["none"])
     if stage == "step-plan":
         if "test_commands" not in result:
             result.update(test_commands=[], test_commands_na="Synthetic fixture; no test commands.")

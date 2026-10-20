@@ -351,7 +351,8 @@ class SeededRunsRunTheGatesTests(RealCompleteDriver):
             self.assertNotIn("skipped", record, record)
         mutation = next(record for record in gates if record["schema"] == "shiploop-test-mutation/v1")
         self.assertTrue(mutation["mutants"] and mutation["killed"] == len(mutation["mutants"]), mutation)
-        self.assertTrue(self.subjects()[0].startswith("feat: W1 "), self.subjects())
+        # ShipLoop committed the change as the item's one step (build plan S3.2); verify's item commit had nothing left.
+        self.assertTrue(self.subjects()[0].startswith("feat(W1/S1): "), self.subjects())
         self.assertEqual(packets.build(self.out)["effectiveness"]["gates"], {"records": 2, "skipped": []})
 
     def test_the_same_drive_on_a_run_seeded_without_the_base_skips_both_gates_and_commits_nothing(self):
@@ -404,7 +405,8 @@ class SeededCaseFixtureRunsTheGatesTests(RealCompleteDriver):
         # The new test fails on the item's base, as a regression test for the bug must; the suite around it passes.
         self.assertEqual([(row["command"], row["status"]) for row in base["runs"]],
                          [("node --test test/paginate.test.js", "red"), ("node --test", "counted")])
-        self.assertTrue(self.subjects()[0].startswith("feat: W1 "), self.subjects())
+        # ShipLoop committed the change as the item's one step (build plan S3.2); verify's item commit had nothing left.
+        self.assertTrue(self.subjects()[0].startswith("feat(W1/S1): "), self.subjects())
 
 
 class GatesNotExercisedLineTests(SliceCase):

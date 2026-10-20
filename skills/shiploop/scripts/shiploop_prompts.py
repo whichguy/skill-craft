@@ -1407,9 +1407,11 @@ preparatory commit); a mismatch there is a send-back.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
-4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. Record a
-   departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions, and a newly working command in
-   KNOWLEDGE/environment.md ## Commands.
+4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. `learned`
+   and `decisions`: what this step taught the steps after it and the choices it made, with why (["none"] when
+   nothing); an inline step's commit carries them, and later packets quote it. `learned_from`: the look-back commits
+   you used. Record a departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions,
+   and a newly working command in KNOWLEDGE/environment.md ## Commands.
 5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
    before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
    completion uses its recorded safe fallback or correction.

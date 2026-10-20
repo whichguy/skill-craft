@@ -788,6 +788,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         # The consumer contract's hand-off fields (2026-10-11): what each consumer quotes.
         if stage == "step-plan":
             result.setdefault("follows", [])
+        if stage == "implement":
+            result.setdefault("learned", ["none"])        # an inline step's notes (build plan S3.2)
+            result.setdefault("decisions", ["none"])
         if stage == "test-spec":
             result.setdefault("test_cases", [{"id": FOCUSED_ID, "criterion": "C1", "requirement": "R-1",
                                               "oracle": "the focused command", "red": "fails before the change",

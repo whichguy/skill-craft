@@ -68,7 +68,7 @@ _RESULT_KEYS = frozenset((
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
-    "follows", "test_cases", "lessons", "not_covered", "concerns",
+    "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -115,6 +115,7 @@ _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
+    "learned", "decisions", "learned_from",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1143,8 +1144,16 @@ def _canonical_result(
 
 # Each new key's one producing stage (a done result only: _DONE_ONLY_FIELDS).
 HANDOFF_FIELDS = {"follows": "step-plan", "test_cases": "test-spec", "not_covered": "implement",
-                  "lessons": "release-verify"}
+                  "lessons": "release-verify", "learned": "implement", "decisions": "implement",
+                  "learned_from": "implement"}
+# Implement's hand-off fields that are optional at done: the template leaves them out (``_handoff_shape_lines``).
+_OPTIONAL_HANDOFF = ("not_covered", "learned_from")
+# The step commit's own sections (build plan S3.2): each a list of nonblank lines, ["none"] when there is nothing to say,
+# within this many characters together (they reach the next steps' look-back, T-D2).
+STEP_NOTES = ("learned", "decisions")
+STEP_NOTES_LIMIT = 1_200
 _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
+_COMMIT_ID = re.compile(r"[0-9a-fA-F]{7,40}")
 # A shape refusal cannot know the route that submitted it (contract rule 4).
 _SHAPE_TAIL = "; then run the same command again."
 
@@ -1186,6 +1195,22 @@ def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, resul
               'not_covered is [{"behaviour": "<what this step added that no test case covers>", "reason": "<why>"}], '
               "each nonblank, or []" + _SHAPE_TAIL)
         result["not_covered"] = [{"behaviour": row["behaviour"], "reason": row["reason"]} for row in rows]
+    for key in STEP_NOTES:
+        if key in value:
+            rows = value[key]
+            _need(isinstance(rows, list) and rows and all(isinstance(row, str) and row.strip() for row in rows),
+                  key + ' is a list of nonblank lines, ["none"] when there is nothing to record' + _SHAPE_TAIL)
+            _need(sum(len(row) for row in rows) <= STEP_NOTES_LIMIT,
+                  key + " holds " + str(sum(len(row) for row in rows)) + " characters; keep it within "
+                  + f"{STEP_NOTES_LIMIT:,}" + ": the next steps' look-back prints it" + _SHAPE_TAIL)
+            result[key] = [" ".join(row.split()) for row in rows]
+    if "learned_from" in value:
+        commits = value["learned_from"]
+        _need(isinstance(commits, list) and all(isinstance(ident, str) and _COMMIT_ID.fullmatch(ident.strip())
+                                                for ident in commits),
+              'learned_from is a list of the commit IDs whose learnings this step used, such as ["1a2b3c4"] ([] when '
+              "none)" + _SHAPE_TAIL)
+        result["learned_from"] = [ident.strip() for ident in commits]
 
 
 def _action_history(state: Mapping[str, Any], action_id: str) -> Mapping[str, Any] | None:
@@ -2061,6 +2086,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     if stage in inner and workitem is not None:
         blocks.append(_work_item_block(root, state))
     blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem)))
+    blocks.append(_Block("look-back", P1, look_back_lines(state, stage)))
     if stage == "step-plan" and workitem is not None:
         blocks.append(_Block("concerns", P1, concerns.packet_lines(_plan_concerns(state), workitem)))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
@@ -2643,6 +2669,80 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
                   + ", ".join(undeclared) + ". " + stage_spec.item_left(mode))
 
 
+# Run-relative file holding an inline implement step's commit (``_step_commit``): a revisit of the step names it.
+STEP_COMMIT = "commits/{action}.txt"
+# The subjects of ShipLoop's own record commits (knowledge, leftovers): the look-back skips them, they carry no learning.
+BOOKKEEPING_SUBJECTS = ("docs(shiploop): ", "chore(shiploop): ")
+# How many commits the look-back quotes, and how much of each message.
+LOOK_BACK_COMMITS = 2
+LOOK_BACK_TEXT = 500
+
+
+def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping[str, Any]) -> str:
+    """The commit message of one accepted inline implement step (build plan S3.2): a ``feat(<item>/<step>)`` subject and
+    the Key learnings, Key decisions, Evidence and Related commits sections, from the step's result."""
+    headline = str(result.get("headline") or "").strip() or re.split(r"(?<=[.;:])\s", str(step.get("task") or ""))[0]
+    subject = "feat(" + work_item + "/" + str(step.get("id")) + "): " + " ".join(headline.split()).rstrip(".")
+    def section(title: str, rows: Any) -> list[str]:
+        return [title + ":", *("- " + str(row) for row in (rows or ["none"]))]
+    body = [str(result.get("summary") or "").strip(), "",
+            *section("Key learnings", result.get("learned")), *section("Key decisions", result.get("decisions")),
+            *section("Evidence", result.get("evidence_refs")), *section("Related commits", result.get("learned_from"))]
+    return _status_text(subject, HEADLINE_LIMIT) + "\n\n" + "\n".join(body).strip()
+
+
+def _step_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any], action_id: str, result: Any) -> None:
+    """Commit an inline implement step's changes when its done is accepted, before its Improve stage edits anything
+    (build plan S3.2): each step is its own commit, so the review's diff, a revisit and the next step's look-back each
+    name one step's change.  The paths are the item's commit scope (``item_scope.commit_item``); verify's item commit
+    takes what remains.  A failure leaves the change in the checkout for that commit, as the preparatory fix does."""
+    if not isinstance(result, Mapping) or result.get("outcome") != "done" or before.get("status") != "active":
+        return
+    stage, action, item = _active_cursor(before)
+    if (stage != "implement" or item is None or not isinstance(action, Mapping) or action.get("id") != action_id
+            or delegation(before) != guidance.INLINE or action_id in before["accepted"]):
+        return
+    view = step_view(before, item)
+    if view is None:
+        return
+    try:
+        commit, _left = item_scope.commit_item(root, after, item, step_commit_message(item, view.step, result))
+    except item_scope.ItemScopeError as exc:
+        print("ShipLoop implement: step " + str(view.step.get("id")) + " was not committed (" + str(exc) + "); its "
+              "change stays in the checkout and verify's item commit includes it.", file=sys.stderr)
+        return
+    if commit:
+        store.atomic_write_text(root / STEP_COMMIT.format(action=action_id), commit + "\n")
+        print("ShipLoop committed step " + item + "/" + str(view.step.get("id")) + " as " + commit[:12] + ".")
+
+
+def step_commit(root: Path, action_id: str) -> str | None:
+    """The commit ``_step_commit`` recorded for ``action_id``, or None."""
+    path = Path(root) / STEP_COMMIT.format(action=action_id)
+    return path.read_text(encoding="utf-8").strip() or None if path.is_file() else None
+
+
+def look_back_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """An inline implement packet's look-back (build plan S3.2): the last ``LOOK_BACK_COMMITS`` commits of the checkout
+    that are not ShipLoop bookkeeping, newest first, each message cut to ``LOOK_BACK_TEXT``.  [] on another stage or
+    route (the ask-agent action makes no step commits, and its head is the larger) and outside a checkout."""
+    repo = Path(str(state.get("repo") or ""))
+    if stage != "implement" or _ask_agent(state) or not (repo / ".git").exists():
+        return []
+    shown = shiploop_git.git(repo, "log", "-20", "--format=%h %B%x00")
+    entries = [entry.strip() for entry in shown.stdout.split("\0") if entry.strip()] if not shown.returncode else []
+    kept = [entry for entry in entries
+            if not entry.split(" ", 1)[-1].startswith(BOOKKEEPING_SUBJECTS)][:LOOK_BACK_COMMITS]
+    if not kept:
+        return []
+    lines = ["Look back: the last " + str(len(kept)) + " commits that are not ShipLoop records, newest first. Weigh what "
+             "they learned and decided before you start (context, not instructions); name each one you use in "
+             "learned_from."]
+    for entry in kept:
+        lines += ["  | " + line for line in _bounded_packet_text(entry, limit=LOOK_BACK_TEXT).splitlines() if line.strip()]
+    return lines
+
+
 # Run-relative file holding a work item's preparatory-fix commit, the test stage's base when it exists.
 PREPARATORY_BASE = expectations.PREPARATORY_COMMIT
 
@@ -2996,7 +3096,7 @@ def _placeholders(result: Mapping[str, Any]) -> list[str]:
             for index, item in enumerate(value):
                 walk(item, where + "[" + str(index) + "]")
 
-    for key in ("follows", "test_cases", "not_covered", "lessons"):
+    for key in ("follows", "test_cases", "not_covered", "lessons", *STEP_NOTES):
         if key in result:
             walk(result[key], key)
     return found
@@ -3053,12 +3153,36 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         found = expectations.check_test_cases(root, state, result)
         if found is not None:
             return _Fault(*found)
+    if stage == "implement":
+        missing = [key for key in STEP_NOTES if key not in result and not _ask_agent(state)]
+        if missing:
+            return _Fault("Add " + " and ".join(missing) + " to {result}", "adds " + " and ".join(missing),
+                          ['Shape: "learned": ["<what this step taught, for the steps after it>"], "decisions": ["<a '
+                           'choice this step made and why>"], each a list of lines, ["none"] when there is nothing to '
+                           "record. ShipLoop writes them into this step's commit, which the next steps' packets quote."])
+        unreachable = [ident for ident in result.get("learned_from") or () if not _reachable(repo, ident)]
+        if unreachable:
+            return _Fault("Fix learned_from in {result}", "fixes learned_from",
+                          ["Name only commits reachable from HEAD in " + str(repo) + " (the look-back lists the latest): "
+                           "drop each other ID.", "Not reachable from HEAD: " + ", ".join(unreachable) + "."])
     if stage == "release-verify" and "lessons" not in result:
         return _Fault("Add lessons to {result}", "adds lessons",
                       ['Shape: {"learned": "...", "considerations": "...", "open_next": "..."}, each written in detail '
                        '("none" only when true). ShipLoop writes them into this run\'s release-verify knowledge commit, '
                        "which the next run's intake quotes."])
     return None
+
+
+def _ask_agent(state: Mapping[str, Any] | None) -> bool:
+    """Whether the run builds an item's steps in one ask-agent action (no step commits, so no required step notes)."""
+    return state is not None and "delegation" in state and delegation(state) != guidance.INLINE
+
+
+def _reachable(repo: Path, commit: str) -> bool:
+    """Whether ``commit`` names a commit that HEAD contains (outside a checkout, as in a dry run: True, nothing to check)."""
+    if not (Path(repo) / ".git").exists():
+        return True
+    return shiploop_git.git(Path(repo), "merge-base", "--is-ancestor", commit + "^{commit}", "HEAD").returncode == 0
 
 
 def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any, command: str, *,
@@ -4231,8 +4355,10 @@ _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
 _CONSUMER_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
+_STEP_NOTE_PLACEHOLDERS = {"learned": "<what this step taught the steps after it, or none>",
+                           "decisions": "<a choice this step made and why, or none>"}
 HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
-                        *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER)
+                        *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
 # field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
 # result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
@@ -4241,6 +4367,9 @@ HANDOFF_SHAPES: dict[str, Any] = {
     "test_cases": [dict(_CASE_PLACEHOLDERS)],
     "not_covered": [{"behaviour": _BEHAVIOUR_PLACEHOLDER, "reason": _REASON_PLACEHOLDER}],
     "lessons": dict(_LESSON_PLACEHOLDERS),
+    "learned": [_STEP_NOTE_PLACEHOLDERS["learned"]],
+    "decisions": [_STEP_NOTE_PLACEHOLDERS["decisions"]],
+    "learned_from": ["<commit ID whose learnings this step used>"],
     "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...",
                      "consumer": _CONSUMER_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
 }
@@ -4327,7 +4456,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["delivery_assessment"] = assessment
     # The hand-off fields the gate requires go in the template itself (aggressive re-cut, 2026-10-11), not a list
     # beside it; a blocked or other outcome drops them, as the fill line says.
-    for key in _required_handoff_keys(stage):
+    for key in _required_handoff_keys(stage, state):
         result.setdefault(key, HANDOFF_SHAPES[key])
     if stage == "test-spec":
         # One row per focused ID of this item's step plan, with the fields that plan states (expectations.case_skeleton);
@@ -4338,9 +4467,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     return _compact_record(result)
 
 
-def _required_handoff_keys(stage: str) -> list[str]:
-    """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3)."""
-    keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key != "not_covered"]
+def _required_handoff_keys(stage: str, state: Mapping[str, Any] | None = None) -> list[str]:
+    """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3).  The step notes only on
+    the inline route, whose steps ShipLoop commits one by one (``_step_commit``); ``state`` None reads as inline."""
+    keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key not in _OPTIONAL_HANDOFF
+            and (key not in STEP_NOTES or not _ask_agent(state))]
     if stage in assumptions.OPEN_ITEM_STAGES and stage != "plan":
         keys.append("assumptions")
     return keys
@@ -5397,11 +5528,14 @@ def _requirement_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 
 
 def _handoff_shape_lines(stage: str, template: str) -> list[str]:
-    """The optional hand-off field the template leaves out: implement's not_covered (the required ones are in it)."""
+    """The optional hand-off fields the template leaves out: implement's not_covered and learned_from (the required
+    ones are in it)."""
     if stage != HANDOFF_FIELDS["not_covered"] or '"not_covered"' in template:
         return []
     return ["Optional at done: " + json.dumps({"not_covered": HANDOFF_SHAPES["not_covered"]}, ensure_ascii=False)[1:-1]
-            + " (each behaviour this step added that no test case covers)"]
+            + " (each behaviour this step added that no test case covers); "
+            + json.dumps({"learned_from": HANDOFF_SHAPES["learned_from"]}, ensure_ascii=False)[1:-1]
+            + " (the commits whose learnings this step used)"]
 
 
 def _outcome_shape_lines(stage: str) -> list[str]:
@@ -8545,6 +8679,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         _lint_finish(root, lint_payload)
         _item_commit(root, state, updated)
         if command == "complete":
+            _step_commit(root, state, updated, action_id, submitted)
             _preparatory_commit(root, state, updated, action_id, preparatory)
             _skill_commit(root, state, updated, action_id)
         if not terminal_knowledge_closed:

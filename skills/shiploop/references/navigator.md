@@ -80,7 +80,7 @@ flowchart TD
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor; every stage runs one Until Loop]
     SP[step-plan ✦ steps, commands, expectations] --> TS[test-spec ✦]
     TS --> VE[validate-existing ⛔ expectation checks; all match: no packet]
-    VE --> IM[implement, per step ✦ ⛔ lint gate]
+    VE --> IM[implement, per step ✦ ⛔ lint gate; step commit]
     IM -->|next step| IM
     IM --> TE[test ⛔ lint gate, base run, candidate run]
     TE --> DOC[document, only when behavioural]
@@ -668,13 +668,24 @@ system-test, outer Improve and release planning read it and reconcile actual
 readiness with the remaining route. Script-enforced queue order is not proof
 that the host included all prerequisites or actually prepared a remote target.
 
+### Step commits
+
+On the inline route ShipLoop commits each accepted `implement` step before its
+Improve child starts, as `feat(<item>/<step>): <headline>` with the step's
+summary and its Key learnings, Key decisions, Evidence and Related commits
+sections, from the result's `learned`, `decisions`, `evidence_refs` and
+`learned_from`. Each inline implement packet quotes the last two commits that
+are not ShipLoop records (knowledge or leftover commits) as its look-back. A
+redone step after a send-back names its own previous result and commit.
+
 The inner path makes post-code quality visible: the expectations are checked
 before any change, each implement step is reviewed by its own Improve child,
 the tests are written from the test spec and must fail on the item's base and
 pass on the candidate, documentation follows observed behaviour, and `verify`
 reruns every command and reviews the whole diff with justified fixes and
-rechecks. ShipLoop's item commit at `verify` is authorized Git work in the
-execution checkout; it does not assert a merge, push, or deployment. `carry-forward`
+rechecks. ShipLoop's step commits at `implement` and its item commit at
+`verify` are authorized Git work in the execution checkout; they do not assert
+a merge, push, or deployment. `carry-forward`
 reviews broad scope, dependencies, future system-test requirements, and the
 skill decision without pretending future work is complete.
 

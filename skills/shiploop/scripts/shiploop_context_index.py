@@ -60,6 +60,7 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/notes/", "your notes; notes/<action>.md is the optional pass log", "after a reset, if the log exists"),
     ("RUN/scratch/", "your temporary files, in place of /tmp", "you need one"),
     ("RUN/loops/", "each inner stage's Until Loop contract and receipt", "a loop is interrupted"),
+    ("RUN/commits/", "each inline step's commit", "a step is redone"),
     ("RUN/tests/", "ShipLoop's test runs: base, verify and each implement step's Proof", "implement, test and verify"),
     ("RUN/lint/", "lint output for the item's changes", "a lint verdict is cited"),
     ("RUN/improve/", "per reviewed action: receipt, review files, lessons", "an Improve stage"),

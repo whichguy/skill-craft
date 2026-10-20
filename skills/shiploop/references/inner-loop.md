@@ -29,7 +29,8 @@ Each work item runs 8 stages in 5 phases (`INNER` in
 - `document` is issued only when the item's real diff touches a code or test
   path (`item_scope.behavioural`); otherwise ShipLoop records it as not applicable.
 - `verify` reruns every recorded command, traces each changed entry point and
-  reviews the whole diff. When `verify` is accepted ShipLoop commits the item.
+  reviews the whole diff. When `verify` is accepted ShipLoop commits the rest
+  of the item ([step commits](navigator.md#step-commits) came first).
 - `carry-forward` updates the knowledge home and the queue and records a
   [skill decision](#carry-forward-skill-decision).
 
