@@ -424,15 +424,17 @@ class EvidenceTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             shown = Path(tmp) / "r3-battleship-sonnet"
             self.copy_run("r3-battleship-sonnet", shown)
-            record = next((shown / ".shiploop-runs" / "work-1" / "run" / "tests").glob("*-verify1.md"))
-            action = record.name.split("-verify")[0]
-            for sibling in (shown / ".shiploop-runs" / "work-1" / "run").rglob(f"{action}*"):
+            run_dir = shown / ".shiploop-runs" / "work-1" / "run"
+            # The test-green record, by stage: glob order differs by filesystem, and the first record on Linux was
+            # static-checks, a stage this reader does not judge (see the next test), so CI failed where macOS passed.
+            stages = {h["action"]: h["stage"] for h in metrics.engine_state(run_dir)["history"]}
+            action = next(name for name in (path.name.split("-verify")[0] for path in sorted(run_dir.glob("tests/*-verify1.md")))
+                          if stages.get(name) == "test-green")
+            for sibling in run_dir.rglob(f"{action}*"):
                 if sibling.is_file() and sibling.parent.name in ("tests", "lint", "quality"):
                     sibling.unlink()
-            run_dir = shown / ".shiploop-runs" / "work-1" / "run"
             block = self.fidelity.build(shown, run_dir, metrics.ToolLog(), engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
-            stage = next(h["stage"] for h in metrics.engine_state(run_dir)["history"] if h["action"] == action)
-            self.assertIn(stage, block["evidence"]["declared_script_run_without_record"])
+            self.assertIn("test-green", block["evidence"]["declared_script_run_without_record"])
 
     def run_state(self, history, accepted=None, lint="fix"):
         """A minimal state.md body: one history entry per (action, stage, outcome) and an accepted result for each."""
