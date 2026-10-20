@@ -28,3 +28,9 @@ example `json.py`, `logging.py`) shadows it whenever that directory comes first
 on the import path, as a script's own directory does. Mark module-private names
 with a leading underscore and, where the package defines one, keep `__all__` to
 the names consumers need.
+
+## Tool state
+
+Tools write their own files inside the project: `__pycache__/` and `*.pyc`, a virtual environment (`.venv/`), and
+runner caches (`.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`). All belong in `.gitignore`; unignored, they change on
+every run and read as product changes to ShipLoop's checks.

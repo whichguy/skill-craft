@@ -141,6 +141,15 @@ The `sf` CLI writes its own state inside the project: `.sf/` (org source trackin
 adds the two lines itself. Unignored, they change whenever an `sf` command runs, and ShipLoop's checks read them as
 product changes (a live run's Improve review was refused for `.sf/orgs/<id>/localSourceTracking` files).
 
+## Remote tests
+
+These commands test the code deployed to the org, not the checkout, so ShipLoop's mutation check (which changes a
+copy of the checkout) cannot judge them and records why it skipped. Local tests, such as Jest for Lightning web
+components, are still mutation-checked.
+
+- `sf apex run test`
+- `sf apex run`
+
 ## Consumer entry access (read-only probe)
 
 A deployed tab or app is hidden from a user whom no profile or permission set

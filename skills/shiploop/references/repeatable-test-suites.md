@@ -412,3 +412,7 @@ ran and none was killed (no kill-rate threshold, since equivalent mutants
 survive any suite), and records every mutant in
 `tests/<action>-mutation<N>.md`; a docs-only change records "no mutants" with
 `disposition: skipped`, and `complete` prints that as a `Gates:` line.
+When every focused command tests a deployed copy (a command a platform card lists
+under `## Remote tests`), a mutant in the
+temporary copy never reaches what the command tests, so the check records
+`skipped` with that card and command instead of refusing good tests.

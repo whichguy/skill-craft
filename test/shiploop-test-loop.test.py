@@ -1580,6 +1580,30 @@ class TestLoopTests(unittest.TestCase):
         self.assertTrue(record["passed"])
         self.assertEqual(record["mutants"], [])
 
+    def test_a_focused_command_that_tests_a_deployed_target_is_skipped_with_the_card_named(self):
+        """A live run (2026-10-18) refused good tests: the focused commands ran Apex tests in the org, which the mutated
+        copy never reached, so 0 of 8 mutants were killed. A command a platform card lists under Remote tests is
+        skipped with the reason, and nothing is refused."""
+        self.calc_item(self.EMPTY_TEST)  # refused by the check when it runs (the test above)
+        with mock.patch.object(mutation, "remote_test_commands",
+                               return_value=[("example", "python3 -m unittest")]):
+            lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        self.assertEqual(len(lines), 1)
+        self.assertIn("mutation: skipped (its focused commands test a deployed target (platforms/example.md lists "
+                      "`python3 -m unittest` under Remote tests)", lines[0])
+        record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
+        self.assertTrue(record["passed"])
+        self.assertEqual(record["mutants"], [])
+
+    def test_the_salesforce_card_lists_its_remote_test_commands_and_a_local_one_still_runs(self):
+        commands = mutation.remote_test_commands()
+        self.assertIn(("salesforce", "sf apex run test"), commands)
+        self.assertIsNone(mutation._remote_reason([{"command": "npx sfdx-lwc-jest -- --verbose"}]))
+        self.assertIsNone(mutation._remote_reason([{"command": "sf apex run test --class-names A"},
+                                                   {"command": "python3 -m pytest -v"}]))
+        self.assertIn("platforms/salesforce.md", mutation._remote_reason(
+            [{"command": "sf apex run test --target-org de --class-names SLTest --synchronous"}]))
+
     def test_the_checkout_is_byte_identical_after_the_check(self):
         self.calc_item(self.REAL_TEST)
         before = self.tree_bytes()

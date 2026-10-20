@@ -41,3 +41,8 @@ Recheck these against the linked pages before relying on them.
 - "Default `express-session` `MemoryStore` is fine for small production apps." The docs say it leaks memory and doesn't scale past one process. ([expressjs.com/session](https://expressjs.com/en/resources/middleware/session/))
 - "Socket.IO automatically syncs rooms/broadcasts across horizontally scaled instances." It requires explicitly installing `@socket.io/redis-adapter`. ([socket.io Redis adapter](https://socket.io/docs/v4/redis-adapter/))
 - "`--env-file` is a drop-in dotenv replacement." It has no variable expansion and is still experimental in the version checked.
+
+## Tool state
+
+`node_modules/` and tool caches (`.npm/`, `.eslintcache`, `coverage/`) belong in `.gitignore`; unignored, they change
+on every install or run and read as product changes to ShipLoop's checks.
