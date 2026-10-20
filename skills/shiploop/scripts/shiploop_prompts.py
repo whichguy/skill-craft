@@ -1182,8 +1182,8 @@ DUTIES = {
 9. KNOWLEDGE/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
    ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
    and ## Interfaces and boundaries where this plan changes them.
-10. Give each work item a compact `context` a fresh reader can act on, full locators in `evidence_refs`, longer notes
-    in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
+10. Give each work item a compact `context` (at most 2,500 characters) a fresh reader can act on, full locators in
+    `evidence_refs`, longer notes in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
     revalidation condition:
     - each convention, canonical test or example, verified skill, MCP or library contract, environment or delivery
       decision, approved exception;
@@ -1219,7 +1219,8 @@ DUTIES = {
     parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it.
+    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it; one
+    item's open assumptions stay within 1,200 characters together.
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
@@ -1282,7 +1283,8 @@ Change no product file in this stage.
      files is refused unless the whole item is tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `check`; its `task` cites IDs, not their text. Every criterion is satisfied by
-     some step. Optional `paths` (inside the item's) serve the parallel chain.
+     some step. Optional `paths` (inside the item's) serve the parallel chain. Limits: task 700 characters, check
+     600, its criteria 1,200.
    - `check`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
      artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
@@ -1295,7 +1297,7 @@ Change no product file in this stage.
    verify stages run exactly these.
    - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
      pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID and outcome on
-     every exit, a failure too. """ + ID_WORD_RULE + """ `min_tests`
+     every exit. """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no

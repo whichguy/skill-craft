@@ -2821,6 +2821,55 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
           + ". Write the file or remove the reference.")
 
 
+# Producer field limits (run-insights decision T-D2, build plan S2.1): a later packet prints these fields by value, so
+# the stage that writes one keeps it inside the bound the packet budget was measured at.  Refused at the CLI gates only.
+WORK_ITEM_CONTEXT_LIMIT = 2_500
+OPEN_ASSUMPTIONS_LIMIT = 1_200  # one work item's open assumptions together
+STEP_TASK_LIMIT = 700
+STEP_CHECK_LIMIT = 600
+STEP_CRITERIA_LIMIT = 1_200  # the criterion texts one step names, together
+
+
+def _check_producer_bounds(stage: str, result: Any) -> None:
+    """Refuse a submitted field a later packet prints whole when it passes its limit, naming the size and the fix."""
+    if not isinstance(result, Mapping) or result.get("outcome") not in ("done", "add-work"):
+        return
+    for row in result.get("work_items") or ():
+        size = len(str(row.get("context") or "")) if isinstance(row, Mapping) else 0
+        _need(size <= WORK_ITEM_CONTEXT_LIMIT,
+              f"work item {row.get('id')}'s context is {size:,} characters; the limit is {WORK_ITEM_CONTEXT_LIMIT:,} "
+              "because later packets print it whole. Keep its ready and done conditions, scope, proving check and "
+              "authority there, and move longer notes into a file listed in evidence_refs")
+    if stage == "plan":
+        per_item: dict[str, int] = {}
+        for row in result.get("assumptions") or ():
+            if isinstance(row, Mapping) and row.get("disposition") == "open":
+                consumer = str(row.get("consumer"))
+                per_item[consumer] = per_item.get(consumer, 0) + sum(
+                    len(str(row.get(key) or "")) for key in ("assumption", "check", "reason"))
+        over = sorted(item for item, size in per_item.items() if size > OPEN_ASSUMPTIONS_LIMIT)
+        _need(not over, "the open assumptions of " + ", ".join(f"{item} ({per_item[item]:,} characters)" for item in over)
+              + f" pass the limit of {OPEN_ASSUMPTIONS_LIMIT:,} per work item, because its step plan prints them whole: "
+              "shorten each to the assumption, the check that settles it and why it is open, or settle some now")
+    if stage == "step-plan":
+        texts = {str(row.get("id")): str(row.get("text") or "") for row in result.get("criteria") or ()
+                 if isinstance(row, Mapping)}
+        for step in result.get("steps") or ():
+            if not isinstance(step, Mapping):
+                continue
+            name = str(step.get("id"))
+            task, check = len(str(step.get("task") or "")), len(str(step.get("check") or ""))
+            _need(task <= STEP_TASK_LIMIT, f"step {name}'s task is {task:,} characters; the limit is {STEP_TASK_LIMIT:,} "
+                  "because its implement packet prints it whole. Split the step, or keep the task to what to change and "
+                  "leave the why to the criteria")
+            _need(check <= STEP_CHECK_LIMIT, f"step {name}'s check is {check:,} characters; the limit is "
+                  f"{STEP_CHECK_LIMIT:,}. Put a long check in a script file the step adds, and make the check run it")
+            named = sum(len(texts.get(str(criterion), "")) for criterion in step.get("criteria") or ())
+            _need(named <= STEP_CRITERIA_LIMIT, f"the criteria step {name} names are {named:,} characters together; the "
+                  f"limit is {STEP_CRITERIA_LIMIT:,} because its implement packet prints them whole. Shorten each "
+                  "criterion to the observable result, or split the step")
+
+
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """Refuse a submitted done plan result without a complete assumption list.
 
@@ -8330,6 +8379,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
                                       check_only=check_only)
             _check_submitted_assumptions(state, current_stage(state), submitted)
+            _check_producer_bounds(current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)

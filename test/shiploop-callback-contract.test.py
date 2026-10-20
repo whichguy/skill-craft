@@ -1115,6 +1115,28 @@ class StepSizingRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["steps"][0]["check"], "test -f built.txt")
 
+    def test_a_field_past_its_producer_limit_is_refused_with_the_limit_and_one_at_the_limit_is_accepted(self) -> None:
+        """Build plan S2.1 (run-insights T-D2): the step plan's task, check and per-step criteria are printed whole by
+        implement, so step-plan refuses one past its limit with the size, the limit and the fix."""
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        good = self.fill_done(head)
+        step = good["steps"][0]
+        cases = [
+            ("a long task", {**good, "steps": [dict(step, task="x" * 701)]},
+             "step S1's task is 701 characters; the limit is 700"),
+            ("a long check", {**good, "steps": [dict(step, check="test -f built.txt && " + "true && " * 75)]},
+             "step S1's check is"),
+            ("long criteria", {**good, "criteria": [dict(good["criteria"][0], text="y" * 1_201)]},
+             "the criteria step S1 names are 1,201 characters together; the limit is 1,200"),
+        ]
+        for label, block, fragment in cases:
+            with self.subTest(label):
+                write_block(path, block)
+                self.assertIn(fragment, self.refused(command, run))
+        write_block(path, {**good, "steps": [dict(step, task="z" * 700)]})  # at the limit
+        self.accepted(command)
+
     def test_a_step_without_its_check_is_refused_by_name_and_the_step_with_it_is_accepted(self) -> None:
         """Implement-step fix plan T1 (section 4.1): every step records `check`, the exact command that proves its criteria
         using that step and accepted earlier steps; ShipLoop runs it when the step reports done."""

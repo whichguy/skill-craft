@@ -2972,7 +2972,7 @@ class LiveRunGuidanceTests(unittest.TestCase):
     def test_the_step_plan_says_a_hand_written_check_prints_its_id_on_every_exit(self):
         for delegation in prompts.DELEGATIONS:
             with self.subTest(delegation=delegation):
-                self.assertIn("a hand-written check prints its ID and outcome on every exit, a failure too",
+                self.assertIn("a hand-written check prints its ID and outcome on every exit",
                               normalized(prompts.duty("step-plan", delegation=delegation)))
 
     def test_the_test_spec_says_an_uncovered_criterion_is_a_notice_not_a_refusal(self):
