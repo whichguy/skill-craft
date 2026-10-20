@@ -126,6 +126,19 @@ full run is sized again after fixes 1 to 3.
 - [ ] Compare with run 3: the stage reached, Improve minutes, compactions and re-orientation calls, reads of ShipLoop's
   scripts, and per-item time. Journal it in LEARNINGS.md and the chess journal (F11), and update the summary artifact.
 
+### TODO (owner, 2026-10-20): iterate on the chess case with the E2E loop
+
+- [ ] Once the build plan is complete and released, run the E2E iteration loop on the chess-salesforce case alone, and
+  let it build, review and improve ShipLoop over repeated runs: `test/shiploop_e2e/iterate.py --case chess-salesforce
+  --host grok` (run, review, improve, rerun; it commits to a branch and publishes nothing).
+- [ ] First check what iterate.py needs for this case:
+  - a run timeout of at least 14,400 (its default is 10,800);
+  - the platform flags passed through to run.py (`--keep-platform`, a durable output);
+  - the org cleaned, or the kept app removed, between iterations, so each run's preflight passes;
+  - the improver's model and budget.
+
+  Fix what is missing in the harness first.
+
 ## Risks
 
 | Risk | Mitigation |
