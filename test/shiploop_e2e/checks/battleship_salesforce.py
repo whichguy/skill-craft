@@ -614,32 +614,32 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
         record["baseline_kept"] = [{"type": r["type"], "name": r["name"]} for r in record["refused"] if r["reason"] == "was already in the before snapshot"]
     if notes:
         record["notes"] = notes
-    if any(diff[key] for key in ("extra", "missing", "modified", "unverified")):
-        # A new item without the exact prefix was never this cleanup's to remove (the platform makes some permission sets on its own,
-        # 2026-10-17): it still fails the cleanup, but is named apart so it is not read as one the cleanup failed to delete.
-        foreign, ours = [], {}
-        for kind, names in diff["extra"].items():
-            theirs = [n for n in names if kind in REMOVABLE and not n.startswith(sfc.removal_prefix(kind, prefix))]
-            foreign += ["%s %s" % (kind, n) for n in theirs]
-            if len(theirs) < len(names):
-                ours[kind] = [n for n in names if n not in theirs]
-        shown = dict(diff, extra=ours)  # the record keeps every extra item; only the message names the foreign ones apart
-        parts = [part for part in (sfc.describe(shown, REMOVABLE), "new since the snapshot without the exact prefix, so left alone (the "
-                                   "platform makes some on its own; remove by hand any that a person or the model made): " + ", ".join(foreign)
-                                   if foreign else "") if part]
-        return finish(False, "%sorg differs from the before snapshot: %s" % ("; ".join(notes) + "; " if notes else "", "; ".join(parts)))
+    # The cleanup's job is this case's own prefix: an extra item under another case's prefix, or with no prefix relationship to
+    # this one at all (the platform makes some permission sets on its own, 2026-10-17; an unrelated one may simply already be
+    # there, 2026-10-19), is reported as an informational note and never fails it. `PermissionSetAssignment` holds Ids, not
+    # metadata names, and is always this case's own concern (sfc.classify_extra would read every Id as foreign, having no prefix
+    # of its own), so it is kept out of the split and always judged as ours.
+    metadata_extra = {kind: names for kind, names in diff["extra"].items() if kind != "PermissionSetAssignment"}
+    own_extra, foreign_extra = sfc.classify_extra(metadata_extra, prefix)
+    if "PermissionSetAssignment" in diff["extra"]:
+        own_extra["PermissionSetAssignment"] = diff["extra"]["PermissionSetAssignment"]
+    note = "; " + sfc.foreign_note(foreign_extra) if foreign_extra else ""
+    if any(diff[key] for key in ("missing", "modified", "unverified")) or own_extra:
+        shown = dict(diff, extra=own_extra)
+        return finish(False, "%sorg differs from the before snapshot: %s%s" % (
+            "; ".join(notes) + "; " if notes else "", sfc.describe(shown, REMOVABLE, org), note))
     removed = ["%s %s" % (r["type"], r["name"]) for r in record["removed"]]
     unassigned = sum(r["assignments"] for r in record["unassigned"])
     kept = ("; update mode: %d baseline item(s) kept%s" % (len(record["baseline_kept"]), "; deployed over in place (not restorable): " + ", ".join(
         "%s %s" % (kind, n) for kind, names in diff["updated"].items() for n in names) if diff["updated"] else "")) if update else ""
     return finish(True, "cleanup verified: org %r matches the before snapshot by name on %s; LastModifiedDate unchanged on %d baseline "
                   "ApexClass and LightningComponentBundle items; removes when new and prefixed (%s*, %s* for bundles), in this order: "
-                  "the assignments of a new permission set, then %s; only compares, never removes: %s%s; unassigned %d; removed %s" % (
+                  "the assignments of a new permission set, then %s; only compares, never removes: %s%s; unassigned %d; removed %s%s" % (
                       org, ", ".join("%s %d" % (kind, n) for kind, n in diff["covered"].items()), diff["dates_checked"],
                       prefix, lwc_prefix(prefix), ", ".join(REMOVABLE),
                       ", ".join(kind for kind in diff["covered"] if kind not in REMOVABLE) or "-",
                       "; not covered (query failed at the snapshot): " + ", ".join(diff["not_covered"]) if diff["not_covered"] else "",
-                      unassigned, ", ".join(removed) or "nothing") + kept)
+                      unassigned, ", ".join(removed) or "nothing", kept) + note)
 
 
 # ------------------------------------------------------------------------------------------------------------ selftest

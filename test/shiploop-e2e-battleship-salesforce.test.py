@@ -887,27 +887,32 @@ class TestCleanup(FakeOrg):
         self.deploy_reference()
         self.assign()
         proc = self.run_check(*self.CLEAN)
-        self.assertEqual(proc.returncode, 1)  # the look-alike is new and not removable: remove by hand
-        self.assertIn("new since the snapshot without the exact prefix, so left alone", proc.stdout)
-        self.assertIn("PermissionSet slbattle_lookalike", proc.stdout)
-        self.assertNotIn("extra PermissionSet slbattle_lookalike", proc.stdout)
+        # The look-alike carries this case's own prefix case-insensitively, so it is never left alone as another case's or the
+        # platform's: it is new, refused (wrong case, unsafe to touch) and so still fails the cleanup as an extra of its own type.
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("extra PermissionSet slbattle_lookalike", proc.stdout)
         left = {row["PermissionSetId"] for row in self.state()["assignments"]}
         self.assertEqual(left, {fk.record_id("PermissionSet", "baseChessAccess"), fk.record_id("PermissionSet", "slbattle_lookalike")})
         self.assertNotIn("SLBattle_Access", self.state()["types"]["PermissionSet"])
         refused = json.loads((self.platform / "cleanup.json").read_text())["refused"]
         self.assertIn({"type": "PermissionSet", "name": "slbattle_lookalike", "reason": "does not start with the exact prefix SLBattle"}, refused)
 
-    def test_a_permission_set_the_platform_made_on_its_own_fails_the_cleanup_but_is_named_as_not_the_run_s(self) -> None:
+    def test_a_permission_set_the_platform_made_on_its_own_does_not_fail_the_cleanup_and_is_named_as_not_the_run_s(self) -> None:
         """2026-10-17: during the chess reference rehearsal the org made a permission set of its own (no prefix) between the snapshot
-        and the verification. The cleanup still fails closed (the org differs from its snapshot), and says the item was left alone."""
+        and the verification. 2026-10-19 (the live chess run F9/F10): a kept run's org also held another case's kept items and an
+        unrelated platform permission set (AccessDevOpsCenterNamedCredentials), and a correct cleanup reported failure for it. The
+        cleanup's job is this case's own prefix: an item with no relationship to it at all is left alone and only noted, while this
+        run's own permission set and its assignment are still removed."""
         self.deployed_and_assigned()
         self.add(PermissionSet=["sfdc_platformmade_example"])
         proc = self.run_check(*self.CLEAN)
-        self.assertEqual(proc.returncode, 1)
-        self.assertIn("org differs from the before snapshot: new since the snapshot without the exact prefix, so left alone", proc.stdout)
-        self.assertIn("PermissionSet sfdc_platformmade_example", proc.stdout)
-        self.assertNotIn("SLBattle_Access", self.state()["types"]["PermissionSet"])  # the run's own work is gone all the same
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("not this case's: left alone: PermissionSet sfdc_platformmade_example", proc.stdout)
+        self.assertNotIn("SLBattle_Access", self.state()["types"]["PermissionSet"])  # the run's own work is still removed
+        self.assertEqual(self.state()["assignments"], [])  # and its assignment with it
+        self.assertIn("sfdc_platformmade_example", self.state()["types"]["PermissionSet"])  # the foreign one is left exactly alone
         record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertTrue(record["verified"])
         self.assertEqual(record["extra"], {"PermissionSet": ["sfdc_platformmade_example"]})  # the record keeps every extra item
 
     def test_a_cleanup_with_nothing_to_remove_verifies_and_calls_nothing_destructive(self) -> None:

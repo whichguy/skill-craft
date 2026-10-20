@@ -874,6 +874,58 @@ class TestCleanup(FakeOrg):
         record = json.loads((self.platform / "cleanup.json").read_text())
         self.assertEqual((record["verified"], record["extra"]), (False, {"StaticResource": ["SLChessPieces"]}))
 
+    def test_a_cleanup_whose_org_also_holds_another_cases_kept_items_succeeds_and_notes_them_as_left_alone(self) -> None:
+        """Live run F9/F10 (2026-10-19): org `de` also held another case's kept app (prefix SLBattle) and an unrelated platform
+        permission set (AccessDevOpsCenterNamedCredentials), and a correct chess cleanup reported failure for both. This cleanup's
+        job is its own prefix: neither item is this case's to remove, so both are left alone and only noted, while this run's own
+        deployment is still fully removed and verified."""
+        self.deployed_like_a_model()
+        self.add(apex=["SLBattleEngine"], lwc=["slBattleBoard"], CustomTab=["SLBattle_Board"], CustomApplication=["SLBattle"],
+                 PermissionSet=["AccessDevOpsCenterNamedCredentials"])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("not this case's: left alone", proc.stdout)
+        for item in ("ApexClass SLBattleEngine", "LightningComponentBundle slBattleBoard", "CustomTab SLBattle_Board",
+                     "CustomApplication SLBattle", "PermissionSet AccessDevOpsCenterNamedCredentials"):
+            self.assertIn(item, proc.stdout)
+        state = self.state()
+        self.assertNotIn("SLChessEngine", state["apex_classes"])  # this case's own work is still removed
+        self.assertIn("SLBattleEngine", state["apex_classes"])  # the other case's kept work is left exactly alone
+        self.assertIn("slBattleBoard", state["lwc"])
+        self.assertIn("SLBattle_Board", state["types"]["CustomTab"])
+        self.assertIn("SLBattle", state["types"]["CustomApplication"])
+        self.assertIn("AccessDevOpsCenterNamedCredentials", state["types"]["PermissionSet"])
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertTrue(record["verified"])
+        self.assertEqual(record["extra"], {"ApexClass": ["SLBattleEngine"], "LightningComponentBundle": ["slBattleBoard"],
+                                           "CustomTab": ["SLBattle_Board"], "CustomApplication": ["SLBattle"],
+                                           "PermissionSet": ["AccessDevOpsCenterNamedCredentials"]})
+
+    def test_an_extra_permission_set_under_the_case_s_own_prefix_cannot_be_removed_and_names_the_exact_commands_by_hand(self) -> None:
+        """Live run F9/F10 (2026-10-19): a kept chess app left SLChess_Access, a permission set the request forbids the model from
+        making (the chess-salesforce prompt creates no permission set), so only a model that disregarded the request, never this
+        harness, could have made one. The cleanup must not silently delete something a model made against the request: it still
+        fails, and names the exact `sf data delete record` commands (its live Id and its assignment's Id) to remove it by hand."""
+        self.deployed_like_a_model()
+        self.add(PermissionSet=["SLChess_Access"])
+        state = self.state()
+        user = state["users"][0]["Id"]
+        ps_id = fk.record_id("PermissionSet", "SLChess_Access")
+        assign_id = fk.record_id("PermissionSetAssignment", "SLChess_Access")
+        state["assignments"].append({"Id": assign_id, "PermissionSetId": ps_id, "AssigneeId": user})
+        self.set_state(state)
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 1)
+        out = self.out(proc)
+        self.assertIn("not removable by this cleanup: remove by hand: PermissionSet SLChess_Access", out)
+        self.assertIn("only a model could have made it, never this harness", out)
+        self.assertIn("sf data delete record --sobject PermissionSetAssignment --record-id %s --target-org de" % assign_id, out)
+        self.assertIn("sf data delete record --sobject PermissionSet --record-id %s --target-org de" % ps_id, out)
+        self.assertNotIn("not this case's", out)  # this case's own prefix, never informational
+        self.assertIn("SLChess_Access", self.state()["types"]["PermissionSet"])  # never touched
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertEqual((record["verified"], record["extra"]), (False, {"PermissionSet": ["SLChess_Access"]}))
+
     def test_an_item_of_every_recorded_type_is_removed_if_the_request_allows_it_and_reported_under_its_own_type_if_not(self) -> None:
         self.snapshot()
         extras = {spec[0]: "SLChessLeft%d" % i for i, spec in enumerate(cs.WATCHED)}

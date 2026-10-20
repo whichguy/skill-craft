@@ -8,7 +8,11 @@ Subcommands (all exit 0 on success, 1 otherwise, and print scrubbed one-line rea
              LastModifiedDate, the names of each type in WATCHED, and the CLI version
   cleanup    remove exactly the prefixed items of the five REMOVABLE types this run created (absent from before.json) in one
              destructive deploy, then verify the org against the snapshot: the name sets of every recorded type and the dates of
-             the baseline items
+             the baseline items. A new item under another case's prefix, or with no prefix relationship to this one at all (another
+             case's kept work, an unrelated platform permission set), is reported as left alone, not a failure; a new item that is
+             this case's own, including one this cleanup cannot remove (a PermissionSet, which the request forbids and so only a
+             model, never this harness, could have made), still fails the cleanup and, for a PermissionSet, is named with the exact
+             `sf data delete record` commands to remove it by hand
   project    the Salesforce DX project in the current directory has the files the request names (Apex classes, the component, a
              tab, an app and optionally an app page, all prefixed), and they do what it asks
   deployed   the org holds the engine, controller, a test class, the component, the tab and the app
@@ -32,8 +36,9 @@ Safety (the owner's rules for this case):
   * cleanup deletes only ApexClass, CustomTab, CustomApplication and FlexiPage names that start with the exact, case-sensitive
     prefix and LightningComponentBundle names that start with the prefix in component spelling (SLChess -> slChess), and only when
     they are absent from before.json. It never uses a wildcard, and exits 0 only after queries show every recorded name set equal
-    to the snapshot and no baseline Apex class or bundle modified. Items of any other recorded type that differ are reported to
-    remove by hand and fail the cleanup.
+    to the snapshot (barring another case's own prefix or an item with no relationship to this one at all, left alone and only
+    noted) and no baseline Apex class or bundle modified. An item of this case's own prefix that is of any other recorded type is
+    reported to remove by hand (exact commands for a PermissionSet) and fails the cleanup.
 """
 from __future__ import annotations
 
@@ -240,11 +245,51 @@ def queryable_names(org: str, spec: tuple, like_prefix: str | None = None) -> tu
         raise
 
 
+def name_spelling(kind: str, prefix: str) -> tuple[str, ...]:
+    """The case-prefix spelling(s) that count as this case's own for one metadata kind: the Apex spelling for ApexClass, the
+    component spelling for LightningComponentBundle, either spelling for any other type (a tab or page may follow either
+    convention)."""
+    if kind == "ApexClass":
+        return (prefix,)
+    if kind == "LightningComponentBundle":
+        return (lwc_prefix(prefix),)
+    return (prefix, lwc_prefix(prefix))
+
+
 def with_prefix(found: dict[str, list[str]], prefix: str) -> list[str]:
-    """`Type name` for every name that carries the case prefix exactly: the Apex spelling for ApexClass, the component spelling for
-    LightningComponentBundle, either for the other types (a tab or page may follow either convention)."""
-    spelling = {"ApexClass": (prefix,), "LightningComponentBundle": (lwc_prefix(prefix),)}
-    return ["%s %s" % (kind, n) for kind, names in found.items() for n in names if n.startswith(spelling.get(kind, (prefix, lwc_prefix(prefix))))]
+    """`Type name` for every name that carries the case prefix exactly (see `name_spelling`)."""
+    return ["%s %s" % (kind, n) for kind, names in found.items() for n in names if n.startswith(name_spelling(kind, prefix))]
+
+
+def looks_like_ours(kind: str, name: str, prefix: str) -> bool:
+    """Whether `name` (of kind `kind`) is related to this case's own prefix at all, case-insensitively: a look-alike that only
+    differs by case (slchess, SLCHESS_Home, slChess_Board) is still this case's own, and still unsafe to auto-remove; only a name
+    with no such relationship to the prefix in either spelling is another case's own work, or the platform's."""
+    return any(name.lower().startswith(spelling.lower()) for spelling in name_spelling(kind, prefix))
+
+
+def classify_extra(extra: dict[str, list[str]], prefix: str) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Split one comparison's extra items (new since the snapshot) into (ours, foreign) by `looks_like_ours`. This cleanup's job is
+    this case's own prefix: a foreign item (another case's kept work, or an item with no prefix relationship to this one at all,
+    such as a platform-wide permission set) is reported as an informational note and never fails the cleanup; an item that is ours,
+    even a look-alike this cleanup refuses to touch, still does."""
+    ours: dict[str, list[str]] = {}
+    foreign: dict[str, list[str]] = {}
+    for kind, names in extra.items():
+        mine = [n for n in names if looks_like_ours(kind, n, prefix)]
+        other = [n for n in names if n not in mine]
+        if mine:
+            ours[kind] = mine
+        if other:
+            foreign[kind] = other
+    return ours, foreign
+
+
+def foreign_note(foreign: dict[str, list[str]]) -> str:
+    """One line naming extra items that carry no relationship to this case's prefix at all: informational only, never a cleanup
+    failure (`classify_extra`)."""
+    items = ["%s %s" % (kind, n) for kind, names in sorted(foreign.items()) for n in names]
+    return "not this case's: left alone: %s" % ", ".join(items)
 
 
 def platform_dir(override: str | None = None) -> Path:
@@ -428,17 +473,24 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
         if r["reason"] == NOT_QUERYABLE:
             diff["extra"].setdefault(r["type"], []).append(r["name"])
     record.update({key: diff[key] for key in ("extra", "missing", "modified", "unverified", "covered", "not_covered")})
-    if any(diff[key] for key in ("extra", "missing", "modified", "unverified")):
-        return finish(False, "%sorg differs from the before snapshot: %s" % (deploy_note + "; " if deploy_note else "", describe(diff)))
+    # The cleanup's job is this case's own prefix: an extra item under another case's prefix, or with no prefix relationship to
+    # this one at all (a platform-wide permission set, for example), is reported as an informational note and never fails it; an
+    # extra item that is ours, even one this cleanup refuses to touch, still does.
+    own_extra, foreign_extra = classify_extra(diff["extra"], prefix)
+    note = "; " + foreign_note(foreign_extra) if foreign_extra else ""
+    if any(diff[key] for key in ("missing", "modified", "unverified")) or own_extra:
+        shown = dict(diff, extra=own_extra)
+        return finish(False, "%sorg differs from the before snapshot: %s%s" % (
+            deploy_note + "; " if deploy_note else "", describe(shown, REMOVABLE, org), note))
     removed = ["%s %s" % (r["type"], r["name"]) for r in record["removed"]]
     return finish(True, "cleanup verified: org %r matches the before snapshot by name on %s; LastModifiedDate unchanged on %d baseline "
                   "ApexClass and LightningComponentBundle items; removes when new and prefixed (%s*, %s* for bundles): %s; only compares, "
-                  "never removes: %s%s; removed %s" % (
+                  "never removes: %s%s; removed %s%s" % (
                       org, ", ".join("%s %d" % (kind, n) for kind, n in diff["covered"].items()), diff["dates_checked"],
                       prefix, lwc_prefix(prefix), ", ".join(REMOVABLE),
                       ", ".join(kind for kind in diff["covered"] if kind not in REMOVABLE) or "-",
                       "; not covered (query failed at the snapshot): " + ", ".join(diff["not_covered"]) if diff["not_covered"] else "",
-                      ", ".join(removed) or "nothing"))
+                      ", ".join(removed) or "nothing", note))
 
 
 def destructive_deploy(org: str, members: dict[str, list[str]], order: tuple[str, ...] = REMOVABLE) -> str:
@@ -464,6 +516,39 @@ def destructive_deploy(org: str, members: dict[str, list[str]], order: tuple[str
         return str(exc)
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+def permission_set_id(org: str, name: str) -> str | None:
+    """The Id of the PermissionSet named exactly `name`, when it is found exactly once."""
+    rows = [r for r in records(org, "SELECT Id, Name FROM PermissionSet WHERE Name = '%s'" % name.replace("\\", "\\\\").replace("'", "\\'"),
+                               tooling=False) if r.get("Name") == name and r.get("Id")]
+    return str(rows[0]["Id"]) if len(rows) == 1 else None
+
+
+def permission_set_assignment_ids(org: str, permset_id: str) -> list[str]:
+    """The Ids of every PermissionSetAssignment of one permission set Id, whoever it is assigned to."""
+    return [str(r["Id"]) for r in records(org, "SELECT Id FROM PermissionSetAssignment WHERE PermissionSetId = '%s'" % permset_id,
+                                          tooling=False) if r.get("Id")]
+
+
+def by_hand_plan(org: str, name: str) -> str:
+    """One line for one prefixed PermissionSet this cleanup does not remove itself: this case's own request forbids a permission
+    set, so only a model that disregarded it, never this harness, could have made one (F9 of the live 2026-10-19 run). The exact
+    `sf data delete record` commands that remove its assignments and then it are printed, with the live Ids looked up so they can
+    be run exactly as given; this mirrors the module's own destructive-removal pattern (battleship_salesforce.unassign), just
+    through a plain data delete of the set itself rather than a destructive deploy, since a data delete needs no local manifest."""
+    base = "not removable by this cleanup: remove by hand: PermissionSet %s" % name
+    note = "only a model could have made it, never this harness"
+    try:
+        ps_id = permission_set_id(org, name)
+        if ps_id is None:
+            return "%s (%s; its Id could not be looked up to print exact commands)" % (base, note)
+        assign_ids = permission_set_assignment_ids(org, ps_id)
+    except SfError as exc:
+        return "%s (%s; could not look up its Id or assignments: %s)" % (base, note, exc)
+    commands = ["sf data delete record --sobject PermissionSetAssignment --record-id %s --target-org %s" % (aid, org) for aid in assign_ids]
+    commands.append("sf data delete record --sobject PermissionSet --record-id %s --target-org %s" % (ps_id, org))
+    return "%s (%s): %s" % (base, note, "; ".join(commands))
 
 
 def compare(before: dict, now: dict, updated: dict[str, str] | None = None) -> dict:
@@ -498,11 +583,13 @@ def compare(before: dict, now: dict, updated: dict[str, str] | None = None) -> d
     return diff
 
 
-def describe(diff: dict, removable: tuple[str, ...] = REMOVABLE) -> str:
+def describe(diff: dict, removable: tuple[str, ...] = REMOVABLE, org: str | None = None) -> str:
     parts = []
     for kind, names in diff["extra"].items():
         if kind in removable:
             parts.append("extra %s %s" % (kind, ", ".join(names)))
+        elif kind == "PermissionSet" and org is not None:
+            parts += [by_hand_plan(org, name) for name in names]
         else:
             parts.append("not removable by this cleanup: remove by hand: %s %s" % (kind, ", ".join(names)))
     parts += ["missing since the snapshot: %s %s" % (kind, ", ".join(names)) for kind, names in diff["missing"].items()]
