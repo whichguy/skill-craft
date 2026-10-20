@@ -4455,5 +4455,49 @@ class ConcernMapTests(unittest.TestCase):
         self.assertNotIn("Concerns the plan decided", navigator.render(None, Path("/simulation-only/run"), state))
 
 
+class PlatformTestingGuideTests(unittest.TestCase):
+    """Build plan S2.3 (run-insights G1, C6): the stages that decide tests point to the target platform's ## Testing
+    section, named in KNOWLEDGE/environment.md's ## Targets and runtimes; the run analysis found a card's rules never
+    reached test-strategy, plan or step-plan."""
+
+    def packet_at(self, stage, environment):
+        import tempfile
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        repo = Path(temp.name) / "repo"
+        (repo / "docs" / "shiploop").mkdir(parents=True)
+        (repo / "docs" / "shiploop" / "environment.md").write_text(environment, encoding="utf-8")
+        state = navigator.new_state(str(repo), "Platform fixture.", improve_skill="")
+        for _ in range(60):
+            if navigator.current_stage(state) == stage and state["active_improve"] is None:
+                return navigator.render(None, Path(temp.name) / "run", state)
+            current, action = navigator.current_stage(state), navigator.current_action(state)["id"]
+            state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic."})
+            if state["active_improve"] is not None:
+                state = navigator.finish_improve(state, action, {"summary": "Synthetic review.",
+                                                                 "review_refs": ["synthetic://r"],
+                                                                 "check_refs": ["synthetic://c"]})
+        raise AssertionError(stage + " not reached")
+
+    def test_a_named_card_with_a_testing_section_is_pointed_to_at_the_test_deciding_stages(self):
+        environment = "# Environment\n\n## Targets and runtimes\n\n- the org: GUIDES/platforms/salesforce.md\n\n## Commands\n"
+        for stage in ("test-strategy", "plan", "step-plan"):
+            with self.subTest(stage=stage):
+                self.assertIn("Platform testing guide: GUIDES/platforms/salesforce.md#testing",
+                              self.packet_at(stage, environment))
+        self.assertNotIn("Platform testing guide", self.packet_at("spec", environment))
+
+    def test_no_card_or_a_card_without_a_testing_section_prints_no_pointer(self):
+        for environment in ("# Environment\n\n## Targets and runtimes\n\nnone\n",
+                            "# Environment\n\n## Targets and runtimes\n\nGUIDES/platforms/vercel.md\n"):
+            with self.subTest(environment=environment):
+                self.assertNotIn("Platform testing guide", self.packet_at("step-plan", environment))
+
+    def test_discovery_records_the_platform_guide_each_target_follows(self):
+        import shiploop_prompts as prompts
+        self.assertIn("the platform guide each target follows (GUIDES/platforms/<name>.md), or none",
+                      " ".join(prompts.DUTIES["discovery"].split()))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

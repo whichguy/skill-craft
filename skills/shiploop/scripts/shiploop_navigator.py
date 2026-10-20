@@ -4962,10 +4962,40 @@ def _cited_guides(core: Any, root: Path, state: Mapping[str, Any], stage: str, s
               if line.split(": ", 1)[0] not in located]
     guides += [label + ": " + str(reference_dir / target) for label, target in run_reference.POLICIES
                if label in stage_text and label not in labels]
+    guides += _platform_testing_lines(core, state, stage)
     backchain = _backchain_lines(core, root, state, stage)
     cited = [line for line in backchain if not line.startswith("Loop resources ") or "Loop resources" in stage_text]
     return CitedGuides(guides, cited, [line for line in every if line not in guides],
                        [line for line in backchain if line not in cited])
+
+
+# The stages that decide tests read the target platform's testing rules (build plan S2.3, run-insights G1): the run
+# analysis found a platform card's rules (deploy before test, the reporter ShipLoop reads) never reached test-strategy,
+# plan or step-plan, and the test stage then refused runs those rules explain.
+PLATFORM_TESTING_STAGES = ("test-strategy", "plan", "prepare", "step-plan")
+_PLATFORM_CARD = re.compile(r"platforms/([a-z0-9-]+)\.md")
+
+
+def platform_cards(repo: Any, cards: Path) -> list[str]:
+    """The platform cards KNOWLEDGE/environment.md's ## Targets and runtimes names (``platforms/<name>.md``) that exist."""
+    try:
+        text = (Path(str(repo)) / knowledge.HOME / "environment.md").read_text(encoding="utf-8")
+    except OSError:
+        return []
+    section = text.split("## Targets and runtimes", 1)[1].split("\n## ", 1)[0] if "## Targets and runtimes" in text else ""
+    names = list(dict.fromkeys(_PLATFORM_CARD.findall(section)))
+    return [name for name in names if (cards / (name + ".md")).is_file()]
+
+
+def _platform_testing_lines(core: Any, state: Mapping[str, Any], stage: str) -> list[str]:
+    """``Platform testing guide: <card>#testing`` for each named card with a ## Testing section, at the test-deciding
+    stages."""
+    if stage not in PLATFORM_TESTING_STAGES:
+        return []
+    cards = _reference_dir(core) / "platforms"
+    return ["Platform testing guide: " + str(cards / (name + ".md")) + "#testing"
+            for name in platform_cards(state["repo"], cards)
+            if "\n## Testing\n" in (cards / (name + ".md")).read_text(encoding="utf-8")]
 
 
 def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:

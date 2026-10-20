@@ -87,6 +87,8 @@ additive change, keep remote records authoritative through the current runtime
 adapter, leave a cache conditional on authorization/invalidation evidence, and
 verify the final metadata/status read-back for the intended role.
 
+## Testing
+
 Apply [target-native test selection](../repeatable-test-suites.md#select-target-native-tests)
 to the affected repo/org metadata and actual deployment route. LWC Jest checks
 components locally; Apex tests execute in the org; browser checks observe the
@@ -108,9 +110,11 @@ the line that names it, so record the command with a reporter it can read:
 table and `--result-format human` put the outcome word after the test name,
 which ShipLoop does not read, so a focused command that uses them is refused as
 unread. An Apex test runs the code already in the org, so on the item's base it
-cannot fail unless the command deploys the tree first: name each new org-bound
-test in the test result's `red_na` with that reason, and let the candidate run
-and the mutation check carry the proof.
+cannot fail unless the command deploys the tree first: either make the focused
+command deploy the tree before it tests, or name each new org-bound test in the
+test result's `red_na` with that reason. The mutation check cannot judge an
+org-bound test (it changes a local copy the org never sees) and records why it
+skipped, so the candidate run carries the proof.
 
 For a Lightning consumer, distinguish the org/instance identity from the
 feature's authenticated entry: an app, custom tab, component or other supported

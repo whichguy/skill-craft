@@ -933,7 +933,7 @@ DUTIES = {
 3. Inspect Git and worktree state, instructions, code, tests, docs, consumers and project knowledge. Record in
    KNOWLEDGE/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
    - ## Targets and runtimes: development, test, integration and delivery boundaries; runtime and dependency
-     versions;
+     versions; the platform guide each target follows (GUIDES/platforms/<name>.md), or none;
    - ## Commands: linters, formatters, type checkers, test runners;
    - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries,
      house style (House-style guidance).
