@@ -201,6 +201,10 @@ class TestLoopTests(unittest.TestCase):
         stage = nav.current_stage(state)
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result = dict(result, assumptions=[])
+        if stage == "plan" and result.get("outcome") == "done" and "concerns" not in result:
+            queue = result.get("work_items", state["work_items"])
+            result = dict(result, concerns=inner.no_concerns_map(
+                str(row.get("id")) for row in queue if isinstance(row, dict)))
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result = dict(result, unverified=[])
         if result.get("outcome") == "done":

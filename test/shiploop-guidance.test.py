@@ -2965,9 +2965,8 @@ class LiveRunGuidanceTests(unittest.TestCase):
 
     def test_the_plan_duty_puts_scaffolding_in_the_first_item_that_builds_on_it(self):
         duty = normalized(prompts.DUTIES["plan"])
-        self.assertIn("Every item pays a fixed round of eight stages and its reviews, so a project skeleton, "
-                      "configuration or tool setup goes in the first item that builds on it, never in an item of its own",
-                      duty)
+        self.assertIn("Every item pays a fixed round of stages and reviews, so setup (a skeleton, configuration, tools) "
+                      "goes in the first item that builds on it", duty)
 
     def test_the_step_plan_says_a_hand_written_check_prints_its_id_on_every_exit(self):
         for delegation in prompts.DELEGATIONS:

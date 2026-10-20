@@ -622,7 +622,9 @@ class HandoffGateTests(GateCase):
         self.assertEqual(message.splitlines()[-1], "Still a template placeholder: lessons.considerations.")
 
     def test_every_template_placeholder_is_refused(self) -> None:
-        bare = {"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}}
+        # "stage" is outside the inner loop (build plan S2.2's concerns preview needs it once "accepted" is present):
+        # _current_work_item short-circuits on it without touching work_items/work_index.
+        bare = {"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}, "stage": "plan"}
         shapes = str(navigator.HANDOFF_SHAPES)
         for value in navigator.HANDOFF_PLACEHOLDERS:
             self.assertTrue(value == "R-<n>" or value.startswith("<") and value.endswith(">"), value)

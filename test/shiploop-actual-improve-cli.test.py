@@ -34,6 +34,7 @@ import shiploop_stage_spec as stage_spec  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+import shiploop_inner_fixture as inner_fixture  # noqa: E402
 
 
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
@@ -245,6 +246,8 @@ class ImproveCliFixture(unittest.TestCase):
         }
         if stage == "plan":
             self.producer["assumptions"] = []
+            self.producer["concerns"] = inner_fixture.no_concerns_map(
+                row["id"] for row in state["work_items"] if isinstance(row, dict))
         if stage == "step-plan":
             self.producer["test_commands"] = []
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."

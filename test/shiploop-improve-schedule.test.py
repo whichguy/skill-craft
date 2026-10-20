@@ -19,6 +19,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from shiploop_inner_fixture import no_concerns_map  # noqa: E402
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -526,9 +527,14 @@ class CliRunCase(unittest.TestCase):
         return store.read_record(run / "state.md")
 
     def complete(self, run, **result):
-        action = self.saved(run)["action"]["id"]
+        state = self.saved(run)
+        action = state["action"]["id"]
+        merged = dict(DONE, **result)
+        if state["stage"] == "plan" and merged.get("outcome") == "done" and "concerns" not in merged:
+            queue = merged.get("work_items", state["work_items"])
+            merged["concerns"] = no_concerns_map(row["id"] for row in queue if isinstance(row, dict))
         path = run / "inbox" / (action + ".md")
-        store.write_record(path, dict(DONE, **result))
+        store.write_record(path, merged)
         return self.cli("complete", "--run-dir", run, "--action", action, "--result", path)
 
     def advance_to(self, run, stage, limit=60):

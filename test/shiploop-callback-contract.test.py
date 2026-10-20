@@ -42,6 +42,7 @@ import shiploop_test_loop as test_loop  # noqa: E402
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import LoopBlock, finish_loop, with_receipt  # noqa: E402
 from shiploop_packet_view import callback_argv, callback_line, callback_result_path  # noqa: E402
+import shiploop_inner_fixture as inner_fixture  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -251,6 +252,7 @@ class RealCliCase(unittest.TestCase):
             "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
+            "concerns": inner_fixture.no_concerns_map(["W1"]),
             **{key: value for result in RESULTS.values() for key, value in result.items()
                if key not in ("outcome", "summary", "assumptions")},
         }

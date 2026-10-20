@@ -1128,7 +1128,10 @@ DUTIES = {
 3. Apply Initial-plan reconciliation to KNOWLEDGE/architecture.md, KNOWLEDGE/spec.md, the non-functional requirements and the
    State and data assessment: map each applicable obligation and every acceptance criterion to its work item,
    prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
-   need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof.
+   need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
+   item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
+   platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
+   `{id, applies: "no", reason}`; one clause each.
 4. Carry the initial baseline's evidence and classification into `evidence_refs` and each affected item's `context`
    (Initial repository baseline guide). A foundation repair, setup prerequisite or missing-test bootstrap goes in the
    earliest feasible item before the feature that depends on it; its readiness evidence is the original check's
@@ -1196,7 +1199,7 @@ DUTIES = {
     - service decisions: note locators and revalidation conditions;
     - readiness checks of the item's prerequisites.
     A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
-    decision ledger; a context summary is not proof.
+    decision ledger beyond the `concerns` rows; a context summary is not proof.
 11. Plan the before and after decisions and preservation checks from the baseline and the spec changes since the run began, and durable
     documentation work for knowledge that exists only in run notes.
 12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
@@ -1207,9 +1210,8 @@ DUTIES = {
 14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
     prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
     fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
-    change may be one item; no minimum or quota. Every item pays a fixed round of eight stages and its reviews, so a
-    project skeleton, configuration or tool setup goes in the first item that builds on it, never in an item of its
-    own. Preservation and negative requirements are checks
+    change may be one item; no minimum or quota. Every item pays a fixed round of stages and reviews, so setup (a
+    skeleton, configuration, tools) goes in the first item that builds on it. Preservation and negative requirements are checks
     on the affected item unless they need their own change. Add no item for step planning, validation, build, test,
     documentation, verification, commit or review (each item already gets them). Keep a cross-item or
     later-environment check at the boundary where it is due.
@@ -1219,8 +1221,8 @@ DUTIES = {
     parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it; one
-    item's open assumptions stay within 1,200 characters together.
+    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it
+    (1,200 characters per item).
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
@@ -1315,15 +1317,12 @@ Change no product file in this stage.
    stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md.
-9. **Plan record** in the item's `context` or the summary (supporting reference; each step's task and criteria stay
-   its only directive), for the topics this item touches only:
-   - outcome and invariants kept; contracts and responsibilities that change;
-   - target files, interfaces and conventions, matched to the house style (House-style guidance);
+9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it. Record in
+   the item's `context` or the summary (each step's task and criteria stay its only directive),
+   for the topics this item touches only:
+   - outcome and invariants kept; target files and interfaces, matched to the house style (House-style guidance);
    - each step's failure cases and the diagnostics and errors it must produce;
-   - documentation to change; integration impact and release prerequisites; readiness, completion and revalidation
-     conditions;
-   - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
-     sections;
+   - the Coding decision guide's selection: runtime and version, artifact and boundary, matching sections only;
 """ + _PLAN_RECORD_INTERACTIONS + """\
    - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
      interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that

@@ -28,6 +28,7 @@ from typing import Any, NamedTuple
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
+import shiploop_concerns as concerns
 import shiploop_unverified as unverified
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
@@ -67,7 +68,7 @@ _RESULT_KEYS = frozenset((
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
-    "follows", "test_cases", "lessons", "not_covered",
+    "follows", "test_cases", "lessons", "not_covered", "concerns",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -113,7 +114,7 @@ BLOCKED_RULE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered",
+    "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1092,6 +1093,15 @@ def _canonical_result(
         _need(isinstance(value["skill"], Mapping) and value["skill"].get("decision") in _SKILL_DECISIONS,
               "skill is {\"decision\": \"none\" | \"reuse\" | \"update\" | \"create\", \"reason\": \"...\", ...}")
         result["skill"] = json.loads(json.dumps(value["skill"]))
+    if "concerns" in value:
+        # Shape only (the concern map, build plan S2.2); the CLI gates check that it is complete for the queue or item.
+        _need(stage in ("plan", "step-plan") and outcome == "done", "concerns are allowed only on a done plan or "
+              "step-plan result")
+        try:
+            result["concerns"] = (concerns.canonical_plan(value["concerns"]) if stage == "plan"
+                                  else concerns.canonical_step_plan(value["concerns"]))
+        except concerns.ConcernError as exc:
+            raise NavigatorError(str(exc)) from exc
     if "lint_waivers" in value:
         _need(stage in lint.GATE_STAGES and outcome == "done",
               "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
@@ -2051,6 +2061,8 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     if stage in inner and workitem is not None:
         blocks.append(_work_item_block(root, state))
     blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem)))
+    if stage == "step-plan" and workitem is not None:
+        blocks.append(_Block("concerns", P1, concerns.packet_lines(_plan_concerns(state), workitem)))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
@@ -2868,6 +2880,36 @@ def _check_producer_bounds(stage: str, result: Any) -> None:
             _need(named <= STEP_CRITERIA_LIMIT, f"the criteria step {name} names are {named:,} characters together; the "
                   f"limit is {STEP_CRITERIA_LIMIT:,} because its implement packet prints them whole. Shorten each "
                   "criterion to the observable result, or split the step")
+
+
+def _plan_concerns(state: Mapping[str, Any]) -> Mapping[str, Any]:
+    """The current plan result's concern map ({} when the plan wrote none)."""
+    action = planning_revision.current_actions(state).get((None, "plan"))
+    plan = (state.get("accepted") or {}).get(action) if action else None
+    return (plan or {}).get("concerns") or {}
+
+
+def _check_submitted_concerns(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """The concern map at the CLI gates (build plan S2.2): a done plan maps every concern for every work item; a done
+    step plan maps each applicable concern the plan gave it to the steps that deliver it."""
+    if not isinstance(result, Mapping) or result.get("outcome") != "done" or stage not in ("plan", "step-plan"):
+        return
+    try:
+        if stage == "plan":
+            _need("concerns" in result, "a done plan maps the concerns of every work item: concerns: {\"W1\": [one "
+                  "row per concern: " + ", ".join(concerns.CONCERN_IDS) + "]}; a row is {id, applies: yes, decision, "
+                  "anchor, owner_stage} or {id, applies: no, reason}")
+            queue = result.get("work_items", state["work_items"])
+            concerns.check_plan(concerns.canonical_plan(result["concerns"]),
+                                [str(row.get("id")) for row in queue if isinstance(row, Mapping)])
+            return
+        item = str(_current_work_item(state))
+        owned = concerns.owned_rows(_plan_concerns(state), item)
+        mapped = concerns.canonical_step_plan(result.get("concerns", []))
+        concerns.check_step_plan(mapped, owned, [str(step.get("id")) for step in result.get("steps") or ()
+                                                if isinstance(step, Mapping)], item)
+    except concerns.ConcernError as exc:
+        raise NavigatorError(str(exc)) from exc
 
 
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
@@ -4221,6 +4263,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     }
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
+        result["concerns"] = {"W1": [{"id": "ui", "applies": "yes", "decision": "...", "anchor": "...",
+                                      "owner_stage": "step-plan"}]}
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
         # A step's paths are for the ask-agent chain only (implement-step fix plan D3): the inline template asks none.
@@ -4258,6 +4302,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     # result-shape block, so a blocked result copied from their template stays acceptable.
     if stage == "step-plan":
         result["follows"] = list(HANDOFF_SHAPES["follows"])
+        # The concerns the plan gave this item to map (build plan S2.2), named so only the step IDs are to fill.
+        owned = (concerns.owned_rows(_plan_concerns(state), str(_current_work_item(state)))
+                 if "accepted" in state and "stage" in state else [])
+        if owned:
+            result["concerns"] = [{"id": row["id"], "steps": ["S1"]} for row in owned]
     if stage == "release-verify":
         result["lessons"] = dict(HANDOFF_SHAPES["lessons"])
     if stage in assumptions.OPEN_ITEM_STAGES and stage in stage_spec.OUTER:
@@ -8380,6 +8429,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                                       check_only=check_only)
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_producer_bounds(current_stage(state), submitted)
+            _check_submitted_concerns(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)

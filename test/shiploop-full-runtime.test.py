@@ -23,6 +23,7 @@ import tempfile
 import unittest
 
 import package_build
+import shiploop_inner_fixture as inner_fixture
 import shiploop_knowledge_support as knowledge_support
 from shiploop_packet_view import head_packet_path
 from shiploop_loop_support import finish_loop, with_receipt
@@ -411,6 +412,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             producer.update(payload)
         if stage == "plan" and producer.get("outcome") == "done" and "assumptions" not in producer:
             producer["assumptions"] = []
+        if stage == "plan" and producer.get("outcome") == "done" and "concerns" not in producer:
+            queue = producer.get("work_items", state["work_items"])
+            producer["concerns"] = inner_fixture.no_concerns_map(
+                row["id"] for row in queue if isinstance(row, dict))
         self._inner_fields(run, repo, stage, producer)
         if stage == "system-test-author" and producer.get("outcome") == "done" and "system_commands" not in producer:
             producer.update(system_commands=[], system_commands_na="Synthetic fixture: no system command.")
@@ -724,6 +729,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._inner_fields(run, Path(state["repo"]), stage, result)
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
+        if stage == "plan" and result.get("outcome") == "done" and "concerns" not in result:
+            queue = result.get("work_items", state["work_items"])
+            result["concerns"] = inner_fixture.no_concerns_map(
+                row["id"] for row in queue if isinstance(row, dict))
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result["unverified"] = []
         if stage in knowledge_support.knowledge.CLOSES:

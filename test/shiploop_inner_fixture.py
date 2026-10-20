@@ -18,11 +18,12 @@ import tempfile
 import types
 import unittest
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Iterable, Mapping, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/shiploop/scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_assumptions as assumptions  # noqa: E402
+import shiploop_concerns as concern_map  # noqa: E402
 import shiploop_expectations as expectations  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
@@ -43,6 +44,14 @@ SKILL_NONE = {"decision": "none", "reason": "Synthetic fixture: no procedure rep
 # A done release-verify result's lessons (consumer contract 3.4).
 LESSONS = {"learned": "Synthetic fixture: nothing learned.", "considerations": "none",
            "open_next": "none"}
+
+
+def no_concerns_map(item_ids: Iterable[str]) -> dict[str, list[dict[str, str]]]:
+    """A done plan's ``concerns`` (build plan S2.2) where no concern applies to any item in ``item_ids``: the
+    synthetic fixture default for suites whose intent is not the concern map itself."""
+    reason = "Synthetic fixture: no concern applies."
+    return {str(item): [{"id": name, "applies": "no", "reason": reason} for name in concern_map.CONCERN_IDS]
+            for item in item_ids}
 
 
 def test_cases_for(plan: Mapping[str, Any]) -> list[dict[str, str]]:
@@ -192,6 +201,9 @@ class RunDriver(unittest.TestCase):
         result = dict(result)
         if stage == "plan" and result.get("outcome") == "done":
             result.setdefault("assumptions", [])
+            queue = result.get("work_items", state["work_items"])
+            result.setdefault("concerns", no_concerns_map(
+                str(row.get("id")) for row in queue if isinstance(row, Mapping)))
         if stage == "step-plan" and result.get("outcome") == "done":
             result.setdefault("paths", list(self.PATHS))
         if stage in assumptions.OPEN_ITEM_STAGES and result.get("outcome") == "done":
@@ -243,4 +255,4 @@ class RunDriver(unittest.TestCase):
 
 
 __all__ = ("CORE", "DONE", "IMPROVE_CARD", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
-           "prepare")
+           "no_concerns_map", "prepare")

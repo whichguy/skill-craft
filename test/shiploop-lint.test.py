@@ -929,6 +929,10 @@ def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True) 
     stage = nav.current_stage(state)
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
+    if stage == "plan" and result.get("outcome") == "done" and "concerns" not in result:
+        queue = result.get("work_items", state["work_items"])
+        result = dict(result, concerns=inner.no_concerns_map(
+            str(row.get("id")) for row in queue if isinstance(row, dict)))
     if stage == "step-plan" and result.get("outcome") == "done" and "paths" not in result:
         result = dict(result, paths=list(PATHS))
     if loop:

@@ -343,6 +343,7 @@ _ROWS = (
             "each step declares deps, the criteria it satisfies and its check, one command that proves those criteria "
             "using only this step and accepted earlier steps, every criterion is satisfied by a step, and no step only "
             "changes test files (unless the whole item is tests)",
+            "concerns maps each concern the plan gave this item to the steps that deliver it",
             "test_commands records focused, regression and at least one check command (lint, type or build), with "
             "check_na giving the reason when there is no check command, or test_commands_na giving the reason there "
             "are no commands",

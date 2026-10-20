@@ -18,7 +18,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 sys.path.insert(0, str(PACKAGE / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_assumptions as assumptions  # noqa: E402
+import shiploop_inner_fixture as inner_fixture  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -134,6 +136,11 @@ class GateTests(unittest.TestCase):
     def complete(self, result: dict) -> None:
         state = self.state()
         action = nav.current_action(state)["id"]
+        if (nav.current_stage(state) == "plan" and result.get("outcome") == "done"
+                and "concerns" not in result):
+            queue = result.get("work_items", state["work_items"])
+            result = dict(result, concerns=inner_fixture.no_concerns_map(
+                row["id"] for row in queue if isinstance(row, dict)))
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         store.write_record(path, result)

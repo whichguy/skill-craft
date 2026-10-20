@@ -35,6 +35,7 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 sys.path.insert(0, str(ROOT / "test"))
+import shiploop_inner_fixture as inner_fixture  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
 from shiploop_packet_view import assert_top_block, callback_result_path, head_packet_path, packet_file_named  # noqa: E402
@@ -3625,7 +3626,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
             with self.subTest(mode=mode):
                 sp = self.flat(prompts.prompt("step-plan", delegation="inline", planning_review=mode))
                 # U25 (SP-8): duty 9 opens with this sentence now, inside its parenthesis.
-                self.assertIn("(supporting reference; each step's task and criteria stay its only directive)", sp)
+                self.assertIn("(each step's task and criteria stay its only directive)", sp)
                 self.assertNotIn("Each reviewed step's", sp)
                 plan = self.flat(prompts.prompt("plan", delegation="inline", planning_review=mode))
                 self.assertIn("each item's ready and done conditions stay its only execution directive.", plan)
@@ -4131,6 +4132,10 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         if result.get("outcome") == "done":
             # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
             result = dict(result)
+            if stage == "plan":
+                queue = result.get("work_items", state["work_items"])
+                result.setdefault("concerns", inner_fixture.no_concerns_map(
+                    str(row.get("id")) for row in queue if isinstance(row, dict)))
             if stage == "step-plan":
                 result.setdefault("follows", [])
             if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
@@ -4383,6 +4388,71 @@ class ProducerBoundTests(unittest.TestCase):
         with self.assertRaisesRegex(navigator.NavigatorError, r"open assumptions of W1 \(1,201 characters\)"):
             navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row, dict(
                 row, id="A2", assumption="d", check="", reason="")]})
+
+
+class ConcernMapTests(unittest.TestCase):
+    """The concern map (build plan S2.2, run-insights A1): the plan maps every concern for every work item, and the step
+    plan maps each applicable concern it owns to its steps. The gates check structure only."""
+
+    @staticmethod
+    def rows(**yes):
+        import shiploop_concerns as concerns
+        return [({"id": name, "applies": "yes", "decision": yes[name], "anchor": "R-1", "owner_stage": "step-plan"}
+                 if name in yes else {"id": name, "applies": "no", "reason": "not touched"})
+                for name in concerns.CONCERN_IDS]
+
+    def state_at_step_plan(self, plan_concerns):
+        """A pure-navigator walk to W1's step-plan whose accepted plan carries ``plan_concerns``."""
+        state = navigator.new_state("/simulation-only/repo", "Concern fixture.", improve_skill="")
+        for _ in range(60):
+            stage = navigator.current_stage(state)
+            if stage == "step-plan" and state["active_improve"] is None:
+                return state
+            action = navigator.current_action(state)["id"]
+            result = {"outcome": "done", "summary": "Synthetic."}
+            if stage == "plan":
+                result.update(work_items=[{"id": "W1", "title": "One"}], concerns=plan_concerns)
+            state = navigator.apply(state, action, result)
+            if state["active_improve"] is not None:
+                state = navigator.finish_improve(state, action, {"summary": "Synthetic review.",
+                                                                 "review_refs": ["synthetic://r"],
+                                                                 "check_refs": ["synthetic://c"]})
+        raise AssertionError("step-plan not reached")
+
+    def test_a_done_plan_maps_every_concern_for_every_work_item(self):
+        plan = {"outcome": "done", "summary": "s", "work_items": [{"id": "W1", "title": "t"}]}
+        with self.assertRaisesRegex(navigator.NavigatorError, "a done plan maps the concerns of every work item"):
+            navigator._check_submitted_concerns({"work_items": []}, "plan", plan)
+        partial = [row for row in self.rows() if row["id"] != "accessibility"]
+        with self.assertRaisesRegex(navigator.NavigatorError, "W1: every concern needs a row.*missing: accessibility"):
+            navigator._check_submitted_concerns({"work_items": []}, "plan", dict(plan, concerns={"W1": partial}))
+        with self.assertRaisesRegex(navigator.NavigatorError, "concerns lacks W2"):
+            navigator._check_submitted_concerns({"work_items": []}, "plan", dict(
+                plan, work_items=[{"id": "W1", "title": "t"}, {"id": "W2", "title": "u"}],
+                concerns={"W1": self.rows()}))
+        navigator._check_submitted_concerns({"work_items": []}, "plan", dict(plan, concerns={"W1": self.rows(ui="grid")}))
+
+    def test_a_step_plan_maps_each_owned_concern_to_its_steps(self):
+        state = self.state_at_step_plan({"W1": self.rows(ui="a 10x10 grid", accessibility="named cell buttons")})
+        steps = [{"id": "S1", "task": "t"}, {"id": "S2", "task": "u"}]
+        done = {"outcome": "done", "summary": "s", "steps": steps}
+        with self.assertRaisesRegex(navigator.NavigatorError, "concerns no step delivers: ui, accessibility"):
+            navigator._check_submitted_concerns(state, "step-plan", done)
+        with self.assertRaisesRegex(navigator.NavigatorError, "concern ui names steps the result does not list: S9"):
+            navigator._check_submitted_concerns(state, "step-plan", dict(done, concerns=[
+                {"id": "ui", "steps": ["S9"]}, {"id": "accessibility", "steps": ["S2"]}]))
+        navigator._check_submitted_concerns(state, "step-plan", dict(done, concerns=[
+            {"id": "ui", "steps": ["S1"]}, {"id": "accessibility", "steps": ["S1", "S2"]}]))
+        # The packet prints the plan's applicable rows, and the template names the concerns to map.
+        packet = navigator.render(None, Path("/simulation-only/run"), state)
+        self.assertIn("- accessibility: named cell buttons (R-1; owner step-plan)", packet)
+        self.assertIn('{"id":"ui","steps":["S1"]}', packet.replace(" ", ""))
+
+    def test_an_item_the_plan_gave_no_concerns_maps_none(self):
+        state = self.state_at_step_plan({"W1": self.rows()})
+        navigator._check_submitted_concerns(state, "step-plan", {"outcome": "done", "summary": "s",
+                                                                 "steps": [{"id": "S1", "task": "t"}]})
+        self.assertNotIn("Concerns the plan decided", navigator.render(None, Path("/simulation-only/run"), state))
 
 
 if __name__ == "__main__":
