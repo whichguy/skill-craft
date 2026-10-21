@@ -2,6 +2,116 @@
 
 Written by scripts/release.py.
 
+## 2026-10-20
+
+### skill-craft 2.8.0
+
+- Skills: improve 0.6.0, shiploop 1.8.0, shiploop-e2e-audit 0.7.6, shiploop-run-review 0.3.1
+
+### improve 0.6.0
+
+- - **Stop rule:** Improve now completes at the first pass that finds only trivial changes or none (`required_trivial_reviews: 1`). It
+    no longer needs two consecutive trivial passes. A material or unresolved pass still continues the loop. Why: in a live
+    run, the second confirming pass took about a fifth of all Improve passes and found nothing.
+
+### shiploop 1.8.0
+
+- - **Concern map:** a done plan maps fifteen SDLC concerns for every work item: UI, API, messaging, state, migration
+    before and after release, switchover, concurrency, platform services, scale, security, observability, configuration,
+    performance and accessibility.
+    - A concern that applies gets its decision, an anchor and the stage that owns it; one that does not gets a reason.
+    - The step plan maps each applicable concern it owns to the steps that deliver it. Its packet prints the plan's
+      applicable rows, and its template names them.
+    - Step-plan duty 9's free-text plan record is shorter: the concern rows replace the bullets they covered.
+    - `complete` refuses a plan with a missing or unknown row, and a step plan that leaves an owned concern unmapped.
+- - **Fewer per-item reviews:** Improve reviews `step-plan` and `test-spec` only for the first work item, and for an item
+    that was sent back, whose redone plan is reviewed. Later items follow the pattern the first review set. Every
+    implement step, the planning stages, the last carry-forward, `system-test-author` and `release-plan` are reviewed as
+    before.
+
+    Why: in a live four-item run, Improve took 99 of 236 minutes. The step plan's review alone took 5 to 14 minutes on
+    every item.
+- - **Implement guidance:** a new reference, `references/implement-guidance.md`, holds eight considerations an
+    implementation step settles before building: whole step, interactions, building, deploying, state, operating, what
+    exists and proof. Each consideration names the knowledge sections that anchor it. The implement packet cites the
+    guide, and its Build item says to settle the considerations the step touches before the first edit. It adds no
+    result field and no gate.
+  - **Code craft 10-14**, one sentence each: concurrency only for a shown gain; platform first; bound every remote call;
+    configuration, not constants; seams for determinism.
+- Texts that answer what a live run's model otherwise read ShipLoop's source to learn, or a cost it did not know:
+  - **Plan:** every item pays a fixed round of eight stages and its reviews, so a project skeleton, configuration or tool
+    setup goes in the first item that builds on it.
+  - **Step plan:** a hand-written check prints its ID and outcome on every exit, a failure too. The test stage's "did not
+    run" refusal names a command that fails before it prints.
+  - **Test spec:** a criterion no test-case row names gets a coverage notice, and the result is still accepted.
+  - **Research:** look in the repository and the platform guides first, then search the web one question at a time.
+  - **Prepare:** a tool that writes its own files inside the checkout needs them in `.gitignore` (the platform guide's
+    `## Tool state`; the Salesforce card lists `.sf/` and `.sfdx/`).
+  - **One-line refusals:** the check, step check and test command refusals say to join steps with `&&` or `;`. A `\n` inside
+    the JSON string is decoded to a newline before the check runs.
+- - **Loop argument in the loop's packets (decision 20):** an inner stage's packet no longer prints the Until Loop
+    argument (Work, the numbered exit conditions, Repeat). It prints the start command and one
+    `Contract: <abs> · Receipt: <abs>` line, and its "Done when" points at the exit conditions the loop states in every
+    packet it prints. The runtime prints the contract's Work, Exit and Repeat on start, next and each active done, and a
+    test pins that. The test stage keeps the argument, because its command floors are numbered by it. Inner heads lose
+    750-1,300 characters, so their lookups fit.
+- - **Progress narrative cap:** the narrative a packet prints stays within 900 characters. When it would run over, the
+    oldest finished steps fold into one "N earlier steps: done" row, newest first kept; a text still over the cap is cut
+    with an ellipsis.
+- - **Shorter Improve reviews:** every Improve child ShipLoop starts completes at its first trivial pass
+    (`required_trivial_reviews: 1`, Improve's new stop rule). In a live four-item run, 11 of 16 reviews spent a pass only
+    confirming a trivial result.
+- - **Platform testing guide:** discovery records the platform guide each target follows under `## Targets and runtimes`
+    (`GUIDES/platforms/<name>.md`, or none). Test-strategy, plan, prepare and step-plan then point to that card's
+    `## Testing` section, so the platform's testing rules (deploy before test, the reporter ShipLoop reads) reach the
+    stages that decide tests.
+  - **Salesforce card:** it gains the `## Testing` heading, and its org-bound test advice now matches the mutation check's
+    remote-test skip.
+- - **Producer limits:** fields a later packet prints whole now have limits, refused at `complete` with the size, the
+    limit and the fix:
+    - a work item's `context`: 2,500 characters, at plan, carry-forward and add-work;
+    - one item's open assumptions together: 1,200;
+    - a step's `task`: 700;
+    - its `check`: 600;
+    - the criteria texts it names: 1,200 together.
+
+    The plan and step-plan duties state them.
+- - **Mutation check on a hosted platform:** when every focused command tests a deployed copy, a command a platform card
+    lists under `## Remote tests`, the check now records `skipped` with the card and command named. Before, it mutated a
+    local copy those commands never read, so every mutant survived and good tests were refused. The Salesforce card
+    lists `sf apex run test` and `sf apex run`. Local tests, such as Jest, are still mutation-checked.
+- - **Spec write-back at implement:** an inline step that settles what a requirement should say adds one acceptance line
+    inside that requirement's R-<n> entry in KNOWLEDGE/spec.md, ending `(<item>/<step>)`, and ShipLoop commits it with
+    the step. Any other spec change at implement is refused: a changed or removed line, an unmarked line, or a line
+    outside a current requirement. The refusal names send-back for a real requirement change.
+  - **Send-back after a refused implement done:** when the item-scope or spec gate refuses an implement done and names
+    send-back, that action's send-back is accepted even though its Until Loop has already completed. Before, the
+    refusal's own exit was refused in turn.
+- - **Step commits:** on the inline route ShipLoop commits each accepted implement step, before its Improve stage
+    starts, as `feat(<item>/<step>): <headline>`. The message carries the step's summary and sections Key learnings,
+    Key decisions, Evidence and Related commits.
+    - An implement result's `learned` and `decisions` are required there, each a list of lines (`["none"]` allowed,
+      1,200 characters each).
+    - `learned_from` names the commits whose learnings the step used; each must be reachable from HEAD.
+    - Each inline implement packet quotes the last two commits that are not ShipLoop records as its look-back,
+      after the other quoted blocks.
+    - Verify's item commit takes what changed after the last step.
+- - **Per-step revisit:** after a send-back, each redone inline implement step names its own previous result and its
+    commit (`git show <sha>`), not the item's last implement result. A step with no earlier result says so, and a new
+    step prints nothing.
+- - The Python and Node platform cards gain a `## Tool state` section (caches, virtual environments, `node_modules/`), so
+    prepare's tool-state duty covers them as it covers Salesforce.
+
+### shiploop-e2e-audit 0.7.6
+
+- - The DAG replay's literal Improve schedule follows ShipLoop's rule `first-item`: step-plan and test-spec park for Improve
+    only for the run's first work item and for an item that was sent back. The two-item replay has 42 callbacks, not 44.
+
+### shiploop-run-review 0.3.1
+
+- - The stage catalog accepts ShipLoop's new Improve rule `first-item` (step-plan and test-spec are reviewed for the first
+    work item and for an item that was sent back). The page explains it, and `defaults/stages.json` is regenerated.
+
 ## 2026-10-19
 
 ### skill-craft 2.7.0

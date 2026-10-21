@@ -1,4 +1,4 @@
 interface:
   display_name: "Improve"
-  short_description: "Review, test, and improve until two clean passes"
+  short_description: "Review, test, and improve until a trivial pass"
   default_prompt: "Use $improve on the current changes, preserving unrelated work."

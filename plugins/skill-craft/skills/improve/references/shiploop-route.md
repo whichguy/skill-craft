@@ -55,10 +55,10 @@ work or overrides a constraint.
   commit. An empty plan is valid only after a substantive review finds no worthwhile change. A
   callback, retry, diagnostic command or repeated test is not another review; do not perform
   several reviews privately before one callback.
-- **Exit rule.** Repeat until two consecutive passes make no changes, or the first pass
-  completes with no change (the exit and repeat conditions are in `CHILD/start.json`, printed in
-  every returned packet). "No changes" means a `trivial` pass: nothing material found, at most
-  trivial polish; a material or unresolved pass resets the count. The one-pass exit needs more
+- **Exit rule.** Repeat until a pass finds only trivial changes or none (the exit and repeat
+  conditions are in `CHILD/start.json`, printed in every returned packet). A `trivial` pass
+  found nothing material, at most trivial polish, which it commits; a material or unresolved
+  pass continues the loop. The one-pass exit needs more
   than the report: the runtime checks from Git that the workspace content (tracked and untracked
   files; ignored and runtime files aside) is exactly what it was at `start`. Only the runtime
   accepts a terminal transition. A blocker, requested stop, exhausted budget, failed required

@@ -153,7 +153,7 @@ Candidate abc123 plus scoped parser.py/test_parser.py; read seven full messages.
 Found blank input violated the documented fallback, changed those two files, and
 ran `python -m unittest test_parser` (0). Committed def456 with the required
 review/plan/validation/learning record. Material repair resets the streak; no
-remaining observed parser failure, but two fresh qualifying reviews are still required.
+remaining observed parser failure, but a fresh qualifying review is still required.
 ```
 
 A later qualifying no-change review might report:
@@ -162,7 +162,7 @@ A later qualifying no-change review might report:
 Candidate def456 unchanged in scope; read seven full messages and completed a
 self-review (inline default). No material finding; `python -m unittest test_parser` (0)
 remains applicable. No commit was created because this was a no-change review.
-This is trivial review 1 of 2; another distinct full review is required.
+This is the qualifying trivial review; the loop can complete.
 ```
 
 These examples describe reported facts; they are not a substitute for actually

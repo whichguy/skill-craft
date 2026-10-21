@@ -123,13 +123,14 @@ class DagReplayTests(unittest.TestCase):
         self.assertIn("SIMULATION_ONLY", report["mock_transport"]["stderr"])
         self.assertEqual(1, report["mock_transport"]["subprocesses"])
 
-    def test_two_work_items_preserve_queue_identity_over_32_stages_and_44_callbacks(self) -> None:
+    def test_two_work_items_preserve_queue_identity_over_32_stages_and_42_callbacks(self) -> None:
         report = self._replay("synthetic-two-work-items")
 
         self.assertTrue(report["ok"], report.get("error"))
         # 32 producer callbacks plus 12 Improve completions: spec, test-strategy, plan, then step-plan,
         # test-spec and implement for each item, the last carry-forward, system-test-author and release-plan.
-        self.assertEqual(44, len(report["events"]))
+        # 44 until rule first-item (2026-10-19): W2's step-plan and test-spec no longer park for Improve.
+        self.assertEqual(42, len(report["events"]))
         self.assertEqual(["W1", "W2"], report["final"]["completed_work_items"])
         carry_forward = [event for event in report["events"] if event["from"] == "carry-forward"]
         # Only the carry-forward that leaves no item pending parks for Improve.

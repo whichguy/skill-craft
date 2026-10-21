@@ -87,6 +87,8 @@ additive change, keep remote records authoritative through the current runtime
 adapter, leave a cache conditional on authorization/invalidation evidence, and
 verify the final metadata/status read-back for the intended role.
 
+## Testing
+
 Apply [target-native test selection](../repeatable-test-suites.md#select-target-native-tests)
 to the affected repo/org metadata and actual deployment route. LWC Jest checks
 components locally; Apex tests execute in the org; browser checks observe the
@@ -108,9 +110,11 @@ the line that names it, so record the command with a reporter it can read:
 table and `--result-format human` put the outcome word after the test name,
 which ShipLoop does not read, so a focused command that uses them is refused as
 unread. An Apex test runs the code already in the org, so on the item's base it
-cannot fail unless the command deploys the tree first: name each new org-bound
-test in the test result's `red_na` with that reason, and let the candidate run
-and the mutation check carry the proof.
+cannot fail unless the command deploys the tree first: either make the focused
+command deploy the tree before it tests, or name each new org-bound test in the
+test result's `red_na` with that reason. The mutation check cannot judge an
+org-bound test (it changes a local copy the org never sees) and records why it
+skipped, so the candidate run carries the proof.
 
 For a Lightning consumer, distinguish the org/instance identity from the
 feature's authenticated entry: an app, custom tab, component or other supported
@@ -133,6 +137,22 @@ open directly. At discovery, run it once (without opening the page) to prove the
 route, and record the alias and page path. Keep the URL out of evidence and
 logs: it is a session credential. Ask the user only when the CLI has no working
 authentication for the target org.
+
+## Tool state
+
+The `sf` CLI writes its own state inside the project: `.sf/` (org source tracking, caches) and `.sfdx/`. Both belong in
+`.gitignore`, never in a commit. `sf project generate` writes a `.gitignore` that lists them; a project written by hand
+adds the two lines itself. Unignored, they change whenever an `sf` command runs, and ShipLoop's checks read them as
+product changes (a live run's Improve review was refused for `.sf/orgs/<id>/localSourceTracking` files).
+
+## Remote tests
+
+These commands test the code deployed to the org, not the checkout, so ShipLoop's mutation check (which changes a
+copy of the checkout) cannot judge them and records why it skipped. Local tests, such as Jest for Lightning web
+components, are still mutation-checked.
+
+- `sf apex run test`
+- `sf apex run`
 
 ## Consumer entry access (read-only probe)
 

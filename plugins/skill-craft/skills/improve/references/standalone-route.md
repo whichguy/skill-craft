@@ -96,10 +96,10 @@ original learnings with selective references to prior commits in one account.
   `unresolved` if work, evidence, required commit, or assessment is incomplete.
   Report the substantive exit assessment and whether continuation is allowed,
   blocked, or cancelled.
-- **Exit rule:** repeat until two consecutive passes make no changes, or the
-  first pass completes with no change. "No changes" means a `trivial` pass:
-  nothing material found, at most trivial polish. A material or unresolved
-  pass resets the count. The one-pass exit needs more than the report: the
+- **Exit rule:** repeat until a pass finds only trivial changes or none (start the
+  runtime with `required_trivial_reviews: 1`). A `trivial` pass found nothing
+  material, at most trivial polish, which it commits. A material or unresolved
+  pass continues the loop. The one-pass exit needs more than the report: the
   runtime checks from Git that the workspace content (tracked and untracked
   files; ignored and runtime files aside) is exactly what it was at `start`,
   and only then ends the loop after that first pass. Only the runtime can
@@ -270,8 +270,8 @@ context.
 Preserve the shared policy and every standalone binding above in the interpreted
 contract, including conditional commit overrides and negative constraints. The
 execution condition must contain the complete ordered review cycle; the exit
-condition must include current evidence and the exit rule (two consecutive
-passes with no changes, or a first pass that completes with no change);
+condition must include current evidence and the exit rule (a pass that finds
+only trivial changes or none);
 and the continuation condition must retain useful authorized work and incomplete
 stops. Before start, check that required exit outcomes can be achieved during
 execution. If the task requires an authorized deployment or other external

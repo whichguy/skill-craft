@@ -75,7 +75,7 @@ DELEGATIONS = (INLINE, ASK_AGENT)
 # check).  Planning stages write the contracts later work is built on: a sentence,
 # example or expected result there can look done and still be wrong.  Each accepted
 # implement step has its own rule ("step"), whatever the planning review option says.
-PLANNING_REVIEW_STAGES = stage_spec.with_improve("always")
+PLANNING_REVIEW_STAGES = stage_spec.with_improve("always") | stage_spec.with_improve("first-item")
 
 INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit its callback
@@ -268,6 +268,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
     ),
     "implement": (
+        ("Implement considerations", "implement-guidance.md#considerations"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("House-style guidance", "house-style.md#match-while-building"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
@@ -489,7 +490,8 @@ source is missing, report the gap rather than inventing a locator or omitting it
 A justified N/A is still an output that states
 what was assessed and why it does not apply. ShipLoop starts an Improve child
 after planning results (spec, test-strategy, plan, step-plan, test-spec,
-system-test-author, release-plan), after each accepted implement step, and after
+system-test-author, release-plan; step-plan and test-spec only for the first work
+item and after a send-back), after each accepted implement step, and after
 the carry-forward that leaves no work item pending. Run only the checks this step's change needs. When this step changes no
 product file, its check is the named command, its exit code and its required output
 substrings: record them, cite the earlier accepted stage that ran the same command,
@@ -674,6 +676,11 @@ file cold with no run history. Every rule serves that reader.
    share one meaning, not merely similar code: a near-copy of existing logic
    is a defect, and so is a parameter that fuses two different rules. State
    the option chosen and why in one line.
+10. Concurrency only for a shown gain: bounded, ordered, each error surfaced.
+11. Platform services before hand-written infrastructure.
+12. Bound remote calls: timeout, idempotent retries with backoff, paged lists.
+13. No hard-coded URLs, IDs, credentials, limits or environment names.
+14. Inject the clock, randomness and I/O.
 """
 
 
@@ -932,7 +939,7 @@ DUTIES = {
 3. Inspect Git and worktree state, instructions, code, tests, docs, consumers and project knowledge. Record in
    KNOWLEDGE/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
    - ## Targets and runtimes: development, test, integration and delivery boundaries; runtime and dependency
-     versions;
+     versions; the platform guide each target follows (GUIDES/platforms/<name>.md), or none;
    - ## Commands: linters, formatters, type checkers, test runners;
    - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries,
      house style (House-style guidance).
@@ -988,7 +995,9 @@ DUTIES = {
 1. Start from the open unknowns in the intake and discovery results and RUN/notes/discovery.md. Revise that frontier
    with Discovery investigation guidance (check its triggers first, and again when evidence conflicts); write a
    triggered plan and outcome to RUN/notes/research.md. Investigate directly only when no trigger applies.
-2. Resolve each consequential unknown with repository, primary-interface or other fit evidence. In
+2. Resolve each consequential unknown with repository, primary-interface or other fit evidence: the repository and
+   GUIDES/platforms/ first, then the web one question at a time, writing each answer down before the next search
+   (fetched pages stay in context). In
    RUN/notes/research.md record the conclusion, source, uncertainty, affected requirement, consumer, prerequisite,
    reuse choice and verification need; leave an unsupported question open there with owner and the gate it blocks. A
    recalled fact is not evidence.
@@ -1125,7 +1134,10 @@ DUTIES = {
 3. Apply Initial-plan reconciliation to KNOWLEDGE/architecture.md, KNOWLEDGE/spec.md, the non-functional requirements and the
    State and data assessment: map each applicable obligation and every acceptance criterion to its work item,
    prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
-   need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof.
+   need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
+   item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
+   platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
+   `{id, applies: "no", reason}`; one clause each.
 4. Carry the initial baseline's evidence and classification into `evidence_refs` and each affected item's `context`
    (Initial repository baseline guide). A foundation repair, setup prerequisite or missing-test bootstrap goes in the
    earliest feasible item before the feature that depends on it; its readiness evidence is the original check's
@@ -1179,8 +1191,8 @@ DUTIES = {
 9. KNOWLEDGE/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
    ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
    and ## Interfaces and boundaries where this plan changes them.
-10. Give each work item a compact `context` a fresh reader can act on, full locators in `evidence_refs`, longer notes
-    in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
+10. Give each work item a compact `context` (at most 2,500 characters) a fresh reader can act on, full locators in
+    `evidence_refs`, longer notes in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
     revalidation condition:
     - each convention, canonical test or example, verified skill, MCP or library contract, environment or delivery
       decision, approved exception;
@@ -1193,7 +1205,7 @@ DUTIES = {
     - service decisions: note locators and revalidation conditions;
     - readiness checks of the item's prerequisites.
     A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
-    decision ledger; a context summary is not proof.
+    decision ledger beyond the `concerns` rows; a context summary is not proof.
 11. Plan the before and after decisions and preservation checks from the baseline and the spec changes since the run began, and durable
     documentation work for knowledge that exists only in run notes.
 12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
@@ -1204,7 +1216,8 @@ DUTIES = {
 14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
     prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
     fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
-    change may be one item; no minimum, quota or scaffolding item. Preservation and negative requirements are checks
+    change may be one item; no minimum or quota. Every item pays a fixed round of stages and reviews, so setup (a
+    skeleton, configuration, tools) goes in the first item that builds on it. Preservation and negative requirements are checks
     on the affected item unless they need their own change. Add no item for step planning, validation, build, test,
     documentation, verification, commit or review (each item already gets them). Keep a cross-item or
     later-environment check at the boundary where it is due.
@@ -1214,7 +1227,8 @@ DUTIES = {
     parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it.
+    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it
+    (1,200 characters per item).
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
@@ -1243,6 +1257,9 @@ DUTIES = {
 7. Record readiness under KNOWLEDGE/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
    commands that start each runner, the observations. Record not-applicable only when this candidate needs no
    preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
+8. Tool state: a tool that writes its own files inside the checkout (the platform guide's ## Tool state names them)
+   needs them in .gitignore before any build; add the missing lines and list .gitignore in `evidence_refs`. An
+   unignored tool file reads as a product change to ShipLoop's checks.
 """,
     "step-plan": """\
 Change no product file in this stage.
@@ -1274,7 +1291,8 @@ Change no product file in this stage.
      files is refused unless the whole item is tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `check`; its `task` cites IDs, not their text. Every criterion is satisfied by
-     some step. Optional `paths` (inside the item's) serve the parallel chain.
+     some step. Optional `paths` (inside the item's) serve the parallel chain. Limits: task 700 characters, check
+     600, its criteria 1,200.
    - `check`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
      artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
@@ -1286,7 +1304,8 @@ Change no product file in this stage.
 5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test and
    verify stages run exactly these.
    - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
-     pytest `-v`, others: GUIDES/platforms/; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
+     pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID and outcome on
+     every exit. """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
@@ -1304,15 +1323,12 @@ Change no product file in this stage.
    stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md.
-9. **Plan record** in the item's `context` or the summary (supporting reference; each step's task and criteria stay
-   its only directive), for the topics this item touches only:
-   - outcome and invariants kept; contracts and responsibilities that change;
-   - target files, interfaces and conventions, matched to the house style (House-style guidance);
+9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it. Record in
+   the item's `context` or the summary (each step's task and criteria stay its only directive),
+   for the topics this item touches only:
+   - outcome and invariants kept; target files and interfaces, matched to the house style (House-style guidance);
    - each step's failure cases and the diagnostics and errors it must produce;
-   - documentation to change; integration impact and release prerequisites; readiness, completion and revalidation
-     conditions;
-   - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
-     sections;
+   - the Coding decision guide's selection: runtime and version, artifact and boundary, matching sections only;
 """ + _PLAN_RECORD_INTERACTIONS + """\
    - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
      interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
@@ -1328,7 +1344,8 @@ Change no product file in this stage.
 Write no test code in this stage.
 
 1. One `test_cases` row per ID the step plan's focused commands list; no other ID. A criterion that needs an
-   unlisted ID: report send-back naming it.
+   unlisted ID: report send-back naming it. A row names one `criterion`; a criterion no row names gets a coverage
+   notice, and the result is still accepted.
 2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put surface
    (unit, public interface, real boundary, rendered UI; Real-boundary test guidance) and due phase, setup and
    fixture, action, teardown (or "stateless"), command row, registering suite and smoke membership in those fields
@@ -1374,20 +1391,23 @@ preparatory commit); a mismatch there is a send-back.
    accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
    reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
    change one only when a criterion says to.
-2. **Build.** Each iteration edits first. Follow the step plan's Coding decision selection (Coding decision guide),
-   reading only its matching sections; check current code, versions and consumers before reusing or augmenting a
-   unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
-   and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
-   it); the summary says per skill whether you used it, and why not.
+2. **Build.** Each iteration edits first. First settle the considerations it touches (Implement considerations).
+   Follow the step plan's Coding decision selection (Coding decision guide), reading only its matching sections;
+   check current code, versions and consumers before reusing or augmenting a unit. Read history or earlier reviews
+   only when a check fails or a question needs one section. Apply Code craft and House-style guidance. Use each
+   listed step skill for its purpose (invoke it, or read its SKILL.md and follow it); the summary says per skill
+   whether you used it, and why not.
 3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
    exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
    command.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
-4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. Record a
-   departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions, and a newly working command in
-   KNOWLEDGE/environment.md ## Commands.
+4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. `learned`,
+   `decisions`: lessons for later steps and choices made, with why; the step commit carries them. Write back a
+   departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions, a newly working command under
+   KNOWLEDGE/environment.md ## Commands, and an acceptance detail as a line in its R-<n> entry of KNOWLEDGE/spec.md
+   ending (<item>/<step>).
 5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
    before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
    completion uses its recorded safe fallback or correction.
@@ -2343,7 +2363,8 @@ _NONE_REVIEWED = ", ".join(_graph_order(stage_spec.reviewed_stages("none")))
 _NO_REVIEW_SWAPS = (
     ("*", """\
 after planning results (spec, test-strategy, plan, step-plan, test-spec,
-system-test-author, release-plan), after each accepted implement step, and after""",
+system-test-author, release-plan; step-plan and test-spec only for the first work
+item and after a send-back), after each accepted implement step, and after""",
      "after planning results (" + _NONE_REVIEWED + "),\n"
      "after each accepted implement step, and after"),
 )

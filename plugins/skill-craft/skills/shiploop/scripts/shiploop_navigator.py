@@ -28,6 +28,7 @@ from typing import Any, NamedTuple
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
+import shiploop_concerns as concerns
 import shiploop_unverified as unverified
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
@@ -67,7 +68,7 @@ _RESULT_KEYS = frozenset((
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
-    "follows", "test_cases", "lessons", "not_covered",
+    "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -113,7 +114,8 @@ BLOCKED_RULE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered",
+    "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
+    "learned", "decisions", "learned_from",
 )
 _STATE_KEYS = frozenset(
     (
@@ -462,6 +464,8 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     if result["outcome"] != "done":
         return False
     if stage in stage_spec.reviewed_stages(recorded_planning_review(state)):
+        if stage in stage_spec.with_improve("first-item"):
+            return _first_item_review(state, _current_work_item(state), state["history"])
         return True
     # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option.
     if stage in stage_spec.with_improve("step"):
@@ -471,6 +475,13 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     if "work_items" in result:
         return not result["work_items"]
     return state["work_index"] + 1 >= len(state["work_items"])
+
+
+def _first_item_review(state: Mapping[str, Any], item: Any, earlier: Any) -> bool:
+    """Whether a "first-item" stage's result for ``item`` is reviewed: the run's first work item, or an item whose
+    send-back is in ``earlier`` (the history before that result), so a redone plan is reviewed (owner, 2026-10-19)."""
+    first = state["work_items"][0]["id"] if state["work_items"] else None
+    return item == first or any(row["workitem"] == item and row["outcome"] == "send-back" for row in earlier)
 
 
 def delegation(state: Mapping[str, Any]) -> str:
@@ -783,7 +794,41 @@ def _upstream_line(state: Mapping[str, Any], stage: str, workitem: str, sent: Se
             + ".")
 
 
-def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+def _previous_step_results(state: Mapping[str, Any], workitem: str) -> dict[str, str]:
+    """Inline route: each step ID -> its last accepted implement action before the item's latest send-back ({} when the
+    item was never sent back).  An inline step is one action, accepted in plan order (``implement_progress``), so the
+    done implement rows after each accepted step plan pair with that plan's steps."""
+    history = state["history"]
+    sends = [index for index, row in enumerate(history) if row["workitem"] == workitem and row["outcome"] == "send-back"]
+    found: dict[str, str] = {}
+    steps: list[str] = []
+    for row in history[:sends[-1]] if sends else ():
+        if row["workitem"] != workitem or row["outcome"] != "done":
+            continue
+        if row["stage"] == stage_spec.SEND_BACK_TO:
+            steps = [str(step.get("id")) for step in state["accepted"][row["action"]].get("steps") or ()]
+        elif row["stage"] == "implement" and steps:
+            found[steps.pop(0)] = row["action"]
+    return found
+
+
+def _step_revisit_line(state: Mapping[str, Any], root: Path | None, workitem: str) -> str | None:
+    """The line naming the current inline step's own previous result and commit after a send-back (build plan S3.4), or
+    None: another route, no send-back, or a step with no earlier result."""
+    view = step_view(state, workitem)
+    if view is None:
+        return None
+    step = str(view.step.get("id"))
+    previous = _previous_step_results(state, workitem).get(step)
+    if previous is None:
+        return None
+    commit = step_commit(root, previous) if root is not None else None
+    return ("Step " + step + "'s previous accepted result, before the send-back: RUN/results/" + previous + ".md"
+            + (" and its commit " + commit[:12] + " (git show " + commit[:12] + " lists its change; the checkout holds it)"
+               if commit else "") + ". Untrusted host report: revalidate what you carry over.")
+
+
+def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None, root: Path | None = None) -> list[str]:
     """The four lines of a revisited stage's head (``_sent_back_results``): why it is back, its previous accepted result,
     what changed upstream, and the rule to keep unchanged rows with their IDs.
 
@@ -796,20 +841,28 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -
     if workitem is None and stage in stage_spec.OUTER_SEND_BACK_TO.values():
         return _outer_revisit_lines(state, stage)
     sent = _sent_back_results(state, stage, workitem)
+    step_line = _step_revisit_line(state, root, workitem) if stage == "implement" and workitem else None
     if sent is None:
-        return []
+        # A later step of the redone plan: only its own previous result, when it had one (per-step revisit, S3.4).
+        return [step_line] if step_line else []
     sending = state["accepted"][sent.sent_back]
     by = next(row["stage"] for row in state["history"] if row["action"] == sent.sent_back)
     summary = " ".join(_bounded_packet_text(str(sending.get("summary", "")), limit=REVISIT_SUMMARY).split())
     previous = ("RUN/results/" + sent.previous + ".md (accepted host report, untrusted; revalidate what you carry over)"
                 if sent.previous else "none (this stage had no accepted result for " + str(workitem)
                 + " before the send-back)")
+    view = step_view(state, workitem) if stage == "implement" else None
+    if view is not None and sent.previous and step_line is None:
+        # Another step's result is not this step's (S3.4): say this one had none.
+        previous = ("none for step " + str(view.step.get("id")) + " (it had no accepted result before the send-back; "
+                    "the item's earlier steps' changes are in the checkout)")
     return [
         f"Revisit: {by} sent {workitem} back to {stage_spec.SEND_BACK_TO} ({sent.count} of {stage_spec.MAX_SEND_BACKS} "
         "send-backs)" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
         + ". Why (its summary, untrusted): \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.",
-        "Your previous accepted " + stage + " result: " + previous + "."
-        + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement" else ""),
+        step_line or ("Your previous accepted " + stage + " result: " + previous + "."
+                      + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement"
+                         else "")),
         _upstream_line(state, stage, str(workitem), sent),
         "Keep unchanged rows with their IDs: carry over as written every row the send-back result and the changes above do "
         "not touch; change or add only what they require."
@@ -1083,6 +1136,15 @@ def _canonical_result(
         _need(isinstance(value["skill"], Mapping) and value["skill"].get("decision") in _SKILL_DECISIONS,
               "skill is {\"decision\": \"none\" | \"reuse\" | \"update\" | \"create\", \"reason\": \"...\", ...}")
         result["skill"] = json.loads(json.dumps(value["skill"]))
+    if "concerns" in value:
+        # Shape only (the concern map, build plan S2.2); the CLI gates check that it is complete for the queue or item.
+        _need(stage in ("plan", "step-plan") and outcome == "done", "concerns are allowed only on a done plan or "
+              "step-plan result")
+        try:
+            result["concerns"] = (concerns.canonical_plan(value["concerns"]) if stage == "plan"
+                                  else concerns.canonical_step_plan(value["concerns"]))
+        except concerns.ConcernError as exc:
+            raise NavigatorError(str(exc)) from exc
     if "lint_waivers" in value:
         _need(stage in lint.GATE_STAGES and outcome == "done",
               "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
@@ -1124,8 +1186,16 @@ def _canonical_result(
 
 # Each new key's one producing stage (a done result only: _DONE_ONLY_FIELDS).
 HANDOFF_FIELDS = {"follows": "step-plan", "test_cases": "test-spec", "not_covered": "implement",
-                  "lessons": "release-verify"}
+                  "lessons": "release-verify", "learned": "implement", "decisions": "implement",
+                  "learned_from": "implement"}
+# Implement's hand-off fields that are optional at done: the template leaves them out (``_handoff_shape_lines``).
+_OPTIONAL_HANDOFF = ("not_covered", "learned_from")
+# The step commit's own sections (build plan S3.2): each a list of nonblank lines, ["none"] when there is nothing to say,
+# within this many characters together (they reach the next steps' look-back, T-D2).
+STEP_NOTES = ("learned", "decisions")
+STEP_NOTES_LIMIT = 1_200
 _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
+_COMMIT_ID = re.compile(r"[0-9a-fA-F]{7,40}")
 # A shape refusal cannot know the route that submitted it (contract rule 4).
 _SHAPE_TAIL = "; then run the same command again."
 
@@ -1167,6 +1237,22 @@ def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, resul
               'not_covered is [{"behaviour": "<what this step added that no test case covers>", "reason": "<why>"}], '
               "each nonblank, or []" + _SHAPE_TAIL)
         result["not_covered"] = [{"behaviour": row["behaviour"], "reason": row["reason"]} for row in rows]
+    for key in STEP_NOTES:
+        if key in value:
+            rows = value[key]
+            _need(isinstance(rows, list) and rows and all(isinstance(row, str) and row.strip() for row in rows),
+                  key + ' is a list of nonblank lines, ["none"] when there is nothing to record' + _SHAPE_TAIL)
+            _need(sum(len(row) for row in rows) <= STEP_NOTES_LIMIT,
+                  key + " holds " + str(sum(len(row) for row in rows)) + " characters; keep it within "
+                  + f"{STEP_NOTES_LIMIT:,}" + ": the next steps' look-back prints it" + _SHAPE_TAIL)
+            result[key] = [" ".join(row.split()) for row in rows]
+    if "learned_from" in value:
+        commits = value["learned_from"]
+        _need(isinstance(commits, list) and all(isinstance(ident, str) and _COMMIT_ID.fullmatch(ident.strip())
+                                                for ident in commits),
+              'learned_from is a list of the commit IDs whose learnings this step used, such as ["1a2b3c4"] ([] when '
+              "none)" + _SHAPE_TAIL)
+        result["learned_from"] = [ident.strip() for ident in commits]
 
 
 def _action_history(state: Mapping[str, Any], action_id: str) -> Mapping[str, Any] | None:
@@ -1497,10 +1583,13 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     expected = {entry["action"] for entry in history}
     # A test stage recorded as not applicable to its item (no test command, only
     # non-code paths; derived from the item's own step plan) had nothing to review.
-    planning = {entry["action"] for entry in history
+    first_item = stage_spec.with_improve("first-item")
+    planning = {entry["action"] for index, entry in enumerate(history)
                 if entry["stage"] in reviewed and entry["outcome"] == "done"
                 and not (entry["stage"] in item_scope.TEST_STAGES and entry["workitem"]
-                         and item_scope.no_test_item(state, entry["workitem"]))}
+                         and item_scope.no_test_item(state, entry["workitem"]))
+                and not (entry["stage"] in first_item
+                         and not _first_item_review(state, entry["workitem"], history[:index]))}
     _need(planning <= set(records) <= expected,
           "Improve results must belong to completed steps, including every planning-stage result "
           "this run's planning_review option reviews")
@@ -2038,7 +2127,9 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     blocks: list[_Block] = []
     if stage in inner and workitem is not None:
         blocks.append(_work_item_block(root, state))
-    blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem)))
+    blocks.append(_Block("revisit", P1, _revisit_lines(state, stage, workitem, root)))
+    if stage == "step-plan" and workitem is not None:
+        blocks.append(_Block("concerns", P1, concerns.packet_lines(_plan_concerns(state), workitem)))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
@@ -2140,6 +2231,11 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         + " (only when the user asks or a real blocker stops authorized work)"]))
     consumer = _without_step_criteria(_consumer_lines(root, state, stage), state, stage, workitem)
     blocks.append(_Block("quoted", QUOTED, consumer))
+    # Other commits' messages, quoted (build plan S3.2): last, so a head that cannot carry them still holds every lookup
+    # and hand-off; the packet file always has them.  The head keeps optional blocks as a prefix.
+    look_back = look_back_lines(state, stage)
+    if look_back:
+        blocks.append(_Block("look-back", QUOTED, look_back))
     blocks.append(_Block("pass-log", FILE_ONLY, pass_log))
     blocks.append(_Block("halt", FILE_ONLY, [HALT_LINE]))
     blocks.append(_Block("unverified", FILE_ONLY, _unverified_lines(state, stage)))
@@ -2429,7 +2525,8 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
         if "check" in entry:
             check = entry["check"]
             _need(isinstance(check, str) and check.strip() != "" and "\n" not in check and "\0" not in check,
-                  "step " + step_id + "'s check must be one nonblank command line, run from the repository root")
+                  "step " + step_id + "'s check must be one nonblank command line, run from the repository root"
+                  + test_loop.ONE_LINE_HINT)
             row["check"] = check.strip()
         if "skills" in entry:
             # Helper skills chosen at step-plan for this step (owner, 2026-10-10); the implement packet prints them.
@@ -2616,6 +2713,80 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
             print("Not committed (changed, but not in the step plan's paths and not documentation"
                   + (", or excluded from the return" if mode == "navigator-worktree" else "") + "): "
                   + ", ".join(undeclared) + ". " + stage_spec.item_left(mode))
+
+
+# Run-relative file holding an inline implement step's commit (``_step_commit``): a revisit of the step names it.
+STEP_COMMIT = "commits/{action}.txt"
+# The subjects of ShipLoop's own record commits (knowledge, leftovers): the look-back skips them, they carry no learning.
+BOOKKEEPING_SUBJECTS = ("docs(shiploop): ", "chore(shiploop): ")
+# How many commits the look-back quotes, and how much of each message.
+LOOK_BACK_COMMITS = 2
+LOOK_BACK_TEXT = 500
+
+
+def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping[str, Any]) -> str:
+    """The commit message of one accepted inline implement step (build plan S3.2): a ``feat(<item>/<step>)`` subject and
+    the Key learnings, Key decisions, Evidence and Related commits sections, from the step's result."""
+    headline = str(result.get("headline") or "").strip() or re.split(r"(?<=[.;:])\s", str(step.get("task") or ""))[0]
+    subject = "feat(" + work_item + "/" + str(step.get("id")) + "): " + " ".join(headline.split()).rstrip(".")
+    def section(title: str, rows: Any) -> list[str]:
+        return [title + ":", *("- " + str(row) for row in (rows or ["none"]))]
+    body = [str(result.get("summary") or "").strip(), "",
+            *section("Key learnings", result.get("learned")), *section("Key decisions", result.get("decisions")),
+            *section("Evidence", result.get("evidence_refs")), *section("Related commits", result.get("learned_from"))]
+    return _status_text(subject, HEADLINE_LIMIT) + "\n\n" + "\n".join(body).strip()
+
+
+def _step_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any], action_id: str, result: Any) -> None:
+    """Commit an inline implement step's changes when its done is accepted, before its Improve stage edits anything
+    (build plan S3.2): each step is its own commit, so the review's diff, a revisit and the next step's look-back each
+    name one step's change.  The paths are the item's commit scope (``item_scope.commit_item``); verify's item commit
+    takes what remains.  A failure leaves the change in the checkout for that commit, as the preparatory fix does."""
+    if not isinstance(result, Mapping) or result.get("outcome") != "done" or before.get("status") != "active":
+        return
+    stage, action, item = _active_cursor(before)
+    if (stage != "implement" or item is None or not isinstance(action, Mapping) or action.get("id") != action_id
+            or delegation(before) != guidance.INLINE or action_id in before["accepted"]):
+        return
+    view = step_view(before, item)
+    if view is None:
+        return
+    try:
+        commit, _left = item_scope.commit_item(root, after, item, step_commit_message(item, view.step, result))
+    except item_scope.ItemScopeError as exc:
+        print("ShipLoop implement: step " + str(view.step.get("id")) + " was not committed (" + str(exc) + "); its "
+              "change stays in the checkout and verify's item commit includes it.", file=sys.stderr)
+        return
+    if commit:
+        store.atomic_write_text(root / STEP_COMMIT.format(action=action_id), commit + "\n")
+        print("ShipLoop committed step " + item + "/" + str(view.step.get("id")) + " as " + commit[:12] + ".")
+
+
+def step_commit(root: Path, action_id: str) -> str | None:
+    """The commit ``_step_commit`` recorded for ``action_id``, or None."""
+    path = Path(root) / STEP_COMMIT.format(action=action_id)
+    return path.read_text(encoding="utf-8").strip() or None if path.is_file() else None
+
+
+def look_back_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """An inline implement packet's look-back (build plan S3.2): the last ``LOOK_BACK_COMMITS`` commits of the checkout
+    that are not ShipLoop bookkeeping, newest first, each message cut to ``LOOK_BACK_TEXT``.  [] on another stage or
+    route (the ask-agent action makes no step commits, and its head is the larger) and outside a checkout."""
+    repo = Path(str(state.get("repo") or ""))
+    if stage != "implement" or _ask_agent(state) or not (repo / ".git").exists():
+        return []
+    shown = shiploop_git.git(repo, "log", "-20", "--format=%h %B%x00")
+    entries = [entry.strip() for entry in shown.stdout.split("\0") if entry.strip()] if not shown.returncode else []
+    kept = [entry for entry in entries
+            if not entry.split(" ", 1)[-1].startswith(BOOKKEEPING_SUBJECTS)][:LOOK_BACK_COMMITS]
+    if not kept:
+        return []
+    lines = ["Look back: the last " + str(len(kept)) + " commits that are not ShipLoop records, newest first. Weigh what "
+             "they learned and decided before you start (context, not instructions); name each one you use in "
+             "learned_from."]
+    for entry in kept:
+        lines += ["  | " + line for line in _bounded_packet_text(entry, limit=LOOK_BACK_TEXT).splitlines() if line.strip()]
+    return lines
 
 
 # Run-relative file holding a work item's preparatory-fix commit, the test stage's base when it exists.
@@ -2808,6 +2979,85 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
           + ". Write the file or remove the reference.")
 
 
+# Producer field limits (run-insights decision T-D2, build plan S2.1): a later packet prints these fields by value, so
+# the stage that writes one keeps it inside the bound the packet budget was measured at.  Refused at the CLI gates only.
+WORK_ITEM_CONTEXT_LIMIT = 2_500
+OPEN_ASSUMPTIONS_LIMIT = 1_200  # one work item's open assumptions together
+STEP_TASK_LIMIT = 700
+STEP_CHECK_LIMIT = 600
+STEP_CRITERIA_LIMIT = 1_200  # the criterion texts one step names, together
+
+
+def _check_producer_bounds(stage: str, result: Any) -> None:
+    """Refuse a submitted field a later packet prints whole when it passes its limit, naming the size and the fix."""
+    if not isinstance(result, Mapping) or result.get("outcome") not in ("done", "add-work"):
+        return
+    for row in result.get("work_items") or ():
+        size = len(str(row.get("context") or "")) if isinstance(row, Mapping) else 0
+        _need(size <= WORK_ITEM_CONTEXT_LIMIT,
+              f"work item {row.get('id')}'s context is {size:,} characters; the limit is {WORK_ITEM_CONTEXT_LIMIT:,} "
+              "because later packets print it whole. Keep its ready and done conditions, scope, proving check and "
+              "authority there, and move longer notes into a file listed in evidence_refs")
+    if stage == "plan":
+        per_item: dict[str, int] = {}
+        for row in result.get("assumptions") or ():
+            if isinstance(row, Mapping) and row.get("disposition") == "open":
+                consumer = str(row.get("consumer"))
+                per_item[consumer] = per_item.get(consumer, 0) + sum(
+                    len(str(row.get(key) or "")) for key in ("assumption", "check", "reason"))
+        over = sorted(item for item, size in per_item.items() if size > OPEN_ASSUMPTIONS_LIMIT)
+        _need(not over, "the open assumptions of " + ", ".join(f"{item} ({per_item[item]:,} characters)" for item in over)
+              + f" pass the limit of {OPEN_ASSUMPTIONS_LIMIT:,} per work item, because its step plan prints them whole: "
+              "shorten each to the assumption, the check that settles it and why it is open, or settle some now")
+    if stage == "step-plan":
+        texts = {str(row.get("id")): str(row.get("text") or "") for row in result.get("criteria") or ()
+                 if isinstance(row, Mapping)}
+        for step in result.get("steps") or ():
+            if not isinstance(step, Mapping):
+                continue
+            name = str(step.get("id"))
+            task, check = len(str(step.get("task") or "")), len(str(step.get("check") or ""))
+            _need(task <= STEP_TASK_LIMIT, f"step {name}'s task is {task:,} characters; the limit is {STEP_TASK_LIMIT:,} "
+                  "because its implement packet prints it whole. Split the step, or keep the task to what to change and "
+                  "leave the why to the criteria")
+            _need(check <= STEP_CHECK_LIMIT, f"step {name}'s check is {check:,} characters; the limit is "
+                  f"{STEP_CHECK_LIMIT:,}. Put a long check in a script file the step adds, and make the check run it")
+            named = sum(len(texts.get(str(criterion), "")) for criterion in step.get("criteria") or ())
+            _need(named <= STEP_CRITERIA_LIMIT, f"the criteria step {name} names are {named:,} characters together; the "
+                  f"limit is {STEP_CRITERIA_LIMIT:,} because its implement packet prints them whole. Shorten each "
+                  "criterion to the observable result, or split the step")
+
+
+def _plan_concerns(state: Mapping[str, Any]) -> Mapping[str, Any]:
+    """The current plan result's concern map ({} when the plan wrote none)."""
+    action = planning_revision.current_actions(state).get((None, "plan"))
+    plan = (state.get("accepted") or {}).get(action) if action else None
+    return (plan or {}).get("concerns") or {}
+
+
+def _check_submitted_concerns(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """The concern map at the CLI gates (build plan S2.2): a done plan maps every concern for every work item; a done
+    step plan maps each applicable concern the plan gave it to the steps that deliver it."""
+    if not isinstance(result, Mapping) or result.get("outcome") != "done" or stage not in ("plan", "step-plan"):
+        return
+    try:
+        if stage == "plan":
+            _need("concerns" in result, "a done plan maps the concerns of every work item: concerns: {\"W1\": [one "
+                  "row per concern: " + ", ".join(concerns.CONCERN_IDS) + "]}; a row is {id, applies: yes, decision, "
+                  "anchor, owner_stage} or {id, applies: no, reason}")
+            queue = result.get("work_items", state["work_items"])
+            concerns.check_plan(concerns.canonical_plan(result["concerns"]),
+                                [str(row.get("id")) for row in queue if isinstance(row, Mapping)])
+            return
+        item = str(_current_work_item(state))
+        owned = concerns.owned_rows(_plan_concerns(state), item)
+        mapped = concerns.canonical_step_plan(result.get("concerns", []))
+        concerns.check_step_plan(mapped, owned, [str(step.get("id")) for step in result.get("steps") or ()
+                                                if isinstance(step, Mapping)], item)
+    except concerns.ConcernError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """Refuse a submitted done plan result without a complete assumption list.
 
@@ -2892,7 +3142,7 @@ def _placeholders(result: Mapping[str, Any]) -> list[str]:
             for index, item in enumerate(value):
                 walk(item, where + "[" + str(index) + "]")
 
-    for key in ("follows", "test_cases", "not_covered", "lessons"):
+    for key in ("follows", "test_cases", "not_covered", "lessons", *STEP_NOTES):
         if key in result:
             walk(result[key], key)
     return found
@@ -2949,12 +3199,36 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         found = expectations.check_test_cases(root, state, result)
         if found is not None:
             return _Fault(*found)
+    if stage == "implement":
+        missing = [key for key in STEP_NOTES if key not in result and not _ask_agent(state)]
+        if missing:
+            return _Fault("Add " + " and ".join(missing) + " to {result}", "adds " + " and ".join(missing),
+                          ['Shape: "learned": ["<what this step taught, for the steps after it>"], "decisions": ["<a '
+                           'choice this step made and why>"], each a list of lines, ["none"] when there is nothing to '
+                           "record. ShipLoop writes them into this step's commit, which the next steps' packets quote."])
+        unreachable = [ident for ident in result.get("learned_from") or () if not _reachable(repo, ident)]
+        if unreachable:
+            return _Fault("Fix learned_from in {result}", "fixes learned_from",
+                          ["Name only commits reachable from HEAD in " + str(repo) + " (the look-back lists the latest): "
+                           "drop each other ID.", "Not reachable from HEAD: " + ", ".join(unreachable) + "."])
     if stage == "release-verify" and "lessons" not in result:
         return _Fault("Add lessons to {result}", "adds lessons",
                       ['Shape: {"learned": "...", "considerations": "...", "open_next": "..."}, each written in detail '
                        '("none" only when true). ShipLoop writes them into this run\'s release-verify knowledge commit, '
                        "which the next run's intake quotes."])
     return None
+
+
+def _ask_agent(state: Mapping[str, Any] | None) -> bool:
+    """Whether the run builds an item's steps in one ask-agent action (no step commits, so no required step notes)."""
+    return state is not None and "delegation" in state and delegation(state) != guidance.INLINE
+
+
+def _reachable(repo: Path, commit: str) -> bool:
+    """Whether ``commit`` names a commit that HEAD contains (outside a checkout, as in a dry run: True, nothing to check)."""
+    if not (Path(repo) / ".git").exists():
+        return True
+    return shiploop_git.git(Path(repo), "merge-base", "--is-ancestor", commit + "^{commit}", "HEAD").returncode == 0
 
 
 def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any, command: str, *,
@@ -3890,15 +4164,15 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any, root: Path | N
                              state: Mapping[str, Any] | None = None, core: Any = None) -> dict[str, Any]:
     """The completion record, built from what ShipLoop already knows (plan P12).
 
-    The review references are the last one or two ``review-<n>.md`` files (one when the
-    terminal packet ended on an unchanged first pass), the check reference is
+    The review references are the last ``IMPROVE_TRIVIAL_REVIEWS`` ``review-<n>.md`` files (the trivial passes the
+    loop ended on; one since 2026-10-20), the check reference is
     ``checks.md``; the model supplies only lessons, a changed decision and a
     no-commit reason, each optional.
     """
     reviews = improve_reviews_dir(child)
     found = sorted((int(match.group(1)), path) for path in (reviews.iterdir() if reviews.is_dir() else ())
                    if (match := REVIEW_FILE.fullmatch(path.name)) and path.is_file())
-    count = 1 if _unchanged_first_pass(child) else 2
+    count = 1 if _unchanged_first_pass(child) else IMPROVE_TRIVIAL_REVIEWS
     names = ", ".join(path.name for _, path in found) or "none"
     _need(len(found) >= count,
           "Improve completion needs the last " + str(count) + " review file(s) in " + str(reviews)
@@ -4127,8 +4401,10 @@ _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
 _CONSUMER_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
+_STEP_NOTE_PLACEHOLDERS = {"learned": "<lesson for later steps, or none>",
+                           "decisions": "<choice made and why, or none>"}
 HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
-                        *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER)
+                        *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
 # field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
 # result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
@@ -4137,6 +4413,9 @@ HANDOFF_SHAPES: dict[str, Any] = {
     "test_cases": [dict(_CASE_PLACEHOLDERS)],
     "not_covered": [{"behaviour": _BEHAVIOUR_PLACEHOLDER, "reason": _REASON_PLACEHOLDER}],
     "lessons": dict(_LESSON_PLACEHOLDERS),
+    "learned": [_STEP_NOTE_PLACEHOLDERS["learned"]],
+    "decisions": [_STEP_NOTE_PLACEHOLDERS["decisions"]],
+    "learned_from": ["<commit ID whose learnings this step used>"],
     "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...",
                      "consumer": _CONSUMER_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
 }
@@ -4159,6 +4438,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     }
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
+        result["concerns"] = {"W1": [{"id": "ui", "applies": "yes", "decision": "...", "anchor": "...",
+                                      "owner_stage": "step-plan"}]}
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
         # A step's paths are for the ask-agent chain only (implement-step fix plan D3): the inline template asks none.
@@ -4196,6 +4477,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     # result-shape block, so a blocked result copied from their template stays acceptable.
     if stage == "step-plan":
         result["follows"] = list(HANDOFF_SHAPES["follows"])
+        # The concerns the plan gave this item to map (build plan S2.2), named so only the step IDs are to fill.
+        owned = (concerns.owned_rows(_plan_concerns(state), str(_current_work_item(state)))
+                 if "accepted" in state and "stage" in state else [])
+        if owned:
+            result["concerns"] = [{"id": row["id"], "steps": ["S1"]} for row in owned]
     if stage == "release-verify":
         result["lessons"] = dict(HANDOFF_SHAPES["lessons"])
     if stage in assumptions.OPEN_ITEM_STAGES and stage in stage_spec.OUTER:
@@ -4216,7 +4502,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["delivery_assessment"] = assessment
     # The hand-off fields the gate requires go in the template itself (aggressive re-cut, 2026-10-11), not a list
     # beside it; a blocked or other outcome drops them, as the fill line says.
-    for key in _required_handoff_keys(stage):
+    for key in _required_handoff_keys(stage, state):
         result.setdefault(key, HANDOFF_SHAPES[key])
     if stage == "test-spec":
         # One row per focused ID of this item's step plan, with the fields that plan states (expectations.case_skeleton);
@@ -4227,9 +4513,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     return _compact_record(result)
 
 
-def _required_handoff_keys(stage: str) -> list[str]:
-    """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3)."""
-    keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key != "not_covered"]
+def _required_handoff_keys(stage: str, state: Mapping[str, Any] | None = None) -> list[str]:
+    """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3).  The step notes only on
+    the inline route, whose steps ShipLoop commits one by one (``_step_commit``); ``state`` None reads as inline."""
+    keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key not in _OPTIONAL_HANDOFF
+            and (key not in STEP_NOTES or not _ask_agent(state))]
     if stage in assumptions.OPEN_ITEM_STAGES and stage != "plan":
         keys.append("assumptions")
     return keys
@@ -4851,10 +5139,40 @@ def _cited_guides(core: Any, root: Path, state: Mapping[str, Any], stage: str, s
               if line.split(": ", 1)[0] not in located]
     guides += [label + ": " + str(reference_dir / target) for label, target in run_reference.POLICIES
                if label in stage_text and label not in labels]
+    guides += _platform_testing_lines(core, state, stage)
     backchain = _backchain_lines(core, root, state, stage)
     cited = [line for line in backchain if not line.startswith("Loop resources ") or "Loop resources" in stage_text]
     return CitedGuides(guides, cited, [line for line in every if line not in guides],
                        [line for line in backchain if line not in cited])
+
+
+# The stages that decide tests read the target platform's testing rules (build plan S2.3, run-insights G1): the run
+# analysis found a platform card's rules (deploy before test, the reporter ShipLoop reads) never reached test-strategy,
+# plan or step-plan, and the test stage then refused runs those rules explain.
+PLATFORM_TESTING_STAGES = ("test-strategy", "plan", "prepare", "step-plan")
+_PLATFORM_CARD = re.compile(r"platforms/([a-z0-9-]+)\.md")
+
+
+def platform_cards(repo: Any, cards: Path) -> list[str]:
+    """The platform cards KNOWLEDGE/environment.md's ## Targets and runtimes names (``platforms/<name>.md``) that exist."""
+    try:
+        text = (Path(str(repo)) / knowledge.HOME / "environment.md").read_text(encoding="utf-8")
+    except OSError:
+        return []
+    section = text.split("## Targets and runtimes", 1)[1].split("\n## ", 1)[0] if "## Targets and runtimes" in text else ""
+    names = list(dict.fromkeys(_PLATFORM_CARD.findall(section)))
+    return [name for name in names if (cards / (name + ".md")).is_file()]
+
+
+def _platform_testing_lines(core: Any, state: Mapping[str, Any], stage: str) -> list[str]:
+    """``Platform testing guide: <card>#testing`` for each named card with a ## Testing section, at the test-deciding
+    stages."""
+    if stage not in PLATFORM_TESTING_STAGES:
+        return []
+    cards = _reference_dir(core) / "platforms"
+    return ["Platform testing guide: " + str(cards / (name + ".md")) + "#testing"
+            for name in platform_cards(state["repo"], cards)
+            if "\n## Testing\n" in (cards / (name + ".md")).read_text(encoding="utf-8")]
 
 
 def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
@@ -5256,11 +5574,12 @@ def _requirement_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 
 
 def _handoff_shape_lines(stage: str, template: str) -> list[str]:
-    """The optional hand-off field the template leaves out: implement's not_covered (the required ones are in it)."""
+    """The optional hand-off fields the template leaves out: implement's not_covered and learned_from (the required
+    ones are in it; duty item 4 says what learned_from holds)."""
     if stage != HANDOFF_FIELDS["not_covered"] or '"not_covered"' in template:
         return []
     return ["Optional at done: " + json.dumps({"not_covered": HANDOFF_SHAPES["not_covered"]}, ensure_ascii=False)[1:-1]
-            + " (each behaviour this step added that no test case covers)"]
+            + "; \"learned_from\": [\"<commit ID>\"]"]
 
 
 def _outcome_shape_lines(stage: str) -> list[str]:
@@ -6065,6 +6384,9 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
 # An inner stage's done-when: its conditions are the numbered exit conditions of the Until Loop argument.
 DONE_WHEN_LOOP = ("Done when: every exit condition in the Until Loop argument below holds; ShipLoop's gate checks "
                   "the same list.")
+# Decision 20: a stage outside loops.ARGUMENT_STAGES prints no argument; the loop states the exit conditions.
+DONE_WHEN_LOOP_PACKETS = ("Done when: every exit condition the Until Loop states in each packet it prints holds; start "
+                          "it first (below). ShipLoop's gate checks the same list.")
 
 
 def _implement_scope(state: Mapping[str, Any], stage: str) -> Mapping[str, Any] | None:
@@ -6095,7 +6417,8 @@ def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
         # One home per thing (owner, 2026-10-11): the Until Loop argument after the status block numbers the exit
         # conditions, so the head points at it instead of listing them a second time.  When the argument cannot be
         # built (the invoke block says why), the list stays here, so the conditions are still printed once.
-        done = [DONE_WHEN_LOOP, *(["Also: " + revised + "."] if sent_back and sent_back.previous else [])]
+        done = [DONE_WHEN_LOOP if stage in loops.ARGUMENT_STAGES else DONE_WHEN_LOOP_PACKETS,
+                *(["Also: " + revised + "."] if sent_back and sent_back.previous else [])]
     else:
         done = ["Done when (confirm each before calling done; keep going until all hold):",
                 *("- " + condition for condition in row.done_when),
@@ -7504,6 +7827,10 @@ def _opening_sections(text: str) -> dict[str, str]:
     return found
 
 
+# An Improve child completes at its first trivial pass (owner decision 2026-10-20).
+IMPROVE_TRIVIAL_REVIEWS = 1
+
+
 def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], opening: str) -> dict[str, Any]:
     """The Until Loop start contract for the bound child, frozen from ShipLoop's own fields.
 
@@ -7534,15 +7861,16 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
                  "materially change a decision in this provisional plan or determine whether its consumer may "
                  "proceed; reuse sufficient evidence; zero experiments is valid. Scratch writes stay in the "
                  "planning scratch directory named in context.scope.")
-    exit_condition = ("Two consecutive full review passes find nothing material to change, or the first "
-                      "full pass changes nothing and the runtime sees an unchanged Git tree; no material "
-                      "defect remains in the candidate; the applicable checks are recorded.")
+    # One trivial pass ends the review (owner decision 2026-10-20): a second confirming pass took about 21% of a live
+    # run's 52 Improve passes and found nothing.
+    exit_condition = ("A full review pass finds nothing material to change (at most trivial polish, committed); no "
+                      "material defect remains in the candidate; the applicable checks are recorded.")
     repeat = ("Repeat while a warranted change or a required qualifying review remains. Stop incomplete "
               "on an actual blocker or a user stop. Never push.")
     if planning:
         exit_condition += (" Planning experiment exit: coherent current planning artifacts, a complete "
                            "assumption list with no open entry a bounded probe could settle now, and the "
-                           "two qualifying reviews.")
+                           "qualifying review.")
         repeat += (" If a finding invalidates an accepted discovery, research, spec or test-strategy "
                    "premise, finish the current bounded work and report classification unresolved or "
                    "non-trivial, exit_assessment unsatisfied or unknown, and continuation_assessment "
@@ -7571,7 +7899,7 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
     return loop_contract.contract(
         workspace=child["workspace"], work=work,
         exit_condition=exit_condition + loop_contract.stage_exit(child["stage"]),
-        repeat_condition=repeat, required_trivial_reviews=2, request=request, scope=scope,
+        repeat_condition=repeat, required_trivial_reviews=IMPROVE_TRIVIAL_REVIEWS, request=request, scope=scope,
         authority=authority, environment=sections["Environment"], resources=resources)
 
 
@@ -8312,6 +8640,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
                                       check_only=check_only)
             _check_submitted_assumptions(state, current_stage(state), submitted)
+            _check_producer_bounds(current_stage(state), submitted)
+            _check_submitted_concerns(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
@@ -8340,6 +8670,13 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
+                view = step_view(state, cursor_item)
+                if not refusal and view is not None:  # an inline step's spec write-back (build plan S3.3)
+                    refusal = knowledge.step_spec_refusal(Path(str(state["repo"])),
+                                                          cursor_item + "/" + str(view.step.get("id")))
+                if refusal and not check_only:
+                    # Both refusals name send-back as a fix; the step's loop has completed, so open that route.
+                    loops.open_send_back(root, action_id, refusal)
                 _need(not refusal, refusal)
             if cursor_stage == "intake" and isinstance(submitted, Mapping) and submitted.get("outcome") == "done":
                 # Counted notice (a request sentence the summary does not cite, RUN/request.md): never a refusal.
@@ -8397,6 +8734,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         _lint_finish(root, lint_payload)
         _item_commit(root, state, updated)
         if command == "complete":
+            _step_commit(root, state, updated, action_id, submitted)
             _preparatory_commit(root, state, updated, action_id, preparatory)
             _skill_commit(root, state, updated, action_id)
         if not terminal_knowledge_closed:

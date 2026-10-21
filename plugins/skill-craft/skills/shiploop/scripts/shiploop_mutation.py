@@ -57,6 +57,44 @@ MUTATION_BUDGET_SECONDS = 600.0
 SCHEMA = "shiploop-test-mutation/v1"
 # A file larger than this is not mutated (a generated or vendored file, not something the item wrote by hand).
 MAX_FILE_BYTES = 512 * 1024
+# The platform cards: a card's ``## Remote tests`` section lists, one backticked prefix per bullet, the commands that test
+# a deployed copy of the product rather than the checkout (owner rule: platform detail lives only in the cards).
+PLATFORM_CARDS = Path(__file__).resolve().parent.parent / "references" / "platforms"
+_REMOTE_PREFIX = re.compile(r"^\s*[-*]\s+`([^`]+)`")
+
+
+def remote_test_commands(cards: Path = PLATFORM_CARDS) -> List[Tuple[str, str]]:
+    """(card name, command prefix) for each prefix a platform card lists under ``## Remote tests``."""
+    found: List[Tuple[str, str]] = []
+    for card in sorted(Path(cards).glob("*.md")):
+        section = card.read_text(encoding="utf-8").split("\n## Remote tests", 1)
+        if len(section) < 2:
+            continue
+        for line in section[1].split("\n## ", 1)[0].splitlines():
+            match = _REMOTE_PREFIX.match(line)
+            if match:
+                found.append((card.stem, " ".join(match.group(1).split())))
+    return found
+
+
+def _remote_reason(commands: Sequence[Mapping[str, Any]]) -> Optional[str]:
+    """Why the mutation check cannot judge these focused commands, when every one tests a deployed target a platform
+    card names; ``None`` when any of them runs on the checkout.
+
+    A mutant lives only in a temporary copy of the checkout; a command that tests the deployed product never sees it,
+    so every mutant would survive and the check would refuse good tests (a live run, 2026-10-18: 0 of 8 killed)."""
+    prefixes = remote_test_commands()
+    matched = []
+    for row in commands:
+        text = " ".join(str(row.get("command", "")).split())
+        hit = next(((card, prefix) for card, prefix in prefixes
+                    if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+        if hit is None:
+            return None
+        matched.append(hit)
+    card, prefix = matched[0]
+    return ("its focused commands test a deployed target (platforms/" + card + ".md lists `" + prefix + "` under "
+            "Remote tests), which a mutant in the checkout's copy never reaches")
 
 # (name, pattern, replacement): each match of ``pattern`` in a line's code text (comments and strings masked) is one
 # candidate mutant.  ``replacement`` is a string or a function of the matched text.
@@ -242,6 +280,10 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
                               "sample_size": MUTANT_SAMPLE, "mutants": [], "killed": 0, "survived": 0,
                               "not_run": 0}
     commands = _focused(state, work_item)
+    remote = _remote_reason(commands) if commands else None
+    if remote:
+        record["skipped"] = remote
+        return record
     base = lint.read_base(root, work_item)
     if base is not None and base_commit:
         base = test_loop._at_commit(base, base_commit)

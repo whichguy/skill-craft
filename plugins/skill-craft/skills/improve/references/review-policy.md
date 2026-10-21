@@ -65,9 +65,10 @@ For each distinct review cycle, preserve the following ordered obligations:
 6. **Assess.** Count a pass only after a fully completed, distinct review
    cycle with current evidence. A callback, retry, diagnostic step,
    verification run, repeated claim, or recovery action is not another review.
-   Final convergence requires two distinct, consecutive, fully completed
-   review cycles with only trivial findings and fixes, or no changes, no
-   unresolved material finding, and current relevant checks. This practical
+   Final convergence requires one fully completed review cycle with only
+   trivial findings and fixes, or no changes, no unresolved material finding,
+   and current relevant checks (owner decision 2026-10-20: a second
+   confirming cycle added time without results). This practical
    stopping rule is not proof that no possible defect remains. A blocker,
    requested stop, or exhausted budget remains incomplete and never
    substitutes for convergence.

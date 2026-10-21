@@ -50,7 +50,8 @@ Plan (`step-plan`, `test-spec`), Validate existing (`validate-existing`), Build
 forward (`carry-forward`). Every instantiated producer records a result,
 including a justified N/A output. The planning producers (`spec`,
 `test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`,
-`release-plan`), every accepted `implement` step and the successful
+`release-plan`; `step-plan` and `test-spec` only for the first work item and for an
+item that was sent back), every accepted `implement` step and the successful
 `carry-forward` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
@@ -79,7 +80,7 @@ flowchart TD
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor; every stage runs one Until Loop]
     SP[step-plan ✦ steps, commands, expectations] --> TS[test-spec ✦]
     TS --> VE[validate-existing ⛔ expectation checks; all match: no packet]
-    VE --> IM[implement, per step ✦ ⛔ lint gate]
+    VE --> IM[implement, per step ✦ ⛔ lint gate; step commit]
     IM -->|next step| IM
     IM --> TE[test ⛔ lint gate, base run, candidate run]
     TE --> DOC[document, only when behavioural]
@@ -118,7 +119,7 @@ resolve).
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
-| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`), at most twice per target |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `check` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
@@ -667,13 +668,28 @@ system-test, outer Improve and release planning read it and reconcile actual
 readiness with the remaining route. Script-enforced queue order is not proof
 that the host included all prerequisites or actually prepared a remote target.
 
+### Step commits
+
+On the inline route ShipLoop commits each accepted `implement` step before its
+Improve child starts, as `feat(<item>/<step>): <headline>` with the step's
+summary and its Key learnings, Key decisions, Evidence and Related commits
+sections, from the result's `learned`, `decisions`, `evidence_refs` and
+`learned_from`. Each inline implement packet quotes the last two commits that
+are not ShipLoop records (knowledge or leftover commits) as its look-back. A
+redone step after a send-back names its own previous result and commit. A step
+may add an acceptance line inside an existing R-<n> entry of `spec.md`, ending
+`(<item>/<step>)`, which its commit carries; any other spec change at implement is
+refused, and its refusal opens that action's send-back even though the step's
+Until Loop has completed.
+
 The inner path makes post-code quality visible: the expectations are checked
 before any change, each implement step is reviewed by its own Improve child,
 the tests are written from the test spec and must fail on the item's base and
 pass on the candidate, documentation follows observed behaviour, and `verify`
 reruns every command and reviews the whole diff with justified fixes and
-rechecks. ShipLoop's item commit at `verify` is authorized Git work in the
-execution checkout; it does not assert a merge, push, or deployment. `carry-forward`
+rechecks. ShipLoop's step commits at `implement` and its item commit at
+`verify` are authorized Git work in the execution checkout; they do not assert
+a merge, push, or deployment. `carry-forward`
 reviews broad scope, dependencies, future system-test requirements, and the
 skill decision without pretending future work is complete.
 

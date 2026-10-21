@@ -90,8 +90,8 @@ before launching another probe.
 This entire cycle belongs to one actual Until callback. Material findings or
 repairs reset its normal convergence streak. Do not launch another Until or
 Backchain convergence loop, invent a separate experiment counter, or compress
-multiple reviews into one callback. The existing two qualifying trivial reviews
-remain necessary, together with coherent current planning artifacts and no
+multiple reviews into one callback. The qualifying trivial review remains
+necessary, together with coherent current planning artifacts and no
 worthwhile unresolved experiment due now. Required architecture choices cannot
 be relabeled deferred merely to accept a graph.
 

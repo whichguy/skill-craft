@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.7.0
+version: 1.8.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -252,8 +252,8 @@ references directory). Its heading reads "symbols expand to these absolute paths
 commands stay literal": the prose of the packet names files by these symbols
 (`RUN/notes/x.md`, `GUIDES/navigator.md#anchor`), while the callback and every
 command line, the Keepalive marker, the "Full packet:" line, the Progress view
-link, the `evidence_refs` example and the Until Loop argument keep absolute
-paths, because hooks and the loop runtime read them. An inner stage's
+link, the `evidence_refs` example and the Until Loop's Contract and Receipt keep
+absolute paths, because hooks and the loop runtime read them. An inner stage's
 block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
 results and durable products this stage depends on, labelled `<item> <stage>

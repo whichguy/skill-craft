@@ -29,7 +29,8 @@ Each work item runs 8 stages in 5 phases (`INNER` in
 - `document` is issued only when the item's real diff touches a code or test
   path (`item_scope.behavioural`); otherwise ShipLoop records it as not applicable.
 - `verify` reruns every recorded command, traces each changed entry point and
-  reviews the whole diff. When `verify` is accepted ShipLoop commits the item.
+  reviews the whole diff. When `verify` is accepted ShipLoop commits the rest
+  of the item ([step commits](navigator.md#step-commits) came first).
 - `carry-forward` updates the knowledge home and the queue and records a
   [skill decision](#carry-forward-skill-decision).
 
@@ -41,25 +42,24 @@ step plan ([Send-back](#send-back-back-to-the-step-plan)).
 Every inner stage does its work inside one Until Loop, started with one literal
 command on every host. On entry to the stage's action ShipLoop writes the loop
 contract `loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the
-stage's work, its exit condition (the stage's Done-when lines, numbered, the
-same words the packet prints) and its repeat condition. The packet's loop block
-says `RUN the Until Loop now, once, before any work`, then prints the start
-command, `python3 <runtime script> start --receipt <receipt> < <contract>`, and
-says to follow each packet it prints until the receipt's status is complete or
-stopped. The argument sits after it between two marker lines (`----- BEGIN
-until-loop ARGUMENT -----` and `----- END until-loop ARGUMENT -----`: the Work,
-Exit when, Repeat, Contract and Receipt lines, nothing else); it is already in
-the Contract file, so it is shown, not passed. The block ends with the result:
-list the receipt in `evidence_refs`, run the callback, and if that refuses for
-the loop, run the start command again; it also lists the five fields of the
-runtime's done report. The `--receipt` makes the runtime write every packet,
-the terminal one last, to `loops/<action>-terminal.json`. Never write or edit
-the receipt. A second start on one receipt resets the loop (the runtime does not
-refuse it), so the RUN line says to run an active receipt's `next_argv`
-instead, and once the receipt exists the block leads with the resume line in
-place of the RUN line and the start command. The runtime is the selected
-Improve card's `runtime/until-loop`, or else that of the Improve skill bundled
-beside ShipLoop.
+stage's work, its exit condition (the stage's Done-when lines, numbered) and its
+repeat condition. The packet's loop block says `RUN the Until Loop now, once,
+before any work`, then prints the start command,
+`python3 <runtime script> start --receipt <receipt> < <contract>`, and says to follow each packet it prints
+until the receipt's status is complete or stopped. Only the test stage's packet
+prints the argument (`----- BEGIN until-loop ARGUMENT -----` to END), as its
+floors use its numbering. Every other stage prints `Contract: <abs> · Receipt:
+<abs>`, and the runtime states the contract's Work, Exit and Repeat in each
+packet it prints (decision 20). The block ends with the result: list the receipt
+in `evidence_refs`, run the callback, and if that refuses for the loop, run the
+start command again; it also lists the five fields of the runtime's done report.
+The `--receipt` makes the runtime write every packet, the terminal one last, to
+`loops/<action>-terminal.json`. Never write or edit the receipt. A second start
+on one receipt resets the loop (the runtime does not refuse it), so the RUN line
+says to run an active receipt's `next_argv` instead, and once the receipt exists
+the block leads with the resume line in place of the RUN line and the start
+command. The runtime is the selected Improve card's `runtime/until-loop`, or
+else that of the Improve skill bundled beside ShipLoop.
 
 At `complete` ShipLoop reads the receipt that the result names in `evidence_refs`
 and compares it with the contract rebuilt from run state, never the file on disk

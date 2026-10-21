@@ -253,6 +253,23 @@ def terminal_path(action_id: str) -> str:
     return LOOP_DIR + "/" + action_id + "-terminal.json"
 
 
+def send_back_open_path(root: Path, action_id: str) -> Path:
+    """The marker a refused implement done leaves when its fix is a send-back (``open_send_back``)."""
+    return Path(root) / LOOP_DIR / (action_id + "-send-back-open")
+
+
+def open_send_back(root: Path, action_id: str, reason: str) -> None:
+    """Record that a gate refused this implement action's done and named send-back as the fix.
+
+    The step's Until Loop has completed by the time a done is submitted, and a completed loop supports only done, so the
+    refusal's own exit was refused in turn (build plan S3.3's route test).  The marker lets that one action's send-back
+    through, as ``_remedy_open`` does for the test stage; it holds the refusal's first line, for the record.
+    """
+    path = send_back_open_path(root, action_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(reason.splitlines()[0] + "\n" if reason else "\n", encoding="utf-8")
+
+
 def receipt_path(root: Path, action_id: str) -> Path:
     """Absolute receipt path of an inner action's loop."""
     _need(isinstance(action_id, str) and bool(action_id), "a loop receipt needs an action id")
@@ -549,6 +566,16 @@ FOLLOW_LINE = ("Then follow each packet it prints (run its done_argv as printed)
                "stopped. " + ARGUMENT_LEAD)
 ARGUMENT_BEGIN = "----- BEGIN until-loop ARGUMENT -----"
 ARGUMENT_END = "----- END until-loop ARGUMENT -----"
+# The stages whose packet still prints the argument (decision 20, owner 2026-10-18): the test stage's packet numbers its
+# command floors by the argument's list (shiploop_test_loop.loop_lines).  Every other loop stage's packet names the files
+# and points at the loop's own packets, which print the contract's Work, Exit and Repeat each time (a test pins that), so
+# the conditions are not printed twice and the head keeps room for its lookups.
+ARGUMENT_STAGES = ("test",)
+NO_ARGUMENT_FOLLOW = ("Then follow each packet it prints (run its done_argv as printed) until the receipt says complete "
+                      "or stopped. Each packet it prints states this stage's Work, Exit and Repeat conditions, the "
+                      "Contract file's words; do not edit that file or the receipt.")
+NO_ARGUMENT_RESUME = ("Its packets state this stage's Work, Exit and Repeat conditions, the Contract file's words; do not "
+                      "edit that file or the receipt.")
 # How an inner stage works inside its loop: the exit-evidence rule, printed once, last in the block (packet re-cut,
 # 2026-10-11).  Where the loop's files may not be edited is said where the argument is introduced.
 LOOP_RULE = """\
@@ -585,7 +612,8 @@ def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
 
 
 def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
-    """Whether ``invoke_lines`` prints the Until Loop argument (and so the numbered exit conditions) for this state."""
+    """Whether the Until Loop is bound for this state: ``invoke_lines`` then prints the start route, and the argument on
+    an ``ARGUMENT_STAGES`` stage (elsewhere the loop's own packets state the exit conditions)."""
     found = cursor(state)
     if found is None:
         return False
@@ -618,6 +646,14 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         return lines
     contract_file, receipt = root / contract_path(action_id), receipt_path(root, action_id)
     started = os.path.lexists(receipt)
+    if stage not in ARGUMENT_STAGES:
+        lines += [RESUME_LINE, NO_ARGUMENT_RESUME] if started else [
+            INVOKE_LINE, start_command(bound, receipt, contract_file), NO_ARGUMENT_FOLLOW]
+        lines += ["Contract: " + str(contract_file) + " · Receipt: " + str(receipt),
+                  RESUME_RESULT_LINE if started else RESULT_LINE, " ".join(LOOP_RULE.split())]
+        if not contract_file.is_file():
+            lines.append("The loop contract is missing; report outcome blocked naming this path.")
+        return lines
     lines += [RESUME_LINE, ARGUMENT_LEAD] if started else [
         INVOKE_LINE, start_command(bound, receipt, contract_file), FOLLOW_LINE]
     lines += [
@@ -773,6 +809,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
         return None  # The loop never started (for example, no runtime resolves); the summary and awaiting say why.
+    if outcome == "send-back" and stage == "implement" and send_back_open_path(root, action_id).is_file():
+        return None  # a gate refused this action's done and named send-back (open_send_back)
     if outcome in ("send-back", "blocked") and (
             (stage in ("test", "verify") and _remedy_open(root, action_id))
             or (stage == "verify" and _verify_refused(root, action_id))):
@@ -804,6 +842,9 @@ __all__ = (
     "ARGUMENT_BEGIN",
     "ARGUMENT_END",
     "ARGUMENT_LEAD",
+    "ARGUMENT_STAGES",
+    "NO_ARGUMENT_FOLLOW",
+    "NO_ARGUMENT_RESUME",
     "BLOCK_HEADING",
     "BUNDLED_IMPROVE_CARD",
     "COMMANDS_HEAD",
@@ -828,6 +869,8 @@ __all__ = (
     "WORK_STEP",
     "check_loop_packet",
     "check_terminal",
+    "open_send_back",
+    "send_back_open_path",
     "cite_receipt",
     "command_listing",
     "condition_lines",

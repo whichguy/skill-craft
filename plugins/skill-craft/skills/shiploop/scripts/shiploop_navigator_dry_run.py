@@ -10,6 +10,7 @@ from typing import Any
 
 import shiploop_loops as stage_loops
 import shiploop_navigator as navigator
+import shiploop_stage_spec as stage_spec
 
 # Independently declared expected paths: do not derive these from routing code.
 BEFORE3 = 'intake discovery research spec test-strategy plan prepare'.split()
@@ -69,7 +70,10 @@ def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[
                 {'id': 'W1', 'title': 'First fixture'},
                 {'id': 'W2', 'title': 'Second fixture'},
             ]
-        if stage not in REVIEWED3[planning_review] and index != last_carry:
+        # Rule first-item (2026-10-19): step-plan and test-spec are reviewed for the first work item only (a sent-back
+        # item's redo too; no scenario here sends one back), so the second item's advance without a child.
+        later_item = stage in stage_spec.with_improve('first-item') and path[:index + 1].count('step-plan') > 1
+        if (stage not in REVIEWED3[planning_review] or later_item) and index != last_carry:
             rows.append({'at': stage, 'command': 'produce', 'expect': target,
                          'result': producer, 'status': status})
             continue

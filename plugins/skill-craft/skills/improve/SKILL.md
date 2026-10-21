@@ -3,16 +3,15 @@ name: improve
 description: >-
   Use when a repository candidate needs a deliberate review-and-improvement
   loop: use recent Git history, make warranted changes, run meaningful checks,
-  and repeat until two consecutive passes make no changes, or the first pass
-  completes with no change. Supports a read-only interpretation preview; not a
-  one-off code review.
-version: 0.5.1
+  and repeat until a pass finds only trivial changes or none. Supports a
+  read-only interpretation preview; not a one-off code review.
+version: 0.6.0
 license: MIT
 platforms:
   - linux
   - macos
 metadata:
-  short-description: Review and improve until two clean passes
+  short-description: Review and improve until a trivial pass
   skill_craft:
     kind: script-backed
 ---
