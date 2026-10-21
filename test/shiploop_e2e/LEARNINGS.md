@@ -2511,3 +2511,34 @@ Before this run could start, the platform preflight refused once: org `de` alrea
 Open: whether a longer cap (or a lighter planning/Improve regimen, as the efficiency work already proposes) lets this case reach `done`; the mutation-gate-vs-hosted-platform fix (named in both the Battleship and this run) is still unimplemented; a kept-app preflight refusal (as this run hit first) means an operator must run the case's printed cleanup, or have the owner do so, before the next `--keep-platform` run of the same case and prefix.
 
 Evidence: `/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25b/` (+ `.log`, `-coordinator-notes.md`, `result.json`, `metrics.json`, `mismatch.md`, `review-export/run-review.html`); the refused first attempt at `/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25/` (+ `.log`, `-coordinator-notes.md`); `docs/e2e-salesforce-chess-journal.md` F10.
+
+## The Salesforce chess case, live run 4: every work item built, deployed and kept; stopped by the 4h cap in release-plan (2026-10-20, skill-craft 2.8.0 / ShipLoop 1.8.0 from the marketplace)
+
+`run.py --case chess-salesforce --host grok --model grok-4.7 --effort medium --source marketplace --timeout 14400
+--keep-platform`, raw, with the same flags as run 3, in org `de`. Full account: `docs/e2e-salesforce-chess-journal.md`
+F11.
+
+**Result: STOPPED at the cap, not a pass.** ShipLoop had finished all 3 work items, then system-test-author,
+system-test and product-acceptance, and was in release-plan when the deadline landed. Run 3 stopped at work item 4 of
+4 test-spec. `deployed`, `tests` (21 methods) and `rules` PASS. `project` FAILs only because the run never reached the
+return. The app was kept in org `de` as an unfinished run whose checks passed: the next run's preflight refuses until
+it is removed or the prefix changes.
+
+Against run 3, measured the same way:
+- re-orientation fell from 107.9 to 74.0 min (764 to 528 calls) over 15 compactions;
+- Improve fell from 52 passes and 98.9 min to 25 passes and 81.8 min;
+- refusals rose from 5 to 13, mostly the new gates, each fixed in stage;
+- script reads moved from 97 to 106.
+
+Learnings:
+- **Improve on the first item, with one trivial pass, pays.** Its passes halved.
+- **Step commits carry real lessons.** W2/S1 recorded the Apex `AuraHandledException` fact that this case's F7 had
+  learned by hand. `learned_from` stayed empty, so the look-back is printed but not used.
+- **The spec gate held.** A requirement rewritten at implement was refused twice, then restored.
+- **Packets are not the main context consumer.** Compactions held at 15 while re-orientation per incident fell. Before
+  building the template engine, weigh it against what fills the context: tool output, file reads, and long
+  system-test-author (17.6 min) and test-strategy (16.8 min) stages.
+- The first launch failed Grok's marketplace install transiently; the relaunch passed.
+
+Evidence: `/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/` and the failed first attempt
+`/Users/dadleet/e2e-runs/20261020/chess-sf-full-b89b42/`.

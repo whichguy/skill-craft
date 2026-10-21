@@ -267,6 +267,84 @@ Open: whether a longer cap (or a lighter planning/Improve regimen, as the effici
 
 Evidence: `/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25b/` (+ `.log`, `-coordinator-notes.md`, `result.json`, `metrics.json`, `mismatch.md`, `review-export/run-review.html`); the refused first attempt at `/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25/` (+ `.log`, `-coordinator-notes.md`). Pointer: `test/shiploop_e2e/LEARNINGS.md`, same date.
 
+### F11. Live run 4 on 2.8.0: every work item built, deployed and kept; stopped at the 4h cap in release-plan (firm for the counts, 2026-10-20; interim for the causes; n=1)
+
+Same flags as run 3 (F10), with no seed and no planning-review override: Grok 4.7 medium, ShipLoop 1.8.0 /
+skill-craft 2.8.0 from the marketplace (`--source marketplace --timeout 14400 --keep-platform`), coordinated by a
+Sonnet agent. It ran in org `de` with prefix `SLChess`. The first launch (`chess-sf-full-b89b42`) failed the
+marketplace preflight: Grok's `plugin marketplace add` and `install` installed no plugin
+(`run.py` `marketplace_preflight`). The same sequence by hand in a throwaway HOME worked at once, so this was
+treated as transient, and the relaunch passed.
+
+**Outcome: STOPPED at the cap, not a pass, but materially further than run 3.** ShipLoop was active in
+`release-plan` (398.8 s in, revision 49) when the 14,400 s deadline landed. All three work items had finished, and so
+had `system-test-author`, `system-test` and `product-acceptance`. Run 3 stopped at work item 4 of 4 `test-spec`. It
+had 5 sessions and 4 resumes.
+
+| Check | Run 3 (2.7.0) | Run 4 (2.8.0) |
+|---|---|---|
+| `project` (committed sources returned) | FAIL | FAIL: the run did not reach the return |
+| `deployed` (engine, controller, board bundle, tab, app, test classes) | FAIL | **PASS** |
+| `tests` (>=8 Apex methods) | PASS (11) | PASS (21, 0 failing) |
+| `rules` (perft, FEN, mates, castling, en passant, controller games) | PASS | PASS |
+
+**The app stays in org `de`.** Because `deployed`, `tests` and `rules` passed, the harness kept the unfinished app
+(`platform.cleanup.kept_unfinished: true`, per the owner's 2026-10-17 decision). The next run's preflight will refuse
+until the kept app is removed or the prefix changes. The guard held: 39 model `sf` commands, 173 guard calls, 0
+direct, not bypassed.
+
+**Measures, run 3 to run 4** (`metrics.json`, `review-export/facts.md`, one method for both):
+
+| Measure | Run 3 | Run 4 |
+|---|---|---|
+| Compactions | 14 | 15 |
+| Re-orientation after compaction or resume | 107.9 min (764 calls) | **74.0 min (528 calls)** |
+| Improve children / passes / minutes | 16 / 52 / 98.9 | **13 / 25 / 81.8** |
+| Planning window | 78.1 min | 73.8 min |
+| W1 full cycle | 52.0 min | 53.3 min |
+| Reads of ShipLoop scripts and references (transcript `read_file:`) | 97 | 106 |
+| ShipLoop refusals | 5 | 13 |
+| Turns / cost (lower bound) | 922 / $15.92 | 884 / $21.49 |
+
+Run 3's figure of about 165 script reads (F10) came from another counting method. The comparison above uses the same
+method for both runs.
+
+**Where the 4 hours went** (engine seconds):
+- outer planning (intake to prepare): 54.1 min, of which test-strategy took 16.8 and spec 13.2;
+- W1: 53.3 min;
+- W2: 58.3 min, including a send-back from `test` (15.3 min) and its redo;
+- W3: 42.5 min, of which the last item's carry-forward took 11.8;
+- system-test-author 17.6, system-test 3.2, product-acceptance 4.1, release-plan 6.6 (unfinished).
+
+**What the 2.8.0 changes did, observed:**
+- **Improve on the first item only, and one trivial pass** (fixes 1 and 5): the passes fell from 52 to 25 and Improve
+  from 98.9 to 81.8 min.
+- **Step commits (N2) worked live.**
+  - The run's own history holds `feat(W1/S1)`, `feat(W2/S1)` twice (the original and the redo after the send-back)
+    and `feat(W3/S1)`, with the Improve fixes as separate `fix(W3)` and `fix(W1)` commits.
+  - The bodies carry real lessons. For example, W2's "Anonymous Apex replaces AuraHandledException with an uncatchable
+    LimitException" is the fact F7 learned by hand.
+  - `learned_from` stayed empty ("Related commits: none"): the look-back was printed but not cited.
+- **The spec gate (N3) held.** In W2 the model rewrote an existing requirement's wording in `spec.md` after learning
+  the Apex exception fact. The gate refused twice, and the model restored the requirement and kept the fact in its
+  notes and commit. Refusals rose to 13 (run 3: 5): the new producer limits (criteria over 1,200, twice), the
+  `follows` shape (twice), the spec gate (twice), the open-assumption expectation, and Improve-route slips seen before
+  (check-only on the Improve stage, a pass after its loop ended, a missing result file). Each was fixed within the
+  same stage.
+- **Decision 20 and the cheaper packets:** per-incident re-orientation fell by about a third (764 to 528 calls), but
+  compactions stayed at 14-15. The packets are not the main consumer of context.
+
+**Open:**
+- the template engine, still to be decided with the owner on this data;
+- why the look-back goes uncited;
+- system-test-author's 17.6 min;
+- whether a longer cap lets the case reach `done`;
+- the transient Grok marketplace install failure.
+
+Evidence: `/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/` (`result.json`, `metrics.json`,
+`review-export/facts.md`, `transcript.md`, and the run's worktree history); the failed first attempt
+`/Users/dadleet/e2e-runs/20261020/chess-sf-full-b89b42/result.json`; and run 3's folder for the baseline.
+
 ## 2026-10-17: the Battleship case reuses this case's checks (pointer)
 
 `battleship-salesforce` (owner request 2026-10-17) loads `checks/chess_salesforce.py` as its Salesforce library. Three chess functions
