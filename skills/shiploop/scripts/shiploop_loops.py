@@ -566,6 +566,16 @@ FOLLOW_LINE = ("Then follow each packet it prints (run its done_argv as printed)
                "stopped. " + ARGUMENT_LEAD)
 ARGUMENT_BEGIN = "----- BEGIN until-loop ARGUMENT -----"
 ARGUMENT_END = "----- END until-loop ARGUMENT -----"
+# The stages whose packet still prints the argument (decision 20, owner 2026-10-18): the test stage's packet numbers its
+# command floors by the argument's list (shiploop_test_loop.loop_lines).  Every other loop stage's packet names the files
+# and points at the loop's own packets, which print the contract's Work, Exit and Repeat each time (a test pins that), so
+# the conditions are not printed twice and the head keeps room for its lookups.
+ARGUMENT_STAGES = ("test",)
+NO_ARGUMENT_FOLLOW = ("Then follow each packet it prints (run its done_argv as printed) until the receipt says complete "
+                      "or stopped. Each packet it prints states this stage's Work, Exit and Repeat conditions, the "
+                      "Contract file's words; do not edit that file or the receipt.")
+NO_ARGUMENT_RESUME = ("Its packets state this stage's Work, Exit and Repeat conditions, the Contract file's words; do not "
+                      "edit that file or the receipt.")
 # How an inner stage works inside its loop: the exit-evidence rule, printed once, last in the block (packet re-cut,
 # 2026-10-11).  Where the loop's files may not be edited is said where the argument is introduced.
 LOOP_RULE = """\
@@ -602,7 +612,8 @@ def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
 
 
 def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
-    """Whether ``invoke_lines`` prints the Until Loop argument (and so the numbered exit conditions) for this state."""
+    """Whether the Until Loop is bound for this state: ``invoke_lines`` then prints the start route, and the argument on
+    an ``ARGUMENT_STAGES`` stage (elsewhere the loop's own packets state the exit conditions)."""
     found = cursor(state)
     if found is None:
         return False
@@ -635,6 +646,14 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         return lines
     contract_file, receipt = root / contract_path(action_id), receipt_path(root, action_id)
     started = os.path.lexists(receipt)
+    if stage not in ARGUMENT_STAGES:
+        lines += [RESUME_LINE, NO_ARGUMENT_RESUME] if started else [
+            INVOKE_LINE, start_command(bound, receipt, contract_file), NO_ARGUMENT_FOLLOW]
+        lines += ["Contract: " + str(contract_file) + " · Receipt: " + str(receipt),
+                  RESUME_RESULT_LINE if started else RESULT_LINE, " ".join(LOOP_RULE.split())]
+        if not contract_file.is_file():
+            lines.append("The loop contract is missing; report outcome blocked naming this path.")
+        return lines
     lines += [RESUME_LINE, ARGUMENT_LEAD] if started else [
         INVOKE_LINE, start_command(bound, receipt, contract_file), FOLLOW_LINE]
     lines += [
@@ -823,6 +842,9 @@ __all__ = (
     "ARGUMENT_BEGIN",
     "ARGUMENT_END",
     "ARGUMENT_LEAD",
+    "ARGUMENT_STAGES",
+    "NO_ARGUMENT_FOLLOW",
+    "NO_ARGUMENT_RESUME",
     "BLOCK_HEADING",
     "BUNDLED_IMPROVE_CARD",
     "COMMANDS_HEAD",

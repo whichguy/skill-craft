@@ -207,9 +207,14 @@ class DelegationStateTests(unittest.TestCase):
         inline = self.render(advance(self.state(), "implement"))
         self.assertIn("**Inline.** Do the one step of the packet's Step block (task, criteria, Proof, skills; the lint "
                       "command) in this conversation. Bind no chain and dispatch no worker.", " ".join(inline.split()))
-        step_plan = self.render(advance(self.state(), "step-plan"))
+        step_plan_state = advance(self.state(), "step-plan")
+        step_plan = self.render(step_plan_state)
         flat_plan = " ".join(step_plan.split())
-        self.assertIn("steps lists every implementation step in the order to do them", flat_plan)
+        # Decision 20 (owner 2026-10-18): step-plan is outside loops.ARGUMENT_STAGES, so this exit condition (one of
+        # its done_when lines) lives only in the loop's Contract, not the printed packet.
+        action_id = nav.current_action(step_plan_state)["id"]
+        contract = loops.contract(self.run, step_plan_state, action_id)
+        self.assertIn("steps lists every implementation step in the order to do them", contract["exit_condition"])
         self.assertIn("`steps`**: every implementation step in order (one is fine)", flat_plan)
         # The "sole execution directive" sentence became this one in duty 9 (re-cut 2026-10-11).
         self.assertIn("each step's task and criteria stay its only directive", flat_plan)
@@ -647,7 +652,9 @@ class StepBlockTests(unittest.TestCase):
             self.assertNotRegex(work, r"\b" + other + r"\b", other)
         first = value["exit_condition"].splitlines()[0]
         self.assertTrue(first.startswith("1. ") and first.endswith("(assigned: C2)"), first)
-        self.assertIn(first, nav.render(None, self.run, state))
+        # Decision 20 (owner 2026-10-18): implement is outside loops.ARGUMENT_STAGES, so this exit condition line
+        # lives only in the Contract (checked above via ``value``); the packet no longer repeats it.
+        self.assertNotIn(first, nav.render(None, self.run, state))
 
 
 class PacketContractTests(DelegationStateTests):
@@ -1101,7 +1108,10 @@ class AggregateImplementWordingTests(unittest.TestCase):
         first = contract["exit_condition"].splitlines()[0]
         self.assertEqual(first, "1. only the paths of steps S1 to S2 (a.py, pkg/b.py) changed since the first of them "
                                 "began, and no work outside those steps is in them")
-        self.assertIn("1. only the paths of steps S1 to S2", packet)    # the packet prints the contract's own text
+        # Decision 20 (owner 2026-10-18): implement is outside loops.ARGUMENT_STAGES, so the packet no longer prints
+        # the contract's exit condition; it is checked above via ``contract`` instead (the loop's own packets state
+        # it once the loop starts, pinned in shiploop-loops.test.py).
+        self.assertNotIn("1. only the paths of steps S1 to S2", packet)
         self.assertNotIn("the step's paths", packet.split("Current stage guidance:", 1)[0])
         # the loop's work says it once, as a list, with no stray comma before the sentence stop
         self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", contract["work"])

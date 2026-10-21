@@ -167,6 +167,7 @@ if str(SCRIPTS) not in sys.path:
 
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_planning_revision as planning_revision  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
@@ -850,9 +851,14 @@ class GuidanceTests(unittest.TestCase):
                     self.assertIn("A case's setup and actions are an ordered procedure. " + walk, text)
                     for phrase in own:
                         self.assertIn(phrase, text)
-                    # ... and its loop does not exit on a case whose procedure cannot happen (an exit condition)
+                    # ... and its loop does not exit on a case whose procedure cannot happen (an exit condition).
+                    # Decision 20 (owner 2026-10-18): test-spec is outside loops.ARGUMENT_STAGES, so this exit
+                    # condition reaches the loop's Contract file, not the printed packet (pinned in
+                    # shiploop-loops.test.py: the loop's own packets state it from there).
+                    action_id = loops.cursor(recovered)[1]
+                    contract = loops.contract(self.run, recovered, action_id)
                     self.assertIn("each case's procedure can happen as written from its stated start, or its "
-                                  "unreachable start is an open item", text)
+                                  "unreachable start is an open item", contract["exit_condition"])
                     producers.append(stage)
             extra: dict[str, object] = {}
             if stage == "plan":

@@ -110,6 +110,20 @@ class LoopBlock:
         self.begins = [i for i, line in enumerate(self.lines) if line == loops.ARGUMENT_BEGIN]
         self.ends = [i for i, line in enumerate(self.lines) if line == loops.ARGUMENT_END]
         self.argument = (self.lines[self.begins[0] + 1:self.ends[0]] if self.begins and self.ends else [])
+        # Decision 20: outside loops.ARGUMENT_STAGES the packet prints no argument, only "Contract: <abs> · Receipt:
+        # <abs>"; the argument is the Contract file's (what the loop's own packets state), read here so a test still
+        # reasons about the exit conditions.  ``printed_argument`` says which form the packet had.
+        self.printed_argument = bool(self.argument)
+        files = next((line for line in self.lines if line.startswith("Contract: ") and " · Receipt: " in line), None)
+        if not self.argument and files:
+            contract_file, receipt = files[len("Contract: "):].split(" · Receipt: ", 1)
+            try:
+                value = json.loads(Path(contract_file).read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                value = None
+            if isinstance(value, dict):
+                self.argument = ["Work: " + value["work"], ARGUMENT_FIELDS[1], *value["exit_condition"].splitlines(),
+                                 value["repeat_condition"], "Contract: " + contract_file, "Receipt: " + receipt]
         outside = self.lines[:self.begins[0]] if self.begins else self.lines
         commands = [line for line in outside if line.startswith("python3 ") and " start --receipt " in line]
         self.command: Optional[str] = commands[0] if commands else None

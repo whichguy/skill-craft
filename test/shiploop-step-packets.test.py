@@ -109,25 +109,42 @@ class StepPacketTests(unittest.TestCase):
         """
         for name, found in self.found.items():
             listing = "[focused] " + CASES[name]["checks"][0]
-            for key, text in found.items():
-                if key.endswith("-improve"):
-                    continue
-                stage = key.split("-", 1)[1]
-                # The synthetic step plan has no steps, so implement's argument cannot be built: its invoke block says
-                # why and the head keeps the itemised list, still once.  The argument is read by the one loop-block parser.
-                block = LoopBlock.find(text)
-                argument = block is not None and bool(block.begins)
-                with self.subTest(case=name, packet=key):
-                    self.assertEqual(navigator.DONE_WHEN_LOOP in text, argument)
-                    for number, condition in enumerate(stage_spec.stage(stage).done_when, 1):
-                        self.assertEqual(text.count(condition), 1, condition)
-                        if argument:
-                            self.assertIn(str(number) + ". " + condition, block.exits)
+            # Decision 20 (owner 2026-10-18): a bound loop outside loops.ARGUMENT_STAGES prints no argument, so its
+            # numbered conditions live only in the Contract file; re-walk the case to rebuild each key's state and
+            # read that file's contract back the same way ``loops.contract`` does (a pure function of root and state).
+            with tempfile.TemporaryDirectory(prefix="shiploop-step-packets-exit-") as temp:
+                run_dir = Path(temp) / "run"
+                run_dir.mkdir()
+                states = dict(packets._walk(CASES[name], "inline", temp, run_dir))
+                for key, text in found.items():
+                    if key.endswith("-improve"):
+                        continue
+                    stage = key.split("-", 1)[1]
+                    # The synthetic step plan has no steps, so implement's argument cannot be built: its invoke block
+                    # says why and the head keeps the itemised list, still once.  A bound loop's packet names its own
+                    # start command; the argument (when ARGUMENT_STAGES) is read by the one loop-block parser.
+                    block = LoopBlock.find(text)
+                    bound = block is not None and " start --receipt " in text
+                    argument = bound and stage in loops.ARGUMENT_STAGES
+                    with self.subTest(case=name, packet=key):
+                        self.assertEqual(navigator.DONE_WHEN_LOOP in text, argument)
+                        if bound and not argument:
+                            self.assertIn(navigator.DONE_WHEN_LOOP_PACKETS, text)
+                            action_id = navigator.current_action(states[key])["id"]
+                            contract = loops.contract(run_dir, states[key], action_id)
+                            for condition in stage_spec.stage(stage).done_when:
+                                self.assertEqual(text.count(condition), 0, condition)
+                                self.assertEqual(contract["exit_condition"].count(condition), 1, condition)
                         else:
-                            self.assertIn("- " + condition + "\n", text)
-                    # test and verify list it in their loop; test-spec gets it once, as the step plan's hand-off
-                    # (navigator.CONSUMES, consumer contract section 4).
-                    self.assertEqual(text.count(listing), 1 if stage in ("test", "verify", "test-spec") else 0)
+                            for number, condition in enumerate(stage_spec.stage(stage).done_when, 1):
+                                self.assertEqual(text.count(condition), 1, condition)
+                                if argument:
+                                    self.assertIn(str(number) + ". " + condition, block.exits)
+                                else:
+                                    self.assertIn("- " + condition + "\n", text)
+                        # test and verify list it in their loop; test-spec gets it once, as the step plan's hand-off
+                        # (navigator.CONSUMES, consumer contract section 4).
+                        self.assertEqual(text.count(listing), 1 if stage in ("test", "verify", "test-spec") else 0)
 
     def test_the_printed_head_fits_the_host_output_limit(self) -> None:
         case = CASES["node-fix-bug"]

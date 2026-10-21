@@ -6384,6 +6384,9 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
 # An inner stage's done-when: its conditions are the numbered exit conditions of the Until Loop argument.
 DONE_WHEN_LOOP = ("Done when: every exit condition in the Until Loop argument below holds; ShipLoop's gate checks "
                   "the same list.")
+# Decision 20: a stage outside loops.ARGUMENT_STAGES prints no argument; the loop states the exit conditions.
+DONE_WHEN_LOOP_PACKETS = ("Done when: every exit condition the Until Loop states in each packet it prints holds; start "
+                          "it first (below). ShipLoop's gate checks the same list.")
 
 
 def _implement_scope(state: Mapping[str, Any], stage: str) -> Mapping[str, Any] | None:
@@ -6414,7 +6417,8 @@ def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
         # One home per thing (owner, 2026-10-11): the Until Loop argument after the status block numbers the exit
         # conditions, so the head points at it instead of listing them a second time.  When the argument cannot be
         # built (the invoke block says why), the list stays here, so the conditions are still printed once.
-        done = [DONE_WHEN_LOOP, *(["Also: " + revised + "."] if sent_back and sent_back.previous else [])]
+        done = [DONE_WHEN_LOOP if stage in loops.ARGUMENT_STAGES else DONE_WHEN_LOOP_PACKETS,
+                *(["Also: " + revised + "."] if sent_back and sent_back.previous else [])]
     else:
         done = ["Done when (confirm each before calling done; keep going until all hold):",
                 *("- " + condition for condition in row.done_when),

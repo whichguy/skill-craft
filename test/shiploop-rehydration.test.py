@@ -26,6 +26,7 @@ CLI = SCRIPTS / "shiploop"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_context_index as context_index  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -299,7 +300,7 @@ class GoalFirstTests(unittest.TestCase):
                     # A goal is one action sentence naming its output (packet re-cut, 2026-10-11) and may end in its own period.
                     self.assertEqual(view["goal"], "Goal: " + row.goal[0].upper() + row.goal[1:]
                                      + ("" if row.goal.endswith(".") else "."))
-                    if stage in spec.INNER:
+                    if stage in loops.ARGUMENT_STAGES:
                         # Each thing once (owner, 2026-10-11): the head points at the /until-loop argument, which
                         # numbers the conditions; they are not listed a second time.
                         self.assertEqual(view["done_when"], nav.DONE_WHEN_LOOP)
@@ -307,6 +308,16 @@ class GoalFirstTests(unittest.TestCase):
                         for number, condition in enumerate(row.done_when, 1):
                             self.assertEqual(packet.count(condition), 1, condition)
                             self.assertIn(str(number) + ". " + condition, exits)
+                    elif stage in spec.INNER:
+                        # Decision 20 (owner 2026-10-18): a stage outside loops.ARGUMENT_STAGES prints no argument,
+                        # so its numbered conditions are not listed in the packet; the head points at the loop's own
+                        # packets instead, and the Contract file (which they state from) carries the conditions.
+                        self.assertEqual(view["done_when"], nav.DONE_WHEN_LOOP_PACKETS)
+                        action_id = nav.current_action(state)["id"]
+                        contract = loops.contract(dry_run.RUN, state, action_id)
+                        for number, condition in enumerate(row.done_when, 1):
+                            self.assertEqual(packet.count(condition), 0, condition)
+                            self.assertIn(str(number) + ". " + condition, contract["exit_condition"])
                     else:
                         for condition in row.done_when:
                             self.assertIn("- " + condition, packet)

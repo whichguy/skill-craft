@@ -308,9 +308,19 @@ class InvokeLinesTests(Synthetic):
                 contract_file = self.root / loops.contract_path("A-" + stage)
                 receipt = loops.receipt_path(self.root, "A-" + stage)
                 command = loops.start_command(loops.runtime(state), receipt, contract_file)
+                self.assertTrue(loops.INVOKE_LINE.startswith("RUN the Until Loop now, once, before any work"))
+                if stage not in loops.ARGUMENT_STAGES:
+                    # Decision 20 (owner 2026-10-18): outside ARGUMENT_STAGES the packet prints no argument, only the
+                    # Contract/Receipt line, because the loop's own packets state Work, Exit and Repeat each time.
+                    self.assertEqual(lines, ["", loops.BLOCK_HEADING, loops.INVOKE_LINE, command,
+                                             loops.NO_ARGUMENT_FOLLOW,
+                                             "Contract: " + str(contract_file) + " · Receipt: " + str(receipt),
+                                             loops.RESULT_LINE, " ".join(loops.LOOP_RULE.split())])
+                    self.assertNotIn(loops.ARGUMENT_BEGIN, lines)
+                    self.assertNotIn(loops.ARGUMENT_END, lines)
+                    continue
                 # (a) The RUN line, the literal start command and the follow line come first, in that order.
                 self.assertEqual(lines[:5], ["", loops.BLOCK_HEADING, loops.INVOKE_LINE, command, loops.FOLLOW_LINE])
-                self.assertTrue(loops.INVOKE_LINE.startswith("RUN the Until Loop now, once, before any work"))
                 # (b) Both marker lines, once, after the command, and between them exactly the five fields.
                 self.assertEqual((lines.count(loops.ARGUMENT_BEGIN), lines.count(loops.ARGUMENT_END)), (1, 1))
                 begin, end = lines.index(loops.ARGUMENT_BEGIN), lines.index(loops.ARGUMENT_END)
@@ -436,16 +446,21 @@ class InvokeLinesTests(Synthetic):
         self.assertIn("next_argv", loops.RESUME_RESULT_LINE)
 
     def test_the_ask_agent_implement_block_has_the_same_shape_and_one_command(self):
-        """The whole-plan implement action of the ask-agent route prints the same block: command first, argument after."""
+        """The whole-plan implement action of the ask-agent route prints the same block: command first, no argument
+        after (decision 20: implement is outside ARGUMENT_STAGES, so the Contract file carries the per-step work that
+        the loop's own packets state, not a line in this packet)."""
         state = dict(self.state_for("implement"), delegation="ask-agent")
         state["inner_loops"]["W1"]["action"]["id"] = "A-implement"
         self.write(state)
         lines = loops.invoke_lines(self.root, state)
         receipt, contract_file = loops.receipt_path(self.root, "A-implement"), self.root / loops.contract_path("A-implement")
         self.assertEqual(lines[:5], ["", loops.BLOCK_HEADING, loops.INVOKE_LINE,
-                                     loops.start_command(loops.runtime(state), receipt, contract_file), loops.FOLLOW_LINE])
-        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", "\n".join(lines))
-        self.assertEqual(lines.count(loops.ARGUMENT_BEGIN), 1)
+                                     loops.start_command(loops.runtime(state), receipt, contract_file),
+                                     loops.NO_ARGUMENT_FOLLOW])
+        self.assertEqual(lines[5], "Contract: " + str(contract_file) + " · Receipt: " + str(receipt))
+        contract = json.loads(contract_file.read_text())
+        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", contract["work"])
+        self.assertNotIn(loops.ARGUMENT_BEGIN, lines)
 
     def test_a_missing_contract_says_blocked(self):
         state, _receipt = self.start("test")
@@ -500,8 +515,14 @@ class RenderedPacketsTests(unittest.TestCase):
                 seen.add(stage)
                 self.assertEqual(block.lines[1], loops.INVOKE_LINE)
                 self.assertTrue(block.command and block.command == block.lines[2], "the command follows the RUN line")
-                self.assertEqual(block.lines[3], loops.FOLLOW_LINE)
-                self.assertEqual(block.begins, [4], "the argument follows the command")
+                if stage in loops.ARGUMENT_STAGES:
+                    self.assertEqual(block.lines[3], loops.FOLLOW_LINE)
+                    self.assertEqual(block.begins, [4], "the argument follows the command")
+                else:
+                    # Decision 20: outside ARGUMENT_STAGES no argument is printed; only the Contract/Receipt line.
+                    self.assertEqual(block.lines[3], loops.NO_ARGUMENT_FOLLOW)
+                    self.assertTrue(block.lines[4].startswith("Contract: ") and " · Receipt: " in block.lines[4])
+                    self.assertFalse(block.begins, "no argument markers outside ARGUMENT_STAGES")
                 self.assertEqual(len([line for line in block.lines if " start --receipt " in line]), 1)
         self.assertEqual(seen, set(stage_spec.INNER) - {"implement"}, "every other inner stage was rendered with its block")
         self.assertEqual(set(unavailable), {"implement"})
@@ -668,11 +689,44 @@ class NavigatorLoopTests(fx.RunDriver):
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
         self.assertEqual(contract, loops.contract(self.run_dir, self.state(), self.action()))
         self.assertEqual(contract["workspace"], str(self.repo))
-        self.assertIn("\nWork: " + contract["work"] + "\n", packet)
+        # Decision 20: verify is outside ARGUMENT_STAGES, so the packet prints no "Work: ..." line; the Work lives
+        # only in the Contract file (what the loop's own packets state each time).
+        self.assertNotIn("\nWork: " + contract["work"] + "\n", packet)
+        self.assertIn("Contract: " + str(self.run_dir / loops.contract_path(self.action())) + " · Receipt: "
+                      + str(self.receipt()), packet)
         block = support.LoopBlock(packet)
-        self.assertEqual((len(block.begins), len(block.ends)), (1, 1))
+        self.assertEqual((len(block.begins), len(block.ends)), (0, 0))
+        self.assertFalse(block.printed_argument)
         self.assertEqual(block.field("Contract: "), str(self.run_dir / loops.contract_path(self.action())))
         self.assertEqual(block.field("Receipt: "), str(self.receipt()))
+
+    def test_the_runtimes_printed_packets_state_the_contracts_work_exit_and_repeat(self):
+        """E5 (decision 20, owner 2026-10-18): a loop stage's packet outside loops.ARGUMENT_STAGES prints no argument,
+        only the Contract and Receipt files, because the runtime states the contract's Work, Exit and Repeat in every
+        packet it prints: start, next and each active done.  This pins that stdout (not the receipt) carries them, so a
+        model that started the loop reads the conditions there."""
+        self.start()
+        self.drive_to("implement")
+        packet = self.packet()
+        self.assertNotIn(loops.ARGUMENT_BEGIN, packet)
+        self.assertIn(nav.DONE_WHEN_LOOP_PACKETS, packet)
+        block = support.LoopBlock(packet)
+        self.assertFalse(block.printed_argument)
+        contract = json.loads(Path(block.field("Contract: ")).read_text())
+        words = shlex.split(block.command)
+
+        def printed(argv, stdin):
+            out = subprocess.run(argv, input=stdin, text=True, capture_output=True, check=True, timeout=30).stdout
+            for text in (contract["work"], contract["exit_condition"], contract["repeat_condition"]):
+                self.assertIn(json.dumps(text)[1:-1], out)  # verbatim, as JSON string content
+            return json.loads(out)
+
+        started = printed(words[:-2], json.dumps(contract))
+        self.assertEqual((started["work"], started["conditions"]["exit"], started["conditions"]["repeat"]),
+                         (contract["work"], contract["exit_condition"], contract["repeat_condition"]))
+        printed(started["next_argv"], "")
+        after = printed(started["done_argv"], json.dumps(MATERIAL))
+        self.assertEqual(after["status"], "active")
 
     def test_a_run_without_an_improve_card_uses_the_bundled_runtime(self):
         """Since 2026-10-10 every inner stage runs a loop, so a run that selected no Improve card binds the improve
@@ -751,7 +805,10 @@ class NavigatorLoopTests(fx.RunDriver):
         """Owner decision 2026-09-26: ShipLoop loops run until their exit condition holds."""
         self.start()
         self.drive_to("verify")
-        self.assertIn("there is no iteration limit", self.packet())
+        # Decision 20: verify is outside ARGUMENT_STAGES, so the repeat condition (which carries this text) lives
+        # only in the Contract file, not the printed packet.
+        contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
+        self.assertIn("there is no iteration limit", contract["repeat_condition"])
         terminal = self.run_loop([MATERIAL] * 6 + [TRIVIAL])
         self.assertEqual(terminal["progress"]["action_number"], 7)
         refs = [str(self.receipt())]

@@ -70,6 +70,12 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
             stage = navigator.current_stage(state)
             action = navigator.current_action(state)
             found.setdefault((stage, "producer"), cold(state))
+            # Decision 20 (owner 2026-10-18): step-plan and test-spec are the only reviewed stages that are also
+            # inner loop stages outside loops.ARGUMENT_STAGES, so only their Done-when conditions moved out of the
+            # packet text into the loop's Contract (built here, while the run still exists on disk; a test reads it
+            # back from ``found`` instead of the packet text).
+            if stage in ("step-plan", "test-spec"):
+                found.setdefault((stage, "exit_condition"), loops.contract(run, state, action["id"])["exit_condition"])
             extra = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "one", "context": "context"}]
@@ -179,8 +185,17 @@ class PacketCompletenessTests(unittest.TestCase):
                     self.assertNotIn("That review checks the result", packet)
                     self.assertNotIn("Improve: every ", packet)
                     flat_packet = " ".join(packet.split())
+                    # Decision 20: step-plan and test-spec are inner stages outside loops.ARGUMENT_STAGES, so their
+                    # Done-when conditions are no longer in the packet text; they are in the loop Contract instead
+                    # (captured in ``found`` while the run existed; the loop's own packets state it from there).
+                    flat_contract = (" ".join(self.found[(stage, "exit_condition")].split())
+                                     if (stage, "exit_condition") in self.found else None)
                     for condition in stage_spec.stage(stage).done_when:
-                        self.assertIn(" ".join(condition.split()), flat_packet)
+                        flat_condition = " ".join(condition.split())
+                        if flat_contract is not None:
+                            self.assertIn(flat_condition, flat_contract)
+                        else:
+                            self.assertIn(flat_condition, flat_packet)
 
     def test_no_packet_tells_the_model_about_a_credential_refusal(self) -> None:
         """Owner decision 2026-10-16: ShipLoop refuses no credential pattern, so no stage packet or handoff says it does
@@ -614,11 +629,14 @@ def symbol_paths(block: list) -> dict:
 
 # The lines that keep their absolute paths (owner, 2026-10-16), besides every command line (``--run-dir``) and the Until
 # Loop block's argument (the lines between its two markers: its Work, Exit, Contract and Receipt lines): what hooks and
-# the loop runtime read.  The loop's start command (its own line) is a command too.
+# the loop runtime read.  The loop's start command (its own line) is a command too.  Decision 20 (owner 2026-10-18):
+# outside loops.ARGUMENT_STAGES there is no argument block to carry the Contract/Receipt lines, so the one combined
+# "Contract: ... · Receipt: ..." line (the only absolute pointer to those files once a resumed loop stops printing the
+# start command) is exempt here the same way the argument's own Contract/Receipt lines are.
 LITERAL_LINES = re.compile(
     r"^(?:Start \(the card runs exactly this|Keepalive marker: |Full packet: |Progress view: |\s*\"evidence_refs\": \[|"
     r"\s*(?:/improve )?ShipLoop Improve: |Lost context, or unsure\? Run |"
-    r"python3 .+ start --receipt )")
+    r"python3 .+ start --receipt |Contract: .+ · Receipt: )")
 
 
 def prose_lines(packet: str) -> list:

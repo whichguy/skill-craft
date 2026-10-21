@@ -1665,12 +1665,23 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("receipt (in evidence_refs)",
                       next(row for row in head.splitlines() if row.startswith("Checked by: ")))
         lines = head.splitlines()
-        for condition in loops.exit_condition(stage).splitlines():  # the contract's words, not a paraphrase
-            self.assertIn(condition, lines)
-        self.assertIn(loops.REPEAT[stage], lines)
         self.assertIn(loops.INVOKE_LINE, lines)
-        self.assertIn("Receipt: " + str(receipt), lines)
         self.assertNotIn(loops.RECEIPT_REF_LINE, lines)  # the prefilled template and the Checked-by line carry it
+        if stage in loops.ARGUMENT_STAGES:
+            for condition in loops.exit_condition(stage).splitlines():  # the contract's words, not a paraphrase
+                self.assertIn(condition, lines)
+            self.assertIn(loops.REPEAT[stage], lines)
+            self.assertIn("Receipt: " + str(receipt), lines)
+        else:
+            # Decision 20 (owner 2026-10-18): outside ARGUMENT_STAGES the head prints no argument; the exit and
+            # repeat conditions live in the Contract file the loop's own packets state from, and the one combined
+            # pointer line names the Contract and Receipt files instead of a bare "Receipt: " line.
+            contract_file = self.run_dir / loops.contract_path(self.action())
+            self.assertIn("Contract: " + str(contract_file) + " · Receipt: " + str(receipt), lines)
+            contract = json.loads(contract_file.read_text())
+            for condition in loops.exit_condition(stage).splitlines():
+                self.assertIn(condition, contract["exit_condition"].splitlines())
+            self.assertEqual(contract["repeat_condition"], loops.REPEAT[stage])
 
     def test_a_loop_head_prefills_the_receipt_prints_the_exit_and_accepts_its_template(self):
         self.start()

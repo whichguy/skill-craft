@@ -125,7 +125,11 @@ class LedgerHoldsTests(unittest.TestCase):
             applies[row["id"]] = sum(1 for p in self.packets if p["kind"] in row["kinds"] and (not condition or condition in p["file"]))
         self.assertTrue(all(count > 0 for count in applies.values()), applies)
         self.assertGreaterEqual(applies["narrative"], 40)
-        self.assertGreaterEqual(applies["until-loop"], 30)
+        # Decision 20 (owner 2026-10-18): only the test stage still prints the argument ("Exit when ALL of these
+        # hold"), so "until-loop" now applies to far fewer packets; "until-loop-no-argument" covers every other
+        # looped stage, which used to be "until-loop"'s whole count.
+        self.assertGreaterEqual(applies["until-loop"], 2)
+        self.assertGreaterEqual(applies["until-loop-no-argument"], 20)
         self.assertGreaterEqual(applies["callback"], 60)
 
     def test_the_printed_text_of_a_long_stage_is_a_head_and_the_ledger_still_holds_in_it(self) -> None:

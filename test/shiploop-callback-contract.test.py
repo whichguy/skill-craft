@@ -967,10 +967,14 @@ class RefusalRouteTests(RealCliCase):
         implement = self.accepted(spec_command)
         # Every expectation matches, so ShipLoop records validate-existing and issues implement.
         self.assertIn("ShipLoop navigator | implement | ", implement)
-        # An inner stage's head points at the /until-loop argument, whose exit conditions are its one Done-when list.
-        self.assertIn("Done when: every exit condition in the Until Loop argument below holds", implement)
-        done_when = implement.split("Exit when ALL of these hold:", 1)[1].split("Repeat while", 1)[0]
-        done_when = " ".join(done_when.split())
+        # Decision 20 (owner 2026-10-18): implement is outside loops.ARGUMENT_STAGES, so its head points at the loop's
+        # own packets for the exit conditions instead of printing them between argument markers; the one Done-when
+        # list is the Contract file's exit_condition, which the loop's packets state each time.
+        self.assertIn(nav.DONE_WHEN_LOOP_PACKETS, implement)
+        state = self.state(run)
+        action_id = loops.cursor(state)[1]
+        contract = json.loads((run / loops.contract_path(action_id)).read_text())
+        done_when = " ".join(contract["exit_condition"].split())
         # The implement row confirms the step by the requirements assigned to it, its Proof and the lint gate: it names
         # no criterion field of the result, and the step's own criterion IDs follow only a step that lists them.
         self.assertNotIn("criteri", done_when)

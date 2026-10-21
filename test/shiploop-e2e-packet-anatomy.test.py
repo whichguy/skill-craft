@@ -878,7 +878,9 @@ class LoopBlockTests(unittest.TestCase):
         cases = json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text())
         seen = 0
         for key, text in offline.offline_packets(cases["node-fix-bug"]).items():
-            if loops.ARGUMENT_BEGIN not in text:
+            # A bound loop prints its start command; an unavailable one (implement here: no step left) does not, so
+            # it has no closing rule or result line to anchor "end" on.
+            if "Until Loop (no iteration limit" not in text or " start --receipt " not in text:
                 continue
             seen += 1
             rows = labels(text)
@@ -887,12 +889,19 @@ class LoopBlockTests(unittest.TestCase):
                        if rows[i][1].startswith("Call an exit condition satisfied only when"))
             with self.subTest(packet=key):
                 self.assertEqual({section for section, _ in rows[start:end + 1]}, {"until-loop"})
-                # The RUN line, the follow line, both markers and the result line are all inside it, and so is the
-                # start command (it comes before the argument).
+                # The RUN line, the follow line and the result line are all inside it, and so is the start command
+                # (it comes before the argument, on an ARGUMENT_STAGES stage; decision 20, owner 2026-10-18: outside
+                # ARGUMENT_STAGES the markers give way to the no-argument follow line and the Contract/Receipt line).
                 lines = [line for _, line in rows[start:end + 1]]
-                for needed in (loops.INVOKE_LINE, loops.FOLLOW_LINE, loops.ARGUMENT_BEGIN, loops.ARGUMENT_END,
-                               loops.RESULT_LINE):
-                    self.assertIn(needed, lines)
+                if loops.ARGUMENT_BEGIN in lines:
+                    for needed in (loops.INVOKE_LINE, loops.FOLLOW_LINE, loops.ARGUMENT_BEGIN, loops.ARGUMENT_END,
+                                   loops.RESULT_LINE):
+                        self.assertIn(needed, lines)
+                else:
+                    for needed in (loops.INVOKE_LINE, loops.NO_ARGUMENT_FOLLOW, loops.RESULT_LINE):
+                        self.assertIn(needed, lines)
+                    self.assertTrue(any(line.startswith("Contract: ") and " · Receipt: " in line for line in lines))
+                    self.assertNotIn(loops.ARGUMENT_END, lines)
                 self.assertTrue(any(line.startswith("python3 ") and " start --receipt " in line for line in lines))
                 self.assertFalse(anatomy.unclassified_lines(text) and
                                  [line for _, line in anatomy.unclassified_lines(text) if line in lines])
