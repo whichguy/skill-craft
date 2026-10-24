@@ -1042,14 +1042,15 @@ DUTIES = {
    bundled behaviours visible under one ID.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
    KNOWLEDGE/architecture.md ## Decisions, never in KNOWLEDGE/spec.md; a product decision never takes the AD- prefix.
-4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Mark
-   each unresolved prerequisite or user decision as an open gap under its R-<n> in KNOWLEDGE/spec.md.
+4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope, and
+   list the domain rules the request leaves out under the R-<n> they bound. Mark each unresolved prerequisite or user
+   decision as an open gap under its R-<n> in KNOWLEDGE/spec.md.
 5. In each R-<n> this run adds or changes, state its request or decision basis, preserved and changed behaviour,
    source-section locators, evidence limits, and pending implementation and checks. ShipLoop derives the added,
    changed and retired IDs from the spec diff; list none by hand.
 6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
-   guide): operating conditions, measurable bound or observable criterion, verification method, justified
-   exclusion, or unresolved target. Invent no target. A material requirement conflict goes in `summary` as open and
+   guide): operating conditions, a numeric bound inside any hard platform limit or an observable criterion,
+   verification method, justified exclusion, or unresolved target. Invent no target. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
@@ -1085,7 +1086,8 @@ DUTIES = {
    gate, or record the exclusion (Target-native test selection). Choose test systems and browser tools by
    capability, not product name. Under ## Harnesses and suites record each choice's role, fit, availability,
    prerequisites, setup and isolation, fixture lifecycle, runner and coverage tool, rationale and revalidation
-   condition. Keep inspection separate from retained assertions.
+   condition. Keep inspection separate from retained assertions. Name each code surface's native unit harness; an
+   absent one is prerequisite work for prepare, never N/A.
 5. Reuse, configure or extend existing frameworks and helpers before defining the smallest missing facility
    (Reusable test facilities); never assume a named skill or MCP is available. Record each facility's locator,
    interface, readiness or gap, owner and revalidation condition under ## Harnesses and suites. A missing facility
@@ -1093,7 +1095,9 @@ DUTIES = {
 6. Under KNOWLEDGE/architecture.md ## Real-boundary checks record, per check, where it runs and its target: local, client
    against a deployed target, or remote-resident. For remote tests: framework, availability, access, deployment
    prerequisites, and the authorized route to define or register, install and invoke them. A local pass is not a
-   remote pass; do not narrow a behaviour list to a render smoke.
+   remote pass; do not narrow a behaviour list to a render smoke. Under ## Harnesses and suites record whether a
+   target keeps state between runs and how a test still fails on an item's base there (a clean target, a destructive
+   or ordered deploy, or an inventory check).
 7. Affected service contracts (Service discovery guidance): map cache authorization and invalidation, remote
    reconciliation, async recovery and observability to independent outcomes at their real boundary under
    ## Real-boundary checks. A fixture does not prove live permissions, event delivery or operator log access.
@@ -1282,6 +1286,9 @@ Change no product file in this stage.
      what they report back) with `Confirm by: unconfirmable here — <what would confirm it>`.
    - A new or changed public entry point: add a criterion that it checks its arguments and carries a contract
      docstring (Code craft 2-3), confirmed by its rejection tests and by inspecting the diff.
+   - Behaviour (what a user or caller observes) is confirmed by running it whenever any runner can; inspection or a
+     source search confirms only text, wiring or presence. Where a criterion names an exact value, a count or a
+     prefix match proves nothing.
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable
      behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
@@ -1321,7 +1328,8 @@ Change no product file in this stage.
    - An open plan assumption this item consumes becomes an expectation whose `from` names it.
 7. **`paths`**: every file the item changes (repository-relative files or globs), including the test files the test
    stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
-   paths skips the test stage; a diff touching no code or test path skips document.
+   paths skips the test stage; a diff touching no code or test path skips document. A new check script is a durable
+   artifact: list it here with its consumer, or keep it in RUN/scratch.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md.
 9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it. Record in
    the item's `context` or the summary (each step's task and criteria stay its only directive),
@@ -1351,11 +1359,15 @@ Write no test code in this stage.
    fixture, action, teardown (or "stateless"), command row, registering suite and smoke membership in those fields
    or the summary.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
-   observation, never only that a page loads. RED: how it fails on the item's base, or "characterisation" if it
-   already passes.
+   observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
+   one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
+   behaviour is missing, given what earlier items and stages left deployed (KNOWLEDGE/environment.md ## Harnesses and
+   suites says whether the target keeps state); a guard that only checks a file is not RED. "characterisation" if
+   it already passes.
 """ + _TEST_SPEC_PROCEDURE + """\
 5. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
-   (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state.
+   (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state,
+   and one case per documented throw or refusal branch.
 6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
    it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
 7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
@@ -1498,8 +1510,9 @@ in order; """ + _VERIFY_ONCE + """
 4. **Trace.** From RUN/lint/<action>-inventory.md list every new or changed public entry point (exported function,
    CLI, request or event handler, callback). Walk one valid, one boundary and one invalid input to its return, error
    or side effect, one trace line per path in RUN/notes/<action>.md. A wrong, unhandled or untested path is a
-   finding; a test added for an untested path is titled `<ID> (<letter>)` under the case it extends. An entry point
-   missing from the inventory is untraced.
+   finding; a test added for an untested path is titled `<ID> (<letter>)` under the case it extends ("not a quoted
+   case" is no reason to leave a path untested). An entry point missing from the inventory is untraced. Compare each
+   requirement's Confirm-by clause with the assertions that exist; a clause no assertion checks is a finding.
 5. **Review** the whole diff against the step plan's steps, paths and justified revisions, affected consumers, Code
    craft, the Coding decision selection and KNOWLEDGE/architecture.md. Look for: missing argument checks or contract
    docstrings at an entry point; missing error paths; silent failures; restating or stale comments; dead code; user
@@ -1682,7 +1695,8 @@ in order; """ + _VERIFY_ONCE + """
    requirements, consumer impact (Consumer delivery guidance), test evidence, known limits. Reconcile new and
    preserved behaviour against the prior baseline and incoming spec (Current-system baseline guide, Behavior
    traceability guidance) and check durable knowledge for gaps. A recovered description or planned check alone does
-   not establish acceptance.
+   not establish acceptance: an outcome whose only evidence is inspection or a deferred assumption is not accepted;
+   report add-work for an executable lower-layer check, or blocked naming the missing observation.
 3. Give every request outcome one end state in `summary`: observed by an executed check; observed another way (the
    first method could not, the new check ran and passed); or unachievable here or not yet due, listed in
    `unverified` while the run continues. Try another way to observe it before listing. Each `unverified` entry:
@@ -2514,8 +2528,13 @@ unless a finding depends on it. A pass that finds none of these is trivial.
 END_REVIEW_FOCUS_HEAD = """\
 End-of-work code review focus. Across every executed work item's change, trace
 each new or changed public entry point with a valid, a boundary and an invalid
-input, then review the change against the rubric below. Fix violations within
-scope. A pass that finds no material violation is trivial.
+input, then review the change against the rubric below and for:
+- a code surface whose only check is a source search, not a run;
+- a parser that checks each field but not how they combine;
+- a language pitfall handled in one place and not everywhere it applies;
+- a failure state that does not name the user's next action.
+Fix violations within scope; each fix comes with a test that fails before it.
+A pass that finds no material violation is trivial.
 """
 END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
@@ -2547,7 +2566,10 @@ base (below) and fix, within the item's paths, any of these:
   present need (rules 1, 9);
 - a failure that is not diagnosable, or user-facing text assembled from
   fragments or bypassing the catalog (rules 6-7); for a UI step, a plain or
-  static interaction where the plan calls for a rich one (rule 5);
+  static interaction where the plan calls for a rich one (rule 5), or a scaled-
+  down UI that drops state announcement, refused-action feedback or selection
+  state for assistive technology;
+- a server entry point with no declared access or sharing posture;
 - a step skill listed in the packet and not used, or used against its stated
   purpose, with no reason in the result;
 - a behaviour the code now has that no test-spec case covers and the result does
