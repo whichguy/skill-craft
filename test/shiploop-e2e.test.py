@@ -2439,6 +2439,28 @@ class GateCountsTest(unittest.TestCase):
     """metrics.gate_counts (owner's per-gate fired/caught measurement): classify each ShipLoop refusal by
     GATE_SIGNATURES, and tell whether the same action id's complete was later accepted."""
 
+    def test_nomenclature_counts_each_retired_term_in_shiploop_output(self) -> None:
+        """S-16's record: a retired glossary term in a printed packet or a refusal is counted with its first line;
+        the glossary is read from the checkout and named by digest; an unreadable glossary is unmeasured."""
+        tools = metrics.ToolLog()
+        tools.replies.append({"event": 4, "packet": False,
+                              "text": "ShipLoop navigator | test-strategy | revision 3\nName an expected-RED control.\n"})
+        tools.replies.append({"event": 9, "packet": True, "text": "ShipLoop navigator | prepare | revision 4\nNothing.\n"})
+        tools.failure_events.append({"event": 12, "line": "ShipLoop navigator: blocked_by is retired: ..."})
+        record = metrics.nomenclature(tools)
+        self.assertEqual(record["texts_scanned"], 3)
+        self.assertEqual(len(record["glossary_sha256"]), 64)
+        self.assertEqual(record["retired"]["expected-RED (a baseline repair)"],
+                         {"use": "expected failure", "texts": 1,
+                          "first": {"event": 4, "line": "Name an expected-RED control."}})
+        self.assertEqual(record["retired"]["blocked_by"]["first"]["event"], 12)
+        self.assertEqual(metrics.nomenclature_text(record), "blocked_by 1, expected-RED (a baseline repair) 1")
+        self.assertIn("Retired terms in ShipLoop's output: ",
+                      " ".join(metrics.summary_lines(dict(self.collect([]), nomenclature=record))))
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertIn("unmeasured", metrics.nomenclature(tools, Path(temp) / "missing.md"))
+        self.assertEqual(metrics.nomenclature(metrics.ToolLog())["retired"], {})
+
     def test_each_test_layer_refusal_classifies_under_its_own_gate(self) -> None:
         """The F1 rows read the gates' own refusal text: built here by the gate functions, never typed."""
         spec = importlib.util.spec_from_file_location(

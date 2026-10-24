@@ -142,6 +142,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-privacy.test.py",
     "test/shiploop-reference-routing.test.py",
     "test/shiploop-domain-words.test.py",
+    "test/shiploop-retired-terms.test.py",
     "test/shiploop-keepalive.test.py",
     "test/shiploop-skill-calls.test.py",
     "test/shiploop-planning-handoff.test.py",
@@ -357,6 +358,7 @@ _DURATION_SECONDS = {
     # The efficiency journal's rows (synthetic and the checkout's own): 11 tests, a few milliseconds.
     "test/shiploop-efficiency-journal.test.py": 0.1,
     "test/shiploop-domain-words.test.py": 2.6,  # measured locally 2026-10-17: 5 tests, one scan of skills/shiploop per planted word
+    "test/shiploop-retired-terms.test.py": 0.5,  # measured locally 2026-10-24: 5 tests, one scan per glossary retired term
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
@@ -671,8 +673,11 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),
     "docs/experiments/shiploop-eff-journal-rows/": ("shiploop-efficiency-journal",),
     "docs/shiploop-efficiency-journal-": ("shiploop-efficiency-journal",),
-    # Any ShipLoop text may gain a domain word: the denylist lint (about 3 s) reads the whole skill folder.
-    "skills/shiploop/": ("shiploop-domain-words",),
+    # Any ShipLoop text may gain a domain word or bring back a retired term: the denylist lint (about 3 s) and the
+    # glossary's retired-term scan (under 1 s) read the whole skill folder.
+    "skills/shiploop/": ("shiploop-domain-words", "shiploop-retired-terms"),
+    # The Improve skill's ShipLoop route files are text a ShipLoop child reads, scanned for retired terms too.
+    "skills/improve/references/shiploop-": ("shiploop-retired-terms",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
     # The vendored Until Loop runtime: one suite pins its provenance and hashes, one starts it from a read-only installed
     # copy. Their file names select nothing, so an edit of the runtime ran neither (the stop-rule branch's F2).

@@ -447,6 +447,9 @@ The semantic result contract is small:
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `add-work`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
+Each term in these fields, the packets and the refusals has one meaning, defined in [the glossary](glossary.md),
+which also lists the retired terms.
+
 Stage results add their own fields where the stage needs them: `test-strategy` records
 `test_layers` (or `test_layers_na`) and `targets`, and `prepare` its `harness_runs`
 ([test layers](testing-and-documentation.md#test-layers)); `step-plan` records

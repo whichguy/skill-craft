@@ -92,9 +92,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 96)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 97)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 151)
+        self.assertEqual(len(suite_catalog.SUITES), 152)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -150,9 +150,10 @@ class TestGroupTests(unittest.TestCase):
             "skills/backchain/prompts/revise.prompt.md": {"backchain-chunks"},
             "test/backchain_chunks.py": {"backchain-chunks"},
             "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks", "marketplace-package"},
-            "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls", "shiploop-actual-improve-cli", "shiploop-domain-words"},
-            "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls", "shiploop-domain-words"},
-            # Every ShipLoop skill path also selects the domain-word lint (the skills/shiploop/ prefix row).
+            "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls", "shiploop-actual-improve-cli", "shiploop-domain-words",
+                                                          "shiploop-retired-terms"},
+            "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls", "shiploop-domain-words", "shiploop-retired-terms"},
+            # Every ShipLoop skill path also selects the domain-word lint and the retired-term scan (the skills/shiploop/ row).
             "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},
             "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime", "improve-route"},
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
@@ -172,7 +173,7 @@ class TestGroupTests(unittest.TestCase):
                                          "shiploop-delegation", "shiploop-package-integrity",
                                          "shiploop-packet-completeness", "shiploop-step-packets",
                                          "shiploop-reference", "shiploop-packet-recut", "shiploop-head-order",
-                                         "shiploop-domain-words"},
+                                         "shiploop-domain-words", "shiploop-retired-terms"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
             # The Run Review leaf: its own suite plus the package build that gates a new leaf.
             "skills/shiploop-run-review/scripts/export.py": {"shiploop-run-review", "marketplace-package"},

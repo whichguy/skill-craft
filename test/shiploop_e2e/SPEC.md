@@ -303,6 +303,15 @@ script's text as written, once per milestone. The model never composes,
 paraphrases or estimates progress itself, and never repeats unchanged status
 (owner, 2026-09-27).
 
+**S-16 One term per concept.** A model reads one packet at a time, cold, so two
+names for one thing make it guess, and so does one name for two things. Every
+packet, duty, refusal, reference and test uses each term in the one meaning
+ShipLoop's glossary (`skills/shiploop/references/glossary.md`) defines. A
+renamed term changes everywhere in one commit, with the glossary updated and
+the old term added to its retired list, so it never returns as a live
+synonym. A change that evolves a term says so in its commit and change note
+(owner, 2026-10-24).
+
 ## Change admission
 
 No change is planned, let alone made, before its negative consequences have
@@ -313,7 +322,7 @@ the plan item and summarised in the commit message:
 - **Adversarial evaluation first.** Before the change is planned, attack it:
   argue the case against it as a hostile reviewer would. At minimum ask how it
   could:
-  - weaken any clause S-1..S-15, including ones it does not target;
+  - weaken any clause S-1..S-16, including ones it does not target;
   - break another style, host, language or platform than the one that
     motivated it;
   - fail silently, or pass the tests while failing a live run;
@@ -340,6 +349,10 @@ the plan item and summarised in the commit message:
   touch, and why it does not weaken any of them. "Removes duplication" or
   "shortens a packet" must say which obligation, check or safeguard is kept and
   where.
+- **Nomenclature** (S-16): the terms the change adds, reuses or retires, each
+  checked against the glossary. A new term for a concept the glossary already
+  names, or a second meaning for a glossary term, is not admitted. A rename
+  updates the glossary and its retired list in the same commit.
 - **Evidence**: the hermetic tests that prove the statement, plus the E2E
   suite that confirms it live (see below). A change that alters behaviour on
   purpose names the behaviour, the clause that asks for it, and the runs whose
@@ -403,6 +416,7 @@ on quickly before the breadth of everything is checked.
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
+| S-16 | the hermetic `test/shiploop-retired-terms.test.py`: no retired glossary term in the text a model reads (ShipLoop's card, references, command cards and scripts, and the Improve skill's ShipLoop route files), outside the files a row allows; `nomenclature` in metrics.json (added 2026-10-24): each retired term found in the run's kept ShipLoop replies (packets, printed or read, and commit replies) and refusal first lines, with its count and first line, and the digest of the glossary read. The glossary read is the checkout's, so an older run is held to today's retired terms. A record beside the verdicts, never a verdict |
 | S-1, S-4, S-5, S-6, S-9, S-10 (as evidence, never a verdict) | `fidelity` in metrics.json only (added 2026-10-09; not in result.json or a baseline row, like `planning`): the evidence class of each accepted action against the check its stage declares (script, loop, file, note, sentence, skipped, with the records behind it), ShipLoop's verify records read as JSON (a focused or regression row whose counts are null is unmeasured, never a pass), the model's edits of script-owned files and its name-pattern kills and `git commit`/`add` commands as listed facts with event numbers, each ShipLoop refusal with whether the same first line came back, and the engine's end state. Heuristic rows are lists to confirm, not counts to trust: no hit is not proof and a hit can be quoted text, and they say so. Every part fails open and an input it cannot read is `unmeasured` with the reason; the paths in the block are relative to the run folder (`<run>`) and the home folder (`~`), so a block names no machine |
 | S-9 (oracle strength), S-11 | `quality` in result.json (added 2026-10-09), taken last and only from a finished, committed delivery, and in no baseline row: a mutation ratio of the delivered tests (JS text operators on a copy under `<output>/quality`, never on `work/`; recorded with its operator-catalog id, per-file site counts, whether the tests load each file, the caught mutants confirmed by a second run, the timeouts, the declared-port refusals and the page script no operator reaches), held-out acceptance for a case that declares it (Checkers only), `held_out_seen` (host events that name a held-out check; null where the events cannot be read), the Claude memory writes the events show, and `hosts_used` / `mixed_host` from the launch records. Recorded beside the verdicts, never a verdict and never a threshold; a measure that could not be taken is `{observed: false, reason}`, never 0, and two ratios are compared only when their operator-catalog ids are equal |
 

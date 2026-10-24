@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 import re
 
+import glossary
 import rollouts
 import runrecord
 import sessionlog
@@ -574,6 +575,43 @@ def refusal_gate(line: str) -> str:
     """The named gate a ShipLoop refusal's own first line matches (GATE_SIGNATURES, first row that matches wins),
     or "other" for a line no row's signature covers."""
     return next((name for name, pattern in GATE_SIGNATURES.items() if pattern.search(line)), "other")
+
+
+def nomenclature(tools: ToolLog, path: Path | None = None) -> dict:
+    """Retired ShipLoop terms in what ShipLoop printed to this run (E2E SPEC S-16, added 2026-10-24).
+
+    For each retired term of the glossary's block (``glossary.retired_terms``): how many of the run's kept ShipLoop
+    replies (packets, printed or read, and commit replies) and refusal first lines hold it, and the first such line
+    with its events.jsonl line.  A record beside the verdicts, never a verdict.  The glossary read is the checkout's, so
+    an older run is held to today's retired terms; ``glossary_sha256`` names the version read.  ``unmeasured`` says why
+    when the glossary cannot be read.
+    """
+    source = path or glossary.GLOSSARY
+    try:
+        terms, digest = glossary.retired_terms(source), glossary.digest(source)
+    except (OSError, ValueError) as exc:
+        return {"unmeasured": str(exc)[:200]}
+    texts = [(reply.get("event"), str(reply.get("text") or "")) for reply in tools.replies]
+    texts += [(found.get("event"), str(found.get("line") or "")) for found in tools.failure_events]
+    retired: dict[str, dict] = {}
+    for event, text in texts:
+        for term in terms:
+            match = term["regex"].search(text)
+            if not match:
+                continue
+            row = retired.setdefault(term["retired"], {"use": term["use"], "texts": 0, "first": None})
+            row["texts"] += 1
+            if row["first"] is None:
+                start = text.rfind("\n", 0, match.start()) + 1
+                end = text.find("\n", match.end())
+                row["first"] = {"event": event, "line": text[start:end if end >= 0 else None].strip()[:200]}
+    return {"glossary_sha256": digest, "texts_scanned": len(texts), "retired": retired}
+
+
+def nomenclature_text(record: dict) -> str:
+    """``term N`` per retired term the run's ShipLoop output held, most frequent first."""
+    rows = sorted((record.get("retired") or {}).items(), key=lambda item: (-item[1]["texts"], item[0]))
+    return ", ".join(f"{name} {row['texts']}" for name, row in rows)
 
 
 def gate_counts(tools: ToolLog) -> dict[str, dict[str, int]]:
@@ -1851,6 +1889,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # run then got past ("caught": the same action id's next accepted complete). Never 0 for a gate that fired
         # nothing -- it is simply absent; an unclassified refusal is under "other".
         "gate_counts": gate_counts(tools),
+        # Retired glossary terms in ShipLoop's printed packets and refusals (S-16): a record, never a verdict.
+        "nomenclature": nomenclature(tools),
         # Claude's tool_use / tool_result blocks only (main thread): what the model ran and how it used the packets. A
         # record, never a verdict; None on the hosts whose events this harness has no such reading of.
         "tool_use": tools.tool_use(run_dir) if claude_calls and not grok else None,
@@ -2252,6 +2292,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
                 if metrics.get("improve_reviews", {}).get("passes") else "")]
     if metrics.get("gate_counts"):
         lines.append("ShipLoop gates: " + gate_counts_text(metrics["gate_counts"]))
+    if (metrics.get("nomenclature") or {}).get("retired"):
+        lines.append("Retired terms in ShipLoop's output: " + nomenclature_text(metrics["nomenclature"]))
     if metrics.get("planning"):
         lines.append(planning_text(metrics["planning"]))
     if metrics.get("tool_use"):
