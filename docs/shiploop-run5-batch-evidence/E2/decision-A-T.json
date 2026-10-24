@@ -1,0 +1,33 @@
+{
+  "experiment": "E2",
+  "claim": "Deciding each test layer in its own surfaces row records a missing component harness as prerequisite work and plans executed UI checks, instead of deferring the whole UI when no browser exists.",
+  "arms": [
+    "A",
+    "T"
+  ],
+  "arm_specs": {
+    "A": {
+      "ref": "288075c9"
+    },
+    "T": {
+      "ref": "9ed4ec24"
+    }
+  },
+  "n": [
+    2,
+    2
+  ],
+  "means": [
+    0.5,
+    0.0
+  ],
+  "spread": null,
+  "difference": -0.5,
+  "gate": null,
+  "gate_rates": [
+    null,
+    null
+  ],
+  "verdict": "inconclusive",
+  "reason": "the first arm needs scored samples 1-4 for the A/A spread"
+}

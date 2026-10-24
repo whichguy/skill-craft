@@ -1,0 +1,21 @@
+{
+  "experiment": "E2",
+  "arm": "F",
+  "sample": 1,
+  "value": 0,
+  "prerequisite": true,
+  "deferred_ui": false,
+  "ui_criteria": 8,
+  "inspected_ui": [],
+  "source_search_checks": [
+    "grep -F -q 'Contract: choice-confirm shows options, Confirm, and a status line.' src/choice-confirm.js"
+  ],
+  "slice_pass": false,
+  "slice_verdicts": {
+    "process": false,
+    "stopped": true,
+    "no_overshoot": false
+  },
+  "seconds": 3595.1,
+  "commit": "d21c770e5c71888069f239c7e2156b22ae515b61"
+}

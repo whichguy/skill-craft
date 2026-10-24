@@ -440,11 +440,6 @@ class RefusalRouteTests(RealCliCase):
                  dict(row, command="test -f built.txt && " + row["command"]) if row.get("suite") == "focused" else row
                  for row in block["test_commands"]]},
              "checks for a file or prints a path before its tests run"),
-            ("a test command naming a target that is no targets row", "step-plan",
-             lambda block: {**block, "test_commands": [
-                 dict(row, target="the shared org") if row.get("suite") == "focused" else row
-                 for row in block["test_commands"]]},
-             "which is no test-strategy targets row"),
             ("an inspected criterion naming no unverified Test layers row", "step-plan",
              lambda block: {**block, "criteria": [dict(row, confirm="inspected", code="built.txt writer",
                                                        layer="unit") for row in block["criteria"]]},

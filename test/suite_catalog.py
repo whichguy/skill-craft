@@ -169,6 +169,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-efficiency-journal.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
+    "test/shiploop-loophole-gates.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -363,6 +364,7 @@ _DURATION_SECONDS = {
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
     "test/shiploop-callback-contract.test.py": 69.1,
+    "test/shiploop-loophole-gates.test.py": 9.7,  # measured locally 2026-10-24: 8 dodge rows, one real-CLI run each
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
