@@ -913,7 +913,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             "never edit the receipt": "Never write or edit the receipt",
             "recover an active child": "use its exact next_argv once to recover",
             "restart a stopped child": "--restart-stopped",
-            "return only after the terminal packet": "Return order:",
+            "return only after the final receipt": "Return order:",
             "pause without losing the child": "Pause parent without losing child",
             "import through the Improve stage's complete": "2. When the improve skill has completed, run: ",
         }
@@ -972,7 +972,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("Always excluded: .until-loop, .shiploop-improve", contract["context"]["scope"])
         self.assertIn("No push", contract["context"]["authority"])
         locators = {r["purpose"]: r["locator"] for r in contract["context"]["resources"]}
-        self.assertEqual(locators["latest child packet receipt"], str(receipt))
+        self.assertEqual(locators["child receipt"], str(receipt))
         self.assertEqual(locators["review evidence directory (review-<n>.md per pass, checks.md)"],
                          str(receipt.parent / "reviews"))
         route = Path(locators["exact parent return instructions"]).read_text(encoding="utf-8")
@@ -2291,7 +2291,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
                 self.assertIn(needed, route)
         self.assertLess(route.index("improve-commit --run-dir="), route.index(" complete --run-dir="))
         self.assertLess(route.index("improve-pass --run-dir="), route.index("improve-commit --run-dir="))
-        self.assertIn("The child never runs the complete command", route)
+        self.assertIn("The child never runs the callback", route)
 
     def test_the_command_parent_return_prints_runs_and_commits_at_the_planning_stage(self):
         """Route test: what a cleared child finds in the file the contract names is a command that works."""
@@ -2416,7 +2416,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertNotIn("Stage exactly these paths", stderr)
         self.write("docs: tighten\n\nKey learnings: exact examples catch drift.\n")
         self.run_named(stderr)
-        again = next(row for row in stderr.splitlines() if row.startswith("Then run the complete command again: "))
+        again = next(row for row in stderr.splitlines() if row.startswith("Then run the callback again: "))
         argv = shlex.split(again.split(": ", 1)[1])  # the refusal prints it: a cleared parent needs no other packet
         self.assertEqual(argv[2], "complete")
         self.assertEqual(argv[-1], "--action=" + self.improve)  # the refusal names the Improve stage's id

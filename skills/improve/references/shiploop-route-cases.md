@@ -55,9 +55,9 @@ when stopping incomplete included), then report `blocked` and name the conflict.
 
 ## `verify_script`
 
-Read when a returned packet carries a `verify_script` (the contract's exit checks).
+Read when a return carries a `verify_script` (the contract's exit checks).
 
-- **`verify_script`.** If a returned packet carries one (the contract's exit checks), run it once,
+- **`verify_script`.** If a return carries one (the contract's exit checks), run it once,
   unchanged, after the last change, by passing its text itself as your shell command (not saved
   to a file, read from a variable or run through another interpreter: the host's prompt and
   hooks inspect that text). The runtime refuses `satisfied` without a recorded run for the

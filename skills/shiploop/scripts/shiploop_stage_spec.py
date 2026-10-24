@@ -38,7 +38,7 @@ ENTRY_RUNS = frozenset({
     "advisory-lint",       # lint the item's changes, auto-fixing on the first entry
 })
 COMPLETE_RUNS = frozenset({
-    "loop-terminal",       # check the stage's Until Loop terminal packet against the contract rebuilt from state
+    "loop-terminal",       # check the stage's Until Loop receipt against the contract rebuilt from state
     "lint-gate",           # refuse done while a new finding on a changed line is unwaived
     "expectation-check",   # rerun every expectation check and require each to match its state
     "test-base",           # run the item's tests on the base checkout: no new test ID passes; sets the floor
@@ -329,7 +329,7 @@ _ROWS = (
     ),
     # ------------------------------------------------------------------ inner
     # Owner decision 2026-10-10: eight stages in five phases (Plan: step-plan, test-spec; Validate existing; Build:
-    # implement per step with an Improve child after each, test, document; Verify; Carry forward).  Each stage's work
+    # implement per step with an Improve stage after each, test, document; Verify; Carry forward).  Each stage's work
     # runs as one Until Loop with a ShipLoop-written contract (entry run loop-contract); its exit conditions are the
     # done_when lines below, and the gate rechecks by script what it can.  Evidence and the coverage review of the
     # seventeen stages this replaces: docs/experiments/inner-loop-redesign-20261010/.
@@ -705,15 +705,15 @@ def with_outcome(outcome: str) -> tuple[str, ...]:
 
 
 def with_improve(rule: str) -> frozenset[str]:
-    """Stages whose accepted result starts an Improve child under ``rule``."""
+    """Stages whose accepted result starts an Improve stage under ``rule``."""
     return frozenset(row.name for row in _ROWS if row.improve == rule)
 
 
 # Run-level planning review option (state key ``planning_review``): which planning results start an
-# Improve child.  A value is registered together with the behaviour it selects, so no commit records
+# Improve stage.  A value is registered together with the behaviour it selects, so no commit records
 # a value the engine ignores.  ``stage`` is today's behaviour: every stage whose rule is ``always``
-# starts its own child.  ``none`` starts none at the five planning stages the option covers; the
-# children after system-test-author and release-plan and the last carry-forward's rule are not the
+# starts its own Improve stage.  ``none`` starts none at the five planning stages the option covers; the
+# Improve stages after system-test-author and release-plan and the last carry-forward's rule are not the
 # option's, so they keep running.  New CLI-created runs record DEFAULT_PLANNING_REVIEW; a saved run
 # without the key is refused (one supported version), and no verb changes it mid-run.
 PLANNING_REVIEW_MODES = ("stage", "none")
@@ -722,7 +722,7 @@ PLANNING_CHOICE_STAGES = frozenset(("spec", "test-strategy", "plan", "step-plan"
 
 
 def reviewed_stages(mode: str) -> frozenset[str]:
-    """Stages whose accepted result can start an Improve child under planning review ``mode`` (a "first-item" stage
+    """Stages whose accepted result can start an Improve stage under planning review ``mode`` (a "first-item" stage
     only for the first work item and for an item that was sent back)."""
     if mode not in PLANNING_REVIEW_MODES:
         raise ValueError(f"unknown planning review option: {mode!r}")

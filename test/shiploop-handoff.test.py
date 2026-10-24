@@ -533,9 +533,9 @@ class GateCase(RepoCase):
     def steps(self) -> list:
         complete = self.path_of(173, "nav-current.md")
         final = self.path_of(173, "nav-current-final-result.md")
-        return [("complete", navigator.NextStep(complete, "then run the same complete command again.", False)),
-                ("improve-stage", navigator.NextStep(final, "then run the same complete command again.", False)),
-                ("seed", navigator.NextStep(final, "then run the same complete command again with --final-result set "
+        return [("complete", navigator.NextStep(complete, "then run the same callback again.", False)),
+                ("improve-stage", navigator.NextStep(final, "then run the same callback again.", False)),
+                ("seed", navigator.NextStep(final, "then run the same callback again with --final-result set "
                                                    "to that file.", True))]
 
     def refusal(self, state: dict, stage: str, result: dict, step=None) -> str:
@@ -553,7 +553,7 @@ class GateCase(RepoCase):
         if step.seed:
             self.assertTrue(first.startswith("Write a final result to " + str(step.path) + " that "), first)
             self.assertTrue(first.endswith(", " + step.tail), first)
-            self.assertIn("then run the same complete", first[:250])   # the verb is inside the cut a model reads
+            self.assertIn("then run the same callback", first[:250])   # the callback is inside the cut a model reads
         else:
             self.assertIn(str(step.path), first)
             self.assertTrue(first.endswith(", " + step.tail), first)
@@ -1877,7 +1877,7 @@ class CompleteRouteTests(inner.RunDriver):
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         first = refused.stderr.splitlines()[0]
         self.assertEqual(first, "ShipLoop navigator: Add follows to " + str(path)
-                         + ", then run the same complete command again.")
+                         + ", then run the same callback again.")
         store.write_record(path, dict(result, follows=[]), "result")      # the fix, then the same command
         accepted = subprocess.run(argv, capture_output=True, text=True, env=env)
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
@@ -2163,7 +2163,7 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         final = run / "inbox" / (self.action + "-final-result.md")
         self.assertEqual(refused.stderr.splitlines()[0],
                          "ShipLoop navigator: Write a final result to " + str(final) + " that adds follows, then run "
-                         "the same complete command again with --final-result set to that file.")
+                         "the same callback again with --final-result set to that file.")
         store.write_record(final, dict(seed, follows=[]), "final result")
         self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
                     "--final-result", final)

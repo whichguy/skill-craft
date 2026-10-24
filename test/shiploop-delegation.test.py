@@ -821,7 +821,7 @@ class PacketContractTests(DelegationStateTests):
     def test_a_bound_improve_handoff_prints_the_commit_command_early(self):
         # The command and the exact commit-message path sat at about 30 KB of a 47 KB packet, below improve-start: one
         # review wrote the wrong file name and was refused, another searched for the command (packet review
-        # 2026-10-10, P-improve-1).  Now both the commit and the complete command sit inside the first 4,500 characters of
+        # 2026-10-10, P-improve-1).  Now both the commit command and the callback sit inside the first 4,500 characters of
         # the handoff (plan U18), with the review focus ahead of them.  The planning packet prints no command: it names
         # parent-return.md, which improve-start writes with the command and its message rules.  Since 8f3d4cbe
         # improve-commit refuses a message with no Key learnings line, so the line shows that format and ends with it.
@@ -964,17 +964,17 @@ class PacketContractTests(DelegationStateTests):
                     lead = assert_top_block(self, lines, label=route + " " + stage)["callback"]
                     self.assertTrue(lead.startswith("Callback for this stage "), lead)
                     # The first callback line is the only one: "Call this when done:" is gone (2026-10-11 dedupe),
-                    # so the lead carries the complete command and the result file it reads.
+                    # so the lead carries the callback and the result file it reads.
                     self.assertNotIn("Call this when done:", packet)
                     command = shlex.split(lead.split("): ", 1)[1])
                     self.assertEqual(command[2], "complete")
                     self.assertFalse(any(arg.startswith("--result") for arg in command), command)
                     self.assertEqual(callback_result_path(lead).name, command[-1].split("=", 1)[1] + ".md")
                     # No producer packet mentions Improve ahead of time (owner rule 2026-10-10, re-cut 2026-10-11):
-                    # no "Improve:" line, no "starts this action's Improve child" sentence.
+                    # no "Improve:" line, no "starts this action's Improve stage" sentence.
                     self.assertFalse([line for line in lines if line.startswith("Improve:")])
-                    self.assertNotIn("starts this action's Improve child", packet)
-                    self.assertNotIn("single end-of-work Improve child", packet)
+                    self.assertNotIn("starts this action's Improve stage", packet)
+                    self.assertNotIn("single end-of-work Improve stage", packet)
                     self.assertNotIn("the Improve child's", packet)
                     if stage == "implement":
                         # An Improve child reviews every accepted step (owner decision 2026-10-10), so the

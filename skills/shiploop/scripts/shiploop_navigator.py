@@ -167,7 +167,7 @@ DEFAULT_LINT = lint.DEFAULT_MODE
 # without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
 BACKCHAIN_PASSES_MODES = guidance.BACKCHAIN_PASSES_MODES
 DEFAULT_BACKCHAIN_PASSES = guidance.DEFAULT_BACKCHAIN_PASSES
-# Run-level planning review option: which planning results start an Improve child (see
+# Run-level planning review option: which planning results start an Improve stage (see
 # shiploop_stage_spec.PLANNING_REVIEW_MODES: ``stage`` or ``none``).  New CLI-created runs record
 # DEFAULT_PLANNING_REVIEW; a saved run without the key is refused (one supported version), never
 # migrated, and no verb changes it mid-run.
@@ -458,7 +458,7 @@ def _improve_child_for(state: Mapping[str, Any], action_id: Any) -> Mapping[str,
 
 
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
-    """Say whether this accepted producer result starts an actual Improve child.
+    """Say whether this accepted producer result starts an Improve stage.
 
     Every planning/contract result the run's ``planning_review`` option reviews
     is reviewed (all seven under ``stage``; under ``none`` only system-test-author
@@ -651,7 +651,7 @@ def _check_submitted_awaiting(result: Any) -> None:
               "when nothing further can proceed without them, and say why in awaiting.no_default. "
               + ("The result has no_default beside awaiting: move it inside awaiting. " if beside else
                  "If nothing else can proceed, add no_default inside awaiting. ")
-              + "The wait is " + AWAITING_SHAPE + "; then run the same complete command again.")
+              + "The wait is " + AWAITING_SHAPE + "; then run the same callback again.")
 
 
 def awaiting(state: Mapping[str, Any]) -> tuple[str, dict[str, Any]] | None:
@@ -972,14 +972,14 @@ def _result_shape_problem(value: Mapping[str, Any]) -> str | None:
                 f"(top-level keys: {wrapper}), not the result "
                 "object. Move the fields of \"result\" (outcome, summary, evidence_refs, ...) up to the top level "
                 f"and delete the keys {wrapper}; the files under results/ use that wrapper, a submitted result "
-                "does not. Then run the same complete command again")
+                "does not. Then run the same callback again")
     adds = {"outcome": '"outcome": "done" (or blocked, send-back, add-work where the stage allows it)',
             "summary": '"summary": "<what this step established>"'}
     found = ", ".join(sorted(value)[:8]) or "none"
     return ("result requires outcome and summary: the result is missing " + " and ".join('"' + name + '"' for name in missing)
             + f" (top-level keys found: {found}). The block must carry outcome and summary at its top level, as "
             "the packet's Result template does: add " + " and ".join(adds[name] for name in missing)
-            + ", then run the same complete command again")
+            + ", then run the same callback again")
 
 
 def _canonical_result(
@@ -1020,7 +1020,7 @@ def _canonical_result(
                  and not (field == "work_items" and outcome == "add-work")]
         _need(not stray,
               f"a {outcome} result does not carry {', '.join(stray)}: those fields belong to a done result. "
-              f"Delete {'it' if len(stray) == 1 else 'them'} from the result and run the same complete command "
+              f"Delete {'it' if len(stray) == 1 else 'them'} from the result and run the same callback "
               "again, keeping outcome, summary, headline and evidence_refs"
               + (" and awaiting" if outcome == "blocked" else "")
               + (" and work_items" if outcome == "add-work" else ""))
@@ -1348,7 +1348,7 @@ def new_state(
     ``lint_option`` records the script-owned lint option; ``None`` records off,
     and the CLI passes DEFAULT_LINT for new runs. ``backchain_passes`` records
     how many passes the Backchain planning child may take. ``planning_review``
-    records which planning results start an Improve child.
+    records which planning results start an Improve stage.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(type(worktree) is bool, "worktree must be boolean")
@@ -1604,7 +1604,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     records = state.get("improve_results")
     _need(isinstance(records, Mapping), "Improve results must be an object")
     # Most results are accepted directly; every planning-stage result this run's
-    # planning_review option reviews passed through its own Improve child.
+    # planning_review option reviews passed through its own Improve stage.
     reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))
     expected = {entry["action"] for entry in history}
     # A test stage recorded as not applicable to its item (no test command, only
@@ -1624,7 +1624,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
         _need(isinstance(record, Mapping), "Improve result must be an object")
         _need(history_stage[record_id] in _IMPROVE_STAGES,
               "Improve result " + record_id + " is at " + history_stage[record_id]
-              + ", a stage that never starts an Improve child")
+              + ", a stage that never starts an Improve stage")
     child = state.get("active_improve")
     if child is not None:
         _need(isinstance(child, Mapping) and set(child) in ({
@@ -1645,8 +1645,8 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
         _need(seed == child["seed_result"],
               "Improve requires a canonical step attempt result")
         _need(_improve_checkpoint(state, child["stage"], seed),
-              "this run's Improve child is at " + child["stage"] + ", a stage that does not start "
-              "an Improve child in this run (planning_review: " + recorded_planning_review(state) + ")")
+              "this run's active Improve child is at " + child["stage"] + ", a stage that does not start "
+              "an Improve stage in this run (planning_review: " + recorded_planning_review(state) + ")")
         selected = child["skill"]
         if selected is None:
             _need("version" not in child and "contract_marker" not in child,
@@ -1918,7 +1918,7 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
 
 # The last line of every print: a head, a whole packet or a pointer with what fits.  A reader whose output was cut (by
 # the host or by its own `head -N`) lacks it, so a cut is detectable.
-HEAD_END = "=== end ShipLoop head ==="
+HEAD_END = "=== end ShipLoop print ==="
 # The terminal stop is the Pause command with its verb changed: the packet prints the Pause command as a literal
 # command line once, and the hooks see the verb the model types.
 HALT_LINE = "Halt (terminal; only on the user's explicit stop): the Pause command with `halt` in place of `pause`."
@@ -2419,7 +2419,7 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
         pace = {"started": timeline.get("started"), "stamps": stamps}
 
     last = state["history"][-1] if state["history"] else None
-    # An Improve child's packets are never milestones: the step it reviews is accepted only when it completes, so the last
+    # An Improve stage's packets are never milestones: the step it reviews is accepted only when it completes, so the last
     # accepted step is still the one the producer packet before it showed (8 of 11 Improve packets of a live run repeated
     # that narrative, packet review F6, 2026-10-17).  A stopped run is one, child or not.
     milestone = status != "active" or (state.get("active_improve") is None and (
@@ -2682,7 +2682,7 @@ def _check_focused_ids_new(state: Mapping[str, Any], stage: str, result: Any) ->
                 "Focused command `" + str(command.get("command")) + "` lists only " + ", ".join(ids) + ", which "
                 + owners + "'s step plan already made focused: it tests an earlier item's behaviour. List it as "
                 "regression, and give this item's change a focused command whose test IDs are new (this item's test "
-                "spec names them); then run the same complete command again.")
+                "spec names them); then run the same callback again.")
 
 
 def _red_unobserved_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
@@ -3094,7 +3094,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
     own test-run record.
 
     ``own_receipt`` is this action's loop receipt, which the result template prefills: a result other than done may
-    keep it before the loop wrote it (the loop checks accept blocked without a terminal packet), and so may a
+    keep it before the loop wrote it (the loop checks accept blocked without a receipt), and so may a
     ``--check-only`` run made from inside the still-running loop; done still needs it, through the loop's own terminal
     check.  The live hello run on 13d278dd (2026-10-11) was told "Write the file" for it, an invitation to forge it.
     """
@@ -3318,20 +3318,20 @@ def _check_submitted_unverified(stage: str, result: Any) -> None:
 class NextStep(NamedTuple):
     """Where a hand-off refusal's fix goes and what the model runs next (contract rule 4, X3, X4)."""
     path: Path    # the result file: <run>/inbox/<action>.md, or <action>-final-result.md on an Improve stage
-    tail: str     # "then run the same complete command again.", ...
+    tail: str     # "then run the same callback again.", ...
     seed: bool    # an Improve stage's complete without --final-result: the fix goes into a final result to write
 
 
 def _next_step(root: Path, action_id: str, command: str, final_result: Any = None) -> NextStep:
     """The ``next_step`` dispatch passes to ``_handoff_gate`` for this route."""
     if command == "complete":
-        return NextStep(_result_input_path(Path(root), action_id), "then run the same complete command again.", False)
+        return NextStep(_result_input_path(Path(root), action_id), "then run the same callback again.", False)
     final = Path(root) / "inbox" / (action_id + "-final-result.md")
     if final_result is None:
         # Rerunning the printed complete would re-check the seed and refuse again (routes-audit M2).
-        return NextStep(final, "then run the same complete command again with --final-result set to that file.", True)
+        return NextStep(final, "then run the same callback again with --final-result set to that file.", True)
     path = Path(str(final_result)) if isinstance(final_result, (str, Path)) else final
-    return NextStep(path, "then run the same complete command again.", False)
+    return NextStep(path, "then run the same callback again.", False)
 
 
 class _Fault(NamedTuple):
@@ -4423,7 +4423,7 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any, root: Path | N
 
 
 def _unchanged_first_pass(child: Mapping[str, Any]) -> bool:
-    """Whether the child's saved terminal packet ended on one unchanged trivial pass."""
+    """Whether the child's saved final receipt ended on one unchanged trivial pass."""
     import shiploop_standalone_improve as standalone
 
     try:
@@ -4470,7 +4470,7 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
                 refusal + "\nFix it within the review's scope, commit the fix (write the message to " + str(message_path)
                 + " with a file tool, then run: " + _callback(core, root, "improve-commit", action=improve_id(state),
                                                                message=str(message_path))
-                + "), then run the complete command again: " + _callback(core, root, "complete", action=improve_id(state)))
+                + "), then run the callback again: " + _callback(core, root, "complete", action=improve_id(state)))
         return
     if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
         return
@@ -4653,7 +4653,7 @@ CRITERION_PLACEHOLDER = "<condition. Confirm by: what the command observes; pass
 def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None = None) -> str:
     """Render a current-action template without making the host track anchors.
 
-    ``receipt`` is the terminal packet a loop stage's done must cite: it is the one evidence_refs entry the template
+    ``receipt`` is the final receipt a loop stage's done must cite: it is the one evidence_refs entry the template
     can fill in, because ShipLoop names its path before the loop runs.
     """
     result: dict[str, Any] = {
@@ -5619,7 +5619,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
             [
                 "Halted, unfinished: " + _required_excerpt(state["status_reason"], root, "status_reason"),
                 f"Report: {root / 'report.html'}",
-                "No completion callback is valid while halted.",
+                "No callback is valid while halted.",
             ]
         )
         return "\n".join(lines) + "\n"
@@ -5737,7 +5737,7 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
     lines = loops.invoke_lines(root, state)
     if stage in test_loop.STAGES:
         # With the CLI, the list ends with the red-check command (a base check that does not count); the loop's work
-        # reaches it through the Callback command's --check-only, which also runs the candidate and mutation checks.
+        # reaches it through the callback's --check-only, which also runs the candidate and mutation checks.
         cli = shlex.join(["python3", str(Path(__file__).resolve().parent / "shiploop")])
         lines += test_loop.loop_lines(root, state, work_item or "", action_id, stage, cli=cli)
     return lines
@@ -6603,7 +6603,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
 
 
 def _improve_rerun_clause(stage: str) -> str:
-    """What reruns over an Improve child's committed edits, by the parent stage (no claim beyond what runs)."""
+    """What reruns over an Improve review's committed edits, by the parent stage (no claim beyond what runs)."""
     if stage in stage_spec.with_improve("last-item"):
         return "ShipLoop reruns every completed item's recorded commands over it."
     if stage in stage_spec.with_improve("step"):
@@ -6633,7 +6633,7 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
 DONE_WHEN_LOOP = ("Done when: every exit condition in the Until Loop argument below holds; ShipLoop's gate checks "
                   "the same list.")
 # Decision 20: a stage outside loops.ARGUMENT_STAGES prints no argument; the loop states the exit conditions.
-DONE_WHEN_LOOP_PACKETS = ("Done when: every exit condition the Until Loop states in each packet it prints holds; start "
+DONE_WHEN_LOOP_PACKETS = ("Done when: every exit condition the Until Loop states in each instruction it prints holds; start "
                           "it first (below). ShipLoop's gate checks the same list.")
 
 
@@ -6688,7 +6688,7 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 
     Product-acceptance and the handoff print the plan's assumptions still recorded open; the stage an entry is due
     at prints that entry; the handoff prints the whole list.  Nothing is recalled by the model, and no Improve
-    child's packet carries it.
+    stage's packet carries it.
     """
     if state["status"] != "active" or state.get("active_improve"):
         return []
@@ -6955,22 +6955,22 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
 
 
 def _improve_line(state: Mapping[str, Any], stage: str) -> str:
-    """Tell a producer whether its result starts an Improve child."""
+    """Tell a producer whether its result starts an Improve stage."""
     mode = recorded_planning_review(state)
     if stage in stage_spec.reviewed_stages(mode):
         applies = ("applies the Planning review focus in this stage's guidance and "
                    if stage in guidance.REVIEW_FOCUS_DUTY_STAGES else "")
-        when = ("A done " + stage + " result starts this action's Improve child. That review " + applies
+        when = ("A done " + stage + " result starts this action's Improve stage. That review " + applies
                 + "checks the result against the Done-when conditions above.")
     elif stage in stage_spec.PLANNING_CHOICE_STAGES:
-        when = ("no Improve child starts after this result in this run (planning_review: " + mode
+        when = ("no Improve stage starts after this result in this run (planning_review: " + mode
                 + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
     elif stage in stage_spec.with_improve("step"):
-        when = ("A done result starts this step's Improve child before the next step: it reviews the step's change "
+        when = ("A done result starts this step's Improve stage before the next step: it reviews the step's change "
                 "against its task and criteria, Code craft and architecture.md, and commits warranted edits.")
     elif stage == "carry-forward":
         when = ("A done result that leaves no work item pending starts the run's single "
-                "end-of-work Improve child over every executed item's change.")
+                "end-of-work Improve stage over every executed item's change.")
     else:
         return ""
     # The blocked route is the outcome shapes' and the rules' (2026-10-11 dedupe); this line is the Improve directive.
@@ -7034,7 +7034,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
     What is the same in every review is the Improve skill's references/shiploop-route.md, which the first lines name
     (plan U18): a short core with every pass's rules that names the file for each case (ownership of the ask-agent
     route, recovery and the stopped-child route, the ``final_result`` rules, the fixed review inputs); a bound child's
-    first 2,000 characters are enough to find it, and the review focus and the commit and complete commands sit inside
+    first 2,000 characters are enough to find it, and the review focus, the commit command and the callback sit inside
     the first 4,500.
     """
     child = state["active_improve"]
@@ -7143,7 +7143,7 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
         "Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime "
         "returns complete (ShipLoop started it: start nothing). You write CHILD/commit-message.md, "
         "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json.",
-        ("When the runtime returns complete (its terminal packet saved at CHILD/packet.json), run: " if inline else
+        ("When the runtime returns complete (its final receipt saved at CHILD/packet.json), run: " if inline else
          "Parent only, after the worker's result is collected and CHILD/packet.json verified (the worker never runs it): ")
         + done,
         # ROUTE is the route's short core (2026-10-24): every pass's rules, and the file to open for each case.  The
@@ -7342,7 +7342,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
           if end_of_work else []),
         "The reviewed result stays pending until this Improve stage's complete imports the review.",
         "Checked by: the Improve skill runs its own review and checks; once its runtime returns complete you run the "
-        "Improve stage's complete command, which validates the child's receipt and imports its review and check files "
+        "Improve stage's callback, which validates the child's receipt and imports its review and check files "
         "before the reviewed result is accepted. improve-commit refuses to commit a message with no `Key learnings:` "
         "line (or another lessons label it reads) or a `Learned-from:` line without a commit reachable from HEAD and what "
         "that commit contributed; complete refuses a review that left its own edits "
@@ -7440,11 +7440,11 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Stopped Improve reconciliation receipt",
         ).rstrip()
         reconcile_lines = [
-            "If this selected ephemeral child reaches a stopped, cancelled terminal packet, first "
+            "If this selected ephemeral child's receipt says stopped and cancelled, first "
             + ("confirm the runtime returned it in this conversation and no candidate write is in progress. "
                if inline else
                "collect or confirm the recorded native worker owner has stopped or been cancelled. ")
-            + "Preserve its packet and evidence; do not start, replace, or replay the child.",
+            + "Preserve its receipt and evidence; do not start, replace, or replay the child.",
             "For that stopped plan child only, write this exact reconciliation receipt to: "
             + str(reconcile_path),
             reconcile_template,
@@ -7462,7 +7462,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "logs behind those locators; do not duplicate them in the child context.",
         "For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only this initial "
         "plan child may use the printed parent-only improve-reconcile route "
-        + ("once the runtime has returned that stopped packet. " if inline else "after worker collection."),
+        + ("once the runtime has written that stopped receipt. " if inline else "after worker collection."),
         plan_exclusion,
     ] if planning_reconcile else []
     lines.extend([
@@ -7498,14 +7498,14 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "reviews.",
         "Changes: change what is warranted in code, tests or documentation, and commit it; "
         + _improve_rerun_clause(child["stage"])
-        + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the complete command with --no-commit.",
+        + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the callback with --no-commit.",
         "Evidence: write each review pass to " + str(evidence_root / "review-<n>.md") + " (n = the pass "
         "number: review-1.md, review-2.md, ...) with a file-writing tool, in this form: " + REVIEW_FORM + ". improve-pass, not you, writes the runtime's "
         "report for each pass: it refuses until the improve skill's call is recorded, commits this pass's edits with the message in " + str(improve_commit_message_path(child))
         + " (a subject, `Key learnings:`, optional `Learned-from:`), writes " + str(evidence_root / "checks.md")
         + " itself when the tree is unchanged since the bind (after an edit, write the output of the checks you ran "
         "there first: one older than the last edit is refused), and prints the runtime's done command for this pass "
-        "and this stage's complete command, literal; run them as printed. The complete command imports the last two "
+        "and this stage's callback, literal; run them as printed. The callback imports the last two "
         "passes (the last one when the first pass changed nothing) and checks.md; nothing else to list. A plan/RED "
         "disposition is checked against its own criteria, not future product success. The improve-pass command is under "
         "Commit above.",
@@ -8085,7 +8085,7 @@ def _opening_sections(text: str) -> dict[str, str]:
     return found
 
 
-# An Improve child completes at its first trivial pass (owner decision 2026-10-20).
+# An Improve review completes at its first trivial pass (owner decision 2026-10-20).
 IMPROVE_TRIVIAL_REVIEWS = 1
 
 
@@ -8094,7 +8094,7 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
 
     The parent writes only what it alone knows (the opening's four sections);
     ShipLoop supplies the binding line, workspace, conditions, commit policy,
-    exclusions and every locator the terminal packet needs for the return.
+    exclusions and every locator the final receipt needs for the return.
     """
     import shiploop_standalone_improve as standalone
     child = state["active_improve"]
@@ -8141,12 +8141,12 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
                  "commit; stage only intended paths, never runtime receipts or unrelated staging, no empty commit "
                  "except a recorded remote change. No push or merge. The child runs no ShipLoop callback except "
                  "improve-pass and improve-commit; their commands and rules, and the return the parent runs after the "
-                 "terminal packet, are in " + str(parent_return) + ".")
+                 "final receipt, are in " + str(parent_return) + ".")
     resources = [
         {"purpose": "selected Improve card", "locator": child["skill"]["skill_card"]},
         {"purpose": "bound Until Loop card", "locator": child["skill"]["runtime_card"]},
         {"purpose": "bound Until Loop runtime", "locator": child["skill"]["runtime_cli"]},
-        {"purpose": "latest child packet receipt", "locator": str(receipt)},
+        {"purpose": "child receipt", "locator": str(receipt)},
         {"purpose": "review and check evidence directory", "locator": str(reviews)},
         {"purpose": "ShipLoop parent state", "locator": str(root / "state.md")},
         {"purpose": "review evidence directory (review-<n>.md per pass, checks.md)", "locator": str(reviews)},
@@ -8245,7 +8245,7 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
     _need(changes is not None,
           "ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for "
           "you: leave the files as they are. The bound child stops here; the parent imports the review once the "
-          "loop's terminal packet exists. Parent, run: " + _callback(core, root, "complete", action=improve_id(state)))
+          "loop's final receipt exists. Parent, run: " + _callback(core, root, "complete", action=improve_id(state)))
     pending = changes[1]
     if remote:
         _need(bool(commit_lessons.remote_change(message)),
@@ -8598,7 +8598,7 @@ def _start_improve(core: Any, root: Path, state: Mapping[str, Any], *, restart: 
     store.atomic_write_text(opening, improve_opening_text(core, root, state))
     contract = improve_start_contract(core, root, state, opening.read_text(encoding="utf-8"))
     if restart:
-        # Keep the stopped child's packet and evidence; the new child writes its own.
+        # Keep the stopped child's receipt and evidence; the new child writes its own.
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         receipt.rename(receipt.with_name("packet.stopped-" + stamp + ".json"))
         if (receipt.parent / "reviews").is_dir():
@@ -8634,12 +8634,12 @@ def _start_improve(core: Any, root: Path, state: Mapping[str, Any], *, restart: 
         "--remote-change that section changes nothing.",
         "- A review that changed no file makes no commit: improve-commit says \"Nothing to commit\" and removes "
         "the message file. Never run git commit yourself: it skips these checks. If the user or repository said "
-        "not to commit, do not run improve-commit; the parent passes that instruction to the complete command with "
+        "not to commit, do not run improve-commit; the parent passes that instruction to the callback with "
         "--no-commit.", "",
         "## The parent's return", "",
-        "Only after the runtime wrote a complete terminal packet to " + str(receipt) + ", run:",
+        "Only after the runtime wrote a complete receipt to " + str(receipt) + ", run:",
         _callback(core, root, "complete", action=improve_id(state)),
-        "The child never runs the complete command; a stopped or blocked child leaves the Improve stage pending.",
+        "The child never runs the callback; a stopped or blocked child leaves the Improve stage pending.",
         ""]))
     start = receipt.with_name("start.json")
     store.atomic_write_text(start, loop_contract.dumps(contract))
@@ -8957,7 +8957,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                          "run the Proof again.")
             print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "
                   "Until Loop receipt is checked only on the real complete). The action is not completed; once the Until "
-                  "Loop's receipt says complete or stopped, run the same complete command without --check-only to "
+                  "Loop's receipt says complete or stopped, run the same callback without --check-only to "
                   "submit it." + (" " + reuse if reuse else ""))
             if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):

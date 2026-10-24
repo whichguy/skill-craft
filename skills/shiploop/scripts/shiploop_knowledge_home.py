@@ -315,7 +315,7 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
             prefix = dropped[0].split("-")[0]
             if command == "complete":
                 first = ("Restore the lost " + prefix + "-<n> in " + str(path) + " or move it under '" + section
-                         + "', then run the same complete command again.")
+                         + "', then run the same callback again.")
             else:
                 # The route's real sequence: the fix is the review's uncommitted edit, so improve-commit comes before the
                 # import (else the commit gate is the next refusal).  Shorter, so `cut -c1-250` keeps all three steps at

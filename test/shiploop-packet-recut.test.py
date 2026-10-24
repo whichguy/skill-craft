@@ -190,7 +190,7 @@ class NoAdvanceImproveTests(unittest.TestCase):
             if key.endswith("-improve"):
                 continue
             with self.subTest(packet=key):
-                self.assertNotIn("starts this action's Improve child", text)
+                self.assertNotIn("starts this action's Improve stage", text)
                 self.assertNotIn("Improve child's context", text)
                 self.assertNotRegex(text, r"(?m)^Improve: ")
 
@@ -340,7 +340,7 @@ class OwnerLinesTests(unittest.TestCase):
 
     POINTER = re.compile(r"^Lost context, or unsure\? Run (python3 \S+ next --run-dir=\S+) \(it reprints this step\)\.$")
     PACKET = re.compile(r"^Full packet: (/\S+\.md) - open it with a file tool, not the shell, when this print was cut \(a complete "
-                        r"print ends with the line === end ShipLoop head ===\); it also "
+                        r"print ends with the line === end ShipLoop print ===\); it also "
                         r"holds the hand-offs, the knowledge files' contents and the request or its file\. Its References block "
                         r"lists the other references and what each holds; open only the section a step needs, never a whole "
                         r"reference file, and do not re-read the ShipLoop skill card\.$")
@@ -388,7 +388,7 @@ class OwnerLinesTests(unittest.TestCase):
                          "Lost context, or unsure? Run python3 /i/shiploop next --run-dir=/r/run (it reprints this step).")
         self.assertEqual(prompts.packet_pointer("/r/run/packets/a.md", navigator.HEAD_END),
                          "Full packet: /r/run/packets/a.md - open it with a file tool, not the shell, when this print was cut "
-                         "(a complete print ends with the line === end ShipLoop head ===); it also holds the hand-offs, the "
+                         "(a complete print ends with the line === end ShipLoop print ===); it also holds the hand-offs, the "
                          "knowledge files' contents and the request or its file. "
                          "Its References block lists the other references and what each holds; open only the section a step "
                          "needs, never a whole reference file, and do not re-read the ShipLoop skill card.")

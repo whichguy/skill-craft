@@ -35,8 +35,8 @@ flowchart LR
   N --> P
 ```
 
-The route is the same for a direct result and an Improve child's final result.
-The child can change the result it imports, so a reviewed `done` can become
+The route is the same for a direct result and an Improve stage's final result.
+The Improve review can change the result the stage imports, so a reviewed `done` can become
 `blocked`, `send-back` where the stage allows it or, at an outer stage, `add-work`.
 
 The 24 producer stages are fixed by the stage table (`scripts/shiploop_stage_spec.py`):
@@ -58,7 +58,7 @@ selects the next producer directly.
 Every inner stage does its work inside one bound Until Loop started by the
 packet's literal command, with a ShipLoop-authored contract and receipt under `loops/`
 ([stage Until Loops](inner-loop.md#stage-until-loops)). ShipLoop accepts an inner
-`done` only with a terminal packet that matches the contract rebuilt from state,
+`done` only with a receipt that matches the contract rebuilt from state,
 and only after the stage's script gates pass: the expectation checks at
 `validate-existing`, the [lint gate](run-options.md#script-owned-lint) at
 `implement`, `test` and `verify`, ShipLoop's base and candidate
@@ -97,10 +97,10 @@ flowchart TD
   REL --> done
 ```
 
-✦ starts an actual Improve child. A run recorded with `planning_review: none` starts no Improve
-child at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`: those five are accepted on
+✦ starts an Improve stage. A run recorded with `planning_review: none` starts no Improve
+stage at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`: those five are accepted on
 ShipLoop's checks at `complete` and the graph advances; every `implement` step, `system-test-author`,
-`release-plan` and the last `carry-forward` keep their child. ⛔ is script-enforced:
+`release-plan` and the last `carry-forward` keep their Improve stage. ⛔ is script-enforced:
 `validate-existing` is not accepted while an expectation check does not match its state;
 `implement`, `test` and `verify` are not accepted while the lint gate reports an unwaived new
 finding; `test` is not accepted until ShipLoop's base run finds no new test ID passing on the
@@ -119,7 +119,7 @@ resolve).
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
-| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve stages | `step-plan`, `test-spec` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`), at most twice per destination |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
@@ -127,7 +127,7 @@ resolve).
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a
 specific command. It requires a substantive producer result and, at an Improve
-checkpoint, an actual Improve child before a success edge can release that output. RED is
+checkpoint, an actual Improve review before a success edge can release that output. RED is
 ShipLoop's base run at `test`: each new test fails on the item's base. Before
 `implement`, only `validate-existing`'s known small preparatory fix may change a
 product file. A blocked Improve child leaves its parent incomplete.
@@ -226,10 +226,10 @@ not the six-file "Selected Backchain and Until Loop resources" block that `one` 
 
 Every run also records its `planning_review` option (`stage` or `none`; `stage` unless
 `--planning-review` says otherwise), which selects the planning results that start an
-Improve child: `stage` is every planning result, as before, and no packet changes with it;
-`none` is no Improve child after `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`,
+Improve stage: `stage` is every planning result, as before, and no packet changes with it;
+`none` is no Improve stage after `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`,
 so the Improve line of those packets says none starts and no reconcile route or plan-time
-experiment locator is printed. The children after each `implement` step, `system-test-author`,
+experiment locator is printed. The Improve stages after each `implement` step, `system-test-author`,
 `release-plan` and the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
 it, and a saved run without it is refused with the fresh-run hint. See
 [Planning review option](run-options.md#planning-review-option).
@@ -263,12 +263,12 @@ Two pointer lines follow the header (`ShipLoop navigator | stage | revision N`) 
 packet, whether printed whole, as a head or read from its file: `Lost context, or unsure? Run
 <CLI> next --run-dir=<RUN> (it reprints this step).` and `Full packet: <RUN>/packets/<id>.md - ...`,
 which says to open the packet file with a file tool when a print was cut (a complete print ends
-with the line `=== end ShipLoop head ===`; every head carries the duties and the result template),
+with the line `=== end ShipLoop print ===`; every head carries the duties and the result template),
 and that the file's References block lists the other references (the run's `reference.md` and `context-index.md`
 among them) and what each holds. The one legal callback for the current owner is the third line
 after the header, labelled `Callback for this stage` and giving the reason to run it exactly as
-printed (an Improve child's packet labels it `Next command (` or
-`2. When the improve skill has completed, run:`; the bound child carries no pointer line):
+printed (an Improve stage's packet labels it `Next command (` or
+`2. When the improve skill has completed, run:`; once its card is bound it carries no pointer line):
 `complete` for a producer,
 `improve-bind` for an unbound child, or `complete --action=<improve id>` for the Improve stage
 (its header reads `ShipLoop navigator | improve | revision N | the <stage> result`).
@@ -337,8 +337,8 @@ this conversation too and starts no reviewer, test-runner or executor agent
 unless the user asked for independent review.
 Its review iterations share this context. ShipLoop has already started the child, with the
 binding line alone and first in frozen `context.request`; the runtime saves each raw start,
-next and done packet to the receipt. Only after the
-terminal packet is saved, run the parent
+next and done response to the receipt. Only after the
+complete receipt is saved, run the parent
 return, `complete --action=<improve id>`, with no separate record: it
 imports the reviews directory's own `review-<n>.md`/`checks.md` files. A later user decision applies from the next
 review iteration and is recorded in the review notes and handoff; the frozen
@@ -390,8 +390,8 @@ Instead, an inline run executes every INNER stage in the same conversation, and
 the host's own compaction manages the context (Claude Code and Grok compact
 automatically). The durable run state and self-contained packets make that
 safe: after any compaction, reset or lost context, the Recovery command rewrites
-the current packet file (`<run>/packets/<action>.md`; while an Improve child is
-open, the Improve stage's own file, `<improve id>-bind.md` before a card is bound and
+the current packet file (`<run>/packets/<action>.md`; while an Improve stage is
+current, the Improve stage's own file, `<improve id>-bind.md` before a card is bound and
 `<improve id>.md` after) and reprints its head.
 
 Under `delegation: ask-agent`, each INNER producer assignment takes a fresh
@@ -676,7 +676,7 @@ that the host included all prerequisites or actually prepared a remote target.
 ### Step commits
 
 On the inline route ShipLoop commits each accepted `implement` step before its
-Improve child starts, as `feat(<item>/<step>): <headline>` with the step's
+Improve stage starts, as `feat(<item>/<step>): <headline>` with the step's
 summary and its Key learnings, Key decisions, Evidence and Related commits
 sections, from the result's `learned`, `decisions`, `evidence_refs` and
 `learned_from`. Each inline implement packet's head quotes the last two commits
@@ -689,7 +689,7 @@ refused, and its refusal opens that action's send-back even though the step's
 Until Loop has completed.
 
 The inner path makes post-code quality visible: the expectations are checked
-before any change, each implement step is reviewed by its own Improve child,
+before any change, each implement step is reviewed by its own Improve stage,
 the tests are written from the test spec and must fail on the item's base and
 pass on the candidate, documentation follows observed behaviour, and `verify`
 reruns every command and reviews the whole diff with justified fixes and

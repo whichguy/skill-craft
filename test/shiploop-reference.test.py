@@ -94,7 +94,7 @@ def _walk_reviewed(state: dict) -> set:
 
 
 class ReviewScheduleSentenceTests(unittest.TestCase):
-    """The reference's rules section says which results start an Improve child; it was the stage-mode list in every run,
+    """The reference's rules section says which results start an Improve stage; it was the stage-mode list in every run,
     so a `none` run was told its planning results get a review that the engine never starts (U11, rev 4 Step 0.1)."""
 
     def render(self, mode: str, delegation: str) -> str:
@@ -102,7 +102,7 @@ class ReviewScheduleSentenceTests(unittest.TestCase):
         return reference.render(state, Path("/simulation-only/run"))
 
     def listed(self, text: str) -> list:
-        found = re.search(r"starts an Improve child after planning results \(([^)]*)\)", _rules_section(text))
+        found = re.search(r"starts an Improve stage after planning results \(([^)]*)\)", _rules_section(text))
         self.assertTrue(found, "the rules section names no planning results")
         # After "; " the stage mode says when the first-item stages are reviewed (rule first-item, 2026-10-19).
         return found.group(1).split(";")[0].split(", ")

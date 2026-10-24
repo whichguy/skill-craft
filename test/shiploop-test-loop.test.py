@@ -351,10 +351,10 @@ class TestLoopTests(unittest.TestCase):
         packet = self.packet()
         self.assertIn(loops.INVOKE_LINE, packet)
         self.assertIn(" " + str(ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py") + " start ", packet)
-        self.assert_refused(DONE, "the test loop has not run: no terminal packet exists")
+        self.assert_refused(DONE, "the test loop has not run: no receipt exists")
         self.drive_to("verify")
         self.assertIn(loops.INVOKE_LINE, self.packet())
-        self.assert_refused(dict(DONE, evidence_refs=[]), "the verify loop has not run: no terminal packet exists")
+        self.assert_refused(dict(DONE, evidence_refs=[]), "the verify loop has not run: no receipt exists")
 
     def test_a_started_loop_packet_says_to_continue_from_its_receipt(self):
         """X10 (e9_loop_recovery.py): after context loss mid-loop the packet gave no way back but Start."""
@@ -696,7 +696,7 @@ class TestLoopTests(unittest.TestCase):
             duty = prompts.duty("verify", delegation=route)
             # The result is written first: check-only reads it (packet review 2026-10-17, D-8).
             self.assertIn("1. **Run.** After your last edit, write the result (the Result template below) to "
-                          "RUN/inbox/<action>.md, then run the Callback command with `--check-only`", " ".join(duty.split()))
+                          "RUN/inbox/<action>.md, then run the callback with `--check-only`", " ".join(duty.split()))
             self.assertIn("RUN/" + test_loop.check_only_path("<action>"), duty)
             summary = next(row for row in duty.splitlines() if row.startswith("11. **Summary:**"))
             self.assertNotIn("exit code", summary)
@@ -980,7 +980,7 @@ class TestLoopTests(unittest.TestCase):
         packet = self.packet()
         self.assertIn("Unavailable: the Until Loop runtime cannot be resolved", packet)
         self.assertIn("Report outcome blocked with this reason.", packet)
-        self.assert_refused(DONE, "Until Loop terminal packet is missing")   # done still needs the loop's receipt
+        self.assert_refused(DONE, "Until Loop receipt is missing")   # done still needs the loop's receipt
         self.complete(dict(DONE, outcome="blocked", awaiting=SERVICE_WAIT, summary="No Until Loop runtime."))
         self.assertEqual(self.state()["status"], "blocked")
 
@@ -2086,7 +2086,7 @@ class TestLoopTests(unittest.TestCase):
         output = self.complete_output(self.loop_done(), check_only=True)
         lines = output.rstrip().splitlines()
         self.assertTrue(lines[0].startswith("ShipLoop check-only: every script gate for test accepts this result"))
-        self.assertIn("once the Until Loop's receipt says complete or stopped, run the same complete command without "
+        self.assertIn("once the Until Loop's receipt says complete or stopped, run the same callback without "
                       "--check-only to submit it.", lines[0])
         self.assertEqual([line.split(" ")[1] for line in lines[1:]], ["base:", "base:", "candidate:", "candidate:", "mutation:"])
         self.assertTrue(all(line.startswith("Gates: ") for line in lines[1:]))

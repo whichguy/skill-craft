@@ -1749,7 +1749,7 @@ class NavigatorContractTests(unittest.TestCase):
                 with self.subTest(render_state=render_state):
                     normalized_packet = " ".join(packet.split())
                     self.assertIn("Child workspace: " + str(self.repo), normalized_packet)
-                    self.assertIn("complete command imports the last two passes", normalized_packet)
+                    self.assertIn("callback imports the last two passes", normalized_packet)
                     # The review files print as the handoff's CHILD symbol, defined once with the child's directory (on
                     # the handoff's top line beside ROUTE, plan U18).
                     self.assertIn("CHILD = " + str(child_dir) + " · ROUTE = ", normalized_packet)
@@ -2169,7 +2169,7 @@ class NavigatorContractTests(unittest.TestCase):
             ),
         }
         retired = ("every producer attempt result is followed", "Improve cadence",
-                   "ShipLoop starts an Improve child after planning results")
+                   "ShipLoop starts an Improve stage after planning results")
         for delegation in prompts.DELEGATIONS:
             for stage in EXPECTED_STAGES:
                 with self.subTest(delegation=delegation, stage=stage):
@@ -3455,7 +3455,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
     PLANNING = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan")
     REVIEWED = {"stage": set(PLANNING), "none": {"system-test-author", "release-plan"}}
     CHOICE = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
-    NONE_LINE = "Improve: no Improve child starts after this result in this run (planning_review: none)"
+    NONE_LINE = "Improve: no Improve stage starts after this result in this run (planning_review: none)"
     # Every sentence of an unreviewed planning stage's packet that names Improve and is not rewritten: why it may stay.
     ALLOWED = {
         "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
@@ -3513,7 +3513,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
                 for stage in self.PLANNING:
                     with self.subTest(mode=mode, delegation=delegation, stage=stage):
                         packet = self.flat(self.packet(stage, mode, delegation))
-                        self.assertNotIn("starts this action's Improve child", packet)
+                        self.assertNotIn("starts this action's Improve stage", packet)
                         self.assertNotIn(self.NONE_LINE, packet)
                         self.assertFalse([line for line in self.packet(stage, mode, delegation).splitlines()
                                           if line.startswith("Improve:")])
@@ -3531,13 +3531,13 @@ class PlanningReviewNoneTest(unittest.TestCase):
                 for stage in ("intake", "spec", "implement", "release-plan"):
                     with self.subTest(mode=mode, delegation=delegation, stage=stage):
                         text = self.flat(prompts.prompt(stage, delegation=delegation, planning_review=mode))
-                        self.assertNotIn("ShipLoop starts an Improve child after planning results", text)
+                        self.assertNotIn("ShipLoop starts an Improve stage after planning results", text)
                         self.assertNotIn("after the carry-forward that leaves no work item pending", text)
                 with self.subTest(mode=mode, delegation=delegation, line="implement"):
-                    self.assertNotIn("starts this step's Improve child",
+                    self.assertNotIn("starts this step's Improve stage",
                                      self.flat(self.packet("implement", mode, delegation)))
                 with self.subTest(mode=mode, delegation=delegation, line="carry-forward"):
-                    self.assertNotIn("end-of-work Improve child",
+                    self.assertNotIn("end-of-work Improve stage",
                                      self.flat(self.packet("carry-forward", mode, delegation)))
 
     def test_each_swapped_sentence_is_in_the_stage_text_once_and_the_none_text_in_its_place(self) -> None:
@@ -3714,7 +3714,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
                 for mode in self.MODES:
                     packet = self.flat(self.packet("step-plan", mode, delegation))
                     self.assertNotIn(self.NONE_LINE, packet)
-                    self.assertNotIn("starts this action's Improve child", packet)
+                    self.assertNotIn("starts this action's Improve stage", packet)
         plan = self.flat(prompts.duty("plan", planning_review="none"))
         self.assertIn("Add no item for step planning, validation, build, test, documentation, verification, commit or review", plan)
         self.assertNotIn("remains a draft until that loop completes", plan)
@@ -3733,7 +3733,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
     SKILL = ROOT / "skills" / "shiploop"
     AUDIT = ROOT / "skills" / "shiploop-e2e-audit"
     STAGES = r"(?:planning|\bspec(?:ification)?\b|test-strategy|\bplan\b|step-plan|test-spec|\bglobal plan)"
-    REVIEW = (r"(?:Improve(?:'s)?(?: skill)? (?:review|child|handoff|loop|checkpoint|packet|campaign|reviews)"
+    REVIEW = (r"(?:Improve(?:'s)?(?: skill)? (?:review|stage|child|handoff|loop|checkpoint|packet|campaign|reviews)"
               r"|reviews? each planning result)")
     PROMISE = re.compile(rf"(?:{STAGES}[^.]{{0,100}}{REVIEW}|{REVIEW}[^.]{{0,100}}{STAGES})", re.IGNORECASE)
     QUALIFIED = re.compile(r"planning_review|--planning-review|planning review option|`none`|`stage`"
@@ -3767,12 +3767,24 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "the per-step implement child starts in every mode; the list item says so",
         ("README.md", "(and, for the last item, its Improve child is imported), the script selects the next item's "
                       "`step-plan`"): EVERY_MODE,
-        ("references/carry-forward.md", "I[End-of-work Improve child, then system-test-author]"): EVERY_MODE,
-        ("references/navigator.md", "each implement step is reviewed by its own Improve child"):
+        ("references/carry-forward.md", "I[End-of-work Improve stage, then system-test-author]"): EVERY_MODE,
+        ("references/navigator.md", "each implement step is reviewed by its own Improve stage"):
             "the per-step implement child starts in every mode (owner decision 5, 2026-10-10); the sentence names "
             "test-spec only as the source of the tests",
         ("references/workspace-lifecycle.md", "once no Improve child is active (the end-of-work child and the "
                                                "`release-plan` child have been imported)"): EVERY_MODE,
+        # R4 (2026-10-24) names the schedule "Improve stage", so the scan reads that phrase too; these sentences use it.
+        ("references/navigator.md", "The Improve stages after each `implement` step, `system-test-author`, `release-plan` "
+                                    "and the last `carry-forward` start in both modes"): EVERY_MODE,
+        ("references/run-options.md", "The Improve stages after each `implement` step, `system-test-author`, "
+                                      "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
+        ("references/navigator.md", "R -->|Reviewed planning stage, implement step or last carry-forward| I[Improve stage"):
+            "a diagram edge taken only by a stage the option reviews ('Reviewed planning stage'); the text after the "
+            "diagram states both schedules",
+        ("references/planning-experiments.md", "imports it with the Improve stage's `complete`"):
+            "says how the plan child's confirmation is imported; the file opens with what a `planning_review: none` run lacks",
+        ("../shiploop-e2e-audit/harness/README.md", "An action with an Improve record needs its Improve stage's `complete`"):
+            "says how a recorded Improve stage is completed; promises none",
         ("references/delivery-authority.md", "Before an Improve campaign converges, resolve contradictions"):
             "names any Improve campaign, not a planning child; the specification and the plan are the example's documents",
         ("references/environment-lifecycle.md", "not permission to execute inside `plan` or its Improve review"):
@@ -3851,8 +3863,8 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         self.assertIn("`planning_review`", when)
         self.assertIn("`none`", when)
         for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `carry-forward`",
-                       "`improve-reconcile`", "plan-time experiments", "no Improve child reviews", "`--backchain-passes none`",
-                       "its first `implement` step starts an Improve child", "docs/shiploop", "`--improve-skill=<absolute selected Improve SKILL.md>`",
+                       "`improve-reconcile`", "plan-time experiments", "no Improve review covers", "`--backchain-passes none`",
+                       "its first `implement` step starts an Improve stage", "docs/shiploop", "`--improve-skill=<absolute selected Improve SKILL.md>`",
                        "refuse `--planning-review none` without"):
             with self.subTest(stated=stated):
                 self.assertIn(stated, option)
@@ -3860,7 +3872,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "README.md": ("`--planning-review stage|none`", "`--planning-review none`", "`--planning-review none` requires it"),
             "commands/shiploop.md": ("(required with `--planning-review none`)",),
             "commands/shiploop-complete.md": ("planning_review", "a `none` run has no Plan Improve child"),
-            "references/navigator.md": ("`stage` or `none`", "starts no Improve child",
+            "references/navigator.md": ("`stage` or `none`", "starts no Improve stage",
                                         "a `--planning-review none` run is refused without `--improve-skill`"),
             "references/state-files.md": ("`stage` or `none`",
                                           "holds only the records of each `implement` step, `system-test-author`"),

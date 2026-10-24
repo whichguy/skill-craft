@@ -859,7 +859,7 @@ def latest_attempt_could_not_run(root: Path, action: str) -> bool:
 def remedy_open(root: Path, action: str) -> bool:
     """Whether ShipLoop's own record entitles this action to its stage's remedy outcome.
 
-    ``send-back`` (INNER) or ``add-work`` (OUTER) is accepted without a stopped Until Loop packet when ShipLoop's own runs
+    ``send-back`` (INNER) or ``add-work`` (OUTER) is accepted without a stopped Until Loop receipt when ShipLoop's own runs
     already failed ``MAX_REFUSED_RUNS`` times or its latest run never reached a verdict: the refusal names that outcome
     as the route out, so it must be accepted.  An ordinary ``done`` still needs a complete loop packet.
     """
@@ -999,7 +999,7 @@ def _remedy(stage: str) -> str:
 
 
 def _has_loop_packet(stage: str) -> bool:
-    """Whether the stage's send-back otherwise needs a stopped Until Loop packet (every inner stage runs one)."""
+    """Whether the stage's send-back otherwise needs a stopped Until Loop receipt (every inner stage runs one)."""
     return stage in stage_spec.INNER
 
 

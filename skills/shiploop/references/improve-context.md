@@ -10,7 +10,7 @@ create a worker or a fresh context for each review iteration. The parent remains
 ShipLoop's control channel and alone may run the Improve stage's verified `complete --action=<improve id>`
 (it takes `--notes`, `--final-result` and `--no-commit`, no `--result`), with
 no separate record to submit, after
-the runtime has written the terminal packet to the receipt and every candidate writer has stopped. A parent
+the runtime has written its final receipt and every candidate writer has stopped. A parent
 pause retains the child; an unfinished child route is not proof that its
 executor stopped. A direct `/improve` call remains the normal standalone
 entrypoint and needs no bound packet; this binding is only the automatic
@@ -66,7 +66,7 @@ Run its reviews and checks in this conversation too; start no reviewer,
 test-runner or executor agent unless the user asked for independent review. Do
 not clear, hand off or pause for a clear during the invocation. This
 conversation is both executor and parent: the only candidate writer until the
-runtime returns a terminal packet, then the sole submitter of ShipLoop
+runtime writes its final receipt, then the sole submitter of ShipLoop
 callbacks. No script checks who executes; the Improve stage's `complete` imports this child
 from its receipt and the reviews directory's `review-<n>.md`/`checks.md` files.
 
@@ -126,7 +126,7 @@ context. Do not write or edit it. `improve-start` only restarts: it requires
 `--restart-stopped`, takes no opening, and archives a stopped child, or one whose single unchanged
 pass the change gate refused, before starting it again; it refuses while the receipt shows the
 review still running. Recover a started child from its receipt instead. Only after the runtime
-has written the terminal packet,
+has written its final receipt,
 run the packet's callback (`complete --action=<improve id>`, with no separate record: it imports the reviews
 directory's own `review-<n>.md`/`checks.md`). It refuses a `review-<n>.md` of three or more
 sentences when all but one of them repeat a review of another Improve stage of this run: run
@@ -147,8 +147,8 @@ reprinted child receipt locator. For an active child use the saved receipt's
 exact `next_argv` once; for a complete child validate and import without
 rerunning Improve. Start another runtime for this action only through the
 stopped-child restart route below. Missing
-active-child ephemeral state, a lost terminal packet, or a start that may have
-run before its packet was saved is incomplete, never success or permission to
+active-child ephemeral state, a lost final receipt, or a start that may have
+run before its receipt was saved is incomplete, never success or permission to
 start over. Recover in one conversation at a time; if an earlier conversation
 may still be writing the candidate, confirm it stopped before continuing.
 
@@ -255,7 +255,7 @@ packets and verbose logs behind their existing locators rather than copying
 them into child context.
 
 For the initial Plan Improve child (only a `planning_review: stage` run has one; `none` starts no
-Improve child at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`), retain the packet's experiment objective
+Improve stage at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`), retain the packet's experiment objective
 and exit criteria, applicable original constraints, current source/action
 locators, and decision consequences in that compact context. Keep essential
 findings and rationale inline; locators cannot replace critical reasoning.
@@ -418,7 +418,7 @@ read with its sibling `host-owner.md` before work resumes.
 Append the returned native job/thread handle, any host-exposed delegate identity,
 and later collection or stopped evidence without replacing earlier entries. The
 absence of a returned handle is never proof that launch did not happen. Keep the
-raw child packet as exact runtime JSON; `host-owner.md` is a host coordination
+raw child receipt as exact runtime JSON; `host-owner.md` is a host coordination
 record, not another runtime state machine, graph field, or success receipt.
 Never change `state.md` to track the agent; its run-level `delegation` value is
 run configuration, not an owner record. Announce the assignment and current
@@ -500,7 +500,7 @@ its first owner. Do not label a recovered binding new because its files are abse
 Once sole ownership is established, recover the same parent with `next` and the
 same child from its saved packet. For an active child use its exact `next_argv`;
 for a complete child validate and import without rerunning Improve. Missing
-active-child ephemeral state or a lost terminal packet is incomplete, never success or
+active-child ephemeral state or a lost final receipt is incomplete, never success or
 permission to start over. A resumed host may recover the same invocation in a
 fresh worker only after the old owner is confirmed stopped or never launched. No
 automatic return is promised after the parent session ends.

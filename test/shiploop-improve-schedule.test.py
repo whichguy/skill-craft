@@ -194,8 +194,8 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("- every request outcome maps to at least one acceptance line", handoff)
         self.assertNotIn("Capture separate durable review files", handoff)
         text = " ".join(handoff.split())
-        # P12: the child writes review-<n>.md per pass; the complete command picks the passes itself.
-        self.assertIn("The complete command imports the last two passes", text)
+        # P12: the child writes review-<n>.md per pass; the callback picks the passes itself.
+        self.assertIn("The callback imports the last two passes", text)
         self.assertIn("review-<n>.md", text)
         self.assertNotIn("review_refs length is exactly 2", text)
 
@@ -242,8 +242,8 @@ class ImproveScheduleTests(unittest.TestCase):
                 # W1's carry-forward leaves W2 pending, so it is not the end review.
                 with self.assertRaisesRegex(
                         nav.NavigatorError,
-                        "Improve child is at " + target + ", a stage that does not start an "
-                        r"Improve child in this run \(planning_review: stage\)"):
+                        "active Improve child is at " + target + ", a stage that does not start an "
+                        r"Improve stage in this run \(planning_review: stage\)"):
                     nav.validate(forged)
 
     def test_improve_record_at_a_non_planning_step_is_refused(self):
@@ -318,7 +318,7 @@ class ImproveScheduleTests(unittest.TestCase):
             with self.subTest(status=label):
                 packet = nav.render(None, run, stopped_state)
                 for callback in ("Callback for this stage", "Next command (bind",
-                                 "Callback for this Improve child"):
+                                 "Callback for this Improve stage"):
                     self.assertNotIn(callback, packet)
 
     def test_a_recorded_card_is_the_value_the_packet_prints_and_its_body_line_names_no_origin(self):
@@ -439,7 +439,7 @@ class PlanningReviewScheduleTests(unittest.TestCase):
                 if refused:
                     with self.assertRaisesRegex(
                             nav.NavigatorError,
-                            "Improve child is at spec, a stage that does not start an Improve child in "
+                            "active Improve child is at spec, a stage that does not start an Improve stage in "
                             r"this run \(planning_review: none\)"):
                         nav.validate(forged)
                 else:
@@ -469,7 +469,7 @@ class PlanningReviewScheduleTests(unittest.TestCase):
         packet = nav.render(None, run, plan)
         for absent in ("improve-reconcile", "Planning experiments guide", "Planning investigation notebook",
                        "its Improve child evaluates", "mandatory actual Improve handoff",
-                       "starts this action's Improve child", "Proposed queue awaiting Improve"):
+                       "starts this action's Improve stage", "Proposed queue awaiting Improve"):
             self.assertNotIn(absent, packet)
         # A producer packet no longer announces its Improve child at all (re-cut 2026-10-11, item 2); the none-mode
         # sentence is gone with it, and the stage-mode promise below is gone too.
@@ -614,7 +614,7 @@ class PlanningReviewNoneCliTests(CliRunCase):
         store.write_record(run / "state.md", saved, title="Saved ShipLoop state")
         before = (run / "state.md").read_bytes()
         refused = self.cli("next", "--run-dir", run, status=2)
-        self.assertIn("a stage that does not start an Improve child in this run (planning_review: none)",
+        self.assertIn("a stage that does not start an Improve stage in this run (planning_review: none)",
                       refused.stdout + refused.stderr)
         self.assertNotIn("Traceback", refused.stdout + refused.stderr)
         self.assertEqual((run / "state.md").read_bytes(), before)

@@ -23,7 +23,7 @@ Each work item runs 8 stages in 5 phases (`INNER` in
   go under `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.
 - `implement` makes one step per action. The lint gate runs on every step and an
-  Improve child reviews every accepted step. Tests are written later, at `test`.
+  Improve stage reviews every accepted step. Tests are written later, at `test`.
 - `test` writes the specified tests and makes every recorded command pass;
   ShipLoop then runs its own base and candidate runs.
 - `document` is issued only when the item's real diff touches a code or test
@@ -45,16 +45,16 @@ contract `loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the
 stage's work, its exit condition (the stage's Done-when lines, numbered) and its
 repeat condition. The packet's loop block says `RUN the Until Loop now, once,
 before any work`, then prints the start command,
-`python3 <runtime script> start --receipt <receipt> < <contract>`, and says to follow each packet it prints
+`python3 <runtime script> start --receipt <receipt> < <contract>`, and says to follow each instruction it prints
 until the receipt's status is complete or stopped. Only the test stage's packet
 prints the argument (`----- BEGIN until-loop ARGUMENT -----` to END), as its
 floors use its numbering. Every other stage prints `Contract: <abs> · Receipt:
 <abs>`, and the runtime states the contract's Work, Exit and Repeat in each
-packet it prints (decision 20). The block ends with the result: list the receipt
+instruction it prints (decision 20). The block ends with the result: list the receipt
 in `evidence_refs`, run the callback, and if that refuses for the loop, run the
 start command again; it also lists the five fields of the runtime's done report.
-The `--receipt` makes the runtime write every packet, the terminal one last, to
-`loops/<action>-terminal.json`. Never write or edit the receipt. A second start
+The `--receipt` makes the runtime rewrite the receipt at every step, the final state last,
+at `loops/<action>-terminal.json`. Never write or edit the receipt. A second start
 on one receipt resets the loop (the runtime does not refuse it), so the RUN line
 says to run an active receipt's `next_argv` instead, and once the receipt exists
 the block leads with the resume line in place of the RUN line and the start

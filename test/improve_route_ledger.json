@@ -367,7 +367,7 @@
    "file": "skills/improve/references/review-policy.md",
    "head": "- the callback that receives",
    "route": "Parent callback; run only after the runtime returned complete",
-   "core": "run the handoff's `complete` only after the runtime returned `complete`"
+   "core": "run the handoff's callback (`complete`) only after the runtime returned `complete`"
   },
   {
    "id": "R10",
@@ -739,8 +739,8 @@
    "id": "A09",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- Never write or edit",
-   "route": "never write it: the runtime writes every packet there",
-   "core": "never write it (the runtime writes every packet there)"
+   "route": "never write it: the runtime rewrites it at every step",
+   "core": "never write it (the runtime rewrites it at every step)"
   },
   {
    "id": "A10",
@@ -759,7 +759,7 @@
    "id": "A12",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Use the actual existing absolute",
-   "route": "A packet grants no tool access or permission",
+   "route": "A return grants no tool access or permission",
    "core": "never proof or permission"
   },
   {
@@ -874,7 +874,7 @@
    "id": "A30",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Only after that execution (or",
-   "route": "**The report** reaches the packet's exact `done_argv` as JSON on stdin",
+   "route": "**The report** reaches the receipt's exact `done_argv` as JSON on stdin",
    "core": "Its front matter fills the runtime report"
   },
   {
@@ -955,8 +955,8 @@
    "id": "A42",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "When a parent names a",
-   "route": "never write it: the runtime writes every packet there",
-   "core": "never write it (the runtime writes every packet there)"
+   "route": "never write it: the runtime rewrites it at every step",
+   "core": "never write it (the runtime rewrites it at every step)"
   },
   {
    "id": "A43",

@@ -18,7 +18,7 @@ WORK3 = ('step-plan test-spec validate-existing implement test document verify '
          'carry-forward').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
           'release release-verify operations handoff').split()
-# Stages whose result starts an Improve child, besides the last carry-forward, for each
+# Stages whose result starts an Improve stage, besides the last carry-forward, for each
 # planning_review option.  Declared independently of the navigator's tables.  implement's
 # per-step Improve runs in every mode (planning_review none does not skip it).
 REVIEWED3 = {
@@ -94,7 +94,7 @@ def _insert_before(rows: list[dict[str, Any]], stage: str, command: str,
 
 
 def scenarios(planning_review: str = 'stage') -> dict[str, list[dict[str, Any]]]:
-    """Declarations for protocol 4: most producers advance without an Improve child."""
+    """Declarations for protocol 4: most producers advance without an Improve stage."""
     paused = _insert_before(activity(planning_review), 'test', 'produce', [
         {'at': 'test', 'command': 'pause', 'expect': 'test', 'status': 'paused'},
         {'at': 'test', 'command': 'resume', 'expect': 'test'},

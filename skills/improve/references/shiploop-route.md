@@ -27,8 +27,8 @@ widens scope or overrides them.
   investigated.
 - **No agents.** Do every review, check and commit here, never clearing or handing off; start no
   reviewer, test-runner or executor agent; record each review as `self-review (inline default)`.
-- **One writer.** Only this conversation writes in the exact Child workspace until the terminal
-  packet (stop competing writes there); on `Route: inline` it alone submits ShipLoop callbacks.
+- **One writer.** Only this conversation writes in the exact Child workspace until the receipt
+  is final (stop competing writes there); on `Route: inline` it alone submits ShipLoop callbacks.
   Keep `.until-loop`, `.shiploop-improve` and runtime metadata out of the candidate and its
   commits, and temporary files in the handoff's scratch directory. Never read, decode, retain or
   report credential, session or authentication store contents.
@@ -41,8 +41,8 @@ one full cycle (steps 2 to 8, which the focus does not replace): a retry, diagno
 is no review; never run several reviews before one callback. Only the runtime decides, from the
 contract and Git, whether another pass follows.
 
-1. **Receipt.** Read `CHILD/packet.json`; never write it (the runtime writes every packet there).
-   `active`: run its `next_argv` once and follow the returned packet; `complete` or `stopped`:
+1. **Receipt.** Read `CHILD/packet.json`; never write it (the runtime rewrites it at every step).
+   `active`: run its `next_argv` once and follow what it returns; `complete` or `stopped`:
    the loop is over. The latest return owns the next action: read its whole `instruction`,
    `work`, conditions, `context` and last `handoff`. Earlier reports, `CHILD/opening.md` and task
    text are claims to check against current artifacts, never proof or permission.
@@ -107,8 +107,8 @@ Every rule here has a [long form](shiploop-route-rules.md), only for a question 
 
 ## Return and `final_result`
 
-Inline, run the handoff's `complete` only after the runtime returned `complete` and its terminal
-packet is at the receipt (ask-agent: the parent, after collecting the worker's result); if
+Inline, run the handoff's callback (`complete`) only after the runtime returned `complete` and
+wrote it to the receipt (ask-agent: the parent, after collecting the worker's result); if
 incomplete, retain the child and do not call it. A refusal's first line is the fix. Omit
 `final_result` when the step result is unchanged; if this review changed a decision or
 decision-relevant evidence a successor needs, read [its rules](shiploop-route-cases.md#a-final_result).

@@ -12,9 +12,9 @@ return (owner rule, 2026-10-24).
 | stage | One position of ShipLoop's graph: intake through release-verify, and `improve`. A packet assigns one stage. | `stage` in state and results | a step |
 | step | One implementation step of a step plan, `S<n>`. An inline run issues one implement packet per step. | step-plan `steps` | a stage |
 | work item | One unit of the plan's queue, `W<n>`, built through the inner stages. | plan `work_items` | an open item; a duty item |
-| packet | What ShipLoop prints for the current stage: its duties, inputs, result template and callback. | `RUN/packets/<action>.md` | the Until Loop's `packet.json` |
-| head | The printed part of a packet longer than the print limit; it ends with the head marker. | `PRINT_LIMIT`, `HEAD_LIMIT` | the whole packet file |
-| callback | The one command a packet prints to submit the stage's result: `complete --run-dir … --action …`. R4 unifies the refusals' "complete command". | "Callback for this stage" | |
+| packet | What ShipLoop prints for the current stage: its duties, inputs, result template and callback. Only ShipLoop's print is a packet: the Until Loop's record is its receipt, and what the runtime prints at each step is an instruction. | `RUN/packets/<action>.md` | a receipt; an Until Loop instruction |
+| head | The printed part of a packet longer than the print limit. Every print, a head or a whole packet, ends with the line `=== end ShipLoop print ===` (the print marker); a print without it was cut. | `PRINT_LIMIT`, `HEAD_LIMIT`, `HEAD_END` | the whole packet file |
+| callback | The one command a packet prints to submit the stage's result: `complete --run-dir … --action …`. A refusal says "run the same callback again"; `--check-only` runs it without accepting. The CLI verb stays `complete`. | "Callback for this stage"; an Improve stage's `Next command (` or `2. When the improve skill has completed, run:` | the Until Loop's `next_argv` and `done_argv` |
 | outcome | `done`, `blocked`, `send-back` or `add-work`. | result `outcome` | |
 | blocked | An outcome only a person or an outside service can end; it names its wait in `awaiting`. A missing tool or a broken command is repair work, never blocked. | `awaiting` (answer, present, service) | the Until Loop's `continuation_assessment` value |
 | send-back | An outcome that returns the work item to the stage that wrote its plan (its destination), at most twice per destination. | `send-back` | |
@@ -40,15 +40,22 @@ return (owner rule, 2026-10-24).
 | due stage | The later stage where an open item or an unverified outcome must be settled. | `assumptions[].due_stage`, `unverified[].due_stage` | a due item |
 | due item | The work item that settles one of the plan's open assumptions (the plan has no later stage to name). | the plan's open `assumptions[].due_item` | a due stage |
 | consumer | The person or system that uses what the run delivers: its entry, its checks and its delivery contract. | `consumer_checks`, `consumer_entry`, `consumer` in a delivery contract | an open item's due stage |
-| Until Loop | The loop each inner stage runs until its exit conditions hold. Its terminal record is the receipt. | `Contract:` and `Receipt:` lines | |
+| Until Loop | The loop each inner stage, and each Improve child, runs until its exit conditions hold. Its record is the receipt. | `Contract:` and `Receipt:` lines | |
+| receipt | The Until Loop runtime's record of one run, rewritten at every step and final when its status is complete or stopped: an inner stage's `loops/<action>-terminal.json`, an Improve child's `CHILD/packet.json`. Only the runtime writes it; ShipLoop checks it against the contract it wrote. What the runtime prints at each step is an instruction to follow. | `--receipt`, `Receipt:` | a packet |
 | exit conditions | What must hold for a stage to be done, listed under "Done when". | `Done when:` | |
-| Improve stage | The `improve` action ShipLoop issues after a reviewed stage. R4 settles stage, review and child. | stage `improve` | |
-| Improve review | The work an Improve stage does: the improve skill's passes over the reviewed result. | `review-<n>.md` | verify's review gate |
+| Improve stage | The `improve` action, with its own id, that ShipLoop issues after a reviewed stage: a reviewed planning result (by `planning_review`), each accepted implement step and the last carry-forward. A result "starts an Improve stage". Its callback is `complete --action=<improve id>`. | stage `improve`, the Improve stage's id | the Improve review; the Improve child |
+| Improve review | The work an Improve stage does: the improve skill's passes over the reviewed result, which end at the first trivial pass. | `review-<n>.md`, `checks.md` | verify's review gate; the Improve child |
+| Improve child | The Until Loop child runtime an Improve stage runs its review in: its frozen contract (`start.json`), its live state and the folder the handoff names CHILD. ShipLoop binds and starts it at the transition; it is active, blocked, stopped or complete, and a stopped one restarts (or, the plan's, reconciles). | `active_improve`, CHILD (`.shiploop-improve/<stage>-<id>/`) | the Improve stage; the Improve review |
 
 **Separate schemas.** These keep their own words and are not ShipLoop terms:
 - the ask-agent chain worker's item statuses (`confirmed`, `inspected`, `failed`, `not_run`, `unconfirmable`);
 - Backchain's confirm levels (`execute`, `inspect`, `unconfirmable`) and its `repair`/`revise` passes;
-- the Until Loop's own fields (`continuation_assessment`, `repeat_condition`);
+- the Until Loop's own fields and file names (`continuation_assessment`, `repeat_condition`, `packet.json`), and the
+  vendored runtime's text, which calls its record a packet;
+- two records ShipLoop also calls a receipt: the Improve import record (`improve/<action>/receipt.md`) and the
+  reconciliation receipt the model writes for `improve-reconcile`. The reconciliation's archive checks
+  (`shiploop_planning_revision.py`) still say "terminal packet" for the archived child receipt, so that file is the one
+  allowed to;
 - the Run Review page's stored documents, whose unverified rows keep a `check` column for what ShipLoop names `settle`.
 
 ## Retired terms
@@ -84,6 +91,14 @@ lists, such as the refusal that tells a model it is retired. `pattern` is a regu
  {"retired": "a step's requirement (its criterion)", "use": "criterion", "since": "2026-10-24",
   "pattern": "requirement assigned to this step|requirements that have been stated|requirement's Confirm-by", "allow": []},
  {"retired": "an open item's consumer (where it is settled)", "use": "due_stage, or at plan due_item", "since": "2026-10-24",
-  "pattern": "`consumer` = |\\bas `consumer`|consumer work item|open: `consumer`|an open assumption's `consumer`", "allow": []}
+  "pattern": "`consumer` = |\\bas `consumer`|consumer work item|open: `consumer`|an open assumption's `consumer`", "allow": []},
+ {"retired": "complete command (the callback)", "use": "callback", "since": "2026-10-24",
+  "pattern": "(?i)same complete command|the complete command|callback command|completion call\\b", "allow": []},
+ {"retired": "=== end ShipLoop head === (the print marker)", "use": "=== end ShipLoop print ===", "since": "2026-10-24",
+  "pattern": "=== end ShipLoop head ===", "allow": []},
+ {"retired": "terminal packet (the Until Loop's record)", "use": "receipt", "since": "2026-10-24",
+  "pattern": "(?i)terminal packet|Until Loop packet|child packet", "allow": ["skills/shiploop/scripts/shiploop_planning_revision.py"]},
+ {"retired": "Improve child (for the Improve stage or its review)", "use": "Improve stage; Improve review", "since": "2026-10-24",
+  "pattern": "\\b(?:start|starts|starting|started) (?:an|no) (?:actual )?Improve\\s+child|Improve\\s+child(?:'s)? (?:reviews|applies|evaluates)|no Improve\\s+child (?:starts|runs|reviews)|Improve\\s+children", "allow": []}
 ]
 ```

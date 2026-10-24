@@ -311,13 +311,13 @@ class ArchitectureTests(HomeFixture):
             with self.subTest(stage):
                 first, second = knowledge.check(self.state, stage).split("\n")  # exactly two lines
                 self.assertEqual(first, "Restore the lost AD-<n> in " + str(path) + " or move it under 'Superseded', "
-                                 "then run the same complete command again.")
+                                 "then run the same callback again.")
                 self.assertNotIn("AD-2", first)  # a long list can never push the fix out of the first line
                 self.assertEqual(second, "The architecture no longer mentions AD-2, AD-3. Keep every earlier decision ID: "
                                  "modify it in place, or move it under a 'Superseded' heading with the reason.")
         # The Improve stage's complete (command "improve") has its own sequence: a review's edit is committed with
         # improve-commit before the import, and line 2 (the IDs and the 'Superseded' reason) is the complete route's.
-        # The command to run again is the same complete command (improve-complete is gone, 2026-10-11).
+        # The command to run again is the same callback (improve-complete is gone, 2026-10-11).
         first, second = knowledge.check(self.state, "step-plan", command="improve").split("\n")
         self.assertEqual(first, "Restore AD-<n> in " + str(path)
                          + "; if the review changed it, improve-commit it; then run complete again.")
@@ -354,7 +354,7 @@ class ArchitectureTests(HomeFixture):
                     kept = line[:250]
                     if command == "complete":
                         wanted = ("Restore the lost AD-<n> in " + shown
-                                  + " or move it under 'Superseded', then run the same complete command")
+                                  + " or move it under 'Superseded', then run the same callback")
                     else:
                         wanted = ("Restore AD-<n> in " + shown + "; if the review changed it, improve-commit it; "
                                   "then run complete again.")
@@ -383,7 +383,7 @@ class ArchitectureTests(HomeFixture):
         spec.write_text("# spec\n\nR-1: Place a fleet.\n")
         first, second = knowledge.check(self.state, "release-plan").split("\n")
         self.assertEqual(first, "Restore the lost R-<n> in " + str(spec) + " or move it under 'Retired', "
-                         "then run the same complete command again.")
+                         "then run the same callback again.")
         self.assertEqual(second, "The living spec no longer mentions R-2. Keep every earlier requirement ID: modify it in "
                          "place, or move it under a 'Retired' heading with the reason.")
         # the route's own sequence is the spec's too (one template for both files)

@@ -139,7 +139,7 @@ class LedgerHoldsTests(unittest.TestCase):
         self.assertGreaterEqual(len(heads), 8)
         for packet in heads:
             with self.subTest(packet=packet["where"]):
-                self.assertTrue(packet["printed"].rstrip().endswith("=== end ShipLoop head ==="))
+                self.assertTrue(packet["printed"].rstrip().endswith("=== end ShipLoop print ==="))
 
 
 class LedgerNoticesTests(unittest.TestCase):

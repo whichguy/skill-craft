@@ -123,15 +123,15 @@ workspace, conditions, commit policy and return locators) and starts the bound
 runtime with the receipt. Read the printed host receipt and continue the child
 from it: for `active` status run its `next_argv` once, then follow the returned
 instruction. Do not write the opening or start the runtime yourself. The runtime
-writes every child packet to the receipt itself, the terminal packet before it
-deletes its state, and ShipLoop imports only a packet written that way. Never
-write or edit that receipt by hand.
+rewrites the receipt itself at every step, the last time before it deletes its
+state, and ShipLoop imports only a receipt written that way. Never write or edit
+that receipt by hand.
 
-The child `context.resources` must retain the parent latest-packet receipt
-location, the exact parent return instruction or callback locator, and the
-printed host receipt path for the child response. These locators make a terminal
-child packet sufficient for a fresh host to save its exact response at the
-required receipt path and then return through the parent route. Do not infer a
+The child `context.resources` must retain the child receipt location, the
+exact parent return instruction or callback locator, and the printed host
+receipt path for the child response. These locators make a final child receipt
+sufficient for a fresh host to save its exact response at the required receipt
+path and then return through the parent route. Do not infer a
 different route from a remembered parent state.
 
 The ShipLoop child follows the standalone binding's ordinary commit policy: after
@@ -150,9 +150,9 @@ cold recovery, and retain concise current decision/revalidation locators in the
 child handoff. Do not use an ambient Until Loop runtime for this ShipLoop route.
 
 For an `active` or `blocked` child response, do not call a parent callback.
-Follow the child packet or report its incomplete state through the recorded
-recovery route. For `stopped`, preserve the exact terminal packet and evidence
-and return their locators. Only when a ShipLoop v4 packet explicitly prints its
+Follow the child receipt's instruction or report its incomplete state through the
+recorded recovery route. For `stopped`, preserve the exact final receipt and
+evidence and return their locators. Only when a ShipLoop v4 packet explicitly prints its
 parent-only stopped-child reconciliation callback may the parent, after
 collecting or confirming the worker stopped, use that exact callback. The worker
 never executes it; no other stopped child advances the parent. After a successful

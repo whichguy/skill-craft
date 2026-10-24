@@ -548,7 +548,7 @@ stages and their Improve reviews use it when a consequential newly encountered
 boundary or conflicting evidence requires more investigation. Do not restart
 settled research just because a later stage reads this guide. The same
 investigation's allowance follows its notes across stages and context resets;
-entering an Improve child never refills it.
+entering an Improve stage never refills it.
 
 For a bound child, apply the same policy to the producer
 stage that bound it. The parked parent does not repeat those duties or receive a

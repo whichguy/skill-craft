@@ -394,8 +394,8 @@ class InvokeLinesTests(Synthetic):
         block = self.block(state)
         self.assertEqual(block.result, loops.RESULT_LINE)
         for needed in ("the Receipt says status complete", "stopped: report it", "evidence_refs",
-                       "the Callback command above", "run the start command above again",
-                       "an active receipt: its next_argv instead", "then run the Callback again"):
+                       "the callback above", "run the start command above again",
+                       "an active receipt: its next_argv instead", "then run the callback again"):
             self.assertIn(needed, block.result)
         # The Receipt it points at is the argument's, with the path the command writes.
         self.assertEqual(block.field("Receipt: "), str(loops.receipt_path(self.root, "A-document")))
@@ -598,7 +598,7 @@ class CheckTerminalTests(Synthetic):
         self.refused(state, refs, "this loop's review gate needs a final trivial report")
         packet["last_report"].update(classification="trivial", exit_assessment="unsatisfied")
         receipt.write_text(json.dumps(packet))
-        self.refused(state, refs, "a complete terminal packet needs a final report whose exit is satisfied")
+        self.refused(state, refs, "a complete receipt needs a final report whose exit is satisfied")
 
     def test_a_missing_receipt_refuses_done_with_the_start_command_and_accepts_blocked(self):
         state = self.state_for("carry-forward")
@@ -607,7 +607,7 @@ class CheckTerminalTests(Synthetic):
         start = loops.start_command(loops.runtime(state), receipt, self.root / loops.contract_path("A-carry-forward"))
         with self.assertRaises(loops.LoopError) as caught:
             loops.check_terminal(self.root, state, {"outcome": "done", "evidence_refs": [str(receipt)]})
-        self.assertIn("the carry-forward loop has not run: no terminal packet exists at " + str(receipt),
+        self.assertIn("the carry-forward loop has not run: no receipt exists at " + str(receipt),
                       str(caught.exception))
         self.assertIn("Start it with: " + start, str(caught.exception))
         loops.check_terminal(self.root, state, {"outcome": "blocked", "evidence_refs": []})
@@ -638,11 +638,11 @@ class CheckTerminalTests(Synthetic):
         result = {"outcome": "done", "evidence_refs": [str(receipt)]}
         genuine = json.loads(receipt.read_text())
         receipt.write_text(json.dumps({k: v for k, v in genuine.items() if k != "status_semantics"}))
-        self.refused(state, result, "not a complete Until Loop packet")
+        self.refused(state, result, "not a complete Until Loop receipt")
         receipt.write_text(json.dumps(dict(genuine, receipt=str(receipt) + ".other")))
         self.refused(state, result, "not written by a run started with --receipt")
         receipt.write_text(json.dumps(dict(genuine, done_argv=["x"])))
-        self.refused(state, result, "still offers a callback")
+        self.refused(state, result, "still offers a next or done command")
         receipt.write_text("not json")
         self.refused(state, result, "is not valid JSON")
 
@@ -753,7 +753,7 @@ class NavigatorLoopTests(fx.RunDriver):
         self.start()
         self.drive_to("verify")
         before = (self.run_dir / "state.md").read_bytes()
-        for result, message in ((fx.DONE, "the verify loop has not run: no terminal packet exists at"),
+        for result, message in ((fx.DONE, "the verify loop has not run: no receipt exists at"),
                                 (dict(fx.DONE, outcome="repeat"), "verify accepts only done, blocked, send-back")):
             with self.subTest(message=message), self.assertRaisesRegex(nav.NavigatorError, message):
                 self.submit(result)
@@ -772,7 +772,7 @@ class NavigatorLoopTests(fx.RunDriver):
         with self.assertRaisesRegex(nav.NavigatorError, "not from a run of this action's contract"):
             self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())]))
         self.receipt().write_text(json.dumps({"status": "complete", "conditions": [], "progress": 1}))
-        with self.assertRaisesRegex(nav.NavigatorError, "not a complete Until Loop packet"):
+        with self.assertRaisesRegex(nav.NavigatorError, "not a complete Until Loop receipt"):
             self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())]))
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
@@ -790,7 +790,7 @@ class NavigatorLoopTests(fx.RunDriver):
             "progress": {"action_number": 1, "trivial_streak": 1,
                          "required_trivial_reviews": contract["required_trivial_reviews"]},
             "context": contract["context"]}))
-        with self.assertRaisesRegex(nav.NavigatorError, "not a complete Until Loop packet"):
+        with self.assertRaisesRegex(nav.NavigatorError, "not a complete Until Loop receipt"):
             self.submit(result)
         self.receipt().unlink()
         live = self.run_loop([])
@@ -1020,7 +1020,7 @@ class WorkTextTests(Synthetic):
         for stage in ("step-plan", "test-spec", "test"):
             with self.subTest(stage=stage):
                 work = " ".join(self.work(stage).split())
-                self.assertIn("then run the Callback command with `--check-only` added and fix each refusal", work)
+                self.assertIn("then run the callback with `--check-only` added and fix each refusal", work)
                 self.assertNotIn("printed there", work)
         self.assertIn("(it runs the base run, the candidate run and the mutation check without counting)",
                       " ".join(self.work("test").split()))

@@ -1,7 +1,7 @@
 # /shiploop complete
 
 Run exactly the callback the current packet printed on its line labelled
-`Callback for this stage` (an Improve child's packet labels it `Next command (` or
+`Callback for this stage` (an Improve stage's packet labels it `Next command (` or
 `2. When the improve skill has completed, run:`). There are three kinds:
 
 ~~~sh
@@ -11,7 +11,7 @@ python3 "$SKILL_ROOT/scripts/shiploop" complete \
 # Bind the selected Improve card when the Improve packet asks for it (the Improve stage's id)
 python3 "$SKILL_ROOT/scripts/shiploop" improve-bind \
   --run-dir "$RUN_DIR" --action "$IMPROVE_ID" --skill-card /absolute/selected/improve/SKILL.md
-# Import a finished Improve child, no record to write
+# Import a finished Improve review, no record to write
 python3 "$SKILL_ROOT/scripts/shiploop" complete \
   --run-dir "$RUN_DIR" --action "$IMPROVE_ID"
 ~~~

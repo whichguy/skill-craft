@@ -205,7 +205,7 @@ class PrintedHeadTests(unittest.TestCase):
                    ("ShipLoop navigator | ", "Paused, unfinished: ", "Resume: python3 ", "Keepalive marker: SHIPLOOP-RUN run=",
                     "=== ShipLoop narrative ===")),
         "halted": (lambda key, state: state["status"] == "halted",
-                   ("ShipLoop navigator | ", "Halted, unfinished: ", "No completion callback is valid while halted.",
+                   ("ShipLoop navigator | ", "Halted, unfinished: ", "No callback is valid while halted.",
                     "Keepalive marker: SHIPLOOP-RUN run=", "=== ShipLoop narrative ===")),
         "done": (lambda key, state: state["status"] == "done",
                  ("ShipLoop navigator | ", "It's all complete.", "Report: ", "=== ShipLoop narrative ===")),

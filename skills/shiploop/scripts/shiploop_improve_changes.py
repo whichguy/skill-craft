@@ -113,7 +113,7 @@ def commit_refusal(paths: List[str], message_path: str, command: str, complete_c
             + "".join("- " + path + "\n" for path in paths)
             + "improve-commit commits exactly these files and needs a \"Key learnings:\" line in the message "
               "(\"Key learnings: none\" when nothing was learned); a git commit typed by hand skips that check.\n"
-              "Then run the complete command again: " + complete_command + "\n"
+              "Then run the callback again: " + complete_command + "\n"
               "If the user or repository said not to commit, record their instruction instead: "
             + complete_command + " --no-commit \"<their instruction>\"")
 

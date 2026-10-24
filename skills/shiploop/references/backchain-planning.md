@@ -21,7 +21,7 @@ separate broader review.
 
 After the initial steps are created, both `plan` and `step-plan` must complete
 their actual Improve handoff before consumers use the plan, when the run has one: in a
-`planning_review: none` run neither stage has an Improve child, so the graph's only checks before
+`planning_review: none` run neither stage has an Improve stage, so the graph's only checks before
 consumers use it are ShipLoop's at `complete` and the structural `backchain-check`. Include any serial
 or parallel execution graph in that review's candidate and evidence locators;
 Backchain's result does not bypass this broader planning review. Follow the
@@ -247,7 +247,7 @@ calling the route only unverifiable. Read the Backchain convergence resources:
 they must support the direct natural-language handoff under
 `Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
 actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
-exact terminal packet. This is host-mediated prompt guidance, not navigator state, a
+exact final receipt. This is host-mediated prompt guidance, not navigator state, a
 callback, a controller, or a scheduler. Caller/v1 alone does not establish this
 capability; an observed old custom Backchain loop is incompatible even when an Until
 Loop package is installed. Do not guess a sibling, cache, or ambient package, or

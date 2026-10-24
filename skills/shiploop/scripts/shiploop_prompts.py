@@ -91,7 +91,7 @@ context. Do not clear, hand off, or hand the invocation to Ask Agent or a native
 worker. Run its reviews and checks in this conversation too; start no reviewer,
 test-runner or executor agent unless the user asked for independent review.
 This conversation is both executor and parent: the only candidate
-writer until the runtime returns a terminal packet, then the sole submitter of
+writer until the runtime writes its final receipt, then the sole submitter of
 ShipLoop callbacks. Recover an existing child through its runtime's recovery route
 (for the ephemeral runtime, the saved receipt's exact next_argv); start another
 runtime only through the packet's stopped-child restart route. Retain the exact
@@ -490,7 +490,7 @@ maintained requirement sections and test/evidence locators in the result's
 existing evidence_refs so a later reader can recover them. If a required
 source is missing, report the gap rather than inventing a locator or omitting it.
 A justified N/A is still an output that states
-what was assessed and why it does not apply. ShipLoop starts an Improve child
+what was assessed and why it does not apply. ShipLoop starts an Improve stage
 after planning results (spec, test-strategy, plan, step-plan, test-spec,
 system-test-author, release-plan; step-plan and test-spec only for the first work
 item and after a send-back), after each accepted implement step, and after
@@ -787,7 +787,7 @@ _TEST_SPEC_PROCEDURE = textwrap.fill(
     "`oracle` or the open item's `settle`. A plan is not a run; a setup change makes an earlier observation stale.",
     width=117, subsequent_indent="   ", break_on_hyphens=False) + "\n"
 
-# The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
+# The conditions the Improve review applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
 # test-strategy duties hold the ones that apply to them, so a producer reads in its own packet what its result must
 # meet (SPEC S-6).  One source: the child's list is the producers' list plus the condition on steps, which a spec or
 # test strategy does not hold.
@@ -1504,7 +1504,7 @@ This is item acceptance, not a claim that integration or release has happened. E
 in order; """ + _VERIFY_ONCE + """
 
 1. **Run.** After your last edit, write the result (the Result template below) to RUN/inbox/<action>.md, then run the
-   Callback command with `--check-only`, which reads that file; fix each refusal. It reruns every recorded command
+   callback with `--check-only`, which reads that file; fix each refusal. It reruns every recorded command
    into RUN/tests/<action>-check-only.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
@@ -2343,7 +2343,7 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     """Return one stage duty with the run's implementation-route paragraph.
 
     ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES): ``stage`` renders the
-    text below unchanged, ``none`` swaps the sentences that promise an Improve child the run will not start
+    text below unchanged, ``none`` swaps the sentences that promise an Improve stage the run will not start
     (see _NO_REVIEW_SWAPS).  The literal default ``stage`` keeps catalog renders independent of the option's
     default.  ``backchain_passes`` picks the Backchain item of spec and plan; ``execution_mode`` (state key
     ``execution_mode``) picks what the commit rule says about a file the item commit leaves.  ``one_step_item`` is the
@@ -2371,7 +2371,7 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     return _swapped(text, stage, planning_review)
 
 
-# Planning review option ``none``: sentences that promise an Improve child at a planning stage the run starts
+# Planning review option ``none``: sentences that promise an Improve stage after a planning stage the run starts
 # none for, each swapped for text that does not.  One table of (stage, old, new) rows; ``*`` is text that
 # packets of several stages carry (COMMON, the interaction guide, the inline planning handoff).  A row applies only for the recorded mode ``none``, so the stage-mode text is the text
 # above, byte for byte.  Each ``old`` must occur exactly once in every stage-mode text it occurs in (the
@@ -2546,7 +2546,7 @@ A pass that finds no material violation is trivial.
 """
 END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
-# The per-step Improve child's focus (owner decision 2026-10-10: an Improve child reviews every accepted implement step,
+# The per-step Improve review's focus (owner decision 2026-10-10: an Improve stage reviews every accepted implement step,
 # whatever the planning review option says).  The step's tests are written later, so this review is the only check of
 # the step's code before them; it carries the Code craft rubric verbatim because the child reads no other file reliably.
 IMPLEMENT_STEP_REVIEW_FOCUS_HEAD = """\
@@ -2646,7 +2646,7 @@ def _check_for_steps() -> None:
                                + repr(" ".join(old.split())[:70]))
 
 
-# The fixed part of every Improve child's prompt (efficiency plan U18): no handoff prints it any more; it is carried word for
+# The fixed part of every Improve review's prompt (efficiency plan U18): no handoff prints it any more; it is carried word for
 # word by skills/improve/references/shiploop-review-inputs.md (one section per condition; the route's core states what every
 # review applies), which test/improve-route.test.py keeps in step.
 # ``improve_prompt`` composes the opening, the scope sentence, the HEAD, the stage's paragraphs and the TAIL;
@@ -2778,7 +2778,7 @@ def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 
 def _improve_guards(stage: str) -> list[str]:
-    """The stage-conditional paragraphs of the Improve child's prompt, in print order (an empty string where the stage
+    """The stage-conditional paragraphs of the Improve review's prompt, in print order (an empty string where the stage
     has none): baseline, plan, Backchain, coding review, state assessment, outer handshake, test facilities, release."""
     _require_stage(stage)
     backchain = ""  # an Improve review never mentions Backchain (owner, 2026-10-11)
@@ -2808,7 +2808,7 @@ structural validation alone does not complete this handoff.
 
     release_guard = ""
     if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
-        # No Improve child runs at the release stage itself (stage_spec: release has no improve), so every Improve
+        # No Improve stage runs at the release stage itself (stage_spec: release has no improve), so every Improve
         # that reads this guard is stage-scoped: it assesses and records, and never executes or replays a release
         # effect (SPEC S-3; environment-lifecycle.md#release-operation-ownership).
         performs = """\
@@ -2872,7 +2872,7 @@ def improve_stage_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 
 def _improve_prompt(stage: str) -> str:
-    """Compose the Improve child's prompt for ``stage``: the scope sentence, the fixed review inputs (which the Improve
+    """Compose the Improve review's prompt for ``stage``: the scope sentence, the fixed review inputs (which the Improve
     skill's ShipLoop route carries) and the stage's own paragraphs between them."""
     guards = _improve_guards(stage)
     return (_IMPROVE_OPENING

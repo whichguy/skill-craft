@@ -7801,7 +7801,7 @@ class RefusalLinePathTests(unittest.TestCase):
     keeps the file's place in the run and drops where the run lives: no absolute local path leaves the exporter."""
 
     def test_the_run_folder_is_cut_to_a_placeholder_and_any_other_absolute_path_to_its_name(self):
-        line = ("ShipLoop navigator: the test loop has not run: no terminal packet exists at "
+        line = ("ShipLoop navigator: the test loop has not run: no receipt exists at "
                 "/Users/someone/e2e-runs/20261009/s6-after-spec/.shiploop-runs/work-20261009-220625-b4d2a7/run/tests/nav-7a4e.md; "
                 "also /Users/someone/notes/readme.md and /opt/homebrew/bin/node")
         got = export.failure_line(line)

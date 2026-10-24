@@ -11,7 +11,7 @@
 * The core names every case file with its condition, each case file says when to read it, and what the core leaves to the
   handoff (the commit message rules, the notes file, the scratch directory) is in every handoff.
 * The handoff ShipLoop writes opens with what a cleared child needs (the read-tool sentence, CHILD, ROUTE, the one command)
-  inside 2,000 characters, and holds the focus, the commit command and the complete command inside 4,500 (the real CLI path
+  inside 2,000 characters, and holds the focus, the commit command and the callback inside 4,500 (the real CLI path
   is 96 characters; the walk's is 8, so the bound is tested with 88 characters reserved per command).
 * The review inputs that left the handoff are the route's, word for word.
 """
@@ -275,7 +275,7 @@ class CoreTests(unittest.TestCase):
                        "`CHILD/reviews/review-<n>.md`", "`checks.md` first", "`improve-commit`", "never `git commit`",
                        "`classification`: `trivial` only for", "`exit`: `satisfied` only after checking every exit clause",
                        "`## Handoff`:", "**Current learnings**", "Never fabricate a record to submit `trivial`",
-                       "run the handoff's `complete` only after the runtime returned `complete`",
+                       "run the handoff's callback (`complete`) only after the runtime returned `complete`",
                        "Omit `final_result` when the step result is unchanged", "Maintained requirements",
                        "changes no product code"):
             self.assertIn(flat(needed), core, needed)

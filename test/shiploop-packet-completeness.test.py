@@ -167,7 +167,7 @@ class PacketCompletenessTests(unittest.TestCase):
                 # Purpose, check and recovery: the handoff file.
                 self.assertIn("Current action: Improve the completed " + stage + " result.", handoff)
                 line = next((line for line in handoff.splitlines() if line.startswith("Checked by: ")), "")
-                self.assertIn("Improve stage's complete command", line)
+                self.assertIn("Improve stage's callback", line)
                 self.assertNotIn("improve-complete", handoff)
                 self.assertIn("Recovery command", handoff)
                 # What the review judges the result against: the stage's Done-when, frozen as the exit condition.

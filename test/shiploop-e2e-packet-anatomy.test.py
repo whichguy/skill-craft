@@ -941,7 +941,7 @@ class RenderedTextTests(unittest.TestCase):
         head = self.renders["inline"]["01-step-plan"]["printed"]
         rows = labels(head)
         self.assertTrue(self.renders["inline"]["01-step-plan"]["head"])
-        self.assertEqual([s for s, line in rows if line.startswith("=== end ShipLoop head ===")], ["head-end"])
+        self.assertEqual([s for s, line in rows if line.startswith("=== end ShipLoop print ===")], ["head-end"])
         self.assertEqual([s for s, line in rows if line.startswith("Full packet: ")], ["pointer-lines"])
         # The result template ends the required text; the References block is a lookup behind it (efficiency plan 6.1).
         self.assertEqual([s for s, line in rows if line.startswith(("References (", "Result template:"))],

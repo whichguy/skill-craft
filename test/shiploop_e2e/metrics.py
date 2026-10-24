@@ -204,10 +204,11 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "mutation_not_done": re.compile(r"ShipLoop mutation check: test is not done"),
     # complete expected a model-written result file that was never written (shiploop_navigator.py:7714).
     "missing_result_file": re.compile(r"no result file at "),
-    # Until Loop receipt/terminal-packet checks for an inner stage's loop (shiploop_loops.py:275-767).
+    # Until Loop receipt checks for an inner stage's loop (shiploop_loops.py:275-767). The receipt was called the
+    # "terminal packet" until R4 of the run-5 batch (2026-10-24); both texts match, so runs 3 and 4 still classify.
     "loop_receipt": re.compile(r"a loop receipt needs an action id|is not the current inner action|the Until Loop "
-                               r"terminal packet must be a JSON object|the run is not in an inner stage, so it has "
-                               r"no stage loop"),
+                               r"(?:terminal packet|receipt) must be a JSON object|the run is not in an inner stage, so "
+                               r"it has no stage loop"),
     # A focused command whose every test ID an earlier item's step plan made focused (run-4 quality Q2,
     # shiploop_navigator.py _check_focused_ids_new).
     "focused_ids_new": re.compile(r"step plan already made focused: it tests an earlier item's behaviour"),
@@ -2325,10 +2326,12 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
 # never 0. Every function reads files and calls nothing else; no host, model or ShipLoop command runs here.
 # ======================================================================================================================
 
-# The last line of a printed head (shiploop_navigator.HEAD_END; a test pins the two equal). A print that lacks it was cut.
-HEAD_END = "=== end ShipLoop head ==="
-# As a line: the packet's second pointer line names it inside a sentence near the top of every print, cut or not.
-HEAD_END_LINE = re.compile(r"^" + re.escape(HEAD_END) + r"$", re.M)
+# The last line of every print (shiploop_navigator.HEAD_END; a test pins the two equal). A print that lacks it was cut.
+# Its name before R4 of the run-5 batch (2026-10-24), which a saved run keeps, is HEAD_END_UNTIL_R4.
+HEAD_END = "=== end ShipLoop print ==="
+HEAD_END_UNTIL_R4 = "=== end ShipLoop head ==="
+# Either name, as a line: the packet's second pointer line names it inside a sentence near the top of every print, cut or not.
+HEAD_END_LINE = re.compile(r"^(?:" + re.escape(HEAD_END) + "|" + re.escape(HEAD_END_UNTIL_R4) + r")$", re.M)
 COLD_CALLS = 12  # the calls after a break (a compaction, a fresh session, the run's start) that count as cold
 SCRIPTS = Path(__file__).resolve().parents[2] / "skills" / "shiploop" / "scripts"
 READ_TOOLS = ("Read", "read_file")

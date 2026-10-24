@@ -497,7 +497,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(packet["context"]["request"].splitlines()[0], binding["contract_marker"])
         self.assertEqual(packet["progress"]["required_trivial_reviews"], 1)
         resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
-        self.assertEqual(resources["latest child packet receipt"], str(packet_path))
+        self.assertEqual(resources["child receipt"], str(packet_path))
         self.assertEqual(resources["ShipLoop parent state"], str(context["run"] / "state.md"))
         self.assertEqual(resources["exact parent return instructions"], str(context["parent_return"]))
         opening = (packet_path.parent / "opening.md").read_text(encoding="utf-8")
@@ -590,9 +590,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._script(context["shiploop"]), "complete", "--run-dir", context["run"],
             "--action", context["improve"], *receipt, code=2,
         )
-        reason = {"unfinished-child": "terminal packet is not complete",
+        reason = {"unfinished-child": "Until Loop receipt is not complete",
                   "foreign-child": "terminal context is not bound to this ShipLoop action",
-                  "stale-terminal-child": "terminal packet is unavailable"}[label]
+                  "stale-terminal-child": "Until Loop receipt is unavailable"}[label]
         self.assertIn(reason, refused.stdout + refused.stderr)
         self.assertEqual(before, (context["run"] / "state.md").read_bytes())
         self.trace["rejections"].append({
@@ -624,7 +624,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertTrue(packet["context"]["authority"].endswith(str(context["parent_return"]) + "."))
         resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
         self.assertEqual(resources["exact parent return instructions"], str(context["parent_return"]))
-        self.assertEqual(resources["latest child packet receipt"], str(context["packet_path"]))
+        self.assertEqual(resources["child receipt"], str(context["packet_path"]))
         self.assertIn(str(context["parent_return"]), packet["last_report"]["handoff"])
         self.assertIn(str(context["packet_path"]), packet["last_report"]["handoff"])
         self.assertEqual(record["improve_action"], context["improve"])

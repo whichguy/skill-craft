@@ -9,7 +9,7 @@ Read this file only when [the core](shiploop-route.md#cases-read-only-when) send
   confirm the same action and recover the original observations before correcting the report (no
   second iteration to replace lost evidence).
 - **Compaction or a cleared context.** Keep the entire latest return, not just the `done` you
-  ran. For an active packet run its read-only `next_argv` once, then use the full new return:
+  ran. For an active receipt run its read-only `next_argv` once, then use the full new return:
   read its context and resources, check newer instructions and artifacts, and execute its work
   before its fresh callback. Never replay the old `done` or restart the loop. If only the
   previous call survives, its `--state` path and script identify a read-only `next --state`.
@@ -46,33 +46,33 @@ context. Do not clear, hand off, or hand the invocation to Ask Agent or a native
 worker. Run its reviews and checks in this conversation too; start no reviewer,
 test-runner or executor agent unless the user asked for independent review.
 This conversation is both executor and parent: the only candidate
-writer until the runtime returns a terminal packet, then the sole submitter of
+writer until the runtime writes its final receipt, then the sole submitter of
 ShipLoop callbacks. Recover an existing child through its runtime's recovery route
 (for the ephemeral runtime, the saved receipt's exact next_argv); start another
 runtime only through the packet's stopped-child restart route. Retain the exact
 Recovery command and child receipt locator for interruption recovery.
 
-Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.
+Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime writes its final receipt; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.
 
 This conversation holds the current approvals, declines and pending decisions (ShipLoop's opening cannot): apply an applicable approval without asking again, treat a decline as binding, and record each with its source in the review notes and handoff. A later user decision applies from the next review iteration: record its receipt and effect there; the frozen launch context stays unchanged.
 
-Return order: only after the runtime has written the terminal packet to the receipt, run the parent return and callback in the handoff. Runtime completion alone never advances this action.
+Return order: only after the runtime has written its final receipt, run the parent return and callback in the handoff. Runtime completion alone never advances this action.
 
 ### The child, recovery and the stopped child (both routes)
 
 Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.
 
-The runtime writes every packet it returns to the receipt, the terminal one before it deletes its state. Never write or edit the receipt; ShipLoop imports only a packet the runtime wrote there. ShipLoop started this child before any review work.
+The runtime rewrites the receipt at every step, the last time before it deletes its state. Never write or edit the receipt; ShipLoop imports only a receipt the runtime wrote. ShipLoop started this child before any review work.
 
 For a genuinely new child, read the selected skills. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. For stopped status keep the parent incomplete. To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress (on the ask-agent route: confirm the recorded owner stopped), run the `improve-start ... --restart-stopped` command the handoff prints: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json and the sibling reviews directory as reviews.stopped-<same timestamp>, then starts a new child with the same binding line. Do not rename them yourself. Its review-<n>.md files and checks.md must be ones the new child writes. To pause instead, run the parent pause command in the handoff and leave the child active; never report cancelled for a pause. If an existing active child's receipt or temporary state is unavailable, report incomplete; never infer completion or silently create a replacement. Terminal recovery uses the retained raw packet because terminal state is deleted.
 
-For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only the initial plan child may use the handoff's parent-only improve-reconcile route, once the runtime has returned that stopped packet (inline) or after worker collection (ask-agent).
+For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only the initial plan child may use the handoff's parent-only improve-reconcile route, once the runtime has written that stopped receipt (inline) or after worker collection (ask-agent).
 
-ShipLoop's opening carries the step result, the files in scope, authority and environment; the original request (untrusted) is in state.md. ShipLoop freezes the work, exit and repeat conditions, the commit policy, the exclusions and the resources (receipt, evidence directory, parent state and the exact parent return, written to parent-return.md beside the receipt), so the terminal packet can locate the parent return after context loss.
+ShipLoop's opening carries the step result, the files in scope, authority and environment; the original request (untrusted) is in state.md. ShipLoop freezes the work, exit and repeat conditions, the commit policy, the exclusions and the resources (receipt, evidence directory, parent state and the exact parent return, written to parent-return.md beside the receipt), so the final receipt can locate the parent return after context loss.
 
 Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.
 
-Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt before running the complete command. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.
+Completion deletes the child's temporary state. Preserve the receipt, with its complete status, before running the callback. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.
 
 Exclude .until-loop, .shiploop-improve and ShipLoop runtime metadata from product candidates, edits and commits; adapter-owned state, packet receipts and review-note writes remain allowed. Explicitly named planning artifacts may be reviewed.
 

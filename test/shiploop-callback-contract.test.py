@@ -359,7 +359,7 @@ class RefusalRouteTests(RealCliCase):
         write_block(path, wrapped)
         reply = self.refused(command, run)
         self.assertIn("stored-record wrapper", reply)
-        self.assertIn("run the same complete command again", reply)
+        self.assertIn("run the same callback again", reply)
         # The correction is read from the reply: the keys it says to delete, and that "result" moves up.
         named = re.search(r"delete the keys ([^;]+);", reply).group(1).split(", ")
         self.assertEqual(sorted(named), sorted(wrapped))
@@ -381,7 +381,7 @@ class RefusalRouteTests(RealCliCase):
                 self.assertIn(f'the result is missing "{missing}"', reply)
                 self.assertNotIn(f'"{"outcome" if missing == "summary" else "summary"}" and', reply)
                 self.assertIn("add " + add, reply)
-                self.assertIn("run the same complete command again", reply)
+                self.assertIn("run the same callback again", reply)
                 block[missing] = "done" if missing == "outcome" else "What this step established."
                 write_block(path, block)
                 self.accepted(command)
@@ -742,7 +742,7 @@ class RefusalRouteTests(RealCliCase):
         # (the knowledge suite tests the cut at the lengths of the real checkouts).
         self.assertEqual(first.replace(str(architecture), "<file>"),
                          "ShipLoop navigator: Restore the lost AD-<n> in <file> or move it under 'Superseded', "
-                         "then run the same complete command again.")
+                         "then run the same callback again.")
         self.assertNotIn("AD-2", first)
         self.assertIn("The architecture no longer mentions AD-2.", reply.splitlines()[1])
         heading = re.search(r"move it under '([^']+)'", first).group(1)
@@ -802,7 +802,7 @@ class RefusalRouteTests(RealCliCase):
         write_block(path, blocked)
         reply = self.refused(command, run)
         self.assertIn("a blocked result does not carry work_items, assumptions", reply)
-        self.assertIn("run the same complete command again", reply)
+        self.assertIn("run the same callback again", reply)
         # Follow it: delete exactly the fields it names, then submit the same command.
         named = re.search(r"does not carry ([^:]+):", reply).group(1).split(", ")
         write_block(path, {k: v for k, v in blocked.items() if k not in named})
@@ -1573,7 +1573,7 @@ class LoopRefusalRouteTests(RealCliCase):
     """A loop stage refused because its loop never ran is told the command that runs it, and that command works."""
 
     def follow_start(self, reply: str) -> Path:
-        """Do what the refusal says: run its start command, follow each packet to complete, return the receipt."""
+        """Do what the refusal says: run its start command, follow each instruction to complete, return the receipt."""
         start = re.search(r"Start it with: (.*?)  and follow", reply, re.S).group(1)
         words = shlex.split(start)
         self.assertEqual(words[-2], "<")
@@ -1583,7 +1583,7 @@ class LoopRefusalRouteTests(RealCliCase):
             packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
                                                capture_output=True, check=True, timeout=60).stdout)
         self.assertEqual(packet["status"], "complete")
-        return Path(re.search(r"no terminal packet exists at (\S+)\.", reply).group(1))
+        return Path(re.search(r"no receipt exists at (\S+)\.", reply).group(1))
 
     def test_done_before_the_loop_ran_is_told_the_start_command_and_following_it_is_accepted(self) -> None:
         # test-green and static-checks are folded into test and verify (8-stage loop, 2026-10-10).
@@ -1594,7 +1594,7 @@ class LoopRefusalRouteTests(RealCliCase):
                 block = {**self.done_fields(), **({"assumptions": []} if stage == "verify" else {})}
                 write_block(path, block, loop=False)
                 reply = self.refused(command, run)
-                self.assertIn(f"the {stage} loop has not run: no terminal packet exists at", reply)
+                self.assertIn(f"the {stage} loop has not run: no receipt exists at", reply)
                 # The packet prints the one start command (owner, 2026-10-16), and the refusal reply carries the same one.
                 printed = LoopBlock(full_packet_text(head)).command
                 self.assertTrue(printed)
@@ -1634,7 +1634,7 @@ class LoopRefusalRouteTests(RealCliCase):
                 run, head = self.new_run(stage, entered=True)
                 command, path, _ = printed_callback(head)
                 write_block(path, self.done_fields(), loop=False)
-                named = Path(re.search(r"no terminal packet exists at (\S+)\.", self.refused(command, run)).group(1))
+                named = Path(re.search(r"no receipt exists at (\S+)\.", self.refused(command, run)).group(1))
                 write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), str(named)]},
                             loop=False)
                 self.assertFalse(named.exists())
@@ -1974,7 +1974,7 @@ class InnerGateRouteTests(RealCliCase):
             with self.subTest(fix):
                 write_block(path, block)
                 reply = self.submit_until_gate(command, run)
-                self.assertIn("ShipLoop navigator: " + fix + str(path) + ", then run the same complete command again.\n",
+                self.assertIn("ShipLoop navigator: " + fix + str(path) + ", then run the same callback again.\n",
                               reply)
                 self.assertIn(detail, reply)
         write_block(path, good)
@@ -2029,7 +2029,7 @@ class EveryStageRouteTests(RealCliCase):
             headings = re.findall(r"'(## [^']+)'", reply)
             path.write_text("".join(f"{heading}\nWhat the run learned.\n\n" for heading in headings), encoding="utf-8")
             return "outcome sections"
-        if "has not run: no terminal packet exists at" in reply:
+        if "has not run: no receipt exists at" in reply:
             start = re.search(r"Start it with: (.*?)  and follow", reply, re.S).group(1)
             words = shlex.split(start)
             packet = json.loads(subprocess.run(words[:-2], input=Path(words[-1]).read_text(), text=True,
@@ -2220,7 +2220,7 @@ class PacketReviewRefusalRouteTests(RealCliCase):
         checked = next(row for row in head.splitlines() if row.startswith("Checked by: "))
         self.assertIn("reruns every recorded test command and refuses done unless each passes", checked)
         duty = " ".join(head.split())
-        self.assertIn("then run the Callback command with `--check-only`, which reads that file", duty)
+        self.assertIn("then run the callback with `--check-only`, which reads that file", duty)
         built = self.repo_of(run) / "built.txt"
         built.unlink()
         write_block(path, self.fill_done(head))
