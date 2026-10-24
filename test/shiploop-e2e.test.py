@@ -2488,6 +2488,27 @@ class GateCountsTest(unittest.TestCase):
                 self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), gate,
                                  str(caught.exception))
 
+    def test_the_focused_guard_and_command_target_refusals_classify_under_their_gates(self) -> None:
+        """F2's guard and F3's target refusals, built by the navigator's own gates, never typed."""
+        sys.path.append(str(ROOT / "skills/shiploop/scripts"))
+        import shiploop_navigator as navigator
+        guarded = {"outcome": "done", "test_commands": [{"command": "test -f a.js && node --test", "suite": "focused"}]}
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator._check_focused_guards("step-plan", guarded)
+        self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "focused_guard")
+        org = {"target": "org", "keeps_state": "yes", "base_state_route": "a clean org"}
+        state = {"history": [{"action": "ts1", "stage": "test-strategy", "workitem": None, "outcome": "done"}],
+                 "accepted": {"ts1": {"outcome": "done", "targets": [org]}}}
+        with mock.patch.object(navigator, "_test_strategy_layers", return_value=([], [org])), \
+                mock.patch.object(navigator, "_test_strategy_result", return_value={}):
+            for command in ({"command": "npm test", "suite": "focused"},
+                            {"command": "npm test", "suite": "focused", "target": "the org"}):
+                plan = {"outcome": "done", "summary": "s", "test_commands": [command]}
+                with self.subTest(command=command), self.assertRaises(navigator.NavigatorError) as caught:
+                    navigator._check_submitted_layers(state, "step-plan", plan)
+                self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "targets",
+                                 str(caught.exception))
+
     SPEC_WRITEBACK = ("ShipLoop navigator: Restore /r/docs/shiploop/spec.md to what HEAD holds plus this "
                       "step's acceptance lines")
 

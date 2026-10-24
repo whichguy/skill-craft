@@ -565,6 +565,37 @@ def two_items(repo: Path, stage: str = "test-spec", current: str = "W2") -> dict
     return item_state(repo, current, rows, stage)
 
 
+class FocusedGuardTests(unittest.TestCase):
+    """Run-5 batch F2: a focused command that starts with a file check or a printed path fakes RED on the item's base
+    (a live run's third item, 2026-10-20; the fork's experiment E3, 2026-10-24).  ``test_loop.guarded`` names the
+    pattern, and the step-plan gate refuses it with the named exit: run the tests directly."""
+
+    def test_the_detector_names_a_leading_guard_and_nothing_else(self) -> None:
+        for command, guarded in (
+                ("printf '%s\\n' src/records.js && test -f src/records.js && node --test", True),   # run 4's W3
+                ("if test ! -f src/records.js; then echo 'Error: Cannot find module src/records.js'; exit 1; fi; "
+                 "node --test", True),                                                                 # E3's smoke
+                ("cd app && [ -f x.js ] && npm test", True),
+                ("echo src/a.js && npm test", True),
+                ("node -e \"fs.existsSync('a')\" && node --test", True),
+                ("node -e \"require('./src/records.js')\" && node --test --test-name-pattern 'TC-'", False),
+                ("npm test && ls coverage", False),
+                ("FOO=1 npx jest --verbose", False)):
+            with self.subTest(command=command):
+                self.assertEqual(navigator.test_loop.guarded(command), guarded)
+
+    def test_a_guarded_focused_command_is_refused_and_the_direct_one_accepted(self) -> None:
+        guarded = {"command": "if test ! -f src/a.js; then echo 'Error: Cannot find module src/a.js'; exit 1; fi; "
+                              "node --test", "suite": "focused", "ids": ["TC-1"]}
+        result = {"outcome": "done", "summary": "s", "test_commands": [guarded]}
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator._check_focused_guards("step-plan", result)
+        self.assertIn("checks for a file or prints a path before its tests run", str(caught.exception))
+        self.assertIn("Run the tests directly", str(caught.exception))
+        navigator._check_focused_guards("step-plan", dict(result, test_commands=[dict(guarded, command="node --test")]))
+        navigator._check_focused_guards("step-plan", dict(result, test_commands=[dict(guarded, suite="check")]))
+
+
 class EarlierItemFocusedIdTests(RepoCase):
     """A live run (2026-10-20): the third item's only focused command reran the second item's test IDs behind a guard
     naming the third item's new file, so the new UI was never tested.  A focused command whose every ID an earlier
@@ -734,6 +765,27 @@ class TestLayerGateTests(RepoCase):
                                               {"outcome": "done", "summary": "s", "test_layers_na": "docs", "targets": []}),
                                              (row, dict(plan, test_layers=[self.UNIT]))], "test-spec")
         self.assertEqual(navigator._test_layers(later, "W1")[0], [self.UNIT])
+
+    def test_a_target_that_keeps_state_is_named_by_each_focused_and_regression_command(self) -> None:
+        org = {"target": "the shared org", "keeps_state": "yes", "base_state_route": "a destructive deploy first"}
+        state = self.strategy_state([self.UNIT], targets=[org])
+        focused = {"command": "npm test -- -t TC-1", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]}
+        plan = {"outcome": "done", "summary": "s", "criteria": [{"id": "C1", "text": "x", "confirm": "executed"}],
+                "test_commands": [focused]}
+        message = self.refused(state, "step-plan", plan)
+        self.assertIn("keeps state between runs (the shared org)", message)
+        self.assertIn("`npm test -- -t TC-1` names none", message)
+        self.assertIn("names target `the org`, which is no test-strategy targets row (the shared org)",
+                      self.refused(state, "step-plan", dict(plan, test_commands=[dict(focused, target="the org")])))
+        # The named exit: each focused or regression command names its targets row; a check command needs none.
+        check = {"command": "npm run lint", "suite": "check", "criteria": ["C1"]}
+        navigator._check_submitted_layers(state, "step-plan", dict(
+            plan, test_commands=[dict(focused, target="the shared org"), check]))
+        # No target keeps state: target may be left out, and the template does not ask for it.
+        plain = self.strategy_state([self.UNIT])
+        navigator._check_submitted_layers(plain, "step-plan", plan)
+        self.assertIn(navigator.TARGET_PLACEHOLDER, navigator._result_template(state, "step-plan"))
+        self.assertNotIn(navigator.TARGET_PLACEHOLDER, navigator._result_template(plain, "step-plan"))
 
     def test_the_packets_print_the_layers_grouped_with_each_reason_a_reader_needs(self) -> None:
         lines = layers.packet_lines([self.UNIT, dict(self.UNIT, code="rules"), self.E2E],

@@ -1327,6 +1327,7 @@ Change no product file in this stage.
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
      The test and verify stages run these; implement runs only each step's own `proof`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
+   - A Test targets row that keeps state: each focused or regression command names its `target`.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
    - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every

@@ -96,7 +96,7 @@ TEST_CASE_KEYS = ("id", "criterion", "requirement", "oracle", "red", "green")
 # requirement silently, and a model copied a refusal's example requirement and wrote a spec entry to match (2026-10-17,
 # SPEC-3/X-5).  A row that keeps a placeholder is refused as one (the navigator's HANDOFF_PLACEHOLDERS lists these).
 CASE_PLACEHOLDERS = {"id": "<a focused command ID>", "criterion": "<a step-plan criterion id>", "requirement": "R-<n>",
-                     "oracle": "<what observes the behaviour, and where>", "red": "<how the case fails before the change>",
+                     "oracle": "<what observes the behaviour, and where>", "red": "<the assertion that fails on the item's base because the behaviour is missing, not because a file is>",
                      "green": "<what the case shows once the change works>"}
 _TEST_CASE_SHAPE = "test_cases are " + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])
 # The test-spec template prints at most this many skeleton rows (about 220 characters each); the focused IDs after them are

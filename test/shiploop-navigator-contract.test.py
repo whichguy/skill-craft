@@ -4386,6 +4386,13 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertNotIn("base", text.split("\n", 1)[1])        # two commits only
         self.assertEqual(len(lines), 3)
         self.assertEqual(navigator.look_back_lines(self.state(), "test"), [])
+        # Run-5 batch I1: a long subject is cut to its own cap, so the learnings still print.
+        (self.repo / "three.txt").write_text("three")
+        self.git("add", "three.txt")
+        self.git("commit", "-qm", "feat(W1/S2): " + "a very long subject " * 20 + "\n\nKey learnings:\n- the bound held")
+        newest = navigator.look_back_lines(self.state(), "implement")[1]
+        self.assertIn("\u2026 | learned: the bound held", newest)
+        self.assertLessEqual(len(newest.split(" | learned:")[0]), len("- ") + 12 + 1 + navigator.LOOK_BACK_SUBJECT)
 
     def test_a_printed_implement_head_carries_the_look_back(self) -> None:
         # Chess run 4 (2026-10-20): the look-back was in all four implement packet files and in none of the nine printed

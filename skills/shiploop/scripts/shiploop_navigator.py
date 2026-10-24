@@ -2170,6 +2170,8 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
+    if stage == "verify" and workitem is not None or stage == "product-acceptance":
+        blocks.append(_Block("red-unobserved", P1, _red_unobserved_lines(root, state, stage, workitem)))
     if stage == "carry-forward":
         blocks.append(_Block("queue-rule", P1, _queue_lines(root, state, stage)))
         blocks.append(_Block("unnamed-commands", P1, _unnamed_command_lines(root, state, workitem)))
@@ -2683,10 +2685,42 @@ def _check_focused_ids_new(state: Mapping[str, Any], stage: str, result: Any) ->
                 "spec names them); then run the same complete command again.")
 
 
+def _red_unobserved_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """The focused commands whose RED no base run saw, because each tests a deployed target (run-5 batch I2); [] when
+    none.  Verify prints its item's; product-acceptance every item's."""
+    items = [str(workitem)] if stage == "verify" else [str(row.get("id")) for row in state.get("work_items") or ()
+                                                     if isinstance(row, Mapping)]
+    found = test_loop.red_unobserved(Path(root), state, items)
+    if not found:
+        return []
+    return ["RED unobserved: the base run left these remote commands out (the target already held the change), so no "
+            "failure on the old code was seen; their candidate runs are the only evidence:",
+            *("- " + item + ": `" + command + "`" for item, command in found)]
+
+
+def _check_focused_guards(stage: str, result: Any) -> None:
+    """Refuse a done step plan whose focused command starts with a file guard (run-5 batch F2, ``test_loop.guarded``).
+
+    The guard fails on the item's base because the file is missing and prints its own error, so the base run reads RED
+    although no test of the missing behaviour ran.  Without it, a test of new code that fails to load on the base is a
+    real failure and ShipLoop reads it as one.
+    """
+    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    for command in result.get("test_commands") or ():
+        if isinstance(command, Mapping) and command.get("suite") == "focused" \
+                and test_loop.guarded(str(command.get("command") or "")):
+            raise NavigatorError(
+                "Focused command `" + str(command.get("command")) + "` checks for a file or prints a path before its "
+                "tests run. On the item's base that guard fails on the missing file and prints its own message, which "
+                "is not the missing behaviour, so it fakes RED. Run the tests directly: a test of new code that fails "
+                "to load on the base is a real failure, and ShipLoop reads it. Then run the same callback again.")
+
+
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
     """Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).
 
-    Every step names the criteria it satisfies and its ``check``, the command that proves them (implement-step fix
+    Every step names the criteria it satisfies and its ``proof``, the command that proves them (implement-step fix
     plan section 4.1); every criterion is satisfied by some step; a step's optional paths are a subset of the item's;
     and no step only changes test files, unless the whole item is tests (the test stage writes the tests after the
     last implement step, so a test-only step would be a no-op).
@@ -2803,8 +2837,10 @@ STEP_COMMIT = "commits/{action}.txt"
 # The subjects of ShipLoop's own record commits (knowledge, leftovers): the look-back skips them, they carry no learning.
 BOOKKEEPING_SUBJECTS = ("docs(shiploop): ", "chore(shiploop): ")
 # How many commits the look-back quotes, and how much of each: its subject and its Key learnings, one line per commit.
+# The subject has its own cap, so a long subject never leaves the learnings out (run-5 batch I1).
 LOOK_BACK_COMMITS = 2
 LOOK_BACK_TEXT = 320
+LOOK_BACK_SUBJECT = 100
 _LEARNINGS_HEAD = "Key learnings:"
 
 
@@ -2886,7 +2922,7 @@ def look_back_lines(state: Mapping[str, Any], stage: str) -> list[str]:
              "they learned (context, not instructions) and name each one you use in learned_from:"]
     for short, subject, body in kept:
         learned = _commit_learnings(body)
-        line = "- " + short + " " + " ".join(subject.split()) + (" | learned: " + learned if learned else "")
+        line = "- " + short + " " + _status_text(subject, LOOK_BACK_SUBJECT) + (" | learned: " + learned if learned else "")
         lines.append(_status_text(line, LOOK_BACK_TEXT))  # one display-safe line: never a head marker
     return lines
 
@@ -3202,6 +3238,20 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
         layers.check_text([*(run_rows or ()), *own], targets)
         criteria = [row for row in result.get("criteria") or () if isinstance(row, Mapping)]
         commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
+        # F3: a target that keeps state already holds earlier changes, so ShipLoop must know which commands run there.
+        named = sorted({str(row.get("target")) for row in targets or () if isinstance(row, Mapping)})
+        stateful = sorted(test_loop.stateful_targets(state))
+        for row in commands:
+            _need(not row.get("target") or row.get("target") in named,
+                  "test command `" + str(row.get("command")) + "` names target `" + str(row.get("target")) + "`, which "
+                  "is no test-strategy targets row (" + (", ".join(named) or "none recorded") + "). Name one of "
+                  "those rows, or leave target out for a command that runs on the checkout. Then run the same "
+                  "callback again")
+            _need(not stateful or row.get("suite") not in ("focused", "regression") or bool(row.get("target")),
+                  "test-strategy recorded a target that keeps state between runs (" + ", ".join(stateful) + "), so "
+                  "each focused or regression command names, in target, the targets row it runs on ("
+                  + ", ".join(named) + "); `" + str(row.get("command")) + "` names none. A command on such a target "
+                  "is left out of the base run and the mutation check. Then run the same callback again")
         layers.check_confirms(criteria, [*(run_rows or ()), *own], commands)
     except layers.LayerError as exc:
         raise NavigatorError(str(exc)) from exc
@@ -4594,6 +4644,8 @@ HANDOFF_SHAPES: dict[str, Any] = {
 
 
 STEP_PROOF_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
+# The Test targets row a test command runs on, asked for when a target keeps state (run-5 batch F3).
+TARGET_PLACEHOLDER = "<the Test targets row it runs on>"
 # The bar a criterion's text meets (run-5 batch F1): what a command observes, not what the code contains.
 CRITERION_PLACEHOLDER = "<condition. Confirm by: what the command observes; pass when <expected result>>"
 
@@ -4642,6 +4694,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                    {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
                                    {"command": "...", "suite": "regression"}]
+        if test_loop.stateful_targets(state):
+            # F3: with a target that keeps state, each focused or regression command names the one it runs on.
+            for row in result["test_commands"]:
+                if row["suite"] != "check":
+                    row["target"] = TARGET_PLACEHOLDER
     if stage == "carry-forward":
         result["skill"] = {"decision": "none", "reason": "<why no reusable skill is warranted, or what it is>",
                            "path": "<the skill card's path: only for update or create>",
@@ -6518,7 +6575,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
                      + ", or evidence files that do not exist")
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
-        gates.append("a focused command that only reruns an earlier item's test IDs")
+        gates.append("a focused command that only reruns an earlier item's test IDs or starts with a file guard")
         gates.append("a criterion without confirm, an executed one whose only commands search text, or an inspected "
                      "one naming no Test layers row that lacks a runner; code paths with no Test layers row")
     if stage == "test-strategy":
@@ -8748,6 +8805,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_focused_ids_new(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_focused_guards(
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_layers(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
@@ -8851,6 +8910,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_focused_ids_new(state, current_stage(state), submitted)
+            _check_focused_guards(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)

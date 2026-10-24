@@ -74,7 +74,7 @@ SUITES = ("focused", "regression", "check")
 COUNTED_SUITES = ("focused", "regression")
 # ``regression`` (true, on a focused row only) is what a regression row folded into a byte-identical focused one leaves
 # (``normalise_commands``): the drift check at system-test still runs that command as the default suite.
-COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent", "regression"})
+COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent", "regression", "target"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not recognised) is allowed only for a
 # regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
@@ -154,12 +154,37 @@ ONE_LINE_HINT = ("; join steps with && or ; on that line (a \\n written inside t
                  "newline before this check runs, so it fails it)")
 
 
+# A command whose first program checks for a file or prints a path, before any test runs (run-5 batch F2).  On the
+# item's base such a guard fails on the missing file and prints its own message, which reads as RED although no test
+# ran: a live run's third item (2026-10-20) and the fork's experiment E3 (2026-10-24, 1 of 4 samples under 2.8.0) both
+# did it, the second with an echoed "Cannot find module" that the base run scored as a load failure.  The rule is
+# the experiment's evaluator's (test/shiploop_e2e/evaluators/e3_red.py), cut to the first program the command runs.
+_GUARD_PROGRAMS = frozenset(("test", "[", "[[", "ls", "stat"))
+_PRINTS_A_PATH = re.compile(r"^(?:printf\s+'%s\\n'\s+\S+|echo\s+\S+\.\w+)\s*$")
+
+
+def guarded(command: str) -> bool:
+    """Whether ``command`` starts with a file-existence check or a printed path, or calls ``existsSync`` (F2)."""
+    if "existsSync(" in command:
+        return True
+    for segment in re.split(r"&&|\|\||[;\n]", command):
+        words = segment.split()
+        while words and (words[0] in ("!", "if", "then", "env") or re.match(r"^\w+=", words[0])):
+            words = words[1:]
+        if not words or words[0] == "cd":
+            continue
+        program = words[0].rsplit("/", 1)[-1]
+        return program in _GUARD_PROGRAMS or bool(_PRINTS_A_PATH.match(" ".join(words)))
+    return False
+
+
 def normalise_commands(value: Any) -> List[Dict[str, Any]]:
     """Validate a step plan's ``test_commands``.
 
     Each entry is ``{"command": str, "suite": focused|regression|check}`` plus
     optional ``ids`` (test IDs the command must visibly run), ``min_tests``
-    (int >= 1), ``criteria`` (the step plan's criterion IDs it confirms) and
+    (int >= 1), ``criteria`` (the step plan's criterion IDs it confirms),
+    ``target`` (the test-strategy targets row it runs on, F3) and
     ``host_dependent`` (true: its cases need a host tool, so no default suite may
     run them; see ``default_suite_drift``).  A ``check`` is judged by its exit
     code, so it takes no ids or min_tests.
@@ -207,6 +232,11 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
             _need(entry["regression"] is True and row["suite"] == "focused",
                   "a test command's regression is true, on a focused command that is also the regression command")
             row["regression"] = True
+        if "target" in entry:
+            # The test-strategy target the command runs on (run-5 batch F3); the step-plan gate checks the name.
+            _need(isinstance(entry["target"], str) and entry["target"].strip() != "" and "\n" not in entry["target"],
+                  "a test command's target names one test-strategy targets row")
+            row["target"] = " ".join(entry["target"].split())
         commands.append(row)
     # Fold until nothing folds: one pass can make two rows foldable that were not, and the result must be canonical
     # (normalising it again changes nothing).  Each pass that changes the list shortens it.
@@ -276,6 +306,13 @@ OUTER_SOURCES = {
     "system-test": ("system-test-author", "system_commands"),
     "release-verify": ("release-plan", "consumer_checks"),
 }
+
+
+def stateful_targets(state: Mapping[str, Any]) -> Dict[str, str]:
+    """{target: base_state_route} of each test-strategy target that keeps state between runs (run-5 batch F3)."""
+    rows = _latest_root_result(state, "test-strategy").get("targets") or ()
+    return {str(row["target"]): str(row.get("base_state_route") or "") for row in rows
+            if isinstance(row, Mapping) and row.get("keeps_state") == "yes" and row.get("target")}
 
 
 def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, Any]:
@@ -774,6 +811,21 @@ def _latest_base(root: Path, action: str, *, passed: bool = False) -> Optional[M
         if isinstance(record, Mapping) and (record.get("passed") or not passed):
             return record
     return None
+
+
+def red_unobserved(root: Path, state: Mapping[str, Any], work_items: Sequence[str]) -> List[Tuple[str, str]]:
+    """(work item, command) for each focused command its test stage's latest base run left out as remote (run-5 batch
+    I2): the target already held the change, so no failure on the old code was ever seen, and the candidate run is that
+    command's only evidence."""
+    found: List[Tuple[str, str]] = []
+    for work_item in work_items:
+        actions = [row["action"] for row in state.get("history", ())
+                   if row.get("stage") == STAGES[0] and row.get("workitem") == work_item]
+        base = _latest_base(root, actions[-1]) if actions else None
+        for run in (base or {}).get("runs") or ():
+            if isinstance(run, Mapping) and run.get("status") == "remote" and run.get("suite") == "focused":
+                found.append((work_item, str(run.get("command"))))
+    return found
 
 
 def refused_runs(root: Path, action: str) -> int:
@@ -1657,7 +1709,7 @@ def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt
 BASE_GOOD = ("red", "counted", "remote")
 
 
-def _remote_base(row: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+def _remote_base(row: Mapping[str, Any], stateful: Optional[Mapping[str, str]] = None) -> Optional[Dict[str, Any]]:
     """The base-run row of a command that tests a deployed target, or None for one that runs on the checkout.
 
     On the base such a command would test the target, which already holds this item's change (an earlier step deployed
@@ -1665,6 +1717,13 @@ def _remote_base(row: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
     target.  A live run (2026-10-20) took a send-back for exactly that.  The candidate runs still judge it."""
     import shiploop_mutation as mutation  # imports this module: resolved at call time
 
+    target = row.get("target")
+    if target and target in (stateful or {}):
+        # A test-strategy target that keeps state holds the item's change too, whatever platform it is (F3).
+        return {**row, "status": "remote", "exit": None, "seconds": 0.0, "stdout": "", "stderr": "",
+                "reason": ("runs on " + str(target) + ", which keeps state between runs (test-strategy targets; base "
+                           "state: " + (stateful or {})[target] + "), so it already holds this item's change; not run "
+                           "on the base")}
     hit = mutation.remote_card(row["command"])
     if hit is None:
         return None
@@ -1743,8 +1802,9 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
         with _BaseTree(root, base, tests) as cwd:
             record["cwd"] = str(cwd)
             deadline = clock() + budget
+            stateful = stateful_targets(state)
             for row in commands:
-                remote = _remote_base(row)
+                remote = _remote_base(row, stateful)
                 if remote is not None:
                     runs.append(remote)
                     continue

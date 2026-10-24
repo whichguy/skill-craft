@@ -1645,14 +1645,58 @@ class TestLoopTests(unittest.TestCase):
         self.assertTrue(record["passed"])
         self.assertEqual(record["mutants"], [])
 
+    def test_a_remote_focused_command_left_out_of_the_base_run_is_named_red_unobserved(self):
+        """Run-5 batch I2: verify and product-acceptance name each focused command whose RED no base run saw, because
+        it tests a deployed target; nothing is printed when every focused command ran on the base."""
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp)
+            state = {"history": [{"action": "t1", "stage": "test", "workitem": "W1"},
+                                 {"action": "t2", "stage": "test", "workitem": "W2"}],
+                     "work_items": [{"id": "W1"}, {"id": "W2"}]}
+            store.write_record(run / test_loop.base_path("t1", 1), {"runs": [
+                {"command": "sf apex run test --class-names A", "suite": "focused", "status": "remote"},
+                {"command": "npx jest", "suite": "focused", "status": "red"}]}, "base")
+            store.write_record(run / test_loop.base_path("t2", 1), {"runs": [
+                {"command": "npx jest", "suite": "focused", "status": "red"}]}, "base")
+            self.assertEqual(test_loop.red_unobserved(run, state, ["W1", "W2"]),
+                             [("W1", "sf apex run test --class-names A")])
+            lines = nav._red_unobserved_lines(run, state, "product-acceptance", None)
+            self.assertTrue(lines[0].startswith("RED unobserved: the base run left these remote commands out"))
+            self.assertEqual(lines[1:], ["- W1: `sf apex run test --class-names A`"])
+            self.assertEqual(nav._red_unobserved_lines(run, state, "verify", "W2"), [])
+
     def test_the_salesforce_card_lists_its_remote_test_commands_and_a_local_one_still_runs(self):
         commands = mutation.remote_test_commands()
         self.assertIn(("salesforce", "sf apex run test"), commands)
         self.assertIsNone(mutation._remote_reason([{"command": "npx sfdx-lwc-jest -- --verbose"}]))
+        # Run-5 batch I2: beside a local command, a remote one is left out of the mutant runs and recorded.
+        local, remote = mutation.split_remote([{"command": "npx sfdx-lwc-jest -- --verbose"},
+                                               {"command": "sf apex run test --class-names A"}])
+        self.assertEqual(([row["command"] for row in local], remote),
+                         (["npx sfdx-lwc-jest -- --verbose"], ["sf apex run test --class-names A"]))
         self.assertIsNone(mutation._remote_reason([{"command": "sf apex run test --class-names A"},
                                                    {"command": "python3 -m pytest -v"}]))
         self.assertIn("platforms/salesforce.md", mutation._remote_reason(
             [{"command": "sf apex run test --target-org de --class-names SLTest --synchronous"}]))
+
+    def test_a_command_on_a_target_that_keeps_state_is_left_out_of_the_base_and_the_mutant_runs(self):
+        """Run-5 batch F3: on any platform, a command naming a test-strategy target that keeps state is remote, so the
+        base run does not read the target's already-changed state as the item's base."""
+        org = {"the shared org": "a destructive deploy first"}
+        row = {"command": "./run-tests.sh", "suite": "focused", "target": "the shared org"}
+        base = test_loop._remote_base(row, org)
+        self.assertEqual(base["status"], "remote")
+        self.assertIn("runs on the shared org, which keeps state between runs", base["reason"])
+        self.assertIn("base state: a destructive deploy first", base["reason"])
+        self.assertIsNone(test_loop._remote_base(dict(row, target="the checkout"), org))
+        self.assertIsNone(test_loop._remote_base({"command": "./run-tests.sh", "suite": "focused"}, org))
+        local, remote = mutation.split_remote([row, {"command": "python3 -m pytest -v"}], org)
+        self.assertEqual(([entry["command"] for entry in local], remote), (["python3 -m pytest -v"], ["./run-tests.sh"]))
+        state = {"history": [{"action": "ts1", "stage": "test-strategy", "workitem": None, "outcome": "done"}],
+                 "accepted": {"ts1": {"targets": [
+                     {"target": "the shared org", "keeps_state": "yes", "base_state_route": "a destructive deploy first"},
+                     {"target": "the checkout", "keeps_state": "no", "base_state_route": "n/a"}]}}}
+        self.assertEqual(test_loop.stateful_targets(state), org)
 
     def test_the_checkout_is_byte_identical_after_the_check(self):
         self.calc_item(self.REAL_TEST)

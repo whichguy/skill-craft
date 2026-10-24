@@ -39,7 +39,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Collection, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import shiploop_lint as lint
 import shiploop_store as store
@@ -82,6 +82,18 @@ def remote_card(command: str) -> Optional[Tuple[str, str]]:
     text = " ".join(str(command).split())
     return next(((card, prefix) for card, prefix in remote_test_commands()
                  if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+
+
+def split_remote(commands: Sequence[Mapping[str, Any]], stateful: Collection[str] = ()) \
+        -> Tuple[List[Mapping[str, Any]], List[str]]:
+    """(the commands that run on the checkout, the remote ones left out) for the mutant runs (run-5 batch I2, F3).
+
+    A mutant lives only in the checkout's copy, so a command that tests a deployed target beside local ones could never
+    kill one; running it would only spend the budget.  Remote means a platform card's Remote tests, or a test-strategy
+    target that keeps state (``stateful``)."""
+    remote = [str(row.get("command", "")) for row in commands
+              if remote_card(str(row.get("command", ""))) is not None or row.get("target") in stateful]
+    return [row for row in commands if str(row.get("command", "")) not in remote], remote
 
 
 def _remote_reason(commands: Sequence[Mapping[str, Any]]) -> Optional[str]:
@@ -288,6 +300,13 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
     if remote:
         record["skipped"] = remote
         return record
+    commands, skipped = split_remote(commands, test_loop.stateful_targets(state))
+    if skipped:
+        record["remote_commands_skipped"] = skipped
+        if not commands:
+            record["skipped"] = ("every focused command tests a deployed target or one that keeps state between runs, "
+                                 "which a mutant in the checkout's copy never reaches")
+            return record
     base = lint.read_base(root, work_item)
     if base is not None and base_commit:
         base = test_loop._at_commit(base, base_commit)

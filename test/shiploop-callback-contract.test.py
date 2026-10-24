@@ -60,9 +60,11 @@ EXPECTED_STAGES = (
 # What the accepted plans record, so the stages after them have real commands to run.  The focused command fails
 # until implement has created built.txt, which is the red-then-green the test stage expects (ShipLoop's base run sees
 # TC-1 fail, the candidate run sees it pass).  It prints a verbose-unittest listing so ShipLoop reads TC-1's outcome.
-FOCUSED = ("if test -f built.txt; then printf 'test_built (TC-1) ... ok\\n\\nRan 1 test in 0.001s\\n\\nOK\\n'; "
-           "else printf 'test_built (TC-1) ... FAIL\\n\\nRan 1 test in 0.001s\\n\\nFAILED (failures=1)\\n'; "
-           "exit 1; fi")
+# A test program, not a file guard (run-5 batch F2 refuses a focused command that starts with one): it checks the file
+# itself and prints a unittest-style result line for TC-1.
+FOCUSED = ("python3 -c \"import os, sys; ok = os.path.exists('built.txt'); "
+           "print('test_built (TC-1) ... ' + ('ok' if ok else 'FAIL')); print(); print('Ran 1 test in 0.001s'); print(); "
+           "print('OK' if ok else 'FAILED (failures=1)'); sys.exit(0 if ok else 1)\"")
 STEP_PLAN = {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create built.txt", "deps": [],
                                                "criteria": ["C1"], "proof": "test -f built.txt", "skills": []}],
              "criteria": [{"id": "C1", "text": "built.txt exists", "confirm": "executed"}],
@@ -420,7 +422,7 @@ class RefusalRouteTests(RealCliCase):
             ("an absolute evidence_refs path that does not exist", "intake",
              lambda block: {**block, "evidence_refs": [str(self.base / "no-such-note.md")]},
              "evidence_refs cite files that do not exist"),
-            ("an open assumption whose consumer is not in the plan", "plan",
+            ("an open assumption whose due_item is not in the plan", "plan",
              lambda block: {**block, "assumptions": [{"id": "A2", "assumption": "y holds", "disposition": "open",
                                                       "settle": "run y", "reason": "later", "due_item": "W9"}]},
              "is not a work item in this plan"),
@@ -433,6 +435,16 @@ class RefusalRouteTests(RealCliCase):
                  dict(row, command="grep -q TC-1 built.txt") if row.get("criteria") else row
                  for row in block["test_commands"]]},
              "every command naming them only searches text"),
+            ("a focused command guarded by a file check", "step-plan",
+             lambda block: {**block, "test_commands": [
+                 dict(row, command="test -f built.txt && " + row["command"]) if row.get("suite") == "focused" else row
+                 for row in block["test_commands"]]},
+             "checks for a file or prints a path before its tests run"),
+            ("a test command naming a target that is no targets row", "step-plan",
+             lambda block: {**block, "test_commands": [
+                 dict(row, target="the shared org") if row.get("suite") == "focused" else row
+                 for row in block["test_commands"]]},
+             "which is no test-strategy targets row"),
             ("an inspected criterion naming no unverified Test layers row", "step-plan",
              lambda block: {**block, "criteria": [dict(row, confirm="inspected", code="built.txt writer",
                                                        layer="unit") for row in block["criteria"]]},

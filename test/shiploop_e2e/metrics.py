@@ -211,6 +211,9 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # A focused command whose every test ID an earlier item's step plan made focused (run-4 quality Q2,
     # shiploop_navigator.py _check_focused_ids_new).
     "focused_ids_new": re.compile(r"step plan already made focused: it tests an earlier item's behaviour"),
+    # A focused command that starts with a file guard or a printed path, which fakes RED (run-5 batch F2,
+    # shiploop_navigator.py _check_focused_guards).
+    "focused_guard": re.compile(r"checks for a file or prints a path before its tests run"),
     # The test layers (run-5 batch F1, shiploop_test_layers.py and shiploop_navigator.py _check_submitted_layers):
     # the rows' shape and rules, an item's own rows, and the printed size.
     "test_layers": re.compile(r"lists test_layers: one row per|test_layers (?:repeats|gives|marks a unit|is a list of|"
@@ -221,8 +224,9 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # Prepare's proof that each prerequisite harness runs (F1).
     "harness_runs": re.compile(r"lists harness_runs|harness_runs (?:has no run|is a list of|evidence)|"
                                r"harness_runs\[\d+\]"),
-    # Where the tests run, and how a test still fails on an item's base there (F1; F3 adds the per-command target).
-    "targets": re.compile(r"lists targets: where the tests run|targets is a list of|targets\[\d+\]"),
+    # Where the tests run, and how a test still fails on an item's base there (F1), and each command's target (F3).
+    "targets": re.compile(r"lists targets: where the tests run|targets is a list of|targets\[\d+\]|which is no "
+                          r"test-strategy targets row|so each focused or regression command names, in target"),
     # New gates land as one row each. Not yet seeded here (no refusal text read in the scripts as of this table) --
     # fill in the real signature from the gate's own refusal text when it ships, rather than guessing one:
     # "entry_points": re.compile(r"TODO: entry_points refusal text"),                  # F4
