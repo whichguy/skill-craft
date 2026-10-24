@@ -1289,6 +1289,226 @@ def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[d
     return blocks
 
 
+# The eight sources context_window_rows tallies a window's result and output characters into. Order is the order a
+# row's ``bytes`` and ``context_summary``'s totals report them, never read for meaning.
+WINDOW_SOURCES = ("shiploop_packets", "shiploop_reads", "product_reads", "run_record_reads", "knowledge_reads",
+                 "shell_output", "web", "model_text", "other")
+# FILE_CLASSES names that are ShipLoop's own skill files (its scripts, references and cards): reading one fills the
+# context with ShipLoop's own text, the same text shiploop_packets tallies when the CLI prints it instead.
+SHIPLOOP_FILE_CLASSES = ("script", "reference", "entry_card", "improve_card", "adapter")
+# FILE_CLASSES names that are the run's own written record (results, lint, tests, an Improve child's handoff and
+# files): read back, these are what the run itself produced under its run directory, not knowledge or product source.
+RUN_RECORD_FILE_CLASSES = ("run_file", "result_record", "handoff", "child_record")
+WEB_TOOL = re.compile(r"web[ _]?search|web[ _]?fetch", re.I)
+
+
+def _window_bytes_table() -> dict:
+    return {name: 0 for name in WINDOW_SOURCES}
+
+
+def window_source(tool: str, arg: dict, shown: str) -> str:
+    """Which of the eight context_window_rows sources one tool result's characters belong to.
+
+    Built on ``classify_call``'s own reading of the same call (a packet print or read, a ShipLoop script or
+    reference, a run record, a knowledge file): a file-content tool (Read/Grep and their Grok names) that names none
+    of those is a product read, any other shell result that named no ShipLoop/run/knowledge path is shell output, and
+    a web-search tool is ``web``. ``other`` is what is left: a write, an edit, a directory listing, anything this
+    call's own classification does not place.
+    """
+    if WEB_TOOL.search(tool):
+        return "web"
+    if tool == "get_command_or_subagent_output":  # Grok's read of a background command's own output
+        return "shell_output"
+    info = classify_call(tool, arg, shown)
+    cls, bucket = info["cls"], info["bucket"]
+    if bucket in ("packet_output", "shiploop_messages") or cls == "packet_file":
+        return "shiploop_packets"
+    if cls in SHIPLOOP_FILE_CLASSES:
+        return "shiploop_reads"
+    if cls in RUN_RECORD_FILE_CLASSES:
+        return "run_record_reads"
+    if cls == "knowledge":
+        return "knowledge_reads"
+    if info["read"] or tool in SEARCH_TOOLS:
+        return "product_reads" if info["path"] else "other"
+    if str(arg.get("command") or "").strip():
+        return "shell_output"
+    return "other"
+
+
+def _window_top_label(tool: str, arg: dict) -> str:
+    """A short label for one tool result in a context window's ``top`` list: the command, collapsed to one line, or
+    the path it names, else the tool's own name."""
+    command = str(arg.get("command") or "").strip()
+    if command:
+        return " ".join(command.split())[:80]
+    return call_target(arg) or tool
+
+
+def _context_boundaries(sessions: list[dict] | None, compaction_lines: list[int]) -> list[tuple[int, str]]:
+    """Every line that starts a context window, in line order: line 0 (the stream's own start, kept even where a
+    session or a compaction also marks it), each session ``sessionlog.read`` recorded (a run with no sessions.jsonl
+    gives ``None``: then only compactions split the stream) and each compaction line. A line two kinds would mark
+    keeps the first in this order, since line 0 is always the start of something and a session row is never a
+    compaction's own line."""
+    points: dict[int, str] = {0: "start"}
+    for row in sessions or []:
+        line = row.get("events_line")
+        if isinstance(line, int):
+            points.setdefault(line, "session")
+    for line in compaction_lines:
+        if isinstance(line, int):
+            points.setdefault(line, "compaction")
+    return sorted(points.items())
+
+
+def _event_context_tokens(event: dict) -> int | None:
+    """The context-token figure one event's own usage reports, Grok's per-call ``usage`` event or Claude's
+    per-message snapshot, whichever shape the event carries; None for any other event or an unreported figure."""
+    if event.get("type") == "usage":
+        return context_tokens(event.get("usage"))
+    if event.get("type") == "assistant":
+        return context_tokens((event.get("message") or {}).get("usage"))
+    return None
+
+
+def _server_tool_round(event: dict) -> bool:
+    """Whether one event is a Grok native (server-side) web search or page-open round: a request/response the model
+    ran itself mid-turn, billed as input tokens but never shown to the client (its ``tool_call_update`` carries only
+    ``action``/``id``/``status`` -- no ``content`` or ``output_for_prompt`` -- so it is already 0 result characters
+    through ``result_text``). A turn can run several of these before its one ``usage`` event, and that event's input
+    then sums every round's growing input, which is not the context at any single point (confirmed on a recorded
+    run: a usage event after 9 such rounds reported context 498,847; the next ordinary usage event reported 136,051,
+    up only ~25k from the 111,715 before the batch). So a round is counted (``server_tool_rounds``), but the usage
+    event that follows one or more of them is never read for ``peak_tokens``."""
+    raw = event.get("rawOutput")
+    action = raw.get("action") if isinstance(raw, dict) else None
+    return event.get("type") == "tool_call_update" and isinstance(action, dict) and action.get("type") in (
+        "search", "open_page")
+
+
+def context_window_rows(out: Path, run_dir: Path | None = None, *, stamps: dict | None = None,
+                        accepted: list[dict] | None = None, pending: str | None = None,
+                        sessions: list[dict] | None = None, compaction_lines: list[int] | None = None) -> list[dict]:
+    """One row for every context window a run had: the span from the run's start, a recorded session start, or a
+    compaction, to the next one of those or the end of the stream. Answers what filled the context between the
+    compactions a live Grok run hits every few minutes -- ShipLoop's own printed packets, the scripts and references
+    it reads, product source, the run's own record files, knowledge files, other shell output, web calls, or the
+    model's own generated text -- so a packet-template redesign can be aimed at what is actually large.
+
+    Boundaries: line 0, every row ``sessionlog.read`` recorded (``sessions`` None: a run from before sessions.jsonl,
+    or one with none; then only compactions split the stream) and every compaction line (Grok's own
+    ``auto_compact_completed``, the line numbers ``collect`` already finds for ``fresh_starts``; a run on a host that
+    writes none is one open window). Each row: ``start``/``end`` (the runner's own stamps, None where it kept none for
+    the window), ``minutes``, ``stages`` (every accepted stage whose own window, ``stage_windows``'s, overlaps this
+    one, in the order it was accepted), ``peak_tokens`` (the largest per-call context figure any event in the window
+    reported that is not a server round's own inflated usage event -- see ``_server_tool_round`` -- None where none
+    qualified), ``server_tool_rounds`` (native web search/page-open rounds in the window: billed input, never
+    context, counted by number and never added to ``bytes``), ``compacted`` (whether a compaction closes the window),
+    ``bytes`` (characters of every tool result and of the model's own text, by ``window_source``) and ``top`` (its
+    five largest single tool results). Never packet text or a tool result verbatim: counts and short labels only.
+
+    Record-only, like ``fresh_starts``: nothing here is a verdict. ``accepted``, ``pending``, ``stamps`` and
+    ``sessions`` let ``collect`` pass what it already read, so a caller that reads the run directory once is not read
+    twice; a standalone caller (the CLI, a test, a recompute script) leaves them out and they are read here instead.
+    """
+    out = Path(out)
+    path = out / "events.jsonl"
+    if stamps is None:
+        stamps = timeline(out / "timeline.jsonl")
+    if accepted is None:
+        state = engine_state(run_dir)
+        accepted, pending = stage_results(run_dir, state), pending_stage(state)
+    if sessions is None:
+        sessions = sessionlog.read(out)
+    if compaction_lines is None:
+        compaction_lines = [number for number, event in events(path) if event.get("type") == "auto_compact_completed"]
+    stage_entries = list(zip([row["stage"] for row in accepted] + ([pending] if pending else []),
+                             stage_windows(accepted, stamps, pending)))
+    boundaries = _context_boundaries(sessions, compaction_lines)
+    boundary_lines = [line for line, _kind in boundaries]
+    windows = [{"lines": [], "peak": None, "bytes": _window_bytes_table(), "top": [], "server_tool_rounds": 0}
+              for _ in boundaries]
+    calls: dict = {}  # call id -> (tool, arg); one log for the whole pass, so a result is placed by its own line
+    rounds_since_usage = 0  # server rounds since the last usage figure (across the whole pass, not per window)
+    for number, event in events(path):
+        window = windows[bisect.bisect_right(boundary_lines, number) - 1]
+        window["lines"].append(number)
+        for call_id, tool, arg in tool_call_events(event):
+            calls[call_id] = (tool, arg)
+        if _server_tool_round(event):
+            window["server_tool_rounds"] += 1
+            rounds_since_usage += 1
+        tokens = _event_context_tokens(event)
+        if tokens is not None:
+            is_usage = event.get("type") == "usage"
+            if not is_usage or rounds_since_usage == 0:
+                window["peak"] = tokens if window["peak"] is None else max(window["peak"], tokens)
+            if is_usage:
+                rounds_since_usage = 0
+        for call_id, shown in result_text(event):
+            size = len(shown)
+            if not size:
+                continue
+            tool, arg = calls.get(call_id, ("", {}))
+            source = window_source(tool, arg, shown)
+            window["bytes"][source] += size
+            window["top"].append({"tool": tool, "label": _window_top_label(tool, arg), "bytes": size})
+        text = _assistant_text(event)
+        if event.get("type") == "thought":  # Grok's reasoning stream: chunks _assistant_text does not read
+            text += str(event.get("data") or "")
+        if text:
+            window["bytes"]["model_text"] += len(text)
+    rows = []
+    for index, (line, _kind) in enumerate(boundaries):
+        window = windows[index]
+        held = [stamps[n] for n in window["lines"] if n in stamps]
+        start_t = stamps.get(line, held[0] if held else None)
+        end_t = held[-1] if held else start_t
+        active: list = []
+        for stage_name, bounds in stage_entries:
+            if (bounds is not None and start_t is not None and end_t is not None
+                    and spans_overlap((bounds[0], bounds[1]), (start_t, end_t)) and stage_name not in active):
+                active.append(stage_name)
+        rows.append({
+            "start": start_t, "end": end_t,
+            "minutes": round((end_t - start_t) / 60, 2) if start_t is not None and end_t is not None else None,
+            "stages": active, "peak_tokens": window["peak"], "server_tool_rounds": window["server_tool_rounds"],
+            "compacted": index + 1 < len(boundaries) and boundaries[index + 1][1] == "compaction",
+            "bytes": window["bytes"], "top": sorted(window["top"], key=lambda row: -row["bytes"])[:5],
+        })
+    return rows
+
+
+def context_summary(rows: list[dict]) -> dict:
+    """Totals, shares and the median window over every row ``context_window_rows`` built: ``{}`` for a run with none
+    (a run whose events.jsonl holds nothing), never a reason to read the empty totals below as a measurement.
+
+    ``share`` is each source's fraction of the run's total bytes (None where the total is 0, never a divide); ``top_sources``
+    ranks the sources themselves by total bytes, so the biggest contributor across the whole run reads directly, not just
+    per window. ``median_minutes`` and ``median_window_bytes`` read a run from a saved metrics.json the same way
+    ``summary_lines`` reads other medians: the one implementation, ``_median``. ``server_tool_rounds`` is the run's
+    total native web search/page-open rounds (billed input, kept apart from ``bytes``'s ``web``; see
+    ``_server_tool_round``).
+    """
+    if not rows:
+        return {}
+    totals = _window_bytes_table()
+    for row in rows:
+        for source, size in row["bytes"].items():
+            totals[source] = totals.get(source, 0) + size
+    grand = sum(totals.values())
+    share = {source: (round(size / grand, 4) if grand else None) for source, size in totals.items()}
+    minutes = [row["minutes"] for row in rows if row["minutes"] is not None]
+    window_totals = [sum(row["bytes"].values()) for row in rows]
+    ranked = sorted(((source, size) for source, size in totals.items() if size), key=lambda pair: -pair[1])
+    return {"windows": len(rows), "compactions": sum(1 for row in rows if row["compacted"]),
+            "server_tool_rounds": sum(row["server_tool_rounds"] for row in rows),
+            "bytes": totals, "share": share, "total_bytes": grand,
+            "median_minutes": _median(minutes), "median_window_bytes": _median(window_totals),
+            "top_sources": [{"source": source, "bytes": size} for source, size in ranked]}
+
+
 def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None) -> dict:
     """The run's metrics. ``tools`` is the ToolLog to fill (a caller that reads the tool calls itself, as fidelity.py does,
     passes an empty one); without it the log is this call's own. It is fed through ``ToolLog.feed``, the one reader the
@@ -1413,6 +1633,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     compaction_points = ([{"host": "grok", "line": n} for n in compaction_lines] if "compactions" not in unmeasured else [])
     if context and "unmeasured" not in context:
         compaction_points = [{"host": "codex", "t": t} for t in context.get("compaction_times", [])]
+    sessions_recorded = None  # set inside the try below; kept bound here so context_window_rows can reuse it on a failure
     try:
         sessions_recorded = sessionlog.read(out)
         notes = []
@@ -1433,6 +1654,11 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         fresh_note = "; ".join(notes) or None
     except Exception as exc:  # noqa: BLE001 - a passive record never takes the run's metrics down (per_stage once did)
         fresh_list, fresh_note = [], f"failed: {type(exc).__name__}: {' '.join(str(exc).split())[:200]}"
+    try:
+        context_rows = context_window_rows(out, run_dir, stamps=stamps, accepted=accepted, pending=pending,
+                                           sessions=sessions_recorded, compaction_lines=compaction_lines)
+    except Exception as exc:  # noqa: BLE001 - record-only, like fresh_starts above
+        context_rows = []
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     if grok_stream:
         unmeasured["unreported_sessions"] = NO_SESSION_START
@@ -1488,6 +1714,10 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # and `fresh_starts_unmeasured` says why, where the run has no sessions.jsonl; None where it is complete.
         "fresh_starts": fresh_list,
         "fresh_starts_unmeasured": fresh_note,
+        # What filled the context between compactions (and from the run's start, and to its end): one row per window,
+        # record-only like fresh_starts, plus the run-level totals and shares context_summary reduces them to.
+        "context_windows": context_rows,
+        "context_summary": context_summary(context_rows),
         # The first and last stamp of the stream (a resumed run's covers all its launches): the interval another run's
         # span is compared with to count overlap. None where the runner wrote no timeline.
         "span": span(stamps),
