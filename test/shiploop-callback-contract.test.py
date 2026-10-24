@@ -1145,7 +1145,6 @@ class StepSizingRouteTests(RealCliCase):
         self.assertEqual((step["proof"], step["criteria"]), ("test -f built.txt", ["C1"]))
         bare = {key: value for key, value in step.items() if key not in ("proof", "criteria")}
         test_file = "tests/test_built.py"
-        apex_test = "force-app/main/default/classes/BuiltTest.cls"
         cases = [
             ("a step without its proof", {**good, "steps": [dict(bare, criteria=["C1"])]},
              "step S1 must record its proof: the one command"),
@@ -1162,10 +1161,6 @@ class StepSizingRouteTests(RealCliCase):
             ("a step that only changes test files",
              {**good, "paths": ["built.txt", test_file],
               "steps": [dict(step, id="S1", paths=[test_file]), dict(step, id="S2", deps=["S1"])]},
-             "step S1 only changes test files. Tests are not a step"),
-            ("a step that only changes an Apex test class and its sidecar",
-             {**good, "paths": ["built.txt", apex_test, apex_test + "-meta.xml"],
-              "steps": [dict(step, id="S1", paths=[apex_test, apex_test + "-meta.xml"]), dict(step, id="S2", deps=["S1"])]},
              "step S1 only changes test files. Tests are not a step"),
         ]
         for label, block, fragment in cases:

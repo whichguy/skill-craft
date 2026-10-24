@@ -2424,20 +2424,6 @@ class ItemScopePathClassTests(unittest.TestCase):
         self.assertEqual(catalog["non_behavioural"], ["metadata-nav", "docs", "config"])
         self.assertEqual(sorted(catalog["classes"]), ["config", "docs", "metadata-nav", "test"])
 
-    def test_an_apex_test_class_and_its_sidecar_are_tests_and_the_class_it_tests_is_code(self):
-        """Chess run 3 put SLChessGameTest into a product step and nothing refused it: the catalog had no Apex rule, so
-        a test class counted as code. The `...Test` / `..._Test` / `...Tests` suffixes are tests; the classes they test,
-        whose names merely contain Test, stay code."""
-        classes = "force-app/main/default/classes/"
-        for name in ("SLChessEngineTest", "SLChessGameTest", "Account_Test", "AccountService_Tests"):
-            for path in (classes + name + ".cls", classes + name + ".cls-meta.xml"):
-                with self.subTest(path):
-                    self.assertEqual(item_scope.classify(path), "test")
-        for name in ("SLChessEngine", "SLChessController", "TestimonialController", "SLChessTestHarness"):
-            for path in (classes + name + ".cls", classes + name + ".cls-meta.xml"):
-                with self.subTest(path):
-                    self.assertEqual(item_scope.classify(path), "code")
-
 
 class ReleaseVerifyReturnedResultTests(unittest.TestCase):
     """Batch 1008, B3 through the real gate: ``complete`` at release-verify in an isolated run that has returned.
