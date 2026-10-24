@@ -236,11 +236,10 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                          r"current entry in)"),
     # A primary requirement's unverified outcome whose lower_layer_check names no test ShipLoop saw pass for it (F6).
     "lower_layer_check": re.compile(r"a primary requirement \(spec primary\), and its lower_layer_check names no test"),
-    # New gates land as one row each. Not yet seeded here (no refusal text read in the scripts as of this table) --
-    # fill in the real signature from the gate's own refusal text when it ships, rather than guessing one:
-    # "entry_points": re.compile(r"TODO: entry_points refusal text"),                  # F4
-    # "stand_in_rejected": re.compile(r"TODO: stand_in_rejected refusal text"),        # F4
-    # "improve_regression_test": re.compile(r"TODO: improve regression test text"),   # F5
+    # An Improve commit that changes code without the Regression test line it owes (F5, shiploop_navigator.py
+    # _regression_refusal). F4's entry_points and stand_in_rejected were dropped by the owner (2026-10-24).
+    "improve_regression_test": re.compile(r"Add a line `Regression test: <"),
+    # New gates land as one row each, read from the gate's own refusal text when it ships, never guessed.
 }
 
 # A ShipLoop CLI call's own ``--action=<id>`` (or ``--action <id>``), read from the expanded command text: the

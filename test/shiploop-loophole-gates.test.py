@@ -30,11 +30,24 @@ _SPEC = importlib.util.spec_from_file_location("shiploop_callback_contract",
 contract = importlib.util.module_from_spec(_SPEC)
 sys.modules[_SPEC.name] = contract
 _SPEC.loader.exec_module(contract)
+_IMPROVE = importlib.util.spec_from_file_location("shiploop_actual_improve_cli",
+                                                  ROOT / "test" / "shiploop-actual-improve-cli.test.py")
+improve_cli = importlib.util.module_from_spec(_IMPROVE)
+sys.modules[_IMPROVE.name] = improve_cli
+_IMPROVE.loader.exec_module(improve_cli)
 
 FOCUSED = contract.FOCUSED
 # A test-strategy target that keeps state between runs (F3), named by the rows that need one.
 STATEFUL = {"target": "the shared service", "keeps_state": "yes", "base_state_route": "a clean namespace per run"}
 STATEFUL_RUN = {"test-strategy": {"targets": [STATEFUL]}}
+# An unverified outcome of the spec's primary requirement R-1 (F6), and the add-work its refusal names.
+PRIMARY_RUN = {"spec": {"primary": ["R-1"]}}
+PRIMARY_ROW = dict(contract.UNVERIFIED_ENTRY, requirement="R-1", outcome="a person sees the built file's text",
+                   lower_layer_check="the reviewer read the page")
+ADD_TEST = {"outcome": "add-work", "summary": "Add the unit test that shows R-1's logic works.",
+            "headline": "R-1 needs a lower-layer test.",
+            "work_items": [{"id": "W2", "title": "Add a unit test of R-1's logic",
+                            "context": "R-1 is primary and no unit or component test of it passed."}]}
 
 
 def commands(block: dict, change) -> dict:
@@ -91,6 +104,27 @@ DODGES = [
      "so each focused or regression command names, in target, the targets row it runs on",
      lambda block: commands(block, lambda row: dict(row, target=STATEFUL["target"])
                             if row.get("suite") in ("focused", "regression") else row)),
+    ("an unverified primary outcome whose lower-layer check is a person's reading", "run 4's product-acceptance (F6)",
+     "product-acceptance", PRIMARY_RUN, lambda block: {**block, "unverified": [PRIMARY_ROW]},
+     "a primary requirement (spec primary), and its lower_layer_check names no test",
+     lambda block: dict(ADD_TEST, evidence_refs=block["evidence_refs"])),   # the named exit: add the missing test
+]
+
+# improve-commit dodges (F5): (label, where it was seen, the files the fix touches, the message, refusal fragment, the
+# message of the named exit).  Each runs at the end-of-work review, whose commit owes the Regression test line.
+REGRESSION_TEST = "from src.calc import calc\n\ndef test_calc_rejects_zero():\n    assert calc(0) == 0\n"
+COMMIT_DODGES = [
+    ("an end-of-work code fix committed with no regression test", "run 4's Improve fixes (F5)", None,
+     "fix: guard zero\n\nKey learnings: zero needs a guard.\n", "this commit has no test file",
+     "fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: none: the guard only logs\n"),
+    ("a regression line naming a test the commit does not hold", "F5", REGRESSION_TEST,
+     "fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: test_somewhere_else\n",
+     "no test file in this commit holds test_somewhere_else",
+     "fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: test_calc_rejects_zero\n"),
+    ("a regression line of none with no reason", "F5", None,
+     "fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: none:\n",
+     "Regression test: none: <why no test can show this fix>",
+     "fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: none: the guard only logs\n"),
 ]
 
 
@@ -103,10 +137,11 @@ class LoopholeGateTests(contract.RealCliCase):
                 good = self.fill_done(head)
                 contract.write_block(path, dodge(good))
                 self.assertIn(fragment, self.refused(command, run))
-                contract.write_block(path, exit_route(good))
+                route = exit_route(good)
+                contract.write_block(path, route)
                 # A stage that closes the knowledge home names its files first (the contract suite's own helper).
                 contract.RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
-                self.assertEqual(self.recorded(run, action)["outcome"], "done")
+                self.assertEqual(self.recorded(run, action)["outcome"], route["outcome"])
 
     def test_every_row_names_where_it_was_seen_and_a_refusal_it_expects(self) -> None:
         labels = [row[0] for row in DODGES]
@@ -115,6 +150,38 @@ class LoopholeGateTests(contract.RealCliCase):
             with self.subTest(label):
                 self.assertIn(stage, contract.EXPECTED_STAGES)
                 self.assertTrue(seen.strip() and fragment.strip())
+
+
+class CommitDodgeTests(improve_cli.ImproveCliFixture):
+    """The improve-commit dodges, with the actual-improve-cli suite's commit fixture (its helpers, not its tests)."""
+
+    for _name in ("_write_producer", "_start_parent", "git", "begin", "write", "refused", "line_one", "named_exit",
+                  "run_named", "head_message", "code_change"):
+        locals()[_name] = getattr(improve_cli.ImproveCommitContractTests, _name)
+    del _name
+
+    def setUp(self):
+        improve_cli.ImproveCliFixture.setUp(self)
+        self.environment["HOME"] = str(self.base / "home")
+
+    def check_commit_dodge(self, label, seen, test_text, message, fragment, exit_message) -> None:
+        self.begin("carry-forward", producer_extra=improve_cli.END_OF_WORK)
+        self.code_change(test_text)
+        self.write(message)
+        refusal = self.refused()
+        self.assertIn(fragment, self.line_one(refusal), label + " (" + seen + ")")
+        before = self.git("rev-parse", "HEAD").strip()
+        self.write(exit_message)
+        self.run_named(refusal)
+        self.assertNotEqual(before, self.git("rev-parse", "HEAD").strip())
+        self.assertIn(exit_message.rsplit("\n", 2)[-2], self.head_message())
+
+
+# One test per commit dodge: each needs a fresh repository and run, which the fixture gives per test.
+for _index, _row in enumerate(COMMIT_DODGES, 1):
+    setattr(CommitDodgeTests, "test_commit_dodge_" + str(_index) + "_is_refused_and_its_named_exit_commits",
+            lambda self, row=_row: self.check_commit_dodge(*row))
+del _index, _row
 
 
 if __name__ == "__main__":

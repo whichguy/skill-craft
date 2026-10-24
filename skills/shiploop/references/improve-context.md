@@ -115,6 +115,9 @@ learnings: none` when nothing was learned; a review that changed no file makes n
 commit and is not asked for one); `Learned-from: <commit id> <what it
 contributed>` lines are optional and checked; `--remote-change` with a `Remote
 change:` line records a change to a remote system as a commit with no files. A
+commit that changes code, not only tests, at the end-of-work review also needs a
+`Regression test:` line: the test in the same commit that fails without the fix,
+or `none: <why no test can show it>`. A
 refusal's first line is the fix and the command to run next.
 
 ShipLoop starts the runtime once, before any review work, with

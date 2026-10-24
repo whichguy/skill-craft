@@ -2509,6 +2509,15 @@ class GateCountsTest(unittest.TestCase):
                 self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "targets",
                                  str(caught.exception))
 
+    def test_the_improve_regression_test_refusal_classifies_under_its_own_gate(self) -> None:
+        """F5's refusal, built by the navigator's own gate, never typed."""
+        sys.path.append(str(ROOT / "skills/shiploop/scripts"))
+        import shiploop_navigator as navigator
+        with tempfile.TemporaryDirectory() as temp:
+            text = navigator._regression_refusal(Path(temp), {"stage": "carry-forward"}, "fix\n\nKey learnings: none\n",
+                                                 ["src/calc.py"], Path(temp) / "commit-message.md", "CMD")
+        self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + text), "improve_regression_test", text)
+
     def test_each_primary_requirement_refusal_classifies_under_its_own_gate(self) -> None:
         """The F6 rows read the gates' own refusal text: built here by the gate functions, never typed."""
         scripts = str(ROOT / "skills/shiploop/scripts")

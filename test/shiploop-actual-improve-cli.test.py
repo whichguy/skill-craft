@@ -1789,6 +1789,10 @@ class LoopContractShapeTests(unittest.TestCase):
                     self.assertNotIn(gone, text)
 
 
+# The end-of-work review's producer: the last item's carry-forward, which records its skill decision.
+END_OF_WORK = {"skill": {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."}}
+
+
 class ImproveCommitContractTests(ImproveCliFixture):
     """improve-commit through the real CLI: what it checks, in what order, and that every refusal's named exit works.
 
@@ -1830,13 +1834,13 @@ class ImproveCommitContractTests(ImproveCliFixture):
         return subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True, text=True,
                               env=self.environment).stdout
 
-    def begin(self, stage="test-strategy"):
+    def begin(self, stage="test-strategy", producer_extra=None):
         self.git("init", "-q")
         self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "add", "-A")
         self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "base")
         self.base_commit = self.git("rev-parse", "HEAD").strip()
         (self.repo / "scratch.txt").write_text("the user's own uncommitted note\n", encoding="utf-8")
-        self._start_parent_at_stage(stage, [str(self.product_contract)])
+        self._start_parent_at_stage(stage, [str(self.product_contract)], producer_extra=producer_extra)
         self.message = bridge.receipt_path(self.bound).with_name("commit-message.md")
         self.message.parent.mkdir(parents=True, exist_ok=True)
         self.commit_args = [CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve,
@@ -2278,6 +2282,63 @@ class ImproveCommitContractTests(ImproveCliFixture):
         done = self.run_named(stderr).stdout  # the named exit keeps the flag, so it makes the commit with no files
         self.assertIn("remote change", done)
         self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), [])
+
+    def code_change(self, test_text=None):
+        """A fix to product code, and the test file that shows it when ``test_text`` is given."""
+        (self.repo / "src").mkdir(exist_ok=True)
+        (self.repo / "src" / "calc.py").write_text("def calc(x):\n    return 1 / x if x else 0\n", encoding="utf-8")
+        if test_text is not None:
+            (self.repo / "tests").mkdir(exist_ok=True)
+            (self.repo / "tests" / "test_calc.py").write_text(test_text, encoding="utf-8")
+
+    def test_an_end_of_work_code_fix_names_its_test_in_the_commit_and_the_named_exit_commits(self):
+        """Run-5 batch F5: the end-of-work review fixes code after the tests ran, so its commit names the test, in the
+        same commit, that fails without the fix."""
+        self.begin("carry-forward", producer_extra=END_OF_WORK)
+        self.code_change()
+        self.write("fix: guard zero\n\nKey learnings: zero needs a guard.\n")
+        first = self.refused()
+        line = self.line_one(first)
+        self.assertTrue(line.startswith("Add a line `Regression test: <the ID of the test in this commit that fails "
+                                        "without the fix>`"), line)
+        self.assertIn("this commit changes code (src/calc.py)", line)
+        self.code_change("from src.calc import calc\n\ndef test_calc_rejects_zero():\n    assert calc(0) == 0\n")
+        self.write("fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: test_calc_other\n")
+        self.assertIn("no test file in this commit holds test_calc_other", self.line_one(self.refused()))
+        # The named exit: the test this commit adds, by its ID.
+        self.write("fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: test_calc_rejects_zero\n")
+        self.run_named(first)
+        self.assertIn("Regression test: test_calc_rejects_zero", self.head_message())
+        self.assertEqual(sorted(self.git("show", "--name-only", "--format=", "HEAD").split()),
+                         ["src/calc.py", "tests/test_calc.py"])
+
+    def test_none_with_a_reason_is_the_other_exit_and_a_test_only_or_planning_commit_owes_no_line(self):
+        self.begin("carry-forward", producer_extra=END_OF_WORK)
+        self.code_change()
+        self.write("fix: rename\n\nKey learnings: none\nRegression test: none:\n")
+        self.assertIn("Regression test: none: <why no test can show this fix>", self.line_one(self.refused()))
+        self.write("fix: rename\n\nKey learnings: none\nRegression test: none: a local rename; no behaviour moves\n")
+        self.invoke(*self.commit_args)
+        self.assertIn("Regression test: none: a local rename", self.head_message())
+        # A commit that changes only tests is the test itself: no line is owed.
+        (self.repo / "tests").mkdir(exist_ok=True)
+        (self.repo / "tests" / "test_more.py").write_text("def test_more():\n    assert True\n", encoding="utf-8")
+        self.write("test: one more\n\nKey learnings: none\n")
+        self.invoke(*self.commit_args)
+
+    def test_a_planning_review_code_change_owes_no_regression_line(self):
+        self.begin()  # test-strategy: a planning review, which F5 does not gate
+        self.code_change()
+        self.write("docs: x\n\nKey learnings: none\n")
+        self.invoke(*self.commit_args)
+
+    def test_a_step_review_code_fix_owes_no_regression_line(self):
+        """F5 is end-of-work only (owner decision): a step review's code fix commits without the line."""
+        path = self.base / "commit-message.md"
+        for stage in ("implement", "test-strategy"):
+            with self.subTest(stage):
+                self.assertEqual(navigator._regression_refusal(self.repo, {"stage": stage}, "x\n", ["src/calc.py"],
+                                                               path, "CMD"), "")
 
     def start_child(self):
         """The frozen contract and parent-return.md ShipLoop wrote when it started the child at the transition."""

@@ -7215,6 +7215,14 @@ def _improve_commit_lines(core: Any, root: Path, state: Mapping[str, Any], child
             _improve_pass_line(core, root, state)]
 
 
+def _regression_clause(stage: str) -> str:
+    """The commit-message rule for a fix that changes code (F5), at the end-of-work review that owes it; '' elsewhere."""
+    if stage != "carry-forward":
+        return ""
+    return (" A commit that changes code, not only tests, adds `Regression test: <the ID of the test in this commit "
+            "that fails without the fix>` or `Regression test: none: <why no test can show it>`.")
+
+
 def _improve_pass_line(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """The line that ends each review pass (unit U19): write the review file, then improve-pass, which commits the pass."""
     return ("End each review pass with improve-pass (its form and what it does are under Evidence below): write "
@@ -7512,7 +7520,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "writes the full one). For a change to a remote system that left no file change, add `Remote change: <system "
             "alias>, <what changed>, <where its evidence is>` and append `--remote-change` to the command. Do not write "
             "the message with a shell heredoc or run git commit yourself: a hand-typed commit skips these checks. More: "
-            "ROUTE#record-commit-and-learning."]),
+            "ROUTE#record-commit-and-learning." + _regression_clause(child["stage"])]),
         "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
         + ("#default-route-the-parent-runs-improve-delegation-inline" if inline else ""),
         *([] if inline else ["Native owner record: " + str(packet_path.with_name("host-owner.md"))]),
@@ -8241,6 +8249,43 @@ def _lessons_and_citations_refusal(repo: Path, message: str, message_path: Path,
     return "\n".join(lines), message
 
 
+# Run-5 batch F5: an Improve fix that changes code names the test that shows it, on one line of its commit message.
+REGRESSION_LINE = re.compile(r"(?m)^Regression test:[ \t]*(.*?)[ \t]*$")
+
+
+def _regression_refusal(repo: Path, child: Mapping[str, Any], message: str, pending: Sequence[str],
+                        message_path: Path, command: str) -> str:
+    """The refusal for a missing or unproven ``Regression test:`` line, '' when none is owed or the line holds.
+
+    Owed only at the end-of-work review (carry-forward), when this commit changes code that is not a test: that review
+    fixes code after the tests ran, so the line names a test ID that a test file in this same commit holds, or
+    ``none: <reason>`` when no test can show the fix.  Step reviews owe no line (owner decision: end-of-item only); the
+    item's tests come after them.
+    """
+    if child["stage"] != "carry-forward":
+        return ""
+    code = [path for path in item_scope.behavioural_paths(pending) if item_scope.classify(path) != "test"]
+    if not code:
+        return ""
+    found = REGRESSION_LINE.findall(message)
+    value = found[0].strip() if found else ""
+    if value.lower().startswith("none:") and value[5:].strip():
+        return ""
+    named = [token for token in re.split(r"[\s,]+", value) if token]
+    tests = [path for path in pending if item_scope.classify(path) == "test"]
+    texts = [(repo / path).read_text(encoding="utf-8", errors="replace") for path in tests if (repo / path).is_file()]
+    holds = bool(named) and all(any(token in text for text in texts) for token in named)
+    want = "the ID of the test in this commit that fails without the fix"
+    where = ("this commit has no test file: add the test that fails without the fix" if not tests else
+             "no test file in this commit holds " + ", ".join(named) if named else "")
+    if holds:
+        return ""
+    reason = "; " + where if where else ""
+    return ("Add a line `Regression test: <" + want + ">` to " + str(message_path) + ", or `Regression test: none: "
+            "<why no test can show this fix>`, in column 1: this commit changes code (" + ", ".join(code[:3]) + ")"
+            + reason + ". Then run: " + command)
+
+
 def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, *, rerun: str | None = None) -> int:
     """Commit exactly the files the bound Improve review changed and has not committed yet.
 
@@ -8292,6 +8337,8 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
         message_path.unlink()  # a stale message must not be committed by a later run
         return 0
     refusal, message = _lessons_and_citations_refusal(repo, message, message_path, command)
+    _need(not refusal, refusal)
+    refusal = _regression_refusal(repo, child, message, pending, message_path, command)
     _need(not refusal, refusal)
     store.atomic_write_text(message_path, message.strip() + "\n")  # what was checked is what is committed
     try:
