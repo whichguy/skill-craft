@@ -644,7 +644,7 @@ class StepBlockTests(unittest.TestCase):
         value = loops.contract(self.run, state, nav.current_action(state)["id"])
         work = value["work"]
         self.assertIn("step S2", work)
-        self.assertIn("until each requirement assigned to this step is satisfied and none of the others is broken", work)
+        self.assertIn("until each criterion assigned to this step is satisfied and none of the others is broken", work)
         self.assertRegex(work, r"\bC2\b")
         self.assertRegex(work, r"\bR-2\b")
         self.assertRegex(work, r"\bAD-1\b")

@@ -190,7 +190,7 @@ to retain the requirement section, test path/selector and actual result location
 as distinct locators; planned cases and source inspection are not passing evidence.
 
 Define expected behavior before implementation when possible. In the spec, name
-observable acceptance criteria. Before source code, the step-plan and test-spec
+observable acceptance lines. Before source code, the step-plan and test-spec
 results contain a compact criteria matrix: each stable case ID maps its
 requirement or `T-` ID to preconditions/input, expected output/state/side
 effect, planned test path/selector, check command, and environment/fixture. This is the durable pre-code plan, not a new result schema
@@ -780,7 +780,7 @@ observations; `handoff` reconciles the final evidence.
 
 At `product-acceptance`, reassess the selected browser/service/API views against
 the whole product, not only the final item. Match the checks to every
-acceptance criterion. Review expected-versus-observed outcomes, test adequacy,
+acceptance line. Review expected-versus-observed outcomes, test adequacy,
 function/API contracts, README accuracy, and environment identity. Required
 blocked/not-run checks remain unfinished. Product changes discovered here use
 corrective work items through `add-work`, including documentation-only fixes, not

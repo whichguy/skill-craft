@@ -383,7 +383,7 @@ missing authority; never use production merely because it is the only target.
 
 Select only the experiments needed from this ladder, adapting each to the
 encountered contract. The specific probes below are conditional examples, not
-universal acceptance criteria:
+checks every run must pass:
 
 - **Access setup:** acquire/configure a reader, initialize/catalog it, and make
   one authorized relevant read; distinguish package, startup, identity,

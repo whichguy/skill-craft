@@ -48,7 +48,7 @@ ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), t
 LIVING = ("spec.md", "environment.md", ARCHITECTURE)
 # The named sections of the living files, as the headings the section notice (``section_notices``) looks for: a counted nudge,
 # never a refusal, and no listing depends on one (a packet lists every heading, ``outline``).  A heading is the text after the ``#``
-# marks; a spec's acceptance criteria stay inside each requirement, with no heading of their own.  ARCHITECTURE_HOLDS above
+# marks; a spec's acceptance lines stay inside each requirement, with no heading of their own.  ARCHITECTURE_HOLDS above
 # says what the architecture file holds in prose; a test pins that every heading it names is here.  ``Skills`` is the
 # repository's local skill directory; ``Harnesses and suites`` holds each suite with its files and command, and the system-test
 # catalog; ``ID convention`` holds the ID scheme and the one command that lists the IDs already taken (the test code is the one

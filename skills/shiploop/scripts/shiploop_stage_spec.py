@@ -79,7 +79,7 @@ def send_back_target(stage: str) -> str:
     return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
 # The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
-STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied and none of the others is broken, shown "
+STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied and none of the others is broken, shown "
                            "by a command or file after the last edit, and no later step's work is in the change")
 # Implement's second exit condition on both routes (one step inline, every step on the ask-agent route): each step's Proof
 # is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
@@ -263,17 +263,17 @@ _ROWS = (
     ),
     Stage(
         "spec", "prelude",
-        goal="Define each requirement and its acceptance criteria as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
+        goal="Define each requirement and its acceptance lines as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
         short_goal='specify the requirements',
         done_when=(
-            "every request outcome maps to at least one acceptance criterion",
-            "each criterion is independently verifiable and says how it will be confirmed",
+            "every request outcome maps to at least one acceptance line",
+            "each acceptance line is independently verifiable and says how it will be confirmed",
             "non-functional requirements are assessed, or excluded with a reason",
             "unaffected existing requirements are preserved",
         ),
         develop="Define behaviour, error handling and consumer outcomes before any code.",
-        test="State positive, failure and boundary expectations for each criterion.",
-        deploy="Name the consumer surface where each criterion must be observed.",
+        test="State positive, failure and boundary expectations for each acceptance line.",
+        deploy="Name the consumer surface where each acceptance line must be observed.",
         improve="always",
         reads=("intake", "discovery", "research"),
         blocks=frozenset({"backchain", "interaction-design"}),

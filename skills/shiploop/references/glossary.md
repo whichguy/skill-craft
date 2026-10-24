@@ -18,8 +18,9 @@ return (owner rule, 2026-10-24).
 | outcome | `done`, `blocked`, `send-back` or `add-work`. | result `outcome` | |
 | blocked | An outcome only a person or an outside service can end; it names its wait in `awaiting`. A missing tool or a broken command is repair work, never blocked. | `awaiting` (answer, present, service) | the Until Loop's `continuation_assessment` value |
 | send-back | An outcome that returns the work item to the stage that wrote its plan (its destination), at most twice per destination. | `send-back` | |
-| requirement | A spec entry, `R-<n>`, in KNOWLEDGE/spec.md. R2 makes requirement and criterion one meaning each. | `follows`, a case's `requirement` | a criterion |
-| criterion | A step plan's completion condition, `C<n>`, with its `confirm`. | step-plan `criteria` | a requirement |
+| requirement | A spec entry, `R-<n>`, in KNOWLEDGE/spec.md, holding its acceptance lines. | `follows`, a case's `requirement` | a criterion |
+| acceptance line | One condition inside a requirement: what must hold, how it is confirmed and where it is observed. An implement step may add acceptance lines inside an existing requirement. | inside `R-<n>` in spec.md | a criterion |
+| criterion | A step plan's completion condition, `C<n>`, with its `confirm`; a step's exit condition names the criteria assigned to it. | step-plan `criteria`, a case's `criterion` | a requirement; an acceptance line |
 | confirm | How a criterion is confirmed: `executed` (a recorded command runs the behaviour; a text search does not), `searched` (a command searches text the item writes) or `inspected` (it names an unverified `test_layers` row by `code` and `layer`). | criterion `confirm` | the chain item statuses; Backchain's confirm levels |
 | Proof | A step's own command, which ShipLoop runs at the step's done. | `steps[].proof` | a check row; an expectation check |
 | check | A command judged by its exit code: an expectation's read-only check, a probed assumption's probe, the service-is-back check, and a `check` row of the recorded commands (lint, type and build in `test_commands`; an exit-code check in `system_commands` and `consumer_checks`). | `expectations[].check`, probed `assumptions[].check`, `awaiting.check`, suite `check` | the Proof; settle |
@@ -75,6 +76,10 @@ lists, such as the refusal that tells a model it is retired. `pattern` is a regu
  {"retired": "a step's check (its Proof)", "use": "proof", "since": "2026-10-24",
   "pattern": "step's check\\b|its check in the step plan|own `check`", "allow": []},
  {"retired": "an open item's or unverified outcome's check (how it is settled)", "use": "settle", "since": "2026-10-24",
-  "pattern": "open item's `check`|`check` = who does what|the `check` its owner", "allow": []}
+  "pattern": "open item's `check`|`check` = who does what|the `check` its owner", "allow": []},
+ {"retired": "acceptance criteria (inside a requirement)", "use": "acceptance lines", "since": "2026-10-24",
+  "pattern": "(?i)acceptance criteri", "allow": []},
+ {"retired": "a step's requirement (its criterion)", "use": "criterion", "since": "2026-10-24",
+  "pattern": "requirement assigned to this step|requirements that have been stated|requirement's Confirm-by", "allow": []}
 ]
 ```

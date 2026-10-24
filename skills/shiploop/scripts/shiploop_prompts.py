@@ -1037,21 +1037,21 @@ DUTIES = {
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
    its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
    or tests.
-2. Write each requirement under KNOWLEDGE/spec.md ## Requirements as R-<n> with its acceptance criteria inside
-   (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each criterion: positive,
+2. Write each requirement under KNOWLEDGE/spec.md ## Requirements as R-<n> with its acceptance lines inside
+   (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each acceptance line: positive,
    failure and boundary expectations, each only where it says something the others do not, otherwise `n/a: <reason>`;
    the consumer surface where it is observed; how it is confirmed. Split independently verifiable clauses; keep
    bundled behaviours visible under one ID.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
    KNOWLEDGE/architecture.md ## Decisions, never in KNOWLEDGE/spec.md; a product decision never takes the AD- prefix.
-4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope, and
+4. Map every request outcome to at least one acceptance line (Behavior traceability guidance); keep approved scope, and
    list the domain rules the request leaves out under the R-<n> they bound. Mark each unresolved prerequisite or user
    decision as an open gap under its R-<n> in KNOWLEDGE/spec.md.
 5. In each R-<n> this run adds or changes, state its request or decision basis, preserved and changed behaviour,
    source-section locators, evidence limits, and pending implementation and checks. ShipLoop derives the added,
    changed and retired IDs from the spec diff; list none by hand.
 6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
-   guide): operating conditions, a numeric bound inside any hard platform limit or an observable criterion,
+   guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
    verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
@@ -1069,7 +1069,7 @@ DUTIES = {
    and truthful async feedback as consumer-visible behaviour.
 """ + _duty_focus(10, "KNOWLEDGE/spec.md", "spec") + """\
 11. """ + _BACKCHAIN_ITEM + """
-12. A complete spec establishes criteria, not implementation or test success. `evidence_refs`: KNOWLEDGE/spec.md, each
+12. A complete spec establishes acceptance lines, not implementation or test success. `evidence_refs`: KNOWLEDGE/spec.md, each
     requirement section and source used.
 """,
     "test-strategy": """\
@@ -1141,7 +1141,7 @@ DUTIES = {
    prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
    boundaries, correction route. The plan implies no unrun test and no authorized external operation.
 3. Apply Initial-plan reconciliation to KNOWLEDGE/architecture.md, KNOWLEDGE/spec.md, the non-functional requirements and the
-   State and data assessment: map each applicable obligation and every acceptance criterion to its work item,
+   State and data assessment: map each applicable obligation and every acceptance line to its work item,
    prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
    need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
@@ -1519,7 +1519,7 @@ in order; """ + _VERIFY_ONCE + """
    or side effect, one trace line per path in RUN/notes/<action>.md. A wrong, unhandled or untested path is a
    finding; a test added for an untested path is titled `<ID> (<letter>)` under the case it extends ("not a quoted
    case" is no reason to leave a path untested). An entry point missing from the inventory is untraced. Compare each
-   requirement's Confirm-by clause with the assertions that exist; a clause no assertion checks is a finding.
+   criterion's Confirm-by clause with the assertions that exist; a clause no assertion checks is a finding.
 5. **Review** the whole diff against the step plan's steps, paths and justified revisions, affected consumers, Code
    craft, the Coding decision selection and KNOWLEDGE/architecture.md. Look for: missing argument checks or contract
    docstrings at an entry point; missing error paths; silent failures; restating or stale comments; dead code; user
@@ -1698,7 +1698,7 @@ in order; """ + _VERIFY_ONCE + """
    architecture changes since the run began, the integrated test plan (latest done system-test-author record after
    the most recent accepted add-work, and KNOWLEDGE/environment.md ## Harnesses and suites; OUTER test-planning handshake),
    and the system-test result. Locators in `evidence_refs`.
-2. Assess the product against the original outcome, not only the spec: acceptance criteria, cross-cutting
+2. Assess the product against the original outcome, not only the spec: acceptance lines, cross-cutting
    requirements, consumer impact (Consumer delivery guidance), test evidence, known limits. Reconcile new and
    preserved behaviour against the prior baseline and incoming spec (Current-system baseline guide, Behavior
    traceability guidance) and check durable knowledge for gaps. A recovered description or planned check alone does
@@ -1914,7 +1914,7 @@ IMPROVE_SCOPES = {
     "intake": "the scope, authority, consumer, and unanswered-question record",
     "discovery": "repository/environment facts, initial-baseline evidence and classification, conventions, reuse findings, and material gaps",
     "research": "source-backed conclusions, uncertainty, and reuse recommendations",
-    "spec": "behavior, acceptance, non-functional criteria, existing-spec reconciliation, failure boundaries, and consumer outcomes",
+    "spec": "behavior, acceptance lines, non-functional requirements, existing-spec reconciliation, failure boundaries, and consumer outcomes",
     "test-strategy": "independent test/risk strategy, required test boundaries and their procedures",
     "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",

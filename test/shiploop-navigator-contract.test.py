@@ -975,7 +975,7 @@ class NavigatorContractTests(unittest.TestCase):
             " ".join(improve.split()),
         )
         self.assertIn(
-            "non-functional criteria, existing-spec reconciliation",
+            "non-functional requirements, existing-spec reconciliation",
             prompts.IMPROVE_SCOPES["spec"],
         )
 
@@ -1267,7 +1267,7 @@ class NavigatorContractTests(unittest.TestCase):
             " ".join(prompts.DUTIES["research"].split()),
         )
         self.assertIn(
-            "numeric bound inside any hard platform limit or an observable criterion",
+            "numeric bound inside any hard platform limit or an observable acceptance line",
             " ".join(prompts.DUTIES["spec"].split()),
         )
 

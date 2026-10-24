@@ -101,7 +101,7 @@ work step's `produces`/`contract.done`, not only sinks; a Backchain step
 `confirm` entry records the same confirmation in structured form.
 
 "The suite passes" alone is not per-outcome evidence. Use the existing
-acceptance criteria, case IDs and system-test catalog appropriate to that stage;
+acceptance lines, case IDs and system-test catalog appropriate to that stage;
 do not duplicate them in a new goal catalog. Share test infrastructure when useful, but retain each
 outcome's trace. A planned check is not a passing result.
 

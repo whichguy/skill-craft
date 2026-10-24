@@ -208,7 +208,7 @@ class ContractTests(Synthetic):
         (home / "spec.md").write_text("# Spec\n\n- R-2: the header, edited by the step.\n- R-9: new.\n")
         self.assertEqual(loops.contract(self.root, state, "A-implement"), written)
         for token in ("step S1", "C1", "R-2", "AD-3",
-                      "until each requirement assigned to this step is satisfied and none of the others is broken"):
+                      "until each criterion assigned to this step is satisfied and none of the others is broken"):
             self.assertIn(token, written["work"])
         self.assertNotRegex(written["work"], r"\bR-1\b")   # a criterion names R-2, so the item's R-1 is not this step's
 

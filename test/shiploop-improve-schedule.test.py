@@ -191,7 +191,7 @@ class ImproveScheduleTests(unittest.TestCase):
         # LOST OBLIGATION (re-cut 2026-10-11): the goal and done-when list the review judges the result against were
         # only in the old Improve packet's head; neither the new packet nor the handoff file states them.
         self.assertIn("Reviewing the returned spec result. Goal:", handoff)
-        self.assertIn("- every request outcome maps to at least one acceptance criterion", handoff)
+        self.assertIn("- every request outcome maps to at least one acceptance line", handoff)
         self.assertNotIn("Capture separate durable review files", handoff)
         text = " ".join(handoff.split())
         # P12: the child writes review-<n>.md per pass; the complete command picks the passes itself.

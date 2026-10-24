@@ -995,9 +995,11 @@ class RefusalRouteTests(RealCliCase):
         action_id = loops.cursor(state)[1]
         contract = json.loads((run / loops.contract_path(action_id)).read_text())
         done_when = " ".join(contract["exit_condition"].split())
-        # The implement row confirms the step by the requirements assigned to it, its Proof and the lint gate: it names
-        # no criterion field of the result, and the step's own criterion IDs follow only a step that lists them.
-        self.assertNotIn("criteri", done_when)
+        # The implement row confirms the step by the criteria assigned to it (R2, 2026-10-24: a step's C<n> is a
+        # criterion, never a requirement), its Proof and the lint gate: it names no field of the result, and the step's
+        # own criterion IDs follow only a step that lists them.
+        self.assertIn("each criterion assigned to this step", done_when)
+        self.assertNotIn("`criteria`", done_when)
         self.assertNotIn("Confirm by", done_when)
         self.assertIn("after the last edit", done_when)
 

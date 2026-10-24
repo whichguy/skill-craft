@@ -97,9 +97,9 @@ WORK_ONE_STEP = "Do duty items {items} of {run}/packets/{action}.md."
 # The inline implement step's Work (implement-step fix plan section 3.4, the owner's D4 words): the step is anchored in
 # its criteria, the R-<n> they serve and the item's AD-<n>, read from state (``step_anchors``) so the contract rebuilt
 # at complete is the one written at entry.  WORK["implement"] stays the ask-agent route's whole-plan Work (its T31).
-WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the requirements that have been stated "
+WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the criteria that have been stated "
              "({criteria}{serving}) and the design directions that have been applied ({decisions}), until each "
-             "requirement assigned to this step is satisfied and none of the others is broken. Do duty items {items} "
+             "criterion assigned to this step is satisfied and none of the others is broken. Do duty items {items} "
              "of {run}/packets/{action}.md. Write no tests and start no later step.")
 
 REPEAT: Mapping[str, str] = {

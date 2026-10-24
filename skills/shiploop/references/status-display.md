@@ -178,7 +178,7 @@ it showed (a live run repeated that narrative on 8 of 11 Improve packets until
 - **discovery** — argparse lives in cli.py; 142 tests pass on a clean checkout
 - **research** — importlib.metadata reads the installed version; no new dependency
 
-**▶️ Now** — **spec**: define required behavior and acceptance criteria
+**▶️ Now** — **spec**: define required behavior and acceptance lines
 
 **🔭 Ahead**
 - **test-strategy** — map requirements to the checks that will prove them
