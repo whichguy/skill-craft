@@ -4373,11 +4373,24 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             self.git("commit", "-qm", subject + "\n\nKey learnings:\n- " + name)
         lines = navigator.look_back_lines(self.state(), "implement")
         text = "\n".join(lines)
-        self.assertIn("fix: second", text)
-        self.assertIn("feat(W0/S1): first", text)
+        self.assertIn("fix: second | learned: two.txt", text)  # one line per commit: subject and its Key learnings
+        self.assertIn("feat(W0/S1): first | learned: one.txt", text)
         self.assertNotIn("docs(shiploop)", text)
         self.assertNotIn("base", text.split("\n", 1)[1])        # two commits only
+        self.assertEqual(len(lines), 3)
         self.assertEqual(navigator.look_back_lines(self.state(), "test"), [])
+
+    def test_a_printed_implement_head_carries_the_look_back(self) -> None:
+        # Chess run 4 (2026-10-20): the look-back was in all four implement packet files and in none of the nine printed
+        # heads (it was the last optional block), and no step cited an earlier commit.  It is required head text now.
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        state = self.state()
+        head = navigator.packet_head(self.core, self.run_dir, state, self.run_dir / "packets" / "x.md")
+        self.assertIn("Look back: the last ", head)
+        block = navigator._producer_blocks(self.core, self.run_dir, state, None, path=self.run_dir / "packets" / "x.md")
+        self.assertEqual(next(b.tier for b in block if b.name == "look-back"), navigator.P1)
 
     def test_complete_check_only_runs_the_gates_and_accepts_nothing(self) -> None:
         self.start()

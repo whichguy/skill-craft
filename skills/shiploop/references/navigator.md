@@ -674,8 +674,9 @@ On the inline route ShipLoop commits each accepted `implement` step before its
 Improve child starts, as `feat(<item>/<step>): <headline>` with the step's
 summary and its Key learnings, Key decisions, Evidence and Related commits
 sections, from the result's `learned`, `decisions`, `evidence_refs` and
-`learned_from`. Each inline implement packet quotes the last two commits that
-are not ShipLoop records (knowledge or leftover commits) as its look-back. A
+`learned_from`. Each inline implement packet's head quotes the last two commits
+that are not ShipLoop records (knowledge or leftover commits) as its look-back,
+one line each: the subject and its Key learnings. A
 redone step after a send-back names its own previous result and commit. A step
 may add an acceptance line inside an existing R-<n> entry of `spec.md`, ending
 `(<item>/<step>)`, which its commit carries; any other spec change at implement is
