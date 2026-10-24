@@ -2435,6 +2435,66 @@ class MetricsTest(unittest.TestCase):
 
 
 
+class GateCountsTest(unittest.TestCase):
+    """metrics.gate_counts (owner's per-gate fired/caught measurement): classify each ShipLoop refusal by
+    GATE_SIGNATURES, and tell whether the same action id's complete was later accepted."""
+
+    SPEC_WRITEBACK = ("ShipLoop navigator: Restore /r/docs/shiploop/spec.md to what HEAD holds plus this "
+                      "step's acceptance lines")
+
+    def collect(self, stream: list[dict]) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            (out / "timeline.jsonl").write_text("\n".join(json.dumps({"line": n, "t": 100.0 + n})
+                                                           for n in range(len(stream))) + "\n")
+            return metrics.collect(out, None)
+
+    def test_two_refusals_of_one_gate_one_caught_one_not_plus_an_unknown_refusal(self):
+        def call(call_id: str, action: str) -> dict:
+            return {"type": "tool_call", "toolCallId": call_id,
+                    "rawInput": {"command": f"python3 x/shiploop complete --run-dir r --action={action}"}}
+
+        def refuse(call_id: str, line: str) -> dict:
+            return {"type": "tool_call_update", "toolCallId": call_id,
+                    "rawOutput": {"exit_code": 2, "output_for_prompt": line}}
+
+        stream = [
+            call("a1", "nav-AAA"), refuse("a1", self.SPEC_WRITEBACK),              # fires spec_writeback
+            call("a2", "nav-AAA"),                                                 # same action, retried
+            {"type": "tool_call_update", "toolCallId": "a2",
+             "rawOutput": {"exit_code": 0, "output_for_prompt": "ShipLoop navigator | plan | revision 1"}},
+            call("b1", "nav-BBB"), refuse("b1", self.SPEC_WRITEBACK),              # fires spec_writeback, never caught
+            call("c1", "nav-CCC"), refuse("c1", "ShipLoop navigator: a brand-new refusal no row covers yet"),
+            {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0},
+        ]
+        m = self.collect(stream)
+        self.assertEqual(len(m["shiploop_failures"]), 3)
+        self.assertEqual(m["gate_counts"], {"spec_writeback": {"fired": 2, "caught": 1}, "other": {"fired": 1, "caught": 0}})
+
+    def test_an_unreadable_action_id_catches_on_the_next_complete_of_any_action(self):
+        stream = [
+            {"type": "tool_call", "toolCallId": "a1", "rawInput": {"command": "python3 x/shiploop complete --run-dir r"}},
+            {"type": "tool_call_update", "toolCallId": "a1",
+             "rawOutput": {"exit_code": 2, "output_for_prompt": self.SPEC_WRITEBACK}},
+            {"type": "tool_call", "toolCallId": "a2", "rawInput": {"command": "python3 x/shiploop complete --run-dir r --action=nav-ZZZ"}},
+            {"type": "tool_call_update", "toolCallId": "a2",
+             "rawOutput": {"exit_code": 0, "output_for_prompt": "ShipLoop navigator | plan | revision 1"}},
+            {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0},
+        ]
+        m = self.collect(stream)
+        self.assertEqual(m["gate_counts"], {"spec_writeback": {"fired": 1, "caught": 1}})
+
+    def test_summary_lines_shows_gate_counts_only_when_there_are_any(self):
+        self.assertEqual(metrics.gate_counts_text({"spec_writeback": {"fired": 2, "caught": 1},
+                                                   "other": {"fired": 1, "caught": 0}}),
+                         "spec_writeback 2 (caught 1), other 1")
+        self.assertNotIn("ShipLoop gates", "\n".join(metrics.summary_lines(
+            dict(shiploop_failures=[], gate_counts={}, model_glue=[], asked_user=[], sessions=[], cost_usd=0.0,
+                 unmeasured={}, improve_children=0, improve_reviews={}, script_verifications={
+                     "passed": 0, "records": 0, "could_not_run": 0, "red": 0}, turns=0, stages=[]))))
+
+
 class CodexRunTest(HarnessCase):
     def test_codex_run_passes_in_an_isolated_codex_home(self):
         code, result = self.invoke("codex", "done")
