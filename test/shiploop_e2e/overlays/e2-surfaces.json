@@ -1,19 +1,19 @@
 {
-  "about": "E2 (F1): test-strategy decides each layer in its own `surfaces` row, and each step-plan criterion says `confirm: executed` or `confirm: inspected` with a reason. Written against feat/shiploop-templates-6d625a (arm T, the text-only batch); a field T already states is not repeated.",
+  "about": "E2 (F1): test-strategy decides each layer in its own `test_layers` row (keyed `code` and `layer`), and each step-plan criterion carries `confirm: executed|searched|inspected`, the names the built branch uses. Written against 9ed4ec24 (arm T, the text-only batch); prompt-only, so the rows are a table in the summary, not a gated field.",
   "edits": [
     {
       "module": "shiploop_prompts.py",
       "constant": "DUTIES",
       "key": "test-strategy",
       "old": "Name each code surface's native unit harness; an\n   absent one is prerequisite work for prepare, never N/A.\n",
-      "new": "Name each code surface's native unit harness; an\n   absent one is prerequisite work for prepare, never N/A. Write a `surfaces` table there, one row per layer the\n   request touches (unit, component, service, rendered UI): `| layer | harness | state | how a check runs it |`,\n   state `available`, `prerequisite` (who builds it, before which item) or `unverifiable` (why no tool can).\n   Decide each row alone: a missing tool for one layer decides only that row.\n"
+      "new": "Name each code surface's native unit harness; an\n   absent one is prerequisite work for prepare, never N/A. Write a `test_layers` table there, one row per code\n   surface and layer the request touches: `| code | layer | harness | status | reason |`, layer `unit`,\n   `component` or `e2e`, status `available`, `prerequisite` (prepare builds it before the first item that needs it)\n   or `unverified` (why no runner can exist there; never for unit or component). Decide each row alone: a missing\n   tool for one layer decides only that row.\n"
     },
     {
       "module": "shiploop_prompts.py",
       "constant": "DUTIES",
       "key": "step-plan",
       "old": "say whether it must be exercised or inspection suffices, and name the\n   R-<n> served.\n",
-      "new": "end it with `confirm: executed` (a command runs the behaviour) or\n   `confirm: inspected - <why no runner can execute it>`, and name the R-<n> served. A criterion on a\n   `surfaces` row whose state is `available` or `prerequisite` is `executed`.\n"
+      "new": "end it with `confirm: executed` (a command runs the behaviour; a text\n   search runs nothing), `confirm: searched` (a command searches text the item writes) or `confirm: inspected`\n   naming the `test_layers` row (code and layer) whose status is `unverified`, and name the R-<n> served.\n"
     }
   ]
 }

@@ -25,8 +25,8 @@ CASE = "stand-in-parser"
 _ERROR = re.compile(r"\b(throw|throws|thrown|reject|rejects|refus\w*|\w*Error)\b", re.I)
 
 
-def judge(tree: Path, case: dict) -> dict:
-    stand_ins = common.FIXTURES / "stand-ins" / CASE
+def judge(tree: Path, case: dict, case_name: str = CASE) -> dict:
+    stand_ins = common.FIXTURES / "stand-ins" / case_name
     with tempfile.TemporaryDirectory() as tmp:
         own = common.sh(case["focused"], common.copy_tree(tree, Path(tmp) / "own"))
         rows = {}
@@ -38,15 +38,16 @@ def judge(tree: Path, case: dict) -> dict:
     if own["exit"] != 0:
         return {"value": None, "own_tests_pass": False, "own": own, "stand_ins": rows,
                 "why": "the final tree's own focused command fails, so a stand-in's failure proves nothing"}
-    return {"value": int(all(r["result"] == "killed" for r in rows.values())), "own_tests_pass": True,
-            "killed": sorted(n for n, r in rows.items() if r["result"] == "killed"), "stand_ins": rows}
+    killed = sorted(n for n, r in rows.items() if r["result"] == "killed")
+    return {"value": int(len(killed) == len(rows)), "own_tests_pass": True, "killed": killed,
+            "killed_fraction": round(len(killed) / len(rows), 4) if rows else None, "stand_ins": rows}
 
 
-def score(sample: Path) -> dict:
+def score(sample: Path, case_name: str = CASE) -> dict:
     tree = common.worktree(sample)
     if tree is None or not tree.is_dir():
         return {"value": None, "why": "no final tree"}
-    found = judge(tree, common.case(CASE))
+    found = judge(tree, common.case(case_name), case_name)
     spec = common.results(common.run_dir(sample), "test-spec")
     cases = (spec[-1].get("result") or {}).get("test_cases") or [] if spec else []
     found["error_rows"] = sum(1 for row in cases if _ERROR.search(f"{row.get('oracle', '')} {row.get('red', '')}"))
@@ -54,15 +55,15 @@ def score(sample: Path) -> dict:
     return found
 
 
-def verify() -> list[dict]:
-    case = common.case(CASE)
+def verify(case_name: str = CASE) -> list[dict]:
+    case = common.case(case_name)
     rows = []
     with tempfile.TemporaryDirectory() as tmp:
         for kind, expect in (("weak-tests", "survived"), ("strong-tests", "killed")):
             tree = common.copy_tree(common.FIXTURES / case["fixture"], Path(tmp) / kind)
-            common.copy_tree(common.FIXTURES / "stand-ins" / CASE / "reference", tree)
-            common.copy_tree(common.FIXTURES / "stand-ins" / CASE / kind, tree)
-            found = judge(tree, case)
+            common.copy_tree(common.FIXTURES / "stand-ins" / case_name / "reference", tree)
+            common.copy_tree(common.FIXTURES / "stand-ins" / case_name / kind, tree)
+            found = judge(tree, case, case_name)
             got = {r["result"] for r in found["stand_ins"].values()}
             rows.append({"tree": kind, "expect": expect, "got": found["stand_ins"], "own_tests_pass": found["own_tests_pass"],
                          "ok": found["own_tests_pass"] and got == {expect}})

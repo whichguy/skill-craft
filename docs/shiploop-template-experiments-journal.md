@@ -14,6 +14,24 @@ own records (W3 step-plan 0075307f, test-strategy 2214de28). Overlays are prompt
 so E1 asks for Stand-in rejected at the end of red, and E4 carries its targets row by value in the seeded step-plan
 summary that the test-spec packet quotes.
 
+## Round 2 harness (2026-10-24, status: firm for the harness, exploratory for the cases)
+
+Round 1 hit a ceiling: every E1 and E3 sample in every arm scored 1.0, and `decide` called it inconclusive "for want of
+samples 1-4", which hid the real cause. Changes (test/shiploop_e2e/):
+- `judge` reports `ceiling` (every sample of both arms 1) or `floor` (every one 0) as its own verdict at any n; every
+  experiment now runs 4 samples per arm, since the A/A spread needs the control's samples 1-4 (the docstring said so,
+  the defaults were 5 and the round ran 3). Hermetic tests in test/shiploop-e2e-experiments.test.py (Decide).
+- E1b (E1 kept as is for the record): case `stand-in-rules` on fixture node-orders, four subtle stand-ins each modelled
+  on a run-4 miss (`one-rule-missing`, `tested-only`, `limit-never-trips`, `cross-field`); the value is the fraction
+  killed (0-1). `verify E1b`: a run-4-style weak test file lets all four survive, a strong one kills all four. Arms
+  A = 288075c9, T = 9ed4ec24, B = T + overlays/e1b-stand-in.json (a `Stand-in rejected:` line per row, absence paired
+  with count assertions, budgets checked at their stated value).
+- E2: overlay reworded to the built branch's names (`test_layers` keyed `code` and `layer`; `confirm:
+  executed|searched|inspected`); arm F = d21c770e, the templates branch head at build time (its committed field is still
+  `surfaces`; the evaluator reads `surfaces` and `test_layers` rows and the criterion `confirm` field). T and B pinned to
+  9ed4ec24; E4 and E5 too, which clears the quick-tier "`old` occurs 0 times" failure of their B overlays.
+- `run --sample N` runs exactly one sample, so each sample can be its own background task.
+
 ## Decisions
 
 | date | experiment | arms | n | means | spread | gate | verdict | record |

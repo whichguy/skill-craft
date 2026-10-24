@@ -14,6 +14,9 @@ From the records only: the test-strategy result's summary and the knowledge file
   by inspection with no reason cited (``inspected because`` / ``reason``).
 - ``source_search_checks``: step checks and check commands that only search source text: grep, test -f / -e, or a
   script whose every command line is one of those.
+Structured fields (arm F, the built branch) are read too: the test-strategy result's ``surfaces`` (or, after the
+rename, ``test_layers`` keyed ``code`` and ``layer``) rows become strategy lines, and a criterion's ``confirm`` field
+(``executed`` / ``searched``, or ``inspected`` naming its layer row) settles whether it is inspection without a reason.
 ``value`` is 1 when prerequisite is recorded, no UI criterion is inspection-only without a reason and no check is a
 source search; else 0. ``verify``: run 4's own test-strategy and W3 step-plan are flagged (value 0, deferred_ui and a
 source-search check); a planted good record scores 1.
@@ -66,8 +69,8 @@ def judge(strategy_text: str, step_plan: dict | None, tree: Path | None) -> dict
     deferred = (not prerequisite) and any(_DEFERRED.search(line) for line in lines)
     criteria = (step_plan or {}).get("criteria") or []
     ui = [c for c in criteria if _UI.search(c.get("text", ""))]
-    inspected = [c["id"] for c in ui if _INSPECT.search(c.get("text", "")) and not _EXEC.search(c.get("text", ""))
-                 and not _REASON.search(c.get("text", ""))]
+    inspected = [c["id"] for c in ui if not _confirmed(c) and _INSPECT.search(c.get("text", ""))
+                 and not _EXEC.search(c.get("text", "")) and not _REASON.search(c.get("text", ""))]
     commands = [s.get("check", "") for s in (step_plan or {}).get("steps") or []]
     commands += [c.get("command", "") for c in (step_plan or {}).get("test_commands") or []]
     searches = sorted({c for c in commands if c and source_search(c, tree)})
@@ -76,9 +79,27 @@ def judge(strategy_text: str, step_plan: dict | None, tree: Path | None) -> dict
             "inspected_ui": inspected, "source_search_checks": searches}
 
 
+def _confirmed(criterion: dict) -> bool:
+    """A structured ``confirm`` field (arm F, the built branch): ``executed`` or ``searched`` is not inspection, and the
+    gate makes ``inspected`` name its unverified layer row (``surface``/``code`` and ``layer``), which is its reason."""
+    confirm = criterion.get("confirm")
+    if confirm in ("executed", "searched"):
+        return True
+    return confirm == "inspected" and bool(criterion.get("layer")) and bool(criterion.get("surface") or criterion.get("code"))
+
+
+def layer_lines(result: dict) -> str:
+    """The structured layer rows (``surfaces`` at d21c770e, ``test_layers`` keyed ``code`` after the rename) as text
+    lines the strategy checks read: one per row, ``<code> | <layer> harness <harness> | <status> | <reason>``."""
+    rows = result.get("test_layers") or result.get("surfaces") or []
+    return "\n".join(f"{r.get('code') or r.get('surface')} | {r.get('layer')} harness {r.get('harness')} | "
+                     f"{r.get('status')} | {r.get('reason', '')}" for r in rows if isinstance(r, dict))
+
+
 def _strategy_text(folder: Path | None, tree: Path | None) -> str:
     rows = common.results(folder, "test-strategy")
-    text = "\n".join((r.get("result") or {}).get("summary", "") for r in rows)
+    text = "\n".join((r.get("result") or {}).get("summary", "") + "\n" + layer_lines(r.get("result") or {})
+                     for r in rows)
     for name in ("environment.md", "architecture.md"):
         path = (tree / "docs" / "shiploop" / name) if tree else None
         if path and path.is_file():
@@ -117,6 +138,18 @@ def verify() -> list[dict]:
                      "ok": found["value"] == 0 and found["deferred_ui"] and bool(found["source_search_checks"])})
     found = judge(GOOD_STRATEGY, GOOD_PLAN, None)
     rows.append({"record": "planted good", "expect": "value 1", "got": found, "ok": found["value"] == 1})
+    for key, name in (("surfaces", "surface"), ("test_layers", "code")):
+        strategy = layer_lines({key: [{name: "choice component", "layer": "component", "harness": "none",
+                                       "status": "prerequisite", "reason": "prepare installs jsdom before W1"}]})
+        plan = {**GOOD_PLAN, "criteria": [{"id": "C1", "text": "Clicking an option marks it pressed.", "confirm": "executed"},
+                                          {"id": "C2", "text": "The button shows its focus ring.", "confirm": "inspected",
+                                           name: "choice component", "layer": "e2e"}]}
+        found = judge(strategy, plan, None)
+        rows.append({"record": f"planted good, structured {key}", "expect": "value 1", "got": found, "ok": found["value"] == 1})
+        bad = judge(strategy, {**plan, "criteria": [{"id": "C1", "text": "The button shows; inspection suffices.",
+                                                     "confirm": "inspected"}]}, None)
+        rows.append({"record": f"planted bad, structured {key} inspected with no row", "expect": "value 0", "got": bad,
+                     "ok": bad["value"] == 0 and bad["inspected_ui"] == ["C1"]})
     return rows
 
 

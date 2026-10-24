@@ -343,5 +343,111 @@
         "node -e \"const {Basket}=require('./src/basket');const a=require('assert');for (const l of [0,-1,1.5,'2']) a.throws(()=>new Basket({limit:l}),TypeError)\""
       ]
     }
+  },
+  "stand-in-rules": {
+    "fixture": "node-orders",
+    "prompt": "In this Node.js project, add a new module src/orders.js exporting parseOrders(text) and total(orders). parseOrders reads one order per non-blank line; a line holds fields `key=value` joined by `;` with keys id, qty, price, status and shipped_at, and values are trimmed. It returns objects {id, qty, price, status, shippedAt}: id, qty and price are numbers, status is lower-cased, shippedAt is the shipped_at text ('' when empty). parseOrders('id=1;qty=2;price=150;status=Open;shipped_at=\\n\\nid=2;qty=1;price=99;status=shipped;shipped_at=2026-10-01') returns [{id:1,qty:2,price:150,status:'open',shippedAt:''},{id:2,qty:1,price:99,status:'shipped',shippedAt:'2026-10-01'}]. Rules, each naming the 1-based line in its message: qty must be a whole number of at least 1 and price whole cents of at least 0, else RangeError; a field with no `=`, a status other than open or shipped, or a shipped_at that is not YYYY-MM-DD throws SyntaxError; and the fields must agree: a shipped order needs a shipped_at date and an open order must not have one, else SyntaxError. A non-string argument throws TypeError. total(orders) returns the sum of qty * price in cents (399 for the example) and must call meter.tick() from src/meter.js exactly once per order: its budget is one tick per order, far below the meter's hard limit of 10,000 ticks, past which the meter throws. Cover it with node:test tests; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add parseOrders and total in src/orders.js",
+      "context": "Exact oracles and rules in the request; each rule names the line; total's budget is one meter tick per order."
+    },
+    "expect_paths": [
+      "src/orders.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node --test",
+      "node -e \"const {parseOrders,total}=require('./src/orders');const m=require('./src/meter');const a=require('assert');const o=parseOrders('id=1;qty=2;price=150;status=Open;shipped_at=\\n\\nid=2;qty=1;price=99;status=shipped;shipped_at=2026-10-01');a.deepStrictEqual(o,[{id:1,qty:2,price:150,status:'open',shippedAt:''},{id:2,qty:1,price:99,status:'shipped',shippedAt:'2026-10-01'}]);m.reset();a.strictEqual(total(o),399);a.ok(m.count()<=2);a.throws(()=>parseOrders('id=1;qty=0;price=1;status=open;shipped_at='),RangeError);a.throws(()=>parseOrders('id=1;qty=1;price=1;status=open;shipped_at=2026-10-01'),SyntaxError);a.throws(()=>parseOrders(1),TypeError)\""
+    ],
+    "focused": "node --test",
+    "stand_ins": [
+      "one-rule-missing",
+      "tested-only",
+      "limit-never-trips",
+      "cross-field"
+    ],
+    "stand_in_file": "src/orders.js",
+    "seed_records": {
+      "step-plan": {
+        "criteria": [
+          {
+            "id": "C1",
+            "text": "parseOrders returns one normalised order per non-blank line (numbers, lower-cased status, shippedAt). Confirm by: the focused command; pass when TC-1 passes. Exercised. Serves R-1."
+          },
+          {
+            "id": "C2",
+            "text": "qty below 1, price below 0, a field with no =, an unknown status or a bad date throws the named error naming the line; a non-string throws TypeError. Confirm by: the focused command; pass when TC-2 and TC-3 pass. Exercised. Serves R-1."
+          },
+          {
+            "id": "C3",
+            "text": "status and shipped_at agree: shipped needs a date, open has none, else SyntaxError naming the line. Confirm by: the focused command; pass when TC-4 passes. Exercised. Serves R-1."
+          },
+          {
+            "id": "C4",
+            "text": "total returns the sum of qty * price and calls meter.tick() exactly once per order. Confirm by: the focused command; pass when TC-5 passes. Exercised. Serves R-1."
+          }
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "task": "Add src/orders.js with parseOrders and total (C1-C4).",
+            "deps": [],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3",
+              "C4"
+            ],
+            "check": "node -e \"const {parseOrders,total}=require('./src/orders');const m=require('./src/meter');const a=require('assert');const o=parseOrders('id=1;qty=2;price=150;status=Open;shipped_at=\\n\\nid=2;qty=1;price=99;status=shipped;shipped_at=2026-10-01');a.deepStrictEqual(o,[{id:1,qty:2,price:150,status:'open',shippedAt:''},{id:2,qty:1,price:99,status:'shipped',shippedAt:'2026-10-01'}]);m.reset();a.strictEqual(total(o),399);a.ok(m.count()<=2);a.throws(()=>parseOrders('id=1;qty=0;price=1;status=open;shipped_at='),RangeError);a.throws(()=>parseOrders('id=1;qty=1;price=1;status=open;shipped_at=2026-10-01'),SyntaxError);a.throws(()=>parseOrders(1),TypeError)\"",
+            "skills": []
+          }
+        ],
+        "test_commands": [
+          {
+            "command": "node --test --test-reporter=spec test/orders.test.js",
+            "suite": "focused",
+            "ids": [
+              "TC-1",
+              "TC-2",
+              "TC-3",
+              "TC-4",
+              "TC-5"
+            ],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3",
+              "C4"
+            ]
+          },
+          {
+            "command": "node --test",
+            "suite": "regression"
+          }
+        ],
+        "expectations": [
+          {
+            "id": "E1",
+            "state": "absent",
+            "statement": "src/orders.js does not exist yet",
+            "steps": [
+              "S1"
+            ],
+            "paths": [
+              "src/orders.js"
+            ],
+            "check": "test ! -e src/orders.js"
+          }
+        ],
+        "paths": [
+          "src/orders.js",
+          "test/orders.test.js"
+        ],
+        "follows": [
+          "R-1"
+        ]
+      }
+    }
   }
 }

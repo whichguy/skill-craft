@@ -28,7 +28,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
-T_REF = "feat/shiploop-templates-6d625a"
+T_REF = "9ed4ec24"
 
 
 def _digest(folder: Path) -> str:
@@ -184,6 +184,34 @@ class Decide(unittest.TestCase):
     def test_without_four_control_samples_nothing_is_decided(self):
         self.assertEqual(experiment.judge(self.rows([0, 0]), self.rows([1, 1]))["verdict"], "inconclusive")
 
+    def test_every_sample_at_one_is_a_ceiling_even_below_four_samples(self):
+        for n in (3, 4):
+            found = experiment.judge(self.rows([1] * n), self.rows([1] * n))
+            self.assertEqual(found["verdict"], "ceiling", n)
+            self.assertNotIn("samples 1-4", found["reason"])
+
+    def test_every_sample_at_zero_is_a_floor(self):
+        self.assertEqual(experiment.judge(self.rows([0, 0, 0]), self.rows([0, 0, 0, 0]))["verdict"], "floor")
+
+    def test_a_tie_inside_the_bounds_at_three_samples_is_inconclusive_for_want_of_sample_four(self):
+        found = experiment.judge(self.rows([0.5] * 3), self.rows([0.5] * 3))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertIn("samples 1-4", found["reason"])
+
+    def test_one_arm_at_the_bound_is_not_a_ceiling(self):
+        self.assertNotEqual(experiment.judge(self.rows([1, 1, 1, 1]), self.rows([1, 1, 0.75, 1]))["verdict"], "ceiling")
+
+    def test_fractional_values_decide_on_the_spread(self):
+        found = experiment.judge(self.rows([0.25, 0.25, 0.25, 0.5]), self.rows([1, 0.75, 1, 1]))
+        self.assertEqual((found["verdict"], found["spread"]), ("supports", 0.125))
+
+    def test_every_experiment_runs_four_samples_and_pins_each_arm_to_a_commit(self):
+        for exp_id, exp in experiment.load().items():
+            with self.subTest(exp=exp_id):
+                self.assertEqual(exp["samples"], 4)
+                for name, arm in exp["arms"].items():
+                    self.assertRegex(arm["ref"], r"^[0-9a-f]{8,40}$", f"{exp_id}/{name}")
+
     def test_a_lower_gate_rate_contradicts_whatever_the_score(self):
         found = experiment.judge(self.rows([0, 0, 0, 0], [True] * 4), self.rows([1, 1, 1, 1], [True, False, True, True]),
                                  "defect_caught")
@@ -234,6 +262,29 @@ class Decide(unittest.TestCase):
         self.assertIsNone(experiment._resolved_commit(None))
 
 
+class RunOneSample(unittest.TestCase):
+    def test_sample_n_runs_exactly_that_sample_and_samples_n_runs_one_to_n(self):
+        from unittest import mock  # noqa: PLC0415
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            calls = []
+
+            def fake(argv, *a, **k):
+                calls.append(Path(argv[argv.index("--output") + 1]).parent.name)
+                return subprocess.CompletedProcess(argv, 0)
+
+            with mock.patch.object(experiment.subprocess, "run", fake), \
+                    mock.patch.object(experiment, "_resolved_commit", lambda ref: "c" * 40), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                experiment.main(["run", "E1b", "--arm", "B", "--sample", "3", "--out", str(out)])
+                self.assertEqual(calls, ["3"])
+                self.assertEqual([p.name for p in (out / "E1b" / "B").iterdir()], ["3"])
+                experiment.main(["run", "E1b", "--arm", "A", "--out", str(out)])
+                self.assertEqual(calls[1:], ["1", "2", "3", "4"])
+                with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                    experiment.main(["run", "E1b", "--arm", "A", "--sample", "1", "--samples", "2", "--out", str(out)])
+
+
 class Evaluators(unittest.TestCase):
     def check(self, exp_id: str, needs_run4: bool = False):
         import common  # noqa: PLC0415
@@ -247,6 +298,19 @@ class Evaluators(unittest.TestCase):
 
     def test_e1_weak_tests_let_both_stand_ins_survive_and_strong_tests_kill_them(self):
         self.check("E1")
+
+    def test_e1b_weak_tests_let_all_four_subtle_stand_ins_survive_and_strong_tests_kill_them(self):
+        self.check("E1b")
+
+    def test_e1b_scores_the_fraction_killed(self):
+        import e1b_subtle_stand_ins as e1b  # noqa: PLC0415
+        from unittest import mock  # noqa: PLC0415
+        with mock.patch.object(e1b.e1_stand_ins, "judge", lambda *a: {"value": 0, "own_tests_pass": True, "killed": ["x"],
+                                                                      "killed_fraction": 0.25, "stand_ins": {}}), \
+                mock.patch.object(e1b.common, "worktree", lambda s: Path(tempfile.gettempdir())), \
+                mock.patch.object(e1b.common, "run_dir", lambda s: None):
+            found = e1b.score(Path("unused"))
+        self.assertEqual((found["value"], found["all_killed"]), (0.25, 0))
 
     def test_e2_flags_run_4s_strategy_and_step_plan_and_credits_a_planted_good_record(self):
         self.check("E2", needs_run4=True)

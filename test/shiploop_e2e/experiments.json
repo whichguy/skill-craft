@@ -1,19 +1,28 @@
 {
-  "_about": "Template-field experiments (experiment.py). One claim, one step case (step_cases.json), a seed point and a stop point for slice.py, arms and a script evaluator (evaluators/). An arm names the plugin it runs: `ref` (a git ref built read-only) and optionally `overlay` (overlays/*.json applied to that build copy) and `seed_records` ({stage: fields} merged over the case's). Round 1: A = release 2.8.0, T = the text-only batch, B = T plus the field overlay. Round 2: point B at the built branch's commit with no overlay. `value` per sample is the evaluator's score; decide compares two arms with the A/A spread of the first arm's samples 1-2 vs 3-4.",
+  "_about": "Template-field experiments (experiment.py). One claim, one step case (step_cases.json), a seed point and a stop point for slice.py, arms and a script evaluator (evaluators/). An arm names the plugin it runs: `ref` (a git ref built read-only) and optionally `overlay` (overlays/*.json applied to that build copy) and `seed_records` ({stage: fields} merged over the case's). Round 1: A = release 2.8.0, T = the text-only batch, B = T plus the field overlay. Round 2: point B at the built branch's commit with no overlay. `value` per sample is the evaluator's score; decide compares two arms with the A/A spread of the first arm's samples 1-2 vs 3-4, so every experiment runs 4 samples per arm. Every arm names a commit (pinned 2026-10-24 (T and B = 9ed4ec24, the text-only batch; E2 F = the templates branch head d21c770e, the built test-layer fields and gates).",
   "E1": {
     "claim": "A producer that must name the weaker implementation each oracle rejects writes tests that kill the planted stand-ins more often than one only told to avoid weak checks.",
     "fix": "F4", "case": "stand-in-parser", "seed_at": "test-spec", "stop_after": "test",
     "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"},
              "B": {"ref": "9ed4ec24", "overlay": "overlays/e1-stand-in.json"}},
-    "evaluator": "evaluators/e1_stand_ins.py", "samples": 5,
+    "evaluator": "evaluators/e1_stand_ins.py", "samples": 4,
     "metric": "1 when every stand-in (empty, lenient) is killed by the final tree's tests"
+  },
+  "E1b": {
+    "claim": "Against subtle stand-ins (one rule dropped, right only on tested inputs, over budget below a hard limit, fields inconsistent together), a producer that names on each row the stand-in its oracle rejects and pairs absence with count assertions kills more of them than one only told to avoid weak checks.",
+    "fix": "F4", "case": "stand-in-rules", "seed_at": "test-spec", "stop_after": "test",
+    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"},
+             "B": {"ref": "9ed4ec24", "overlay": "overlays/e1b-stand-in.json"}},
+    "evaluator": "evaluators/e1b_subtle_stand_ins.py", "samples": 4,
+    "metric": "the fraction of the four subtle stand-ins the final tree's tests kill (0-1)"
   },
   "E2": {
     "claim": "Deciding each test layer in its own surfaces row records a missing component harness as prerequisite work and plans executed UI checks, instead of deferring the whole UI when no browser exists.",
     "fix": "F1", "case": "ui-component", "seed_at": "test-strategy", "stop_after": "step-plan",
-    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "feat/shiploop-templates-6d625a"},
-             "B": {"ref": "feat/shiploop-templates-6d625a", "overlay": "overlays/e2-surfaces.json"}},
-    "evaluator": "evaluators/e2_layers.py", "samples": 5,
+    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"},
+             "B": {"ref": "9ed4ec24", "overlay": "overlays/e2-surfaces.json"},
+             "F": {"ref": "d21c770e5c71888069f239c7e2156b22ae515b61"}},
+    "evaluator": "evaluators/e2_layers.py", "samples": 4,
     "metric": "1 when the lower-layer harness is prerequisite, no UI criterion is inspection-only without a reason, and no check only searches source"
   },
   "E3": {
@@ -21,24 +30,24 @@
     "fix": "F2", "case": "stand-in-parser", "seed_at": "step-plan", "stop_after": "test",
     "opening_note": "experiment_notes/e3-revisit.txt",
     "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"}},
-    "evaluator": "evaluators/e3_red.py", "samples": 5,
+    "evaluator": "evaluators/e3_red.py", "samples": 4,
     "metric": "1 when no focused command is file-guarded and the first base run failed behaviourally"
   },
   "E4": {
     "claim": "A targets row quoted by value into the packet (keeps_state, base_state_route) is acted on: the base run goes red on a stateful target where prose alone lets it pass falsely.",
     "fix": "F3", "case": "stateful-target", "seed_at": "test-spec", "stop_after": "test",
-    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "feat/shiploop-templates-6d625a"},
-             "B": {"ref": "feat/shiploop-templates-6d625a", "overlay": "overlays/e4-targets.json",
+    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"},
+             "B": {"ref": "9ed4ec24", "overlay": "overlays/e4-targets.json",
                    "seed_records": {"step-plan": {"summary": "Synthetic: recorded by the E2E seed without doing it; the request is the specification. targets: local deployed target (LOCAL_TARGET), keeps_state: yes, base_state_route: run `node scripts/deploy.js --clean` before the tests, so the base starts from a target without this item."}}}},
-    "evaluator": "evaluators/e4_base_state.py", "samples": 5,
+    "evaluator": "evaluators/e4_base_state.py", "samples": 4,
     "metric": "1 when the test gate's first base run was red for the item's focused tests"
   },
   "E5": {
     "claim": "Improve fixes real defects but adds a test that fails before its fix only when its commit form requires a Regression test line.",
     "fix": "F5", "case": "node-seeded-early-validation", "seed_at": "step-plan", "stop_after": "carry-forward",
-    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "feat/shiploop-templates-6d625a"},
-             "B": {"ref": "feat/shiploop-templates-6d625a", "overlay": "overlays/e5-regression.json"}},
-    "evaluator": "evaluators/e5_regression.py", "samples": 5,
+    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"},
+             "B": {"ref": "9ed4ec24", "overlay": "overlays/e5-regression.json"}},
+    "evaluator": "evaluators/e5_regression.py", "samples": 4,
     "metric": "1 when at least one Improve fix exists and each has a test that fails with the fix reverted",
     "gate": "defect_caught"
   }

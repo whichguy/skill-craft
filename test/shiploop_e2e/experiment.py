@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Template-field experiments: run arms as step slices, score them with a script, decide between two arms.
 
-    python3 test/shiploop_e2e/experiment.py run E1 --arm A --samples 5 [--host grok] [--out DIR]
+    python3 test/shiploop_e2e/experiment.py run E1 --arm A [--samples 4 | --sample N] [--host grok] [--out DIR]
     python3 test/shiploop_e2e/experiment.py score E1 [--out DIR]
     python3 test/shiploop_e2e/experiment.py verify E1                 # the evaluator (and the case) tell bad from good
     python3 test/shiploop_e2e/experiment.py decide E1 A T [--out DIR] # also: decide E1 T B; default A B, else A T
@@ -10,13 +10,17 @@
 experiments.json holds each experiment: its claim, step case, seed and stop points, arms and evaluator. An arm builds
 its plugin from a git ref (read-only, overlay.build_ref) and may lay a prompt overlay over that build copy (overlay.py)
 and add seeded records. ``run`` starts one slice.py per sample into ``<out>/<id>/<arm>/<n>/slice`` (a sample whose slice
-finished is skipped; one cut off is moved aside to ``slice.cut-<time>`` and run again). ``score`` runs the evaluator on
+finished is skipped; one cut off is moved aside to ``slice.cut-<time>`` and run again): samples 1..``--samples`` (default
+the experiment's ``samples``, 4 everywhere), or with ``--sample N`` exactly sample N, so a coordinator can give each
+sample its own background task and a task time limit costs at most one sample. ``score`` runs the evaluator on
 every finished sample and writes ``<out>/<id>/<arm>/<n>/score.json``. ``decide X Y`` compares the mean ``value`` of the
-two arms; the A/A spread is the difference between X's samples 1-2 and 3-4 (arms.aa_spread on their means), the only
-threshold:
+two arms (each ``value`` lies in 0-1); the A/A spread is the difference between X's samples 1-2 and 3-4 (arms.aa_spread
+on their means), the only threshold, so X needs scored samples 1-4 and every experiment runs 4 samples per arm:
+  ceiling       every sample of both arms scored 1 (floor: 0), whatever n: the case cannot separate the arms, so
+                the case, not the arms, needs changing (round 1's E1 and E3);
   supports      Y's mean is above X's by more than the spread (and, with a ``gate``, Y's gate rate is not below X's);
   contradicts   Y is no better than X (difference <= 0), or the gate rate fell;
-  inconclusive  Y is better by no more than the spread, or X has fewer than 4 scored samples.
+  inconclusive  Y is better by no more than the spread, or X lacks scored samples 1-4 (the reason says which).
 It writes ``<out>/<id>/decision-<X>-<Y>.json`` (and ``decision.json``, the latest) and appends one line to
 docs/shiploop-template-experiments-journal.md. Default out: $SHIPLOOP_EXPERIMENTS_OUT, else ~/e2e-runs/experiments.
 """
@@ -128,14 +132,16 @@ def _check_single_commit(rows: list[dict], exp_id: str, arm: str) -> None:
                           f"move the stale samples aside, and re-run before scoring or deciding.")
 
 
-def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: list[str]) -> int:
+def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: list[str], only: int | None = None) -> int:
     exp = load(exp_id)
     if arm_name not in exp["arms"]:
         raise SystemExit(f"{exp_id} has no arm {arm_name!r}; arms: {', '.join(exp['arms'])}")
     arm = exp["arms"][arm_name]
     commit = _resolved_commit(arm.get("ref"))
     status = 0
-    for n in range(1, count + 1):
+    if only is not None and only < 1:
+        raise SystemExit(f"--sample must be 1 or more, not {only}")
+    for n in ([only] if only is not None else range(1, count + 1)):
         sample = out / exp_id / arm_name / str(n)
         if finished(sample):
             print(f"{exp_id}/{arm_name}/{n}: finished earlier, skipped", flush=True)
@@ -201,6 +207,9 @@ def read_scores(out: Path, exp_id: str, arm: str) -> list[dict]:
     return rows
 
 
+BOUNDS = (0, 1)  # every evaluator's value lies in 0-1
+
+
 def judge(x: list[dict], y: list[dict], gate: str | None = None) -> dict:
     """The verdict on Y against X from their score records (see the module doc)."""
     def values(rows):
@@ -218,6 +227,11 @@ def judge(x: list[dict], y: list[dict], gate: str | None = None) -> dict:
         report["reason"] = "an arm has no scored sample"
         return report
     report["difference"] = report["means"][1] - report["means"][0]
+    for bound, name in ((BOUNDS[1], "ceiling"), (BOUNDS[0], "floor")):
+        if all(v == bound for v in vx + vy):
+            report.update(verdict=name, reason=f"every sample of both arms scored {bound}: the case does not separate "
+                          f"the arms at this bound, so change the case before adding samples")
+            return report
     if not all(n in by_n for n in (1, 2, 3, 4)):
         report["reason"] = "the first arm needs scored samples 1-4 for the A/A spread"
         return report
@@ -306,7 +320,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("id", nargs="?")
     p.add_argument("pair", nargs="*", help="decide: the two arms, control first (default A B, else A T)")
     p.add_argument("--arm")
-    p.add_argument("--samples", type=int, default=None)
+    p.add_argument("--samples", type=int, default=None, help="run: samples 1..N (default: the experiment's samples)")
+    p.add_argument("--sample", type=int, default=None, help="run: exactly this one sample (its own background task)")
     p.add_argument("--host", default="grok")
     p.add_argument("--out", type=Path, default=None)
     args, extra = p.parse_known_args(argv)
@@ -321,7 +336,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         if not args.arm:
             p.error("run needs --arm")
-        return run(args.id, args.arm, args.samples or load(args.id).get("samples", 5), args.host, out, extra)
+        if args.sample is not None and args.samples is not None:
+            p.error("run takes --samples or --sample, not both")
+        return run(args.id, args.arm, args.samples or load(args.id).get("samples", 4), args.host, out, extra, args.sample)
     if args.command == "score":
         print(json.dumps(score(args.id, out), indent=2))
         return 0
