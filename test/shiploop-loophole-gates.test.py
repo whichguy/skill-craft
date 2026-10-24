@@ -39,7 +39,6 @@ _IMPROVE.loader.exec_module(improve_cli)
 FOCUSED = contract.FOCUSED
 # A test-strategy target that keeps state between runs (F3), named by the rows that need one.
 STATEFUL = {"target": "the shared service", "keeps_state": "yes", "base_state_route": "a clean namespace per run"}
-STATEFUL_RUN = {"test-strategy": {"targets": [STATEFUL]}}
 # An unverified outcome of the spec's primary requirement R-1 (F6), and the add-work its refusal names.
 PRIMARY_RUN = {"spec": {"primary": ["R-1"]}}
 PRIMARY_ROW = dict(contract.UNVERIFIED_ENTRY, requirement="R-1", outcome="a person sees the built file's text",
@@ -99,11 +98,6 @@ DODGES = [
      lambda block: commands(block, focused(lambda row: dict(row, target="the shared service"))),
      "which is no test-strategy targets row",
      lambda block: block),            # the named exit: leave target out for a command that runs on the checkout
-    ("a stateful target whose focused and regression commands name no target", "run 4's W2 (F3)", "step-plan",
-     STATEFUL_RUN, lambda block: block,
-     "so each focused or regression command names, in target, the targets row it runs on",
-     lambda block: commands(block, lambda row: dict(row, target=STATEFUL["target"])
-                            if row.get("suite") in ("focused", "regression") else row)),
     ("an unverified primary outcome whose lower-layer check is a person's reading", "run 4's product-acceptance (F6)",
      "product-acceptance", PRIMARY_RUN, lambda block: {**block, "unverified": [PRIMARY_ROW]},
      "a primary requirement (spec primary), and its lower_layer_check names no test",

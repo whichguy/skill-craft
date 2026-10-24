@@ -2332,6 +2332,17 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.write("docs: x\n\nKey learnings: none\n")
         self.invoke(*self.commit_args)
 
+    def test_the_regression_test_is_found_when_the_run_works_in_a_subdirectory_of_the_checkout(self):
+        """Sol pass 2, finding 3: review_changes names paths from the Git toplevel, not from the run's repository."""
+        top = self.base / "mono"
+        (top / "app" / "tests").mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(top)], check=True, capture_output=True, env=self.environment)
+        (top / "app" / "tests" / "test_calc.py").write_text("def test_calc_rejects_zero():\n    pass\n", encoding="utf-8")
+        pending = ["app/src/calc.py", "app/tests/test_calc.py"]
+        message = "fix\n\nKey learnings: none\nRegression test: test_calc_rejects_zero\n"
+        self.assertEqual(navigator._regression_refusal(top / "app", {"stage": "carry-forward"}, message, pending,
+                                                       self.base / "m.md", "CMD"), "")
+
     def test_a_step_review_code_fix_owes_no_regression_line(self):
         """F5 is end-of-work only (owner decision): a step review's code fix commits without the line."""
         path = self.base / "commit-message.md"

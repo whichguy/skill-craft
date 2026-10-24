@@ -50,6 +50,16 @@ class GrepChecks(unittest.TestCase):
         self.assertEqual(found["grep"]["unmatched"], ["grep -n render lib/view.ts"])
         self.assertEqual(found["grep"]["executed"], [])
 
+    def test_a_grep_beside_a_real_test_of_the_same_criterion_is_no_dodge(self) -> None:
+        """Sol pass 2, finding 6: judged per criterion, as the step-plan gate judges it."""
+        found = metrics.plan_dodges(step_plan(
+            [{"id": "C1", "text": "Moves are validated.", "confirm": "executed"}],
+            [{"command": "node --test test/board.test.js", "criteria": ["C1"], "suite": "focused"},
+             {"command": "grep -q validateMove src/board.js", "criteria": ["C1"], "suite": "check"}],
+            [{"id": "S1", "criteria": ["C1"], "proof": "grep -q validateMove src/board.js"}]))
+        self.assertEqual(found["grep"]["executed"], [])
+        self.assertEqual(found["grep"]["unmatched"], ["grep -q validateMove src/board.js"])  # the step proof: context
+
     def test_runner_or_docs_grep_is_not_counted(self) -> None:
         found = metrics.plan_dodges(step_plan([{"id": "C1", "text": "x", "confirm": "executed"}],
                                               [{"command": "node --test test/board.test.js", "criteria": ["C1"]},

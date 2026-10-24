@@ -1681,6 +1681,17 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("platforms/salesforce.md", mutation._remote_reason(
             [{"command": "sf apex run test --target-org de --class-names SLTest --synchronous"}]))
 
+    def test_a_focused_and_a_regression_row_fold_only_with_one_target_and_keep_it(self):
+        """Sol pass 2, finding 1: folding dropped target, so a remote command lost its remote rule."""
+        rows = test_loop.normalise_commands([
+            {"command": "./run-tests.sh", "suite": "focused", "ids": ["TC-1"], "target": "shared"},
+            {"command": "./run-tests.sh", "suite": "regression", "ids": ["TC-1"], "target": "shared"}])
+        self.assertEqual([(row["suite"], row.get("target")) for row in rows], [("focused", "shared")])
+        apart = test_loop.normalise_commands([
+            {"command": "./run-tests.sh", "suite": "focused", "ids": ["TC-1"], "target": "shared"},
+            {"command": "./run-tests.sh", "suite": "regression", "ids": ["TC-1"]}])
+        self.assertEqual(len(apart), 2)
+
     def test_a_command_on_a_target_that_keeps_state_is_left_out_of_the_base_and_the_mutant_runs(self):
         """Run-5 batch F3: on any platform, a command naming a test-strategy target that keeps state is remote, so the
         base run does not read the target's already-changed state as the item's base."""
@@ -1699,6 +1710,19 @@ class TestLoopTests(unittest.TestCase):
                      {"target": "the shared org", "keeps_state": "yes", "base_state_route": "a destructive deploy first"},
                      {"target": "the checkout", "keeps_state": "no", "base_state_route": "n/a"}]}}}
         self.assertEqual(test_loop.stateful_targets(state), org)
+
+    def test_a_mixed_item_whose_remote_commands_were_left_out_records_survivors_without_refusing(self):
+        """Sol pass 2, finding 2: the mutants may sit in code only the left-out remote tests reach."""
+        self.calc_item(self.EMPTY_TEST)  # kills nothing
+        with mock.patch.object(mutation, "split_remote",
+                               side_effect=lambda commands, stateful=(): (list(commands), ["sf apex run test -n A"])):
+            lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
+        self.assertEqual(record["killed"], 0)
+        self.assertGreater(record["survived"], 0)
+        self.assertTrue(record["passed"])
+        self.assertIn("recorded, not refused", record["advisory"])
+        self.assertTrue(lines)
 
     def test_the_checkout_is_byte_identical_after_the_check(self):
         self.calc_item(self.REAL_TEST)

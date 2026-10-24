@@ -409,7 +409,13 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
                     budget=budget)
     record["action"] = action_id
     record["seconds"] = round(time.monotonic() - started, 3)
-    refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0
+    # A mixed item left its remote commands out (I2, F3): a mutant in code only they reach survives whatever the local
+    # tests assert, so its survivors are recorded, not refused.
+    refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0 \
+        and not record.get("remote_commands_skipped")
+    if record["mutants"] and record["killed"] == 0 and record.get("remote_commands_skipped"):
+        record["advisory"] = ("no mutant was killed, but the remote commands this check left out may be the only tests "
+                              "that reach the mutated code; recorded, not refused")
     # A check that could not judge anything (no focused command, no item base, no mutant, a copy that was not green)
     # passes, and says ``skipped`` so no reader takes it for a proof; one that refused is ``failed`` as before.
     record.update(passed=not refuse,

@@ -3249,20 +3249,14 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
         layers.check_text([*(run_rows or ()), *own], targets)
         criteria = [row for row in result.get("criteria") or () if isinstance(row, Mapping)]
         commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
-        # F3: a target that keeps state already holds earlier changes, so ShipLoop must know which commands run there.
+        # F3: a command names the test-strategy target it runs on; one on a target that keeps state is remote.
         named = sorted({str(row.get("target")) for row in targets or () if isinstance(row, Mapping)})
-        stateful = sorted(test_loop.stateful_targets(state))
         for row in commands:
             _need(not row.get("target") or row.get("target") in named,
                   "test command `" + str(row.get("command")) + "` names target `" + str(row.get("target")) + "`, which "
                   "is no test-strategy targets row (" + (", ".join(named) or "none recorded") + "). Name one of "
                   "those rows, or leave target out for a command that runs on the checkout. Then run the same "
                   "callback again")
-            _need(not stateful or row.get("suite") not in ("focused", "regression") or bool(row.get("target")),
-                  "test-strategy recorded a target that keeps state between runs (" + ", ".join(stateful) + "), so "
-                  "each focused or regression command names, in target, the targets row it runs on ("
-                  + ", ".join(named) + "); `" + str(row.get("command")) + "` names none. A command on such a target "
-                  "is left out of the base run and the mutation check. Then run the same callback again")
         layers.check_confirms(criteria, [*(run_rows or ()), *own], commands)
     except layers.LayerError as exc:
         raise NavigatorError(str(exc)) from exc
@@ -4667,7 +4661,7 @@ HANDOFF_SHAPES: dict[str, Any] = {
 
 STEP_PROOF_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
 # The Test targets row a test command runs on, asked for when a target keeps state (run-5 batch F3).
-TARGET_PLACEHOLDER = "<the Test targets row it runs on>"
+TARGET_PLACEHOLDER = "<the Test targets row it runs on; delete this key for a command on the checkout>"
 # The bar a criterion's text meets (run-5 batch F1): what a command observes, not what the code contains.
 CRITERION_PLACEHOLDER = "<condition. Confirm by: what the command observes; pass when <expected result>>"
 
@@ -4719,7 +4713,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
                                    {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
                                    {"command": "...", "suite": "regression"}]
         if test_loop.stateful_targets(state):
-            # F3: with a target that keeps state, each focused or regression command names the one it runs on.
+            # F3: with a target that keeps state, the template asks where each focused or regression command runs.
             for row in result["test_commands"]:
                 if row["suite"] != "check":
                     row["target"] = TARGET_PLACEHOLDER
@@ -8273,7 +8267,8 @@ def _regression_refusal(repo: Path, child: Mapping[str, Any], message: str, pend
         return ""
     named = [token for token in re.split(r"[\s,]+", value) if token]
     tests = [path for path in pending if item_scope.classify(path) == "test"]
-    texts = [(repo / path).read_text(encoding="utf-8", errors="replace") for path in tests if (repo / path).is_file()]
+    top = lint.git_toplevel(repo) or repo  # pending paths are relative to the Git toplevel (review_changes)
+    texts = [(top / path).read_text(encoding="utf-8", errors="replace") for path in tests if (top / path).is_file()]
     holds = bool(named) and all(any(token in text for text in texts) for token in named)
     want = "the ID of the test in this commit that fails without the fix"
     where = ("this commit has no test file: add the test that fails without the fix" if not tests else

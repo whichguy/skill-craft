@@ -578,7 +578,10 @@ class FocusedGuardTests(unittest.TestCase):
                  "node --test", True),                                                                 # E3's smoke
                 ("cd app && [ -f x.js ] && npm test", True),
                 ("echo src/a.js && npm test", True),
-                ("node -e \"fs.existsSync('a')\" && node --test", True),
+                ("node -e \"fs.existsSync('a') || process.exit(1)\" && node --test", True),
+                # Sol pass 2, finding 5: an assertion is no guard.
+                ("test \"$(./sum 1 2)\" -eq 3 && echo 'ok 1 - sums'", False),
+                ("node -e \"assert(fs.existsSync('out/report.txt'))\"", False),
                 ("node -e \"require('./src/records.js')\" && node --test --test-name-pattern 'TC-'", False),
                 ("npm test && ls coverage", False),
                 ("FOO=1 npx jest --verbose", False)):
@@ -767,24 +770,19 @@ class TestLayerGateTests(RepoCase):
                                              (row, dict(plan, test_layers=[self.UNIT]))], "test-spec")
         self.assertEqual(navigator._test_layers(later, "W1")[0], [self.UNIT])
 
-    def test_a_target_that_keeps_state_is_named_by_each_focused_and_regression_command(self) -> None:
+    def test_a_command_names_a_targets_row_or_none_and_the_template_asks_only_when_a_target_keeps_state(self) -> None:
         org = {"target": "the shared org", "keeps_state": "yes", "base_state_route": "a destructive deploy first"}
         state = self.strategy_state([self.UNIT], targets=[org])
         focused = {"command": "npm test -- -t TC-1", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]}
         plan = {"outcome": "done", "summary": "s", "criteria": [{"id": "C1", "text": "x", "confirm": "executed"}],
                 "test_commands": [focused]}
-        message = self.refused(state, "step-plan", plan)
-        self.assertIn("keeps state between runs (the shared org)", message)
-        self.assertIn("`npm test -- -t TC-1` names none", message)
         self.assertIn("names target `the org`, which is no test-strategy targets row (the shared org)",
                       self.refused(state, "step-plan", dict(plan, test_commands=[dict(focused, target="the org")])))
-        # The named exit: each focused or regression command names its targets row; a check command needs none.
-        check = {"command": "npm run lint", "suite": "check", "criteria": ["C1"]}
-        navigator._check_submitted_layers(state, "step-plan", dict(
-            plan, test_commands=[dict(focused, target="the shared org"), check]))
-        # No target keeps state: target may be left out, and the template does not ask for it.
+        # The named exits: name the row, or leave target out for a command on the checkout (Sol pass 2, finding 4:
+        # a rule that every command name a target made the second exit refuse itself).
+        navigator._check_submitted_layers(state, "step-plan", dict(plan, test_commands=[dict(focused, target="the shared org")]))
+        navigator._check_submitted_layers(state, "step-plan", plan)
         plain = self.strategy_state([self.UNIT])
-        navigator._check_submitted_layers(plain, "step-plan", plan)
         self.assertIn(navigator.TARGET_PLACEHOLDER, navigator._result_template(state, "step-plan"))
         self.assertNotIn(navigator.TARGET_PLACEHOLDER, navigator._result_template(plain, "step-plan"))
 

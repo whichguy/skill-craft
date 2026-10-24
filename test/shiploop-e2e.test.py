@@ -2501,8 +2501,7 @@ class GateCountsTest(unittest.TestCase):
                  "accepted": {"ts1": {"outcome": "done", "targets": [org]}}}
         with mock.patch.object(navigator, "_test_strategy_layers", return_value=([], [org])), \
                 mock.patch.object(navigator, "_test_strategy_result", return_value={}):
-            for command in ({"command": "npm test", "suite": "focused"},
-                            {"command": "npm test", "suite": "focused", "target": "the org"}):
+            for command in ({"command": "npm test", "suite": "focused", "target": "the org"},):
                 plan = {"outcome": "done", "summary": "s", "test_commands": [command]}
                 with self.subTest(command=command), self.assertRaises(navigator.NavigatorError) as caught:
                     navigator._check_submitted_layers(state, "step-plan", plan)

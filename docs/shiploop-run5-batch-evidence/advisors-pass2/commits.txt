@@ -1,0 +1,21 @@
+484f4a67 test(e2e): dodge counters count only grep_executed, guarded REDs and surviving mutants as dodges
+f820b4ea test(e2e): run-level dodge counters in metrics.json and the run report
+91d7364a feat(shiploop): an Improve code fix names its regression test on a commit line improve-commit checks (run-5 batch F5)
+66703f48 fix(shiploop): the path catalog classes Apex test classes and their sidecars as test, so a test-only step is refused on Salesforce
+f9d1f4cf feat(shiploop): the spec names the primary requirements, and an unverified primary outcome needs a passed lower-layer test (run-5 batch F6)
+5c0e8f5f test(shiploop): known dodges go through the real CLI in one table; the Run Review catalog follows R2 (run-5 batch)
+a92de597 refactor(shiploop): a result starts an Improve stage, a refusal names the callback, and a print ends with the print marker; the Until Loop's record is its receipt (run-5 batch R4)
+145aefbb feat(shiploop): a file guard is refused, commands name the target they run on, remote commands are left out per command (run-5 batch F2 rest, F3, I2, I1)
+bed88d7b refactor(shiploop): an open item is due at a due_stage, the plan's at a due_item; consumer keeps one meaning (run-5 batch R3)
+6c669532 refactor(shiploop): a criterion is a step plan's C<n>, a requirement is an R-<n>, and a requirement holds acceptance lines (run-5 batch R2)
+92339292 refactor(shiploop): a step's command is its proof and an open item is settled by settle; check keeps one meaning (run-5 batch R1)
+ec74e2ea feat(shiploop, e2e): a glossary defines each ShipLoop term once, and a test and a run record keep retired terms out (run-5 batch 3b, S-16)
+ed41369f fix(shiploop): one term per concept in the stage texts, refusals and references; F1's rows become test_layers (run-5 batch term fixes)
+d21c770e feat(improve, shiploop): every Improve stage reads a 9.7 KB route core instead of the 47 KB route card
+2535a7af feat(shiploop-e2e): measure which ShipLoop refusal gates fired and were caught
+52789f8f feat(shiploop): test layers become result fields with gates, and every criterion says how it is confirmed (run-5 batch F1)
+9ed4ec24 feat(shiploop): stage rules from a product review of run 4, graded B- (run-4 quality Q1, Q3-Q7)
+7f6f1942 feat(e2e): measure what fills a Grok run's context between compactions
+195cf5e0 fix(shiploop): an item must bring its own focused tests, and a printed path no longer fakes RED (run-4 quality Q2)
+e074ccd3 fix(shiploop): the test stage's base run does not run a command that tests a deployed target (run-5 prep)
+9c324cd9 fix(shiploop): the inline implement head always carries the look-back, one line per commit (run-5 prep)

@@ -227,7 +227,7 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                r"harness_runs\[\d+\]"),
     # Where the tests run, and how a test still fails on an item's base there (F1), and each command's target (F3).
     "targets": re.compile(r"lists targets: where the tests run|targets is a list of|targets\[\d+\]|which is no "
-                          r"test-strategy targets row|so each focused or regression command names, in target"),
+                          r"test-strategy targets row"),
     # The spec's primary requirements (run-5 batch F6, shiploop_primary.py check_spec and canonical).
     "primary": re.compile(r"a done spec result lists primary:|primary (?:lists (?:at least|an ID)|still holds the "
                           r"template|names |is a list of the R-<n>|is allowed only)"),
@@ -259,7 +259,8 @@ DODGE_CODE_FILE = re.compile(r"\.(?:c|cc|cjs|cls|cpp|cs|go|h|java|js|jsx|kt|mjs|
 # A file-existence guard or a print-only path ahead of the tests, which fakes RED (e3_red._GUARD), or a require of a
 # module checked for existence rather than run (require.resolve).
 DODGE_GUARD = re.compile(r"(^|&&|\|\||;|\(|\bif|\bthen)\s*!?\s*(test\s+(!\s+)?-[efsd]\s|\[\[?\s+(!\s+)?-[efsd]\s|ls\s|"
-                         r"stat\s|printf\s+'%s\\n'\s|echo\s+\S+\.\w+\s*(&&|;|$))|existsSync\(|require\.resolve\(")
+                         r"stat\s|printf\s+'%s\\n'\s|echo\s+\S+\.\w+\s*(&&|;|$))|existsSync\([^)]*\)\s*\|\||"
+                         r"require\.resolve\(")
 # A criterion with no structured confirm whose text says it is confirmed by inspection (e2_layers._INSPECT/_EXEC).
 DODGE_INSPECT = re.compile(r"\b(inspect\w*|inspection)\b", re.I)
 DODGE_EXECUTED = re.compile(r"\b(exercised|executed|confirm: executed)\b", re.I)
@@ -707,24 +708,32 @@ def plan_dodges(plan: dict) -> dict:
     """One step plan's dodges: grep-only checks on code files split by the confirm of the criteria they serve, guarded
     commands, and criteria confirmed by inspection.
 
-    A check counts ``searched`` (context: a docstring or contract duty) when every criterion it names says confirm
-    ``searched``; ``executed`` when one says executed; ``unmatched`` when it names no criterion (a step's proof, or a
-    command with no criteria). Only ``executed`` is a dodge: a command naming no criterion confirms nothing, and a step's
-    proof is followed by the item's real tests."""
+    ``executed`` lists the commands of each executed criterion that every one of its test commands only searches, a
+    code file among them: what the step-plan gate refuses (``layers.check_confirms``), judged per criterion as the gate
+    judges it, so a grep beside a real test is not one.  ``searched`` (a docstring or contract duty) and ``unmatched``
+    (a test command naming no criterion, and every step proof) are context: a command naming no criterion confirms
+    nothing, and a step's proof is followed by the item's real tests."""
     criteria = {str(c.get("id")): c for c in plan.get("criteria") or [] if isinstance(c, dict)}
     rows = [(str(c.get("command") or ""), [str(i) for i in c.get("criteria") or ()], c.get("suite"))
             for c in plan.get("test_commands") or [] if isinstance(c, dict)]
-    rows += [(str(s.get("proof") or s.get("check") or ""), [str(i) for i in s.get("criteria") or ()], "proof")
-             for s in plan.get("steps") or [] if isinstance(s, dict)]
+    proofs = [str(s.get("proof") or s.get("check") or "") for s in plan.get("steps") or [] if isinstance(s, dict)]
+
+    def code_search(command: str) -> bool:
+        return bool(command) and search_only_command(command) and bool(DODGE_CODE_FILE.search(command))
+
     grep = {"searched": [], "executed": [], "unmatched": []}
-    seen = set()
+    for cid, criterion in criteria.items():
+        naming = [command for command, ids, _suite in rows if cid in ids]
+        if criterion.get("confirm") == "executed" and naming and all(search_only_command(c) for c in naming) \
+                and any(code_search(c) for c in naming):
+            grep["executed"].extend(c for c in naming if c not in grep["executed"])
     for command, ids, _suite in rows:
-        if not command or command in seen or not search_only_command(command) or not DODGE_CODE_FILE.search(command):
-            continue
-        seen.add(command)
         confirms = {criteria[i].get("confirm") for i in ids if i in criteria}
-        kind = "unmatched" if not confirms else "searched" if confirms == {"searched"} else "executed"
-        grep[kind].append(command)
+        if code_search(command) and command not in grep["executed"]:
+            kind = "unmatched" if not confirms else "searched" if confirms == {"searched"} else None
+            if kind and command not in grep[kind]:
+                grep[kind].append(command)
+    grep["unmatched"].extend(c for c in dict.fromkeys(proofs) if code_search(c) and c not in grep["unmatched"])
     guarded = sorted({command for command, _ids, suite in rows if suite == "focused" and guarded_command(command)})
     inspected = [cid for cid, c in criteria.items() if c.get("confirm") == "inspected" or (
         "confirm" not in c and DODGE_INSPECT.search(str(c.get("text") or ""))

@@ -159,13 +159,18 @@ ONE_LINE_HINT = ("; join steps with && or ; on that line (a \\n written inside t
 # ran: a live run's third item (2026-10-20) and the fork's experiment E3 (2026-10-24, 1 of 4 samples under 2.8.0) both
 # did it, the second with an echoed "Cannot find module" that the base run scored as a load failure.  The rule is
 # the experiment's evaluator's (test/shiploop_e2e/evaluators/e3_red.py), cut to the first program the command runs.
-_GUARD_PROGRAMS = frozenset(("test", "[", "[[", "ls", "stat"))
+_FILE_OPERATORS = frozenset(("-e", "-f", "-d", "-s"))
+# An existsSync whose false exits: a guard ahead of the tests, not an assertion that reads it.
+_EXISTS_GUARD = re.compile(r"existsSync\([^)]*\)\s*\|\|")
 _PRINTS_A_PATH = re.compile(r"^(?:printf\s+'%s\\n'\s+\S+|echo\s+\S+\.\w+)\s*$")
 
 
 def guarded(command: str) -> bool:
-    """Whether ``command`` starts with a file-existence check or a printed path, or calls ``existsSync`` (F2)."""
-    if "existsSync(" in command:
+    """Whether ``command`` starts with a file-existence check or a printed path, or exits on ``existsSync`` (F2).
+
+    A file test is ``test``, ``[`` or ``[[`` with a file operator (``-e``, ``-f``, ``-d``, ``-s``), or ``ls`` or ``stat``;
+    a ``test "$(./sum 1 2)" -eq 3`` asserts behaviour and is no guard, nor is an ``existsSync`` an assertion reads."""
+    if _EXISTS_GUARD.search(command):
         return True
     for segment in re.split(r"&&|\|\||[;\n]", command):
         words = segment.split()
@@ -174,7 +179,10 @@ def guarded(command: str) -> bool:
         if not words or words[0] == "cd":
             continue
         program = words[0].rsplit("/", 1)[-1]
-        return program in _GUARD_PROGRAMS or bool(_PRINTS_A_PATH.match(" ".join(words)))
+        if program in ("test", "[", "[["):
+            operands = [word for word in words[1:] if word != "!"]
+            return bool(operands) and operands[0] in _FILE_OPERATORS
+        return program in ("ls", "stat") or bool(_PRINTS_A_PATH.match(" ".join(words)))
     return False
 
 
@@ -258,14 +266,15 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
 def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
     """``first`` and ``row`` as one row, or None when they differ or one row cannot check what both did.
 
-    They fold when they record the same command string and host_dependent, and either share a suite, or one is focused
+    They fold when they record the same command string, host_dependent and target, and either share a suite, or one is focused
     and the other a regression row whose ids are all ids of the focused one (a regression ID is not new, so it must not
     come under the base run's rule that a focused ID fails on the base).  The one row keeps ``first``'s place, the union
     of the ids and criteria and the larger min_tests: the same output is judged against both rows' terms.  A check and
     a counted row are judged differently and never fold.  A regression row folded into a focused one leaves
     ``regression: true``.
     """
-    if first["command"] != row["command"] or first.get("host_dependent") != row.get("host_dependent"):
+    if first["command"] != row["command"] or first.get("host_dependent") != row.get("host_dependent") \
+            or first.get("target") != row.get("target"):
         return None
     suites = {first["suite"], row["suite"]}
     if len(suites) > 1:
@@ -284,6 +293,8 @@ def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str
         merged["min_tests"] = minimum
     if first.get("host_dependent"):
         merged["host_dependent"] = True
+    if first.get("target"):
+        merged["target"] = first["target"]  # where it runs decides the base run's remote rule (F3)
     if len(suites) > 1 or first.get("regression") or row.get("regression"):
         merged["regression"] = True
     return merged
