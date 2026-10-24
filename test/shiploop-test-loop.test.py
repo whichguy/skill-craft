@@ -1206,6 +1206,35 @@ class TestLoopTests(unittest.TestCase):
         row = dict({"command": "sh idcheck.sh fixed.txt", "suite": "focused", "ids": ["TC-1"]}, **row_extra)
         return {"test_commands": [row, COMMANDS[1]], "paths": ["a.py", "fixed.txt"]}
 
+    def test_a_command_that_tests_a_deployed_target_is_not_run_on_the_base(self):
+        """A live run (2026-10-20) took a send-back: the focused command deployed to and tested an org that already held
+        the item's change, so the new tests passed on the base for no fault of their own, and the base run had deployed
+        the base's files to the org.  A command a platform card lists under Remote tests is not run on the base; the
+        record says why, nothing is refused, and the candidate runs still judge the tests."""
+        self.start()
+
+        def present_on_base(state):  # the same setup the passes-on-base refusal above uses
+            if nav.current_stage(state) == "prepare":
+                (self.repo / "fixed.txt").write_text("already\n")
+        self.drive_to("test", step_plan=self.id_item(), each=present_on_base)
+        action = self.action()
+        with mock.patch.object(mutation, "remote_test_commands", return_value=[("example", "sh idcheck.sh")]):
+            record, refusal = test_loop._base_run(self.run_dir, self.state(), self.item(), action, DONE)
+        self.assertEqual(refusal, "")
+        self.assertEqual([run["status"] for run in record["runs"]], ["remote", "counted"])
+        self.assertIn("platforms/example.md lists `sh idcheck.sh` under Remote tests", record["runs"][0]["reason"])
+        self.assertIsNone(record["runs"][0]["exit"])          # not run
+        self.assertTrue(record["passed"])
+        # Every command remote: the gate did nothing, and the record says skipped, as the mutation check does.
+        with mock.patch.object(mutation, "remote_test_commands",
+                               return_value=[("example", "sh idcheck.sh"), ("example", COMMANDS[1]["command"])]):
+            record, refusal = test_loop._base_run(self.run_dir, self.state(), self.item(), action, DONE)
+        self.assertEqual((refusal, record["disposition"]), ("", "skipped"))
+        self.assertIn("tests a deployed target", record["skipped"])
+        # The same item without the card entry is still refused (the rule holds for a command that runs on the checkout).
+        record, refusal = test_loop._base_run(self.run_dir, self.state(), self.item(), action, DONE)
+        self.assertIn("passed TC-1 on the item's base", refusal)
+
     def canned(self, base: tuple, candidate: tuple):
         """A ``run_argv`` stand-in: ``base`` for a run outside the checkout (the base worktree), else ``candidate``."""
         def run(argv, cwd, timeout, **_kw):

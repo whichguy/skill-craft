@@ -412,8 +412,9 @@ FLOOR_RULE = ("Floor of each focused and regression command: the larger of its c
 BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the item's "
              "base (a temporary detached worktree, with only this item's test files copied in). No listed test ID "
              "may pass there: each must fail, or be missing because a file this item adds cannot be loaded. A "
-             "characterisation test that passes without this item's change goes in red_na (shape: duty 6). A refused "
-             "base run counts toward the same refused runs.")
+             "characterisation test that passes without this item's change goes in red_na (shape: duty 6). A command "
+             "the platform card lists under Remote tests is not run there (its target already holds the change). A "
+             "refused base run counts toward the same refused runs.")
 # What the reruns after the test stage say about the floor ``accepted_counts`` sets.
 RATCHET_RULE = ("Floor: each command runs at least as many tests as the most an accepted ShipLoop run of it ran for this "
                 "item since its latest step plan, so a test removed or newly skipped is refused; a test that must go "
@@ -1644,7 +1645,26 @@ def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt
     return verdict
 
 
-BASE_GOOD = ("red", "counted")
+# ``remote``: a command that tests a deployed target (a platform card lists it under Remote tests) is not run on the
+# base, so it has no base verdict and no base count (its floor then comes from the earlier runs).
+BASE_GOOD = ("red", "counted", "remote")
+
+
+def _remote_base(row: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    """The base-run row of a command that tests a deployed target, or None for one that runs on the checkout.
+
+    On the base such a command would test the target, which already holds this item's change (an earlier step deployed
+    it), so a new test passes there for no fault of its own; running it would also deploy the base's files to the
+    target.  A live run (2026-10-20) took a send-back for exactly that.  The candidate runs still judge it."""
+    import shiploop_mutation as mutation  # imports this module: resolved at call time
+
+    hit = mutation.remote_card(row["command"])
+    if hit is None:
+        return None
+    card, prefix = hit
+    return {**row, "status": "remote", "exit": None, "seconds": 0.0, "stdout": "", "stderr": "",
+            "reason": ("tests a deployed target (platforms/" + card + ".md lists `" + prefix + "` under Remote tests), "
+                       "which already holds this item's change; not run on the base")}
 
 
 def _explain_base(run: Mapping[str, Any]) -> str:
@@ -1716,6 +1736,10 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
             record["cwd"] = str(cwd)
             deadline = clock() + budget
             for row in commands:
+                remote = _remote_base(row)
+                if remote is not None:
+                    runs.append(remote)
+                    continue
                 left = deadline - clock()
                 if left <= 1.0:
                     runs.append(_skipped(row, budget))
@@ -1731,6 +1755,10 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
         runs = [{**row, "status": "error", "exit": None, "seconds": 0.0, "stdout": "", "stderr": failure}
                 for row in commands]
     record["runs"] = runs
+    if runs and all(run["status"] == "remote" for run in runs):
+        # Nothing ran: the gate did nothing, so the record says skipped, as the mutation check does for the same case.
+        record.update(passed=True, disposition="skipped", skipped="every command " + runs[0]["reason"])
+        return record, ""
     problems = []
     seen = [test_id for test_id in retired
             if any(test_id in (run.get("retired_shown") or ()) for run in runs) or test_id in removed]

@@ -77,18 +77,22 @@ def remote_test_commands(cards: Path = PLATFORM_CARDS) -> List[Tuple[str, str]]:
     return found
 
 
+def remote_card(command: str) -> Optional[Tuple[str, str]]:
+    """(card name, prefix) when ``command`` runs a test a platform card lists under ``## Remote tests``, else None."""
+    text = " ".join(str(command).split())
+    return next(((card, prefix) for card, prefix in remote_test_commands()
+                 if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+
+
 def _remote_reason(commands: Sequence[Mapping[str, Any]]) -> Optional[str]:
     """Why the mutation check cannot judge these focused commands, when every one tests a deployed target a platform
     card names; ``None`` when any of them runs on the checkout.
 
     A mutant lives only in a temporary copy of the checkout; a command that tests the deployed product never sees it,
     so every mutant would survive and the check would refuse good tests (a live run, 2026-10-18: 0 of 8 killed)."""
-    prefixes = remote_test_commands()
     matched = []
     for row in commands:
-        text = " ".join(str(row.get("command", "")).split())
-        hit = next(((card, prefix) for card, prefix in prefixes
-                    if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+        hit = remote_card(str(row.get("command", "")))
         if hit is None:
             return None
         matched.append(hit)

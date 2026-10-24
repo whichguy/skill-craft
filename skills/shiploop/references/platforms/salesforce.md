@@ -147,9 +147,10 @@ product changes (a live run's Improve review was refused for `.sf/orgs/<id>/loca
 
 ## Remote tests
 
-These commands test the code deployed to the org, not the checkout, so ShipLoop's mutation check (which changes a
-copy of the checkout) cannot judge them and records why it skipped. Local tests, such as Jest for Lightning web
-components, are still mutation-checked.
+These commands test the code deployed to the org, not the checkout. ShipLoop's mutation check (which changes a copy
+of the checkout) cannot judge them and records why it skipped, and the test stage's base run does not run them: the
+org already holds the item's change, so a new test would pass there, and the run would deploy the base's files. Local
+tests, such as Jest for Lightning web components, are still mutation-checked and base-run.
 
 - `sf apex run test`
 - `sf apex run`
