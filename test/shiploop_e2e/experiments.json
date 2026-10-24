@@ -3,8 +3,8 @@
   "E1": {
     "claim": "A producer that must name the weaker implementation each oracle rejects writes tests that kill the planted stand-ins more often than one only told to avoid weak checks.",
     "fix": "F4", "case": "stand-in-parser", "seed_at": "test-spec", "stop_after": "test",
-    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "feat/shiploop-templates-6d625a"},
-             "B": {"ref": "feat/shiploop-templates-6d625a", "overlay": "overlays/e1-stand-in.json"}},
+    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"},
+             "B": {"ref": "9ed4ec24", "overlay": "overlays/e1-stand-in.json"}},
     "evaluator": "evaluators/e1_stand_ins.py", "samples": 5,
     "metric": "1 when every stand-in (empty, lenient) is killed by the final tree's tests"
   },
@@ -20,7 +20,7 @@
     "claim": "Given the same revisit that quotes a model's file-guard advice, the arm's own RED texts (base-run refusal, test-spec RED rule, earlier-item gate) decide whether the redone focused command guards on file existence.",
     "fix": "F2", "case": "stand-in-parser", "seed_at": "step-plan", "stop_after": "test",
     "opening_note": "experiment_notes/e3-revisit.txt",
-    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "feat/shiploop-templates-6d625a"}},
+    "arms": {"A": {"ref": "288075c9"}, "T": {"ref": "9ed4ec24"}},
     "evaluator": "evaluators/e3_red.py", "samples": 5,
     "metric": "1 when no focused command is file-guarded and the first base run failed behaviourally"
   },

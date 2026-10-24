@@ -205,6 +205,34 @@ class Decide(unittest.TestCase):
             self.assertEqual(len(lines), 1)
             self.assertIn("e1-stand-in.json", lines[0])
 
+    def test_check_single_commit_ignores_missing_commits_and_catches_a_real_mismatch(self):
+        experiment._check_single_commit([{"commit": None}, {"commit": "abc"}], "E1", "T")
+        experiment._check_single_commit([{"commit": "abc"}, {"commit": "abc"}], "E1", "T")
+        with self.assertRaises(SystemExit):
+            experiment._check_single_commit([{"commit": "abc"}, {"commit": "def"}], "E1", "T")
+
+    def test_decide_refuses_a_ref_that_moved_mid_round(self):
+        """A branch ref (e.g. T) resolved to two different commits across samples must not be averaged together."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            for n in range(1, 6):
+                (out / "E1" / "A" / str(n)).mkdir(parents=True)
+                (out / "E1" / "A" / str(n) / "score.json").write_text(
+                    json.dumps({"sample": n, "value": 0, "commit": "fixed-commit"}))
+            moved = {"1": "9ed4ec24f8481a1841820033a35d31804ebb9dab", "2": "9ed4ec24f8481a1841820033a35d31804ebb9dab",
+                     "3": "d21c770e5c71888069f239c7e2156b22ae515b61"}
+            for n, commit in moved.items():
+                (out / "E1" / "T" / n).mkdir(parents=True)
+                (out / "E1" / "T" / n / "score.json").write_text(json.dumps({"sample": int(n), "value": 1, "commit": commit}))
+            with self.assertRaises(SystemExit):
+                experiment.decide("E1", "A", "T", out)
+            self.assertFalse((out / "E1" / "decision.json").exists(), "a refused decide must not write a decision file")
+
+    def test_run_records_the_arms_resolved_commit_in_command_json(self):
+        commit = experiment._resolved_commit("HEAD")
+        self.assertRegex(commit, r"^[0-9a-f]{40}$")
+        self.assertIsNone(experiment._resolved_commit(None))
+
 
 class Evaluators(unittest.TestCase):
     def check(self, exp_id: str, needs_run4: bool = False):

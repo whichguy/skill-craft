@@ -97,11 +97,43 @@ def finished(sample: Path) -> bool:
     return (sample / "slice" / "slice-result.json").is_file()
 
 
+def _resolved_commit(ref: str | None) -> str | None:
+    """The commit a sample's arm actually built from, so a branch ref that moves mid-round is traceable, not silent."""
+    if not ref:
+        return None
+    import overlay  # noqa: PLC0415
+    return overlay.resolve_ref(ref)
+
+
+def _sample_commit(sample: Path) -> str | None:
+    path = sample / "command.json"
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text()).get("commit")
+    except (OSError, ValueError):
+        return None
+
+
+def _distinct_commits(rows: list[dict]) -> set[str]:
+    return {r["commit"] for r in rows if r.get("commit")}
+
+
+def _check_single_commit(rows: list[dict], exp_id: str, arm: str) -> None:
+    """Refuse to mix samples built from different resolved commits of the same arm (a moving branch ref)."""
+    commits = _distinct_commits(rows)
+    if len(commits) > 1:
+        raise SystemExit(f"{exp_id}/{arm}: its samples were built from different commits of the arm's ref "
+                          f"({', '.join(sorted(commits))}); the ref moved mid-round. Pin the arm to one commit, "
+                          f"move the stale samples aside, and re-run before scoring or deciding.")
+
+
 def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: list[str]) -> int:
     exp = load(exp_id)
     if arm_name not in exp["arms"]:
         raise SystemExit(f"{exp_id} has no arm {arm_name!r}; arms: {', '.join(exp['arms'])}")
     arm = exp["arms"][arm_name]
+    commit = _resolved_commit(arm.get("ref"))
     status = 0
     for n in range(1, count + 1):
         sample = out / exp_id / arm_name / str(n)
@@ -116,7 +148,8 @@ def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: lis
             records = sample / "seed-records.json"
             records.write_text(json.dumps(arm["seed_records"], indent=2) + "\n")
         argv = slice_argv(exp, arm, sample / "slice", host, records) + extra
-        (sample / "command.json").write_text(json.dumps({"argv": argv, "arm": arm, "started": time.time()}, indent=2) + "\n")
+        (sample / "command.json").write_text(
+            json.dumps({"argv": argv, "arm": arm, "commit": commit, "started": time.time()}, indent=2) + "\n")
         print(f"{exp_id}/{arm_name}/{n}: {' '.join(argv)}", flush=True)
         started = time.time()
         done = subprocess.run(argv)
@@ -131,6 +164,7 @@ def score(exp_id: str, out: Path) -> dict:
     module = evaluator(exp)
     table: dict[str, list] = {}
     for arm_name in exp["arms"]:
+        rows: list[dict] = []
         for sample in samples(out, exp_id, arm_name):
             if not finished(sample):
                 continue
@@ -140,11 +174,16 @@ def score(exp_id: str, out: Path) -> dict:
                 if (sample / "slice" / "metrics.json").is_file() else {}
             seconds = (round(span["ended"] - span["started"], 1)
                        if span.get("ended") is not None and span.get("started") is not None else None)
+            commit = _sample_commit(sample)
             record = {"experiment": exp_id, "arm": arm_name, "sample": int(sample.name), **found,
-                      "slice_pass": result.get("pass"), "slice_verdicts": result.get("verdicts"), "seconds": seconds}
+                      "slice_pass": result.get("pass"), "slice_verdicts": result.get("verdicts"), "seconds": seconds,
+                      "commit": commit}
             (sample / "score.json").write_text(json.dumps(record, indent=2, default=str) + "\n")
-            table.setdefault(arm_name, []).append({"sample": int(sample.name), "value": found.get("value"),
-                                                  "slice_pass": result.get("pass"), "seconds": seconds})
+            rows.append({"sample": int(sample.name), "value": found.get("value"), "commit": commit,
+                        "slice_pass": result.get("pass"), "seconds": seconds})
+        _check_single_commit(rows, exp_id, arm_name)
+        if rows:
+            table[arm_name] = rows
     return table
 
 
@@ -216,9 +255,12 @@ def decide(exp_id: str, x: str, y: str, out: Path, journal: Path = JOURNAL) -> d
     for name in (x, y):
         if name not in exp["arms"]:
             raise SystemExit(f"{exp_id} has no arm {name!r}; arms: {', '.join(exp['arms'])}")
+    rows_x, rows_y = read_scores(out, exp_id, x), read_scores(out, exp_id, y)
+    _check_single_commit(rows_x, exp_id, x)
+    _check_single_commit(rows_y, exp_id, y)
     report = {"experiment": exp_id, "claim": exp["claim"], "arms": [x, y],
               "arm_specs": {x: exp["arms"][x], y: exp["arms"][y]},
-              **judge(read_scores(out, exp_id, x), read_scores(out, exp_id, y), exp.get("gate"))}
+              **judge(rows_x, rows_y, exp.get("gate"))}
     folder = out / exp_id
     folder.mkdir(parents=True, exist_ok=True)
     record = folder / f"decision-{x}-{y}.json"
