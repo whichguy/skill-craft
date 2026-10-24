@@ -1073,8 +1073,9 @@ DUTIES = {
     "test-strategy": """\
 1. Build a risk-based strategy from KNOWLEDGE/spec.md and the spec changes since the run began (quoted below) before any
    code. Under KNOWLEDGE/environment.md
-   ## Harnesses and suites plan, per requirement: layers (unit, integration, system, consumer), negative cases,
-   fixtures and data, environment and authorization needs, required surface, due stage, owner, prerequisites; for a
+   ## Harnesses and suites plan, per requirement: its layers (unit, component, e2e, as in `surfaces`) and any
+   consumer check, negative cases, fixtures and data, environment and authorization needs, required surface, due
+   stage, owner, prerequisites; for a
    state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
    is not a pass). Name an expected-RED control where test-first applies.
 2. Plan checks for new and preserved behaviour from the spec changes since the run began and RUN/notes/current-system-baseline.md. An
@@ -1086,8 +1087,9 @@ DUTIES = {
    gate, or record the exclusion (Target-native test selection). Choose test systems and browser tools by
    capability, not product name. Under ## Harnesses and suites record each choice's role, fit, availability,
    prerequisites, setup and isolation, fixture lifecycle, runner and coverage tool, rationale and revalidation
-   condition. Keep inspection separate from retained assertions. Name each code surface's native unit harness; an
-   absent one is prerequisite work for prepare, never N/A.
+   condition. Keep inspection separate from retained assertions. In `surfaces`, one row per code surface the run
+   writes and layer (unit, component, e2e): its native harness and status. Every surface has a unit or component row;
+   a missing harness there is `prerequisite` work for prepare, never `unverified`.
 5. Reuse, configure or extend existing frameworks and helpers before defining the smallest missing facility
    (Reusable test facilities); never assume a named skill or MCP is available. Record each facility's locator,
    interface, readiness or gap, owner and revalidation condition under ## Harnesses and suites. A missing facility
@@ -1095,9 +1097,9 @@ DUTIES = {
 6. Under KNOWLEDGE/architecture.md ## Real-boundary checks record, per check, where it runs and its target: local, client
    against a deployed target, or remote-resident. For remote tests: framework, availability, access, deployment
    prerequisites, and the authorized route to define or register, install and invoke them. A local pass is not a
-   remote pass; do not narrow a behaviour list to a render smoke. Under ## Harnesses and suites record whether a
-   target keeps state between runs and how a test still fails on an item's base there (a clean target, a destructive
-   or ordered deploy, or an inventory check).
+   remote pass; do not narrow a behaviour list to a render smoke. In `targets`, one row per place tests run: whether
+   it keeps state between runs and, if so, how a test still fails on an item's base there (a clean target, a
+   destructive or ordered deploy, or an inventory check).
 7. Affected service contracts (Service discovery guidance): map cache authorization and invalidation, remote
    reconciliation, async recovery and observability to independent outcomes at their real boundary under
    ## Real-boundary checks. A fixture does not prove live permissions, event delivery or operator log access.
@@ -1246,7 +1248,9 @@ DUTIES = {
 2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
    baseline identity (Workspace and return guidance).
 3. Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help
-   that proves it starts, not the suite); save the output and list each file in `evidence_refs`.
+   that proves it starts, not the suite); save the output and list each file in `evidence_refs`. Set up the harness
+   of each Test layers row marked `prerequisite` (the repository's own tooling, within authority), run one test with
+   it and record the command and its saved output in `harness_runs`; one you cannot set up: report blocked.
 4. Baseline blocked by setup or access (Initial repository baseline guide): prepare only the approved prerequisite,
    keep the original observation, and rerun the original initial check on the unchanged product and tests before any
    dependent feature edit. Never replace it with an easier route or call the blocked baseline passed.
@@ -1272,23 +1276,24 @@ Change no product file in this stage.
    blocked (`awaiting` an answer: drop or keep) citing the superseding result; never skip the item
    or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
    widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
-2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. In the
-   summary say which you retain, refine or supersede and why; locators in evidence_refs. Revalidate harness, suite
-   and browser tools for the changed surfaces (Repeatable test-suite guide); reuse supported choices or record a
-   justified revision. A remote-resident case needs its framework and an authorized setup, invocation, result
-   retrieval and teardown route. Reuse an existing facility before the smallest missing one (Reusable test
-   facilities); record its locator and readiness gap in the summary.
-3. **`criteria`** (`[{"id": "C1", "text": "..."}]`). Each: `<condition>. Confirm by: <command, observation or
-   inspection>; pass when <expected result>`; say whether it must be exercised or inspection suffices, and name the
-   R-<n> served.
-   - A docs or coverage criterion gets a command check (a search for the required terms).
+2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions,
+   and plan against the Test layers and Test targets below; in the summary say which you retain, refine or supersede
+   and why, locators in evidence_refs. Revalidate harness, suite and browser tools for the changed surfaces
+   (Repeatable test-suite guide). Code this item writes on a surface no Test layers row names: add its rows in
+   `surfaces` (the test-strategy shape); a `prerequisite` row's harness is set up by the item's first step, whose
+   check runs it. A remote-resident case needs its framework and an authorized setup, invocation, result retrieval
+   and teardown route. Reuse an existing facility before the smallest missing one (Reusable test facilities); record
+   its locator and readiness gap in the summary.
+3. **`criteria`** (`[{"id": "C1", "text": "...", "confirm": "executed"}]`). Each text: `<condition>. Confirm by: <what
+   a command observes>; pass when <expected result>`, naming the R-<n> served.
+   - `confirm`: `executed` when a recorded command runs the behaviour (a text search runs nothing); `searched` for
+     text the item writes (documentation, a docstring, a listed term), named by a search command; `inspected` only
+     with `surface` and `layer` naming a Test layers row that is `unverified`.
    - A condition no command can confirm is not a criterion: list it in the summary as an open item (who does what,
      what they report back) with `Confirm by: unconfirmable here — <what would confirm it>`.
-   - A new or changed public entry point: add a criterion that it checks its arguments and carries a contract
-     docstring (Code craft 2-3), confirmed by its rejection tests and by inspecting the diff.
-   - Behaviour (what a user or caller observes) is confirmed by running it whenever any runner can; inspection or a
-     source search confirms only text, wiring or presence. Where a criterion names an exact value, a count or a
-     prefix match proves nothing.
+   - A new or changed public entry point: a criterion that it checks its arguments, executed by its rejection tests,
+     and one that it carries a contract docstring (Code craft 2-3), searched.
+   - Where a criterion names an exact value, a count or a prefix match proves nothing.
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable
      behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
@@ -1354,15 +1359,14 @@ Write no test code in this stage.
 1. One `test_cases` row per ID the step plan's focused commands list; no other ID. A criterion that needs an
    unlisted ID: report send-back naming it. A row names one `criterion`; a criterion no row names gets a coverage
    notice, and the result is still accepted.
-2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put surface
-   (unit, public interface, real boundary, rendered UI; Real-boundary test guidance) and due phase, setup and
-   fixture, action, teardown (or "stateless"), command row, registering suite and smoke membership in those fields
-   or the summary.
+2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put its
+   Test layers row (surface and layer; Real-boundary test guidance) and due phase, setup and fixture, action,
+   teardown (or "stateless"), command row, registering suite and smoke membership in those fields or the summary.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
    one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
-   behaviour is missing, given what earlier items and stages left deployed (KNOWLEDGE/environment.md ## Harnesses and
-   suites says whether the target keeps state); a guard that only checks a file is not RED. "characterisation" if
+   behaviour is missing, given what earlier items and stages left deployed (the Test targets below say which target
+   keeps state and how its base state is produced); a guard that only checks a file is not RED. "characterisation" if
    it already passes.
 """ + _TEST_SPEC_PROCEDURE + """\
 5. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
@@ -1371,8 +1375,8 @@ Write no test code in this stage.
 6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
    it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
 7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
-   `assumption`; `check`; `consumer` = that outer stage; owner). Confirmed only by a check command or inspection: no
-   case; list it with its command in the summary. Untestable as written: report send-back naming it.
+   `assumption`; `check`; `consumer` = that outer stage; owner). A criterion confirmed `searched` or `inspected`: no
+   case; list it with its command or Test layers row in the summary. Untestable as written: report send-back naming it.
 8. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
 """,
     "validate-existing": """\
@@ -1500,7 +1504,7 @@ in order; """ + _VERIFY_ONCE + """
    into RUN/tests/<action>-check-only.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
-   this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report send-back.
+   this. A criterion confirmed `searched` or `inspected` whose condition needs execution: report send-back.
 3. **Reconcile cases** (Test-case planning guidance). Classify each test-spec case passed, failed, blocked, not-run
    or justified N/A, and reconcile each affected requirement clause with its case, required surface and due phase,
    checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
@@ -2552,28 +2556,24 @@ base (below) and fix, within the item's paths, any of these:
 - a file changed outside the item's paths, or unrelated work reverted or
   reformatted;
 - a new or changed public entry point that does not check its arguments before
-  any effect, swallows an error or returns a success default (Code craft 2);
-- a language or library behaviour the change relies on that no command has
+  any effect, swallows an error or returns a success default (Code craft 2), or
+  a server one declaring no access or sharing posture;
+- a language or library behaviour the change relies on and no command has
   exercised (comparison and case rules, null and empty values, visibility,
-  ordering): run a one-line probe or read its primary documentation;
-- a public function without its contract docstring, a comment that restates
-  code, or dead code (rules 3-4);
-- code placed outside KNOWLEDGE/architecture.md's ## Structure or ## Conventions, or a
-  departure with no new AD-<n> under ## Decisions; a name that collides or is
-  exported wider than needed (rule 8);
-- a near-copy of existing logic, a new unit where an existing one could be
-  reused, composed or augmented, or a dependency, option or fallback with no
-  present need (rules 1, 9);
-- a failure that is not diagnosable, or user-facing text assembled from
-  fragments or bypassing the catalog (rules 6-7); for a UI step, a plain or
-  static interaction where the plan calls for a rich one (rule 5), or a scaled-
-  down UI that drops state announcement, refused-action feedback or selection
-  state for assistive technology;
-- a server entry point with no declared access or sharing posture;
-- a step skill listed in the packet and not used, or used against its stated
-  purpose, with no reason in the result;
-- a behaviour the code now has that no test-spec case covers and the result does
-  not list for the test stage;
+  ordering): probe it in one line or read its primary documentation;
+- a public function with no contract docstring, a comment restating code, or
+  dead code (rules 3-4);
+- code outside KNOWLEDGE/architecture.md's ## Structure or ## Conventions with
+  no new AD-<n>; a name that collides or is exported wider than needed (rule 8);
+- a near-copy of existing logic, a unit an existing one could serve, or a
+  dependency, option or fallback with no present need (rules 1, 9);
+- an undiagnosable failure, user-facing text built from fragments or bypassing
+  the catalog (rules 6-7); for a UI step, a plain interaction where the plan
+  calls for a rich one (rule 5), or one that drops state announcement,
+  refused-action feedback or selection state for assistive technology;
+- a step skill the packet lists, unused or misused with no reason in the result;
+- a new behaviour no test-spec case covers and the result does not list for the
+  test stage;
 - the step's Proof failing or not testing its criteria (a skipped file, a later
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.

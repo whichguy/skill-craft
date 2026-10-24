@@ -32,6 +32,7 @@ from shiploop_loop_support import LoopBlock  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_test_layers as layers  # noqa: E402
 
 CASES = {name: case for name, case in json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text()).items()
          if not name.startswith("_")}
@@ -180,6 +181,47 @@ class StepPacketTests(unittest.TestCase):
         self.assertLessEqual(budget.at_reference_install(printed), budget.ceiling("inline", "step-plan", "head"))
         self.assertIn("Current stage guidance:", printed)
         self.assertGreater(len(full), len(printed))  # the packet file holds the rest
+
+    def test_a_step_plan_head_with_test_layers_at_their_limit_still_fits_the_cut(self) -> None:
+        """Run-5 batch F1: the step-plan head prints test-strategy's layers and targets as required text, so the gate
+        bounds their printed size (layers.TEXT_LIMIT) and the head with the largest block it accepts stays under the
+        host cut on both routes, the duties and every layers line intact; optional lookups give way first."""
+        targets = [{"target": "the shared org", "keeps_state": "yes", "base_state_route": "r" * 200}]
+        surfaces: list = []
+        while True:
+            row = {"surface": "surface " + str(len(surfaces)) + " " + "s" * 40, "layer": "unit",
+                   "harness": "runner " + str(len(surfaces)) + " " + "h" * 60, "status": "prerequisite", "reason": "r" * 150}
+            if len("\n".join(layers.packet_lines([*surfaces, row], targets))) > layers.TEXT_LIMIT:
+                break
+            surfaces.append(row)
+        layers.check_text(surfaces, targets)
+        self.assertGreater(len("\n".join(layers.packet_lines(surfaces, targets))), layers.TEXT_LIMIT - 300)
+        case = CASES["node-fix-bug"]
+        for route in ("inline", "ask-agent"):
+            with self.subTest(route=route), budget.reference_tmpdir(), \
+                    tempfile.TemporaryDirectory(prefix="shiploop-step-packets-") as temp:
+                run_dir = Path(temp) / "run"
+                run_dir.mkdir()
+                state = navigator.new_state(temp, case["prompt"], delegation=route)
+                while navigator.current_stage(state) != "step-plan":
+                    action = navigator.current_action(state)["id"]
+                    stage = navigator.current_stage(state)
+                    extra = ({"work_items": [case["work_item"]]} if stage == "plan" else
+                             {"surfaces": surfaces, "targets": targets} if stage == "test-strategy" else {})
+                    state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                    if state.get("active_improve") is not None:
+                        state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "x"})
+                store.write_record(run_dir / "state.md", state)
+                saved = store.read_record(run_dir / "state.md")
+                with contextlib.redirect_stdout(io.StringIO()):
+                    full = navigator.emit(None, run_dir, saved)
+                printed = navigator.printed_text(None, run_dir, saved, navigator.packet_path(run_dir, saved), full,
+                                                 measure=budget.reference_measure(temp))
+                self.assertLessEqual(budget.at_reference_install(printed), navigator.HEAD_LIMIT)
+                self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
+                self.assertIn("Current stage guidance:", printed)
+                for line in layers.packet_lines(surfaces, targets):
+                    self.assertIn(line, printed)
 
     def test_offline_report_counts_every_packet(self) -> None:
         report = packets.offline_report("node-add-function", CASES["node-add-function"])

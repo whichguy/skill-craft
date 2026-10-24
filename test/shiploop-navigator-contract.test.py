@@ -1267,7 +1267,7 @@ class NavigatorContractTests(unittest.TestCase):
             " ".join(prompts.DUTIES["research"].split()),
         )
         self.assertIn(
-            "measurable bound or observable criterion",
+            "numeric bound inside any hard platform limit or an observable criterion",
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
@@ -1293,9 +1293,11 @@ class NavigatorContractTests(unittest.TestCase):
         criterion on the candidate.
         """
         authoring = (  # step-plan's numbered duty (2026-10-11 dedupe) says each of these once, in item 2 and item 7
-            "`<condition>. Confirm by: <command, observation or inspection>; pass when <expected result>`",
-            "say whether it must be exercised or inspection suffices",
-            "A docs or coverage criterion gets a command check (a search for the required terms)",
+            "`<condition>. Confirm by: <what a command observes>; pass when <expected result>`",
+            # The criterion's confirm field (run-5 batch F1) replaced "say whether it must be exercised or inspection
+            # suffices" and the docs-criterion bullet.
+            "`executed` when a recorded command runs the behaviour (a text search runs nothing)",
+            "`searched` for text the item writes (documentation, a docstring, a listed term), named by a search command",
             "A condition no command can confirm is not a criterion: list it in the summary as an open item",
             "with `Confirm by: unconfirmable here — <what would confirm it>`",
             # "confirm an external oracle (golden file, fixture, snapshot) agrees with the task" moved word for word to
@@ -1312,7 +1314,7 @@ class NavigatorContractTests(unittest.TestCase):
         )
         parent = (
             "Stale, skipped, missing or other-candidate, command, configuration or target evidence confirms nothing",
-            "whose `Confirm by:` needs execution: report send-back",
+            "A criterion confirmed `searched` or `inspected` whose condition needs execution: report send-back",
             # The verify duty keeps the send-back route (its closing item) in the re-cut's wording.
             "Criterion or check unachievable as planned: report send-back naming it",
         )
@@ -4138,6 +4140,10 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                     str(row.get("id")) for row in queue if isinstance(row, dict)))
             if stage == "step-plan":
                 result.setdefault("follows", [])
+                if "criteria" in result:
+                    result["criteria"] = inner_fixture.executed_criteria(result["criteria"])
+            if stage == "test-strategy":
+                result = {**inner_fixture.fixture_test_layers(), **result}     # run-5 batch F1, F3
             if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
                          "release-verify"):
                 result.setdefault("assumptions", [])

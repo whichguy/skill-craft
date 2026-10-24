@@ -207,6 +207,8 @@ class TestLoopTests(unittest.TestCase):
                 str(row.get("id")) for row in queue if isinstance(row, dict)))
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result = dict(result, unverified=[])
+        if stage == "test-strategy" and result.get("outcome") == "done":
+            result = {**inner.fixture_test_layers(), **result}              # run-5 batch F1, F3
         if result.get("outcome") == "done":
             # The consumer contract's open items and lessons (2026-10-11): none here unless the test sets them.
             if stage in inner.assumptions.OPEN_ITEM_STAGES and "assumptions" not in result:

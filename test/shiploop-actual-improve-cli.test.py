@@ -171,6 +171,8 @@ class ImproveCliFixture(unittest.TestCase):
                 self.producer.setdefault("assumptions", [])
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
+            if stage == "test-strategy":
+                self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
         if stage in stage_spec.INNER:
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
@@ -1796,6 +1798,8 @@ class ImproveCommitContractTests(ImproveCliFixture):
                 self.producer.setdefault("assumptions", [])
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
+            if stage == "test-strategy":
+                self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
         if stage in stage_spec.INNER:
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
@@ -2673,9 +2677,9 @@ class ImprovePassTests(ImproveCliFixture):
 
     def test_the_implement_step_focus_names_an_unexercised_language_behaviour(self):
         """IMP-10 (kept only if the seeded string-comparison defect is caught at pass 1 in the live round, U31)."""
-        self.assertIn("- a language or library behaviour the change relies on that no command has\n  exercised "
-                      "(comparison and case rules, null and empty values, visibility,\n  ordering): run a one-line "
-                      "probe or read its primary documentation;", prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
+        self.assertIn("- a language or library behaviour the change relies on and no command has\n  exercised "
+                      "(comparison and case rules, null and empty values, visibility,\n  ordering): probe it in one "
+                      "line or read its primary documentation;", prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
 
     def test_focus_ids_are_off_by_default_and_when_on_a_review_must_answer_each_one(self):
         """IMP-6 (its own commit, default off): with FOCUS_IDS on, the handoff numbers the focus conditions F1..Fn and

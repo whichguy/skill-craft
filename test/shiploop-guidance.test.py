@@ -594,7 +594,7 @@ class GuidanceTests(unittest.TestCase):
             "test-strategy": "required surface, due stage, owner, prerequisites",
             "test-spec": "One `test_cases` row per ID the step plan's focused commands list",
             "test": "Each case ends as:",
-            "step-plan": "Confirm by: <command, observation or inspection>; pass when <expected result>",
+            "step-plan": "Confirm by: <what a command observes>; pass when <expected result>",
             "implement": "Each iteration edits first.",
             "verify": "Criterion or check unachievable as planned: report send-back naming it.",
             "product-acceptance": "pending release verification",

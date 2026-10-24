@@ -65,7 +65,7 @@ FOCUSED = ("if test -f built.txt; then printf 'test_built (TC-1) ... ok\\n\\nRan
            "exit 1; fi")
 STEP_PLAN = {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create built.txt", "deps": [],
                                                "criteria": ["C1"], "check": "test -f built.txt", "skills": []}],
-             "criteria": [{"id": "C1", "text": "built.txt exists"}],
+             "criteria": [{"id": "C1", "text": "built.txt exists", "confirm": "executed"}],
              "test_commands": [{"command": FOCUSED, "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                {"command": "test -f built.txt", "suite": "regression"},
                                {"command": "true", "suite": "check"}],
@@ -79,6 +79,10 @@ TEST_CASES = [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": 
 LESSONS = {"learned": "Synthetic fixture: nothing learned.", "considerations": "none", "open_next": "none"}
 LIVING_SPEC = "# Spec\n\n## Requirements\n\n- R-1: built.txt exists.\n"
 RESULTS = {
+    # The test layers (run-5 batch F1, F3): one code surface, tested at the unit layer on the checkout.
+    "test-strategy": {"surfaces": [{"surface": "built.txt writer", "layer": "unit", "harness": "sh",
+                                    "status": "available", "reason": "the repository runs shell checks"}],
+                      "targets": []},
     "step-plan": dict(STEP_PLAN, follows=[]),
     "test-spec": {"test_cases": TEST_CASES, "assumptions": []},
     # An inline step's notes (build plan S3.2): ShipLoop writes them into the step's commit.
@@ -421,9 +425,24 @@ class RefusalRouteTests(RealCliCase):
                                                       "check": "run y", "reason": "later", "consumer": "W9"}]},
              "is not a work item in this plan"),
             ("a criterion no test command names", "step-plan",
-             lambda block: {**block, "criteria": [*block["criteria"], {"id": "C2", "text": "an unnamed criterion"}],
+             lambda block: {**block, "criteria": [*block["criteria"], {"id": "C2", "text": "an unnamed criterion", "confirm": "executed"}],
                             "steps": [dict(block["steps"][0], criteria=["C1", "C2"])]},
              "every criterion needs a test command that confirms it"),
+            ("an executed criterion whose only commands search text", "step-plan",
+             lambda block: {**block, "test_commands": [
+                 dict(row, command="grep -q TC-1 built.txt") if row.get("criteria") else row
+                 for row in block["test_commands"]]},
+             "every command naming them only searches text"),
+            ("an inspected criterion naming no unverified Test layers row", "step-plan",
+             lambda block: {**block, "criteria": [dict(row, confirm="inspected", surface="built.txt writer",
+                                                       layer="unit") for row in block["criteria"]]},
+             "are inspected, but name no surfaces row"),
+            ("a surface with no unit or component row", "test-strategy",
+             lambda block: {**block, "surfaces": [dict(row, layer="e2e") for row in block["surfaces"]]},
+             "no unit or component row"),
+            ("both surfaces and surfaces_na", "test-strategy",
+             lambda block: {**block, "surfaces_na": "The run writes no code."},
+             "never both"),
             ("a step whose dependency is a later step", "step-plan",
              lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"], "criteria": ["C1"],
                                                 "check": "test -f built.txt", "paths": ["built.txt"], "skills": []},
@@ -890,7 +909,8 @@ class RefusalRouteTests(RealCliCase):
         self.assertIsNotNone(exit_sentence, "the step plan packet says what to do with a condition no command can confirm")
         self.assertIn("open item", exit_sentence.group(0))
         good = self.fill_done(head)
-        person_only = {"id": "C2", "text": "A person signs off the layout. Confirm by: unconfirmable here - needs a person."}
+        person_only = {"id": "C2", "text": "A person signs off the layout. Confirm by: unconfirmable here - needs a person.",
+                       "confirm": "executed"}
         # The step names C2 too, so the plan is sized and the refusal is the one for a criterion no command confirms.
         write_block(path, {**good, "criteria": [*good["criteria"], person_only],
                            "steps": [dict(good["steps"][0], criteria=["C1", "C2"])]})
@@ -1104,7 +1124,7 @@ class StepSizingRouteTests(RealCliCase):
             ("a step path the item does not declare", {**good, "steps": [dict(step, paths=["built.txt", "other.txt"])]},
              "step S1 changes paths the item does not declare: other.txt"),
             ("a criterion no step satisfies",
-             {**good, "criteria": [*good["criteria"], {"id": "C2", "text": "built.txt is committed"}],
+             {**good, "criteria": [*good["criteria"], {"id": "C2", "text": "built.txt is committed", "confirm": "executed"}],
               "test_commands": [*good["test_commands"], {"command": "true", "suite": "check", "criteria": ["C2"]}]},
              "no step satisfies C2"),
             ("a step that only changes test files",
@@ -1194,8 +1214,8 @@ class StepSizingRouteTests(RealCliCase):
         for check, accepted in (("test -f later.txt", False), (guarded, True)):
             with self.subTest(check=check):
                 plan = dict(STEP_PLAN, paths=["built.txt", "later.txt"],
-                            criteria=[{"id": "C1", "text": "built.txt exists"},
-                                      {"id": "C2", "text": "later.txt holds hello"}],
+                            criteria=[{"id": "C1", "text": "built.txt exists", "confirm": "executed"},
+                                      {"id": "C2", "text": "later.txt holds hello", "confirm": "searched"}],
                             steps=[{"id": "S1", "task": "Create built.txt", "deps": [], "criteria": ["C1"],
                                     "check": check, "skills": []},
                                    {"id": "S2", "task": "Create later.txt", "deps": ["S1"], "criteria": ["C2"],

@@ -19,7 +19,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from shiploop_inner_fixture import no_concerns_map  # noqa: E402
+from shiploop_inner_fixture import no_concerns_map, fixture_test_layers  # noqa: E402
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -533,6 +533,8 @@ class CliRunCase(unittest.TestCase):
         if state["stage"] == "plan" and merged.get("outcome") == "done" and "concerns" not in merged:
             queue = merged.get("work_items", state["work_items"])
             merged["concerns"] = no_concerns_map(row["id"] for row in queue if isinstance(row, dict))
+        if state["stage"] == "test-strategy" and merged.get("outcome") == "done":
+            merged = {**fixture_test_layers(), **merged}                       # run-5 batch F1, F3
         path = run / "inbox" / (action + ".md")
         store.write_record(path, merged)
         return self.cli("complete", "--run-dir", run, "--action", action, "--result", path)

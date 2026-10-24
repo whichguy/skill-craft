@@ -19,8 +19,8 @@ Each work item runs 8 stages in 5 phases (`INNER` in
 - `test-spec` writes one `### <ID>` case per criterion a test confirms, before any
   code changes; ShipLoop refuses a case ID that no focused command lists, and a
   focused ID with no case. Cases due at a later stage go under `## Due later` (read
-  by verify and `system-test-author`); criteria confirmed only by a check command or
-  inspection go under `## Not tested here`.
+  by verify and `system-test-author`); criteria confirmed `searched` or `inspected`
+  go under `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.
 - `implement` makes one step per action. The lint gate runs on every step and an
   Improve child reviews every accepted step. Tests are written later, at `test`.

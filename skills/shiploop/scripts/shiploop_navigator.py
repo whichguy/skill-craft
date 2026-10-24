@@ -29,6 +29,7 @@ from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
 import shiploop_concerns as concerns
+import shiploop_test_layers as layers
 import shiploop_unverified as unverified
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
@@ -69,6 +70,7 @@ _RESULT_KEYS = frozenset((
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
+    "surfaces", "surfaces_na", "targets", "harness_runs",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -115,7 +117,7 @@ _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
-    "learned", "decisions", "learned_from",
+    "learned", "decisions", "learned_from", "surfaces", "surfaces_na", "targets", "harness_runs",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1145,6 +1147,24 @@ def _canonical_result(
                                   else concerns.canonical_step_plan(value["concerns"]))
         except concerns.ConcernError as exc:
             raise NavigatorError(str(exc)) from exc
+    # Shape only (the test layers, run-5 batch F1/F3); the CLI gate applies each field's rule.  A step plan's surfaces
+    # are the item's own rows.
+    for key, stages in (("surfaces", ("test-strategy", "step-plan")), ("surfaces_na", ("test-strategy",)),
+                        ("targets", ("test-strategy",)), ("harness_runs", ("prepare",))):
+        if key in value:
+            _need(stage in stages and outcome == "done", key + " is allowed only on a done " + " or ".join(stages)
+                  + " result")
+    try:
+        if "surfaces" in value:
+            result["surfaces"] = layers.canonical_surfaces(value["surfaces"])
+        if "targets" in value:
+            result["targets"] = layers.canonical_targets(value["targets"])
+        if "harness_runs" in value:
+            result["harness_runs"] = layers.check_harness_runs(None, value["harness_runs"])
+    except layers.LayerError as exc:
+        raise NavigatorError(str(exc)) from exc
+    if "surfaces_na" in value:
+        result["surfaces_na"] = _text(value["surfaces_na"], "surfaces_na")
     if "lint_waivers" in value:
         _need(stage in lint.GATE_STAGES and outcome == "done",
               "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
@@ -2132,6 +2152,10 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     blocks.append(_Block("look-back", P1, look_back_lines(state, stage)))
     if stage == "step-plan" and workitem is not None:
         blocks.append(_Block("concerns", P1, concerns.packet_lines(_plan_concerns(state), workitem)))
+    if stage == "prepare" or stage in ("step-plan", "test-spec", "test") and workitem is not None:
+        # Required text (run-5 batch F1, F3): the test layers and targets by value, never cut from a head; prepare sets
+        # up the prerequisite harnesses, step-plan, test-spec and test plan and write the tests against them.
+        blocks.append(_Block("test-layers", P1, layers.packet_lines(*_test_layers(state, workitem))))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
@@ -2460,11 +2484,21 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
     _need(isinstance(value, list) and value, "criteria must be a nonempty list")
     rows = []
     for entry in value:
-        _need(isinstance(entry, Mapping) and set(entry) == {"id", "text"},
-              "each criterion is {\"id\": \"C1\", \"text\": \"...\"}")
+        _need(isinstance(entry, Mapping)
+              and {"id", "text"} <= set(entry) <= {"id", "text", "confirm", "surface", "layer"},
+              "each criterion is {\"id\": \"C1\", \"text\": \"...\", \"confirm\": \"executed\" | \"searched\" | "
+              "\"inspected\"} (inspected adds \"surface\" and \"layer\": the surfaces row with no runner)")
         criterion_id = _text(entry["id"], "criterion id")
         _need(not any(character.isspace() for character in criterion_id), "a criterion id has no spaces")
-        rows.append({"id": criterion_id, "text": _text(entry["text"], "criterion text")})
+        row = {"id": criterion_id, "text": _text(entry["text"], "criterion text")}
+        if "confirm" in entry:
+            _need(entry["confirm"] in layers.CONFIRMS, "criterion " + criterion_id + "'s confirm is one of "
+                  + ", ".join(layers.CONFIRMS))
+            row["confirm"] = entry["confirm"]
+        for key in ("surface", "layer"):
+            if key in entry:
+                row[key] = _text(entry[key], "criterion " + criterion_id + "'s " + key)
+        rows.append(row)
     ids = [row["id"] for row in rows]
     _need(len(set(ids)) == len(ids), "criterion ids must be unique")
     named = {name for command in commands for name in command.get("criteria", ())}
@@ -3090,6 +3124,76 @@ def _plan_concerns(state: Mapping[str, Any]) -> Mapping[str, Any]:
     action = planning_revision.current_actions(state).get((None, "plan"))
     plan = (state.get("accepted") or {}).get(action) if action else None
     return (plan or {}).get("concerns") or {}
+
+
+def _test_strategy_result(state: Mapping[str, Any]) -> Mapping[str, Any]:
+    """The current accepted test-strategy result ({} before one is accepted)."""
+    action = planning_revision.current_actions(state).get((None, "test-strategy"))
+    found = (state.get("accepted") or {}).get(action) if action else None
+    return found if isinstance(found, Mapping) else {}
+
+
+def _test_strategy_layers(state: Mapping[str, Any]) -> tuple[list[Any] | None, list[Any] | None]:
+    """The current test-strategy result's ``surfaces`` and ``targets`` (None when it recorded neither)."""
+    found = _test_strategy_result(state)
+    return found.get("surfaces"), found.get("targets")
+
+
+def _test_layers(state: Mapping[str, Any], work_item: str | None) -> tuple[list[Any], list[Any]]:
+    """The run's ``surfaces`` with ``work_item``'s own step-plan rows after them, and the run's ``targets``."""
+    surfaces, targets = _test_strategy_layers(state)
+    action = planning_revision.current_actions(state).get((work_item, "step-plan")) if work_item else None
+    plan = (state.get("accepted") or {}).get(action) if action else None
+    own = plan.get("surfaces") if isinstance(plan, Mapping) else None
+    return [*(surfaces or ()), *(own or ())], list(targets or ())
+
+
+def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """The test layers at the CLI gates (run-5 batch F1, F3).
+
+    test-strategy records surfaces (or surfaces_na) and targets: every surface has a unit or component row, neither
+    layer is unverified, and the printed lines fit ``layers.TEXT_LIMIT``.  prepare's harness_runs shows each
+    prerequisite row's harness running.  A step plan whose paths hold code lists the item's own rows when the run
+    recorded none; each criterion says how it is confirmed (``layers.check_confirms``).
+    """
+    if not isinstance(result, Mapping) or result.get("outcome") != "done" \
+            or stage not in ("test-strategy", "prepare", "step-plan"):
+        return
+    try:
+        if stage == "test-strategy":
+            _need(bool(result.get("surfaces")) != ("surfaces_na" in result),
+                  "a done test-strategy result lists surfaces: one row per code surface the run writes and per layer, "
+                  + layers.SURFACE_SHAPE + "; or, only when the run writes no code, surfaces_na with the reason "
+                  "instead (never both)")
+            _need("targets" in result, "a done test-strategy result lists targets: where the tests run, "
+                  + layers.TARGET_SHAPE + " ([] when every test runs on the checkout)")
+            surfaces = layers.canonical_surfaces(result.get("surfaces", []))
+            layers.check_surfaces(surfaces)
+            layers.check_text(surfaces, layers.canonical_targets(result["targets"]))
+            return
+        run_rows, targets = _test_strategy_layers(state)
+        if stage == "prepare":
+            if any(row.get("status") == "prerequisite" for row in run_rows or ()):
+                _need("harness_runs" in result, "a done prepare result lists harness_runs, one per Test layers row "
+                      "marked prerequisite: " + layers.HARNESS_RUN_SHAPE)
+                for row in layers.check_harness_runs(run_rows, result["harness_runs"]):
+                    _need(Path(row["evidence"]).is_absolute() and Path(row["evidence"]).is_file(),
+                          "harness_runs evidence " + row["evidence"] + " is not an existing absolute file: save the "
+                          "harness run's output and name that file")
+            return
+        own = layers.canonical_surfaces(result.get("surfaces", []))
+        if own:
+            layers.check_surfaces(own)
+        code = item_scope.behavioural_paths(result.get("paths") or ())
+        _need("surfaces_na" not in _test_strategy_result(state) or bool(own) or not code,
+              "the run recorded no code surfaces (surfaces_na), but this item's paths hold code (" + ", ".join(code[:5])
+              + "): list the item's own rows in surfaces, " + layers.SURFACE_SHAPE)
+        layers.check_text([*(run_rows or ()), *own], targets)
+        criteria = [row for row in result.get("criteria") or () if isinstance(row, Mapping)]
+        commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
+        layers.check_confirms(criteria, [*(run_rows or ()), *own], commands)
+    except layers.LayerError as exc:
+        raise NavigatorError(str(exc)) from exc
 
 
 def _check_submitted_concerns(state: Mapping[str, Any], stage: str, result: Any) -> None:
@@ -4479,6 +4583,8 @@ HANDOFF_SHAPES: dict[str, Any] = {
 
 
 STEP_CHECK_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
+# The bar a criterion's text meets (run-5 batch F1): what a command observes, not what the code contains.
+CRITERION_PLACEHOLDER = "<condition. Confirm by: what the command observes; pass when <expected result>>"
 
 
 def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None = None) -> str:
@@ -4493,6 +4599,14 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         "summary": TEST_SUMMARY_PLACEHOLDER if stage in test_loop.STAGES else guidance.summary_placeholder(stage),
         "evidence_refs": [str(receipt)] if receipt is not None else [EVIDENCE_PLACEHOLDER],
     }
+    if stage == "test-strategy":
+        result["surfaces"] = [dict(layers.SURFACE_TEMPLATE)]
+        result["targets"] = [dict(layers.TARGET_TEMPLATE)]
+    if stage == "prepare":
+        wanted = [row for row in _test_strategy_layers(state)[0] or () if row.get("status") == "prerequisite"]
+        if wanted:
+            result["harness_runs"] = [dict(layers.HARNESS_RUN_TEMPLATE, surface=row["surface"], layer=row["layer"])
+                                      for row in wanted]
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
         result["concerns"] = {"W1": [{"id": "ui", "applies": "yes", "decision": "...", "anchor": "...",
@@ -4512,7 +4626,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
              "check": "<read-only command, run from the repository root, that exits 0 when it holds>"},
             {"id": "E2", "state": "absent", "statement": "<what does not exist yet>", "steps": ["S2"],
              "paths": ["<new file a step adds>"], "check": "<read-only command that exits 0 when it is absent>"}]
-        result["criteria"] = [{"id": "C1", "text": "<criterion>"}, {"id": "C2", "text": "<criterion>"}]
+        result["criteria"] = [{"id": "C1", "text": CRITERION_PLACEHOLDER, "confirm": "executed"},
+                              {"id": "C2", "text": CRITERION_PLACEHOLDER, "confirm": "executed"}]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                    {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
                                    {"command": "...", "suite": "regression"}]
@@ -6114,7 +6229,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
     if source.key == "follows":
         return _followed_lines(repo, label, value) if value else [label + ": none"]
     if source.key == "criteria":
-        return [label + ":", *("- " + str(row.get("id")) + ": " + _one_line(row.get("text"))
+        return [label + ":", *("- " + layers.criterion_label(row) + ": " + _one_line(row.get("text"))
                                for row in value if isinstance(row, Mapping))]
     if source.key in ("test_commands", "system_commands"):
         return [label + ":", *("- [" + str(row.get("suite")) + "] " + str(row.get("command"))
@@ -6393,6 +6508,13 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
         gates.append("a focused command that only reruns an earlier item's test IDs")
+        gates.append("a criterion without confirm, an executed one whose only commands search text, or an inspected "
+                     "one naming no Test layers row that lacks a runner; code paths with no Test layers row")
+    if stage == "test-strategy":
+        gates.append("surfaces (or surfaces_na) or targets missing, a surface with no unit or component row, or a unit "
+                     "or component row whose status is neither available nor prerequisite")
+    if stage == "prepare":
+        gates.append("a Test layers row marked prerequisite with no harness_runs entry or no saved output")
     if stage == "release-verify":
         gates.append("missing lessons (learned, considerations, open_next)")
     if stage in HANDOFF_FIELDS.values():
@@ -6663,7 +6785,7 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
         return []
     step = view.step
     listed = [str(ident) for ident in step.get("criteria") or ()]
-    criteria = [(str(row.get("id")), _one_line(row.get("text"))) for row in view.plan.get("criteria") or ()
+    criteria = [(layers.criterion_label(row), _one_line(row.get("text"))) for row in view.plan.get("criteria") or ()
                 if isinstance(row, Mapping) and str(row.get("id")) in listed]
     action = planning_revision.current_actions(state).get((work_item, "test-spec"))
     spec = (state.get("accepted") or {}).get(action) if action else None
@@ -8605,6 +8727,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_focused_ids_new(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_layers(
+                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -8702,6 +8826,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_producer_bounds(current_stage(state), submitted)
             _check_submitted_concerns(state, current_stage(state), submitted)
+            _check_submitted_layers(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_focused_ids_new(state, current_stage(state), submitted)

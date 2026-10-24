@@ -178,6 +178,20 @@ def _fingerprint(root: Path) -> dict[str, str]:
 FOCUSED_ID = "TC-1"
 # A verbose-unittest-shaped listing, so ShipLoop reads the ID's outcome and the count.
 FOCUSED = "printf 'test_one (" + FOCUSED_ID + ") ... ok\\n\\nRan 1 test in 0.001s\\n\\nOK\\n'"
+
+
+def focused_id(item: str | None) -> str:
+    """W1's focused test ID, and a new one for each later item: a focused command that only reruns an earlier item's
+    IDs is refused (run-4 quality Q2)."""
+    return FOCUSED_ID if item in (None, "W1") else "TC-" + item
+
+
+def focused(item: str | None) -> str:
+    return FOCUSED.replace("(" + FOCUSED_ID + ")", "(" + focused_id(item) + ")")
+
+
+def _work_item(state: dict) -> str | None:
+    return state["work_items"][state["work_index"]]["id"] if state["stage"] == "inner-loop" else None
 DELIVERED = "delivered.txt"
 
 class FullRuntimeCompositionTests(unittest.TestCase):
@@ -416,6 +430,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             queue = producer.get("work_items", state["work_items"])
             producer["concerns"] = inner_fixture.no_concerns_map(
                 row["id"] for row in queue if isinstance(row, dict))
+        if stage == "test-strategy" and producer.get("outcome") == "done":
+            for key, value in inner_fixture.fixture_test_layers().items():    # run-5 batch F1, F3
+                producer.setdefault(key, value)
         self._inner_fields(run, repo, stage, producer)
         if stage == "system-test-author" and producer.get("outcome") == "done" and "system_commands" not in producer:
             producer.update(system_commands=[], system_commands_na="Synthetic fixture: no system command.")
@@ -713,6 +730,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         action instead.
         """
         state = self._state(run)
+        item = _work_item(state)
         cur_stage, action = self._cursor(state)
         self.assertEqual(cur_stage, stage)
         action_id = action["id"]
@@ -733,6 +751,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result["concerns"] = inner_fixture.no_concerns_map(
                 row["id"] for row in queue if isinstance(row, dict))
+        if stage == "test-strategy" and result.get("outcome") == "done":
+            for key, value in inner_fixture.fixture_test_layers().items():    # run-5 batch F1, F3
+                result.setdefault(key, value)
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result["unverified"] = []
         if stage in knowledge_support.knowledge.CLOSES:
@@ -753,7 +774,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             # ShipLoop itself ran the recorded commands on the candidate before accepting done.
             verified = _read_record(run / "tests" / f"{action_id}-verify1.md")
             self.assertTrue(verified["passed"])
-            self.assertEqual([row["command"] for row in verified["runs"]], [FOCUSED, "true"])
+            self.assertEqual([row["command"] for row in verified["runs"]], [focused(item), "true"])
         new_state = self._state(run)
         self.assertIsNone(new_state["active_improve"])
         context = {"stage": stage, "action": action_id, "run": run, "shiploop": shiploop}
@@ -763,13 +784,15 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         """Fill the fields a done INNER result needs to pass ShipLoop's 2026-10-10 gates (fixture values only)."""
         if result.get("outcome") != "done":
             return
+        item = _work_item(self._state(run))
         if stage == "step-plan":
             result.setdefault("test_commands", [
-                {"command": FOCUSED, "suite": "focused", "ids": [FOCUSED_ID], "criteria": ["C1"]},
+                {"command": focused(item), "suite": "focused", "ids": [focused_id(item)], "criteria": ["C1"]},
                 {"command": "true", "suite": "regression"}])
             result.setdefault("check_na", "Synthetic fixture: no lint, type or build command for these files.")
             result.setdefault("criteria", [{"id": "C1", "text": "The focused check passes. Confirm by: the focused "
                                                                 "command; pass when it exits 0"}])
+            result["criteria"] = inner_fixture.executed_criteria(result["criteria"])
             result.setdefault("paths", [DELIVERED])
             result.setdefault("steps", [{"id": "S1", "task": "Make the planned change.", "paths": [DELIVERED],
                                          "criteria": ["C1"], "check": "test -f " + DELIVERED, "skills": []}])
@@ -781,7 +804,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 "check": ("test -f " if exists else "test ! -e ") + DELIVERED}])
         elif stage == "test":
             # The synthetic focused command passes without the change, so declare it and let ShipLoop check it ran.
-            result.setdefault("red_na", [{"id": FOCUSED_ID, "reason": "synthetic fixture: the focused command "
+            result.setdefault("red_na", [{"id": focused_id(item), "reason": "synthetic fixture: the focused command "
                                                                       "prints a pass on any checkout"}])
         elif stage == "carry-forward":
             result.setdefault("skill", {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."})
@@ -792,7 +815,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             result.setdefault("learned", ["none"])        # an inline step's notes (build plan S3.2)
             result.setdefault("decisions", ["none"])
         if stage == "test-spec":
-            result.setdefault("test_cases", [{"id": FOCUSED_ID, "criterion": "C1", "requirement": "R-1",
+            result.setdefault("test_cases", [{"id": focused_id(item), "criterion": "C1", "requirement": "R-1",
                                               "oracle": "the focused command", "red": "fails before the change",
                                               "green": "passes after it"}])
         if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
