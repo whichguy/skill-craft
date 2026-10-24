@@ -58,6 +58,7 @@ import run  # noqa: E402  (also puts skills/shiploop/scripts on sys.path)
 import clear  # noqa: E402
 import hosts  # noqa: E402
 import metrics  # noqa: E402
+import overlay as overlays  # noqa: E402
 import packets  # noqa: E402
 import sessionlog  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
@@ -67,6 +68,9 @@ import shiploop_store as store  # noqa: E402
 STEP_CASES = HERE / "step_cases.json"
 FIXTURES = HERE / "fixtures"
 SEED_AT = "step-plan"
+# Where an experiment slice may start (experiment.py): the stages before it are recorded from the case (its
+# ``seed_records`` merge into those synthetic results, as a step-plan seed does).
+SEED_POINTS = ("test-strategy", "step-plan", "test-spec")
 # ShipLoop's own files in the product checkout: its knowledge home and an Improve child's run evidence. Neither is the
 # product; plan-return keeps run evidence out of the return.
 SHIPLOOP_OWN = ("docs/shiploop/", ".shiploop-improve/")
@@ -97,6 +101,54 @@ def slice_complete(state: dict | None) -> bool:
         return navigator.current_stage(state) not in stage_spec.INNER
     except Exception:  # noqa: BLE001 - an unreadable cursor is not a stop
         return False
+
+
+def _order(stage: str | None) -> int:
+    return stage_spec.STAGES.index(stage) if stage in stage_spec.STAGES else -1
+
+
+def stop_reached(state: dict | None, stop_after: str) -> bool:
+    """The run is past ``stop_after``: its result was accepted done and the cursor moved on (an Improve child after it
+    finishes first), or the run left the first item or stopped being active."""
+    if state is None:
+        return False
+    if state.get("status") != "active" or state.get("work_index", 0) > 0:
+        return True
+    try:
+        here = navigator.current_stage(state)
+    except Exception:  # noqa: BLE001 - an unreadable cursor is not a stop
+        return False
+    accepted = any(isinstance(row, dict) and row.get("stage") == stop_after and row.get("outcome") == "done"
+                   for row in state.get("history") or [])
+    return accepted and _order(here) > _order(stop_after)
+
+
+def overshoot_after(state: dict, stop_after: str) -> list[str]:
+    """Accepted results for a stage later than ``stop_after`` (the stop did not hold)."""
+    return [row.get("stage") for row in state.get("history") or []
+            if isinstance(row, dict) and _order(row.get("stage")) > _order(stop_after)]
+
+
+def merged_records(case: dict, extra: Path | None) -> dict | None:
+    """The case's ``seed_records`` with an arm's own (``--seed-records``) merged over them, stage by stage."""
+    records = {stage: dict(fields) for stage, fields in (case.get("seed_records") or {}).items()}
+    for stage, fields in (json.loads(extra.read_text()) if extra else {}).items():
+        records[stage] = {**records.get(stage, {}), **fields}
+    return records or None
+
+
+def seed_state(case: dict, out: Path, env: dict) -> dict | None:
+    """A case's ``seed_state`` ({"env": NAME, "from": "<fixture folder>"}): a local target that keeps state between
+    commands, outside every checkout (<output>/target), pre-loaded from the fixture as an earlier stage left it. NAME is
+    set to its path in the host's environment, which every command ShipLoop runs (the base run too) inherits."""
+    spec = case.get("seed_state")
+    if not spec:
+        return None
+    target = out / "target"
+    shutil.copytree(FIXTURES / spec["from"], target, dirs_exist_ok=True)
+    env[spec["env"]] = str(target)
+    return {"env": spec["env"], "path": str(target),
+            "files": sorted(str(p.relative_to(target)) for p in target.rglob("*") if p.is_file())}
 
 
 def overshoot(state: dict, item: str) -> list[str]:
@@ -182,7 +234,8 @@ def clear_records(out: Path) -> list[dict]:
 
 def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, timeout: int, watch: bool,
           translate=None, host_name: str = "fake", model: str | None = None, first: bool = True,
-          resumed_session: str | None = None, clear_at: list[dict] | None = None, told: dict | None = None) -> dict:
+          resumed_session: str | None = None, clear_at: list[dict] | None = None, told: dict | None = None,
+          stop_after: str | None = None) -> dict:
     """One host session that the slice stop ends. Its status is ``slice-complete`` when the slice ended it, or when the
     session ended by itself with the slice already complete.
 
@@ -204,7 +257,7 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
             if found:
                 hit.append(found)
                 return True
-        return slice_complete(state)
+        return stop_reached(state, stop_after) if stop_after else slice_complete(state)
 
     started: list = []
     events_path = out / "events.jsonl"
@@ -231,7 +284,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
         record = {"n": len(earlier) + 1, **spec, "triggered": hit[0], "stopped": actual}
         (out / CLEAR_RECORD).write_text(json.dumps([*earlier, record], indent=2) + "\n")
         process["status"] = "cleared"
-    elif process["status"] == "interrupted" or (process["status"] == "exited" and slice_complete(read_state(run_dir))):
+    elif process["status"] == "interrupted" or (process["status"] == "exited" and (
+            stop_reached(read_state(run_dir), stop_after) if stop_after else slice_complete(read_state(run_dir)))):
         process["status"] = "slice-complete"
     return process
 
@@ -258,7 +312,8 @@ def unfired_clears(out: Path, fired: int) -> list[str]:
     return asked[fired:]
 
 
-def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dict]) -> dict:
+def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dict],
+          stop_after: str | None = None) -> dict:
     state = read_state(run_dir) or {}
     item = case["work_item"]["id"]
     history = item_history(state, item)
@@ -267,8 +322,16 @@ def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dic
     worktree = run_dir.parent / "worktree"
     assembled = assembled_product(worktree, seeded["start_head"], case.get("expect_paths") or [])
     check_results = checks_on_candidate(worktree, out, case["checks"])
-    verdicts = {"process": sessions[-1]["status"] == "slice-complete", "inner_loop": carried, "no_overshoot": not over,
-                "assembled": assembled["pass"], "checks": all(c["pass"] for c in check_results)}
+    if stop_after:
+        # An experiment slice (--stop-after): the stop stage accepted and nothing after it; the product is recorded only.
+        over = overshoot_after(state, stop_after)
+        verdicts = {"process": sessions[-1]["status"] == "slice-complete",
+                    "stopped": any(isinstance(row, dict) and row.get("stage") == stop_after and row.get("outcome") == "done"
+                                   for row in state.get("history") or []),
+                    "no_overshoot": not over}
+    else:
+        verdicts = {"process": sessions[-1]["status"] == "slice-complete", "inner_loop": carried, "no_overshoot": not over,
+                    "assembled": assembled["pass"], "checks": all(c["pass"] for c in check_results)}
     probe = clear_facts(out)
     if probe:
         verdicts["no_redo"] = all(c["pass"] for c in probe)
@@ -276,7 +339,7 @@ def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dic
             "overshoot": over, "queue_growth": max(0, len(state.get("work_items") or []) - 1),
             "run_status": state.get("status"), "stage_at_stop": metrics.current_stage(state) if state else None,
             "assembled": assembled, "checks": check_results, "sessions": sessions, "clear": probe,
-            "clear_unfired": unfired_clears(out, len(probe)),
+            "clear_unfired": unfired_clears(out, len(probe)), "stop_after": stop_after,
             "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"}
 
 
@@ -309,15 +372,26 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--resume-prompt", choices=RESUME_PROMPTS, default="names-next",
                    help="what continues the run in a session after a clear: names-next (default) is the resume prompt, "
                         "which names the next command and the run directory; withheld names none of them (condition R0)")
+    p.add_argument("--seed-at", choices=SEED_POINTS, default=SEED_AT,
+                   help="the stage the host starts at (default step-plan); the earlier stages are recorded from the case")
+    p.add_argument("--stop-after", choices=stage_spec.STAGES, metavar="STAGE",
+                   help="end the host once STAGE is accepted and the run moved past it, instead of after the item")
+    p.add_argument("--ref", help="build the plugin from this git ref (a read-only temporary worktree), not the working tree")
+    p.add_argument("--overlay", type=Path, help="a prompt overlay (overlay.py) applied to the plugin build copy")
+    p.add_argument("--seed-records", type=Path, metavar="JSON",
+                   help="{stage: fields} merged over the case's seed_records for the stages the seed records (an arm's "
+                        "own seeded facts, such as a summary the next packet quotes)")
+    p.add_argument("--opening-note", type=Path, help="a text file appended to the opening prompt (the same in every arm)")
     p.add_argument("--quiet", action="store_true")
     for name in sorted(hosts.HOSTS):
         p.add_argument(f"--{name}-bin", default=name)
     return p
 
 
-def finish(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dict], identity: dict, quiet: bool) -> int:
+def finish(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dict], identity: dict, quiet: bool,
+           stop_after: str | None = None) -> int:
     result = {**identity, "output": str(out), "run_dir": str(run_dir), "worktree": str(run_dir.parent / "worktree"),
-              **grade(out, run_dir, seeded, case, sessions)}
+              **grade(out, run_dir, seeded, case, sessions, stop_after)}
     (out / "slice-result.json").write_text(json.dumps(result, indent=2) + "\n")
     report = packets.write_report(out)
     (out / "metrics.json").write_text(json.dumps(metrics.collect(out, run_dir), indent=2) + "\n")
@@ -340,7 +414,7 @@ def regrade(out: Path, quiet: bool) -> int:
     seeded = invocation["seeded"]
     identity = {k: invocation.get(k) for k in ("case", "host", "model", "delegation")}
     return finish(out, Path(seeded["run_dir"]), seeded, load_step_case(invocation["case"]), earlier["sessions"],
-                  {**identity, "regraded": True}, quiet)
+                  {**identity, "regraded": True}, quiet, invocation.get("stop_after"))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -358,21 +432,30 @@ def main(argv: list[str] | None = None) -> int:
     host = hosts.host(args.host, getattr(args, f"{args.host}_bin"))
     model, effort = args.model or host.model, args.effort or host.effort
     env = host.env(out / "home")
-    plugin_dir = (args.plugin_dir.expanduser().resolve() if args.plugin_dir else run.build_candidate(out))
+    if args.plugin_dir and (args.ref or args.overlay):
+        raise SystemExit("--ref and --overlay build their own plugin; they do not take --plugin-dir")
+    plugin_dir = (args.plugin_dir.expanduser().resolve() if args.plugin_dir
+                  else overlays.build_ref(args.ref, out) if args.ref else run.build_candidate(out))
+    applied = overlays.apply_to_plugin(args.overlay.resolve(), plugin_dir) if args.overlay else None
     plugin = host.install_plugin(env, plugin_dir)
     cli = run.run_cli(host.name, out, plugin_dir)
-    seeded = run.seed_run(cli, work, out, case["prompt"], SEED_AT, fixture=FIXTURES / case["fixture"],
+    seeded = run.seed_run(cli, work, out, case["prompt"], args.seed_at, fixture=FIXTURES / case["fixture"],
                           work_item=case["work_item"], delegation=args.delegation, checks=case["checks"],
-                          home=not args.seed_without_home)
+                          home=not args.seed_without_home, records=merged_records(case, args.seed_records))
+    target = seed_state(case, out, env)
     run_dir = Path(seeded["run_dir"])
-    opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], args.delegation))
+    note = args.opening_note.read_text().strip() if args.opening_note else ""
+    opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], args.delegation, args.seed_at)
+                          + (f"\n\n{note}" if note else ""))
     common = dict(cwd=work, model=model, effort=effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                   max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
     invocation = {"case": args.case, "kind": "step-slice", "host": host.name, "model": model, "effort": effort,
                   "delegation": args.delegation, "plugin_dir": str(plugin_dir), "plugin": plugin,
                   "versions": run.installed_versions(plugin_dir), "local_head": run.git("rev-parse", "HEAD").strip(),
                   "seeded": seeded, "checks": case["checks"], "expect_paths": case.get("expect_paths"),
-                  "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt}
+                  "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt,
+                  "seed_at": args.seed_at, "stop_after": args.stop_after, "ref": args.ref, "overlay": applied,
+                  "opening_note": note or None, "seed_state": target}
     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     (out / "prompt.txt").write_text(case["prompt"] + "\n")
     if not args.quiet:
@@ -384,7 +467,8 @@ def main(argv: list[str] | None = None) -> int:
               "will not fire", flush=True)
     deadline = time.time() + args.timeout
     session_args = dict(work=work, out=out, env=env, run_dir=run_dir, watch=not args.quiet,
-                        translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at)
+                        translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at,
+                        stop_after=args.stop_after)
     process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
                     timeout=args.timeout, **session_args)
     sessions = [process]
@@ -400,7 +484,8 @@ def main(argv: list[str] | None = None) -> int:
             process = drive(host.argv(prompt=prompt, prompt_file=out / f"resume-after-clear-{number}.txt", **common),
                             timeout=max(60, int(deadline - time.time())), first=False, told=told, **session_args)
         elif (host.resumable and process["status"] == "exited" and resumes < args.max_resumes
-              and (read_state(run_dir) or {}).get("status") == "active" and deadline - time.time() > 60):
+              and (read_state(run_dir) or {}).get("status") == "active" and deadline - time.time() > 60
+              and not (args.stop_after and stop_reached(read_state(run_dir), args.stop_after))):
             # A headless Grok or Codex session ends whenever the model ends its turn; continue it while the slice is
             # unfinished (the clears still to come stay in force). A clear is not a resume: it does not use the budget.
             session_id = run.last_session_id(out / "events.jsonl")
@@ -417,7 +502,8 @@ def main(argv: list[str] | None = None) -> int:
 
     run.write_transcript(out / "events.jsonl", out / "transcript.md")
     return finish(out, run_dir, seeded, case, sessions,
-                  {"case": args.case, "host": host.name, "model": model, "delegation": args.delegation}, args.quiet)
+                  {"case": args.case, "host": host.name, "model": model, "delegation": args.delegation}, args.quiet,
+                  args.stop_after)
 
 if __name__ == "__main__":
     raise SystemExit(main())

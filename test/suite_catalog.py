@@ -164,6 +164,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-sf-guard.test.py",
     "test/shiploop-e2e-efficiency.test.py",
     "test/shiploop-e2e-owner-page.test.py",
+    "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
     "test/shiploop-run-review.test.py",
@@ -351,6 +352,9 @@ _DURATION_SECONDS = {
     "test/shiploop-e2e-efficiency.test.py": 9.0,
     # The owner page (owner_page.py, flow.read_first) on the saved Claude step slice: 12 tests, 7.2 s locally on 2026-10-17.
     "test/shiploop-e2e-owner-page.test.py": 8.0,
+    # The template-field experiments (experiment.py, overlay.py, evaluators/): 22 tests, three seeds on the checkout's CLI, an
+    # overlaid plugin copy and each evaluator's verify (real node). 13 s locally on 2026-10-24.
+    "test/shiploop-e2e-experiments.test.py": 14.0,
     # The packet obligation ledger (test/shiploop_e2e/packet_obligations.json): it renders the 33-packet dry-run walk and the offline
     # step slice on both routes and mutates every anchor; 12 tests, 2.1 s locally on 2026-10-17.
     "test/shiploop-packet-obligations.test.py": 3.0,

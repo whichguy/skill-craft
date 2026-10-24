@@ -1259,7 +1259,7 @@ def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-age
     recorded = (f"The test harness recorded its stages before {stage} without doing them: the product the request describes is "
                 "already built and committed in the run's worktree, and the request itself is the specification."
                 if release_slice.delivered(stage) else
-                "The test harness recorded its stages before step-plan without doing them, so the request itself is the "
+                f"The test harness recorded its stages before {stage} without doing them, so the request itself is the "
                 "specification.")
     return (f"A ShipLoop run for the request below is already active, with {route} delegation. {recorded} "
             f"Continue the run now: run `python3 \"{cli}\" next --run-dir \"{run_dir}\"` and "

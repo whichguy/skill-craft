@@ -115,6 +115,11 @@ def load_arm(path: Path) -> dict[str, dict]:
     return {folder.name: summarise(folder) for folder in folders}
 
 
+def aa_spread(first: float, second: float) -> float:
+    """The A/A rule, the only threshold there is: the difference between two runs of the same arm."""
+    return abs(first - second)
+
+
 def spread(first: dict[str, dict], second: dict[str, dict]) -> dict[str, dict]:
     """The A/A spread by slice: for each numeric metric, the difference between the two control runs of the slice."""
     found: dict[str, dict] = {}
@@ -123,7 +128,7 @@ def spread(first: dict[str, dict], second: dict[str, dict]) -> dict[str, dict]:
         for key in (*SPREAD_GATES, *BYTE_METRICS):
             a, b = first[name].get(key), second[name].get(key)
             if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-                row[key] = abs(a - b)
+                row[key] = aa_spread(a, b)
         found[name] = row
     return found
 

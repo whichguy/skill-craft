@@ -1,0 +1,17 @@
+{
+  "about": "E5 (F5): an Improve fix commit names its regression test on a `Regression test:` line, and the step review gets three focus lines on fixes and their tests. Written against feat/shiploop-templates-6d625a (arm T, the text-only batch); a field T already states is not repeated.",
+  "edits": [
+    {
+      "module": "shiploop_navigator.py",
+      "function": "_improve_commit_lines",
+      "old": "`Key learnings: none` in column 1; rules ",
+      "new": "`Key learnings: none` in column 1; a commit that fixes a defect also has `Regression test: <test file or name that fails without the fix>`; rules "
+    },
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "old": "- a server entry point with no declared access or sharing posture;\n",
+      "new": "- a server entry point with no declared access or sharing posture;\n- a fix you make with no test that fails before it and passes after: add one\n  and name it on the commit's `Regression test:` line;\n- a test that would still pass with the fix reverted;\n- a fix to one place of a pattern that recurs elsewhere in the item's paths;\n"
+    }
+  ]
+}

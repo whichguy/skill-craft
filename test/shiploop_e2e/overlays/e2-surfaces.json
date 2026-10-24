@@ -1,0 +1,19 @@
+{
+  "about": "E2 (F1): test-strategy decides each layer in its own `surfaces` row, and each step-plan criterion says `confirm: executed` or `confirm: inspected` with a reason. Written against feat/shiploop-templates-6d625a (arm T, the text-only batch); a field T already states is not repeated.",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "test-strategy",
+      "old": "Name each code surface's native unit harness; an\n   absent one is prerequisite work for prepare, never N/A.\n",
+      "new": "Name each code surface's native unit harness; an\n   absent one is prerequisite work for prepare, never N/A. Write a `surfaces` table there, one row per layer the\n   request touches (unit, component, service, rendered UI): `| layer | harness | state | how a check runs it |`,\n   state `available`, `prerequisite` (who builds it, before which item) or `unverifiable` (why no tool can).\n   Decide each row alone: a missing tool for one layer decides only that row.\n"
+    },
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "say whether it must be exercised or inspection suffices, and name the\n   R-<n> served.\n",
+      "new": "end it with `confirm: executed` (a command runs the behaviour) or\n   `confirm: inspected - <why no runner can execute it>`, and name the R-<n> served. A criterion on a\n   `surfaces` row whose state is `available` or `prerequisite` is `executed`.\n"
+    }
+  ]
+}

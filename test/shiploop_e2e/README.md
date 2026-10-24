@@ -1812,3 +1812,22 @@ executables. It runs in normal CI; the live stages never do.
 own with a detailed message. Before starting another run or changing the skill
 or harness, read the last three commit messages
 (`git log -3 --format='%h %s%n%b'`) and carry their learnings forward.
+
+## Template-field experiments
+
+`experiment.py` runs one claim at a time as short step slices and decides between two arms from script scores, never a
+model's judgement (experiments.json lists E1-E5; the plan is in docs/shiploop-template-experiments-journal.md):
+
+```sh
+python3 test/shiploop_e2e/experiment.py verify E1                       # the evaluator tells planted bad from good
+python3 test/shiploop_e2e/experiment.py run E1 --arm A --samples 5 --host grok
+python3 test/shiploop_e2e/experiment.py run E1 --arm T --samples 5 --host grok
+python3 test/shiploop_e2e/experiment.py run E1 --arm B --samples 5 --host grok
+python3 test/shiploop_e2e/experiment.py score E1
+python3 test/shiploop_e2e/experiment.py decide E1 A T                   # and: decide E1 T B
+```
+
+An arm builds its plugin from a git ref in a temporary detached worktree (`slice.py --ref`), and may lay a prompt overlay
+(`overlays/*.json`, `overlay.py`) over that build copy, never the source. `slice.py --seed-at test-strategy|test-spec`
+records the earlier stages from the case (its `seed_records`), and `--stop-after <stage>` ends the host once that stage
+is accepted. Samples land in `$SHIPLOOP_EXPERIMENTS_OUT` (default `~/e2e-runs/experiments`)/`<id>/<arm>/<n>/`.

@@ -1,5 +1,5 @@
 {
-  "_about": "Step-slice cases (slice.py): one work item, run from step-plan to the end of its inner loop on a fixture repository. The prompt is the step's request; work_item is what the seed records as the plan's only item; checks run in a clean export of the product worktree's HEAD; expect_paths are fnmatch patterns the item's commits must touch. A case with a seeded_defect plants a latent defect its own checks do not exercise: probe commands (run by seeded_defects.py on the final tree, never part of the verdicts) fail when the defect survived, and tree names the reference trees under fixtures/ (naive: what a run with no review leaves; fixed: the corrected tree) that prove the probe tells them apart.",
+  "_about": "Step-slice cases (slice.py): one work item, run from step-plan to the end of its inner loop on a fixture repository. The prompt is the step's request; work_item is what the seed records as the plan's only item; checks run in a clean export of the product worktree's HEAD; expect_paths are fnmatch patterns the item's commits must touch. A case with a seeded_defect plants a latent defect its own checks do not exercise: probe commands (run by seeded_defects.py on the final tree, never part of the verdicts) fail when the defect survived, and tree names the reference trees under fixtures/ (naive: what a run with no review leaves; fixed: the corrected tree) that prove the probe tells them apart. Experiment cases (experiment.py, experiments.json) may add seed_records ({stage: fields} merged into the synthetic result of each stage the seed records, so a seed at test-spec carries a step plan), seed_state ({env, from}: a local target outside the checkout that keeps state, pre-loaded from a fixture; slice.seed_state), focused (the item's focused command an evaluator reruns) and stand_ins (fixtures/stand-ins/<case>/<name>: alternative implementations an evaluator swaps into the final tree).",
   "node-add-function": {
     "fixture": "node-base",
     "prompt": "In this Node.js project, add a function slugify(text) to src/strings.js and export it. It lower-cases the text, turns every run of characters that are not a-z or 0-9 into one hyphen, and trims hyphens from both ends: slugify('  Hello, World! ') returns 'hello-world' and slugify('') returns ''. A non-string argument throws a TypeError, like the other helpers. Cover it with node:test tests; npm test must pass.",
@@ -117,6 +117,230 @@
       "tree": "seeded/empty-guard",
       "probe": [
         "node -e \"const {mean}=require('./src/mean');const a=require('assert');a.equal(mean([]),0);a.equal(mean([4]),4)\""
+      ]
+    }
+  },
+  "stand-in-parser": {
+    "fixture": "node-records",
+    "prompt": "In this Node.js project, add a new module src/records.js exporting parseRecords(text) and select(records, field, value). parseRecords reads one record per non-blank line; a line holds fields `key=value` joined by `;`, a key is a lower-case letter followed by lower-case letters, digits or underscores, and values are trimmed: parseRecords('name=ada;team=x\\n\\nname=bob;team=y') returns [{name:'ada',team:'x'},{name:'bob',team:'y'}]. It rejects malformed input: a field with no `=`, an empty or invalid key, or a key repeated on one line throws a SyntaxError whose message names the 1-based line number; a non-string argument throws a TypeError. select returns the records whose field equals value, in input order (select(rows,'team','x') on the rows above returns the first record only); a non-array records throws a TypeError. Cover it with node:test tests; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add parseRecords and select in src/records.js",
+      "context": "Exact oracles in the request; malformed input is rejected with SyntaxError naming the line."
+    },
+    "expect_paths": [
+      "src/records.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node --test",
+      "node -e \"const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)\""
+    ],
+    "focused": "node --test",
+    "stand_ins": [
+      "empty",
+      "lenient"
+    ],
+    "stand_in_file": "src/records.js",
+    "seed_records": {
+      "step-plan": {
+        "criteria": [
+          {
+            "id": "C1",
+            "text": "parseRecords returns one object per non-blank line with trimmed values. Confirm by: the focused command; pass when TC-1 passes. Exercised. Serves R-1."
+          },
+          {
+            "id": "C2",
+            "text": "select returns the matching records in input order. Confirm by: the focused command; pass when TC-2 passes. Exercised. Serves R-1."
+          },
+          {
+            "id": "C3",
+            "text": "Malformed input throws SyntaxError naming the line; a non-string or non-array throws TypeError. Confirm by: the focused command; pass when TC-3 and TC-4 pass. Exercised. Serves R-1."
+          }
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "task": "Add src/records.js with parseRecords and select (C1-C3).",
+            "deps": [],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3"
+            ],
+            "check": "node -e \"const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)\"",
+            "skills": []
+          }
+        ],
+        "test_commands": [
+          {
+            "command": "node --test --test-reporter=spec test/records.test.js",
+            "suite": "focused",
+            "ids": [
+              "TC-1",
+              "TC-2",
+              "TC-3",
+              "TC-4"
+            ],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3"
+            ]
+          },
+          {
+            "command": "node --test",
+            "suite": "regression"
+          }
+        ],
+        "expectations": [
+          {
+            "id": "E1",
+            "state": "absent",
+            "statement": "src/records.js does not exist yet",
+            "steps": [
+              "S1"
+            ],
+            "paths": [
+              "src/records.js"
+            ],
+            "check": "test ! -e src/records.js"
+          }
+        ],
+        "paths": [
+          "src/records.js",
+          "test/records.test.js"
+        ],
+        "follows": [
+          "R-1"
+        ]
+      }
+    }
+  },
+  "ui-component": {
+    "fixture": "web-choice",
+    "prompt": "In this project of plain-JS web components, add a <choice-confirm> component in src/choice-confirm.js and show it in index.html. It renders a list of options given by its `options` attribute (comma-separated; a name starting with `!` is shown but cannot be chosen), a Confirm button and a status line. Clicking an option selects it (only one at a time, marked with aria-pressed). Confirm with a choosable option selected shows `Confirmed: <name>` and dispatches a `confirm` event with the name; Confirm with no selection, or with an option that cannot be chosen, changes nothing and shows `Choose an available option first`. The interaction must be verified by tests that run it, not only by reading the code.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add <choice-confirm> with select-then-confirm and refusal",
+      "context": "Stateful select then confirm; an illegal choice or no selection is refused with a status line."
+    },
+    "expect_paths": [
+      "src/choice-confirm.js"
+    ],
+    "checks": [
+      "node --test",
+      "test -f src/choice-confirm.js"
+    ]
+  },
+  "stateful-target": {
+    "fixture": "local-target",
+    "prompt": "In this Node.js project, whose code runs from a deployed local target (see README.md), add discount(price, pct) in a new module src/pricing.js: the price after a percentage discount, rounded to cents with cents() from src/money.js: discount(80, 25) returns 60. A pct outside 0..100 or a negative or non-finite price throws a RangeError. Its tests load the module from the target like the existing ones; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add discount(price, pct) in src/pricing.js",
+      "context": "The target keeps state; an earlier step already deployed this item's module to it."
+    },
+    "expect_paths": [
+      "src/pricing.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node scripts/deploy.js --clean && node --test"
+    ],
+    "seed_records": {
+      "step-plan": {
+        "criteria": [
+          {
+            "id": "C1",
+            "text": "discount(80, 25) returns 60 from the deployed target. Confirm by: the focused command; pass when TC-1 passes. Exercised. Serves R-1."
+          },
+          {
+            "id": "C2",
+            "text": "A pct outside 0..100 or a bad price throws RangeError. Confirm by: the focused command; pass when TC-2 passes. Exercised. Serves R-1."
+          }
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "task": "Add src/pricing.js with discount (C1, C2) and deploy it.",
+            "deps": [],
+            "criteria": [
+              "C1",
+              "C2"
+            ],
+            "check": "node scripts/deploy.js && node -e \"require('./src/pricing')\"",
+            "skills": []
+          }
+        ],
+        "test_commands": [
+          {
+            "command": "node scripts/deploy.js && node --test --test-reporter=spec test/pricing.test.js",
+            "suite": "focused",
+            "ids": [
+              "TC-1",
+              "TC-2"
+            ],
+            "criteria": [
+              "C1",
+              "C2"
+            ]
+          },
+          {
+            "command": "node scripts/deploy.js && node --test",
+            "suite": "regression"
+          }
+        ],
+        "expectations": [
+          {
+            "id": "E1",
+            "state": "absent",
+            "statement": "src/pricing.js does not exist yet",
+            "steps": [
+              "S1"
+            ],
+            "paths": [
+              "src/pricing.js"
+            ],
+            "check": "test ! -e src/pricing.js"
+          }
+        ],
+        "paths": [
+          "src/pricing.js",
+          "test/pricing.test.js"
+        ],
+        "follows": [
+          "R-1"
+        ]
+      }
+    },
+    "seed_state": {
+      "env": "LOCAL_TARGET",
+      "from": "stand-ins/stateful-target/deployed"
+    }
+  },
+  "node-seeded-early-validation": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, add a class Basket in a new module src/basket.js and export it. new Basket({limit}) holds at most limit items; limit must be a positive integer, otherwise the constructor throws a TypeError. add(item) appends the item and returns the new count, and throws a RangeError when the basket is full. Cover it with node:test tests; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add Basket in src/basket.js",
+      "context": "limit is a positive integer (TypeError otherwise); add returns the count; RangeError when full."
+    },
+    "expect_paths": [
+      "src/basket.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node --test",
+      "node -e \"const {Basket}=require('./src/basket');const a=require('assert');const b=new Basket({limit:1});a.equal(b.add('x'),1);a.throws(()=>b.add('y'),RangeError)\""
+    ],
+    "seeded_defect": {
+      "id": "validation-before-input",
+      "what": "the constructor validates limit before it is assigned, so a bad limit is never refused",
+      "tree": "seeded/early-validation",
+      "probe": [
+        "node -e \"const {Basket}=require('./src/basket');const a=require('assert');for (const l of [0,-1,1.5,'2']) a.throws(()=>new Basket({limit:l}),TypeError)\""
       ]
     }
   }
