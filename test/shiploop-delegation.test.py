@@ -301,8 +301,8 @@ class DelegationStateTests(unittest.TestCase):
 class StepTests(DelegationStateTests):
     """The script, not the host, walks a work item's step plan: one implement packet per step."""
 
-    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"], "check": "python3 -B -c 'import calc'"},
-             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"], "check": "grep -q divide README.md"}]
+    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"], "proof": "python3 -B -c 'import calc'"},
+             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"], "proof": "grep -q divide README.md"}]
 
     def at_implement(self, delegation="inline", steps=None):
         state = advance(self.state(delegation), "step-plan")
@@ -341,9 +341,9 @@ class StepTests(DelegationStateTests):
         The step Proof replaces 603a709c's interim rule (a check due from the step that finishes its criteria): each step
         packet names the one command its step plan recorded for it, and the item's check rows stay with test and verify.
         """
-        steps = [{"id": "S1", "task": "Add the parser.", "criteria": ["C1"], "check": "python3 -B probe_parser.py"},
-                 {"id": "S2", "task": "Add the validator.", "criteria": ["C2"], "check": "python3 -B probe_validator.py"},
-                 {"id": "S3", "task": "Add the report page.", "criteria": ["C3"], "check": "grep -q report report.html"}]
+        steps = [{"id": "S1", "task": "Add the parser.", "criteria": ["C1"], "proof": "python3 -B probe_parser.py"},
+                 {"id": "S2", "task": "Add the validator.", "criteria": ["C2"], "proof": "python3 -B probe_validator.py"},
+                 {"id": "S3", "task": "Add the report page.", "criteria": ["C3"], "proof": "grep -q report report.html"}]
         commands = [{"command": "make lint", "suite": "check"},
                     {"command": "grep -q report report.html", "suite": "check", "criteria": ["C3"]},
                     {"command": "pytest -v", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1", "C2", "C3"]}]
@@ -359,13 +359,13 @@ class StepTests(DelegationStateTests):
             self.assertIn(f"Step S{number} ({number} of 3), the only work for this packet", packet)
             proofs = [line for line in packet.splitlines() if line.lstrip().startswith("Proof (")]
             self.assertEqual(len(proofs), 1, proofs)
-            self.assertTrue(proofs[0].endswith("): " + step["check"]), proofs[0])
+            self.assertTrue(proofs[0].endswith("): " + step["proof"]), proofs[0])
             for other in steps:
                 if other is not step:
-                    self.assertNotIn(other["check"], packet)  # S3's check is also an item check row: no other step sees it
+                    self.assertNotIn(other["proof"], packet)  # S3's proof is also an item check row: no other step sees it
             self.assertNotIn("make lint", packet)
             self.assertEqual(nav.test_loop.stage_commands(state, "implement", "W1")[0],
-                             [{"command": step["check"], "suite": "check"}])
+                             [{"command": step["proof"], "suite": "check"}])
             state = self.done(state, f"S{number} done.")
         self.assertNotEqual(nav.current_stage(state), "implement")
         self.assertFalse(hasattr(nav, "step_checks"))  # the interim helper is gone (one supported version)
@@ -503,11 +503,11 @@ class StepBlockTests(unittest.TestCase):
                 {"id": "C2", "text": "The validator rejects an empty record (R-2)."},
                 {"id": "C3", "text": "The report lists each record (R-3)."}]
     STEPS = [{"id": "S1", "task": "Add the parser. It reads one record per line.", "deps": [], "criteria": ["C1"],
-              "check": "python3 -B -c 'import parser_probe'", "skills": []},
+              "proof": "python3 -B -c 'import parser_probe'", "skills": []},
              {"id": "S2", "task": "Add the validator.", "deps": ["S1"], "criteria": ["C2"],
-              "check": "python3 -B -c 'import validator_probe'", "skills": []},
+              "proof": "python3 -B -c 'import validator_probe'", "skills": []},
              {"id": "S3", "task": "Add the report page. It lists the records.", "deps": ["S2"], "criteria": ["C3"],
-              "check": "grep -q record report.html", "skills": []}]
+              "proof": "grep -q record report.html", "skills": []}]
     CASES = [{"id": "TC-" + str(n), "criterion": "C" + str(n), "requirement": "R-" + str(n), "oracle": "the spec's example",
               "red": "absent on the base", "green": "present after the step"} for n in (1, 2, 3)]
 
@@ -587,7 +587,7 @@ class StepBlockTests(unittest.TestCase):
                                    "Add the parser. It reads one record per line.")
         self.assertIn("    C1: The parser reads a valid record (R-1).", block)
         self.assertIn("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "
-                      + self.STEPS[0]["check"], block)
+                      + self.STEPS[0]["proof"], block)
         self.assertIn("  Depends on: none", block)
         self.assertIn("Later steps (ShipLoop issues each after this one; do not start them): S2 Add the validator; "
                       "S3 Add the report page", block)
@@ -631,7 +631,7 @@ class StepBlockTests(unittest.TestCase):
                 self.assertTrue(last_block(head).startswith(loops.BLOCK_HEADING), last_block(head)[:120])
                 self.assertIn("Step S2 (2 of 3), the only work for this packet: Add the validator.", head)
                 self.assertIn("Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "
-                              + self.STEPS[1]["check"], head)
+                              + self.STEPS[1]["proof"], head)
                 self.assertIn("Accepted step S1: Step done.", head)
         self.assertTrue(last_block(nav.render(None, self.run, state)).startswith(loops.BLOCK_HEADING))
         self.assertLess(nav.render(None, self.run, state).index("Step S2 (2 of 3)"),

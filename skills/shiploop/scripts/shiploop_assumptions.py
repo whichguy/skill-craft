@@ -35,12 +35,12 @@ _URL = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://\S+$")
 _FIELDS = {
     "evidenced": frozenset(("evidence",)),
     "probed": frozenset(("check", "evidence")),
-    "open": frozenset(("check", "reason", "consumer")),
+    "open": frozenset(("settle", "reason", "consumer")),
 }
 _SHAPE = (
     "each assumption is {id, assumption, disposition} plus: evidenced -> evidence "
     "(list of absolute paths or URLs); probed -> check (the read or command) and "
-    "evidence (its captured output); open -> check (what would settle it), reason "
+    "evidence (its captured output); open -> settle (what would settle it), reason "
     "(why it was not run) and consumer (the work item that settles or blocks on it)"
 )
 

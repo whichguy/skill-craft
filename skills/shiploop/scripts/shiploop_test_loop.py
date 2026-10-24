@@ -316,7 +316,7 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
 
 def step_command(state: Mapping[str, Any], work_item: str) -> Optional[Tuple[Mapping[str, Any], Dict[str, Any]]]:
     """(the step, its Proof as a ``check`` row) for the inline implement step the item is on, or None: another stage or
-    route (the ask-agent action builds every step), no step left, or a step whose plan records no check."""
+    route (the ask-agent action builds every step), no step left, or a step whose plan records no proof."""
     import shiploop_loops as loops  # imported where used: the loops module imports this one late
 
     found = loops.cursor(state)
@@ -325,10 +325,10 @@ def step_command(state: Mapping[str, Any], work_item: str) -> Optional[Tuple[Map
     if loops._route(state, found[1]) != guidance.INLINE:
         return None
     step = loops.current_step(state, work_item)
-    check = step.get("check") if step is not None else None
-    if not isinstance(check, str) or not check.strip():
+    proof = step.get("proof") if step is not None else None
+    if not isinstance(proof, str) or not proof.strip():
         return None
-    return step, {"command": check.strip(), "suite": "check"}
+    return step, {"command": proof.strip(), "suite": "check"}
 
 
 def base_commands(state: Mapping[str, Any], work_item: str) -> List[Dict[str, Any]]:

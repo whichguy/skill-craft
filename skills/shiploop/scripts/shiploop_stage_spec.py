@@ -83,7 +83,7 @@ STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied 
                            "by a command or file after the last edit, and no later step's work is in the change")
 # Implement's second exit condition on both routes (one step inline, every step on the ask-agent route): each step's Proof
 # is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
-STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its check in the step plan) exited 0"
+STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"
 # The step exit criteria's stopping rule (SPEC S-10 carve-out, owner decision 2026-10-10): the same check still failing
 # after this many genuine fix attempts ends the stage as send-back. No script counts the attempts; the model applies it, and
 # test/shiploop-stage-spec.test.py pins every prose copy to this value.
@@ -340,7 +340,7 @@ _ROWS = (
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
             "steps lists every implementation step in the order to do them",
-            "each step declares deps, the criteria it satisfies and its check, one command that proves those criteria "
+            "each step declares deps, the criteria it satisfies and its proof, one command that proves those criteria "
             "using only this step and accepted earlier steps, every criterion is satisfied by a step, and no step only "
             "changes test files (unless the whole item is tests)",
             "concerns maps each concern the plan gave this item to the steps that deliver it",

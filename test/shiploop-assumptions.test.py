@@ -42,7 +42,7 @@ def probed(ident: str, ref: str) -> dict:
 
 def open_row(ident: str, consumer: str) -> dict:
     return {"id": ident, "assumption": "It holds.", "disposition": "open",
-            "check": "call the service", "reason": "no access here", "consumer": consumer}
+            "settle": "call the service", "reason": "no access here", "consumer": consumer}
 
 
 class ShapeTests(unittest.TestCase):
@@ -60,7 +60,7 @@ class ShapeTests(unittest.TestCase):
             [{"id": "A1", "assumption": "x", "disposition": "maybe"}]))
         row = open_row("A1", "W1")
         del row["reason"]
-        self.assertIn("needs exactly check, consumer, reason", self.refused([row]))
+        self.assertIn("needs exactly consumer, reason, settle", self.refused([row]))
         row = evidenced("A1", "https://example.test/doc")
         row["check"] = "extra"
         self.assertIn("needs exactly evidence", self.refused([row]))

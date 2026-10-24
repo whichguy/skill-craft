@@ -795,7 +795,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             result["criteria"] = inner_fixture.executed_criteria(result["criteria"])
             result.setdefault("paths", [DELIVERED])
             result.setdefault("steps", [{"id": "S1", "task": "Make the planned change.", "paths": [DELIVERED],
-                                         "criteria": ["C1"], "check": "test -f " + DELIVERED, "skills": []}])
+                                         "criteria": ["C1"], "proof": "test -f " + DELIVERED, "skills": []}])
             # delivered.txt is new to W1 and on the base of every later item (verify committed it).
             exists = (repo / DELIVERED).exists()
             result.setdefault("expectations", [{

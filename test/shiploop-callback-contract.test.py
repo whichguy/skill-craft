@@ -64,7 +64,7 @@ FOCUSED = ("if test -f built.txt; then printf 'test_built (TC-1) ... ok\\n\\nRan
            "else printf 'test_built (TC-1) ... FAIL\\n\\nRan 1 test in 0.001s\\n\\nFAILED (failures=1)\\n'; "
            "exit 1; fi")
 STEP_PLAN = {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create built.txt", "deps": [],
-                                               "criteria": ["C1"], "check": "test -f built.txt", "skills": []}],
+                                               "criteria": ["C1"], "proof": "test -f built.txt", "skills": []}],
              "criteria": [{"id": "C1", "text": "built.txt exists", "confirm": "executed"}],
              "test_commands": [{"command": FOCUSED, "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                {"command": "test -f built.txt", "suite": "regression"},
@@ -102,12 +102,12 @@ HANDOFF_KEYS = ("follows", "test_cases", "not_covered", "assumptions", "lessons"
 # stage whose external effect it gates.
 UNVERIFIED_ENTRY = {"outcome": "the exported file opens in the customer's reader",
                     "reason": "this host has no copy of that reader",
-                    "check": "open the exported file in the reader and report what shows",
+                    "settle": "open the exported file in the reader and report what shows",
                     "owner": "the user", "due_stage": "handoff"}
 UNVERIFIED_EARLY = dict(UNVERIFIED_ENTRY, outcome="the deployed page loads for a signed-in user",
                         reason="no sign-in is available to this run", due_stage="release-check")
 OPEN_ASSUMPTION = {"id": "A1", "assumption": "the export is checked by file tests only", "disposition": "open",
-                   "check": "open the export in the reader", "reason": "no reader here", "consumer": "W1"}
+                   "settle": "open the export in the reader", "reason": "no reader here", "consumer": "W1"}
 
 
 def write_block(path: Path, value: object, *, loop: bool = True) -> None:
@@ -422,7 +422,7 @@ class RefusalRouteTests(RealCliCase):
              "evidence_refs cite files that do not exist"),
             ("an open assumption whose consumer is not in the plan", "plan",
              lambda block: {**block, "assumptions": [{"id": "A2", "assumption": "y holds", "disposition": "open",
-                                                      "check": "run y", "reason": "later", "consumer": "W9"}]},
+                                                      "settle": "run y", "reason": "later", "consumer": "W9"}]},
              "is not a work item in this plan"),
             ("a criterion no test command names", "step-plan",
              lambda block: {**block, "criteria": [*block["criteria"], {"id": "C2", "text": "an unnamed criterion", "confirm": "executed"}],
@@ -445,9 +445,9 @@ class RefusalRouteTests(RealCliCase):
              "never both"),
             ("a step whose dependency is a later step", "step-plan",
              lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"], "criteria": ["C1"],
-                                                "check": "test -f built.txt", "paths": ["built.txt"], "skills": []},
+                                                "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []},
                                                {"id": "S2", "task": "second", "deps": [], "criteria": ["C1"],
-                                                "check": "test -f built.txt", "paths": ["built.txt"], "skills": []}]},
+                                                "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []}]},
              "step deps must name earlier steps"),
             ("no system_commands list", "system-test-author",
              lambda block: {k: v for k, v in block.items() if k != "system_commands"},
@@ -464,10 +464,10 @@ class RefusalRouteTests(RealCliCase):
             ("an unverified entry without an owner", "product-acceptance",
              lambda block: {**block, "unverified": [{key: value for key, value in UNVERIFIED_ENTRY.items()
                                                       if key != "owner"}]},
-             "unverified[0] needs exactly outcome, reason, check, owner, due_stage"),
+             "unverified[0] needs exactly outcome, reason, settle, owner, due_stage"),
             ("an unverified entry that keeps one template placeholder", "product-acceptance",
-             lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, check="<what the owner does and reports>")]},
-             "unverified[0].check is still a template placeholder"),
+             lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, settle="<what the owner does and reports>")]},
+             "unverified[0].settle is still a template placeholder"),
             ("an unverified entry whose field holds two placeholders", "product-acceptance",
              lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, owner="<who> or <who else>")]},
              "unverified[0].owner is still a template placeholder"),
@@ -969,7 +969,7 @@ class RefusalRouteTests(RealCliCase):
         write_block(path, {**{key: value for key, value in good.items() if key not in ("criteria", "test_commands")},
                            "paths": ["README.md"], "test_commands": [], "test_commands_na": "documentation only",
                            "steps": [{"id": "S1", "task": "Document the change.", "paths": ["README.md"],
-                                      "check": "test -f README.md", "skills": []}],
+                                      "proof": "test -f README.md", "skills": []}],
                            "expectations": [{"id": "E1", "state": "absent", "statement": "README.md does not exist yet.",
                                              "steps": ["S1"], "paths": ["README.md"],
                                              "check": "test ! -e README.md"}]})
@@ -1047,7 +1047,7 @@ class PersonObservationRouteTests(RealCliCase):
 
     def open_item(self, ident: str, line: str) -> dict:
         return {"id": ident, "assumption": "Board line " + line + " holds in the released board.", "disposition": "open",
-                "check": "the person plays line " + line + " on /app/board and reports yes or no",
+                "settle": "the person plays line " + line + " on /app/board and reports yes or no",
                 "reason": "not-run: the reply left it unanswered: " + json.dumps(self.REPLY),
                 "consumer": "handoff", "owner": "the user"}
 
@@ -1101,7 +1101,7 @@ class PersonObservationRouteTests(RealCliCase):
 class StepSizingRouteTests(RealCliCase):
     """The step-sizing gate (owner, 2026-10-10): each refusal names its fault, and the sized plan is accepted.
 
-    Every step records its check (its Proof, implement-step fix plan 4.1) and, when the result lists criteria, the
+    Every step records its proof (its Proof, implement-step fix plan 4.1) and, when the result lists criteria, the
     criteria it satisfies; every criterion is satisfied by some step; a step's optional paths come from the item's; and a
     step that only changes test files is refused unless the whole item is tests.
     """
@@ -1111,13 +1111,13 @@ class StepSizingRouteTests(RealCliCase):
         command, path, action = printed_callback(head)
         good = self.fill_done(head)
         step = good["steps"][0]
-        self.assertEqual((step["check"], step["criteria"]), ("test -f built.txt", ["C1"]))
-        bare = {key: value for key, value in step.items() if key not in ("check", "criteria")}
+        self.assertEqual((step["proof"], step["criteria"]), ("test -f built.txt", ["C1"]))
+        bare = {key: value for key, value in step.items() if key not in ("proof", "criteria")}
         test_file = "tests/test_built.py"
         cases = [
-            ("a step without its check", {**good, "steps": [dict(bare, criteria=["C1"])]},
-             "step S1 must record its check: the one command"),
-            ("a step without criteria while the result lists criteria", {**good, "steps": [dict(bare, check=step["check"])]},
+            ("a step without its proof", {**good, "steps": [dict(bare, criteria=["C1"])]},
+             "step S1 must record its proof: the one command"),
+            ("a step without criteria while the result lists criteria", {**good, "steps": [dict(bare, proof=step["proof"])]},
              "step S1 must list criteria: the IDs of the criteria it satisfies (C1)"),
             ("a step naming a criterion the result does not list", {**good, "steps": [dict(step, criteria=["C1", "C9"])]},
              "step S1 names criteria the result does not list: C9"),
@@ -1141,7 +1141,7 @@ class StepSizingRouteTests(RealCliCase):
                 self.assertNotIn("test-author", refusal)
         write_block(path, good)
         self.accepted(command)
-        self.assertEqual(self.recorded(run, action)["steps"][0]["check"], "test -f built.txt")
+        self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], "test -f built.txt")
 
     def test_a_field_past_its_producer_limit_is_refused_with_the_limit_and_one_at_the_limit_is_accepted(self) -> None:
         """Build plan S2.1 (run-insights T-D2): the step plan's task, check and per-step criteria are printed whole by
@@ -1153,8 +1153,8 @@ class StepSizingRouteTests(RealCliCase):
         cases = [
             ("a long task", {**good, "steps": [dict(step, task="x" * 701)]},
              "step S1's task is 701 characters; the limit is 700"),
-            ("a long check", {**good, "steps": [dict(step, check="test -f built.txt && " + "true && " * 75)]},
-             "step S1's check is"),
+            ("a long proof", {**good, "steps": [dict(step, proof="test -f built.txt && " + "true && " * 75)]},
+             "step S1's proof is"),
             ("long criteria", {**good, "criteria": [dict(good["criteria"][0], text="y" * 1_201)]},
              "the criteria step S1 names are 1,201 characters together; the limit is 1,200"),
         ]
@@ -1165,20 +1165,20 @@ class StepSizingRouteTests(RealCliCase):
         write_block(path, {**good, "steps": [dict(step, task="z" * 700)]})  # at the limit
         self.accepted(command)
 
-    def test_a_step_without_its_check_is_refused_by_name_and_the_step_with_it_is_accepted(self) -> None:
-        """Implement-step fix plan T1 (section 4.1): every step records `check`, the exact command that proves its criteria
+    def test_a_step_without_its_proof_is_refused_by_name_and_the_step_with_it_is_accepted(self) -> None:
+        """Implement-step fix plan T1 (section 4.1): every step records `proof`, the exact command that proves its criteria
         using that step and accepted earlier steps; ShipLoop runs it when the step reports done."""
         run, head = self.new_run("step-plan")
         command, path, action = printed_callback(head)
         good = self.fill_done(head)
-        self.assertIn("check", printed_template(head)["steps"][0])     # the template asks for it
-        bare = {key: value for key, value in good["steps"][0].items() if key != "check"}
+        self.assertIn("proof", printed_template(head)["steps"][0])     # the template asks for it
+        bare = {key: value for key, value in good["steps"][0].items() if key != "proof"}
         write_block(path, {**good, "steps": [bare]})
         refusal = self.refused(command, run)
-        self.assertIn("step S1 must record its check", refusal)
+        self.assertIn("step S1 must record its proof", refusal)
         write_block(path, good)
         self.accepted(command)
-        self.assertEqual(self.recorded(run, action)["steps"][0]["check"], good["steps"][0]["check"])
+        self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], good["steps"][0]["proof"])
 
     def test_a_step_plan_without_per_step_paths_is_accepted(self) -> None:
         """T5 (the fix plan's D3): a step's paths are optional (the ask-agent chain uses them); the item's paths stay
@@ -1204,10 +1204,10 @@ class StepSizingRouteTests(RealCliCase):
         run, head = self.new_run("step-plan")
         command, path, action = printed_callback(head)
         good = self.fill_done(head)
-        reused = [dict(good["steps"][0], check="test -f built.txt")]          # the recorded regression command
+        reused = [dict(good["steps"][0], proof="test -f built.txt")]          # the recorded regression command
         write_block(path, {**good, "steps": reused})
         self.accepted(command)
-        self.assertEqual(self.recorded(run, action)["steps"][0]["check"], "test -f built.txt")
+        self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], "test -f built.txt")
         guarded = "test ! -e later.txt || grep -q hello later.txt"
         focus = " ".join(nav.guidance.PLANNING_REVIEW_FOCUS.split())
         self.assertIn("a check that needs a later step's work or passes by skipping a missing artifact", focus)
@@ -1217,9 +1217,9 @@ class StepSizingRouteTests(RealCliCase):
                             criteria=[{"id": "C1", "text": "built.txt exists", "confirm": "executed"},
                                       {"id": "C2", "text": "later.txt holds hello", "confirm": "searched"}],
                             steps=[{"id": "S1", "task": "Create built.txt", "deps": [], "criteria": ["C1"],
-                                    "check": check, "skills": []},
+                                    "proof": check, "skills": []},
                                    {"id": "S2", "task": "Create later.txt", "deps": ["S1"], "criteria": ["C2"],
-                                    "check": "grep -q hello later.txt", "skills": []}],
+                                    "proof": "grep -q hello later.txt", "skills": []}],
                             expectations=[*STEP_PLAN["expectations"],
                                           {"id": "E2", "state": "absent", "statement": "later.txt does not exist yet.",
                                            "steps": ["S2"], "paths": ["later.txt"], "check": "test ! -e later.txt"}])
@@ -1257,16 +1257,16 @@ class StepSizingRouteTests(RealCliCase):
         command, path, _ = printed_callback(head)
         good = self.fill_done(head)
         step = good["steps"][0]
-        bare = {key: value for key, value in step.items() if key not in ("check", "criteria")}
-        two_faults = {**good, "steps": [dict(bare, criteria=["C1", "C9"])]}   # no check, and a criterion nobody lists
+        bare = {key: value for key, value in step.items() if key not in ("proof", "criteria")}
+        two_faults = {**good, "steps": [dict(bare, criteria=["C1", "C9"])]}   # no proof, and a criterion nobody lists
         write_block(path, two_faults)
         first = self.refused(command + " --check-only", run)
-        self.assertIn("step S1 must record its check", first)
+        self.assertIn("step S1 must record its proof", first)
         self.assertNotIn("C9", first)                       # the second fault is not reported yet
-        write_block(path, {**good, "steps": [dict(bare, check=step["check"], criteria=["C1", "C9"])]})
+        write_block(path, {**good, "steps": [dict(bare, proof=step["proof"], criteria=["C1", "C9"])]})
         second = self.refused(command + " --check-only", run)
         self.assertIn("step S1 names criteria the result does not list: C9", second)
-        self.assertNotIn("must record its check", second)
+        self.assertNotIn("must record its proof", second)
         write_block(path, good)
         self.assertIn("ShipLoop check-only: every script gate for step-plan accepts this result",
                       self.accepted(command + " --check-only"))
@@ -1312,7 +1312,7 @@ class StepSizingRouteTests(RealCliCase):
                 return [fill(v, key) for v in value]
             if not isinstance(value, str) or not (value == "..." or value.startswith("<")):
                 return value
-            return {"paths": "built.txt", "command": "true", "check": "test -f built.txt",
+            return {"paths": "built.txt", "command": "true", "check": "test -f built.txt", "proof": "test -f built.txt",
                     "evidence_refs": str(self.evidence)}.get(key, "What this field records.")
 
         block = fill(template)
@@ -1328,14 +1328,14 @@ class StepSizingRouteTests(RealCliCase):
         write_block(path, block)
         self.accepted(command)
         # The inline template asks each step for its check and no paths (implement-step fix plan D3).
-        self.assertEqual([(row["check"], "paths" in row) for row in self.recorded(run, action)["steps"]],
+        self.assertEqual([(row["proof"], "paths" in row) for row in self.recorded(run, action)["steps"]],
                          [("test -f built.txt", False), ("test -f built.txt", False)])
 
 
 class UnverifiedRouteTests(RealCliCase):
     """What the run leaves unverified is listed once, at product-acceptance, and reaches the stage that reports it."""
 
-    FIELDS = ("outcome", "reason", "check", "owner", "due_stage")
+    FIELDS = ("outcome", "reason", "settle", "owner", "due_stage")
 
     def full_packet(self, head: str) -> str:
         return full_packet_text(head)
@@ -1350,7 +1350,7 @@ class UnverifiedRouteTests(RealCliCase):
         packet = self.full_packet(head)
         self.assertIn("Plan assumptions recorded open at planning", packet)
         self.assertIn("A1 (consumer W1): the export is checked by file tests only", packet)
-        self.assertIn("check that would settle it: open the export in the reader", packet)
+        self.assertIn("to settle: open the export in the reader", packet)
         # The ledger never updates a disposition, so the line states what was recorded, not that it is still true.
         self.assertIn("the ledger does not update dispositions", packet)
         command, path, action = printed_callback(head)
@@ -1416,7 +1416,7 @@ class UnverifiedRouteTests(RealCliCase):
         nav.validate(accepted)
         command, path, _ = printed_callback(head)
         write_block(path, dict(self.fill_done(head), unverified=earlier_shape))
-        self.assertIn("needs exactly outcome, reason, check, owner, due_stage", self.refused(command, run))
+        self.assertIn("needs exactly outcome, reason, settle, owner, due_stage", self.refused(command, run))
         # And a packet that prints a loaded entry of an earlier shape must not depend on fields it lacks.
         _, handoff = self.at("handoff", **{"product-acceptance": {"unverified": earlier_shape}})
         self.assertIn("- o | reason: r | owner: ", self.full_packet(handoff))

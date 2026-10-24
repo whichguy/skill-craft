@@ -120,7 +120,7 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
         # The Step block (implement-step fix plan 3.1, unit W2-B): its loop line, task, Proof and skills; no path fence.
         p1 += [navigator.STEP_LOOP_LINE,
                f"Step {step['id']} ({index + 1} of {len(plan['steps'])}), the only work for this packet: "
-               + step["task"], "  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + step["check"],
+               + step["task"], "  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + step["proof"],
                "  Skills (use each; the summary says whether you did): "
                + (", ".join(skill["name"] for skill in step["skills"]) or "none"),
                "Lint each implementation step (report-only): "]

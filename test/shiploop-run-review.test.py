@@ -7213,7 +7213,7 @@ TOOL_USE = {"calls": 110, "by_tool": {"Bash": 105, "Read": 2, "Write": 3}, "resu
                 "read": {"read_tool": [{"packet": "nav-a", "whole": True, "chars": 29527}, {"packet": "nav-b", "whole": False, "chars": 8484},
                                        {"packet": "nav-b-improve", "whole": True, "chars": 24549}],
                          "shell": {"calls": 19, "chars": 90112}}}}
-UNVERIFIED_ITEM = {"check": "Open the page after node server.js, click cells until the fleet is sunk and report whether it looks right",
+UNVERIFIED_ITEM = {"settle": "Open the page after node server.js, click cells until the fleet is sunk and report whether it looks right",
                    "due_stage": "handoff", "outcome": "The page looks right and is playable by mouse in a real browser", "owner": "user",
                    "reason": "No browser tool was used in this run; only a fake-DOM execution of the page script was done"}
 
@@ -7298,7 +7298,7 @@ class VerifyAndUnverifiedExportTests(unittest.TestCase):
         run, facts = self.build(out)
         first = self.row(run, "step-plan")["unverified"]
         self.assertEqual(first[0], {"outcome": UNVERIFIED_ITEM["outcome"], "reason": UNVERIFIED_ITEM["reason"],
-                                    "check": UNVERIFIED_ITEM["check"], "owner": "user", "dueStage": "handoff"})
+                                    "check": UNVERIFIED_ITEM["settle"], "owner": "user", "dueStage": "handoff"})
         self.assertEqual(len(first[1]["reason"]), 301)  # cut at 300 characters, marked with an ellipsis
         self.assertTrue(first[1]["reason"].endswith("…"))
         self.assertEqual(self.row(run, "implement")["unverified"], [])

@@ -22,17 +22,17 @@ import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 
 STAGES = frozenset(("product-acceptance",))
-FIELDS = ("outcome", "reason", "check", "owner", "due_stage")
+FIELDS = ("outcome", "reason", "settle", "owner", "due_stage")
 # The one row the result template prints, to replace or delete.  A text that starts with "<" and ends with ">" is
 # a placeholder, so a row edited in one field only is refused as the whole row copied is.
 TEMPLATE_ROW = {
     "outcome": "<request outcome no executed check observed>",
     "reason": "<why not observed here, or not due yet>",
-    "check": "<what the owner does and reports>",
+    "settle": "<what the owner does and reports>",
     "owner": "<who>",
     "due_stage": "handoff",
 }
-SHAPE = ("each entry is {outcome, reason, check, owner, due_stage}: the request outcome no executed check "
+SHAPE = ("each entry is {outcome, reason, settle, owner, due_stage}: the request outcome no executed check "
          "observed, why, what the owner does and reports to settle it, who the owner is, and the later stage "
          "that reports it")
 

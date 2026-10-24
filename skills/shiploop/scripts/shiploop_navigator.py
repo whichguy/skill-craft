@@ -55,7 +55,7 @@ import shiploop_store as store
 
 # 5 since 2026-10-10: the inner loop has eight stages (stage_spec); a version-4 run is refused by retired_run_reason.
 # 6 since 2026-10-11: consumer contract hand-off fields (follows, test_cases, not_covered, lessons, open items).
-STATE_VERSION = 8
+STATE_VERSION = 9
 # Navigator protocol 4 is the only protocol; saved runs from earlier protocols
 # are refused by retired_run_reason.
 PROTOCOL_VERSION = 4
@@ -180,6 +180,11 @@ FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work w
 # plans have none, implement now runs one at done, and ShipLoop never makes one up for an old run.
 V6_REASON = ("this run was saved before each implementation step recorded its Proof (state version 6): its step plans "
              "name no check for implement to run at done, and ShipLoop does not make one up. " + FRESH_RUN_HINT)
+# One term per concept (run-5 batch R1, 2026-10-24): a step's command is its `proof` and an open item's or unverified
+# outcome's way to settle is `settle`; a version-8 run's step plans and open items still use `check` for both.
+V8_REASON = ("this run was saved with state version 8, whose step plans call each step's command `check` and whose open "
+             "items and unverified outcomes call the way to settle them `check`; ShipLoop now names them `proof` and "
+             "`settle`. " + FRESH_RUN_HINT)
 _MANAGED_MARKER = "managed_improve_protocol_version"
 _EPHEMERAL_IMPROVE_RUNTIME = "until_loop_ephemeral.py"
 # Printed for a saved run whose bound Improve child names a durable runtime; the
@@ -1435,6 +1440,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
               "missing: " + ", ".join(missing) if missing else "") if part)
           + "); a run saved by an older ShipLoop cannot be loaded. " + FRESH_RUN_HINT)
     _need(state.get("version") != 6, V6_REASON)
+    _need(state.get("version") != 8, V8_REASON)
     _need(state.get("version") == STATE_VERSION,
           "navigator state version " + repr(state.get("version")) + " is not the supported version "
           + str(STATE_VERSION) + ". " + FRESH_RUN_HINT)
@@ -2532,9 +2538,9 @@ def _check_submitted_recorded_commands(stage: str, result: Any) -> None:
 def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     """A step plan's implementation steps, in the order ShipLoop issues them.
 
-    ``[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "check": "<command>"}]``. On the inline
+    ``[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "proof": "<command>"}]``. On the inline
     route each step is its own ``implement`` action; a step that does not depend on the one before it is
-    simply the next entry. ``criteria`` and ``check`` (the step's Proof, which implement runs at done) are
+    simply the next entry. ``criteria`` and ``proof`` (the step's Proof, which implement runs at done) are
     required for a new step plan by the submit gate (``_check_step_sizing``); here they are shape-checked when
     present.  ``paths`` is optional: the ask-agent chain reads it, the inline route never does.
     """
@@ -2542,9 +2548,9 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     rows = []
     for entry in value:
         _need(isinstance(entry, Mapping)
-              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "check", "paths", "skills"},
+              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "proof", "paths", "skills"},
               "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": [], \"criteria\": [\"C1\"], "
-              "\"check\": \"<command that proves the step's criteria>\", \"skills\": [{\"name\": \"...\", "
+              "\"proof\": \"<command that proves the step's criteria>\", \"skills\": [{\"name\": \"...\", "
               "\"why\": \"...\"}]}, and optionally \"paths\" (the files it changes)")
         step_id = _text(entry["id"], "step id")
         _need(not any(character.isspace() for character in step_id), "a step id has no spaces")
@@ -2560,12 +2566,12 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
             _need(isinstance(criteria, list) and all(isinstance(c, str) and c for c in criteria)
                   and len(set(criteria)) == len(criteria), "step criteria must be a list of unique criterion IDs")
             row["criteria"] = list(criteria)
-        if "check" in entry:
-            check = entry["check"]
-            _need(isinstance(check, str) and check.strip() != "" and "\n" not in check and "\0" not in check,
-                  "step " + step_id + "'s check must be one nonblank command line, run from the repository root"
+        if "proof" in entry:
+            proof = entry["proof"]
+            _need(isinstance(proof, str) and proof.strip() != "" and "\n" not in proof and "\0" not in proof,
+                  "step " + step_id + "'s proof must be one nonblank command line, run from the repository root"
                   + test_loop.ONE_LINE_HINT)
-            row["check"] = check.strip()
+            row["proof"] = proof.strip()
         if "skills" in entry:
             # Helper skills chosen at step-plan for this step (owner, 2026-10-10); the implement packet prints them.
             try:
@@ -2688,12 +2694,12 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
     steps = result.get("steps") or []
     known = [str(row.get("id")) for row in result.get("criteria") or () if isinstance(row, Mapping)]
     item_paths = list(result.get("paths") or ())
-    shape = ('[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "check": "<command that proves C1>"}]')
+    shape = ('[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "proof": "<command that proves C1>"}]')
     for step in steps:
         if not isinstance(step, Mapping):
             continue
         name = str(step.get("id"))
-        _need(step.get("check"), "step " + name + " must record its check: the one command, run from the repository "
+        _need(step.get("proof"), "step " + name + " must record its proof: the one command, run from the repository "
               "root, that proves the criteria it satisfies using only this step and accepted earlier steps (ShipLoop "
               "runs it when the step reports done). Steps are " + shape)
         if known:
@@ -3080,7 +3086,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
 WORK_ITEM_CONTEXT_LIMIT = 2_500
 OPEN_ASSUMPTIONS_LIMIT = 1_200  # one work item's open assumptions together
 STEP_TASK_LIMIT = 700
-STEP_CHECK_LIMIT = 600
+STEP_PROOF_LIMIT = 600
 STEP_CRITERIA_LIMIT = 1_200  # the criterion texts one step names, together
 
 
@@ -3100,7 +3106,7 @@ def _check_producer_bounds(stage: str, result: Any) -> None:
             if isinstance(row, Mapping) and row.get("disposition") == "open":
                 consumer = str(row.get("consumer"))
                 per_item[consumer] = per_item.get(consumer, 0) + sum(
-                    len(str(row.get(key) or "")) for key in ("assumption", "check", "reason"))
+                    len(str(row.get(key) or "")) for key in ("assumption", "settle", "reason"))
         over = sorted(item for item, size in per_item.items() if size > OPEN_ASSUMPTIONS_LIMIT)
         _need(not over, "the open assumptions of " + ", ".join(f"{item} ({per_item[item]:,} characters)" for item in over)
               + f" pass the limit of {OPEN_ASSUMPTIONS_LIMIT:,} per work item, because its step plan prints them whole: "
@@ -3112,12 +3118,12 @@ def _check_producer_bounds(stage: str, result: Any) -> None:
             if not isinstance(step, Mapping):
                 continue
             name = str(step.get("id"))
-            task, check = len(str(step.get("task") or "")), len(str(step.get("check") or ""))
+            task, proof = len(str(step.get("task") or "")), len(str(step.get("proof") or ""))
             _need(task <= STEP_TASK_LIMIT, f"step {name}'s task is {task:,} characters; the limit is {STEP_TASK_LIMIT:,} "
                   "because its implement packet prints it whole. Split the step, or keep the task to what to change and "
                   "leave the why to the criteria")
-            _need(check <= STEP_CHECK_LIMIT, f"step {name}'s check is {check:,} characters; the limit is "
-                  f"{STEP_CHECK_LIMIT:,}. Put a long check in a script file the step adds, and make the check run it")
+            _need(proof <= STEP_PROOF_LIMIT, f"step {name}'s proof is {proof:,} characters; the limit is "
+                  f"{STEP_PROOF_LIMIT:,}. Put a long proof in a script file the step adds, and make the proof run it")
             named = sum(len(texts.get(str(criterion), "")) for criterion in step.get("criteria") or ())
             _need(named <= STEP_CRITERIA_LIMIT, f"the criteria step {name} names are {named:,} characters together; the "
                   f"limit is {STEP_CRITERIA_LIMIT:,} because its implement packet prints them whole. Shorten each "
@@ -3346,7 +3352,7 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         if "assumptions" not in result:
             return _Fault("Add assumptions to {result}", "adds assumptions",
                           ['Shape: the open items this stage leaves, or [] when none; each {"id", "assumption", '
-                           '"disposition": "open", "check", "reason", "consumer", "owner" (a person, when the duty '
+                           '"disposition": "open", "settle", "reason", "consumer", "owner" (a person, when the duty '
                            "names one)}. Later stages quote each until its consumer settles it."])
         wrong = assumptions.wrong_consumers(result["assumptions"], stage)
         if wrong:
@@ -4582,12 +4588,12 @@ HANDOFF_SHAPES: dict[str, Any] = {
     "learned": [_STEP_NOTE_PLACEHOLDERS["learned"]],
     "decisions": [_STEP_NOTE_PLACEHOLDERS["decisions"]],
     "learned_from": ["<commit ID whose learnings this step used>"],
-    "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...",
+    "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "settle": "...", "reason": "...",
                      "consumer": _CONSUMER_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
 }
 
 
-STEP_CHECK_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
+STEP_PROOF_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
 # The bar a criterion's text meets (run-5 batch F1): what a command observes, not what the code contains.
 CRITERION_PLACEHOLDER = "<condition. Confirm by: what the command observes; pass when <expected result>>"
 
@@ -4621,9 +4627,9 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         # A step's paths are for the ask-agent chain only (implement-step fix plan D3): the inline template asks none.
         step_paths = ({"paths": ["<repository-relative file this step changes>"]}
                       if "delegation" in state and delegation(state) != guidance.INLINE else {})
-        result["steps"] = [{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "check": STEP_CHECK_PLACEHOLDER,
+        result["steps"] = [{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "proof": STEP_PROOF_PLACEHOLDER,
                             **step_paths, "skills": [{"name": "<helper skill>", "why": "<its use in this step>"}]},
-                           {"id": "S2", "task": "...", "deps": ["S1"], "criteria": ["C2"], "check": "<the command that proves C2>",
+                           {"id": "S2", "task": "...", "deps": ["S1"], "criteria": ["C2"], "proof": "<the command that proves C2>",
                             **step_paths, "skills": []}]
         result["expectations"] = [
             {"id": "E1", "state": "works", "statement": "<what exists and works today>", "steps": ["S1"],
@@ -4669,7 +4675,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
              "evidence": ["<absolute path or URL>"]},
             {"id": "A2", "assumption": "...", "disposition": "probed", "check": "...",
              "evidence": ["<absolute path of the saved probe output>"]},
-            {"id": "A3", "assumption": "...", "disposition": "open", "check": "...",
+            {"id": "A3", "assumption": "...", "disposition": "open", "settle": "...",
              "reason": "...", "consumer": "W1"},
         ]
     if stage in unverified.STAGES:
@@ -5838,7 +5844,7 @@ _COMMON_GATES = "no outcome or summary, or an absolute evidence_refs path that d
 _RECORDED_GATES = {
     "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
                      "command naming an unlisted one, deps that are not earlier steps, a step without its criteria "
-                     "or its check, a step path the item does not declare, a criterion no step satisfies, a step "
+                     "or its proof, a step path the item does not declare, a criterion no step satisfies, a step "
                      "that only changes test files)",
     "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
     "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
@@ -6222,7 +6228,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
         for item in source.value:
             row = item.row
             lines.append("- " + str(row.get("id")) + ": " + _one_line(row.get("assumption"))
-                         + " | check: " + _one_line(row.get("check")) + " | reason: " + _one_line(row.get("reason"))
+                         + " | settle: " + _one_line(row.get("settle")) + " | reason: " + _one_line(row.get("reason"))
                          + " | consumer: " + str(row.get("consumer"))
                          + (" | owner: " + _one_line(row["owner"]) if row.get("owner") else "")
                          + " | from " + str(item.stage) + (" " + str(item.workitem) if item.workitem else ""))
@@ -6617,7 +6623,7 @@ def _unverified_row(row: Mapping[str, Any]) -> str:
     """One entry as a line; the stored shape is loose (shape-only canonical), so a missing field prints empty."""
     text = {name: _bounded_packet_text(str(row.get(name, ""))) for name in unverified.FIELDS}
     return ("- " + text["outcome"] + " | reason: " + text["reason"] + " | owner: " + text["owner"]
-            + " | to settle: " + text["check"] + " | due: " + text["due_stage"])
+            + " | to settle: " + text["settle"] + " | due: " + text["due_stage"])
 
 
 def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -6636,8 +6642,8 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
             lines.append("Plan assumptions recorded open at planning (the ledger does not update dispositions): "
                          "account for each in your summary, settled by a named result or listed as unverified.")
             lines.extend("- " + str(row["id"]) + " (consumer " + str(row["consumer"]) + "): "
-                         + _bounded_packet_text(str(row["assumption"])) + " | check that would settle it: "
-                         + _bounded_packet_text(str(row["check"])) for row in still_open)
+                         + _bounded_packet_text(str(row["assumption"])) + " | to settle: "
+                         + _bounded_packet_text(str(row["settle"])) for row in still_open)
     if stage == "handoff":
         action, entries = unverified.accepted_list(state)
         if entries:
@@ -6798,7 +6804,7 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
              if isinstance(case, Mapping) and str(case.get("criterion")) in listed]
     accepted = {str(earlier.get("id")): row for earlier, row in view.accepted}
     deps = [str(dep) for dep in step.get("deps") or ()]
-    check = str(step.get("check") or "").strip()
+    proof = str(step.get("proof") or "").strip()
     lines = [f"Step {step['id']} ({view.number} of {len(view.steps)}), the only work for this packet: "
              + _one_line(step.get("task")),
              *(["  Serves (each criterion this step satisfies, in the step plan's words):",
@@ -6807,8 +6813,8 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
                 + ", ".join(cases)] if cases else []),
              "  Depends on: " + ("; ".join(dep + (" (accepted: RUN/results/" + str(accepted[dep]["action"]) + ".md)"
                                                   if dep in accepted else "") for dep in deps) or "none"),
-             ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + check) if check else
-             "  Proof: none recorded in the step plan; report send-back so the step plan records the step's check.",
+             ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + proof) if proof else
+             "  Proof: none recorded in the step plan; report send-back so the step plan records the step's proof.",
              "  Skills (use each; the summary says whether you did): "
              + (", ".join(str(skill.get("name")) for skill in step.get("skills") or () if isinstance(skill, Mapping))
                 or "none")]
@@ -7609,9 +7615,9 @@ def _handoff_sections(state: Mapping[str, Any], root: Path | None) -> list[str]:
         if not still:
             lines.append("<p>None open.</p>")
         else:
-            lines += _table(("Recorded by", "ID", "Assumption", "Check", "Reason", "Consumer", "Owner"), [
+            lines += _table(("Recorded by", "ID", "Assumption", "Settle", "Reason", "Consumer", "Owner"), [
                 _cells((found.stage + (" " + str(found.workitem) if found.workitem else ""),
-                        *(found.row.get(key, "") for key in ("id", "assumption", "check", "reason", "consumer", "owner"))))
+                        *(found.row.get(key, "") for key in ("id", "assumption", "settle", "reason", "consumer", "owner"))))
                 for found in still])
     system_action = current.get((None, RECORDED_COMMANDS["system_commands"]))
     if system_action:

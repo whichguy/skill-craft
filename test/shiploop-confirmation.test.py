@@ -33,7 +33,7 @@ def step_plan(**extra):
     return {"outcome": "done", "summary": "Plan the greeting change.", "paths": ["src/greet.py", "README.md"],
             "test_commands": COMMANDS, "criteria": CRITERIA,
             "steps": [{"id": "S1", "task": "Add the --greeting default to greet() and document it in the README.",
-                       "criteria": ["C1", "C2"], "paths": ["src/greet.py", "README.md"], "check": "true"}], **extra}
+                       "criteria": ["C1", "C2"], "paths": ["src/greet.py", "README.md"], "proof": "true"}], **extra}
 
 
 def drive(stage: str, overrides: dict) -> dict:

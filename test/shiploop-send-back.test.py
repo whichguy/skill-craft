@@ -395,11 +395,13 @@ class SendBackTests(unittest.TestCase):
         # T17 (implement-step fix plan): a run saved before each step recorded its Proof (state version 6) has its own
         # reason too; no Proof is ever made up for it.
         # N5 (four outcomes, `awaiting`): a run saved by state version 7 is refused by the version check like any other.
-        for version, reason in ((3, "state version 3 is not the supported version 8"),
+        # R1 (2026-10-24, a step's `proof`, an open item's `settle`): a run saved by state version 8 has its own reason.
+        for version, reason in ((3, "state version 3 is not the supported version 9"),
                                 (4, "seventeen-stage inner loop \\(state version 4\\)"),
-                                (5, "state version 5 is not the supported version 8"),
+                                (5, "state version 5 is not the supported version 9"),
                                 (6, "before each implementation step recorded its Proof \\(state version 6\\)"),
-                                (7, "state version 7 is not the supported version 8")):
+                                (7, "state version 7 is not the supported version 9"),
+                                (8, "saved with state version 8, whose step plans call each step's command `check`")):
             wrong_version = deepcopy(state)
             wrong_version["version"] = version
             with self.subTest(version=version), self.assertRaisesRegex(

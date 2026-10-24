@@ -21,9 +21,10 @@ return (owner rule, 2026-10-24).
 | requirement | A spec entry, `R-<n>`, in KNOWLEDGE/spec.md. R2 makes requirement and criterion one meaning each. | `follows`, a case's `requirement` | a criterion |
 | criterion | A step plan's completion condition, `C<n>`, with its `confirm`. | step-plan `criteria` | a requirement |
 | confirm | How a criterion is confirmed: `executed` (a recorded command runs the behaviour; a text search does not), `searched` (a command searches text the item writes) or `inspected` (it names an unverified `test_layers` row by `code` and `layer`). | criterion `confirm` | the chain item statuses; Backchain's confirm levels |
-| Proof | A step's own command, which ShipLoop runs at the step's done. R1 renames the field from `check` to `proof`. | `steps[].check` | a suite `check` command; an expectation check |
-| check | A read-only command that shows a state holds: an expectation's, or a service's return. R1 keeps `check` only for these. | `expectations[].check`, `awaiting.check` | the Proof; a static command |
-| test command suites | `focused` (this item's cases, by ID), `regression` (the retained suites the change affects), `check` (lint, type and build; R1 renames it `static`). | `test_commands[].suite` | |
+| Proof | A step's own command, which ShipLoop runs at the step's done. | `steps[].proof` | a check row; an expectation check |
+| check | A command judged by its exit code: an expectation's read-only check, a probed assumption's probe, the service-is-back check, and a `check` row of the recorded commands (lint, type and build in `test_commands`; an exit-code check in `system_commands` and `consumer_checks`). | `expectations[].check`, probed `assumptions[].check`, `awaiting.check`, suite `check` | the Proof; settle |
+| test command suites | `focused` (this item's cases, by ID), `regression` (the retained suites the change affects), `check` (a command judged by its exit code, with no test IDs). | `test_commands[].suite`, `system_commands[].suite`, `consumer_checks[].suite` | |
+| settle | What a person or a later stage does to close an open item or an unverified outcome, and what they report back. It is not a command ShipLoop runs. | open `assumptions[].settle`, `unverified[].settle` | a check |
 | test layers | Which harness tests each part of the code at each layer. The rows are `{code, layer, harness, status, reason}`; the layers are `unit`, `component` and `e2e`; the statuses are `available`, `prerequisite` and `unverified`. All code has a unit or component row, and only an e2e row may be unverified. | test-strategy `test_layers` (`test_layers_na`) | a surface |
 | harness run | Prepare's proof that a prerequisite harness runs: the command that ran one test, and its saved output. | prepare `harness_runs` | |
 | surface | Where a requirement is observed: a public interface, a real boundary or a rendered UI. | "required surface", "checked surface" | the `test_layers` rows |
@@ -44,7 +45,8 @@ return (owner rule, 2026-10-24).
 **Separate schemas.** These keep their own words and are not ShipLoop terms:
 - the ask-agent chain worker's item statuses (`confirmed`, `inspected`, `failed`, `not_run`, `unconfirmable`);
 - Backchain's confirm levels (`execute`, `inspect`, `unconfirmable`) and its `repair`/`revise` passes;
-- the Until Loop's own fields (`continuation_assessment`, `repeat_condition`).
+- the Until Loop's own fields (`continuation_assessment`, `repeat_condition`);
+- the Run Review page's stored documents, whose unverified rows keep a `check` column for what ShipLoop names `settle`.
 
 ## Retired terms
 
@@ -69,6 +71,10 @@ lists, such as the refusal that tells a model it is retired. `pattern` is a regu
  {"retired": "producer step (a stage)", "use": "producer stage", "since": "2026-10-24",
   "pattern": "producer step\\b|Rules for every step|Step result", "allow": []},
  {"retired": "HOME (the knowledge symbol)", "use": "KNOWLEDGE", "since": "2026-10-18",
-  "pattern": "(^|[^$A-Za-z_{])HOME/", "allow": []}
+  "pattern": "(^|[^$A-Za-z_{])HOME/", "allow": []},
+ {"retired": "a step's check (its Proof)", "use": "proof", "since": "2026-10-24",
+  "pattern": "step's check\\b|its check in the step plan|own `check`", "allow": []},
+ {"retired": "an open item's or unverified outcome's check (how it is settled)", "use": "settle", "since": "2026-10-24",
+  "pattern": "open item's `check`|`check` = who does what|the `check` its owner", "allow": []}
 ]
 ```

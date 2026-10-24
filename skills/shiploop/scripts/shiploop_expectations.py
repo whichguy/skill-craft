@@ -527,7 +527,7 @@ def coverage_notices(state: Mapping[str, Any], result: Mapping[str, Any]) -> Lis
         if isinstance(row, Mapping) and row.get("suite") != "focused":
             covered |= {str(name) for name in row.get("criteria") or ()}
     said = " ".join(str(row.get(key) or "") for row in result.get("assumptions") or () if isinstance(row, Mapping)
-                    for key in ("assumption", "check", "reason"))
+                    for key in ("assumption", "settle", "reason"))
     return [COVERAGE_PREFIX + "Criterion " + name + " has no test case and no recorded non-focused command lists it in "
             "criteria: add a case, add the command to the step plan, or record an assumptions open item naming the "
             "inspection that confirms it (this result is accepted)."

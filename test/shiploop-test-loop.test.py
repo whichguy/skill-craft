@@ -62,7 +62,7 @@ CHECK = ('echo "Ran 1 test in 0.001s"\n'
 def one_step(result: dict) -> dict:
     """The one implement step of a synthetic step plan, sized as the submit gate requires: it changes all of the
     item's paths and satisfies all of its criteria."""
-    step = {"id": "S1", "task": "Make the planned change.", "paths": list(result.get("paths") or ["a.py"]), "check": "true"}
+    step = {"id": "S1", "task": "Make the planned change.", "paths": list(result.get("paths") or ["a.py"]), "proof": "true"}
     if result.get("criteria"):
         step["criteria"] = [row["id"] for row in result["criteria"]]
     return step
@@ -397,7 +397,7 @@ class TestLoopTests(unittest.TestCase):
 
         def plan(commands):
             return dict(DONE, test_commands=commands, paths=["src/a.py"], criteria=[{"id": "C1", "text": "x"}],
-                        steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "check": "true", "paths": ["src/a.py"]}])
+                        steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "proof": "true", "paths": ["src/a.py"]}])
 
         nav._check_submitted_test_commands("step-plan", plan(rows(2, 3)))
         nav._check_submitted_test_commands("step-plan", plan(rows(6, 15)))  # about 10 KB: over the old 9,216-byte budget
@@ -2215,7 +2215,7 @@ class TestLoopTests(unittest.TestCase):
     def proof_plan(check: str, *, delegation_steps: int = 1) -> dict:
         """A step plan whose step records ``check`` as its Proof (the item's own commands stay COMMANDS)."""
         steps = [{"id": "S" + str(n), "task": "Make planned change " + str(n) + ".", "criteria": ["C1"],
-                  "check": check, "paths": ["a.py"], **({"deps": ["S" + str(n - 1)]} if n > 1 else {})}
+                  "proof": check, "paths": ["a.py"], **({"deps": ["S" + str(n - 1)]} if n > 1 else {})}
                  for n in range(1, delegation_steps + 1)]
         return {"test_commands": [dict(COMMANDS[0], criteria=["C1"]), *COMMANDS[1:]], "paths": ["a.py"],
                 "criteria": [{"id": "C1", "text": "The item's focused check passes."}], "steps": steps}

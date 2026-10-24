@@ -723,7 +723,7 @@ _IMPLEMENT_CHAIN = """\
      incomplete blocker.
 """
 # The inline route issues one action per step: its scope is the step's criteria (no path fence, implement-step fix plan
-# D3) and its check is the step's Proof (section 4.1); the ask-agent action builds every step and keeps the item's checks.
+# D3) and its `proof` is the step's Proof (section 4.1); the ask-agent action builds every step and keeps the item's checks.
 _IMPLEMENT_SCOPE = """\
 1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
    accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
@@ -737,7 +737,7 @@ _IMPLEMENT_SCOPE_INLINE = """\
    change one only when a criterion says to.
 """
 _IMPLEMENT_CHECK = """\
-3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
+3. **Check.** After each edit run each step's Proof (its `proof` in the step plan) and `shiploop lint --action`; write each
    exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
    command.
 """
@@ -784,7 +784,7 @@ _TEST_SPEC_PROCEDURE = textwrap.fill(
     "4. A case's setup and actions are an ordered procedure. " + PROCEDURE_WALK + " An unreachable start is an open "
     "prerequisite (item 7); an impossible action or unobservable oracle is revised here (a forbidden action is its own "
     "failure case). A procedure another record holds (KNOWLEDGE/architecture.md ## Real-boundary checks): its locator in "
-    "`oracle` or the open item's `check`. A plan is not a run; a setup change makes an earlier observation stale.",
+    "`oracle` or the open item's `settle`. A plan is not a run; a setup change makes an earlier observation stale.",
     width=117, subsequent_indent="   ", break_on_hyphens=False) + "\n"
 
 # The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
@@ -1236,7 +1236,7 @@ DUTIES = {
     parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it
+    open: `consumer`, `reason`, `settle`). An open assumption's `consumer` is the `work_items` ID that settles it
     (1,200 characters per item).
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
@@ -1298,17 +1298,17 @@ Change no product file in this stage.
      and one that it carries a contract docstring (Code craft 2-3), searched.
    - Where a criterion names an exact value, a count or a prefix match proves nothing.
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
-   - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable
+   - Size each as one behaviour-level change its proof shows. Split a step with two separately confirmable
      behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
-     "and", or too large for one review. Fold a step no check confirms alone (half a rename, scaffolding) into the
+     "and", or too large for one review. Fold a step no proof confirms alone (half a rename, scaffolding) into the
      first step that uses it. A single bug fix or mechanical rename is one step.
    - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
      files is refused unless the whole item is tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
-     `criteria` it satisfies and its `check`; its `task` cites IDs, not their text. Every criterion is satisfied by
-     some step. Optional `paths` (inside the item's) serve the parallel chain. Limits: task 700 characters, check
+     `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by
+     some step. Optional `paths` (inside the item's) serve the parallel chain. Limits: task 700 characters, proof
      600, its criteria 1,200.
-   - `check`: the one command, from the repository root, that proves the step's criteria with only this step and
+   - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
      artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
      exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only. None runs
@@ -1325,7 +1325,7 @@ Change no product file in this stage.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
-     The test and verify stages run these; implement runs only each step's own `check`.
+     The test and verify stages run these; implement runs only each step's own `proof`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
    "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
@@ -1379,7 +1379,7 @@ Write no test code in this stage.
 6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
    it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
 7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
-   `assumption`; `check`; `consumer` = that outer stage; owner). A criterion confirmed `searched` or `inspected`: no
+   `assumption`; `settle`; `consumer` = that outer stage; owner). A criterion confirmed `searched` or `inspected`: no
    case; list it with its command or Test layers row in the summary. Untestable as written: report send-back naming it.
 8. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
 """,
@@ -1417,7 +1417,7 @@ preparatory commit); a mismatch there is a send-back.
    only when a check fails or a question needs one section. Apply Code craft and House-style guidance. Use each
    listed step skill for its purpose (invoke it, or read its SKILL.md and follow it); the summary says per skill
    whether you used it, and why not.
-3. **Check.** After each edit run each step's Proof (its check in the step plan) and `shiploop lint --action`; write each
+3. **Check.** After each edit run each step's Proof (its `proof` in the step plan) and `shiploop lint --action`; write each
    exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
    command.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
@@ -1645,7 +1645,7 @@ in order; """ + _VERIFY_ONCE + """
    the reason.
 7. A case that cannot run here (a browser or account this host cannot reach) is unachievable. Leave its command out
    of `system_commands` (ShipLoop reruns every recorded command and refuses unless each passes). Record it as an
-   open item in `assumptions`: `assumption` = case ID and the requirement left unverified; `check` = who does what
+   open item in `assumptions`: `assumption` = case ID and the requirement left unverified; `settle` = who does what
    and reports what; `owner`; `reason` it cannot run here; `consumer` = the due stage (handoff, or the stage whose
    external effect it gates). Continue with every runnable case. Report blocked only when nothing else can proceed,
    add-work when product work is missing.
@@ -1707,7 +1707,7 @@ in order; """ + _VERIFY_ONCE + """
 3. Give every request outcome one end state in `summary`: observed by an executed check; observed another way (the
    first method could not, the new check ran and passed); or unachievable here or not yet due, listed in
    `unverified` while the run continues. Try another way to observe it before listing. Each `unverified` entry:
-   `outcome`, named `reason`, the `check` its owner does and reports, the `owner`, the `due_stage` that reports it
+   `outcome`, named `reason`, the `settle` its owner does and reports, the `owner`, the `due_stage` that reports it
    (handoff, or the stage whose external effect it gates). Carry in the open items earlier stages recorded
    (system-test-author, system-test). An outcome stated only in the summary has no end state; an empty list says
    every outcome was observed.

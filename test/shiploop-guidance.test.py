@@ -832,7 +832,7 @@ class GuidanceTests(unittest.TestCase):
         pins the text a cleared model is given; whether a model reviewer acts on it is a live qualification."""
         walk = normalized(prompts.PROCEDURE_WALK)
         own = ("A plan is not a run; a setup change makes an earlier observation stale.",
-               "its locator in `oracle` or the open item's `check`", "An unreachable start is an open prerequisite")
+               "its locator in `oracle` or the open item's `settle`", "An unreachable start is an open prerequisite")
         state = self.state()
         producers: list[str] = []
         reviews: list[str] = []
@@ -880,7 +880,7 @@ class GuidanceTests(unittest.TestCase):
 
     def test_a_procedure_locator_reaches_every_stage_that_consumes_its_case_or_open_item(self) -> None:
         """W2-C (implement-step fix plan T26, T29): a procedure is carried by its locator, not copied.  The case's
-        `oracle` and an open item's `check` name it; every stage that quotes the case (implement and its Improve, test,
+        `oracle` and an open item's `settle` name it; every stage that quotes the case (implement and its Improve, test,
         verify, system-test-author) or the open item (its consumer) is given that locator cold, and the later-owned
         procedure stays an open item, its observer unresolved, until its consumer stage.  The observing outer stages
         say a changed setup voids an earlier observation (their own duty text: the consumer's half of the rule).  This
@@ -894,7 +894,7 @@ class GuidanceTests(unittest.TestCase):
                  plans.TEST_CASES[1]]
         later = {"id": "A1", "disposition": "open", "consumer": "release-verify", "owner": "a person with access",
                  "assumption": "TC-1's criterion C1 (R-1) on the released consumer surface is unobserved",
-                 "check": "Run " + open_locator + " on the released candidate; report what it shows",
+                 "settle": "Run " + open_locator + " on the released candidate; report what it shows",
                  "reason": "no route to that surface from this host"}
         extras = {"plan": {"work_items": [plans.CASE["work_item"]]}, "step-plan": plans.PLAN,
                   "test-spec": {"test_cases": cases, "assumptions": [later]}}
@@ -2734,7 +2734,7 @@ class CaseEndStateTests(unittest.TestCase):
             "A case that cannot run here (a browser or account this host cannot reach) is unachievable",
             "Leave its command out of `system_commands`",
             "Record it as an open item in `assumptions`: `assumption` = case ID and the requirement left unverified; "
-            "`check` = who does what and reports what; `owner`; `reason` it cannot run here; `consumer` = the due "
+            "`settle` = who does what and reports what; `owner`; `reason` it cannot run here; `consumer` = the due "
             "stage (handoff, or the stage whose external effect it gates)",
             "Report blocked only when nothing else can proceed",
         ):

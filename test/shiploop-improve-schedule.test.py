@@ -449,7 +449,7 @@ class PlanningReviewScheduleTests(unittest.TestCase):
         """GUARD for stage (passes on the unchanged code); none gets the same gate, not a lighter one."""
         open_entry = dict(DONE, assumptions=[{
             "id": "A1", "assumption": "A server seam exists.", "disposition": "open",
-            "check": "import it", "reason": "not run", "consumer": "W9"}])
+            "settle": "import it", "reason": "not run", "consumer": "W9"}])
         for mode in ("stage", "none"):
             with self.subTest(mode=mode):
                 with self.assertRaisesRegex(nav.NavigatorError, "W9"):
@@ -668,7 +668,7 @@ class PlanningReviewNoneCliTests(CliRunCase):
         run = self.start("none")
         self.advance_to(run, "plan")
         open_entry = [{"id": "A1", "assumption": "A server seam exists.", "disposition": "open",
-                       "check": "import it", "reason": "not run", "consumer": "W9"}]
+                       "settle": "import it", "reason": "not run", "consumer": "W9"}]
         action = self.saved(run)["action"]["id"]
         path = run / "inbox" / (action + ".md")
         store.write_record(path, dict(DONE, assumptions=open_entry))

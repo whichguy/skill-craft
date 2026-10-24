@@ -39,9 +39,9 @@ PLAN = {
         {"id": "C2", "text": "A regression test covers it. Confirm by: " + FOCUSED + "; pass when it lists TC-1"}],
     "steps": [
         {"id": "S1", "task": "Fix the page count in src/paginate.js", "deps": [], "criteria": ["C1"],
-         "check": STEP_PROOF, "paths": ["src/paginate.js"], "skills": []},
+         "proof": STEP_PROOF, "paths": ["src/paginate.js"], "skills": []},
         {"id": "S2", "task": "Return the items of the partial last page", "deps": ["S1"], "criteria": ["C1", "C2"],
-         "check": FOCUSED, "paths": ["src/paginate.js", "src/index.js"],
+         "proof": FOCUSED, "paths": ["src/paginate.js", "src/index.js"],
          "skills": [{"name": "house-style", "why": "match the module style"}]}],
     "test_commands": [
         {"command": FOCUSED, "suite": "focused", "ids": ["TC-1", "TC-2"], "criteria": ["C1", "C2"]},
@@ -55,7 +55,7 @@ PLAN = {
 SECOND_PLAN = {
     "criteria": [{"id": "C1", "text": "The README states the rule. Confirm by: grep -q last README.md; pass when exit 0"}],
     "steps": [{"id": "S1", "task": "Write the last-page rule in README.md", "deps": [], "criteria": ["C1"],
-               "check": "grep -q last README.md", "paths": ["README.md"], "skills": []}],
+               "proof": "grep -q last README.md", "paths": ["README.md"], "skills": []}],
     "test_commands": [{"command": "grep -q last README.md", "suite": "check", "criteria": ["C1"]}],
     "expectations": [], "paths": ["README.md"], "follows": ["R-1"],
 }

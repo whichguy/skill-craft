@@ -4176,7 +4176,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             "paths": [self.STEP_PLAN_NOTES],
             "test_commands": [], "test_commands_na": "A documentation-only item: no test command applies.",
             "steps": [{"id": "S1", "task": "Write notes.md.", "deps": [], "criteria": [],
-                       "check": "test -f " + self.STEP_PLAN_NOTES, "paths": [self.STEP_PLAN_NOTES], "skills": []}],
+                       "proof": "test -f " + self.STEP_PLAN_NOTES, "paths": [self.STEP_PLAN_NOTES], "skills": []}],
             "expectations": expectations,
         }
 
@@ -4464,7 +4464,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                         "steps": ["S2"], "paths": ["more.md"], "check": "test ! -e more.md"}])
                 plan["paths"] = ["notes.md", "more.md"]
                 plan["steps"].append({"id": "S2", "task": "Write more.md.", "deps": ["S1"], "criteria": [],
-                                      "check": "test -f more.md", "paths": ["more.md"], "skills": []})
+                                      "proof": "test -f more.md", "paths": ["more.md"], "skills": []})
                 self.accept(plan)
                 for planning in ("step-plan", "test-spec"):
                     child = self.state().get("active_improve")
@@ -4500,12 +4500,12 @@ class ProducerBoundTests(unittest.TestCase):
                 {"id": "W2", "title": "t", "context": "c" * 2_501}]})
 
     def test_an_items_open_assumptions_past_1200_together_are_refused(self) -> None:
-        row = {"id": "A1", "disposition": "open", "assumption": "a" * 600, "check": "b" * 300, "reason": "c" * 300,
+        row = {"id": "A1", "disposition": "open", "assumption": "a" * 600, "settle": "b" * 300, "reason": "c" * 300,
                "consumer": "W1"}
         navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row]})  # exactly 1,200
         with self.assertRaisesRegex(navigator.NavigatorError, r"open assumptions of W1 \(1,201 characters\)"):
             navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row, dict(
-                row, id="A2", assumption="d", check="", reason="")]})
+                row, id="A2", assumption="d", settle="", reason="")]})
 
 
 class ConcernMapTests(unittest.TestCase):

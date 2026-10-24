@@ -52,7 +52,7 @@ The plan result carries an **assumption list** in `assumptions`. Start from
 research's decision-note list and add each load-bearing assumption the plan introduces: one
 whose failure would change a plan decision, consumer or acceptance check. Each
 has one disposition: evidenced (`evidence` locators), probed (`check` plus
-`evidence` naming its saved output file) or open (`check` that would settle it,
+`evidence` naming its saved output file) or open (`settle`: what would settle it,
 `reason` it was not run, and the `consumer` work item that settles or blocks on
 it). The list is what makes choosing zero experiments visible; an unlisted
 assumption is an unreviewed one. The exit requires a disposition for every entry
