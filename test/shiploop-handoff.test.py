@@ -578,10 +578,8 @@ class FocusedGuardTests(unittest.TestCase):
                  "node --test", True),                                                                 # E3's smoke
                 ("cd app && [ -f x.js ] && npm test", True),
                 ("echo src/a.js && npm test", True),
-                ("node -e \"fs.existsSync('a') || process.exit(1)\" && node --test", True),
                 # Sol pass 2, finding 5: an assertion is no guard.
                 ("test \"$(./sum 1 2)\" -eq 3 && echo 'ok 1 - sums'", False),
-                ("node -e \"assert(fs.existsSync('out/report.txt'))\"", False),
                 ("node -e \"require('./src/records.js')\" && node --test --test-name-pattern 'TC-'", False),
                 ("npm test && ls coverage", False),
                 ("FOO=1 npx jest --verbose", False)):

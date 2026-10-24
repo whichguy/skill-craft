@@ -160,18 +160,15 @@ ONE_LINE_HINT = ("; join steps with && or ; on that line (a \\n written inside t
 # did it, the second with an echoed "Cannot find module" that the base run scored as a load failure.  The rule is
 # the experiment's evaluator's (test/shiploop_e2e/evaluators/e3_red.py), cut to the first program the command runs.
 _FILE_OPERATORS = frozenset(("-e", "-f", "-d", "-s"))
-# An existsSync whose false exits: a guard ahead of the tests, not an assertion that reads it.
-_EXISTS_GUARD = re.compile(r"existsSync\([^)]*\)\s*\|\|")
 _PRINTS_A_PATH = re.compile(r"^(?:printf\s+'%s\\n'\s+\S+|echo\s+\S+\.\w+)\s*$")
 
 
 def guarded(command: str) -> bool:
-    """Whether ``command`` starts with a file-existence check or a printed path, or exits on ``existsSync`` (F2).
+    """Whether ``command`` starts with a file-existence check or a printed path (F2).
 
     A file test is ``test``, ``[`` or ``[[`` with a file operator (``-e``, ``-f``, ``-d``, ``-s``), or ``ls`` or ``stat``;
-    a ``test "$(./sum 1 2)" -eq 3`` asserts behaviour and is no guard, nor is an ``existsSync`` an assertion reads."""
-    if _EXISTS_GUARD.search(command):
-        return True
+    a ``test "$(./sum 1 2)" -eq 3`` asserts behaviour and is no guard.  The shell forms state the rule; no language's
+    file API is named (ShipLoop stays generic)."""
     for segment in re.split(r"&&|\|\||[;\n]", command):
         words = segment.split()
         while words and (words[0] in ("!", "if", "then", "env") or re.match(r"^\w+=", words[0])):
