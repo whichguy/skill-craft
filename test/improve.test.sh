@@ -48,6 +48,9 @@ package="$(cd "$package" && pwd -P)"
 for required in \
   SKILL.md LICENSE README.md agents/openai.yaml \
   references/review-policy.md references/callback-evidence.md \
+  references/shiploop-route.md references/shiploop-route-rules.md \
+  references/shiploop-route-recovery.md references/shiploop-route-ask-agent.md \
+  references/shiploop-route-cases.md references/shiploop-review-inputs.md \
   runtime/until-loop/ADAPTER.md runtime/until-loop/LICENSE \
   runtime/until-loop/PROVENANCE.json \
   runtime/until-loop/scripts/until_loop_ephemeral.py \

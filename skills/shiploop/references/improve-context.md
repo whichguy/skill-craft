@@ -24,8 +24,9 @@ this run's Improve stage". The child's files stay under the reviewed action
 `packets/<improve id>.md` (`packets/<improve id>-bind.md` before a card is bound); it holds two
 lines, the improve skill call on the handoff and the `complete` callback, and the handoff file
 (`handoff.md` beside the receipt) holds this review's facts, its focus and its exact commands; what is the same in
-every review (ownership of both routes, recovery, the stopped-child route, exclusions, the `final_result` rules, the
-fixed review inputs) is in the Improve skill's `references/shiploop-route.md`, which the handoff names (`ROUTE`). (Before 2026-10-11 the model
+every review is in the Improve skill's `references/shiploop-route.md`, which the handoff names (`ROUTE`): a short core
+with every rule a normal pass needs, which names the file for each case (ownership of the ask-agent route, recovery and
+the stopped-child route, the `final_result` rules, the fixed review inputs) and when to open it. (Before 2026-10-11 the model
 wrote the opening, ran `improve-start --opening` and finished with `improve-complete`.)
 
 ## Route by the run's delegation
@@ -55,8 +56,9 @@ apply to both routes.
 ## Default route: the parent runs Improve (`delegation: inline`)
 
 The inline route's text, "Keep the invoking parent alive and run this Improve
-invocation inline." and the runtime lines that follow it, is in the route file
-(`Route: inline` in the handoff); a handoff no longer prints it. The parent conversation runs the selected
+invocation inline." and the runtime lines that follow it, is in the Improve skill's
+`references/shiploop-route-recovery.md` (`Route: inline` in the handoff), and the route's core states
+its rules for every pass; a handoff no longer prints it. The parent conversation runs the selected
 Improve card's ShipLoop whole-skill subcall once, in the exact Child
 workspace; its review iterations share this context. Do not hand the invocation
 to Ask Agent, a native worker or an extra worktree, and write no `host-owner.md`.
@@ -353,7 +355,8 @@ Loop runtime is not supported and is refused at bind and import.
 
 This route applies when the run's delegation is `ask-agent`, including a saved
 run without the setting. Its route text begins "Keep the invoking
-parent alive and follow Improve's selected context ownership." (the route file, `Route: ask-agent`). One fresh native
+parent alive and follow Improve's selected context ownership." (the Improve skill's
+`references/shiploop-route-ask-agent.md`, `Route: ask-agent`). One fresh native
 worker owns the whole invocation. The worker retains useful within-loop context
 while the parent receives a compact return and durable locators. This reduces
 parent-context growth, not necessarily total tokens or latency.

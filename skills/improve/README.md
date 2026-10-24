@@ -147,8 +147,14 @@ SKILL.md is a router (efficiency plan U18). A direct `/improve` or an `improve-a
 [standalone-route.md](references/standalone-route.md), which holds the standalone binding, continuation after
 context loss, completion summary, preview and execution handoff. A ShipLoop review (the argument
 `ShipLoop Improve: <handoff path>`) reads the ShipLoop subcall in SKILL.md and
-[shiploop-route.md](references/shiploop-route.md), which carries what a ShipLoop child needs from those four
-documents once, plus the text that used to repeat in every handoff.
+[shiploop-route.md](references/shiploop-route.md), a short core (under 10 KB) with every rule a normal pass
+needs beyond the handoff. What a ShipLoop child needs from those four documents, plus the text that used to
+repeat in every handoff, stands once in the core or in a file the core names with the case that opens it:
+[shiploop-route-rules.md](references/shiploop-route-rules.md) (the long form of the core's rules),
+[shiploop-route-recovery.md](references/shiploop-route-recovery.md),
+[shiploop-route-ask-agent.md](references/shiploop-route-ask-agent.md),
+[shiploop-route-cases.md](references/shiploop-route-cases.md) and
+[shiploop-review-inputs.md](references/shiploop-review-inputs.md).
 `test/improve_route_ledger.json` has a row for every paragraph of them.
 
 ## Preview and installation

@@ -2643,7 +2643,8 @@ def _check_for_steps() -> None:
 
 
 # The fixed part of every Improve child's prompt (efficiency plan U18): no handoff prints it any more; it is carried word for
-# word by skills/improve/references/shiploop-route.md ("Review inputs"), which test/improve-route.test.py keeps in step.
+# word by skills/improve/references/shiploop-review-inputs.md (one section per condition; the route's core states what every
+# review applies), which test/improve-route.test.py keeps in step.
 # ``improve_prompt`` composes the opening, the scope sentence, the HEAD, the stage's paragraphs and the TAIL;
 # ``improve_stage_prompt`` is what a handoff prints of it: the scope sentence and the stage's paragraphs.
 _IMPROVE_OPENING = "This producer attempt has returned a result; its parent action now awaits Improve.\n"

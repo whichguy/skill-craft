@@ -25,9 +25,9 @@ runtime. It does not create a second state machine or invoke `/goal`.
 
 Pick the route first. A ShipLoop review (the argument `ShipLoop Improve: <handoff path>`)
 follows "ShipLoop whole-skill subcall" below and reads [the ShipLoop route](references/shiploop-route.md)
-once per context. Any other invocation (`/improve`, an `improve-agent` worker) reads
-[the standalone route](references/standalone-route.md) in full before interpreting or executing; it
-holds the standalone binding, context-loss continuation, completion summary, preview and execution
+once per context: a short core that opens its case files only when their case arises. Any other
+invocation (`/improve`, an `improve-agent` worker) reads [the standalone route](references/standalone-route.md)
+in full before interpreting or executing; it holds the standalone binding, context-loss continuation, completion summary, preview and execution
 handoff, and has you read the shared policy in full.
 
 Improve is an execution-capable coding agent, not an audit-only role. Within the
@@ -101,8 +101,9 @@ ShipLoop wrote it for one child, and it plays the role of
 selected actual Improve card and prints a
 `ShipLoop standalone Improve binding: <binding-id>` marker, this is a
 **standalone whole-skill subcall**. Read [the ShipLoop route](references/shiploop-route.md)
-once per context: it applies this card's standalone owner binding and the
-Until Loop runtime's loop rules to a ShipLoop child and holds what the handoff leaves out. Preserve the
+once per context: its short core applies this card's standalone owner binding and the
+Until Loop runtime's loop rules to a ShipLoop child, holds every rule a normal pass needs beyond
+the handoff, and names the case file to open only when its case arises. Preserve the
 exact binding marker in the child `context.request`. The ShipLoop packet supplies the bounded
 candidate scope, permitted paths, current producer result, relevant work-item
 `context`, evidence/reference locators, return route, and authority constraints;

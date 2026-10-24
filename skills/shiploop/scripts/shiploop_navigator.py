@@ -6963,10 +6963,11 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
 
     ShipLoop writes it; the Improve packet names only this file (owner, 2026-10-11: "it's really just calling the
     improve skill and then, once complete, invoking the done activity ... we really do not need any other detail").
-    What is the same in every review (ownership of both routes, recovery, the stopped-child route, exclusions, the
-    ``final_result`` rules, the fixed review inputs) is the Improve skill's references/shiploop-route.md, which the first
-    lines name (plan U18); a bound child's first 2,000 characters are enough to find it, and the review focus and the
-    commit and complete commands sit inside the first 4,500.
+    What is the same in every review is the Improve skill's references/shiploop-route.md, which the first lines name
+    (plan U18): a short core with every pass's rules that names the file for each case (ownership of the ask-agent
+    route, recovery and the stopped-child route, the ``final_result`` rules, the fixed review inputs); a bound child's
+    first 2,000 characters are enough to find it, and the review focus and the commit and complete commands sit inside
+    the first 4,500.
     """
     child = state["active_improve"]
     stage, route = child["stage"], delegation(state)
@@ -7050,7 +7051,8 @@ IMPROVE_READ_SENTENCE = ("Read this whole file with a file-reading tool, not the
 
 
 def improve_route_path(child: Mapping[str, Any]) -> Path:
-    """The Improve skill's ShipLoop route file, beside the selected card (what a child reads once per context)."""
+    """The Improve skill's ShipLoop route core, beside the selected card (what a child reads once per context; it names
+    the case files beside it)."""
     return Path(child["skill"]["skill_card"]).parent / "references" / IMPROVE_ROUTE_FILE
 
 
@@ -7076,8 +7078,10 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
         ("When the runtime returns complete (its terminal packet saved at CHILD/packet.json), run: " if inline else
          "Parent only, after the worker's result is collected and CHILD/packet.json verified (the worker never runs it): ")
         + done,
-        "Open ROUTE once per context and after a reset, and for recovery, the stopped-child route, the commit message "
-        "rules, final_result and the review inputs: this file leaves them out.",
+        # ROUTE is the route's short core (2026-10-24): every pass's rules, and the file to open for each case.  The
+        # sentence is no longer than the one it replaced, so the improve-commit line keeps its place inside 4,500.
+        "Open ROUTE once per context and after a reset: its short core has every pass's rules and names the file for "
+        "recovery, final_result and review inputs; this file leaves them out.",
     ]
 
 
@@ -7303,8 +7307,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     inline = delegation(state) == guidance.INLINE
     planning_reconcile = child["stage"] == "plan"
     # The invariant text of an Improve review (ownership, recovery, the stopped-child route, exclusions, final_result, the
-    # review inputs) is in the Improve skill's ShipLoop route file, which the head of this file names; this part keeps the
-    # facts of this review and the exact commands beside the action (efficiency plan U18, IMP-1, IMP-3).
+    # review inputs) is in the Improve skill's ShipLoop route (its core and the case files the core names), which the
+    # head of this file names; this part keeps the facts of this review and the exact commands beside the action
+    # (efficiency plan U18, IMP-1, IMP-3).
     planning_lines: list[str] = []
     if planning_reconcile:
         scratch = planning_scratch_dir(state, child)
@@ -7418,7 +7423,11 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *planning_lines,
         *plan_lines,
         _several_steps(guidance.improve_stage_prompt(child["stage"], delegation=delegation(state)), state, child["stage"]),
-        "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. When the first pass is trivial and leaves the workspace unchanged, the runtime checks that from Git and completes after that one pass.",
+        # One trivial pass ends the loop (IMPROVE_TRIVIAL_REVIEWS = 1, owner 2026-10-20); this line said two until
+        # 2026-10-24, beside a route core that leaves the count to the runtime.
+        "Review passes: the loop ends at the first pass that finds only trivial changes or none; its passes are "
+        "self-passes by this same executor, not independent reviewers; report them as passes, never as independent "
+        "reviews.",
         "Changes: change what is warranted in code, tests or documentation, and commit it; "
         + _improve_rerun_clause(child["stage"])
         + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the complete command with --no-commit.",
