@@ -29,8 +29,11 @@ On `done`, after the lint gate, ShipLoop runs two things itself
 1. **Base run** (`base_check`): every focused and regression command in a
    temporary detached worktree at the item's base (after any preparatory fix),
    with only this item's test files copied in. A new test ID (one a focused
-   command lists) must not pass there: it must fail, or be missing because a
-   file this item adds cannot be loaded. A characterisation test that already
+   command lists) must not pass there: it must fail because the behaviour it
+   asserts is missing, or fail to load the code this item adds. A line that is
+   only a path is not a load failure, so a guard that checks or prints a file's
+   path is not RED. A command a platform card lists under Remote tests is not
+   run on the base. A characterisation test that already
    passes goes in the result's `red_na: [{"id", "reason"}]`, which may name only
    an ID a focused command lists (`tests/<action>-base<N>.md`).
 2. **Candidate run** (`loop_run`): every recorded command (focused, regression,

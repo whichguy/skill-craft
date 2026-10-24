@@ -1335,6 +1335,21 @@ class TestLoopTests(unittest.TestCase):
                 runs = store.read_record(path)["runs"] if path.exists() else []
                 self.assertEqual([run["status"] for run in runs], ["counted"] if based else [])
 
+    def test_a_printed_path_and_a_file_guard_are_not_a_load_failure(self):
+        """A live run (2026-10-20): `printf '%s\\n' <new file> && test -f <new file> && ...` reran an earlier item's tests;
+        on the base the guard failed, the output named the new file, and that read as RED.  A line that is only a path
+        is no load failure, so the IDs read as not run; a loader's error line naming the file is still RED."""
+        row = {"suite": "focused", "command": "x", "ids": ["TC_15"]}
+        added = ["force-app/main/default/lwc/board/board.js"]
+        faked = test_loop._judge_base(row, 1, "force-app/main/default/lwc/board/board.js\n", [], [], added)
+        self.assertEqual(faked["status"], "not-run")
+        self.assertNotIn("load_failure_names", faked)
+        real = test_loop._judge_base(row, 1, "Error: Cannot find module 'force-app/main/default/lwc/board/board.js'\n",
+                                     [], [], added)
+        self.assertEqual((real["status"], real["load_failure_names"]), ("red", added))
+        self.assertIn("a guard that only checks or prints a file's path is not that failure",
+                      test_loop._explain_base(dict(faked, command="x", suite="focused")))
+
     def test_the_judge_reads_recorded_node_output_as_a_load_failure(self):
         """A file that fails to load is one synthetic failing test named by its path; no test of it ran, so it reads as
         zero tests at the candidate run, and on the base it is RED only when it names a file the item adds."""

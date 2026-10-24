@@ -2599,6 +2599,45 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
     _check_step_sizing(result)
 
 
+def _earlier_focused_ids(state: Mapping[str, Any], work_item: str | None) -> dict[str, str]:
+    """Each test ID another work item's latest accepted step plan made focused -> that item."""
+    latest: dict[str, str] = {}
+    for row in state.get("history") or ():
+        if row.get("stage") == "step-plan" and row.get("outcome") == "done" and row.get("workitem") != work_item:
+            latest[str(row.get("workitem"))] = row["action"]
+    found: dict[str, str] = {}
+    for item, action in latest.items():
+        for command in (state.get("accepted") or {}).get(action, {}).get("test_commands") or ():
+            if isinstance(command, Mapping) and command.get("suite") == "focused":
+                for ident in command.get("ids") or ():
+                    found.setdefault(str(ident), item)
+    return found
+
+
+def _check_focused_ids_new(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a done step plan whose focused command tests only an earlier item's behaviour (CLI gate).
+
+    A live run (2026-10-20): the third item's only focused command reran the second item's test IDs behind a guard
+    that names the third item's new file, so the base run read the missing file as RED and the new UI was never tested.
+    A command whose every ID an earlier item's step plan already made focused is that item's regression, not this
+    item's proof; at least one focused ID must be new.  Partial overlap passes: a new test may sit beside an old one.
+    """
+    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    earlier = _earlier_focused_ids(state, _current_work_item(state))
+    for command in result.get("test_commands") or ():
+        if not isinstance(command, Mapping) or command.get("suite") != "focused":
+            continue
+        ids = [str(ident) for ident in command.get("ids") or ()]
+        if ids and all(ident in earlier for ident in ids):
+            owners = ", ".join(dict.fromkeys(earlier[ident] for ident in ids))
+            raise NavigatorError(
+                "Focused command `" + str(command.get("command")) + "` lists only " + ", ".join(ids) + ", which "
+                + owners + "'s step plan already made focused: it tests an earlier item's behaviour. List it as "
+                "regression, and give this item's change a focused command whose test IDs are new (this item's test "
+                "spec names them); then run the same complete command again.")
+
+
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
     """Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).
 
@@ -6353,6 +6392,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
                      + ", or evidence files that do not exist")
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
+        gates.append("a focused command that only reruns an earlier item's test IDs")
     if stage == "release-verify":
         gates.append("missing lessons (learned, considerations, open_next)")
     if stage in HANDOFF_FIELDS.values():
@@ -8563,6 +8603,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_test_commands(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_focused_ids_new(
+                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -8662,6 +8704,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_concerns(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
+            _check_focused_ids_new(state, current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)

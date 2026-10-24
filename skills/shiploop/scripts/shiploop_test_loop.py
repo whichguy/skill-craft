@@ -411,7 +411,8 @@ FLOOR_RULE = ("Floor of each focused and regression command: the larger of its c
               "the base.")
 BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the item's "
              "base (a temporary detached worktree, with only this item's test files copied in). No listed test ID "
-             "may pass there: each must fail, or be missing because a file this item adds cannot be loaded. A "
+             "may pass there: each must fail because the behaviour it asserts is missing, or fail to load the code "
+             "this item adds; a guard that only checks or prints a file's path is not RED. A "
              "characterisation test that passes without this item's change goes in red_na (shape: duty 6). A command "
              "the platform card lists under Remote tests is not run there (its target already holds the change). A "
              "refused base run counts toward the same refused runs.")
@@ -1593,12 +1594,18 @@ def _load_names(path: str) -> List[str]:
 
 
 def _added_named(output: str, added: Sequence[str]) -> List[str]:
-    """The added paths a run's output names (a load failure of a file this item adds)."""
+    """The added paths a run's output names (a load failure of a file this item adds).
+
+    A line that is only a path does not count: a command that prints an added file's path and then fails on a
+    file-exists guard reported no load failure, yet read as RED (a live run, 2026-10-20: ``printf '%s\\n' <new file> &&
+    test -f <new file> && ...`` stood in for the item's tests).  A real loader names the file inside its error line."""
+    lines = [line for line in output.splitlines() if not re.fullmatch(r"\S+", line.strip())]
+    text = "\n".join(lines)
     found = []
     for path in added:
         for name in _load_names(path):
             pattern = (re.escape(name) if name[:1] in "'\"" else r"(?<![\w.-])" + re.escape(name) + r"(?![\w-])")
-            if re.search(pattern, output):
+            if re.search(pattern, text):
                 found.append(path)
                 break
     return found
@@ -1685,9 +1692,10 @@ def _explain_base(run: Mapping[str, Any]) -> str:
                 "references/platforms/.")
     if status == "not-run":
         return ("did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its output names "
-                "a file this item adds. A new test must fail on the base, or fail to load only because a file this "
-                "item adds is missing there. A command that fails before it prints (an assert or exception ahead of the "
-                "print) shows no ID: make it print the ID and its outcome on every exit.")
+                "a file this item adds. A new test must fail on the base because the behaviour it asserts is missing "
+                "(a load error for code this item adds counts); a guard that only checks or prints a file's path is "
+                "not that failure, so assert the behaviour instead. A command that fails before it prints (an assert or "
+                "exception ahead of the print) shows no ID: make it print the ID and its outcome on every exit.")
     return _explain(run)
 
 

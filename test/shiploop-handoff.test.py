@@ -561,6 +561,40 @@ def two_items(repo: Path, stage: str = "test-spec", current: str = "W2") -> dict
     return item_state(repo, current, rows, stage)
 
 
+class EarlierItemFocusedIdTests(RepoCase):
+    """A live run (2026-10-20): the third item's only focused command reran the second item's test IDs behind a guard
+    naming the third item's new file, so the new UI was never tested.  A focused command whose every ID an earlier
+    item's step plan already made focused is refused at step-plan; the named exit (list it as regression, add a new
+    focused ID) is accepted through the same gate."""
+
+    def refusal(self, state: dict, result: dict) -> str:
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator._check_focused_ids_new(state, "step-plan", result)
+        return str(caught.exception)
+
+    def test_an_earlier_items_ids_alone_are_refused_and_the_named_exit_is_accepted(self) -> None:
+        state = item_state(self.repo, "W2", [plan_row("sp1", "W1", ["TC-1", "TC-2"], ["C1", "C2"])], "step-plan")
+        old = {"command": "node --test test/w1.test.js", "suite": "focused", "ids": ["TC-1", "TC-2"]}
+        message = self.refusal(state, {"outcome": "done", "summary": "s", "test_commands": [old]})
+        self.assertIn("lists only TC-1, TC-2, which W1's step plan already made focused", message)
+        self.assertIn("List it as regression", message)
+        fixed = {"outcome": "done", "summary": "s",
+                 "test_commands": [dict(old, suite="regression"),
+                                   {"command": "node --test test/w2.test.js", "suite": "focused", "ids": ["TC-3"]}]}
+        navigator._check_focused_ids_new(state, "step-plan", fixed)          # the named exit passes the gate
+        mixed = {"outcome": "done", "summary": "s", "test_commands": [dict(old, ids=["TC-1", "TC-3"])]}
+        navigator._check_focused_ids_new(state, "step-plan", mixed)          # a new ID beside an old one passes
+
+    def test_the_items_own_earlier_plan_and_other_stages_are_not_checked(self) -> None:
+        # A redone step plan (after a send-back) keeps its own IDs; only another item's IDs count.
+        state = item_state(self.repo, "W1", [plan_row("sp1", "W1", ["TC-1"], ["C1"])], "step-plan")
+        again = {"outcome": "done", "summary": "s",
+                 "test_commands": [{"command": "node --test", "suite": "focused", "ids": ["TC-1"]}]}
+        navigator._check_focused_ids_new(state, "step-plan", again)
+        navigator._check_focused_ids_new(state, "test-spec", dict(again, outcome="done"))
+        navigator._check_focused_ids_new(state, "step-plan", dict(again, outcome="blocked"))
+
+
 class HandoffGateTests(GateCase):
     def test_step_plan_needs_follows_whose_ids_have_entries_in_the_living_files(self) -> None:
         state = item_state(self.repo, "W1", [], "step-plan")
