@@ -452,7 +452,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-packet-anatomy", "shiploop-e2e-render-diff", "shiploop-e2e-commit-counters", "shiploop-e2e-slice",
               "shiploop-e2e-chess-salesforce", "shiploop-e2e-battleship-salesforce", "shiploop-e2e-release-slice", "shiploop-e2e-platform",
               "shiploop-e2e-sf-guard",
-              "shiploop-e2e-efficiency", "shiploop-e2e-owner-page"}
+              "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page"}
 
     def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:
         catalog = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES if suite.id.startswith("shiploop-e2e")}

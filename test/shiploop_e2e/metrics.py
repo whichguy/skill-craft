@@ -247,6 +247,25 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
 # is what "caught" a refusal of it (gate_counts). Not every call names one (``next`` while nothing is bound).
 ACTION_ARG = re.compile(r"--action[= ](\S+)")
 
+# Test-quality dodges a gate does not refuse (dodge_counts), beside GATE_SIGNATURES: ported from the template
+# experiments' evaluators E2 (e2_layers.source_search, inspected_ui) and E3 (e3_red._GUARD) on f14d4ec4, which showed
+# these are only visible at full-run scale. Read from the run's accepted step-plan results and mutation records.
+# A command whose every program only searches text (shiploop_test_layers.SEARCH_PROGRAMS, plus file tests and prints).
+DODGE_SEARCH_PROGRAMS = frozenset(("grep", "egrep", "fgrep", "rg", "ag", "ack", "test", "[", "[[", "ls", "stat",
+                                   "find", "printf", "echo", "cat"))
+# A source file a grep can read in place of running it; documentation and data files are not code.
+DODGE_CODE_FILE = re.compile(r"\.(?:c|cc|cjs|cls|cpp|cs|go|h|java|js|jsx|kt|mjs|php|py|rb|rs|sh|swift|trigger|ts|tsx|"
+                             r"vue|svelte|html|css)\b|(?:^|[\s'\"=])(?:src|lib|app|force-app|public)/", re.I)
+# A file-existence guard or a print-only path ahead of the tests, which fakes RED (e3_red._GUARD), or a require of a
+# module checked for existence rather than run (require.resolve).
+DODGE_GUARD = re.compile(r"(^|&&|\|\||;|\(|\bif|\bthen)\s*!?\s*(test\s+(!\s+)?-[efsd]\s|\[\[?\s+(!\s+)?-[efsd]\s|ls\s|"
+                         r"stat\s|printf\s+'%s\\n'\s|echo\s+\S+\.\w+\s*(&&|;|$))|existsSync\(|require\.resolve\(")
+# A criterion with no structured confirm whose text says it is confirmed by inspection (e2_layers._INSPECT/_EXEC).
+DODGE_INSPECT = re.compile(r"\b(inspect\w*|inspection)\b", re.I)
+DODGE_EXECUTED = re.compile(r"\b(exercised|executed|confirm: executed)\b", re.I)
+RECORD_BLOCK = re.compile(r"```shiploop-state\n(.*?)\n```", re.S)
+MUTATION_RECORD = re.compile(r"^(?P<action>.+)-mutation(?P<n>\d+)\.md$")
+
 
 def failure_line(shown: str, limit: int | None = 200) -> str:
     """The line that names why a ShipLoop command was refused: its own, not the script's fixed trailer.
@@ -655,6 +674,113 @@ def gate_counts(tools: ToolLog) -> dict[str, dict[str, int]]:
             caught = bool(later) and bool(later[0].get("accepted"))
         row["caught"] += int(caught)
     return counts
+
+
+def _record(path: Path) -> dict | None:
+    """The shiploop-state JSON block of one ShipLoop record file, or None."""
+    try:
+        found = RECORD_BLOCK.search(path.read_text(errors="replace"))
+        return json.loads(found.group(1)) if found else None
+    except (OSError, ValueError):
+        return None
+
+
+def search_only_command(command: str) -> bool:
+    """Whether every program ``command`` runs only searches or prints text (no runner, interpreter or deploy)."""
+    programs = []
+    for segment in re.split(r"&&|\|\||[;|\n]", command):
+        words = segment.strip().lstrip("(").split()
+        while words and (words[0] in ("!", "env", "command", "exec", "time", "if", "then", "else", "fi")
+                         or re.match(r"^\w+=", words[0])):
+            words = words[1:]
+        if words and words[0] != "cd":
+            programs.append(words[0].rsplit("/", 1)[-1].lower())
+    return bool(programs) and all(program in DODGE_SEARCH_PROGRAMS for program in programs)
+
+
+def guarded_command(command: str) -> bool:
+    """Whether ``command`` holds a file-existence guard or a print-only path that can fake RED."""
+    return bool(DODGE_GUARD.search(command))
+
+
+def plan_dodges(plan: dict) -> dict:
+    """One step plan's dodges: grep-only checks on code files split by the confirm of the criteria they serve, guarded
+    commands, and criteria confirmed by inspection.
+
+    A check counts ``searched`` (context: a docstring or contract duty) when every criterion it names says confirm
+    ``searched``; ``executed`` when one says executed; ``unmatched`` when it names no criterion (a step's check, or a
+    command with no criteria). ``executed`` and ``unmatched`` are dodges."""
+    criteria = {str(c.get("id")): c for c in plan.get("criteria") or [] if isinstance(c, dict)}
+    rows = [(str(c.get("command") or ""), [str(i) for i in c.get("criteria") or ()], c.get("suite"))
+            for c in plan.get("test_commands") or [] if isinstance(c, dict)]
+    rows += [(str(s.get("check") or ""), [str(i) for i in s.get("criteria") or ()], "check")
+             for s in plan.get("steps") or [] if isinstance(s, dict)]
+    grep = {"searched": [], "executed": [], "unmatched": []}
+    seen = set()
+    for command, ids, _suite in rows:
+        if not command or command in seen or not search_only_command(command) or not DODGE_CODE_FILE.search(command):
+            continue
+        seen.add(command)
+        confirms = {criteria[i].get("confirm") for i in ids if i in criteria}
+        kind = "unmatched" if not confirms else "searched" if confirms == {"searched"} else "executed"
+        grep[kind].append(command)
+    guarded = sorted({command for command, _ids, suite in rows if suite == "focused" and guarded_command(command)})
+    inspected = [cid for cid, c in criteria.items() if c.get("confirm") == "inspected" or (
+        "confirm" not in c and DODGE_INSPECT.search(str(c.get("text") or ""))
+        and not DODGE_EXECUTED.search(str(c.get("text") or "")))]
+    return {"grep": grep, "guarded": guarded, "inspected": inspected}
+
+
+def surviving_mutants(run_dir: Path | None) -> int | None:
+    """Mutants that survived, from each action's last counted ``tests/<action>-mutation<N>.md``; None with no record."""
+    folder = run_dir / "tests" if run_dir else None
+    if folder is None or not folder.is_dir():
+        return None
+    last: dict[str, tuple[int, Path]] = {}
+    for path in folder.glob("*-mutation*.md"):
+        found = MUTATION_RECORD.match(path.name)
+        if found and int(found["n"]) >= last.get(found["action"], (-1, path))[0]:
+            last[found["action"]] = (int(found["n"]), path)
+    if not last:
+        return None
+    return sum(int((_record(path) or {}).get("survived") or 0) for _n, path in last.values())
+
+
+def dodge_counts(run_dir: Path | None) -> dict:
+    """Run-level test-quality dodges (the template experiments E2/E3), counted over every accepted step-plan result.
+
+    ``grep_executed`` and ``grep_unmatched`` (grep-only checks on code files serving an executed criterion, or none),
+    ``guarded`` (focused commands with a file guard) and ``inspected`` (criteria confirmed by inspection) are dodges and sum
+    into ``dodges``; ``grep_searched`` (a criterion whose confirm is searched: a docstring or contract duty) is context.
+    ``surviving_mutants`` is None when the run wrote no mutation record. ``plans`` 0 means nothing was measured."""
+    folder = run_dir / "results" if run_dir else None
+    plans = []
+    if folder is not None and folder.is_dir():
+        for path in sorted(folder.glob("*.md")):
+            record = _record(path)
+            if isinstance(record, dict) and record.get("stage") == "step-plan" and isinstance(record.get("result"), dict):
+                plans.append((record.get("action") or path.stem, plan_dodges(record["result"])))
+    counts = {"plans": len(plans),
+              "grep_searched": sum(len(p["grep"]["searched"]) for _a, p in plans),
+              "grep_executed": sum(len(p["grep"]["executed"]) for _a, p in plans),
+              "grep_unmatched": sum(len(p["grep"]["unmatched"]) for _a, p in plans),
+              "guarded": sum(len(p["guarded"]) for _a, p in plans),
+              "inspected": sum(len(p["inspected"]) for _a, p in plans),
+              "surviving_mutants": surviving_mutants(run_dir)}
+    counts["dodges"] = counts["grep_executed"] + counts["grep_unmatched"] + counts["guarded"] + counts["inspected"]
+    counts["by_action"] = {action: p for action, p in plans
+                           if any(p["grep"].values()) or p["guarded"] or p["inspected"]}
+    return counts
+
+
+def dodge_text(counts: dict) -> str:
+    """``Test-quality dodges: N (...)`` for the printed report."""
+    mutants = counts.get("surviving_mutants")
+    return (f"Test-quality dodges: {counts['dodges']} over {plural(counts['plans'], 'step plan')} "
+            f"(grep-only on code: {counts['grep_executed']} executed, {counts['grep_unmatched']} no criterion; "
+            f"guarded RED {counts['guarded']}; inspected criteria {counts['inspected']}); "
+            f"context: {counts['grep_searched']} searched greps, surviving mutants "
+            + ("none recorded" if mutants is None else str(mutants)))
 
 
 def engine_state(run_dir: Path | None) -> dict:
@@ -1901,6 +2027,9 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # run then got past ("caught": the same action id's next accepted complete). Never 0 for a gate that fired
         # nothing -- it is simply absent; an unclassified refusal is under "other".
         "gate_counts": gate_counts(tools),
+        # Test-quality dodges no gate refuses (dodge_counts): grep-only checks on code, guarded REDs, inspected criteria,
+        # surviving mutants. A record, never a verdict.
+        "dodges": dodge_counts(run_dir),
         # Retired glossary terms in ShipLoop's printed packets and refusals (S-16): a record, never a verdict.
         "nomenclature": nomenclature(tools),
         # Claude's tool_use / tool_result blocks only (main thread): what the model ran and how it used the packets. A
@@ -2304,6 +2433,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
                 if metrics.get("improve_reviews", {}).get("passes") else "")]
     if metrics.get("gate_counts"):
         lines.append("ShipLoop gates: " + gate_counts_text(metrics["gate_counts"]))
+    if (metrics.get("dodges") or {}).get("plans"):
+        lines.append(dodge_text(metrics["dodges"]))
     if (metrics.get("nomenclature") or {}).get("retired"):
         lines.append("Retired terms in ShipLoop's output: " + nomenclature_text(metrics["nomenclature"]))
     if metrics.get("planning"):
