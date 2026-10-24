@@ -18,3 +18,7 @@ summary that the test-spec packet quotes.
 
 | date | experiment | arms | n | means | spread | gate | verdict | record |
 |---|---|---|---|---|---|---|---|---|
+| 2026-10-24 | E1 | A=288075c9 vs T=9ed4ec24 | 3/3 | 1.00/1.00 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-A-T.json |
+| 2026-10-24 | E1 | T=9ed4ec24 vs B=9ed4ec24+e1-stand-in.json | 3/3 | 1.00/1.00 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-T-B.json |
+| 2026-10-24 | E1 | A=288075c9 vs B=9ed4ec24+e1-stand-in.json | 3/3 | 1.00/1.00 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-A-B.json |
+| 2026-10-24 | E3 | A=288075c9 vs T=9ed4ec24 | 3/3 | 1.00/1.00 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r1-20261024/E3/decision-A-T.json |
