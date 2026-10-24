@@ -48,7 +48,9 @@ experiment there. Added: the `slice.py` case key `fake_sf`; four replay fixtures
 bands; [`e6_step_size.py`](../test/shiploop_e2e/evaluators/e6_step_size.py) and its committed verify records; arms B
 and C as overlays on `9ed4ec24`; `PlanSizing` tests. The slice fixture test no longer requires `package.json` and item
 `W1` (a replay keeps its run's tree and item ID); every earlier case still meets the weaker assertion, so no earlier
-result changes.
+result changes. Checks: `test/shiploop-e2e-experiments.test.py` 39 OK and `test/shiploop-e2e-slice.test.py` 58 OK on
+the committed files; `./test/run-all.sh --group quick --changed-from 78ea131b` PASS (exit 0; started before the ID
+redaction, which the two files above were rerun after).
 
 **Smoke.** E6-K1, arm T (`9ed4ec24`), Claude Sonnet 5.5 (`claude-sonnet-5-5`, host default effort), inline,
 planning review `stage`, Backchain `one`: slice verdicts all pass, 2.8 minutes, value 0. Sonnet planned the engine in
