@@ -4155,6 +4155,8 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                 result.setdefault("follows", [])
                 if "criteria" in result:
                     result["criteria"] = inner_fixture.executed_criteria(result["criteria"])
+            if stage == "spec":
+                result = {**inner_fixture.fixture_primary(state), **result}    # run-5 batch F6
             if stage == "test-strategy":
                 result = {**inner_fixture.fixture_test_layers(), **result}     # run-5 batch F1, F3
             if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",

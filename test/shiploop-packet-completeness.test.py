@@ -234,10 +234,14 @@ class PacketCompletenessTests(unittest.TestCase):
         "consumer_checks": {"release-plan"},
         "consumer_entry": {"release-plan"},
         # The closes, plus the stages whose docs/shiploop change can lose an R-<n> or AD-<n> ID (L4 of the
-        # architecture-file journal, 2026-10-10).
-        "KNOWLEDGE": {"prepare", "test-spec", "release-plan", "spec", "plan", "step-plan"},
+        # architecture-file journal, 2026-10-10), plus product-acceptance, whose unverified rows name a requirement with
+        # an entry in KNOWLEDGE/spec.md (run-5 batch F6).
+        "KNOWLEDGE": {"prepare", "test-spec", "release-plan", "spec", "plan", "step-plan", "product-acceptance"},
         "unverified": {"product-acceptance"},
         "due_stage": {"product-acceptance"},
+        # The spec's primary requirements, and the lower-layer check product-acceptance holds a primary one to (F6).
+        "primary": {"spec", "product-acceptance"},
+        "lower_layer_check": {"product-acceptance"},
     }
 
     def test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses(self) -> None:

@@ -33,3 +33,12 @@ def write(state: Mapping[str, Any]) -> None:
             path.parent.mkdir(parents=True, exist_ok=True)
             body = sections(name) if name in knowledge.SECTIONS else "Synthetic knowledge.\n"
             path.write_text("# " + path.stem + "\n\n" + body, encoding="utf-8")
+
+
+def write_spec(state: Mapping[str, Any]) -> None:
+    """Create spec.md with its sections and R-1, when missing: what a spec stage writes before its done, whose
+    ``primary`` must name an R-<n> with an entry there (run-5 batch F6)."""
+    path = Path(str(state["repo"])) / knowledge.HOME / "spec.md"
+    if not path.is_file():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# spec\n\n" + sections("spec.md"), encoding="utf-8")

@@ -228,12 +228,19 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # Where the tests run, and how a test still fails on an item's base there (F1), and each command's target (F3).
     "targets": re.compile(r"lists targets: where the tests run|targets is a list of|targets\[\d+\]|which is no "
                           r"test-strategy targets row|so each focused or regression command names, in target"),
+    # The spec's primary requirements (run-5 batch F6, shiploop_primary.py check_spec and canonical).
+    "primary": re.compile(r"a done spec result lists primary:|primary (?:lists (?:at least|an ID)|still holds the "
+                          r"template|names |is a list of the R-<n>|is allowed only)"),
+    # An unverified row's requirement (F6: shiploop_unverified.py's ID shape, shiploop_primary.py's living-spec entry).
+    "unverified_requirement": re.compile(r"unverified\[\d+\]\.requirement .+? (?:is not one requirement ID|has no "
+                                         r"current entry in)"),
+    # A primary requirement's unverified outcome whose lower_layer_check names no test ShipLoop saw pass for it (F6).
+    "lower_layer_check": re.compile(r"a primary requirement \(spec primary\), and its lower_layer_check names no test"),
     # New gates land as one row each. Not yet seeded here (no refusal text read in the scripts as of this table) --
     # fill in the real signature from the gate's own refusal text when it ships, rather than guessing one:
     # "entry_points": re.compile(r"TODO: entry_points refusal text"),                  # F4
     # "stand_in_rejected": re.compile(r"TODO: stand_in_rejected refusal text"),        # F4
     # "improve_regression_test": re.compile(r"TODO: improve regression test text"),   # F5
-    # "lower_layer_check": re.compile(r"TODO: lower_layer_check refusal text"),        # F6
 }
 
 # A ShipLoop CLI call's own ``--action=<id>`` (or ``--action <id>``), read from the expanded command text: the

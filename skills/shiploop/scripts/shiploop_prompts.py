@@ -1046,7 +1046,9 @@ DUTIES = {
    KNOWLEDGE/architecture.md ## Decisions, never in KNOWLEDGE/spec.md; a product decision never takes the AD- prefix.
 4. Map every request outcome to at least one acceptance line (Behavior traceability guidance); keep approved scope, and
    list the domain rules the request leaves out under the R-<n> they bound. Mark each unresolved prerequisite or user
-   decision as an open gap under its R-<n> in KNOWLEDGE/spec.md.
+   decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. List in `primary` the R-<n> that carry the request's
+   primary outcomes, what the user asked for directly: product-acceptance accepts one left unverified only with a
+   passed lower-layer test.
 5. In each R-<n> this run adds or changes, state its request or decision basis, preserved and changed behaviour,
    source-section locators, evidence limits, and pending implementation and checks. ShipLoop derives the added,
    changed and retired IDs from the spec diff; list none by hand.
@@ -1708,8 +1710,10 @@ in order; """ + _VERIFY_ONCE + """
 3. Give every request outcome one end state in `summary`: observed by an executed check; observed another way (the
    first method could not, the new check ran and passed); or unachievable here or not yet due, listed in
    `unverified` while the run continues. Try another way to observe it before listing. Each `unverified` entry:
-   `outcome`, named `reason`, the `settle` its owner does and reports, the `owner`, the `due_stage` that reports it
-   (handoff, or the stage whose external effect it gates). Carry in the open items earlier stages recorded
+   `outcome`, the `requirement` (R-<n>) it maps to, named `reason`, `lower_layer_check` (the passed unit or component
+   test of its logic, from the Primary requirements lines; a requirement not in `primary` may give why none exists),
+   the `settle` its owner does and reports, the `owner`, the `due_stage` that reports it (handoff, or the stage whose
+   external effect it gates). Carry in the open items earlier stages recorded
    (system-test-author, system-test). An outcome stated only in the summary has no end state; an empty list says
    every outcome was observed.
 4. Keep verified product criteria apart from pending release verification: a case not yet due stays pending with

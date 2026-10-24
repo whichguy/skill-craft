@@ -30,6 +30,7 @@ import shiploop_expectations as expectations  # noqa: E402
 import shiploop_head_plans as plans  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_primary as primary  # noqa: E402
 import shiploop_test_layers as layers  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 from shiploop_improve_route import with_route  # noqa: E402
@@ -799,6 +800,129 @@ class TestLayerGateTests(RepoCase):
         self.assertEqual(layers.criterion_label({"id": "C2", "confirm": "inspected", "code": "board component",
                                                  "layer": "e2e"}), "C2 [inspected: board component e2e]")
         self.assertEqual(layers.criterion_label({"id": "C1", "confirm": "executed"}), "C1 [executed]")
+
+
+class PrimaryGateTests(RepoCase):
+    """Run-5 batch F6: a live run (2026-10-24) accepted the request's main outcome for a person on source words and
+    deferred assumptions.  The spec lists the primary requirements in `primary`; every unverified row names its
+    `requirement` and `lower_layer_check`; a primary requirement's row is accepted only with the ID of a test ShipLoop's
+    own test records show passing in a case for that requirement, else add-work adds that test."""
+
+    UNIT = {"outcome": "a person plays a full game in the browser", "requirement": "R-1",
+            "reason": "no browser reaches the hosted page from this host", "lower_layer_check": "TC-1",
+            "settle": "play one game and report the result", "owner": "the user", "due_stage": "handoff"}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.home("spec.md", "## Requirements\n\n- R-1: Play a game.\n- R-2: Keep a score.\n\n## Retired\n\n"
+                             "- R-4: Dropped.\n")
+
+    def refused(self, call) -> str:
+        with self.assertRaises(primary.PrimaryError) as caught:
+            call()
+        return str(caught.exception)
+
+    def run_state(self, *, cases: list, record: dict | None, primary_ids: list | None = None,
+                  record_item: str | None = "W1") -> dict:
+        """A run at product-acceptance: the spec (its primary list), W1's test-spec cases and W1's accepted test action,
+        whose ShipLoop record ``record`` is written under the run folder (none when it is None)."""
+        spec = {"outcome": "done", "summary": "s"}
+        if primary_ids is not None:
+            spec["primary"] = primary_ids
+        rows = [({"action": "sp0", "stage": "spec", "workitem": None, "outcome": "done"}, spec),
+                ({"action": "ts1", "stage": "test-spec", "workitem": "W1", "outcome": "done"},
+                 {"outcome": "done", "summary": "s", "test_cases": cases}),
+                ({"action": "t1", "stage": "test" if record_item else "system-test", "workitem": record_item,
+                  "outcome": "done"}, {"outcome": "done", "summary": "s"})]
+        state = item_state(self.repo, "W1", rows, "test")
+        state.update(status="active", stage="product-acceptance")
+        if record is not None:
+            store.atomic_write_text(self.root / "tests" / "t1-verify1.md",
+                                    store.dumps(record, "ShipLoop test-loop verification"))
+        return state
+
+    @staticmethod
+    def record(*, passed: bool = True, status: str = "passed", ids: tuple = ("TC-1", "TC-2")) -> dict:
+        return {"schema": "shiploop-test-loop/v1", "action": "t1", "stage": "test", "work_item": "W1",
+                "passed": passed, "disposition": "passed" if passed else "failed",
+                "runs": [{"command": "npm test", "suite": "focused", "ids": list(ids), "status": status,
+                          "ids_missing": []}]}
+
+    CASES = [dict(CASE, id="TC-1", requirement="R-1"), dict(CASE, id="TC-2", requirement="R-2")]
+
+    def check(self, state: dict, rows: list) -> None:
+        primary.check_unverified(self.root, state, "product-acceptance",
+                                 {"outcome": "done", "summary": "s", "unverified": rows})
+
+    def test_a_done_spec_lists_primary_requirements_that_have_current_entries(self) -> None:
+        done = {"outcome": "done", "summary": "s"}
+        for result, fragment in ((done, "a done spec result lists primary"),
+                                 (dict(done, primary=[]), "primary lists at least one R-<n>"),
+                                 (dict(done, primary=[primary.PLACEHOLDER]), "still holds the template placeholder"),
+                                 (dict(done, primary=["R-1", "AD-1"]), "primary names AD-1: list requirement IDs only"),
+                                 (dict(done, primary=["R-1", "R-1"]), "primary lists an ID twice"),
+                                 (dict(done, primary=["R-1", "R-3", "R-4"]), "primary names R-3, R-4, with no current "
+                                                                            "entry in " + str(self.repo / knowledge.HOME
+                                                                                              / "spec.md"))):
+            with self.subTest(fragment):
+                self.assertIn(fragment, self.refused(lambda: primary.check_spec(self.repo, "spec", result)))
+        primary.check_spec(self.repo, "spec", dict(done, primary=["R-1", "R-2"]))
+        primary.check_spec(self.repo, "spec", {"outcome": "blocked", "summary": "s"})   # only a done spec
+        primary.check_spec(self.repo, "plan", done)                                       # only the spec stage
+        # The field belongs to a done spec result; the template states its bar.
+        with self.assertRaisesRegex(navigator.NavigatorError, "primary is allowed only on a done spec result"):
+            canonical(dict(done, primary=["R-1"]), "plan")
+        self.assertEqual(canonical(dict(done, primary=[" R-1 "]), "spec")["primary"], ["R-1"])
+        self.assertIn(primary.PLACEHOLDER, navigator._result_template({}, "spec"))
+
+    def test_a_primary_outcome_needs_a_test_shiploop_saw_pass_in_a_case_for_its_requirement(self) -> None:
+        state = self.run_state(cases=self.CASES, record=self.record(), primary_ids=["R-1"])
+        self.check(state, [self.UNIT])
+        for label, row, fragment in (
+                ("a test of another requirement", dict(self.UNIT, lower_layer_check="TC-2"), "(passed: TC-1)"),
+                ("a reason", dict(self.UNIT, lower_layer_check="no browser here"), "(passed: TC-1)")):
+            with self.subTest(label):
+                message = self.refused(lambda: self.check(state, [row]))
+                self.assertIn("unverified[0] is an outcome of R-1, a primary requirement (spec primary)", message)
+                self.assertIn(fragment, message)
+                self.assertIn("report add-work with one corrective work item that adds it: "
+                              + stage_spec.ADD_WORK_SHAPE, message)
+        # Not passing in ShipLoop's records: a refused record, a failed run, an outer stage's record, no record.
+        for label, built in (("a record that did not pass", dict(record=self.record(passed=False))),
+                             ("a run that failed", dict(record=self.record(status="failed"))),
+                             ("a system-test record", dict(record=self.record(), record_item=None)),
+                             ("no record", dict(record=None))):
+            with self.subTest(label):
+                (self.root / "tests" / "t1-verify1.md").unlink(missing_ok=True)
+                found = self.run_state(cases=self.CASES, primary_ids=["R-1"], **built)
+                self.assertIn("(none has passed)", self.refused(lambda: self.check(found, [self.UNIT])))
+
+    def test_a_requirement_that_is_not_primary_takes_a_reason_and_every_requirement_needs_its_entry(self) -> None:
+        state = self.run_state(cases=self.CASES, record=None, primary_ids=["R-2"])
+        self.check(state, [dict(self.UNIT, lower_layer_check="no unit test can drive a browser; the rules are tested")])
+        for ident in ("R-3", "R-4"):   # no entry, and a retired one
+            with self.subTest(ident):
+                self.assertIn("unverified[0].requirement " + ident + " has no current entry in",
+                              self.refused(lambda: self.check(state, [dict(self.UNIT, requirement=ident)])))
+        # A spec result without primary (unmeasured): no row needs a passed test.
+        self.check(self.run_state(cases=self.CASES, record=None), [dict(self.UNIT, lower_layer_check="a reason")])
+        # The shape: one R-<n> per row, checked with the other fields at the CLI gate.
+        with self.assertRaisesRegex(unverified.UnverifiedError, "is not one requirement ID"):
+            unverified.check_submitted("product-acceptance", {"outcome": "done", "unverified": [
+                dict(self.UNIT, requirement="R-1, R-2")]})
+
+    def test_product_acceptance_prints_the_primary_requirements_with_the_tests_that_passed_for_each(self) -> None:
+        state = self.run_state(cases=self.CASES, record=self.record(), primary_ids=["R-1", "R-2"])
+        lines = primary.packet_lines(self.root, state, "product-acceptance")
+        self.assertTrue(lines[0].startswith("Primary requirements (spec primary): an unverified row for one is accepted "
+                                            "only when its lower_layer_check is a test ID below"), lines)
+        self.assertEqual(lines[1:], ["- R-1: TC-1", "- R-2: TC-2"])
+        (self.root / "tests" / "t1-verify1.md").unlink()
+        none = self.run_state(cases=self.CASES, record=None, primary_ids=["R-1"])
+        self.assertEqual(primary.packet_lines(self.root, none, "product-acceptance")[1:], ["- R-1: none passed"])
+        self.assertIn("records none", primary.packet_lines(self.root, self.run_state(cases=[], record=None),
+                                                           "product-acceptance")[0])
+        self.assertEqual(primary.packet_lines(self.root, state, "handoff"), [])
 
 
 class HandoffGateTests(GateCase):

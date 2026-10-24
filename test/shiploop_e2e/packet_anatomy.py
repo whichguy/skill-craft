@@ -145,6 +145,8 @@ RULES: tuple[Rule, ...] = (
     _r("unverified-and-deltas", r"^(Unverified|Plan assumptions recorded open|Open unverified|Answered|Replan|Revise|"
        r"Sent back|The user answered|Earlier answer|That is product-acceptance's list only|Product-acceptance listed these)"),
     _r("unverified-and-deltas", r"^- (A\d+ \(consumer|.* \| reason: )"),
+    # Product-acceptance's primary requirements and the tests that passed for each (run-5 batch F6, shiploop_primary).
+    _r("unverified-and-deltas", r"^Primary requirements", "bullets"),
     # --- state / locator lines and recovery (_run_rules)
     _r("state-locators", r"^(State|Result records|Result inbox|Accepted history|Repository locator|CLI locator|"
        r"ShipLoop skill card|Run directory locator|Keepalive marker|Owner):"),

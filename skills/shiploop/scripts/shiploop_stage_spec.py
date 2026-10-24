@@ -53,6 +53,9 @@ PHASES = ("prelude", "inner", "outer")
 # stage reruns with this result as evidence); add-work (product work is missing: new work items are built, then the run
 # resumes at system-test-author).  "repeat" is gone: it was never used in 1,845 results, and `next` restarts a stage.
 OUTCOMES = frozenset({"done", "blocked", "send-back", "add-work"})
+# The add-work result's shape, one text for the packets' outcome shapes and every refusal that names add-work as its exit.
+ADD_WORK_SHAPE = ('{"outcome": "add-work", "summary": "<what the corrective items fix>", "work_items": '
+                  '[{"id": "<new id>", "title": "...", "context": "..."}]}')
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
 # and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.

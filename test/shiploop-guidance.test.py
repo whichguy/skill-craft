@@ -2953,13 +2953,28 @@ class UnverifiedWordingTests(unittest.TestCase):
             self.assertIn(phrase, duty)
         self.assertNotIn("blocked_by", duty)  # S-14: a person-only outcome does not stop the run (blocked_by is retired)
 
+    def test_the_spec_names_its_primary_requirements_and_each_unverified_entry_its_lower_layer_check(self) -> None:
+        # Run-5 batch F6: the duties name the fields the gates hold, in the glossary's terms.
+        spec = normalized(prompts.DUTIES["spec"])
+        self.assertIn("List in `primary` the R-<n> that carry the request's primary outcomes, what the user asked for "
+                      "directly", spec)
+        duty = normalized(prompts.DUTIES["product-acceptance"])
+        for phrase in ("the `requirement` (R-<n>) it maps to", "`lower_layer_check` (the passed unit or component test "
+                       "of its logic, from the Primary requirements lines; a requirement not in `primary` may give why "
+                       "none exists)", "report add-work for an executable lower-layer check"):
+            self.assertIn(phrase, duty)
+
     def test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints(self) -> None:
         # S-3: the card agrees with the script. The four faults are the ones the stage's Checked-by line names.
         skill = normalized((REFERENCES / "test-loop.md").read_text(encoding="utf-8"))  # moved from the card by U22
         for phrase in ("a done `product-acceptance` lists it in `unverified`",
-                       "(outcome, reason, check, owner, due stage)", "`[]` says every outcome was observed",
-                       "ShipLoop refuses a missing list, an incomplete or placeholder entry and a due stage that is "
-                       "not a later stage", "it cannot judge that the list is complete",
+                       "(outcome, requirement, reason, lower-layer check, settle, owner, due stage)",
+                       "`[]` says every outcome was observed",
+                       "ShipLoop refuses a missing list, an incomplete or placeholder entry, a requirement with no entry "
+                       "in the spec and a due stage that is not a later stage", "it cannot judge that the list is complete",
+                       "An outcome of a requirement the spec lists in `primary` is accepted only when its "
+                       "`lower_layer_check` is the ID of a test ShipLoop ran and saw pass in a case for that requirement; "
+                       "else add-work adds that test",
                        "prints each entry at its due stage and the whole list at `handoff` and in the report"):
             self.assertIn(phrase, skill)
         reference = normalized((REFERENCES / "system-tests.md").read_text(encoding="utf-8"))

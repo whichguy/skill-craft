@@ -101,9 +101,11 @@ RESULTS = {
 HANDOFF_KEYS = ("follows", "test_cases", "not_covered", "assumptions", "lessons")
 
 # Request outcomes no executed check observed, as product-acceptance lists them: one reported at the handoff, one at the
-# stage whose external effect it gates.
-UNVERIFIED_ENTRY = {"outcome": "the exported file opens in the customer's reader",
+# stage whose external effect it gates.  Their requirement, R-1, is not primary in these runs (the spec result the
+# positioning accepts lists none), so a stated reason stands in for a passed test (run-5 batch F6).
+UNVERIFIED_ENTRY = {"outcome": "the exported file opens in the customer's reader", "requirement": "R-1",
                     "reason": "this host has no copy of that reader",
+                    "lower_layer_check": "no unit or component test can open the reader; TC-1 checks the file exists",
                     "settle": "open the exported file in the reader and report what shows",
                     "owner": "the user", "due_stage": "handoff"}
 UNVERIFIED_EARLY = dict(UNVERIFIED_ENTRY, outcome="the deployed page loads for a signed-in user",
@@ -260,6 +262,7 @@ class RealCliCase(unittest.TestCase):
             "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
+            "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
             "concerns": inner_fixture.no_concerns_map(["W1"]),
             **{key: value for result in RESULTS.values() for key, value in result.items()
                if key not in ("outcome", "summary", "assumptions")},
@@ -292,6 +295,7 @@ class RealCliCase(unittest.TestCase):
         for key, value in RESULTS.get(stage, {}).items():
             if key in HANDOFF_KEYS and key not in block:
                 block[key] = value
+        focused: list = []
         if stage == "test-spec":
             # One case per focused ID of this run's step plan, naming R-1, which the living spec gets as an entry.
             path = printed_callback(head)[1]
@@ -300,8 +304,11 @@ class RealCliCase(unittest.TestCase):
             focused = [ident for row in plan.get("test_commands") or () if row.get("suite") == "focused"
                        for ident in row.get("ids") or ()]
             block["test_cases"] = [dict(TEST_CASES[0], id=ident) for ident in focused]
+        if focused or stage in ("spec", "product-acceptance"):
+            # The spec's primary list and an unverified row name R-1, so the living spec holds its entry (F6).
+            state = store.read_record(printed_callback(head)[1].parent.parent / "state.md")
             living = Path(state["repo"]) / knowledge.HOME / "spec.md"
-            if focused and knowledge.entry_text(Path(state["repo"]), "R-1") is None:
+            if knowledge.entry_text(Path(state["repo"]), "R-1") is None:
                 living.parent.mkdir(parents=True, exist_ok=True)
                 living.write_text((living.read_text(encoding="utf-8") if living.is_file() else "") + LIVING_SPEC,
                                   encoding="utf-8")
@@ -471,7 +478,22 @@ class RefusalRouteTests(RealCliCase):
             ("an unverified entry without an owner", "product-acceptance",
              lambda block: {**block, "unverified": [{key: value for key, value in UNVERIFIED_ENTRY.items()
                                                       if key != "owner"}]},
-             "unverified[0] needs exactly outcome, reason, settle, owner, due_stage"),
+             "unverified[0] needs exactly outcome, requirement, reason, lower_layer_check, settle, owner, due_stage"),
+            ("an unverified requirement that is not one R-<n>", "product-acceptance",
+             lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, requirement="R-1 and R-2")]},
+             "is not one requirement ID"),
+            ("an unverified requirement with no entry in the living spec", "product-acceptance",
+             lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, requirement="R-9")]},
+             "unverified[0].requirement R-9 has no current entry in"),
+            ("no primary list", "spec",
+             lambda block: {k: v for k, v in block.items() if k != "primary"},
+             "a done spec result lists primary"),
+            ("a primary ID with no entry in the living spec", "spec",
+             lambda block: {**block, "primary": ["R-1", "R-9"]},
+             "primary names R-9, with no current entry in"),
+            ("the primary template entry copied unchanged", "spec",
+             lambda block: {**block, "primary": [nav.primary.PLACEHOLDER]},
+             "primary still holds the template placeholder"),
             ("an unverified entry that keeps one template placeholder", "product-acceptance",
              lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, settle="<what the owner does and reports>")]},
              "unverified[0].settle is still a template placeholder"),
@@ -841,7 +863,7 @@ class RefusalRouteTests(RealCliCase):
     def test_shiploop_writes_the_opening_with_the_four_exact_headings_and_a_renamed_one_is_told_the_heading(self) -> None:
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
-        write_block(path, self.done_fields())
+        write_block(path, dict(self.done_fields(), primary=self.fill_done(head)["primary"]))  # F6: and R-1's entry
         out = self.accepted(command)
         opening, _receipt = self.started_child(run)
         text = opening.read_text(encoding="utf-8")
@@ -1344,7 +1366,7 @@ class StepSizingRouteTests(RealCliCase):
 class UnverifiedRouteTests(RealCliCase):
     """What the run leaves unverified is listed once, at product-acceptance, and reaches the stage that reports it."""
 
-    FIELDS = ("outcome", "reason", "settle", "owner", "due_stage")
+    FIELDS = ("outcome", "requirement", "reason", "lower_layer_check", "settle", "owner", "due_stage")
 
     def full_packet(self, head: str) -> str:
         return full_packet_text(head)
@@ -1425,7 +1447,8 @@ class UnverifiedRouteTests(RealCliCase):
         nav.validate(accepted)
         command, path, _ = printed_callback(head)
         write_block(path, dict(self.fill_done(head), unverified=earlier_shape))
-        self.assertIn("needs exactly outcome, reason, settle, owner, due_stage", self.refused(command, run))
+        self.assertIn("needs exactly outcome, requirement, reason, lower_layer_check, settle, owner, due_stage",
+                      self.refused(command, run))
         # And a packet that prints a loaded entry of an earlier shape must not depend on fields it lacks.
         _, handoff = self.at("handoff", **{"product-acceptance": {"unverified": earlier_shape}})
         self.assertIn("- o | reason: r | owner: ", self.full_packet(handoff))
@@ -1452,6 +1475,80 @@ class UnverifiedRouteTests(RealCliCase):
                    "summary": "A service is down.", "unverified": []}
         with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry unverified"):
             nav.apply(state, nav.current_action(state)["id"], blocked)
+
+
+class PrimaryRequirementRouteTests(RealCliCase):
+    """Run-5 batch F6: a live run (2026-10-24) accepted the request's main outcome for a person on source words and
+    deferred assumptions, and nothing executed showed it.  The spec now lists the primary requirements; product-acceptance
+    accepts an unverified outcome of one only when its lower_layer_check is a test ShipLoop ran and saw pass in a case for
+    that requirement.  Each refusal's way out is followed as the refusal states it and accepted by the same command."""
+
+    PRIMARY_ROW = dict(UNVERIFIED_ENTRY, outcome="a person sees the built file's text in the product",
+                       lower_layer_check="TC-1")
+
+    def at_acceptance(self, *, record: bool) -> tuple[Path, str]:
+        """A run at product-acceptance whose spec lists R-1 as primary.  With ``record``, the test stage's ShipLoop run
+        of W1's recorded commands (``test_loop.verify``, the run the stage's done makes) is in the run's records."""
+        run, head = self.new_run("product-acceptance", results={"spec": {"primary": ["R-1"]}})
+        if record:
+            state = self.state(run)
+            action = next(row["action"] for row in state["history"]
+                          if row["stage"] == "test" and row.get("workitem") == "W1")
+            writes, refusal = test_loop.verify(run, state, "W1", action, "test")
+            self.assertEqual(refusal, "")
+            for relative, text in writes.items():
+                (run / relative).parent.mkdir(parents=True, exist_ok=True)
+                (run / relative).write_text(text, encoding="utf-8")
+            head = self.cli("next", "--run-dir", str(run)).stdout
+        return run, head
+
+    def test_an_unverified_primary_outcome_with_no_passed_test_is_refused_and_the_add_work_it_names_is_accepted(self) -> None:
+        run, head = self.at_acceptance(record=False)
+        packet = full_packet_text(head)
+        self.assertIn("Primary requirements (spec primary): an unverified row for one is accepted only when", packet)
+        self.assertIn("\n- R-1: none passed\n", packet)
+        checked = next(line for line in packet.splitlines() if line.startswith("Checked by: "))
+        self.assertIn("a primary requirement's lower_layer_check that names no test ShipLoop's test runs passed", checked)
+        command, path, action = printed_callback(head)
+        write_block(path, dict(self.fill_done(head), unverified=[self.PRIMARY_ROW]))
+        reply = self.refused(command, run)
+        self.assertIn("is an outcome of R-1, a primary requirement (spec primary)", reply)
+        self.assertIn("(none has passed)", reply)
+        # The way out the refusal names: add-work in the shape it prints, one corrective item that adds the test.
+        shape = json.loads(reply[reply.index("report add-work with one corrective work item that adds it: ")
+                                 + len("report add-work with one corrective work item that adds it: "):].splitlines()[0])
+        self.assertEqual(sorted(shape), ["outcome", "summary", "work_items"])
+        corrective = dict(shape, summary="Add the unit test that shows R-1's logic works.",
+                          work_items=[{"id": "W2", "title": "Add a unit test of R-1's logic",
+                                       "context": "R-1 is primary and no unit or component test of it passed."}],
+                          headline="R-1 needs a lower-layer test.", evidence_refs=[str(self.evidence)])
+        write_block(path, corrective)
+        self.accepted(command)
+        state = self.state(run)
+        self.assertEqual(self.recorded(run, action)["outcome"], "add-work")
+        self.assertIn("W2", [row["id"] for row in state["work_items"]])
+        self.assertEqual(nav.current_stage(state), "step-plan")
+
+    def test_an_unverified_primary_outcome_naming_a_passed_test_of_its_requirement_is_accepted(self) -> None:
+        run, head = self.at_acceptance(record=True)
+        self.assertIn("\n- R-1: TC-1\n", full_packet_text(head))
+        command, path, action = printed_callback(head)
+        write_block(path, dict(self.fill_done(head), unverified=[dict(self.PRIMARY_ROW, lower_layer_check="TC-9")]))
+        reply = self.refused(command, run)
+        # The other way out the refusal names: one of the IDs it lists as passed for R-1.
+        named = re.search(r"\(passed: ([^ )]+)\)", reply)
+        self.assertIsNotNone(named, reply)
+        write_block(path, dict(self.fill_done(head), unverified=[dict(self.PRIMARY_ROW, lower_layer_check=named.group(1))]))
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["unverified"][0]["lower_layer_check"], "TC-1")
+        # The handoff and the report quote the requirement and the check by value.
+        _, handoff = self.at("handoff", **{"product-acceptance": {"unverified": [dict(self.PRIMARY_ROW)]}})
+        self.assertIn("- a person sees the built file's text in the product (R-1) | reason: this host has no copy of "
+                      "that reader | lower-layer check: TC-1 | owner: the user", full_packet_text(handoff))
+
+    def at(self, stage: str, **accepted: dict) -> tuple[Path, str]:
+        with mock.patch.dict(RESULTS, accepted):
+            return self.new_run(stage)
 
 
 class OutcomeShapeTests(RealCliCase):
@@ -1548,7 +1645,7 @@ class OutcomeShapeTests(RealCliCase):
     def test_the_opening_shiploop_writes_names_the_four_opening_headings(self) -> None:
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
-        write_block(path, self.done_fields())
+        write_block(path, dict(self.done_fields(), primary=self.fill_done(head)["primary"]))  # F6: and R-1's entry
         handoff = self.handoff_of(self.accepted(command))
         opening, _receipt = self.started_child(run)
         for name in nav.OPENING_SECTIONS:

@@ -1224,7 +1224,11 @@ class DelegationCliTests(unittest.TestCase):
         self.assertEqual(self.saved()["stage"], "spec")
         action = self.saved()["action"]["id"]
         result_path = self.run / "inbox" / (action + ".md")
-        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec."})
+        # A done spec lists its primary requirements, each with an entry in the living spec (run-5 batch F6).
+        (self.repo / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (self.repo / "docs" / "shiploop" / "spec.md").write_text("## Requirements\n\n- R-1: The request.\n",
+                                                                 encoding="utf-8")
+        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec.", "primary": ["R-1"]})
         self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                   "--result", result_path).returncode, 0)
         # ShipLoop bound the run's Improve card and started the review at the transition (owner, 2026-10-11): no

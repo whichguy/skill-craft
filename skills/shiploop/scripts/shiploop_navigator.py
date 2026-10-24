@@ -29,6 +29,7 @@ from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
 import shiploop_concerns as concerns
+import shiploop_primary as primary
 import shiploop_test_layers as layers
 import shiploop_unverified as unverified
 import shiploop_prompts as guidance
@@ -70,7 +71,7 @@ _RESULT_KEYS = frozenset((
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
-    "test_layers", "test_layers_na", "targets", "harness_runs",
+    "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -117,7 +118,7 @@ _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
-    "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs",
+    "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1185,6 +1186,13 @@ def _canonical_result(
             result["assumptions"] = assumptions.canonical(value["assumptions"], stage)
         except assumptions.AssumptionError as exc:
             raise NavigatorError(str(exc)) from exc
+    if "primary" in value:
+        # Shape only (run-5 batch F6): the IDs and their entries in the living spec are checked at the CLI gates.
+        _need(stage == primary.STAGE and outcome == "done", "primary is allowed only on a done spec result")
+        try:
+            result["primary"] = primary.canonical(value["primary"])
+        except primary.PrimaryError as exc:
+            raise NavigatorError(str(exc)) from exc
     if "unverified" in value:
         # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
         # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
@@ -2168,6 +2176,9 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         # up the prerequisite harnesses, step-plan, test-spec and test plan and write the tests against them.
         blocks.append(_Block("test-layers", P1, layers.packet_lines(*_test_layers(state, workitem))))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
+    if stage == primary.ACCEPTANCE:
+        # Required text (run-5 batch F6): the spec's primary requirements by value, with the tests that passed for each.
+        blocks.append(_Block("primary", P1, primary.packet_lines(root, state, stage)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
     if stage == "verify" and workitem is not None or stage == "product-acceptance":
@@ -3300,6 +3311,17 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
         assumptions.check_due_items(rows, items)
         assumptions.check_files(rows)
     except assumptions.AssumptionError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
+def _check_submitted_primary(root: Path, state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """The primary requirements at the CLI gates (run-5 batch F6): a done spec result lists ``primary``, each ID with a
+    current entry in the living spec; a done product-acceptance result's unverified rows name requirements the spec
+    holds, and a primary one's lower_layer_check is a test ShipLoop's test runs passed for it (``shiploop_primary``)."""
+    try:
+        primary.check_spec(Path(str(state["repo"])), stage, result)
+        primary.check_unverified(root, state, stage, result)
+    except primary.PrimaryError as exc:
         raise NavigatorError(str(exc)) from exc
 
 
@@ -4662,6 +4684,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         "summary": TEST_SUMMARY_PLACEHOLDER if stage in test_loop.STAGES else guidance.summary_placeholder(stage),
         "evidence_refs": [str(receipt)] if receipt is not None else [EVIDENCE_PLACEHOLDER],
     }
+    if stage == primary.STAGE:
+        result["primary"] = [primary.PLACEHOLDER]
     if stage == "test-strategy":
         result["test_layers"] = [dict(layers.ROW_TEMPLATE)]
         result["targets"] = [dict(layers.TARGET_TEMPLATE)]
@@ -5843,8 +5867,7 @@ def _outcome_shape_lines(stage: str) -> list[str]:
                          '"steps"}]' if "failed_expectations" in _STAGE_SEND_BACK_FIELDS.get(stage, ()) else "")
                       + '}')
     if "add-work" in allowed:
-        shapes.append('add-work: {"outcome": "add-work", "summary": "<what the corrective items fix>", "work_items": '
-                      '[{"id": "<new id>", "title": "...", "context": "..."}]}')
+        shapes.append("add-work: " + stage_spec.ADD_WORK_SHAPE)
     return ['Fill the template: each key once, every placeholder (<...> and "...") replaced, "outcome" and "summary" '
             'top-level.' + (' Any other outcome keeps headline and evidence_refs and drops the other fields:' if shapes
                             else ''), *shapes]
@@ -6589,11 +6612,14 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         gates.append("a hand-off field still holding a template placeholder")
     gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
     gates.extend(_INNER_GATES.get(stage, ()))
+    if stage == primary.STAGE:
+        gates.append("a missing primary list, or a primary ID with no current entry in KNOWLEDGE/spec.md")
     if stage in ("spec", "plan", "step-plan"):
         gates.append("a change to KNOWLEDGE/ that loses an earlier requirement (R-<n>) or decision (AD-<n>) ID")
     if stage in unverified.STAGES:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
-                     "or a due_stage that is not a later stage")
+                     "a requirement with no current entry in KNOWLEDGE/spec.md, a due_stage that is not a later stage, "
+                     "or a primary requirement's lower_layer_check that names no test ShipLoop's test runs passed for it")
     if stage in knowledge.CLOSES:
         # A close that also requires files earlier stages wrote (prepare, release-plan) did not write them all.
         gates.append("a KNOWLEDGE file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
@@ -6679,8 +6705,10 @@ def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
 def _unverified_row(row: Mapping[str, Any]) -> str:
     """One entry as a line; the stored shape is loose (shape-only canonical), so a missing field prints empty."""
     text = {name: _bounded_packet_text(str(row.get(name, ""))) for name in unverified.FIELDS}
-    return ("- " + text["outcome"] + " | reason: " + text["reason"] + " | owner: " + text["owner"]
-            + " | to settle: " + text["settle"] + " | due: " + text["due_stage"])
+    return ("- " + text["outcome"] + (" (" + text["requirement"] + ")" if text["requirement"] else "")
+            + " | reason: " + text["reason"]
+            + (" | lower-layer check: " + text["lower_layer_check"] if text["lower_layer_check"] else "")
+            + " | owner: " + text["owner"] + " | to settle: " + text["settle"] + " | due: " + text["due_stage"])
 
 
 def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -8023,7 +8051,7 @@ def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core:
     """``result`` with a leading KNOWLEDGE, RUN, WORKTREE, GUIDES (or ``child``'s CHILD) of each evidence path written as its absolute path.
 
     The lists read are ``evidence_refs`` and each ``assumptions[].evidence`` (the only evidence fields a result has: an
-    ``unverified`` row holds exactly its five text fields); anything else, and a result that is not a mapping, is
+    ``unverified`` row holds exactly its seven text fields); anything else, and a result that is not a mapping, is
     returned as it is.  Raises ``NavigatorError`` for an unknown root.  The expanded text is what the gates check and
     what the run stores.
     """
@@ -8809,6 +8837,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_layers(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_primary(
+                        root, state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -8908,6 +8938,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_concerns(state, current_stage(state), submitted)
             _check_submitted_layers(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
+            _check_submitted_primary(root, state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_focused_ids_new(state, current_stage(state), submitted)
             _check_focused_guards(current_stage(state), submitted)

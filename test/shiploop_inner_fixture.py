@@ -62,6 +62,13 @@ def fixture_test_layers() -> dict[str, Any]:
                           "status": "available", "reason": "synthetic run"}], "targets": []}
 
 
+def fixture_primary(state: Mapping[str, Any]) -> dict[str, Any]:
+    """A done spec's primary requirements (run-5 batch F6) for a synthetic run: R-1, whose entry this writes into the
+    living spec when it is missing, as a spec stage writes its requirements before its done."""
+    knowledge_support.write_spec(state)
+    return {"primary": ["R-1"]}
+
+
 def executed_criteria(criteria: Any) -> Any:
     """``criteria`` with ``confirm: executed`` on each row that lacks one (run-5 batch F1): the fixture default."""
     if not isinstance(criteria, list):
@@ -225,6 +232,8 @@ class RunDriver(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result.setdefault("concerns", no_concerns_map(
                 str(row.get("id")) for row in queue if isinstance(row, Mapping)))
+        if stage == "spec" and result.get("outcome") == "done":
+            result = {**fixture_primary(state), **result}   # run-5 batch F6
         if stage == "test-strategy" and result.get("outcome") == "done":
             for key, value in fixture_test_layers().items():   # run-5 batch F1, F3
                 result.setdefault(key, value)
@@ -279,4 +288,4 @@ class RunDriver(unittest.TestCase):
 
 
 __all__ = ("CORE", "DONE", "IMPROVE_CARD", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
-           "no_concerns_map", "prepare")
+           "fixture_primary", "no_concerns_map", "prepare")

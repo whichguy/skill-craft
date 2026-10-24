@@ -450,7 +450,10 @@ The semantic result contract is small:
 Each term in these fields, the packets and the refusals has one meaning, defined in [the glossary](glossary.md),
 which also lists the retired terms.
 
-Stage results add their own fields where the stage needs them: `test-strategy` records
+Stage results add their own fields where the stage needs them: `spec` records
+`primary`, the R-<n> that carry the request's primary outcomes, and each
+`product-acceptance` `unverified` row names its `requirement` and `lower_layer_check`
+([test loop](test-loop.md)); `test-strategy` records
 `test_layers` (or `test_layers_na`) and `targets`, and `prepare` its `harness_runs`
 ([test layers](testing-and-documentation.md#test-layers)); `step-plan` records
 `steps`, `paths`, `criteria` (each with its `confirm`), `test_commands` (or `test_commands_na`), `check_na`,

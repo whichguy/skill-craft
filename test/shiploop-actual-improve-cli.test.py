@@ -171,6 +171,8 @@ class ImproveCliFixture(unittest.TestCase):
                 self.producer.setdefault("assumptions", [])
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
+            if stage == "spec":
+                self.producer = {**inner_fixture.fixture_primary(self.state), **self.producer}   # run-5 batch F6
             if stage == "test-strategy":
                 self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
         if stage in stage_spec.INNER:
@@ -201,7 +203,7 @@ class ImproveCliFixture(unittest.TestCase):
         self.state = state
         self.action = self.state["action"]["id"]
         self.producer = {"outcome": "done", "summary": "Fixture spec evidence.",
-                         "evidence_refs": self.parent_evidence_refs}
+                         "evidence_refs": self.parent_evidence_refs, **inner_fixture.fixture_primary(state)}
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
@@ -246,6 +248,8 @@ class ImproveCliFixture(unittest.TestCase):
             "summary": "Fixture local-skill assessment; synthetic prior navigation is setup only.",
             "evidence_refs": self.parent_evidence_refs,
         }
+        if stage == "spec":
+            self.producer.update(inner_fixture.fixture_primary(state))
         if stage == "plan":
             self.producer["assumptions"] = []
             self.producer["concerns"] = inner_fixture.no_concerns_map(
@@ -1022,7 +1026,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             action = state["action"]["id"]
             result = run / "inbox" / (action + ".md")
             store.write_record(result, {"outcome": "done", "summary": "Fixture " + _predecessor + " result.",
-                                        **({"evidence_refs": self.parent_evidence_refs} if _predecessor == "spec" else {})})
+                                        **({"evidence_refs": self.parent_evidence_refs,
+                                            **inner_fixture.fixture_primary(state)} if _predecessor == "spec" else {})})
             printed = cli("complete", "--run-dir", run, "--action", action, "--result", result)
             state = store.read_record(run / "state.md")
         child = state["active_improve"]
@@ -1160,6 +1165,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         git("config", "commit.gpgsign", "false")
         git("config", "core.hooksPath", "/dev/null")
         git("commit", "--allow-empty", "-qm", "empty initial scope baseline")
+        # setUp's spec wrote the living spec its primary list names (run-5 batch F6); kept out of Git here, so the parent's
+        # knowledge commit at the import does not move HEAD in a test of what the child leaves.
+        (self.repo / ".git/info").mkdir(parents=True, exist_ok=True)
+        with (self.repo / ".git/info/exclude").open("a", encoding="utf-8") as handle:
+            handle.write("docs/shiploop/\n")
         initial_head = git("rev-parse", "HEAD")
         self.assertEqual(git("show", "--format=", "--name-only", "HEAD"), "")
 
@@ -1228,7 +1238,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         """
         baseline = self.repo / "docs/current-system.md"
         delta = self.base / "incoming-spec.md"
-        baseline.parent.mkdir(parents=True)
+        baseline.parent.mkdir(parents=True, exist_ok=True)   # setUp's spec wrote docs/shiploop/spec.md (F6)
         baseline.write_text(
             "# Current system\n\n## as-of-v1\nObserved: polling runs missed jobs once.\n",
             encoding="utf-8",
@@ -1292,7 +1302,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         )
         local_card.parent.mkdir(parents=True)
         local_card.write_text("# Release evidence triage\n", encoding="utf-8")
-        input_contract.parent.mkdir(parents=True)
+        input_contract.parent.mkdir(parents=True, exist_ok=True)   # setUp's spec wrote docs/shiploop/spec.md (F6)
         input_contract.write_text("# Release contract\n\n## current-input\n", encoding="utf-8")
         validation.parent.mkdir(exist_ok=True)
         validation.write_text("def test_current_contract():\n    pass\n", encoding="utf-8")
@@ -1378,7 +1388,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
     def commit_architecture(self) -> Path:
         """docs/shiploop/architecture.md with two decisions, committed in the product repository as an earlier run's home."""
         architecture = self.repo / "docs/shiploop/architecture.md"
-        architecture.parent.mkdir(parents=True)
+        architecture.parent.mkdir(parents=True, exist_ok=True)   # setUp's spec wrote the living spec there (F6)
         architecture.write_text(self.ARCHITECTURE, encoding="utf-8")
         self.home_git("init", "-q")
         self.home_git("add", "-A")
@@ -1603,7 +1613,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             state = store.read_record(run / "state.md")
         action = state["action"]["id"]
         result_path = run / "inbox" / (action + ".md")
-        store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
+        store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer",
+                                         **inner_fixture.fixture_primary(state)})
         self.invoke(CLI, "complete", "--run-dir", run, "--action", action, "--result", result_path)
         before = (run / "state.md").read_bytes()
         cold = subprocess.run([sys.executable, "-B", str(CLI), "next", "--run-dir", str(run)], cwd="/",
@@ -1668,7 +1679,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.action = navigator.current_action(state)["id"]
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, {"outcome": "done", "summary": "Fixture spec evidence.",
-                                        "evidence_refs": self.parent_evidence_refs})
+                                        "evidence_refs": self.parent_evidence_refs, **inner_fixture.fixture_primary(state)})
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(CARD)
         completion, receipt = self.completion_receipt()
@@ -1798,6 +1809,8 @@ class ImproveCommitContractTests(ImproveCliFixture):
                 self.producer.setdefault("assumptions", [])
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
+            if stage == "spec":
+                self.producer = {**inner_fixture.fixture_primary(self.state), **self.producer}   # run-5 batch F6
             if stage == "test-strategy":
                 self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
         if stage in stage_spec.INNER:
@@ -1943,7 +1956,8 @@ class ImproveCommitContractTests(ImproveCliFixture):
             summary = ("Spec drafted.\n\n## Scope\nIn scope: the widget.\n\n## Environment\nPython.\n"
                        if stage == "spec" else "Fixture " + stage + " result.")
             store.write_record(result, {"outcome": "done", "summary": summary,
-                                        **({"evidence_refs": [str(self.product_contract)]} if stage == "spec" else {})})
+                                        **({"evidence_refs": [str(self.product_contract)],
+                                            **inner_fixture.fixture_primary(state)} if stage == "spec" else {})})
             done = cli("complete", "--run-dir", run, "--action", action, "--result", result)
             state = store.read_record(run / "state.md")
         self.assertNotIn("could not start", done.stdout + done.stderr)

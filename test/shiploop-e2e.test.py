@@ -2509,6 +2509,43 @@ class GateCountsTest(unittest.TestCase):
                 self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "targets",
                                  str(caught.exception))
 
+    def test_each_primary_requirement_refusal_classifies_under_its_own_gate(self) -> None:
+        """The F6 rows read the gates' own refusal text: built here by the gate functions, never typed."""
+        scripts = str(ROOT / "skills/shiploop/scripts")
+        sys.path.append(scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        import shiploop_primary as primary
+        import shiploop_unverified as unverified
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            (repo / "docs/shiploop").mkdir(parents=True)
+            (repo / "docs/shiploop/spec.md").write_text("## Requirements\n\n- R-1: Play.\n", encoding="utf-8")
+            done = {"outcome": "done", "summary": "s"}
+            row = {"outcome": "o", "requirement": "R-1", "reason": "r", "lower_layer_check": "TC-9", "settle": "s",
+                   "owner": "the user", "due_stage": "handoff"}
+            state = {"repo": str(repo), "work_items": [],
+                     "history": [{"action": "sp", "stage": "spec", "workitem": None, "outcome": "done"}],
+                     "accepted": {"sp": dict(done, primary=["R-1"])}}
+            faults = {
+                "primary": [lambda: primary.check_spec(repo, "spec", done),
+                            lambda: primary.check_spec(repo, "spec", dict(done, primary=["R-9"])),
+                            lambda: primary.check_spec(repo, "spec", dict(done, primary=[primary.PLACEHOLDER])),
+                            lambda: primary.canonical("R-1")],
+                "unverified_requirement": [
+                    lambda: primary.check_unverified(repo, state, "product-acceptance",
+                                                     dict(done, unverified=[dict(row, requirement="R-9")])),
+                    lambda: unverified.check_submitted("product-acceptance",
+                                                       dict(done, unverified=[dict(row, requirement="R-1 and R-2")]))],
+                "lower_layer_check": [lambda: primary.check_unverified(repo, state, "product-acceptance",
+                                                                       dict(done, unverified=[row]))],
+            }
+            for gate, calls in faults.items():
+                for call in calls:
+                    with self.subTest(gate=gate), self.assertRaises(ValueError) as caught:
+                        call()
+                    self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), gate,
+                                     str(caught.exception))
+
     SPEC_WRITEBACK = ("ShipLoop navigator: Restore /r/docs/shiploop/spec.md to what HEAD holds plus this "
                       "step's acceptance lines")
 
