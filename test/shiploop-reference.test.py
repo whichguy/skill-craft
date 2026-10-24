@@ -72,7 +72,7 @@ class ReferenceFileTests(unittest.TestCase):
 
 def _rules_section(text: str) -> str:
     """The text of the `rules` section of a reference file, whitespace collapsed."""
-    body = re.search(r"## Rules for every step \{#rules\}\n(.*?)\n## ", text, re.S)
+    body = re.search(r"## Rules for every stage \{#rules\}\n(.*?)\n## ", text, re.S)
     return " ".join(body.group(1).split())
 
 

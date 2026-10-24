@@ -187,15 +187,15 @@ class StepPacketTests(unittest.TestCase):
         bounds their printed size (layers.TEXT_LIMIT) and the head with the largest block it accepts stays under the
         host cut on both routes, the duties and every layers line intact; optional lookups give way first."""
         targets = [{"target": "the shared org", "keeps_state": "yes", "base_state_route": "r" * 200}]
-        surfaces: list = []
+        rows: list = []
         while True:
-            row = {"surface": "surface " + str(len(surfaces)) + " " + "s" * 40, "layer": "unit",
-                   "harness": "runner " + str(len(surfaces)) + " " + "h" * 60, "status": "prerequisite", "reason": "r" * 150}
-            if len("\n".join(layers.packet_lines([*surfaces, row], targets))) > layers.TEXT_LIMIT:
+            row = {"code": "code " + str(len(rows)) + " " + "c" * 40, "layer": "unit",
+                   "harness": "runner " + str(len(rows)) + " " + "h" * 60, "status": "prerequisite", "reason": "r" * 150}
+            if len("\n".join(layers.packet_lines([*rows, row], targets))) > layers.TEXT_LIMIT:
                 break
-            surfaces.append(row)
-        layers.check_text(surfaces, targets)
-        self.assertGreater(len("\n".join(layers.packet_lines(surfaces, targets))), layers.TEXT_LIMIT - 300)
+            rows.append(row)
+        layers.check_text(rows, targets)
+        self.assertGreater(len("\n".join(layers.packet_lines(rows, targets))), layers.TEXT_LIMIT - 300)
         case = CASES["node-fix-bug"]
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route), budget.reference_tmpdir(), \
@@ -207,7 +207,7 @@ class StepPacketTests(unittest.TestCase):
                     action = navigator.current_action(state)["id"]
                     stage = navigator.current_stage(state)
                     extra = ({"work_items": [case["work_item"]]} if stage == "plan" else
-                             {"surfaces": surfaces, "targets": targets} if stage == "test-strategy" else {})
+                             {"test_layers": rows, "targets": targets} if stage == "test-strategy" else {})
                     state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
                     if state.get("active_improve") is not None:
                         state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "x"})
@@ -220,7 +220,7 @@ class StepPacketTests(unittest.TestCase):
                 self.assertLessEqual(budget.at_reference_install(printed), navigator.HEAD_LIMIT)
                 self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
                 self.assertIn("Current stage guidance:", printed)
-                for line in layers.packet_lines(surfaces, targets):
+                for line in layers.packet_lines(rows, targets):
                     self.assertIn(line, printed)
 
     def test_offline_report_counts_every_packet(self) -> None:

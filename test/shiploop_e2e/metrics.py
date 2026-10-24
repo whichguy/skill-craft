@@ -206,11 +206,23 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "loop_receipt": re.compile(r"a loop receipt needs an action id|is not the current inner action|the Until Loop "
                                r"terminal packet must be a JSON object|the run is not in an inner stage, so it has "
                                r"no stage loop"),
+    # A focused command whose every test ID an earlier item's step plan made focused (run-4 quality Q2,
+    # shiploop_navigator.py _check_focused_ids_new).
+    "focused_ids_new": re.compile(r"step plan already made focused: it tests an earlier item's behaviour"),
+    # The test layers (run-5 batch F1, shiploop_test_layers.py and shiploop_navigator.py _check_submitted_layers):
+    # the rows' shape and rules, an item's own rows, and the printed size.
+    "test_layers": re.compile(r"lists test_layers: one row per|test_layers (?:repeats|gives|marks a unit|is a list of|"
+                              r"and targets print as)|test_layers\[\d+\]|the run recorded no test layers"),
+    # Each step-plan criterion's confirm (F1).
+    "confirm": re.compile(r"each criterion says confirm:|are inspected, but name no test_layers row|are executed, "
+                          r"but every command naming them only searches text|'s confirm is one of"),
+    # Prepare's proof that each prerequisite harness runs (F1).
+    "harness_runs": re.compile(r"lists harness_runs|harness_runs (?:has no run|is a list of|evidence)|"
+                               r"harness_runs\[\d+\]"),
+    # Where the tests run, and how a test still fails on an item's base there (F1; F3 adds the per-command target).
+    "targets": re.compile(r"lists targets: where the tests run|targets is a list of|targets\[\d+\]"),
     # New gates land as one row each. Not yet seeded here (no refusal text read in the scripts as of this table) --
     # fill in the real signature from the gate's own refusal text when it ships, rather than guessing one:
-    # "surfaces": re.compile(r"TODO: surfaces refusal text"),                          # F1
-    # "confirm": re.compile(r"TODO: confirm refusal text"),                            # F1
-    # "targets": re.compile(r"TODO: targets refusal text"),                            # F3
     # "entry_points": re.compile(r"TODO: entry_points refusal text"),                  # F4
     # "stand_in_rejected": re.compile(r"TODO: stand_in_rejected refusal text"),        # F4
     # "improve_regression_test": re.compile(r"TODO: improve regression test text"),   # F5

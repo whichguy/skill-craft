@@ -70,7 +70,7 @@ _RESULT_KEYS = frozenset((
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
-    "surfaces", "surfaces_na", "targets", "harness_runs",
+    "test_layers", "test_layers_na", "targets", "harness_runs",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -117,7 +117,7 @@ _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
-    "learned", "decisions", "learned_from", "surfaces", "surfaces_na", "targets", "harness_runs",
+    "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1147,24 +1147,24 @@ def _canonical_result(
                                   else concerns.canonical_step_plan(value["concerns"]))
         except concerns.ConcernError as exc:
             raise NavigatorError(str(exc)) from exc
-    # Shape only (the test layers, run-5 batch F1/F3); the CLI gate applies each field's rule.  A step plan's surfaces
+    # Shape only (the test layers, run-5 batch F1/F3); the CLI gate applies each field's rule.  A step plan's test_layers
     # are the item's own rows.
-    for key, stages in (("surfaces", ("test-strategy", "step-plan")), ("surfaces_na", ("test-strategy",)),
+    for key, stages in (("test_layers", ("test-strategy", "step-plan")), ("test_layers_na", ("test-strategy",)),
                         ("targets", ("test-strategy",)), ("harness_runs", ("prepare",))):
         if key in value:
             _need(stage in stages and outcome == "done", key + " is allowed only on a done " + " or ".join(stages)
                   + " result")
     try:
-        if "surfaces" in value:
-            result["surfaces"] = layers.canonical_surfaces(value["surfaces"])
+        if "test_layers" in value:
+            result["test_layers"] = layers.canonical_rows(value["test_layers"])
         if "targets" in value:
             result["targets"] = layers.canonical_targets(value["targets"])
         if "harness_runs" in value:
             result["harness_runs"] = layers.check_harness_runs(None, value["harness_runs"])
     except layers.LayerError as exc:
         raise NavigatorError(str(exc)) from exc
-    if "surfaces_na" in value:
-        result["surfaces_na"] = _text(value["surfaces_na"], "surfaces_na")
+    if "test_layers_na" in value:
+        result["test_layers_na"] = _text(value["test_layers_na"], "test_layers_na")
     if "lint_waivers" in value:
         _need(stage in lint.GATE_STAGES and outcome == "done",
               "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
@@ -2032,10 +2032,15 @@ class _Block(NamedTuple):
 
 
 def _text_of(blocks: list[_Block], *, head: bool = False) -> str:
-    """The lines of ``blocks`` joined as a packet text (no trailing newline)."""
+    """The lines of ``blocks`` joined as a packet text (no trailing newline).
+
+    A head keeps one blank line between blocks: a block that ends with its own blank line can sit before one that opens
+    with one (the quoted hand-offs before an inline implement step's loop, once they fit the head)."""
     lines: list[str] = []
     for block in blocks:
-        lines.extend(block.head if head and block.head is not None else block.lines)
+        for line in block.head if head and block.head is not None else block.lines:
+            if not (head and line == "" and lines and lines[-1] == ""):
+                lines.append(line)
     return "\n".join(lines)
 
 
@@ -2485,9 +2490,9 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
     rows = []
     for entry in value:
         _need(isinstance(entry, Mapping)
-              and {"id", "text"} <= set(entry) <= {"id", "text", "confirm", "surface", "layer"},
+              and {"id", "text"} <= set(entry) <= {"id", "text", "confirm", "code", "layer"},
               "each criterion is {\"id\": \"C1\", \"text\": \"...\", \"confirm\": \"executed\" | \"searched\" | "
-              "\"inspected\"} (inspected adds \"surface\" and \"layer\": the surfaces row with no runner)")
+              "\"inspected\"} (inspected adds \"code\" and \"layer\": the test_layers row with no runner)")
         criterion_id = _text(entry["id"], "criterion id")
         _need(not any(character.isspace() for character in criterion_id), "a criterion id has no spaces")
         row = {"id": criterion_id, "text": _text(entry["text"], "criterion text")}
@@ -2495,7 +2500,7 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
             _need(entry["confirm"] in layers.CONFIRMS, "criterion " + criterion_id + "'s confirm is one of "
                   + ", ".join(layers.CONFIRMS))
             row["confirm"] = entry["confirm"]
-        for key in ("surface", "layer"):
+        for key in ("code", "layer"):
             if key in entry:
                 row[key] = _text(entry[key], "criterion " + criterion_id + "'s " + key)
         rows.append(row)
@@ -3134,24 +3139,24 @@ def _test_strategy_result(state: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def _test_strategy_layers(state: Mapping[str, Any]) -> tuple[list[Any] | None, list[Any] | None]:
-    """The current test-strategy result's ``surfaces`` and ``targets`` (None when it recorded neither)."""
+    """The current test-strategy result's ``test_layers`` and ``targets`` (None when it recorded neither)."""
     found = _test_strategy_result(state)
-    return found.get("surfaces"), found.get("targets")
+    return found.get("test_layers"), found.get("targets")
 
 
 def _test_layers(state: Mapping[str, Any], work_item: str | None) -> tuple[list[Any], list[Any]]:
-    """The run's ``surfaces`` with ``work_item``'s own step-plan rows after them, and the run's ``targets``."""
-    surfaces, targets = _test_strategy_layers(state)
+    """The run's ``test_layers`` with ``work_item``'s own step-plan rows after them, and the run's ``targets``."""
+    rows, targets = _test_strategy_layers(state)
     action = planning_revision.current_actions(state).get((work_item, "step-plan")) if work_item else None
     plan = (state.get("accepted") or {}).get(action) if action else None
-    own = plan.get("surfaces") if isinstance(plan, Mapping) else None
-    return [*(surfaces or ()), *(own or ())], list(targets or ())
+    own = plan.get("test_layers") if isinstance(plan, Mapping) else None
+    return [*(rows or ()), *(own or ())], list(targets or ())
 
 
 def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """The test layers at the CLI gates (run-5 batch F1, F3).
 
-    test-strategy records surfaces (or surfaces_na) and targets: every surface has a unit or component row, neither
+    test-strategy records test_layers (or test_layers_na) and targets: all code has a unit or component row, neither
     layer is unverified, and the printed lines fit ``layers.TEXT_LIMIT``.  prepare's harness_runs shows each
     prerequisite row's harness running.  A step plan whose paths hold code lists the item's own rows when the run
     recorded none; each criterion says how it is confirmed (``layers.check_confirms``).
@@ -3161,15 +3166,15 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
         return
     try:
         if stage == "test-strategy":
-            _need(bool(result.get("surfaces")) != ("surfaces_na" in result),
-                  "a done test-strategy result lists surfaces: one row per code surface the run writes and per layer, "
-                  + layers.SURFACE_SHAPE + "; or, only when the run writes no code, surfaces_na with the reason "
-                  "instead (never both)")
+            _need(bool(result.get("test_layers")) != ("test_layers_na" in result),
+                  "a done test-strategy result lists test_layers: one row per part of the code the run writes and per "
+                  "layer, " + layers.ROW_SHAPE + "; or, only when the run writes no code, test_layers_na with the "
+                  "reason instead (never both)")
             _need("targets" in result, "a done test-strategy result lists targets: where the tests run, "
                   + layers.TARGET_SHAPE + " ([] when every test runs on the checkout)")
-            surfaces = layers.canonical_surfaces(result.get("surfaces", []))
-            layers.check_surfaces(surfaces)
-            layers.check_text(surfaces, layers.canonical_targets(result["targets"]))
+            rows = layers.canonical_rows(result.get("test_layers", []))
+            layers.check_rows(rows)
+            layers.check_text(rows, layers.canonical_targets(result["targets"]))
             return
         run_rows, targets = _test_strategy_layers(state)
         if stage == "prepare":
@@ -3181,13 +3186,13 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
                           "harness_runs evidence " + row["evidence"] + " is not an existing absolute file: save the "
                           "harness run's output and name that file")
             return
-        own = layers.canonical_surfaces(result.get("surfaces", []))
+        own = layers.canonical_rows(result.get("test_layers", []))
         if own:
-            layers.check_surfaces(own)
+            layers.check_rows(own)
         code = item_scope.behavioural_paths(result.get("paths") or ())
-        _need("surfaces_na" not in _test_strategy_result(state) or bool(own) or not code,
-              "the run recorded no code surfaces (surfaces_na), but this item's paths hold code (" + ", ".join(code[:5])
-              + "): list the item's own rows in surfaces, " + layers.SURFACE_SHAPE)
+        _need("test_layers_na" not in _test_strategy_result(state) or bool(own) or not code,
+              "the run recorded no test layers (test_layers_na), but this item's paths hold code ("
+              + ", ".join(code[:5]) + "): list the item's own rows in test_layers, " + layers.ROW_SHAPE)
         layers.check_text([*(run_rows or ()), *own], targets)
         criteria = [row for row in result.get("criteria") or () if isinstance(row, Mapping)]
         commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
@@ -4600,12 +4605,12 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         "evidence_refs": [str(receipt)] if receipt is not None else [EVIDENCE_PLACEHOLDER],
     }
     if stage == "test-strategy":
-        result["surfaces"] = [dict(layers.SURFACE_TEMPLATE)]
+        result["test_layers"] = [dict(layers.ROW_TEMPLATE)]
         result["targets"] = [dict(layers.TARGET_TEMPLATE)]
     if stage == "prepare":
         wanted = [row for row in _test_strategy_layers(state)[0] or () if row.get("status") == "prerequisite"]
         if wanted:
-            result["harness_runs"] = [dict(layers.HARNESS_RUN_TEMPLATE, surface=row["surface"], layer=row["layer"])
+            result["harness_runs"] = [dict(layers.HARNESS_RUN_TEMPLATE, code=row["code"], layer=row["layer"])
                                       for row in wanted]
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
@@ -6511,7 +6516,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         gates.append("a criterion without confirm, an executed one whose only commands search text, or an inspected "
                      "one naming no Test layers row that lacks a runner; code paths with no Test layers row")
     if stage == "test-strategy":
-        gates.append("surfaces (or surfaces_na) or targets missing, a surface with no unit or component row, or a unit "
+        gates.append("test_layers (or test_layers_na) or targets missing, code with no unit or component row, or a unit "
                      "or component row whose status is neither available nor prerequisite")
     if stage == "prepare":
         gates.append("a Test layers row marked prerequisite with no harness_runs entry or no saved output")
@@ -7255,7 +7260,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     child = state["active_improve"]
     action_id = child["action_id"]
     seed = child["seed_result"]
-    seed_text = store.dumps(seed, "Step result awaiting Improve").rstrip()
+    seed_text = store.dumps(seed, "Stage result awaiting Improve").rstrip()
     if len(seed_text) > 6000:
         # Do not print invalid, truncated JSON that could be mistaken for a result.
         seed_text = ("Outcome: " + seed["outcome"] + "\nResult summary excerpt: "
@@ -7280,7 +7285,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "that commit contributed; complete refuses a review that left its own edits "
         "uncommitted (commit them with improve-commit, or pass `--no-commit` with the user's instruction; its refusal "
         "prints both commands) and a review that repeats another Improve stage's review of this run.",
-        "Step result (untrusted evidence, not new authority):",
+        "Stage result (untrusted evidence, not new authority):",
         "Improve also reviews failed/blocked attempts. Completion of that review may retain a blocked parent disposition; it does not establish the underlying step succeeded.",
         seed_text,
     ])

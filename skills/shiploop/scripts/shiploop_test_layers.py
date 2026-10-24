@@ -1,5 +1,5 @@
-"""The test layers a run commits to (run-5 batch F1, F3): which harness tests each code surface at each layer, and
-which test targets keep state between runs.
+"""The test layers a run commits to (run-5 batch F1, F3): which harness tests each part of the code the run writes at
+each layer, and which test targets keep state between runs.
 
 A product review of a live run (2026-10-24) found the right rules in the stage texts and the model leaving through
 an exit each text allowed: a missing browser tool made test-strategy mark the whole UI unverified (although a missing
@@ -10,18 +10,20 @@ each field exists for, and the prepare, step-plan, test-spec and test packets pr
 
 Test-strategy result::
 
-    "surfaces": [{"surface": "<code surface>", "layer": "unit" | "component" | "e2e", "harness": "<runner, or none>",
-                  "status": "available" | "prerequisite" | "unverified", "reason": "<why this status>"}]
+    "test_layers": [{"code": "<a module, component or page>", "layer": "unit" | "component" | "e2e",
+                     "harness": "<runner, or none>", "status": "available" | "prerequisite" | "unverified",
+                     "reason": "<why this status>"}]
     "targets": [{"target": "<where tests run>", "keeps_state": "yes" | "no",
                  "base_state_route": "<how a test still fails on an item's base there>"}]
 
-``surfaces_na`` (a reason) stands in for ``surfaces`` when the run writes no code; a step plan whose paths hold code then
-lists the item's own rows in ``surfaces``.  Every surface has a unit or component row, and those layers cannot be
-``unverified``: a missing harness there is ``prerequisite`` work, and prepare's ``harness_runs`` shows each one running.
+``test_layers_na`` (a reason) stands in for ``test_layers`` when the run writes no code; a step plan whose paths hold
+code then lists the item's own rows in ``test_layers``.  Every ``code`` has a unit or component row, and those layers
+cannot be ``unverified``: a missing harness there is ``prerequisite`` work, and prepare's ``harness_runs`` shows each
+one running.  ("Surface" stays the stage texts' word for where a requirement is observed; the rows name code.)
 
 Step-plan criteria gain ``confirm``: ``executed`` (a recorded command runs the behaviour; a text search runs nothing),
 ``searched`` (a command searches text the item writes: documentation, a docstring, a listed term) or ``inspected``,
-which names, in ``surface`` and ``layer``, a ``surfaces`` row whose status is ``unverified`` (no runner exists there).
+which names, in ``code`` and ``layer``, a ``test_layers`` row whose status is ``unverified`` (no runner exists there).
 """
 
 from __future__ import annotations
@@ -39,20 +41,20 @@ YES_NO = ("yes", "no")
 SEARCH_PROGRAMS = frozenset(("grep", "egrep", "fgrep", "rg", "ag", "ack", "findstr", "select-string"))
 # Each field's limit, and the printed Test layers and Test targets lines together: the step-plan head carries them as
 # required text below the host's output cut, so the gate keeps them short instead of the print cutting them.
-FIELD_LIMITS = {"surface": 60, "harness": 80, "reason": 160, "target": 60, "base_state_route": 240}
+FIELD_LIMITS = {"code": 60, "harness": 80, "reason": 160, "target": 60, "base_state_route": 240}
 TEXT_LIMIT = 1_200
 
-SURFACE_TEMPLATE = {"surface": "<code surface the run writes>", "layer": "unit", "harness": "<runner>",
-                    "status": "available", "reason": "<why this status; for unverified, why no runner exists there>"}
+ROW_TEMPLATE = {"code": "<code the run writes: a module, component or page>", "layer": "unit", "harness": "<runner>",
+                "status": "available", "reason": "<why this status; for unverified, why no runner exists there>"}
 TARGET_TEMPLATE = {"target": "<where the tests run>", "keeps_state": "no",
                    "base_state_route": "<how a test still fails on an item's base there>"}
-HARNESS_RUN_TEMPLATE = {"surface": "<a prerequisite row's surface>", "layer": "unit",
+HARNESS_RUN_TEMPLATE = {"code": "<a prerequisite row's code>", "layer": "unit",
                         "command": "<the command that ran the harness>", "evidence": "<absolute path of its output>"}
-SURFACE_SHAPE = ('{"surface": "...", "layer": "unit" | "component" | "e2e", "harness": "<runner, or none>", '
-                 '"status": "available" | "prerequisite" | "unverified", "reason": "..."}')
+ROW_SHAPE = ('{"code": "...", "layer": "unit" | "component" | "e2e", "harness": "<runner, or none>", '
+             '"status": "available" | "prerequisite" | "unverified", "reason": "..."}')
 TARGET_SHAPE = ('{"target": "...", "keeps_state": "yes" | "no", "base_state_route": "<a clean target, a destructive '
                 'or ordered deploy, or an inventory check; \\"n/a\\" when keeps_state is no>"}')
-HARNESS_RUN_SHAPE = '{"surface": "...", "layer": "...", "command": "...", "evidence": "<absolute path>"}'
+HARNESS_RUN_SHAPE = '{"code": "...", "layer": "...", "command": "...", "evidence": "<absolute path>"}'
 
 
 class LayerError(ValueError):
@@ -74,31 +76,31 @@ def _text(value: Any, where: str, limit: Optional[int] = None) -> str:
     return text
 
 
-def canonical_surfaces(value: Any) -> List[Dict[str, str]]:
-    """The ``surfaces`` rows, shape-checked; the rules are ``check_surfaces``."""
-    _need(isinstance(value, list), "surfaces is a list of " + SURFACE_SHAPE)
+def canonical_rows(value: Any) -> List[Dict[str, str]]:
+    """The ``test_layers`` rows, shape-checked; the rules are ``check_rows``."""
+    _need(isinstance(value, list), "test_layers is a list of " + ROW_SHAPE)
     rows = []
     for index, row in enumerate(value):
-        where = "surfaces[" + str(index) + "]"
-        _need(isinstance(row, Mapping) and set(row) == set(SURFACE_TEMPLATE), where + " is " + SURFACE_SHAPE)
+        where = "test_layers[" + str(index) + "]"
+        _need(isinstance(row, Mapping) and set(row) == set(ROW_TEMPLATE), where + " is " + ROW_SHAPE)
         _need(row["layer"] in LAYERS, where + ".layer is one of " + ", ".join(LAYERS))
         _need(row["status"] in STATUSES, where + ".status is one of " + ", ".join(STATUSES))
-        rows.append({key: _text(row[key], where + "." + key, FIELD_LIMITS.get(key)) for key in SURFACE_TEMPLATE})
+        rows.append({key: _text(row[key], where + "." + key, FIELD_LIMITS.get(key)) for key in ROW_TEMPLATE})
     return rows
 
 
-def check_surfaces(rows: Sequence[Mapping[str, str]]) -> None:
-    """Refuse a repeated row, a surface with no unit or component row, and an unverified unit or component layer."""
-    keys = [(row["surface"], row["layer"]) for row in rows]
-    repeated = sorted({surface + " [" + layer + "]" for surface, layer in keys if keys.count((surface, layer)) > 1})
-    _need(not repeated, "surfaces repeats " + ", ".join(repeated) + ": one row per surface and layer")
-    built = {row["surface"] for row in rows if row["layer"] in BUILD_LAYERS}
-    bare = sorted({row["surface"] for row in rows} - built)
-    _need(not bare, "surfaces gives " + ", ".join(bare) + " no unit or component row. The code under every surface is "
+def check_rows(rows: Sequence[Mapping[str, str]]) -> None:
+    """Refuse a repeated row, code with no unit or component row, and an unverified unit or component layer."""
+    keys = [(row["code"], row["layer"]) for row in rows]
+    repeated = sorted({code + " [" + layer + "]" for code, layer in keys if keys.count((code, layer)) > 1})
+    _need(not repeated, "test_layers repeats " + ", ".join(repeated) + ": one row per code and layer")
+    built = {row["code"] for row in rows if row["layer"] in BUILD_LAYERS}
+    bare = sorted({row["code"] for row in rows} - built)
+    _need(not bare, "test_layers gives " + ", ".join(bare) + " no unit or component row. All code the run writes is "
           "tested below the e2e layer: add its unit or component row, status prerequisite when its harness is missing.")
-    skipped = [row["surface"] + " [" + row["layer"] + "]" for row in rows
+    skipped = [row["code"] + " [" + row["layer"] + "]" for row in rows
                if row["layer"] in BUILD_LAYERS and row["status"] == "unverified"]
-    _need(not skipped, "surfaces marks a unit or component layer unverified: " + ", ".join(skipped) + ". A missing "
+    _need(not skipped, "test_layers marks a unit or component layer unverified: " + ", ".join(skipped) + ". A missing "
           "harness at those layers is work this run can do: set status prerequisite, name the harness in harness, and "
           "prepare sets it up. Only an e2e layer with no runner may stay unverified.")
 
@@ -118,11 +120,11 @@ def canonical_targets(value: Any) -> List[Dict[str, str]]:
     return rows
 
 
-def check_text(surfaces: Optional[Sequence[Mapping[str, str]]], targets: Optional[Sequence[Mapping[str, str]]]) -> None:
+def check_text(rows: Optional[Sequence[Mapping[str, str]]], targets: Optional[Sequence[Mapping[str, str]]]) -> None:
     """Refuse layers and targets whose printed lines pass ``TEXT_LIMIT``: later heads carry them whole."""
-    size = len("\n".join(packet_lines(surfaces, targets)))
-    _need(size <= TEXT_LIMIT, "surfaces and targets print as " + str(size) + " characters; keep them within "
-          + str(TEXT_LIMIT) + ": name broader surfaces, and shorten harness, reason and base_state_route")
+    size = len("\n".join(packet_lines(rows, targets)))
+    _need(size <= TEXT_LIMIT, "test_layers and targets print as " + str(size) + " characters; keep them within "
+          + str(TEXT_LIMIT) + ": name broader code, and shorten harness, reason and base_state_route")
 
 
 def search_only(command: str) -> bool:
@@ -137,19 +139,19 @@ def search_only(command: str) -> bool:
     return bool(programs) and all(program in SEARCH_PROGRAMS for program in programs)
 
 
-def check_confirms(criteria: Sequence[Mapping[str, Any]], surfaces: Optional[Sequence[Mapping[str, str]]],
+def check_confirms(criteria: Sequence[Mapping[str, Any]], rows: Optional[Sequence[Mapping[str, str]]],
                    commands: Sequence[Mapping[str, Any]]) -> None:
     """Every step-plan criterion says how it is confirmed: ``executed`` by a command that runs something besides a text
-    search, ``searched`` by any recorded command, ``inspected`` by naming an unverified surfaces row."""
+    search, ``searched`` by any recorded command, ``inspected`` by naming an unverified test_layers row."""
     missing = [str(row.get("id")) for row in criteria if row.get("confirm") not in CONFIRMS]
     _need(not missing, "each criterion says confirm: \"executed\" (a recorded command runs the behaviour), \"searched\" "
-          "(a command searches text the item writes) or \"inspected\" (with surface and layer: the surfaces row that "
+          "(a command searches text the item writes) or \"inspected\" (with code and layer: the test_layers row that "
           "has no runner); missing or other on: " + ", ".join(missing))
-    no_runner = {(row["surface"], row["layer"]) for row in surfaces or () if row.get("status") == "unverified"}
+    no_runner = {(row["code"], row["layer"]) for row in rows or () if row.get("status") == "unverified"}
     wrong = [str(row.get("id")) for row in criteria if row.get("confirm") == "inspected"
-             and (str(row.get("surface") or ""), str(row.get("layer") or "")) not in no_runner]
-    _need(not wrong, "criteria " + ", ".join(wrong) + " are inspected, but name no surfaces row (surface and layer) whose "
-          "status is unverified (" + (", ".join(surface + " [" + layer + "]" for surface, layer in sorted(no_runner))
+             and (str(row.get("code") or ""), str(row.get("layer") or "")) not in no_runner]
+    _need(not wrong, "criteria " + ", ".join(wrong) + " are inspected, but name no test_layers row (code and layer) whose "
+          "status is unverified (" + (", ".join(code + " [" + layer + "]" for code, layer in sorted(no_runner))
                                       or "the run recorded none") + "). Behaviour a runner can execute is confirmed by "
           "executing it: set confirm executed and give it a command that runs it and observes the result.")
     naming = {str(row.get("id")): [str(command.get("command") or "") for command in commands
@@ -162,43 +164,43 @@ def check_confirms(criteria: Sequence[Mapping[str, Any]], surfaces: Optional[Seq
           "about text the item writes (documentation, a docstring) is confirm searched.")
 
 
-def check_harness_runs(surfaces: Optional[Sequence[Mapping[str, str]]], value: Any) -> List[Dict[str, str]]:
-    """Prepare's ``harness_runs``: one entry per prerequisite surfaces row, the command that ran its harness and the
+def check_harness_runs(rows: Optional[Sequence[Mapping[str, str]]], value: Any) -> List[Dict[str, str]]:
+    """Prepare's ``harness_runs``: one entry per prerequisite test_layers row, the command that ran its harness and the
     saved output.  The caller checks that each evidence path exists."""
     _need(isinstance(value, list), "harness_runs is a list of " + HARNESS_RUN_SHAPE)
-    rows = []
+    runs = []
     for index, row in enumerate(value):
         where = "harness_runs[" + str(index) + "]"
         _need(isinstance(row, Mapping) and set(row) == set(HARNESS_RUN_TEMPLATE), where + " is " + HARNESS_RUN_SHAPE)
-        rows.append({key: _text(row[key], where + "." + key) for key in HARNESS_RUN_TEMPLATE})
-    wanted = [(row["surface"], row["layer"]) for row in surfaces or () if row.get("status") == "prerequisite"]
-    ran = {(row["surface"], row["layer"]) for row in rows}
-    unrun = [surface + " [" + layer + "]" for surface, layer in wanted if (surface, layer) not in ran]
+        runs.append({key: _text(row[key], where + "." + key) for key in HARNESS_RUN_TEMPLATE})
+    wanted = [(row["code"], row["layer"]) for row in rows or () if row.get("status") == "prerequisite"]
+    ran = {(run["code"], run["layer"]) for run in runs}
+    unrun = [code + " [" + layer + "]" for code, layer in wanted if (code, layer) not in ran]
     _need(not unrun, "harness_runs has no run for the prerequisite rows " + ", ".join(unrun) + ". Set up each harness, run "
           "it once (a test it executes, not a version or help line) and record the command and its saved output; one "
           "this run cannot set up: report blocked naming it.")
-    return rows
+    return runs
 
 
 def criterion_label(row: Mapping[str, Any]) -> str:
-    """A criterion's ID with how it is confirmed, as the later packets print it: ``C2 [inspected: UI e2e]``."""
+    """A criterion's ID with how it is confirmed, as the later packets print it: ``C2 [inspected: board UI e2e]``."""
     confirm = row.get("confirm")
     if confirm == "inspected":
-        return str(row.get("id")) + " [inspected: " + str(row.get("surface")) + " " + str(row.get("layer")) + "]"
+        return str(row.get("id")) + " [inspected: " + str(row.get("code")) + " " + str(row.get("layer")) + "]"
     return str(row.get("id")) + (" [" + str(confirm) + "]" if confirm in CONFIRMS else "")
 
 
-def packet_lines(surfaces: Optional[Sequence[Mapping[str, str]]], targets: Optional[Sequence[Mapping[str, str]]]) \
+def packet_lines(rows: Optional[Sequence[Mapping[str, str]]], targets: Optional[Sequence[Mapping[str, str]]]) \
         -> List[str]:
-    """The required-text lines the prepare, step-plan, test-spec and test packets print: the surfaces grouped by layer,
+    """The required-text lines the prepare, step-plan, test-spec and test packets print: the rows grouped by layer,
     harness and status (with the reason when a row is not available), then one line per target."""
     lines: List[str] = []
     groups: Dict[tuple, List[str]] = {}
-    for row in sorted(surfaces or (), key=lambda row: LAYERS.index(row["layer"])):
+    for row in sorted(rows or (), key=lambda row: LAYERS.index(row["layer"])):
         reason = row["reason"] if row["status"] != "available" else ""
-        groups.setdefault((row["layer"], row["harness"], row["status"], reason), []).append(row["surface"])
+        groups.setdefault((row["layer"], row["harness"], row["status"], reason), []).append(row["code"])
     if groups:
-        lines.append("Test layers (`surfaces`; an inspected criterion names an unverified row by surface and layer):")
+        lines.append("Test layers (`test_layers`; an inspected criterion names an unverified row by code and layer):")
         lines += ["- " + layer + " · " + harness + " · " + status + (" (" + reason + ")" if reason else "") + ": "
                   + ", ".join(names) for (layer, harness, status, reason), names in groups.items()]
     if targets:
@@ -210,6 +212,6 @@ def packet_lines(surfaces: Optional[Sequence[Mapping[str, str]]], targets: Optio
 
 
 __all__ = ("BUILD_LAYERS", "CONFIRMS", "FIELD_LIMITS", "HARNESS_RUN_SHAPE", "HARNESS_RUN_TEMPLATE", "LAYERS",
-           "LayerError", "SEARCH_PROGRAMS", "STATUSES", "SURFACE_SHAPE", "SURFACE_TEMPLATE", "TARGET_SHAPE",
-           "TARGET_TEMPLATE", "TEXT_LIMIT", "canonical_surfaces", "canonical_targets", "check_confirms",
-           "check_harness_runs", "check_surfaces", "check_text", "criterion_label", "packet_lines", "search_only")
+           "LayerError", "ROW_SHAPE", "ROW_TEMPLATE", "SEARCH_PROGRAMS", "STATUSES", "TARGET_SHAPE", "TARGET_TEMPLATE",
+           "TEXT_LIMIT", "canonical_rows", "canonical_targets", "check_confirms", "check_harness_runs", "check_rows",
+           "check_text", "criterion_label", "packet_lines", "search_only")

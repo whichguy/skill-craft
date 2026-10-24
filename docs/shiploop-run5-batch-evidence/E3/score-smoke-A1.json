@@ -1,0 +1,25 @@
+{
+  "experiment": "E3",
+  "arm": "A",
+  "sample": 1,
+  "value": 0,
+  "focused": [
+    "if test ! -f src/records.js; then echo 'Error: Cannot find module src/records.js'; exit 1; fi; node --test --test-name-pattern 'TC-1|TC-2|TC-3|TC-4'"
+  ],
+  "guarded": [
+    "if test ! -f src/records.js; then echo 'Error: Cannot find module src/records.js'; exit 1; fi; node --test --test-name-pattern 'TC-1|TC-2|TC-3|TC-4'"
+  ],
+  "base": {
+    "exit": 1,
+    "status": "red",
+    "behavioural": true
+  },
+  "verdict": "guarded",
+  "slice_pass": true,
+  "slice_verdicts": {
+    "process": true,
+    "stopped": true,
+    "no_overshoot": true
+  },
+  "seconds": 1782.8
+}

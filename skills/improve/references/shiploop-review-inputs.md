@@ -129,7 +129,7 @@ into this child's contract/review notes. Review independent assertions,
 setup/test/teardown (including justified stateless cases), sharing noninterference,
 failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost.
 Improve the tests themselves and rerun affected checks after edits within the
-assigned stage's expected check state; authoring and expected RED do not require
+assigned stage's expected check state; authoring and an expected failure do not require
 future production behavior to pass. Keep unresolved coverage visible.
 Include remote-resident definitions, framework availability, authorized invocation,
 execution location and deployed/test revision evidence; a local pass does not

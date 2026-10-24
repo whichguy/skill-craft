@@ -598,16 +598,16 @@ class EarlierItemFocusedIdTests(RepoCase):
 
 class TestLayerGateTests(RepoCase):
     """Run-5 batch F1: a live run (2026-10-20) marked the whole UI unverified for want of a browser tool and confirmed
-    the board's criteria by grepping its source.  test-strategy now records each code surface's layers in `surfaces`
-    (every surface has a unit or component row, neither layer unverified) and where tests run in `targets`; prepare's
+    the board's criteria by grepping its source.  test-strategy now records the layers of the code the run writes in
+    `test_layers` (all code has a unit or component row, neither layer unverified) and where tests run in `targets`; prepare's
     `harness_runs` shows each prerequisite harness running; each step-plan criterion says `confirm`: executed by a
     command that runs something besides a text search, searched, or inspected against an unverified row."""
 
-    UI = {"surface": "board component", "layer": "unit", "harness": "none found", "status": "unverified",
+    UI = {"code": "board component", "layer": "unit", "harness": "none found", "status": "unverified",
           "reason": "no browser tool"}
-    UNIT = {"surface": "board component", "layer": "unit", "harness": "the component test runner",
+    UNIT = {"code": "board component", "layer": "unit", "harness": "the component test runner",
             "status": "available", "reason": "the repository's runner"}
-    E2E = {"surface": "board component", "layer": "e2e", "harness": "none", "status": "unverified",
+    E2E = {"code": "board component", "layer": "e2e", "harness": "none", "status": "unverified",
            "reason": "no browser tool on this host"}
 
     def refused(self, state: dict, stage: str, result: dict) -> str:
@@ -615,53 +615,53 @@ class TestLayerGateTests(RepoCase):
             navigator._check_submitted_layers(state, stage, result)
         return str(caught.exception)
 
-    def strategy_state(self, surfaces: list | None, stage: str = "step-plan", **extra: object) -> dict:
+    def strategy_state(self, rows: list | None, stage: str = "step-plan", **extra: object) -> dict:
         row = {"action": "ts1", "stage": "test-strategy", "workitem": None, "outcome": "done"}
         result = {"outcome": "done", "summary": "s", "targets": [], **extra}
-        if surfaces is not None:
-            result["surfaces"] = surfaces
+        if rows is not None:
+            result["test_layers"] = rows
         return item_state(self.repo, "W1", [(row, result)], stage)
 
-    def test_test_strategy_records_surfaces_and_targets_and_no_unverified_build_layer(self) -> None:
+    def test_test_strategy_records_test_layers_and_targets_and_no_unverified_build_layer(self) -> None:
         state = item_state(self.repo, "W1", [], "step-plan")
         done = {"outcome": "done", "summary": "s"}
-        self.assertIn("lists surfaces", self.refused(state, "test-strategy", dict(done, targets=[])))
-        self.assertIn("never both", self.refused(state, "test-strategy", dict(done, surfaces=[self.UNIT],
-                                                                                surfaces_na="none", targets=[])))
-        self.assertIn("lists targets", self.refused(state, "test-strategy", dict(done, surfaces=[self.UNIT])))
-        message = self.refused(state, "test-strategy", dict(done, surfaces=[self.UI], targets=[]))
+        self.assertIn("lists test_layers", self.refused(state, "test-strategy", dict(done, targets=[])))
+        self.assertIn("never both", self.refused(state, "test-strategy", dict(done, test_layers=[self.UNIT],
+                                                                                test_layers_na="none", targets=[])))
+        self.assertIn("lists targets", self.refused(state, "test-strategy", dict(done, test_layers=[self.UNIT])))
+        message = self.refused(state, "test-strategy", dict(done, test_layers=[self.UI], targets=[]))
         self.assertIn("board component [unit]", message)
         self.assertIn("set status prerequisite", message)
-        # An e2e row alone leaves the surface's code untested below it.
+        # An e2e row alone leaves the code untested below it.
         self.assertIn("no unit or component row", self.refused(state, "test-strategy",
-                                                                dict(done, surfaces=[self.E2E], targets=[])))
+                                                                dict(done, test_layers=[self.E2E], targets=[])))
         self.assertIn("repeats board component [unit]", self.refused(
-            state, "test-strategy", dict(done, surfaces=[self.UNIT, self.UNIT], targets=[])))
+            state, "test-strategy", dict(done, test_layers=[self.UNIT, self.UNIT], targets=[])))
         # The named exits: the missing harness becomes prerequisite work; an e2e layer with no runner may stay.
         navigator._check_submitted_layers(state, "test-strategy",
-                                          dict(done, surfaces=[dict(self.UI, status="prerequisite",
+                                          dict(done, test_layers=[dict(self.UI, status="prerequisite",
                                                                     harness="the component test runner")], targets=[]))
-        navigator._check_submitted_layers(state, "test-strategy", dict(done, surfaces=[self.UNIT, self.E2E], targets=[]))
+        navigator._check_submitted_layers(state, "test-strategy", dict(done, test_layers=[self.UNIT, self.E2E], targets=[]))
         navigator._check_submitted_layers(state, "test-strategy",
-                                          dict(done, surfaces_na="The run writes documents only.", targets=[]))
+                                          dict(done, test_layers_na="The run writes documents only.", targets=[]))
         stateful = {"target": "the shared org", "keeps_state": "yes", "base_state_route": "n/a"}
         self.assertIn("keeps state between runs", self.refused(state, "test-strategy",
-                                                               dict(done, surfaces=[self.UNIT], targets=[stateful])))
+                                                               dict(done, test_layers=[self.UNIT], targets=[stateful])))
         with self.assertRaisesRegex(navigator.NavigatorError, "template placeholder"):
-            navigator._canonical_result(dict(done, surfaces=[dict(layers.SURFACE_TEMPLATE)], targets=[]),
+            navigator._canonical_result(dict(done, test_layers=[dict(layers.ROW_TEMPLATE)], targets=[]),
                                         stage="test-strategy")
 
     def test_the_layers_print_within_their_limit_or_are_refused(self) -> None:
         state = item_state(self.repo, "W1", [], "step-plan")
         done = {"outcome": "done", "summary": "s", "targets": []}
         with self.assertRaisesRegex(navigator.NavigatorError, "within 60"):
-            navigator._canonical_result(dict(done, surfaces=[dict(self.UNIT, surface="x" * 61)]), stage="test-strategy")
-        many = [dict(self.UNIT, surface="surface " + str(index), harness="runner " + str(index), reason="r" * 150,
+            navigator._canonical_result(dict(done, test_layers=[dict(self.UNIT, code="x" * 61)]), stage="test-strategy")
+        many = [dict(self.UNIT, code="code " + str(index), harness="runner " + str(index), reason="r" * 150,
                      status="prerequisite") for index in range(12)]
-        message = self.refused(state, "test-strategy", dict(done, surfaces=many))
+        message = self.refused(state, "test-strategy", dict(done, test_layers=many))
         self.assertIn("keep them within " + str(layers.TEXT_LIMIT), message)
-        # The named exit: broader surfaces and shorter text fit.
-        navigator._check_submitted_layers(state, "test-strategy", dict(done, surfaces=many[:3]))
+        # The named exit: broader code and shorter text fit.
+        navigator._check_submitted_layers(state, "test-strategy", dict(done, test_layers=many[:3]))
 
     def test_prepare_shows_each_prerequisite_harness_running(self) -> None:
         state = self.strategy_state([dict(self.UNIT, status="prerequisite")], stage="prepare")
@@ -669,7 +669,7 @@ class TestLayerGateTests(RepoCase):
         self.assertIn("lists harness_runs", self.refused(state, "prepare", done))
         self.assertIn("no run for the prerequisite rows board component [unit]",
                       self.refused(state, "prepare", dict(done, harness_runs=[])))
-        run = {"surface": "board component", "layer": "unit", "command": "npm run test:unit -- board",
+        run = {"code": "board component", "layer": "unit", "command": "npm run test:unit -- board",
                "evidence": str(self.repo / "missing.txt")}
         self.assertIn("is not an existing absolute file", self.refused(state, "prepare", dict(done, harness_runs=[run])))
         output = self.repo / "harness-run.txt"
@@ -677,19 +677,19 @@ class TestLayerGateTests(RepoCase):
         navigator._check_submitted_layers(state, "prepare", dict(done, harness_runs=[dict(run, evidence=str(output))]))
         # The template names each prerequisite row, so only the command and its output are left to fill.
         template = navigator._result_template(state, "prepare")
-        self.assertIn('"surface": "board component"', template)
+        self.assertIn('"code": "board component"', template)
         self.assertIn(layers.HARNESS_RUN_TEMPLATE["command"], template)
         # No prerequisite row: no field asked for.
         navigator._check_submitted_layers(self.strategy_state([self.UNIT], stage="prepare"), "prepare", done)
 
-    def test_an_inspected_criterion_names_a_surface_and_layer_with_no_runner(self) -> None:
+    def test_an_inspected_criterion_names_code_and_a_layer_with_no_runner(self) -> None:
         state = self.strategy_state([self.UNIT, self.E2E])
         command = {"command": "npm test -- -t TC-1", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]}
         plan = {"outcome": "done", "summary": "s", "criteria": [{"id": "C1", "text": "x"}], "test_commands": [command]}
         self.assertIn("confirm", self.refused(state, "step-plan", plan))
-        inspected = {"id": "C1", "text": "x", "confirm": "inspected", "surface": "board component"}
+        inspected = {"id": "C1", "text": "x", "confirm": "inspected", "code": "board component"}
         message = self.refused(state, "step-plan", dict(plan, criteria=[inspected]))
-        self.assertIn("name no surfaces row (surface and layer) whose status is unverified (board component [e2e])",
+        self.assertIn("name no test_layers row (code and layer) whose status is unverified (board component [e2e])",
                       message)
         self.assertIn("set confirm executed", message)
         self.assertIn("are inspected", self.refused(state, "step-plan",
@@ -716,24 +716,24 @@ class TestLayerGateTests(RepoCase):
                 self.assertEqual(layers.search_only(command), only)
 
     def test_a_step_plan_with_code_lists_its_own_rows_when_the_run_recorded_none(self) -> None:
-        state = self.strategy_state(None, surfaces_na="The run planned documents only.")
+        state = self.strategy_state(None, test_layers_na="The run planned documents only.")
         command = {"command": "node --test", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]}
         plan = {"outcome": "done", "summary": "s", "paths": ["src/board.js"], "test_commands": [command],
                 "criteria": [{"id": "C1", "text": "x", "confirm": "executed"}]}
         message = self.refused(state, "step-plan", plan)
         self.assertIn("this item's paths hold code (src/board.js)", message)
-        navigator._check_submitted_layers(state, "step-plan", dict(plan, surfaces=[self.UNIT]))
+        navigator._check_submitted_layers(state, "step-plan", dict(plan, test_layers=[self.UNIT]))
         navigator._check_submitted_layers(state, "step-plan", dict(plan, paths=["docs/board.md"]))
         # The item's rows join the run's in the later packets' Test layers block.
         row = {"action": "sp1", "stage": "step-plan", "workitem": "W1", "outcome": "done"}
         later = item_state(self.repo, "W1", [({"action": "ts1", "stage": "test-strategy", "workitem": None,
                                                "outcome": "done"},
-                                              {"outcome": "done", "summary": "s", "surfaces_na": "docs", "targets": []}),
-                                             (row, dict(plan, surfaces=[self.UNIT]))], "test-spec")
+                                              {"outcome": "done", "summary": "s", "test_layers_na": "docs", "targets": []}),
+                                             (row, dict(plan, test_layers=[self.UNIT]))], "test-spec")
         self.assertEqual(navigator._test_layers(later, "W1")[0], [self.UNIT])
 
     def test_the_packets_print_the_layers_grouped_with_each_reason_a_reader_needs(self) -> None:
-        lines = layers.packet_lines([self.UNIT, dict(self.UNIT, surface="rules"), self.E2E],
+        lines = layers.packet_lines([self.UNIT, dict(self.UNIT, code="rules"), self.E2E],
                                     [{"target": "the shared org", "keeps_state": "yes",
                                       "base_state_route": "a destructive deploy first"},
                                      {"target": "the checkout", "keeps_state": "no", "base_state_route": "n/a"}])
@@ -741,7 +741,7 @@ class TestLayerGateTests(RepoCase):
         self.assertIn("- e2e · none · unverified (no browser tool on this host): board component", lines)
         self.assertIn("- the shared org: keeps state yes; base state: a destructive deploy first", lines)
         self.assertIn("- the checkout: keeps state no", lines)
-        self.assertEqual(layers.criterion_label({"id": "C2", "confirm": "inspected", "surface": "board component",
+        self.assertEqual(layers.criterion_label({"id": "C2", "confirm": "inspected", "code": "board component",
                                                  "layer": "e2e"}), "C2 [inspected: board component e2e]")
         self.assertEqual(layers.criterion_label({"id": "C1", "confirm": "executed"}), "C1 [executed]")
 

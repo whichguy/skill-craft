@@ -109,12 +109,10 @@ the line that names it, so record the command with a reporter it can read:
 --result-format tap` prints an `ok` or `not ok` line per test, while the default
 table and `--result-format human` put the outcome word after the test name,
 which ShipLoop does not read, so a focused command that uses them is refused as
-unread. An Apex test runs the code already in the org, so on the item's base it
-cannot fail unless the command deploys the tree first: either make the focused
-command deploy the tree before it tests, or name each new org-bound test in the
-test result's `red_na` with that reason. The mutation check cannot judge an
-org-bound test (it changes a local copy the org never sees) and records why it
-skipped, so the candidate run carries the proof.
+unread. An Apex test runs the code already in the org, which holds the item's
+change, so it is a remote test (Remote tests below): the test stage's base run
+does not run it, and the mutation check (it changes a local copy the org never
+sees) records why it skipped it. The candidate run carries the proof.
 
 For a Lightning consumer, distinguish the org/instance identity from the
 feature's authenticated entry: an app, custom tab, component or other supported

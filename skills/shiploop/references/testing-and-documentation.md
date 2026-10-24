@@ -804,21 +804,21 @@ the host must perform this review and report uncertainty honestly.
 
 ## Test layers
 
-Test-strategy records, before any code, which harness tests each code surface at each layer and where the tests
-run (`scripts/shiploop_test_layers.py`):
+Test-strategy records, before any code, which harness tests each part of the code at each layer and where the tests
+run (`scripts/shiploop_test_layers.py`). "Surface" keeps its meaning above: where a requirement is observed.
 
-- `surfaces`: `[{"surface", "layer": "unit" | "component" | "e2e", "harness", "status": "available" |
-  "prerequisite" | "unverified", "reason"}]`. Every surface has a unit or component row, and neither layer is
-  `unverified`: a missing harness there is `prerequisite` work. Only an e2e layer with no runner stays unverified.
-  `surfaces_na` (the reason) replaces the list only when the run writes no code; a step plan whose paths hold code
-  then lists the item's own rows in `surfaces`.
+- `test_layers`: `[{"code", "layer": "unit" | "component" | "e2e", "harness", "status": "available" |
+  "prerequisite" | "unverified", "reason"}]`, where `code` names a module, component or page the run writes. All code
+  has a unit or component row, and neither layer is `unverified`: a missing harness there is `prerequisite` work.
+  Only an e2e layer with no runner stays unverified. `test_layers_na` (the reason) replaces the list only when the run
+  writes no code; a step plan whose paths hold code then lists the item's own rows in `test_layers`.
 - `targets`: `[{"target", "keeps_state": "yes" | "no", "base_state_route"}]`. A target that keeps state between runs
   says how a test still fails on an item's base there (a clean target, a destructive or ordered deploy, or an
   inventory check).
-- Prepare's `harness_runs`: `[{"surface", "layer", "command", "evidence"}]`, one per prerequisite row, the command that
+- Prepare's `harness_runs`: `[{"code", "layer", "command", "evidence"}]`, one per prerequisite row, the command that
   ran one test with the harness and its saved output.
 - Each step-plan criterion's `confirm`: `executed` (a recorded command runs the behaviour; a command that only
-  searches text does not), `searched` (text the item writes) or `inspected` (with `surface` and `layer` naming an
+  searches text does not), `searched` (text the item writes) or `inspected` (with `code` and `layer` naming an
   unverified row).
 
 The prepare, step-plan, test-spec and test packets print both lists as required text, grouped by layer, harness and

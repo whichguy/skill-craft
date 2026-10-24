@@ -79,9 +79,9 @@ TEST_CASES = [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": 
 LESSONS = {"learned": "Synthetic fixture: nothing learned.", "considerations": "none", "open_next": "none"}
 LIVING_SPEC = "# Spec\n\n## Requirements\n\n- R-1: built.txt exists.\n"
 RESULTS = {
-    # The test layers (run-5 batch F1, F3): one code surface, tested at the unit layer on the checkout.
-    "test-strategy": {"surfaces": [{"surface": "built.txt writer", "layer": "unit", "harness": "sh",
-                                    "status": "available", "reason": "the repository runs shell checks"}],
+    # The test layers (run-5 batch F1, F3): one part of the code, tested at the unit layer on the checkout.
+    "test-strategy": {"test_layers": [{"code": "built.txt writer", "layer": "unit", "harness": "sh",
+                                       "status": "available", "reason": "the repository runs shell checks"}],
                       "targets": []},
     "step-plan": dict(STEP_PLAN, follows=[]),
     "test-spec": {"test_cases": TEST_CASES, "assumptions": []},
@@ -434,14 +434,14 @@ class RefusalRouteTests(RealCliCase):
                  for row in block["test_commands"]]},
              "every command naming them only searches text"),
             ("an inspected criterion naming no unverified Test layers row", "step-plan",
-             lambda block: {**block, "criteria": [dict(row, confirm="inspected", surface="built.txt writer",
+             lambda block: {**block, "criteria": [dict(row, confirm="inspected", code="built.txt writer",
                                                        layer="unit") for row in block["criteria"]]},
-             "are inspected, but name no surfaces row"),
-            ("a surface with no unit or component row", "test-strategy",
-             lambda block: {**block, "surfaces": [dict(row, layer="e2e") for row in block["surfaces"]]},
+             "are inspected, but name no test_layers row"),
+            ("code with no unit or component row", "test-strategy",
+             lambda block: {**block, "test_layers": [dict(row, layer="e2e") for row in block["test_layers"]]},
              "no unit or component row"),
-            ("both surfaces and surfaces_na", "test-strategy",
-             lambda block: {**block, "surfaces_na": "The run writes no code."},
+            ("both test_layers and test_layers_na", "test-strategy",
+             lambda block: {**block, "test_layers_na": "The run writes no code."},
              "never both"),
             ("a step whose dependency is a later step", "step-plan",
              lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"], "criteria": ["C1"],

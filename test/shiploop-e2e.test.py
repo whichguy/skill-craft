@@ -2439,6 +2439,33 @@ class GateCountsTest(unittest.TestCase):
     """metrics.gate_counts (owner's per-gate fired/caught measurement): classify each ShipLoop refusal by
     GATE_SIGNATURES, and tell whether the same action id's complete was later accepted."""
 
+    def test_each_test_layer_refusal_classifies_under_its_own_gate(self) -> None:
+        """The F1 rows read the gates' own refusal text: built here by the gate functions, never typed."""
+        spec = importlib.util.spec_from_file_location(
+            "shiploop_test_layers_for_metrics", ROOT / "skills/shiploop/scripts/shiploop_test_layers.py")
+        layers = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(layers)
+        row = {"code": "board", "layer": "unit", "harness": "jest", "status": "available", "reason": "runner"}
+        command = {"command": "grep -q Board src/board.js", "criteria": ["C1"]}
+        faults = {
+            "test_layers": [lambda: layers.check_rows([row, row]), lambda: layers.check_rows([dict(row, layer="e2e")]),
+                            lambda: layers.check_rows([dict(row, status="unverified")]),
+                            lambda: layers.canonical_rows([{"code": "x"}])],
+            "confirm": [lambda: layers.check_confirms([{"id": "C1"}], [row], []),
+                        lambda: layers.check_confirms([{"id": "C1", "confirm": "inspected", "code": "board",
+                                                        "layer": "unit"}], [row], []),
+                        lambda: layers.check_confirms([{"id": "C1", "confirm": "executed"}], [row], [command])],
+            "harness_runs": [lambda: layers.check_harness_runs([dict(row, status="prerequisite")], [])],
+            "targets": [lambda: layers.canonical_targets([{"target": "org", "keeps_state": "yes",
+                                                           "base_state_route": "n/a"}])],
+        }
+        for gate, calls in faults.items():
+            for call in calls:
+                with self.subTest(gate=gate), self.assertRaises(layers.LayerError) as caught:
+                    call()
+                self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), gate,
+                                 str(caught.exception))
+
     SPEC_WRITEBACK = ("ShipLoop navigator: Restore /r/docs/shiploop/spec.md to what HEAD holds plus this "
                       "step's acceptance lines")
 

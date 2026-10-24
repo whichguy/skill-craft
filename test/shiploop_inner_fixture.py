@@ -55,10 +55,10 @@ def no_concerns_map(item_ids: Iterable[str]) -> dict[str, list[dict[str, str]]]:
 
 
 def fixture_test_layers() -> dict[str, Any]:
-    """A done test-strategy's test layers (run-5 batch F1, F3) for a synthetic run: one code surface whose unit layer
+    """A done test-strategy's test layers (run-5 batch F1, F3) for a synthetic run: one part of the code, whose unit layer
     the fixture's own commands test, every test on the checkout.  The default for suites whose intent is not the layers
-    (a run that records no surface needs each step plan with code paths to list its own)."""
-    return {"surfaces": [{"surface": "fixture code", "layer": "unit", "harness": "the fixture's recorded commands",
+    (a run that records test_layers_na needs each step plan with code paths to list its own rows)."""
+    return {"test_layers": [{"code": "fixture code", "layer": "unit", "harness": "the fixture's recorded commands",
                           "status": "available", "reason": "synthetic run"}], "targets": []}
 
 

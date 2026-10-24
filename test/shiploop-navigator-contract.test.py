@@ -1308,7 +1308,8 @@ class NavigatorContractTests(unittest.TestCase):
             "Existing tests, check scripts, golden or fixture files and thresholds are checks",
             "download, install or fetch nothing",
             "report send-back, naming the criterion or command and the case",
-            "the criterion text does not say `Confirm by: unconfirmable here`",
+            # A condition no command can confirm is not a criterion (step-plan), so no criterion carries "unconfirmable".
+            "confirming it needs an absent tool, runtime, access or authority;",
             f"the same check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts",
             "with existing behaviour kept at the conflict point",
         )
@@ -1536,7 +1537,7 @@ class NavigatorContractTests(unittest.TestCase):
             "harness, case and suite locators",
             "setup/test/teardown (including justified stateless cases)",
             "sharing noninterference, failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost",
-            "authoring and expected RED do not require future production behavior to pass.",
+            "authoring and an expected failure do not require future production behavior to pass.",
             "remote-resident definitions",
             "framework availability",
             "authorized invocation",
@@ -1582,7 +1583,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("Consume discovery's baseline (Initial repository baseline guide)", strategy)
         self.assertIn("earliest", plan)
         self.assertIn("repair", plan)
-        self.assertIn("passing characterization of unchanged application behaviour", plan)
+        self.assertIn("passing characterisation of unchanged application behaviour", plan)
         self.assertIn("rerun the original initial check", prepare)
         # baseline's per-item revalidation moved to validate-existing (coverage-plan-validate.json): ShipLoop reruns
         # each expectation's check on the item base, and a broken foundation is a failed expectation to repair.

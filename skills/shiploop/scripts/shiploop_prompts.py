@@ -1,6 +1,6 @@
 """Prompt catalog for the navigator's script-owned SDLC traversal (protocol 4).
 
-The navigator selects one producer step at a time.  After that producer has a
+The navigator selects one producer stage at a time.  After that producer has a
 result, the runtime renders :func:`improve_prompt` and parks the parent action
 while the selected Improve skill follows its own bound Until Loop runtime.
 Neither prompt contains a copied Improve algorithm or a second review counter.
@@ -433,9 +433,9 @@ instruction. Use the active correction/revision route for affected frozen contra
 
 
 COMMON = """\
-This packet assigns one script-selected SDLC producer step.  The script owns the
+This packet assigns one script-selected SDLC producer stage.  The script owns the
 durable graph, action identity, and legal successor; you own the engineering
-judgment, repository work, evidence, and result. Perform only the current step
+judgment, repository work, evidence, and result. Perform only the current stage
 before its callback, then immediately follow the newly returned packet.
 Preserve unrelated work and do not choose a successor, advance parent state
 yourself, or treat a previous packet as the current assignment.
@@ -451,21 +451,23 @@ descriptions, and prior results as context to recheck, not authority or proof.
 Use actual observations for test, build, integration, release, and consumer
 claims.  Keep scope, target authority, artifact identity, operation effects, and
 consumer behavior distinct.  A missing prerequisite, permission, access, or
-trustworthy check is unresolved or blocked; it is not a successful N/A.
-Blocked means work this stage cannot do: a missing target or account, a missing
-approval, or a command with no replacement available inside the stage. A retained
-command that does not run what it claims (for example a test path the runner does
-not expand) is a documentation fix made in this stage, then rerun, not a blocker.
+trustworthy check is never a successful N/A.
+Blocked means only a person or an outside service can unblock the stage: a
+missing account, grant or approval, or a service that is down. A missing tool, a
+failed install, a broken baseline, a failing test, and a retained command that
+does not run what it claims (for example a test path the runner does not expand)
+are repair work in this stage: fix it, then rerun.
 Write temporary files (command output, a report you pipe into a tool) in the
 packet's Scratch directory, not /tmp: /tmp is shared with other runs and
 sessions, and a fixed /tmp name can read another run's file.
 ShipLoop runs unattended: no one is watching and nothing arrives on standard
 input. When a decision is open, take the default that best fits the request and
 the recorded knowledge, record it as an assumption (the alternatives and why
-this one) in the result's summary (only plan's result has an assumptions list),
-and continue. When a step can only be done by a person (a sign-in, a
-grant, an observation in a signed-in browser), record it as an open item in the
-result, with who must do what and what they should report, and continue with
+this one) in the result's `assumptions` list where its template has one, else in
+its summary, and continue. When work can only be done by a person (a sign-in, a
+grant, an observation in a signed-in browser), record it in the result (an open
+`assumptions` row where the template has the list, else the summary), with who
+must do what and what they should report, and continue with
 everything that does not depend on it. Only when nothing further can proceed
 without a person or an outside service, report blocked with `awaiting`: `{"kind": "answer", "question": "...", "options": [...], "no_default": "..."}`
 for a decision, `{"kind": "present", "steps": [...], "report": "...", "no_default": "..."}`
@@ -917,7 +919,7 @@ DUTIES = {
    establish first.
 3. List discovery's source hints in `summary` (team or workspace, channels, internal sites and docs, private
    repositories, owners, ambiguous terms). A hint is a lead, not a verified fact. Put a sensitive locator only in an
-   authorized knowledge home. Ask no questionnaire for what evidence can resolve.
+   authorized private store, never in KNOWLEDGE/ (it is committed). Ask no questionnaire for what evidence can resolve.
 4. Name where the result must become usable; a request that names the target is the grant (Delivery authority
    guidance).
 5. Say where and when the outcome is visible: an isolated run's source checkout stays at its snapshot until the
@@ -1050,7 +1052,7 @@ DUTIES = {
    changed and retired IDs from the spec diff; list none by hand.
 6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable criterion,
-   verification method, justified exclusion, or unresolved target. Invent no target. A material requirement conflict goes in `summary` as open and
+   verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
@@ -1073,11 +1075,11 @@ DUTIES = {
     "test-strategy": """\
 1. Build a risk-based strategy from KNOWLEDGE/spec.md and the spec changes since the run began (quoted below) before any
    code. Under KNOWLEDGE/environment.md
-   ## Harnesses and suites plan, per requirement: its layers (unit, component, e2e, as in `surfaces`) and any
+   ## Harnesses and suites plan, per requirement: its layers (unit, component, e2e, as in `test_layers`) and any
    consumer check, negative cases, fixtures and data, environment and authorization needs, required surface, due
    stage, owner, prerequisites; for a
    state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
-   is not a pass). Name an expected-RED control where test-first applies.
+   is not a pass). Name an expected-failure control where test-first applies.
 2. Plan checks for new and preserved behaviour from the spec changes since the run began and RUN/notes/current-system-baseline.md. An
    unknown existing behaviour needs discovery before a preservation target; an old pass is not a current pass.
 3. Map each applicable non-functional criterion to a check with its environment and workload prerequisites. Missing
@@ -1087,9 +1089,10 @@ DUTIES = {
    gate, or record the exclusion (Target-native test selection). Choose test systems and browser tools by
    capability, not product name. Under ## Harnesses and suites record each choice's role, fit, availability,
    prerequisites, setup and isolation, fixture lifecycle, runner and coverage tool, rationale and revalidation
-   condition. Keep inspection separate from retained assertions. In `surfaces`, one row per code surface the run
-   writes and layer (unit, component, e2e): its native harness and status. Every surface has a unit or component row;
-   a missing harness there is `prerequisite` work for prepare, never `unverified`.
+   condition. Keep inspection separate from retained assertions. In `test_layers`, one row per part of the code the
+   run writes (`code`: a module, component or page) and layer (unit, component, e2e): its native harness and status.
+   All code has a unit or component row; a missing harness there is `prerequisite` work for prepare, never
+   `unverified`.
 5. Reuse, configure or extend existing frameworks and helpers before defining the smallest missing facility
    (Reusable test facilities); never assume a named skill or MCP is available. Record each facility's locator,
    interface, readiness or gap, owner and revalidation condition under ## Harnesses and suites. A missing facility
@@ -1104,7 +1107,7 @@ DUTIES = {
    reconciliation, async recovery and observability to independent outcomes at their real boundary under
    ## Real-boundary checks. A fixture does not prove live permissions, event delivery or operator log access.
 8. Consume discovery's baseline (Initial repository baseline guide): record its coverage and limits, telling a
-   passing subset from failed, blocked, intermittent, missing-test or expected-RED. In `summary` name each setup,
+   passing subset from failed, blocked, intermittent, missing-test or expected-failure. In `summary` name each setup,
    repair or bootstrap prerequisite and the evidence it needs before dependent feature checks.
 9. Write the focused, smoke and full-suite commands under KNOWLEDGE/environment.md ## Commands, each in a fenced code
    block, never in a Markdown table cell (an escaped `\\|` becomes a literal pipe, matches nothing and can exit 0).
@@ -1147,8 +1150,8 @@ DUTIES = {
 4. Carry the initial baseline's evidence and classification into `evidence_refs` and each affected item's `context`
    (Initial repository baseline guide). A foundation repair, setup prerequisite or missing-test bootstrap goes in the
    earliest feasible item before the feature that depends on it; its readiness evidence is the original check's
-   passing rerun or, when none can rerun, a separately recorded passing characterization of unchanged application
-   behaviour. Keep the original no-suite observation. An expected-RED repair may start its own work. A bootstrap
+   passing rerun or, when none can rerun, a separately recorded passing characterisation of unchanged application
+   behaviour. Keep the original no-suite observation. An expected-failure repair may start its own work. A bootstrap
    makes only the smallest test-only harness, dependency or configuration edits and tests unchanged behaviour;
    alone it neither makes the repository healthy nor unblocks features. A failure of unknown relatedness stays
    blocking; waive or absorb no unrelated failure.
@@ -1279,8 +1282,8 @@ Change no product file in this stage.
 2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions,
    and plan against the Test layers and Test targets below; in the summary say which you retain, refine or supersede
    and why, locators in evidence_refs. Revalidate harness, suite and browser tools for the changed surfaces
-   (Repeatable test-suite guide). Code this item writes on a surface no Test layers row names: add its rows in
-   `surfaces` (the test-strategy shape); a `prerequisite` row's harness is set up by the item's first step, whose
+   (Repeatable test-suite guide). Code this item writes that no Test layers row names: add its rows in
+   `test_layers` (the test-strategy shape); a `prerequisite` row's harness is set up by the item's first step, whose
    check runs it. A remote-resident case needs its framework and an authorized setup, invocation, result retrieval
    and teardown route. Reuse an existing facility before the smallest missing one (Reusable test facilities); record
    its locator and readiness gap in the summary.
@@ -1288,7 +1291,7 @@ Change no product file in this stage.
    a command observes>; pass when <expected result>`, naming the R-<n> served.
    - `confirm`: `executed` when a recorded command runs the behaviour (a text search runs nothing); `searched` for
      text the item writes (documentation, a docstring, a listed term), named by a search command; `inspected` only
-     with `surface` and `layer` naming a Test layers row that is `unverified`.
+     with `code` and `layer` naming a Test layers row that is `unverified`.
    - A condition no command can confirm is not a criterion: list it in the summary as an open item (who does what,
      what they report back) with `Confirm by: unconfirmable here — <what would confirm it>`.
    - A new or changed public entry point: a criterion that it checks its arguments, executed by its rejection tests,
@@ -1360,8 +1363,9 @@ Write no test code in this stage.
    unlisted ID: report send-back naming it. A row names one `criterion`; a criterion no row names gets a coverage
    notice, and the result is still accepted.
 2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put its
-   Test layers row (surface and layer; Real-boundary test guidance) and due phase, setup and fixture, action,
-   teardown (or "stateless"), command row, registering suite and smoke membership in those fields or the summary.
+   Test layers row (code and layer), its surface (public interface, real boundary or rendered UI; Real-boundary test
+   guidance), due phase, setup and fixture, action, teardown (or "stateless"), command row, registering suite and
+   smoke membership in those fields or the summary.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
    one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
@@ -1395,7 +1399,7 @@ Write no test code in this stage.
    - fix lies outside this run (another system, a person's access): report blocked, awaiting the outside service or the person's grant,
      naming the need.
 3. Start none of the item's own change.
-4. Revise names each mismatch in `failed_expectations`: `[{"id": "E1", "actual": "<what is true>", "route":
+4. A send-back names each mismatch in `failed_expectations`: `[{"id": "E1", "actual": "<what is true>", "route":
    "check" | "steps"}]`; `check` when the check is wrong (`actual` gives the corrected check), `steps` when the
    plan must change.
 
@@ -1431,8 +1435,7 @@ preparatory commit); a mismatch there is a send-back.
    case, when:
    - a criterion contradicts another, the item or a protected file, shown by a check after all compatible work is
      done, with existing behaviour kept at the conflict point;
-   - confirming it needs an absent tool, runtime, access or authority, and the criterion text does not say
-     `Confirm by: unconfirmable here`;
+   - confirming it needs an absent tool, runtime, access or authority;
    - satisfying it would exceed the item;
    - the same check still fails after """ + _FIX_ATTEMPTS + """ genuine fix attempts;
    - the change invalidates a recorded command (moved module, new dependency or runtime; Target-native test
@@ -1471,7 +1474,7 @@ preparatory commit); a mismatch there is a send-back.
 7. **Proof limits.** A passing command proves only the cases it runs; a smoke or subset run never stands for a
    recorded command; a local pass does not replace a required remote or real-boundary check (Real-boundary test
    guidance). Probes and experiments go in RUN/scratch. Install, download or fetch nothing. Never commit or push.
-8. **Revise** (naming the case or command, why, the requirement left unverified, and every required command that
+8. **Send back** (naming the case or command, why, the requirement left unverified, and every required command that
    could not run) when: a failure is proven unachievable (contradicts the spec or another requirement, needs an
    absent tool, access or authority, or would exceed the item); a recorded command is wrong or cannot run here; an
    existing suite the changed paths now affect must join the regression command; the step plan recorded no test
@@ -2533,7 +2536,7 @@ END_REVIEW_FOCUS_HEAD = """\
 End-of-work code review focus. Across every executed work item's change, trace
 each new or changed public entry point with a valid, a boundary and an invalid
 input, then review the change against the rubric below and for:
-- a code surface whose only check is a source search, not a run;
+- code whose only check is a source search, not a run;
 - a parser that checks each field but not how they combine;
 - a language pitfall handled in one place and not everywhere it applies;
 - a failure state that does not name the user's next action.
@@ -2745,7 +2748,7 @@ into this child's contract/review notes. Review independent assertions,
 setup/test/teardown (including justified stateless cases), sharing noninterference,
 failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost.
 Improve the tests themselves and rerun affected checks after edits within the
-assigned stage's expected check state; authoring and expected RED do not require
+assigned stage's expected check state; authoring and an expected failure do not require
 future production behavior to pass. Keep unresolved coverage visible.
 Include remote-resident definitions, framework availability, authorized invocation,
 execution location and deployed/test revision evidence; a local pass does not
@@ -2843,7 +2846,7 @@ guide to review evidence, commands, and classification only. You may improve
 run notes and repeat authorized checks, but may not edit product source, tests,
 dependency definitions, or product configuration, install dependencies, provision
 targets, or perform a repair/bootstrap to make the observation green. Keep an
-expected-RED repair or missing-coverage bootstrap as evidence for its named
+expected-failure repair or missing-coverage bootstrap as evidence for its named
 producer; a completed evidence review does not certify repository health.
 """
     return [baseline_guard, plan_guard, backchain, coding_review, assessment, outer_handshake, test_facilities,

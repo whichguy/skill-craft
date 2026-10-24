@@ -248,7 +248,7 @@ RULES: tuple[Rule, ...] = (
     _r("tail-callbacks", r"^(Improve: |Pause without consuming the action|Halt \(terminal)"),
     # --- Improve child packet (_render_improve)
     _r("improve-contract", r"^(Current action: Improve|Parent step remains pending)"),
-    _r("improve-step-result", r"^Step result \(untrusted evidence", "before", r"^Selected Improve skill:"),
+    _r("improve-step-result", r"^Stage result \(untrusted evidence", "before", r"^Selected Improve skill:"),
     _r("improve-binding", r"^(Selected Improve skill|Bound Until Loop|Until Loop root|Child workspace|"
        r"Read the selected Improve skill)"),
     _r("improve-review-focus", r"^(Planning|Final|Release|End)[^\n]* review focus\.", "until",

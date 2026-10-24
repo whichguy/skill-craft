@@ -1084,13 +1084,15 @@ class GuidanceTests(unittest.TestCase):
                         }
                         self.assertIn(anchor, headings)
 
-    def test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_red_na_route(self) -> None:
-        """An org-run Apex test: the reporter the reader can use, and why a new test cannot fail on the base (the unread route)."""
+    def test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_remote_test_route(self) -> None:
+        """An org-run Apex test: the reporter the reader can use, and why the base run leaves it out (a remote test, which
+        e074ccd3 made the base run skip; the card no longer sends a model to red_na)."""
         card = " ".join((REFERENCES / "platforms" / "salesforce.md").read_text(encoding="utf-8").split())
         for phrase in ("with a reporter it can read", "--result-format tap", "an `ok` or `not ok` line per test",
                        "put the outcome word after the test name", "refused as unread",
-                       "cannot fail unless the command deploys the tree first", "`red_na`"):
+                       "so it is a remote test (Remote tests below)", "the test stage's base run does not run it"):
             self.assertIn(phrase, card)
+        self.assertNotIn("red_na", card.split("## Remote tests")[0])
 
     def test_consumer_access_is_probed_read_only_at_prepare_and_again_at_release_check(self) -> None:
         """Packet review 2026-10-17 (F-7, X-1) and the implement-step plan's access row: the consumer's entry route and

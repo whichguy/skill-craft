@@ -5,7 +5,7 @@ Run exactly the callback the current packet printed on its line labelled
 `2. When the improve skill has completed, run:`). There are three kinds:
 
 ~~~sh
-# Producer step result (reads $RUN_DIR/inbox/$ACTION_ID.md, the path the callback's label names; --result takes only that path)
+# Producer stage result (reads $RUN_DIR/inbox/$ACTION_ID.md, the path the callback's label names; --result takes only that path)
 python3 "$SKILL_ROOT/scripts/shiploop" complete \
   --run-dir "$RUN_DIR" --action "$ACTION_ID"
 # Bind the selected Improve card when the Improve packet asks for it (the Improve stage's id)
@@ -17,8 +17,9 @@ python3 "$SKILL_ROOT/scripts/shiploop" complete \
 ~~~
 
 The producer result file is the packet's template, filled in: one `outcome`
-(`done`, `repeat` or `blocked`; outer steps may also `replan`), a nonempty
-`summary`, and `evidence_refs` naming the files this step wrote or the check
+(`done` or `blocked` at every stage; `send-back` from `test-spec` through `verify` and at
+`system-test` and `release-verify`; `add-work` at outer stages), a nonempty
+`summary`, and `evidence_refs` naming the files this stage wrote or the check
 output it recorded (an absolute path, or one led by `RUN/`, `KNOWLEDGE/`, `WORKTREE/` or `GUIDES/`,
 which ShipLoop expands; an inner stage's Until Loop receipt is listed by ShipLoop when the
 result leaves it out). The template placeholder is refused. The script refuses an
@@ -29,7 +30,7 @@ writes the summary itself; pass `--notes` for lessons, `--final-result` only
 when the review changed a decision, and `--no-commit` for a user's or
 repository's instruction not to commit. Every result at a planning stage the run's
 `planning_review` option reviews (all seven under `stage`, the default; only `system-test-author`
-and `release-plan` under `none`), including `blocked` and `repeat`,
+and `release-plan` under `none`), including `blocked`,
 and a `done` at the last `carry-forward` that leaves no work item pending, parks
 the action for its Improve stage instead of advancing. The Improve stage has its own action id
 (`$IMPROVE_ID`, printed in its packet); ShipLoop binds the recorded card, writes the opening and

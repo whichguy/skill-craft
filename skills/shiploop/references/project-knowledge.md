@@ -120,8 +120,8 @@ external-source quota or an inventory of every account.
 1. **Select the question and leads.** Retain permitted prompt hints about terms,
    aliases, team/tenant, channels, document/site links, repositories, owners and
    time windows in existing authorized notes. Sanitize hints for the note's
-   audience; sensitive locators belong only in an authorized knowledge home.
-   Use them as search leads, not established
+   audience; sensitive locators belong only in an authorized private store,
+   never in the committed knowledge home. Use them as search leads, not established
    definitions or proof of access. Hints are optional: follow relevant links and
    inspect the host's available capabilities when organizational context is
    needed. Resolve consequential ambiguity from evidence or one focused question;
@@ -165,8 +165,8 @@ external-source quota or an inventory of every account.
    private terms, identifiers, URLs or excerpts to public search or another
    service without authority covering that disclosure. Reading private material
    also does not authorize copying it into a public repository, report or task.
-   Retain the minimum permitted summary and safe locators in an authorized
-   knowledge home; if a consumer cannot access required evidence, record the
+   Retain the minimum permitted summary and safe locators in the knowledge home
+   only where its readers may see them; if a consumer cannot access required evidence, record the
    scoped gap instead of exporting the source or inventing a local snapshot.
 
 Use the [existing discovery handoff](#discovery-evidence-handoff): index selected
