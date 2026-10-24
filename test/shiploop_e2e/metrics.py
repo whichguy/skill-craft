@@ -708,12 +708,13 @@ def plan_dodges(plan: dict) -> dict:
     commands, and criteria confirmed by inspection.
 
     A check counts ``searched`` (context: a docstring or contract duty) when every criterion it names says confirm
-    ``searched``; ``executed`` when one says executed; ``unmatched`` when it names no criterion (a step's check, or a
-    command with no criteria). ``executed`` and ``unmatched`` are dodges."""
+    ``searched``; ``executed`` when one says executed; ``unmatched`` when it names no criterion (a step's proof, or a
+    command with no criteria). Only ``executed`` is a dodge: a command naming no criterion confirms nothing, and a step's
+    proof is followed by the item's real tests."""
     criteria = {str(c.get("id")): c for c in plan.get("criteria") or [] if isinstance(c, dict)}
     rows = [(str(c.get("command") or ""), [str(i) for i in c.get("criteria") or ()], c.get("suite"))
             for c in plan.get("test_commands") or [] if isinstance(c, dict)]
-    rows += [(str(s.get("check") or ""), [str(i) for i in s.get("criteria") or ()], "check")
+    rows += [(str(s.get("proof") or s.get("check") or ""), [str(i) for i in s.get("criteria") or ()], "proof")
              for s in plan.get("steps") or [] if isinstance(s, dict)]
     grep = {"searched": [], "executed": [], "unmatched": []}
     seen = set()
@@ -749,10 +750,11 @@ def surviving_mutants(run_dir: Path | None) -> int | None:
 def dodge_counts(run_dir: Path | None) -> dict:
     """Run-level test-quality dodges (the template experiments E2/E3), counted over every accepted step-plan result.
 
-    ``grep_executed`` and ``grep_unmatched`` (grep-only checks on code files serving an executed criterion, or none),
-    ``guarded`` (focused commands with a file guard) and ``inspected`` (criteria confirmed by inspection) are dodges and sum
-    into ``dodges``; ``grep_searched`` (a criterion whose confirm is searched: a docstring or contract duty) is context.
-    ``surviving_mutants`` is None when the run wrote no mutation record. ``plans`` 0 means nothing was measured."""
+    ``grep_executed`` (grep-only checks on code files serving an executed criterion; step-plan refuses these, so 0 shows
+    the gate held), ``guarded`` (focused commands with a file guard) and ``surviving_mutants`` sum into ``dodges``.
+    ``grep_searched`` (a docstring or contract duty) and ``grep_unmatched`` (no criterion, or a step's proof) are context;
+    ``inspected`` (criteria confirmed by inspection) is its own count. ``surviving_mutants`` is None when the run wrote no
+    mutation record. ``plans`` 0 means nothing was measured."""
     folder = run_dir / "results" if run_dir else None
     plans = []
     if folder is not None and folder.is_dir():
@@ -767,7 +769,7 @@ def dodge_counts(run_dir: Path | None) -> dict:
               "guarded": sum(len(p["guarded"]) for _a, p in plans),
               "inspected": sum(len(p["inspected"]) for _a, p in plans),
               "surviving_mutants": surviving_mutants(run_dir)}
-    counts["dodges"] = counts["grep_executed"] + counts["grep_unmatched"] + counts["guarded"] + counts["inspected"]
+    counts["dodges"] = counts["grep_executed"] + counts["guarded"] + (counts["surviving_mutants"] or 0)
     counts["by_action"] = {action: p for action, p in plans
                            if any(p["grep"].values()) or p["guarded"] or p["inspected"]}
     return counts
@@ -777,10 +779,10 @@ def dodge_text(counts: dict) -> str:
     """``Test-quality dodges: N (...)`` for the printed report."""
     mutants = counts.get("surviving_mutants")
     return (f"Test-quality dodges: {counts['dodges']} over {plural(counts['plans'], 'step plan')} "
-            f"(grep-only on code: {counts['grep_executed']} executed, {counts['grep_unmatched']} no criterion; "
-            f"guarded RED {counts['guarded']}; inspected criteria {counts['inspected']}); "
-            f"context: {counts['grep_searched']} searched greps, surviving mutants "
-            + ("none recorded" if mutants is None else str(mutants)))
+            f"(grep-only on code for an executed criterion {counts['grep_executed']}; guarded RED {counts['guarded']}; "
+            f"surviving mutants " + ("none recorded" if mutants is None else str(mutants)) + "); "
+            f"inspected criteria {counts['inspected']}; context: {counts['grep_searched']} searched greps, "
+            f"{counts['grep_unmatched']} greps with no criterion")
 
 
 def engine_state(run_dir: Path | None) -> dict:

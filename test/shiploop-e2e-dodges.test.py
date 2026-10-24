@@ -45,9 +45,10 @@ class GrepChecks(unittest.TestCase):
                                                 "suite": "focused"}]))
         self.assertEqual(found["grep"], {"searched": ["grep -q '@param move' src/board.js"], "executed": [], "unmatched": []})
 
-    def test_step_check_grep_with_no_criterion_is_a_dodge(self) -> None:
-        found = metrics.plan_dodges(step_plan([], [], [{"id": "S1", "check": "grep -n render lib/view.ts"}]))
+    def test_step_proof_grep_with_no_criterion_is_context(self) -> None:
+        found = metrics.plan_dodges(step_plan([], [], [{"id": "S1", "proof": "grep -n render lib/view.ts"}]))
         self.assertEqual(found["grep"]["unmatched"], ["grep -n render lib/view.ts"])
+        self.assertEqual(found["grep"]["executed"], [])
 
     def test_runner_or_docs_grep_is_not_counted(self) -> None:
         found = metrics.plan_dodges(step_plan([{"id": "C1", "text": "x", "confirm": "executed"}],
@@ -101,9 +102,9 @@ class RunCounts(unittest.TestCase):
         self.assertEqual({k: counts[k] for k in ("plans", "grep_searched", "grep_executed", "grep_unmatched", "guarded",
                                                  "inspected", "surviving_mutants", "dodges")},
                          {"plans": 1, "grep_searched": 1, "grep_executed": 1, "grep_unmatched": 0, "guarded": 1,
-                          "inspected": 1, "surviving_mutants": 2, "dodges": 3})
+                          "inspected": 1, "surviving_mutants": 2, "dodges": 4})
         line = metrics.dodge_text(counts)
-        self.assertIn("Test-quality dodges: 3", line)
+        self.assertIn("Test-quality dodges: 4", line)
         self.assertIn("surviving mutants 2", line)
 
     def test_absent_records_are_unmeasured_not_zero_mutants(self) -> None:
