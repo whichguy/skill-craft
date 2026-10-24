@@ -32,6 +32,15 @@ samples 1-4", which hid the real cause. Changes (test/shiploop_e2e/):
   9ed4ec24; E4 and E5 too, which clears the quick-tier "`old` occurs 0 times" failure of their B overlays.
 - `run --sample N` runs exactly one sample, so each sample can be its own background task.
 
+## E6 plan sizing (2026-10-24, status: firm for the harness, not yet run)
+
+E6-K1 to E6-K7 ask whether a measurable step bound (arm B, prose) or the same bound as a refusal (arm C) keeps an item's
+step plan inside its case's band, where Grok 4.7 put every Salesforce chess item in one step. Plan, cases and arms:
+docs/shiploop-plan-sizing-experiment-plan-2026-10-24.md; findings: docs/shiploop-plan-sizing-journal.md. Harness
+additions: `slice.py` case key `fake_sf`, four replay fixtures built by
+docs/experiments/shiploop-plan-sizing-20261024/build_fixtures.py, evaluators/e6_step_size.py with committed verify
+records, overlays e6-size-prose and e6-size-gate (against 9ed4ec24), tests `PlanSizing`.
+
 ## Decisions
 
 | date | experiment | arms | n | means | spread | gate | verdict | record |

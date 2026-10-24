@@ -46,6 +46,8 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -149,6 +151,29 @@ def seed_state(case: dict, out: Path, env: dict) -> dict | None:
     env[spec["env"]] = str(target)
     return {"env": spec["env"], "path": str(target),
             "files": sorted(str(p.relative_to(target)) for p in target.rglob("*") if p.is_file())}
+
+
+def fake_sf(case: dict, out: Path, env: dict) -> dict | None:
+    """A case's ``fake_sf`` ({"orgs": "de"}): fake_sf.py first on PATH as ``sf`` (<output>/shim), with its org state and
+    call log under <output>/fake-sf, so no command of the slice can reach a real org through ``sf`` (this machine has a
+    logged-in one). The shim goes into the host's environment, which every command ShipLoop and the host run inherits,
+    and into this process's own, which the case checks at grading (run.run_checks) and a regrade inherit."""
+    spec = case.get("fake_sf")
+    if not spec:
+        return None
+    shim, folder = out / "shim", out / "fake-sf"
+    shim.mkdir(exist_ok=True)
+    folder.mkdir(exist_ok=True)
+    sf = shim / "sf"
+    sf.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(HERE / 'fake_sf.py'))} \"$@\"\n")
+    sf.chmod(0o755)
+    fake = {"FAKE_SF_STATE": str(folder / "state.json"), "FAKE_SF_LOG": str(folder / "calls.jsonl"),
+            "FAKE_SF_ORGS": str(spec.get("orgs") or "de")}
+    for environment in (env, os.environ):
+        environment.update(PATH=f"{shim}{os.pathsep}{environment.get('PATH', '')}", **fake)
+        if shutil.which("sf", path=environment["PATH"]) != str(sf):
+            raise SystemExit(f"fake_sf: {sf} is not the first sf on PATH")
+    return {"shim": str(sf), "log": fake["FAKE_SF_LOG"], "orgs": fake["FAKE_SF_ORGS"]}
 
 
 def overshoot(state: dict, item: str) -> list[str]:
@@ -413,7 +438,9 @@ def regrade(out: Path, quiet: bool) -> int:
     earlier = json.loads((out / "slice-result.json").read_text())
     seeded = invocation["seeded"]
     identity = {k: invocation.get(k) for k in ("case", "host", "model", "delegation")}
-    return finish(out, Path(seeded["run_dir"]), seeded, load_step_case(invocation["case"]), earlier["sessions"],
+    case = load_step_case(invocation["case"])
+    fake_sf(case, out, {})  # the case checks rerun here; never against a real org
+    return finish(out, Path(seeded["run_dir"]), seeded, case, earlier["sessions"],
                   {**identity, "regraded": True}, quiet, invocation.get("stop_after"))
 
 
@@ -443,6 +470,7 @@ def main(argv: list[str] | None = None) -> int:
                           work_item=case["work_item"], delegation=args.delegation, checks=case["checks"],
                           home=not args.seed_without_home, records=merged_records(case, args.seed_records))
     target = seed_state(case, out, env)
+    shim = fake_sf(case, out, env)
     run_dir = Path(seeded["run_dir"])
     note = args.opening_note.read_text().strip() if args.opening_note else ""
     opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], args.delegation, args.seed_at)
@@ -455,7 +483,7 @@ def main(argv: list[str] | None = None) -> int:
                   "seeded": seeded, "checks": case["checks"], "expect_paths": case.get("expect_paths"),
                   "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt,
                   "seed_at": args.seed_at, "stop_after": args.stop_after, "ref": args.ref, "overlay": applied,
-                  "opening_note": note or None, "seed_state": target}
+                  "opening_note": note or None, "seed_state": target, "fake_sf": shim}
     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     (out / "prompt.txt").write_text(case["prompt"] + "\n")
     if not args.quiet:

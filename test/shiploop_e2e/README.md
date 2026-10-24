@@ -1831,3 +1831,9 @@ An arm builds its plugin from a git ref in a temporary detached worktree (`slice
 (`overlays/*.json`, `overlay.py`) over that build copy, never the source. `slice.py --seed-at test-strategy|test-spec`
 records the earlier stages from the case (its `seed_records`), and `--stop-after <stage>` ends the host once that stage
 is accepted. Samples land in `$SHIPLOOP_EXPERIMENTS_OUT` (default `~/e2e-runs/experiments`)/`<id>/<arm>/<n>/`.
+
+E6-K1 to E6-K7 (plan sizing, docs/shiploop-plan-sizing-experiment-plan-2026-10-24.md) score whether an item's step plan
+falls inside its case's `shape` band (`evaluators/e6_step_size.py`). Four of their cases replay a saved run at the point
+its step plan started; `docs/experiments/shiploop-plan-sizing-20261024/build_fixtures.py` builds them and `--check`
+proves the committed fixtures still match their sources. A case with `fake_sf` (`{"orgs": "de"}`) runs with `fake_sf.py`
+first on PATH as `sf`, for the host and for the harness's own grading, so it never reaches a real org.

@@ -1,0 +1,10 @@
+{
+  "packageDirectories": [
+    {
+      "path": "force-app",
+      "default": true
+    }
+  ],
+  "name": "slchess",
+  "sourceApiVersion": "68.0"
+}

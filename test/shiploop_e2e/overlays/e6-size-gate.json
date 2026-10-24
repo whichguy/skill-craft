@@ -1,0 +1,32 @@
+{
+  "about": "E6 arm C: arm B's three duty-4 edits plus the same bound as a refusal in _check_step_sizing (complete and --check-only): a step without paths, with more than 3 product files (the count e6_step_size.py reports) or more than 4 criteria is refused with the split rule. Written against 9ed4ec24 (arm T).",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "   - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable\n     behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with\n     \"and\", or too large for one review. Fold a step no check confirms alone (half a rename, scaffolding) into the\n     first step that uses it. A single bug fix or mechanical rename is one step.\n",
+      "new": "   - Size each as one behaviour-level change a named check proves: at most 4 criteria and 3 product files (a\n     `-meta.xml` sidecar counts with its file; tests, docs and the step's own check script do not). More criteria or\n     files, a second module or layer (interface first, then each side), two separately confirmable behaviours or two\n     outcomes joined with \"and\" make another step. Fold a step no check confirms alone (half a rename, scaffolding)\n     into the first step that uses it. A single bug fix or mechanical rename is one step.\n"
+    },
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "Optional `paths` (inside the item's) serve the parallel chain.",
+      "new": "Its `paths` (inside the item's) name every file it changes, so its size can be checked."
+    },
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "Remote-only target: the recorded test route only. None runs\n     now: change the step boundary.",
+      "new": "Remote-only target: the recorded test route only, and the steps share one proof script: the first step adds\n     it and each later step adds its own assertions, so a split costs one more run, not a new script. None runs\n     now: change the step boundary."
+    },
+    {
+      "module": "shiploop_navigator.py",
+      "function": "_check_step_sizing",
+      "old": "        _need(not outside, \"step \" + name + \" changes paths the item does not declare: \" + \", \".join(outside)\n              + \". Add them to the result's paths, or move that work to the step that owns them.\")\n",
+      "new": "        _need(not outside, \"step \" + name + \" changes paths the item does not declare: \" + \", \".join(outside)\n              + \". Add them to the result's paths, or move that work to the step that owns them.\")\n        _need(step.get(\"paths\"), \"step \" + name + \" must list paths: every file it changes, inside the item's \"\n              \"paths, so its size can be checked\")\n        proof = str(step.get(\"check\") or \"\")\n        product = sorted({path[:-len(\"-meta.xml\")] if path.endswith(\"-meta.xml\") else path\n                          for path in step.get(\"paths\") or ()\n                          if not (path in proof and (path.endswith((\".sh\", \".apex\")) or path.startswith(\"scripts/\")))\n                          and item_scope.classify(path) not in (\"test\", \"docs\", \"config\")})\n        _need(len(product) <= 3, \"step \" + name + \" changes \" + str(len(product)) + \" product files (\"\n              + \", \".join(product) + \"); a step changes at most 3 (a -meta.xml sidecar counts with its file; tests, \"\n              \"docs and its own check script do not). Split it: one module or layer per step, the interface first.\")\n        _need(len(step.get(\"criteria\") or ()) <= 4, \"step \" + name + \" satisfies \"\n              + str(len(step.get(\"criteria\") or ())) + \" criteria; a step satisfies at most 4. Split it into steps \"\n              \"that each prove fewer.\")\n"
+    }
+  ]
+}

@@ -334,5 +334,115 @@ class Evaluators(unittest.TestCase):
         self.assertFalse(e2_layers.source_search("node --test", None))
 
 
+E6 = sorted(k for k in experiment.load() if k.startswith("E6-"))
+# Arm C's gate, run against arm T's own navigator with the overlay applied (argv: scripts dir, cases JSON).
+GATE_PROBE = """
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import shiploop_navigator as nav
+out = {}
+for name, result in json.loads(sys.argv[2]).items():
+    try:
+        nav._check_step_sizing(result)
+        out[name] = "accepted"
+    except nav.NavigatorError as exc:
+        out[name] = "refused: " + str(exc)
+print(json.dumps(out))
+"""
+
+
+class PlanSizing(unittest.TestCase):
+    """E6 (docs/shiploop-plan-sizing-experiment-plan-2026-10-24.md): cases, seeds, the fake sf and arm C's gate."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-e6-")
+        self.addCleanup(self.temp.cleanup)
+        self.tmp = Path(self.temp.name)
+
+    def test_the_evaluator_fails_run_4s_one_step_plans_and_passes_the_split_ones(self):
+        rows = experiment.evaluator(experiment.load("E6-K1")).verify()
+        self.assertGreaterEqual(len(rows), 10)
+        self.assertTrue(all(r["ok"] for r in rows), json.dumps(rows, indent=2, default=str)[:3000])
+
+    def test_every_e6_case_has_a_band_and_a_fixture_and_every_arm_names_a_commit(self):
+        for exp_id in E6:
+            exp = experiment.load(exp_id)
+            case = step_slice.load_step_case(exp["case"])
+            with self.subTest(exp=exp_id):
+                low, high = case["shape"]["steps"]
+                self.assertTrue(low >= 1 and (high is None or high >= low))
+                self.assertTrue((step_slice.FIXTURES / case["fixture"]).is_dir())
+                self.assertEqual((exp["seed_at"], exp["stop_after"]), ("step-plan", "step-plan"))
+                self.assertEqual(sorted(exp["arms"]), ["A", "B", "C", "T"])
+
+    def test_each_replay_seeds_at_step_plan_with_its_plan_records_and_the_packet_names_its_item(self):
+        for name in ("sf-chess-engine", "sf-chess-board-entry", "node-battleship-server", "node-chess-engine"):
+            spec = step_slice.load_step_case(name)
+            with self.subTest(case=name):
+                work = self.tmp / name / "work"
+                work.mkdir(parents=True)
+                seeded = run.seed_run(CLI, work, self.tmp / name, spec["prompt"], "step-plan",
+                                      fixture=step_slice.FIXTURES / spec["fixture"], work_item=spec["work_item"],
+                                      delegation="inline", checks=spec["checks"],
+                                      records=step_slice.merged_records(spec, None))
+                self.assertEqual(seeded["stage"], "step-plan")
+                self.assertIn(spec["work_item"]["title"], _next(CLI, seeded["run_dir"]))
+                self.assertTrue((work / "docs" / "shiploop" / "spec.md").read_text().startswith("# "))
+
+    def test_fake_sf_is_first_on_both_paths_and_answers_without_a_real_org(self):
+        from unittest import mock  # noqa: PLC0415
+        out = self.tmp / "out"
+        out.mkdir()
+        env = {"PATH": "/usr/bin:/bin"}
+        with mock.patch.dict("os.environ", {}):
+            shim = step_slice.fake_sf(step_slice.load_step_case("sf-chess-engine"), out, env)
+            import os  # noqa: PLC0415
+            self.assertEqual(shutil.which("sf", path=os.environ["PATH"]), shim["shim"])
+        self.assertEqual(shutil.which("sf", path=env["PATH"]), shim["shim"])
+        done = subprocess.run(["sf", "org", "list", "--json"], env=env, capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn('"alias": "de"', done.stdout)
+        self.assertTrue(Path(shim["log"]).read_text().strip())
+        self.assertIsNone(step_slice.fake_sf(step_slice.load_step_case("node-chess-engine"), out, {}))
+
+    def test_arm_c_refuses_an_oversized_or_undeclared_step_and_accepts_a_split_plan(self):
+        if subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--verify", "-q", T_REF + "^{commit}"],
+                          capture_output=True).returncode:
+            self.skipTest(f"{T_REF} is not in this clone")
+        tar = subprocess.run(["git", "-C", str(ROOT), "archive", T_REF, "skills/shiploop/scripts",
+                              "skills/shiploop/references"], check=True, capture_output=True).stdout
+        import tarfile  # noqa: PLC0415
+        with tarfile.open(fileobj=io.BytesIO(tar)) as archive:
+            archive.extractall(self.tmp, filter="data")
+        scripts = self.tmp / "skills" / "shiploop" / "scripts"
+        overlay.apply(json.loads((E2E / "overlays" / "e6-size-gate.json").read_text()), scripts)
+        records = E2E / "evaluators" / "e6_records"
+        engine = "force-app/main/default/classes/SLChess"
+        crit = [{"id": f"C{n}", "text": f"Criterion {n}."} for n in range(1, 6)]
+        cases = {
+            "run 4 W1 (no step paths)": json.loads((records / "run4-w1.json").read_text()),
+            "battleship-1 W2 (six one-file steps)": json.loads((records / "battleship1-w2.json").read_text()),
+            "four product files": {"criteria": crit[:1], "paths": [engine + "*", "scripts/*"],
+                                   "steps": [{"id": "S1", "criteria": ["C1"], "check": "sh scripts/s1-check.sh",
+                                              "paths": [f"{engine}{n}.cls" for n in "ABCD"] + ["scripts/s1-check.sh"]}]},
+            "five criteria": {"criteria": crit, "paths": [engine + "A.cls"],
+                              "steps": [{"id": "S1", "criteria": [c["id"] for c in crit], "check": "true",
+                                         "paths": [engine + "A.cls"]}]},
+            "three files, a sidecar and its proof script": {
+                "criteria": crit[:2], "paths": [engine + "*", "scripts/*"],
+                "steps": [{"id": "S1", "criteria": ["C1", "C2"], "check": "sh scripts/s1-check.sh",
+                           "paths": [engine + "A.cls", engine + "A.cls-meta.xml", engine + "B.cls", engine + "C.cls",
+                                     "scripts/s1-check.sh"]}]}}
+        done = subprocess.run([sys.executable, "-B", "-c", GATE_PROBE, str(scripts), json.dumps(cases)],
+                              capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr[-2000:])
+        got = json.loads(done.stdout)
+        self.assertIn("must list paths", got["run 4 W1 (no step paths)"])
+        self.assertEqual(got["battleship-1 W2 (six one-file steps)"], "accepted")
+        self.assertIn("4 product files", got["four product files"])
+        self.assertIn("5 criteria", got["five criteria"])
+        self.assertEqual(got["three files, a sidecar and its proof script"], "accepted")
+
+
 if __name__ == "__main__":
     unittest.main()
