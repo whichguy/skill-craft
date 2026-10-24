@@ -892,7 +892,7 @@ class GuidanceTests(unittest.TestCase):
         open_locator = "HOME/architecture.md ## Real-boundary checks RB-2"
         cases = [dict(plans.TEST_CASES[0], oracle="Procedure " + case_locator + ", through the public call"),
                  plans.TEST_CASES[1]]
-        later = {"id": "A1", "disposition": "open", "consumer": "release-verify", "owner": "a person with access",
+        later = {"id": "A1", "disposition": "open", "due_stage": "release-verify", "owner": "a person with access",
                  "assumption": "TC-1's criterion C1 (R-1) on the released consumer surface is unobserved",
                  "settle": "Run " + open_locator + " on the released candidate; report what it shows",
                  "reason": "no route to that surface from this host"}
@@ -1991,7 +1991,7 @@ class GuidanceTests(unittest.TestCase):
             "no route on this host per the discovery and test-strategy records",
             "does not block this result",
             "Record it as an open item in `assumptions`: case ID, who does what, what they report, "
-            "owner (a person), due stage (handoff, or the stage whose external effect it gates) as `consumer`",
+            "owner (a person), due stage (handoff, or the stage whose external effect it gates) as `due_stage`",
             "Submit done once every other due check and ShipLoop's rerun pass",
             "handoff reports it unverified, never as a pass",
             "Report blocked with `awaiting` only when a later stage takes an external, "
@@ -2734,8 +2734,8 @@ class CaseEndStateTests(unittest.TestCase):
             "A case that cannot run here (a browser or account this host cannot reach) is unachievable",
             "Leave its command out of `system_commands`",
             "Record it as an open item in `assumptions`: `assumption` = case ID and the requirement left unverified; "
-            "`settle` = who does what and reports what; `owner`; `reason` it cannot run here; `consumer` = the due "
-            "stage (handoff, or the stage whose external effect it gates)",
+            "`settle` = who does what and reports what; `owner`; `reason` it cannot run here; `due_stage` = handoff, "
+            "or the stage whose external effect it gates",
             "Report blocked only when nothing else can proceed",
         ):
             self.assertIn(clause, duty)

@@ -36,8 +36,10 @@ return (owner rule, 2026-10-24).
 | remote test | A test that runs against a deployed target (remote-resident), listed by a platform card under `## Remote tests`. The base run and the mutation check skip it and record why. It is one kind of real-boundary check. | `references/platforms/*.md` | |
 | KNOWLEDGE | The committed knowledge home, `docs/shiploop/`: spec, environment and architecture. Later runs inherit it. | symbol `KNOWLEDGE/` | a private store |
 | private store | An authorized place outside the repository for sensitive locators. | intake duty 3 | KNOWLEDGE |
-| open item | What is left for a person or a later stage: who does what and what they report back. It is an open `assumptions` row where the result has that list (with its due stage; R3 renames `consumer` to `due_stage`), else a summary entry. | `assumptions`, or the summary | a work item |
-| due stage | The later stage where an open item or an unverified outcome must be settled. | `unverified[].due_stage`; `assumptions[].consumer` until R3 | |
+| open item | What is left for a person or a later stage: who does what and what they report back (`settle`). It is an open `assumptions` row where the result has that list, else a summary entry. | `assumptions`, or the summary | a work item |
+| due stage | The later stage where an open item or an unverified outcome must be settled. | `assumptions[].due_stage`, `unverified[].due_stage` | a due item |
+| due item | The work item that settles one of the plan's open assumptions (the plan has no later stage to name). | the plan's open `assumptions[].due_item` | a due stage |
+| consumer | The person or system that uses what the run delivers: its entry, its checks and its delivery contract. | `consumer_checks`, `consumer_entry`, `consumer` in a delivery contract | an open item's due stage |
 | Until Loop | The loop each inner stage runs until its exit conditions hold. Its terminal record is the receipt. | `Contract:` and `Receipt:` lines | |
 | exit conditions | What must hold for a stage to be done, listed under "Done when". | `Done when:` | |
 | Improve stage | The `improve` action ShipLoop issues after a reviewed stage. R4 settles stage, review and child. | stage `improve` | |
@@ -80,6 +82,8 @@ lists, such as the refusal that tells a model it is retired. `pattern` is a regu
  {"retired": "acceptance criteria (inside a requirement)", "use": "acceptance lines", "since": "2026-10-24",
   "pattern": "(?i)acceptance criteri", "allow": []},
  {"retired": "a step's requirement (its criterion)", "use": "criterion", "since": "2026-10-24",
-  "pattern": "requirement assigned to this step|requirements that have been stated|requirement's Confirm-by", "allow": []}
+  "pattern": "requirement assigned to this step|requirements that have been stated|requirement's Confirm-by", "allow": []},
+ {"retired": "an open item's consumer (where it is settled)", "use": "due_stage, or at plan due_item", "since": "2026-10-24",
+  "pattern": "`consumer` = |\\bas `consumer`|consumer work item|open: `consumer`|an open assumption's `consumer`", "allow": []}
 ]
 ```

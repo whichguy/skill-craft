@@ -294,7 +294,7 @@ def open_assumptions(state: Mapping[str, Any], work_item: str) -> List[Mapping[s
     """The plan's open assumptions whose consumer is ``work_item``."""
     plan = test_loop._latest_root_result(state, "plan")
     return [row for row in plan.get("assumptions") or () if isinstance(row, Mapping)
-            and row.get("disposition") == "open" and row.get("consumer") == work_item]
+            and row.get("disposition") == "open" and row.get("due_item") == work_item]
 
 
 def _base_files(repo: Path, base: Optional[Mapping[str, Any]]) -> Optional[List[str]]:
@@ -396,7 +396,7 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
         _need(not stray, "expectations cite from " + ", ".join(stray) + ", which is not an open plan assumption "
               "whose consumer is " + work_item + (" (those are " + ", ".join(sorted(opened)) + ")" if opened else ""))
         uncited = sorted(opened - cited)
-        _need(not uncited, "open plan assumptions " + ", ".join(uncited) + " name " + work_item + " as consumer; "
+        _need(not uncited, "open plan assumptions " + ", ".join(uncited) + " name " + work_item + " as due_item; "
               "add an expectation for each with \"from\": \"<assumption id>\" and a check that settles it")
 
 

@@ -444,13 +444,14 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_the_plan_says_each_assumption_takes_exactly_the_printed_fields_and_a_plan_consumer(self) -> None:
         text = flat(self.found[("plan", "producer")])
         # Packet re-cut: duty 16 says "exactly the fields the template shows" (the old "ShipLoop refuses any extra key"
-        # sentence is gone; "exactly" carries the rule) and an open assumption's consumer is a work item's ID.
+        # sentence is gone; "exactly" carries the rule) and an open assumption's due_item is a work item's ID (R3: the
+        # plan's open rows name a work item, the later stages' a due stage).
         self.assertIn("with exactly the template's fields per disposition", text)
-        for disposition, fields in assumptions._FIELDS.items():
+        for disposition, fields in dict(assumptions._FIELDS, open=assumptions._PLAN_OPEN).items():
             names = ", ".join("`" + name + "`" for name in sorted(fields))
             with self.subTest(disposition):
                 self.assertIn(disposition + ": " + names, text)
-        self.assertIn("An open assumption's `consumer` is the `work_items` ID that settles it", text)
+        self.assertIn("An open assumption's `due_item` is the `work_items` ID that settles it", text)
 
     # row 11b: a file written before a close names the close that refuses without it, taken from the gate itself.
     def refusals(self) -> dict:

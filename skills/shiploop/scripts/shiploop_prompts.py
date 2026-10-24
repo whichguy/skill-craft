@@ -1236,7 +1236,7 @@ DUTIES = {
     parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `consumer`, `reason`, `settle`). An open assumption's `consumer` is the `work_items` ID that settles it
+    open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it
     (1,200 characters per item).
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
@@ -1379,7 +1379,7 @@ Write no test code in this stage.
 6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
    it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
 7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
-   `assumption`; `settle`; `consumer` = that outer stage; owner). A criterion confirmed `searched` or `inspected`: no
+   `assumption`; `settle`; `due_stage` = that outer stage; owner). A criterion confirmed `searched` or `inspected`: no
    case; list it with its command or Test layers row in the summary. Untestable as written: report send-back naming it.
 8. evidence_refs: the harness and suite decision locators, the step plan's, the requirement sections used.
 """,
@@ -1538,7 +1538,7 @@ in order; """ + _VERIFY_ONCE + """
    finding). If anything changed, rerun item 1.
 """ + _VERIFY_ASSEMBLY + """\
 9. **Later checks.** Each system, release or real-boundary check the criteria need is an open item in `assumptions`
-   with its consumer (the stage it is due at) and owner; add any missing one. A boundary no local test proves stays
+   with its `due_stage` and owner; add any missing one. A boundary no local test proves stays
    pending with its owner in KNOWLEDGE/architecture.md ## Real-boundary checks (Real-boundary test guidance).
 10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
     commit. """ + _ITEM_COMMIT + """
@@ -1559,7 +1559,7 @@ in order; """ + _VERIFY_ONCE + """
      included (State and data assessment). Keep unaffected clauses, and never relax one to fit the code or tests.
      Test IDs live only in test code: write none here.
    - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
-     owns: open items in `assumptions`, each with owner and, as `consumer`, the later outer stage it is due at.
+     owns: open items in `assumptions`, each with owner and, as `due_stage`, the later outer stage it is due at.
    - Carry the prior baseline, incoming delta and updated knowledge locators forward, keeping historical snapshots
      (Current-system baseline guide); retain the house style (House-style guidance) and the learnings the next run
      needs (Persistent project-knowledge guidance).
@@ -1646,8 +1646,8 @@ in order; """ + _VERIFY_ONCE + """
 7. A case that cannot run here (a browser or account this host cannot reach) is unachievable. Leave its command out
    of `system_commands` (ShipLoop reruns every recorded command and refuses unless each passes). Record it as an
    open item in `assumptions`: `assumption` = case ID and the requirement left unverified; `settle` = who does what
-   and reports what; `owner`; `reason` it cannot run here; `consumer` = the due stage (handoff, or the stage whose
-   external effect it gates). Continue with every runnable case. Report blocked only when nothing else can proceed,
+   and reports what; `owner`; `reason` it cannot run here; `due_stage` = handoff, or the stage whose
+   external effect it gates. Continue with every runnable case. Report blocked only when nothing else can proceed,
    add-work when product work is missing.
 8. The integrated test plan goes in `summary` under the catalog and in KNOWLEDGE/environment.md ## Harnesses and suites
    (OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands, lifecycle and
@@ -1681,7 +1681,7 @@ in order; """ + _VERIFY_ONCE + """
 7. A required case only a person can run (for example in a signed-in browser), with no route on this host per the
    discovery and test-strategy records and its command left out of `system_commands`, does not block this result.
    Record it as an open item in `assumptions`: case ID, who does what, what they report, owner (a person), due stage
-   (handoff, or the stage whose external effect it gates) as `consumer`. Submit done once every other due check and
+   (handoff, or the stage whose external effect it gates) as `due_stage`. Submit done once every other due check and
    ShipLoop's rerun pass; handoff reports it unverified, never as a pass. Report blocked with `awaiting` only when a
    later stage takes an external, hard-to-reverse effect the case gates, or nothing else can proceed. An enabled
    delivery contract keeps its own obligation phases.
@@ -1764,7 +1764,7 @@ in order; """ + _VERIFY_ONCE + """
    nothing the return plan excluded, no ignored or unmanaged file); with none yet, in the work area, and says so.
    Write paths relative to the starting directory, put what a fresh consumer needs (install, build) in the check,
    and never write into the user's checkout by absolute path. A check only a person can make is an open item in
-   `assumptions` (who, where, what to report) with release-verify or handoff as `consumer`, not a command. None
+   `assumptions` (who, where, what to report) with release-verify or handoff as `due_stage`, not a command. None
    applies: empty list with `consumer_checks_na` and the reason.
 7. `consumer_entry`: `how` a person reaches the result (app or menu entry name and URL path, command, page) and the
    repository `sources` files that create that entry.

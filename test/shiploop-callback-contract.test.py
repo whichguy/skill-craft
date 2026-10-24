@@ -107,7 +107,7 @@ UNVERIFIED_ENTRY = {"outcome": "the exported file opens in the customer's reader
 UNVERIFIED_EARLY = dict(UNVERIFIED_ENTRY, outcome="the deployed page loads for a signed-in user",
                         reason="no sign-in is available to this run", due_stage="release-check")
 OPEN_ASSUMPTION = {"id": "A1", "assumption": "the export is checked by file tests only", "disposition": "open",
-                   "settle": "open the export in the reader", "reason": "no reader here", "consumer": "W1"}
+                   "settle": "open the export in the reader", "reason": "no reader here", "due_item": "W1"}
 
 
 def write_block(path: Path, value: object, *, loop: bool = True) -> None:
@@ -422,7 +422,7 @@ class RefusalRouteTests(RealCliCase):
              "evidence_refs cite files that do not exist"),
             ("an open assumption whose consumer is not in the plan", "plan",
              lambda block: {**block, "assumptions": [{"id": "A2", "assumption": "y holds", "disposition": "open",
-                                                      "settle": "run y", "reason": "later", "consumer": "W9"}]},
+                                                      "settle": "run y", "reason": "later", "due_item": "W9"}]},
              "is not a work item in this plan"),
             ("a criterion no test command names", "step-plan",
              lambda block: {**block, "criteria": [*block["criteria"], {"id": "C2", "text": "an unnamed criterion", "confirm": "executed"}],
@@ -1051,7 +1051,7 @@ class PersonObservationRouteTests(RealCliCase):
         return {"id": ident, "assumption": "Board line " + line + " holds in the released board.", "disposition": "open",
                 "settle": "the person plays line " + line + " on /app/board and reports yes or no",
                 "reason": "not-run: the reply left it unanswered: " + json.dumps(self.REPLY),
-                "consumer": "handoff", "owner": "the user"}
+                "due_stage": "handoff", "owner": "the user"}
 
     def test_a_partial_reply_completes_release_verify_with_the_unanswered_cases_open_for_handoff(self) -> None:
         run, head = self.new_run("release-verify")
@@ -1071,7 +1071,7 @@ class PersonObservationRouteTests(RealCliCase):
         # The reply and what it settles are in the print itself, not only in the packet file (F-20).
         self.assertIn("  Reply: " + self.REPLY, printed)
         rule = next(row for row in printed.splitlines() if row.startswith("Cases the reply leaves unanswered: "))
-        self.assertIn("an open item in `assumptions` (consumer handoff, the reply quoted in its reason)", rule)
+        self.assertIn("an open item in `assumptions` (due_stage handoff, the reply quoted in its reason)", rule)
         self.assertIn("block again only if the reply answers none of the asked cases", rule)
         self.assertNotIn("delivery obligation", rule)  # this run has no delivery contract
         self.assertLess(printed.index(rule), printed.index("Result template:"))
@@ -1351,7 +1351,7 @@ class UnverifiedRouteTests(RealCliCase):
         run, head = self.at("product-acceptance", plan={"assumptions": [OPEN_ASSUMPTION]})
         packet = self.full_packet(head)
         self.assertIn("Plan assumptions recorded open at planning", packet)
-        self.assertIn("A1 (consumer W1): the export is checked by file tests only", packet)
+        self.assertIn("A1 (due W1): the export is checked by file tests only", packet)
         self.assertIn("to settle: open the export in the reader", packet)
         # The ledger never updates a disposition, so the line states what was recorded, not that it is still true.
         self.assertIn("the ledger does not update dispositions", packet)

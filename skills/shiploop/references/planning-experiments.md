@@ -53,7 +53,7 @@ research's decision-note list and add each load-bearing assumption the plan intr
 whose failure would change a plan decision, consumer or acceptance check. Each
 has one disposition: evidenced (`evidence` locators), probed (`check` plus
 `evidence` naming its saved output file) or open (`settle`: what would settle it,
-`reason` it was not run, and the `consumer` work item that settles or blocks on
+`reason` it was not run, and the `due_item`, the work item that settles or blocks on
 it). The list is what makes choosing zero experiments visible; an unlisted
 assumption is an unreviewed one. The exit requires a disposition for every entry
 and no open entry that a feasible bounded probe within the remaining allowance

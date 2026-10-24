@@ -157,7 +157,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # follows, assumptions, test_cases, step notes or lessons the next stage cannot use.
     "handoff_placeholders": re.compile(r"Replace placeholders in |that has real values,"),
     "handoff_follows": re.compile(r"follows is a list of the R-<n> and AD-<n>|Add follows to \S|Fix the follows IDs in \S"),
-    "handoff_open_items": re.compile(r"Add assumptions to \S|Fix the consumers in \S|Fix the evidence in \S"),
+    # "Fix the consumers" is the wording before run-5 batch R3 (2026-10-24), kept so older runs still classify.
+    "handoff_open_items": re.compile(r"Add assumptions to \S|Fix the (?:due stages|consumers) in \S|Fix the evidence in \S"),
     "handoff_test_cases": re.compile(r"Not listed by a focused command of|Add test_cases to \S|Add the missing cases to \S|"
                                      r"Fix the case IDs in \S|Fix the case criteria in \S|Fix case requirements in \S"),
     "handoff_step_notes": re.compile(r"Add (?:learned and decisions|learned|decisions) to \S|Fix learned_from in \S"),
@@ -175,10 +176,10 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "concerns_gate": re.compile(r"concern rows are|concerns is (?:an object|a list)|unknown concern|concern \S+ is "
                                 r"(?:listed|mapped) twice|concerns names items that are not in work_items|no step "
                                 r"delivers|concerns maps concerns the plan does not give"),
-    # An open plan assumption's consumer and an expectation's "from" must name each other both ways
+    # An open plan assumption's due_item and an expectation's "from" must name each other both ways
     # (shiploop_expectations.py:396-399).
-    "assumptions_consumer": re.compile(r"expectations cite from .+, which is not an open plan assumption|"
-                                       r"open plan assumptions .+ name .+ as consumer"),
+    "assumptions_due_item": re.compile(r"expectations cite from .+, which is not an open plan assumption|"
+                                       r"open plan assumptions .+ name .+ as (?:due_item|consumer)"),
     # Open-item (assumptions) record shape (shiploop_assumptions.py).
     "assumptions_gate": re.compile(r"assumption \S+ is listed twice|assumptions is a list of"),
     # Expectations: a step's expectations must list every changed path and the path's presence on the item's lint

@@ -184,7 +184,7 @@ V6_REASON = ("this run was saved before each implementation step recorded its Pr
 # outcome's way to settle is `settle`; a version-8 run's step plans and open items still use `check` for both.
 V8_REASON = ("this run was saved with state version 8, whose step plans call each step's command `check` and whose open "
              "items and unverified outcomes call the way to settle them `check`; ShipLoop now names them `proof` and "
-             "`settle`. " + FRESH_RUN_HINT)
+             "`settle`, and an open item's `consumer` is now its `due_stage` (or, at plan, `due_item`). " + FRESH_RUN_HINT)
 _MANAGED_MARKER = "managed_improve_protocol_version"
 _EPHEMERAL_IMPROVE_RUNTIME = "until_loop_ephemeral.py"
 # Printed for a saved run whose bound Improve child names a durable runtime; the
@@ -934,7 +934,7 @@ def _answered_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
              "  Reply: " + _bounded_packet_text(str(decision.get("reply", "")), limit=4000),
              "Act on this reply; it is the user's decision, recorded verbatim."]
     if wait.get("kind") == "present":
-        where = ("an open item in `assumptions` (consumer handoff, the reply quoted in its reason)"
+        where = ("an open item in `assumptions` (due_stage handoff, the reply quoted in its reason)"
                  if history[-1]["stage"] in assumptions.OPEN_ITEM_STAGES else "not-run in `summary`, the reply quoted")
         marked = state.get("delivery_contract_version") == consumer_delivery.DELIVERY_CONTRACT_VERSION
         lines.append("Cases the reply leaves unanswered: record each as " + where + " and continue with the rest of "
@@ -3104,8 +3104,8 @@ def _check_producer_bounds(stage: str, result: Any) -> None:
         per_item: dict[str, int] = {}
         for row in result.get("assumptions") or ():
             if isinstance(row, Mapping) and row.get("disposition") == "open":
-                consumer = str(row.get("consumer"))
-                per_item[consumer] = per_item.get(consumer, 0) + sum(
+                due_item = str(row.get("due_item"))
+                per_item[due_item] = per_item.get(due_item, 0) + sum(
                     len(str(row.get(key) or "")) for key in ("assumption", "settle", "reason"))
         over = sorted(item for item, size in per_item.items() if size > OPEN_ASSUMPTIONS_LIMIT)
         _need(not over, "the open assumptions of " + ", ".join(f"{item} ({per_item[item]:,} characters)" for item in over)
@@ -3246,8 +3246,8 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
     try:
         rows = assumptions.canonical(result.get("assumptions"), stage)
         queue = result.get("work_items", state["work_items"])
-        consumers = {row["id"] for row in queue if isinstance(row, Mapping) and "id" in row}
-        assumptions.check_consumers(rows, consumers)
+        items = {row["id"] for row in queue if isinstance(row, Mapping) and "id" in row}
+        assumptions.check_due_items(rows, items)
         assumptions.check_files(rows)
     except assumptions.AssumptionError as exc:
         raise NavigatorError(str(exc)) from exc
@@ -3352,15 +3352,15 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         if "assumptions" not in result:
             return _Fault("Add assumptions to {result}", "adds assumptions",
                           ['Shape: the open items this stage leaves, or [] when none; each {"id", "assumption", '
-                           '"disposition": "open", "settle", "reason", "consumer", "owner" (a person, when the duty '
-                           "names one)}. Later stages quote each until its consumer settles it."])
-        wrong = assumptions.wrong_consumers(result["assumptions"], stage)
+                           '"disposition": "open", "settle", "reason", "due_stage", "owner" (a person, when the duty '
+                           "names one)}. Later stages quote each until its due stage settles it."])
+        wrong = assumptions.wrong_due_stages(result["assumptions"], stage)
         if wrong:
-            return _Fault("Fix the consumers in {result}", "fixes consumers",
+            return _Fault("Fix the due stages in {result}", "fixes due stages",
                           ["Name a later outer stage (or carry-forward, from test-spec or verify) as each open item's "
-                           "consumer; work for a later item goes in carry-forward's work_items.",
-                           "; ".join(ident + " names '" + consumer + "'" for ident, consumer in wrong)
-                           + "; the allowed consumers are " + ", ".join(assumptions.allowed_consumers(stage)) + "."])
+                           "due_stage; work for a later item goes in carry-forward's work_items.",
+                           "; ".join(ident + " names '" + due_stage + "'" for ident, due_stage in wrong)
+                           + "; the allowed due stages are " + ", ".join(assumptions.allowed_due_stages(stage)) + "."])
         try:
             assumptions.check_files(result["assumptions"])
         except assumptions.AssumptionError as exc:
@@ -3412,7 +3412,7 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
     TypeError.  A refusal's line 1 is the fix, one absolute path (the result file) and ``next_step``; line 2 the shape and
     who quotes it; the failing IDs follow in full.  Checks: step-plan's follows exist as entries; test-spec's cases
     match the item's focused IDs both ways, with real criteria and requirements; release-verify has lessons; the
-    open-item stages list their open items with an allowed consumer; no hand-off string is a template placeholder.
+    open-item stages list their open items with an allowed due stage; no hand-off string is a template placeholder.
     """
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
@@ -3497,7 +3497,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     - not_covered: one Source per done implement result of the item after its latest step plan.
     - system_commands, lessons: the current system-test-author and release-verify results.
     - assumptions: ``assumptions.open_items``: at step-plan the plan's rows naming the item; at carry-forward,
-      product-acceptance and handoff every open row; at another stage the rows naming that stage as consumer.
+      product-acceptance and handoff every open row; at another stage the rows naming that stage as due stage.
     - spec_diff: ``knowledge_home.spec_diff`` (None without a run baseline or outside a checkout).
     At an inline implement step, follows, criteria and test_cases are cut to ``step_scope`` when it is not None.
     A key with nothing recorded is a Source whose value is None.  Reads state and files; spec_diff runs one git diff.
@@ -3519,9 +3519,9 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
         elif key == "assumptions":
             rows = assumptions.open_items(state)
             if stage == "step-plan":
-                rows = [found for found in rows if found.stage == "plan" and found.row.get("consumer") == item]
+                rows = [found for found in rows if found.stage == "plan" and found.row.get("due_item") == item]
             elif stage not in _EVERY_OPEN_ITEM:
-                rows = [found for found in rows if found.row.get("consumer") == stage]
+                rows = [found for found in rows if found.row.get("due_stage") == stage]
             sources.append(Source(key, None, None, item, rows))
         elif key in ("follows", "criteria", "test_commands"):
             action, plan = test_loop._step_plan(state, item) if item else (None, {})
@@ -4572,11 +4572,11 @@ _REASON_PLACEHOLDER = "<why no test case covers it>"
 _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
-_CONSUMER_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
+_DUE_STAGE_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
 _STEP_NOTE_PLACEHOLDERS = {"learned": "<lesson for later steps, or none>",
                            "decisions": "<choice made and why, or none>"}
 HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
-                        *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values())
+                        *_LESSON_PLACEHOLDERS.values(), _DUE_STAGE_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
 # field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
 # result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
@@ -4589,7 +4589,7 @@ HANDOFF_SHAPES: dict[str, Any] = {
     "decisions": [_STEP_NOTE_PLACEHOLDERS["decisions"]],
     "learned_from": ["<commit ID whose learnings this step used>"],
     "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "settle": "...", "reason": "...",
-                     "consumer": _CONSUMER_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
+                     "due_stage": _DUE_STAGE_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
 }
 
 
@@ -4676,7 +4676,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
             {"id": "A2", "assumption": "...", "disposition": "probed", "check": "...",
              "evidence": ["<absolute path of the saved probe output>"]},
             {"id": "A3", "assumption": "...", "disposition": "open", "settle": "...",
-             "reason": "...", "consumer": "W1"},
+             "reason": "...", "due_item": "W1"},
         ]
     if stage in unverified.STAGES:
         result["unverified"] = [dict(unverified.TEMPLATE_ROW)]
@@ -6229,7 +6229,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
             row = item.row
             lines.append("- " + str(row.get("id")) + ": " + _one_line(row.get("assumption"))
                          + " | settle: " + _one_line(row.get("settle")) + " | reason: " + _one_line(row.get("reason"))
-                         + " | consumer: " + str(row.get("consumer"))
+                         + " | due: " + assumptions.due(row)
                          + (" | owner: " + _one_line(row["owner"]) if row.get("owner") else "")
                          + " | from " + str(item.stage) + (" " + str(item.workitem) if item.workitem else ""))
         return lines
@@ -6510,10 +6510,10 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     gates = []
     if stage == "plan":
         gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
-                     "open assumption without a consumer work item in this plan")
+                     "open assumption without a due_item naming a work item in this plan")
     elif stage in assumptions.OPEN_ITEM_STAGES:
-        gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item whose "
-                     "consumer is not a later outer stage"
+        gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item due at "
+                     "a stage that is not a later outer stage"
                      + (" or this item's carry-forward" if stage in assumptions.CARRY_FORWARD_PRODUCERS else "")
                      + ", or evidence files that do not exist")
     if stage == "step-plan":
@@ -6641,7 +6641,7 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
         if still_open:
             lines.append("Plan assumptions recorded open at planning (the ledger does not update dispositions): "
                          "account for each in your summary, settled by a named result or listed as unverified.")
-            lines.extend("- " + str(row["id"]) + " (consumer " + str(row["consumer"]) + "): "
+            lines.extend("- " + str(row["id"]) + " (due " + assumptions.due(row) + "): "
                          + _bounded_packet_text(str(row["assumption"])) + " | to settle: "
                          + _bounded_packet_text(str(row["settle"])) for row in still_open)
     if stage == "handoff":
@@ -7334,8 +7334,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "consumer may proceed. Reuse sufficient evidence; zero experiments is valid.",
             "Planning assumption list: final_result.assumptions lists every load-bearing "
             "assumption of this plan, including research's: evidenced, probed (with its saved "
-            "output file) or open (with the consumer work item that settles or blocks on it). "
-            "ShipLoop refuses a missing list, an open consumer outside the queue, or a missing "
+            "output file) or open (with the due_item, the work item that settles or blocks on it). "
+            "ShipLoop refuses a missing list, an open due_item outside the queue, or a missing "
             "evidence file.",
             "Planning experiment exit: Require coherent current planning artifacts, a complete "
             "assumption list with no open entry that a bounded probe within the remaining "
@@ -7615,9 +7615,10 @@ def _handoff_sections(state: Mapping[str, Any], root: Path | None) -> list[str]:
         if not still:
             lines.append("<p>None open.</p>")
         else:
-            lines += _table(("Recorded by", "ID", "Assumption", "Settle", "Reason", "Consumer", "Owner"), [
+            lines += _table(("Recorded by", "ID", "Assumption", "Settle", "Reason", "Due", "Owner"), [
                 _cells((found.stage + (" " + str(found.workitem) if found.workitem else ""),
-                        *(found.row.get(key, "") for key in ("id", "assumption", "settle", "reason", "consumer", "owner"))))
+                        *(found.row.get(key, "") for key in ("id", "assumption", "settle", "reason")),
+                        assumptions.due(found.row), found.row.get("owner", "")))
                 for found in still])
     system_action = current.get((None, RECORDED_COMMANDS["system_commands"]))
     if system_action:

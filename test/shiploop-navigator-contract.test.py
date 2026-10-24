@@ -4501,7 +4501,7 @@ class ProducerBoundTests(unittest.TestCase):
 
     def test_an_items_open_assumptions_past_1200_together_are_refused(self) -> None:
         row = {"id": "A1", "disposition": "open", "assumption": "a" * 600, "settle": "b" * 300, "reason": "c" * 300,
-               "consumer": "W1"}
+               "due_item": "W1"}
         navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row]})  # exactly 1,200
         with self.assertRaisesRegex(navigator.NavigatorError, r"open assumptions of W1 \(1,201 characters\)"):
             navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row, dict(

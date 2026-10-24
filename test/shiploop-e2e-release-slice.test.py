@@ -179,7 +179,7 @@ class SeedTest(unittest.TestCase):
         self.assertEqual([command["suite"] for command in suite["system_commands"]], ["regression", "regression"])
         self.assertTrue(all("--target-org de" in command["command"] and "deploy" not in command["command"]
                             for command in suite["system_commands"]))  # the deploy is the release stage's, not the suite's
-        self.assertEqual([(row["id"], row["disposition"], row["consumer"]) for row in suite["assumptions"]],
+        self.assertEqual([(row["id"], row["disposition"], row["due_stage"]) for row in suite["assumptions"]],
                          [("A1", "open", "release-plan")])
         for stage in ("system-test", "product-acceptance"):
             self.assertIn("without doing it", by_stage[stage]["summary"])

@@ -1,0 +1,43 @@
+{
+  "experiment": "E1b",
+  "arm": "B",
+  "sample": 2,
+  "value": 1.0,
+  "own_tests_pass": true,
+  "killed": [
+    "cross-field",
+    "limit-never-trips",
+    "one-rule-missing",
+    "tested-only"
+  ],
+  "killed_fraction": 1.0,
+  "stand_ins": {
+    "one-rule-missing": {
+      "result": "killed",
+      "exit": 1
+    },
+    "tested-only": {
+      "result": "killed",
+      "exit": 1
+    },
+    "limit-never-trips": {
+      "result": "killed",
+      "exit": 1
+    },
+    "cross-field": {
+      "result": "killed",
+      "exit": 1
+    }
+  },
+  "error_rows": 5,
+  "test_cases": 5,
+  "all_killed": 1,
+  "slice_pass": true,
+  "slice_verdicts": {
+    "process": true,
+    "stopped": true,
+    "no_overshoot": true
+  },
+  "seconds": 1257.2,
+  "commit": "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+}

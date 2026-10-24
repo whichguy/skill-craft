@@ -1344,7 +1344,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             delivery_assessment=self.observation(state, "visual-drag", status="unrun"),
             assumptions=[{"id": "CASE-2", "assumption": "A drag moves the piece.", "disposition": "open",
                           "settle": "the person drags a piece and reports yes or no",
-                          "reason": "not-run: the reply left it unanswered: " + reply, "consumer": "handoff",
+                          "reason": "not-run: the reply left it unanswered: " + reply, "due_stage": "handoff",
                           "owner": "the user"}])
         again = dict(wait, steps=["Open the board's entry and drag one piece."], report="2. a drag moves the piece: yes/no")
         state = navigator.apply(state, navigator.current_action(state)["id"], self.result(
