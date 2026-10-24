@@ -47,3 +47,13 @@ samples 1-4", which hid the real cause. Changes (test/shiploop_e2e/):
 | 2026-10-24 | E2 | T=9ed4ec24 vs B=9ed4ec24+e2-surfaces.json | 2/3 | 0.00/1.00 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r2-20261024/E2/decision-T-B.json |
 | 2026-10-24 | E2 | A=288075c9 vs F=d21c770e5c71888069f239c7e2156b22ae515b61 | 2/4 | 0.50/0.25 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r2-20261024/E2/decision-A-F.json |
 | 2026-10-24 | E2 | T=9ed4ec24 vs F=d21c770e5c71888069f239c7e2156b22ae515b61 | 2/4 | 0.00/0.25 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r2-20261024/E2/decision-T-F.json |
+
+## 2026-10-24 correction: E2 arm F greps are not dodges (status: superseded claim)
+
+The round 2 report treated arm F's grep-only checks (3 of 4 samples) as a weak-test signal. That claim is superseded. The main
+session read F/1 C12, F/2 C4 and F/3 C12. Each one confirms the contract-docstring criterion that step-plan duty 3 requires
+word for word ("a criterion that it carries a contract docstring ... searched"), and only arm F's text carried that line. These
+greps confirm documentation, not behaviour. The real dodge, an `executed` criterion confirmed by a search alone, is already
+refused at step-plan (`layers.check_confirms`). E2 therefore found nothing beyond host instability. Follow-up: the run-level
+dodge counters split grep-only code checks by the `confirm` value of the criterion each one serves (searched counts as
+context; executed or none counts as a dodge).
