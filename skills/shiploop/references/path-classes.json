@@ -7,7 +7,8 @@
     "test": [
       "**/test/**", "**/tests/**", "**/__tests__/**", "**/spec/**",
       "**/*.test.*", "**/*.spec.*", "**/test_*.py", "**/*_test.py", "**/*_test.go",
-      "**/conftest.py", "**/jest.config.*", "**/vitest.config.*", "**/pytest.ini"
+      "**/conftest.py", "**/jest.config.*", "**/vitest.config.*", "**/pytest.ini",
+      "**/classes/*Test.cls", "**/classes/*Test.cls-meta.xml", "**/classes/*Tests.cls", "**/classes/*Tests.cls-meta.xml"
     ],
     "metadata-nav": [
       "**/tabs/*.tab-meta.xml",
