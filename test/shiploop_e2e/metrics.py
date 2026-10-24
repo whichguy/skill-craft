@@ -141,6 +141,88 @@ TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is s
 KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s ")
 
 
+# Named ShipLoop refusal gates (run-insights gate_counts), each a regex read against a refusal's own first line --
+# the same text ``failure_line`` keeps in ``shiploop_failures[i]["line"]``, cut to 200 characters, so a signature
+# must sit inside that budget (checked against two live runs: chess-sf-full-9e52e8, 13 refusals, and
+# chess-sf-full-05fe25b, 5 refusals -- every one of those 18 lines matched a row below, none fell to "other").
+# Read from the gates' own refusal text: shiploop_navigator.py (handoff faults section 3115-3219, length limits
+# 2998-3027, record fields 2626-2658), shiploop_test_loop.py (the base run, 1751), shiploop_mutation.py (409),
+# shiploop_concerns.py (56-150), shiploop_assumptions.py (52-142), shiploop_expectations.py (339-399) and
+# shiploop_knowledge_home.py (317). A line matching no row counts under "other". New gates are one line each,
+# with no other reader to update; a gate not yet seeded (its refusal text not read here) stays a commented
+# placeholder below rather than an empty or guessed pattern.
+GATE_SIGNATURES: dict[str, re.Pattern] = {
+    # Consumer hand-off faults (_handoff_fault / _Fault, shiploop_navigator.py ~3151-3219): a done result's
+    # follows, assumptions, test_cases, step notes or lessons the next stage cannot use.
+    "handoff_placeholders": re.compile(r"Replace placeholders in |that has real values,"),
+    "handoff_follows": re.compile(r"follows is a list of the R-<n> and AD-<n>|Add follows to \S|Fix the follows IDs in \S"),
+    "handoff_open_items": re.compile(r"Add assumptions to \S|Fix the consumers in \S|Fix the evidence in \S"),
+    "handoff_test_cases": re.compile(r"Not listed by a focused command of|Add test_cases to \S|Add the missing cases to \S|"
+                                     r"Fix the case IDs in \S|Fix the case criteria in \S|Fix case requirements in \S"),
+    "handoff_step_notes": re.compile(r"Add (?:learned and decisions|learned|decisions) to \S|Fix learned_from in \S"),
+    "handoff_lessons": re.compile(r"Add lessons to \S"),
+    # The step plan's or run's written spec diverged from HEAD plus this step's acceptance lines (shiploop_navigator.py).
+    "spec_writeback": re.compile(r"Restore \S*spec\.md to what HEAD holds"),
+    # A living-file entry (R-<n>/AD-<n>) went missing from docs/shiploop (shiploop_knowledge_home.py:317).
+    "knowledge_gate": re.compile(r"Restore the lost "),
+    # A packet-printed field (criteria, concern rows, a step's task or check, a work item's context) is over the
+    # character budget the packet prints it whole at (shiploop_navigator.py:2998-3027, shiploop_concerns.py:109).
+    "producer_limits": re.compile(r"characters(?: together)?; the limit is"),
+    # red_na / retired_tests record-field shape (shiploop_navigator.py:2626-2658).
+    "record_fields": re.compile(r"is a non-empty list of \{|entries each need "),
+    # concerns shape and coverage (shiploop_concerns.py).
+    "concerns_gate": re.compile(r"concern rows are|concerns is (?:an object|a list)|unknown concern|concern \S+ is "
+                                r"(?:listed|mapped) twice|concerns names items that are not in work_items|no step "
+                                r"delivers|concerns maps concerns the plan does not give"),
+    # An open plan assumption's consumer and an expectation's "from" must name each other both ways
+    # (shiploop_expectations.py:396-399).
+    "assumptions_consumer": re.compile(r"expectations cite from .+, which is not an open plan assumption|"
+                                       r"open plan assumptions .+ name .+ as consumer"),
+    # Open-item (assumptions) record shape (shiploop_assumptions.py).
+    "assumptions_gate": re.compile(r"assumption \S+ is listed twice|assumptions is a list of"),
+    # Expectations: a step's expectations must list every changed path and the path's presence on the item's lint
+    # base must match the expectation's state (shiploop_expectations.py:339-390).
+    "expectations_gate": re.compile(r"must list expectations: the facts its steps build on|names steps the result "
+                                    r"does not list|have no expectation listing them in paths|needs an absent "
+                                    r"expectation\.|needs a works or broken expectation\."),
+    # Improve stage misuse: --check-only has no draft to preview there (shiploop_navigator.py).
+    "improve_checkonly": re.compile(r"the Improve stage has no draft to check"),
+    # improve-pass gates: no bound Improve stage, the review loop already ended or is not active, the improve
+    # skill was not invoked, or the review file is missing or incomplete (shiploop_navigator.py:8095-8149).
+    "improve_pass": re.compile(r"Write this pass's review to |This review loop has already ended|No active review "
+                               r"loop to record a pass|Run the improve skill on this .* result first|\(missing or "
+                               r"invalid:"),
+    # Improve ended on an unchanged trivial pass, but the worktree moved since the review was bound (shiploop_navigator.py:4232).
+    "improve_stale_files": re.compile(r"ended on one unchanged trivial pass, but these files changed"),
+    # complete --check-only replays the base run's own refusal (shiploop_navigator.py:4075).
+    "check_only_base_run": re.compile(r"ShipLoop check-only: the base run would refuse this result"),
+    # The focused/regression commands on the item's base are not all passing (shiploop_test_loop.py:1751).
+    "base_run_not_done": re.compile(r"ShipLoop base run: test is not done"),
+    # A mutation a focused test should have caught slipped through (shiploop_mutation.py:409).
+    "mutation_not_done": re.compile(r"ShipLoop mutation check: test is not done"),
+    # complete expected a model-written result file that was never written (shiploop_navigator.py:7714).
+    "missing_result_file": re.compile(r"no result file at "),
+    # Until Loop receipt/terminal-packet checks for an inner stage's loop (shiploop_loops.py:275-767).
+    "loop_receipt": re.compile(r"a loop receipt needs an action id|is not the current inner action|the Until Loop "
+                               r"terminal packet must be a JSON object|the run is not in an inner stage, so it has "
+                               r"no stage loop"),
+    # New gates land as one row each. Not yet seeded here (no refusal text read in the scripts as of this table) --
+    # fill in the real signature from the gate's own refusal text when it ships, rather than guessing one:
+    # "surfaces": re.compile(r"TODO: surfaces refusal text"),                          # F1
+    # "confirm": re.compile(r"TODO: confirm refusal text"),                            # F1
+    # "targets": re.compile(r"TODO: targets refusal text"),                            # F3
+    # "entry_points": re.compile(r"TODO: entry_points refusal text"),                  # F4
+    # "stand_in_rejected": re.compile(r"TODO: stand_in_rejected refusal text"),        # F4
+    # "improve_regression_test": re.compile(r"TODO: improve regression test text"),   # F5
+    # "lower_layer_check": re.compile(r"TODO: lower_layer_check refusal text"),        # F6
+}
+
+# A ShipLoop CLI call's own ``--action=<id>`` (or ``--action <id>``), read from the expanded command text: the
+# action a `complete`/`next`/`improve-*` call submits a result for, so a later accepted `complete` of the same id
+# is what "caught" a refusal of it (gate_counts). Not every call names one (``next`` while nothing is bound).
+ACTION_ARG = re.compile(r"--action[= ](\S+)")
+
+
 def failure_line(shown: str, limit: int | None = 200) -> str:
     """The line that names why a ShipLoop command was refused: its own, not the script's fixed trailer.
 
@@ -342,6 +424,14 @@ class ToolLog:
         # Read by counters.py, on every host: the replies (KEPT_REPLY) of calls, each call's first result only, with whether the
         # call named a packet file (a model reading the file is not ShipLoop printing a head) and the line it is at in events.jsonl.
         self.replies: list[dict] = []
+        # Read by gate_counts: every call that named a ShipLoop verb (SHIPLOOP_COMMAND), in stream order, with the
+        # action id its ``--action=`` named (None when it named none) and whether its own result was accepted (None
+        # until the result arrives). Never exported as part of ``failures``, whose shape test/shiploop-e2e.test.py
+        # pins exactly.
+        self.action_log: list[dict] = []
+        # ``failures``'s own call id, same order and length as ``failures``: a second, internal list rather than a
+        # new key on each failure dict, which other readers (progress.py, packets.py, run.py) take as {verb, exit, line}.
+        self.failure_call_ids: list = []
 
     def call(self, t, call_id, tool: str, arg: dict, event: int | None = None):
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written.
@@ -372,6 +462,11 @@ class ToolLog:
             "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
             "packet": "/packets/" in expanded or "/packets/" in str(target or ""),
             "whole": "offset" not in arg and "limit" not in arg, "file": str(target or "")}
+        verb = SHIPLOOP_COMMAND.search(self.calls[key]["invoked"])
+        if verb:
+            action = ACTION_ARG.search(self.calls[key]["invoked"])
+            self.action_log.append({"call_id": call_id, "t": t, "verb": verb.group("verb"),
+                                    "action": action.group(1) if action else None, "accepted": None})
         if command:
             reasons = glue_reasons(expanded)
             self.shared.update(tmp_writes(expanded))
@@ -446,6 +541,11 @@ class ToolLog:
         if first and KEPT_REPLY.search(shown):
             self.replies.append({"event": event, "packet": bool(call.get("packet")), "text": shown})
         exited = code not in (None, 0) and SHIPLOOP_COMMAND.search(call.get("invoked", ""))
+        if first:  # gate_counts: this call's own result, accepted when it is neither a refusal nor a failed exit
+            for entry in reversed(self.action_log):
+                if entry["call_id"] == call_id:
+                    entry["accepted"] = not (refusal or exited)
+                    break
         if call_id in self.failed or not (refusal or exited):
             return
         self.failed.add(call_id)
@@ -455,6 +555,44 @@ class ToolLog:
         self.failures.append({"verb": verb.group("verb") if verb else "unknown", "exit": code, "line": failure_line(source)})
         self.failure_events.append({"event": event, "line": failure_line(source, None)})
         self.failure_of[call_id] = self.failures[-1]
+        self.failure_call_ids.append(call_id)
+
+
+def refusal_gate(line: str) -> str:
+    """The named gate a ShipLoop refusal's own first line matches (GATE_SIGNATURES, first row that matches wins),
+    or "other" for a line no row's signature covers."""
+    return next((name for name, pattern in GATE_SIGNATURES.items() if pattern.search(line)), "other")
+
+
+def gate_counts(tools: ToolLog) -> dict[str, dict[str, int]]:
+    """Per gate: how many of this run's ShipLoop refusals it fired, and how many of those it caught.
+
+    ``fired`` is how many of ``tools.failures`` classify under the gate (``refusal_gate`` on the refusal's own
+    line); a refusal naming no row counts under "other", so new gates become visible there before they are seeded.
+    ``caught`` is how many of a gate's refusals were followed, later in the stream, by an accepted `complete` of
+    the same action id (the refusing call's own ``--action=``, read by ``tools.action_log``); when the id cannot
+    be read, the next `complete` call afterwards (of any action) stands in, as the owner's fallback rule says.
+    A refusal whose own call cannot be found in ``action_log`` (should not happen: every refused call named a
+    ShipLoop verb) is fired but never caught.
+    """
+    index_by_call: dict = {}
+    for position, entry in enumerate(tools.action_log):
+        index_by_call[entry["call_id"]] = position  # last occurrence: a reused id (Codex) is this call, not an older one
+    counts: dict[str, dict[str, int]] = {}
+    for call_id, failure in zip(tools.failure_call_ids, tools.failures):
+        row = counts.setdefault(refusal_gate(failure["line"]), {"fired": 0, "caught": 0})
+        row["fired"] += 1
+        start = index_by_call.get(call_id)
+        if start is None:
+            continue
+        action = tools.action_log[start].get("action")
+        later = [entry for entry in tools.action_log[start + 1:] if entry.get("verb") == "complete"]
+        if action is not None:
+            caught = any(entry.get("action") == action and entry.get("accepted") for entry in later)
+        else:
+            caught = bool(later) and bool(later[0].get("accepted"))
+        row["caught"] += int(caught)
+    return counts
 
 
 def engine_state(run_dir: Path | None) -> dict:
@@ -1697,6 +1835,10 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
         "shiploop_failures": tools.failures,
+        # Per named gate (GATE_SIGNATURES): how many times it refused ("fired") and how many of those refusals the
+        # run then got past ("caught": the same action id's next accepted complete). Never 0 for a gate that fired
+        # nothing -- it is simply absent; an unclassified refusal is under "other".
+        "gate_counts": gate_counts(tools),
         # Claude's tool_use / tool_result blocks only (main thread): what the model ran and how it used the packets. A
         # record, never a verdict; None on the hosts whose events this harness has no such reading of.
         "tool_use": tools.tool_use(run_dir) if claude_calls and not grok else None,
@@ -2067,6 +2209,13 @@ def tool_use_text(use: dict) -> str:
             + ("none on disk" if disk is None else f"{plural(disk['files'], 'packet file')} on disk ({disk['bytes']:,} bytes)"))
 
 
+def gate_counts_text(gates: dict[str, dict[str, int]]) -> str:
+    """One line per named gate that fired at least once, busiest first: ``name fired (caught N)``."""
+    ordered = sorted(gates.items(), key=lambda item: (-item[1]["fired"], item[0]))
+    return ", ".join(f"{name} {row['fired']}" + (f" (caught {row['caught']})" if row["caught"] else "")
+                     for name, row in ordered)
+
+
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
 
@@ -2089,6 +2238,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              + (f" ({metrics['improve_reviews']['passes']} review passes, at most "
                 f"{metrics['improve_reviews']['max_passes']} in one child)"
                 if metrics.get("improve_reviews", {}).get("passes") else "")]
+    if metrics.get("gate_counts"):
+        lines.append("ShipLoop gates: " + gate_counts_text(metrics["gate_counts"]))
     if metrics.get("planning"):
         lines.append(planning_text(metrics["planning"]))
     if metrics.get("tool_use"):
