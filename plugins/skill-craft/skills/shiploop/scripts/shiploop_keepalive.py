@@ -45,6 +45,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping
 
 import shiploop_skill_calls as skill_calls
+import shiploop_trace as trace
 
 SCRIPTS = Path(__file__).resolve().parent
 SHIPLOOP = SCRIPTS / "shiploop"
@@ -476,7 +477,8 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
     if decision["decision"] == "allow":
         # The owner's turn is over; another session may take the run.
         release_owner(binding["run_dir"], host, session)
-    return decision
+    # The bound run, so the hook can record the decision in that run's trace.
+    return {**decision, "run_dir": binding["run_dir"]}
 
 
 def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) -> dict:
@@ -572,6 +574,9 @@ def run_hook(event: str, host: str, raw: str) -> str:
             return ""
         decision = stop(host, payload)
         _log_decision(host, payload, decision)
+        session = session_of(payload)
+        trace.record_stop(decision.get("run_dir"), host,
+                          hashlib.sha256(session.encode()).hexdigest()[:12] if session else None, decision)
         reply = host_reply(host, decision)
         return json.dumps(reply) if reply else ""
     except Exception as exc:  # noqa: BLE001 - fail open by contract

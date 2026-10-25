@@ -4,6 +4,29 @@ Written by scripts/release.py.
 
 ## 2026-10-25
 
+### skill-craft 2.12.0
+
+- Skills: shiploop 1.12.0
+
+### shiploop 1.12.0
+
+- Prepare's `harness_runs` evidence must show a test running. The saved output is read by the same runner readers the
+  test stage uses, and it must show at least one test. Before, the gate checked only that the evidence file existed,
+  and run 5a passed it with a browser page that said it was not the component under test.
+  - An output ShipLoop cannot read is refused. The refusal names the runners ShipLoop reads and the stack's platform
+    card, and says "report blocked" for a harness that cannot be run that way.
+  - An output whose runner selected no test is refused too.
+  - The prepare duty now says to save the runner's own output, summary included.
+- Run trace: every run appends `RUN/trace.jsonl`, one line per command that names the run (verb, exit code, revision,
+  stage and action before and after, results accepted, refusal text), per printed packet (kept as sent in
+  `packets/sent/<sha>.md`, since `next` rewrites `packets/<action>.md`) and per keepalive stop decision (with the text the
+  hook put into the turn). `shiploop trace --run-dir RUN` reads it: every stage done, current, reopened or pending, the steps
+  run, recent events; `--action ID` shows one action's packets as sent, commands and refusals; `--request` shows the
+  original request beside its expansion by planning (intake's reading of each sentence, every planning result, the living
+  spec's requirements, work items with their steps, assumptions, owner answers); `--json` gives the whole
+  model; `--html` writes the self-contained `RUN/trace.html`, which the progress observer keeps current. Runs saved before
+  the trace still read from `state.md` and `timeline.json`.
+
 ### skill-craft 2.11.0
 
 - Skills: shiploop 1.11.0

@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.11.0
+version: 1.12.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -299,6 +299,9 @@ Do not reprint the status line: a host status hook shows the user a two-line sum
 the host supports one. Tell the user at most one line per completed step, and when
 they ask for the full status show the **status block** that `shiploop status` prints
 (also in `status.md`) unchanged; see [status display](references/status-display.md).
+If the user asks what has run, what is scheduled, what a step was sent or how
+planning expanded the request, run `shiploop trace --run-dir RUN` (`--action ID`,
+`--request`) and show its output ([run trace](references/status-display.md#run-trace)).
 
 Run to completion by default within the user's scope and existing authority.
 Progress reports are intermediate updates, not turn-ending handoffs or approval

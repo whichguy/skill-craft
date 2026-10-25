@@ -52,6 +52,7 @@ import shiploop_request as request_file
 import shiploop_narrative as narrative
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
+import shiploop_trace as trace
 
 
 # 5 since 2026-10-10: the inner loop has eight stages (stage_spec); a version-4 run is refused by retired_run_reason.
@@ -1996,7 +1997,10 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
-    print(printed_text(core, root, state, path, text, timeline=timeline), end="")
+    printed = printed_text(core, root, state, path, text, timeline=timeline)
+    print(printed, end="")
+    # The run trace keeps every packet as sent (``next`` rewrites the file above in place); a display record, never state.
+    trace.record_packet(root, state, text, printed)
     return text
 
 
@@ -3237,6 +3241,7 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
                     _need(Path(row["evidence"]).is_absolute() and Path(row["evidence"]).is_file(),
                           "harness_runs evidence " + row["evidence"] + " is not an existing absolute file: save the "
                           "harness run's output and name that file")
+                    layers.check_harness_output(row, Path(row["evidence"]).read_text(encoding="utf-8", errors="replace"))
             return
         own = layers.canonical_rows(result.get("test_layers", []))
         if own:
