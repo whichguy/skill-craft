@@ -367,6 +367,13 @@ was removed with `chess_salesforce.py cleanup --platform-dir <run 4>/platform`. 
 - The laptop slept from 22:57 to 08:44 (588.9 min, at 1% battery). That spent the 5 h wall-clock cap after 229 active
   minutes. The coordinator resumed in place, and the owner extended the cap.
 - The sf guard kept all 232 calls in org `de` and the prefix: 58 model `sf` commands, 0 direct.
+- **Harness provenance (added 2026-10-25, raised by the E2E session).** The harness ran from the uncommitted working
+  tree of `.claude/worktrees/shiploop-templates-6d625a` (base 31933a73, the 2.9.0 release), not from a commit. That tree held
+  the owner's no-default-limits edits (`hosts.py`, `iterate.py`, `run.py`, `slice.py`, +50/-39; owner 2026-10-24 18:51:
+  "Absolutely remove the max turns"), which landed on main later with the engine's cap removal. They changed defaults
+  only, and `invocation.json` shows it: the Grok argv carries no `--max-turns` (run 4's had `--max-turns 10000`). The
+  result stands, because nothing it depends on used a default. The run set `--timeout 18000` explicitly, used 1,265
+  turns, and its two segments resumed 0 times between them.
 
 | Check | Run 3 (2.7.0) | Run 4 (2.8.0) | Run 5b (2.9.0) |
 |---|---|---|---|

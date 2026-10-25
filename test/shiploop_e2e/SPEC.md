@@ -634,8 +634,9 @@ stands at the commit under test.
   refused before a host starts. Basis: a Claude run built from a checkout was
   given a bare `shiploop next` (the marketplace route lost 13 turns to the same
   prompt, fixed in 7c1f1014); the command the harness prints for continuing a run
-  carries the harness flags too, because a resume that falls back to the default
-  `--timeout` can outlive the task that launched it. It is printed only where
+  carries the harness flags too, because a resume that drops the run's `--timeout`
+  runs with no time limit (none is the default since 2026-10-24) and can outlive
+  the task that launched it. It is printed only where
   those flags are the run's own: not by a regrade (`--grade-only`), whose flags
   are the grader's, and not for a run that wrote no ShipLoop state, which
   `--resume-run` refuses.

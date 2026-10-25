@@ -2565,6 +2565,9 @@ was the owner's choice; the sf guard still keeps every `sf` call in org `de` and
   run to pass.
 - The Mac slept for 9.8 h at 1% battery, which spent the 5 h wall-clock cap. The coordinator resumed the run; 2.9.1
   counts deadlines in active time.
+- Its harness came from an uncommitted worktree (the owner's no-default-limits edits, +50/-39, landed on main later), so the
+  host got no `--max-turns`. The result stands: it set `--timeout 18000` explicitly, used 1,265 turns, and resumed 0
+  times. A run's harness should be a commit; record the harness tree's state with the run (F12).
 
 Learnings so far:
 - **A host update is an experiment variable.** Record the host build per run, and treat a change as non-comparable.

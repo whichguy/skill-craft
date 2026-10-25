@@ -73,7 +73,7 @@ with `--plugin-dir` for a checkout build, so a line from a checkout run is compl
 find the build by itself), when a run starts and again when it ends with ShipLoop still active, so a later
 session that finds only the task log has it even if the harness was killed.
 `invocation.json` keeps the host's argv and not those flags, so a resume without them
-would run with the default `--timeout` (10800 s). For that reason a regrade (`--grade-only`)
+would run with none of the run's limits (there is no default `--timeout`). For that reason a regrade (`--grade-only`)
 prints no command at its end, only a pointer to the one printed when the run started (its own
 flags are the grader's), and a run that wrote no ShipLoop state prints the start line only
 (`--resume-run` refuses it).
@@ -1133,8 +1133,12 @@ uses it on purpose. Publish (`scripts/release.py`, then
   keepalive hook into the isolated profile before launch (`shiploop-hook install --host
   grok`) and reports the keepalive's decisions in `result.json`. A headless session
   also ends whenever the model ends its turn; when that happens while ShipLoop's run is
-  still `active`, the harness resumes the same session (`grok --resume`, default 20
-  times, `--max-resumes`) with a prompt to run `shiploop next`, within the timeout.
+  still `active`, the harness resumes the same session (`grok --resume`) with a prompt to run
+  `shiploop next`, with no limit on resumes unless `--max-resumes` sets one, and within the
+  timeout if one was given. Three resumed sessions in a row that leave ShipLoop's revision where
+  it was end the loop (`RESUME_STALL`), because resuming again would never end: "resumed host
+  failed …" (FAILED) when every one of them failed (an expired auth, a broken binary), else
+  "resumed host made no ShipLoop progress …" (STOPPED; the printed command continues the run).
   Turns and cost add up across the sessions that reported (`unreported_sessions`
   counts those that did not).
 - **Grok** runs with a throwaway `HOME`. Its `.grok` holds only a symlink to
@@ -1147,9 +1151,10 @@ uses it on purpose. Publish (`scripts/release.py`, then
   `--plugin-dir`, so your plugins and hooks stay out and none of your account's
   claude.ai connectors load (a plain launch loaded 15 of them and 174 tools,
   some connected, into an unattended run); `~/.claude/CLAUDE.md` still loads.
-- Grok has no spend cap; its runs are bounded by `--max-turns` and the timeout.
-  Claude runs also get `--max-budget-usd` (default 40; a chained case such as battleship-scoring can cost
-  more than 10 across its resumes).
+- No run gets a turn, spend, time or resume limit by default (owner, 2026-10-24: "I do not want to have any
+  limit on the number of turns"). Pass `--max-turns`, `--timeout`, `--max-resumes` or, on Claude,
+  `--max-budget-usd` to set one; Grok has no spend cap of its own. `run.py`, `slice.py` and `iterate.py`
+  share these defaults.
 
 ### Platform hooks (`platform`)
 
@@ -1331,7 +1336,9 @@ the cleanup would then refuse to delete anything. A resume reuses its run's fold
 Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the
 timeout it was given and the harness is signalled (see below; its host is a separate process group), so the limit is
 whatever the launcher set and not a platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
-kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (seconds) below it, with margin: the
+kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). The harness sets no timeout of its own, so a run launched
+as a task needs one: pass `--timeout` (seconds) below the task's limit, with margin. The deadline counts active time
+(`time.monotonic`), so a machine's sleep spends none of it. Margin matters because the
 deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
 each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
 ending: the harness writes metrics.json, result.json and the export, writes no baseline row, and prints the command
@@ -1479,7 +1486,8 @@ case's built product is committed in the worktree, so a run starts at the releas
 **The stop.** `slice.py` polls every 2 s. Each poll archives every distinct packet ShipLoop has emitted, because
 `run/packets/<action>.md` is rewritten on each `next`. The poll ends the host once the item's inner loop is over:
 the run moved past item W1, left the inner loop, or stopped being active. A completed slice is never resumed.
-Grok and Codex sessions that end before the slice is complete are resumed, up to `--max-resumes`.
+Grok and Codex sessions that end before the slice is complete are resumed, with no limit unless `--max-resumes` sets
+one; a session that fails (a non-zero exit) is not resumed.
 
 **The verdicts**, written to `slice-result.json`:
 
@@ -1523,7 +1531,7 @@ python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --cl
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
-host is ended before it writes its `result` event; `--max-budget-usd` still caps the spend.
+host is ended before it writes its `result` event; there is no spend cap unless `--max-budget-usd` sets one.
 
 **The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a
 full run, only the last copy of each packet is available.

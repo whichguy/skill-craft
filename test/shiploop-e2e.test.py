@@ -824,11 +824,14 @@ class ExpectationTest(HarnessCase):
     def test_run_deadlines_count_active_time_and_strptime_is_loaded_at_start(self):
         """Run 5 (2026-10-24/25): a 10 h sleep spent the 5 h wall-clock cap after 3.8 h of work, and a mid-run
         interpreter swap removed the lazily imported _strptime. Deadlines read time.monotonic, which stops during
-        sleep; _strptime is imported at start."""
+        sleep, in run.py and slice.py alike; with no --timeout (the default since 2026-10-24) the deadline is infinite.
+        _strptime is imported at start."""
         source = (ROOT / "test" / "shiploop_e2e" / "run.py").read_text(encoding="utf-8")
-        wall = [line.strip() for line in source.splitlines() if "deadline" in line and "time.time()" in line]
-        self.assertEqual(wall, [])
-        self.assertIn("deadline = time.monotonic() + args.timeout", source)
+        for name in ("run.py", "slice.py"):
+            text = (ROOT / "test" / "shiploop_e2e" / name).read_text(encoding="utf-8")
+            wall = [line.strip() for line in text.splitlines() if "deadline" in line and "time.time()" in line]
+            self.assertEqual(wall, [], name)
+            self.assertIn('deadline = time.monotonic() + (args.timeout or float("inf"))', text, name)
         self.assertRegex(source, r"(?m)^import _strptime\b")
         self.assertIn("_strptime", sys.modules)  # importing run loaded it
 
@@ -3717,6 +3720,29 @@ class TerminationThroughMainTest(PrintedCase):
         self.assertEqual((t["process_status"], t["returncode"]), ("failed", 1))
         self.assertEqual(t["resume_stop"], "resume budget spent (2)")
 
+    def test_with_no_resume_limit_a_host_that_keeps_failing_ends_the_loop_on_the_third_stalled_failure(self):
+        """No resume limit is the default (owner 2026-10-24), so a resumed host that can never run (an expired auth, a
+        broken binary) would be resumed forever. Three resumed sessions in a row that fail while ShipLoop's revision stands
+        still end the loop as the host's failure. The --timeout only keeps a regression from hanging the suite."""
+        code, result, _ = self.invoke_printed("grok", "crash-resumed", "--timeout", "300")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual(t["sessions"], 1 + run.RESUME_STALL)
+        self.assertEqual(t["resume_stop"], "resumed host failed 3 times in a row with ShipLoop still at revision 25 "
+                                           "(last exit code 1)")
+        self.assertEqual(result["outcome_class"], "FAILED")
+
+    def test_with_no_resume_limit_a_session_that_ends_without_moving_the_run_is_resumed_three_times_then_stopped(self):
+        """The same evidence for a host that exits cleanly: a model that ends every turn with ShipLoop's revision where it
+        was would otherwise spend forever. The harness ends that run (STOPPED), and the printed command continues it."""
+        code, result, printed = self.invoke_printed("grok", "stuck", "--timeout", "300")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual((t["sessions"], t["resume_stop"]),
+                         (1 + run.RESUME_STALL, "resumed host made no ShipLoop progress 3 times in a row (revision 25)"))
+        self.assertEqual(result["outcome_class"], "STOPPED")
+        self.assertIn("--resume-run", printed)
+
     def test_claude_is_not_resumable_and_its_own_stop_is_recorded(self):
         code, result, _ = self.invoke_printed("claude", "done")
         self.assertEqual(code, 0, result)
@@ -5444,8 +5470,32 @@ class GradeOnlyTest(PrintedCase):
 class ResumeCommandTest(PrintedCase):
     """The harness prints the exact command that continues the run, before any host spend and again when it is left active.
 
-    invocation.json keeps the host argv but not the harness flags, so a command with only --resume-run would fall
-    back to the default --timeout (10800 s), which is above the limit of a launching task."""
+    invocation.json keeps the host argv but not the harness flags, so a command with only --resume-run would drop the
+    run's limits: there is no default --timeout, so it could outlive the task that launched it."""
+
+    def test_no_limit_is_set_unless_one_is_asked_for_and_the_printed_command_names_none(self):
+        """Owner 2026-10-24: no turn, spend, time or resume limit by default. The three drivers share the defaults, the
+        host argv carries no --max-turns or --max-budget-usd, and the printed command adds none and still round-trips."""
+        args = run.parser().parse_args(["--host", "grok", "--model", "m"])
+        self.assertEqual((args.max_turns, args.max_budget_usd, args.timeout, args.max_resumes), (None, None, None, None))
+        import slice as slice_driver  # the slice driver beside run.py (not the builtin)
+        sliced = slice_driver.parser().parse_args([])
+        self.assertEqual((sliced.max_turns, sliced.max_budget_usd, sliced.timeout, sliced.max_resumes),
+                         (None, None, None, None))
+        words = shlex.split(run.resume_command(Path("/o/run"), args))
+        for flag in ("--timeout", "--max-resumes", "--max-budget-usd"):
+            self.assertNotIn(flag, words)
+        again = run.parser().parse_args(words[2:])
+        again.resume_run = None
+        self.assertEqual(vars(again), vars(args))
+        common = dict(prompt="p", cwd=Path("/w"), model="m", effort=None, permission_mode="auto", max_turns=None,
+                      max_budget_usd=None)
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("grok", "claude"):
+                with self.subTest(host=name):
+                    argv = hosts.HOSTS[name]().argv(prompt_file=Path(tmp) / "prompt.txt", **common)
+                    self.assertNotIn("--max-turns", argv)
+                    self.assertNotIn("--max-budget-usd", argv)
 
     def commands(self, printed: str) -> list[list[str]]:
         lines = [ln for ln in printed.splitlines() if "--resume-run" in ln]
