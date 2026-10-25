@@ -29,6 +29,7 @@ import shiploop_keepalive as keepalive  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_trace as trace  # noqa: E402
+import shiploop_trace_page as trace_page  # noqa: E402
 
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_PROGRESS": "off"}
 INTAKE = '```shiploop-state\n{"outcome": "done", "summary": "S1 outcome: greet.py prints Hello and the name (fact).", ' \
@@ -215,7 +216,7 @@ class TraceReaderTests(CliRun):
         printed = self.ok("trace", "--run-dir", str(self.run), "--html").stdout.strip()
         self.assertEqual(printed, str(self.run / trace.PAGE))
         page = (self.run / trace.PAGE).read_text(encoding="utf-8")
-        self.assertNotIn(trace.DATA_MARK, page)
+        self.assertNotIn(trace_page.DATA_MARK, page)
         self.assertNotIn("sk-live-abcdefghijklmnop", page)
         start = page.index("const TRACE = ") + len("const TRACE = ")
         data = json.loads(page[start:page.index(";\n", start)].replace("<\\/", "</"))
@@ -267,8 +268,10 @@ class TraceRequestTests(CliRun):
                                                 "text": "Use the user's login name."}])
         self.assertEqual(expanded["work_items"], [])                 # set by the plan stage
         text = self.ok("trace", "--run-dir", str(self.run), "--request").stdout
-        self.assertIn("Original (verbatim, RUN/request.md):\n  Add a greeting script.\n", text)
+        self.assertIn("Original, sentence by sentence (joined, the verbatim RUN/request.md; 22 chars)", text)
+        self.assertEqual(text.count("Add a greeting script."), 1)          # the request is printed once
         self.assertIn("  S1   Add a greeting script.\n       → outcome: greet.py prints Hello and the name (fact).", text)
+        self.assertNotIn("    " + " " * 14 + " S1 outcome:", text)            # intake's summary is the readings, not repeated
         self.assertIn("  ✓ intake         Scope: one greeting script", text)
         self.assertIn("  · discovery", text)
         self.assertIn("  R-1    Greeting  [Requirements]", text)

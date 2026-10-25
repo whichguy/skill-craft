@@ -34,7 +34,6 @@ import time
 from typing import Any, Iterable, Mapping, Sequence
 
 import shiploop_store as store
-from shiploop_trace_page import DATA_MARK, PAGE as TEMPLATE
 
 TRACE_FILE = "trace.jsonl"
 SENT_DIR = "packets/sent"
@@ -332,7 +331,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "since": _iso(since), "packet": packet_file, **tally(now_action),
         }
 
-    plan = _plan(state, navigator, guidance, accepted_at, improve_results, tally)
+    plan = _plan(state, accepted_at, improve_results, tally)
     request = request_model(run, state, accepted_at, improve_results)
     counts = Counter(event["kind"] for event in events)
     commands = [event for event in events if event["kind"] == "command"]
@@ -419,10 +418,16 @@ def sentence_readings(summary: str) -> dict[int, list[dict[str, str]]]:
     return dict(readings)
 
 
-def _bounded_text(path: Path, limit: int) -> str | None:
-    """A regular file's text up to ``limit`` bytes, screened line by line; None when it is missing or not regular."""
+def _screened(text: str) -> str:
+    """``text`` with each line the credential screen flags replaced by the redaction marker."""
     import shiploop_privacy as privacy
 
+    return "\n".join(privacy.REDACTED_SENSITIVE_VALUE if privacy.sensitive_text(line) else line
+                     for line in text.split("\n"))
+
+
+def _bounded_text(path: Path, limit: int) -> str | None:
+    """A regular file's text up to ``limit`` bytes, screened line by line; None when it is missing or not regular."""
     try:
         if path.is_symlink() or not path.is_file():
             return None
@@ -430,9 +435,7 @@ def _bounded_text(path: Path, limit: int) -> str | None:
             raw = handle.read(limit + 1)
     except OSError:
         return None
-    text = raw[:limit].decode("utf-8", errors="replace")
-    return "\n".join(privacy.REDACTED_SENSITIVE_VALUE if privacy.sensitive_text(line) else line
-                     for line in text.split("\n"))
+    return _screened(raw[:limit].decode("utf-8", errors="replace"))
 
 
 def requirements(path: Path) -> list[dict[str, Any]]:
@@ -523,9 +526,12 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
     }
 
 
-def _plan(state: Mapping[str, Any], navigator: Any, guidance: Any, accepted_at: Mapping[str, Any],
-          improve_results: Mapping[str, Any], tally: Any) -> list[dict[str, Any]]:
+def _plan(state: Mapping[str, Any], accepted_at: Mapping[str, Any], improve_results: Mapping[str, Any],
+          tally: Any) -> list[dict[str, Any]]:
     """Every stage of the run as a slot: done, current, reopened (run before, then invalidated) or pending."""
+    import shiploop_navigator as navigator
+    import shiploop_prompts as guidance
+
     prelude, inner, outer = navigator.graph(state)
     try:
         done, _ = navigator._accepted_done(state)
@@ -773,9 +779,12 @@ def request_digest(model: Mapping[str, Any]) -> str:
     """The original request beside everything planning made of it, sentence by sentence and stage by stage."""
     request = model["request"]
     original, expanded = request["original"], request["expanded"]
-    lines = ["=== ShipLoop trace: request ===", f"Original (verbatim, RUN/{original['file']}):"]
-    lines += ["  " + line for line in original["text"].splitlines()] or ["  (empty)"]
-    lines += ["", "Sentence by sentence (the original, then how intake read it):"]
+    # The sentences joined are the verbatim request, so it is not printed twice; RUN/request.md keeps its layout.
+    lines = ["=== ShipLoop trace: request ===",
+             f"Original, sentence by sentence (joined, the verbatim RUN/{original['file']}; {original['chars']:,} chars), "
+             "each followed by how intake read it:"]
+    if not original["sentences"]:
+        lines.append("  (empty)")
     for sentence in original["sentences"]:
         lines.append(f"  S{sentence['n']:<3} {sentence['text']}")
         for reading in sentence["readings"]:
@@ -788,7 +797,8 @@ def request_digest(model: Mapping[str, Any]) -> str:
             lines.append(f"  · {stage['stage']}")
             continue
         lines.append(f"  ✓ {stage['stage']:<14} {stage['headline']}" + ("  (+I)" if stage["improve"] else ""))
-        lines.append(f"    {'':<14} {_one_line(stage['summary'], 400)}")
+        if stage["stage"] != "intake":  # intake's summary is the sentence readings above
+            lines.append(f"    {'':<14} {_one_line(stage['summary'], 400)}")
     lines += ["", f"Requirements ({len(expanded['requirements'])}, living spec {expanded['spec_file']}):"]
     for requirement in expanded["requirements"]:
         lines.append(f"  {requirement['id']:<6} {requirement['title']}  [{requirement['section']}]")
@@ -874,8 +884,6 @@ def action_digest(model: Mapping[str, Any], action: str) -> str:
 
 def page_texts(root: str | Path, model: Mapping[str, Any]) -> dict[str, str]:
     """Each packet's text as sent, keyed by its file, screened line by line for credentials, within the page bounds."""
-    import shiploop_privacy as privacy
-
     run = Path(root)
     files = [event.get("file") for event in model["events"] if event["kind"] == "packet" and event.get("file")]
     files += [event.get("head_file") for event in model["events"] if event["kind"] == "packet" and event.get("head_file")]
@@ -884,32 +892,30 @@ def page_texts(root: str | Path, model: Mapping[str, Any]) -> dict[str, str]:
     texts: dict[str, str] = {}
     total = 0
     for relative in dict.fromkeys(files):
-        path = run / relative
         try:
-            if path.is_symlink() or not path.is_file() or path.stat().st_size > PAGE_PACKET_LIMIT:
-                continue
-            text = path.read_text(encoding="utf-8", errors="replace")
+            too_large = (run / relative).stat().st_size > PAGE_PACKET_LIMIT
         except OSError:
+            continue
+        text = None if too_large else _bounded_text(run / relative, PAGE_PACKET_LIMIT)
+        if text is None:
             continue
         if total + len(text) > PAGE_TEXT_LIMIT:
             break
-        texts[relative] = "\n".join(privacy.REDACTED_SENSITIVE_VALUE if privacy.sensitive_text(line) else line
-                                    for line in text.split("\n"))
+        texts[relative] = text
         total += len(text)
     return texts
 
 
 def render_html(root: str | Path, model: Mapping[str, Any]) -> str:
     """The self-contained page: the template with the model and the packet texts inlined."""
-    import shiploop_privacy as privacy
+    from shiploop_trace_page import DATA_MARK, PAGE  # only the page needs the template, not every command or hook
 
     data = dict(model)
     data["texts"] = page_texts(root, model)
-    data["events"] = [{**event, **({"text": privacy.redact_text(event["text"])} if isinstance(event.get("text"), str) else {}),
-                       **({"error": privacy.redact_text(event["error"])} if isinstance(event.get("error"), str) else {})}
-                      for event in model["events"]]
+    data["events"] = [{**event, **{name: _screened(event[name]) for name in ("text", "error")
+                                   if isinstance(event.get(name), str)}} for event in model["events"]]
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    return TEMPLATE.replace(DATA_MARK, payload, 1)
+    return PAGE.replace(DATA_MARK, payload, 1)
 
 
 def write_html(root: str | Path, path: str | Path | None = None, *, now: float | None = None) -> Path:

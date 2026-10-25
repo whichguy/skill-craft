@@ -544,10 +544,13 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
         return
     if _TRACE.get("before") is None and not _TRACE.get("created"):
         return
-    try:
-        after = store.read_record(Path(root) / "state.md")
-    except (OSError, ValueError, store.StorageError):
-        after = None
+    if raw_argv[0] in ("status", "context", "report"):
+        after = _TRACE.get("before")  # read-only verbs: skip a second parse of state.md
+    else:
+        try:
+            after = store.read_record(Path(root) / "state.md")
+        except (OSError, ValueError, store.StorageError):
+            after = None
     trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
                          after=after if isinstance(after, dict) else None, error=_TRACE.get("error"))
 

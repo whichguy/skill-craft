@@ -114,74 +114,45 @@ no ongoing observation unless an observer still owns its original path.
 
 ## Run trace
 
-The status block says where the run is; the **run trace** says what happened, in
-order, and what is still scheduled (owner, 2026-10-25: "what steps have been run,
-what hasn't been run, which is still scheduled, what prompt messages were
-injected"). ShipLoop appends one JSON line per event to `<run>/trace.jsonl` as it
-happens (`shiploop_trace.py`):
-
-| Kind | Written by | Holds |
-|---|---|---|
-| `command` | every ShipLoop command that names the run (not `view`, `hook-status`, `trace`) | verb, `--action`, exit code, milliseconds, revision, stage and action before and after, the results it accepted, the refusal text when it exited non-zero |
-| `packet` | every printed packet (`emit`) | action, stage, work item, the reviewed stage of an Improve packet, characters in the file and printed, whether it printed whole, and `file`: the copy kept as sent in `packets/sent/<sha>.md` (and `head_file` when only a head printed) |
-| `hook` | the keepalive stop hook, for a session bound to the run | the decision (`continue` or `allow`), why, and `text`: what the hook put into the host's turn |
-
-`packets/<action>.md` is rewritten in place by every `next`; `packets/sent/`
-keeps each distinct text once, so the trace names every packet the model was sent.
-Skill-tool calls stay in `skill-calls.jsonl`, and the reader merges them. The
-trace is evidence, never state: `state.md` stays the authority, nothing resumes
-from the trace, appends take no lock (one `write` on an append-only descriptor)
-and a failed append never fails a command. It stops growing at 32 MB.
-
-Read it with the same CLI:
+The status block says where the run is; the **run trace** says what happened and
+what is still scheduled (owner, 2026-10-25). ShipLoop appends one JSON line per
+event to `<run>/trace.jsonl` as it happens: `command` (every command that names a
+current run, except `view`, `hook-status` and `trace`: exit code, revision, stage
+and action before and after, results accepted, refusal text), `packet` (every
+printed packet, its text kept as sent in `packets/sent/<sha>.md`, since `next`
+rewrites `packets/<action>.md`) and `hook` (each keepalive stop decision, with the
+text it put into the turn). Skill-tool calls stay in `skill-calls.jsonl`. The
+trace is evidence, never state: nothing resumes from it, and a failed append
+never fails a command.
 
 ```sh
-python3 "$CLI" trace --run-dir "$RUN_DIR"              # digest: every stage done, current, reopened or pending; steps run; recent events
-python3 "$CLI" trace --run-dir "$RUN_DIR" --action ID  # one action (its id, or 6+ characters of its start or end): every packet as sent, commands, refusals, hooks, files
-python3 "$CLI" trace --run-dir "$RUN_DIR" --request    # the original request beside its expansion by every planning stage so far
-python3 "$CLI" trace --run-dir "$RUN_DIR" --json       # the whole model, for a program or a model to query
-python3 "$CLI" trace --run-dir "$RUN_DIR" --html       # writes <run>/trace.html and prints its path
+python3 "$CLI" trace --run-dir "$RUN_DIR"              # digest: where the run is, every stage, steps run, recent events
+python3 "$CLI" trace --run-dir "$RUN_DIR" --action ID  # one action (6+ characters of its id suffice): packets as sent, commands, refusals, hooks, files
+python3 "$CLI" trace --run-dir "$RUN_DIR" --request    # the original request beside its expansion by planning
+python3 "$CLI" trace --run-dir "$RUN_DIR" --json       # the whole model
+python3 "$CLI" trace --run-dir "$RUN_DIR" --html       # writes <run>/trace.html
 ```
 
-The digest's plan lists every stage of the run (preparation, each work item's
-eight stages, release) as done (`✓`), current (`▶`), reopened (`↺`, run once and
-then invalidated by a send-back or reconciliation) or pending (`·`). `×N` means the
-stage was accepted N times (re-planned or redone); implement is accepted once per
-step, so it shows its current step plan's step count (`(6 steps)`) instead. `↩N`
-counts send-backs and `!N` refusals. `+I` marks a stage an Improve stage reviewed. Before `plan` is
-accepted the work items are "set by the plan stage". Events are attributed to the
-action that was current when they happened: their own `--action`, else the last
-packet's. A run before the trace has no record of commands, refusals, packets or
-hook stops, and the reader says "not recorded" rather than zero.
+The digest prints its own legend. An event belongs to its own `--action`, else to
+the action of the last packet before it. A `--check-only` failure is a check, not
+a refusal. A run saved before the trace reads from `state.md` and `timeline.json`,
+and what it never recorded shows as "not recorded", not zero.
 
-Every view keeps the **original request beside the expanded one** (owner, 2026-10-25:
-"we always want the ability to see what the original prompt was and what the
-expanded prompt was, based on all the planning activities"). The original is the
-verbatim request and its sentences `S1..Sn` (`request.md`). The expansion is read
-from the current accepted results only, so a result a send-back or reconciliation
-replaced is counted as superseded, not shown: intake's reading of each sentence
-(its summary's `S<n> outcome:`, `boundary:` or `open question:` parts, set beside
-that sentence), each planning stage's headline and summary from intake to
-prepare, the living spec's requirements (`KNOWLEDGE/spec.md`, `### R-n.` headings
-and their text, screened), the work items with each one's step plan, the plan's
-assumptions, and the owner's answers (`decisions/`). The digest gives it two lines
-and `--request` prints it whole.
+The **request view** sets the request, sentence by sentence (`S1..Sn`, joined
+they are the verbatim `request.md`), beside its expansion from the current
+accepted results: intake's reading of each sentence (`S<n> outcome:`,
+`boundary:`, `open question:`), each planning stage's headline and summary, the
+living spec's `R-n` requirements, the work items with their step plans, the
+plan's assumptions and the owner's answers (`decisions/`). Results a send-back or
+reconciliation replaced count as superseded.
 
-`trace.html` is self-contained: the request, original beside expanded, with the
-sentence-by-sentence reading, requirements, work items and steps, assumptions and
-answers; the plan grid (a stage opens its events; the legend names only what the
-run shows and never animates), each
-step with its packets, commands, refusals and hook text, filters and search, and
-a viewer that shows each packet's text as sent, screened line by line by the
-credential screen of the progress view. The page shows every time in the viewer's
-own time zone (named in the header; a run that crosses a local midnight shows the
-date with each time, and each time's UTC stamp is its tooltip); the trace, `--json`
-and the digest keep UTC with a `Z`. The progress observer rewrites it when
-the trace, `state.md` or `skill-calls.jsonl` change, and while the run is active
-the open page reloads every ten seconds (a checkbox turns that off; an open packet
-or a search in progress holds it). A run saved before the trace still reads: its
-steps come from `state.md` and `timeline.json`, its packets are the last copy of
-each, and the reader and the page say so.
+`trace.html` holds the same in one self-contained page: the request (verbatim
+beside the expansion), the plan grid (its legend names only what the run shows
+and never animates), each step's events with filters and search, and each
+packet's text as sent, screened for credentials. Times show in the viewer's time
+zone, with UTC in the tooltip. The progress observer rewrites the page as the run
+changes, and an active run's page reloads every ten seconds unless a packet is
+open, a search is being typed or live updates are off.
 
 ## Where it appears
 
