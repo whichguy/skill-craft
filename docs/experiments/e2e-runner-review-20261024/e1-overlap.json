@@ -1,0 +1,75 @@
+{
+ "question": "E1: does environment.overlap (same-parent rule) see the runs that overlapped each chess run?",
+ "harness": "origin/main 31933a73",
+ "measured_at": "2026-10-24T18:5x PDT, run 5 still active",
+ "runs": [
+  {
+   "run": "20261019/chess-sf-full-05fe25b",
+   "span_minutes": 240.0,
+   "same_parent_rule_sees": [],
+   "overlapping_anywhere": 0,
+   "missed_by_rule": 0,
+   "overlap_seconds_total": 0,
+   "examples": []
+  },
+  {
+   "run": "20261020/chess-sf-full-9e52e8",
+   "span_minutes": 239.6,
+   "same_parent_rule_sees": [],
+   "overlapping_anywhere": 0,
+   "missed_by_rule": 0,
+   "overlap_seconds_total": 0,
+   "examples": []
+  },
+  {
+   "run": "20261024/chess-sf-full-ed3292",
+   "span_minutes": 87.1,
+   "same_parent_rule_sees": [],
+   "overlapping_anywhere": 16,
+   "missed_by_rule": 16,
+   "overlap_seconds_total": 15251,
+   "examples": [
+    [
+     "e6-r1-20261024/E6-K3/B/2/slice",
+     2130,
+     false
+    ],
+    [
+     "e6-r1-20261024/E6-K3/B/4/slice",
+     1502,
+     false
+    ],
+    [
+     "e6-r1-20261024/E6-K3/C/3/slice",
+     1446,
+     false
+    ],
+    [
+     "e6-r1-20261024/E6-K3/T/3/slice",
+     1420,
+     false
+    ],
+    [
+     "e6-r1-20261024/E6-K3/C/2/slice",
+     1390,
+     false
+    ],
+    [
+     "e6-r1-20261024/E6-K3/T/2/slice",
+     1373,
+     false
+    ],
+    [
+     "e6-r1-20261024/E6-K3/C/1/slice",
+     1274,
+     false
+    ],
+    [
+     "e6-r1-20261024/E6-K3/B/3/slice",
+     1230,
+     false
+    ]
+   ]
+  }
+ ]
+}
