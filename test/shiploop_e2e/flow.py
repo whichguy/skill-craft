@@ -506,7 +506,7 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
     claude = reading.get("host") == "claude"
     # One pass over the stream: each ShipLoop verb a command ran, the status displays, the skills called, the refusals by stage.
     invocations, displays, skills, refusals, answered = [], 0, {}, {}, set()
-    # The refusals the trace cannot hold (run_trace.outside_trace), each with its first text, for a run whose trace covers it.
+    # The refusals the trace cannot hold (metrics.outside_trace), each with its first text, for a run whose trace covers it.
     commands_by_call, outside = {}, {}
     stage = None
     for _number, event in metrics.event_range(out / "events.jsonl"):
@@ -530,7 +530,7 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
                 cause = cause.split(": ", 1)[-1].split("; ")[0][:110]
                 key = f"{stage or '?'}\t{cause}"
                 refusals[key] = refusals.get(key, 0) + 1
-                if run_trace.outside_trace(commands_by_call.get(call, ""), shown[refused.start():]):
+                if metrics.outside_trace(commands_by_call.get(call, ""), shown[refused.start():]):
                     row = outside.setdefault(key, {"stage": stage or "?", "cause": cause, "count": 0,
                                                    "text": shown[refused.start():][:1200], "source": "events.jsonl"})
                     row["count"] += 1
@@ -674,8 +674,8 @@ def trace_cause(text: str | None) -> str:
 def trace_refusals(traced: dict, run: str, stream_count: int, outside: list[dict] = ()) -> dict:
     """The panel's refusals from the run trace: every refused command (a failed --check-only is a check, counted apart), by the
     stage the run was in and the cause, with the first refusal's text of each row, then the ``outside`` rows: refusals only the
-    stream shows (a command that named no run, a usage error; run_trace.outside_trace). ``stream_count`` is what events.jsonl
-    showed in all."""
+    stream shows (a routed verb, a command that named no run, a usage error; metrics.outside_trace). ``stream_count`` is what
+    events.jsonl showed in all."""
     rows: dict[tuple, dict] = {}
     checks = 0
     for failure in traced["failures"]:

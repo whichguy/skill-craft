@@ -268,7 +268,9 @@ class StopTests(SliceCase):
         self.fake(seeded, "normal")
         archived = sorted(p.name for p in (self.out / packets.ARCHIVE).iterdir())
         report = packets.write_report(self.out)
-        self.assertEqual(report["emissions_source"].split()[0], "packet-archive")
+        # The fake drives the real CLI, so the run has a trace (shiploop 1.12.0 and later): the report reads each packet as sent
+        # from it, and the archive the poll still writes covers only the packets the trace never printed.
+        self.assertTrue(report["emissions_source"].startswith("run trace"), report["emissions_source"])
         stages = {row["stage"] for row in report["packets"]}
         inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward"}
         self.assertTrue(inner <= stages, stages)  # every inner stage printed at least once

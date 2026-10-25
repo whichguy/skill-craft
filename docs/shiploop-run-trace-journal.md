@@ -315,11 +315,14 @@ Design (built, all in `test/shiploop_e2e/`; no skill file changed, so no change 
   trace is not capped. A step the harness seeded (summary `Synthetic…`) is not the model's: step slices seed with
   `navigator.apply`, outside the trace, and still read as covered. A partial trace leaves every count on the stream and
   says why.
-- **What only the stream holds.** The trace records only commands that loaded the run. A command that names no run
-  (`workspace plan-return --workspace W`) or does not parse is in the stream only; `run_trace.outside_trace` tells such a
-  stream failure (no `--run-dir` in the call, or an argparse error in its text), and `metrics.traced_failures` adds it to
-  the trace's, marked `source: events.jsonl`, ordered by epoch stamps. Found on the first live traced run (below), not
-  foreseen: the first design dropped them.
+- **What only the stream holds.** The trace records only navigator commands that loaded the run. A command that names no
+  run (`workspace plan-return --workspace W`), one that does not parse, and the routed verbs (`chain`, `lint`, `red-check`,
+  `backchain-check`) are in the stream only. `metrics.outside_trace` tells such a stream failure: no line of the call runs
+  a traced verb with `--run-dir`, or its text is an argparse error. `metrics.traced_failures` adds it to the trace's,
+  marked `source: events.jsonl`, ordered by epoch stamps. Workspace refusals were found on the first live traced run
+  (below); the first design dropped them. Routed verbs: the session that started this work reported that shiploop 1.12.1
+  stops tracing them (1.12.0 traced their exit without text), so `run_trace.read` leaves them out on every release, and
+  runs on either side of 1.12.1 count them with one instrument.
 - **`metrics.json`**: `shiploop_failures` and `gate_counts` come from the trace when it covers the run; `failures_source`
   names the file (and why not); `run_trace` keeps the trace's counts beside the stream's own (`stream_failures`). The
   item shape stays `{verb, exit, line}`, plus `check_only` on a failed check. A failed `--check-only` stays in the list
@@ -347,23 +350,27 @@ returns its workspace. They are now merged from the stream by the rule above, wh
 to order them). Still missing: such a refusal behind a pipe, and a command on a wrong `--run-dir`.
 
 Live evidence (read-only, `~/e2e-runs/20261025/trace-verify-4fd9f1/hello`, Claude, shiploop 1.12.0, read while the
-sibling live-E2E session was still running it): the stream counts 6 failures, the trace 7 (5 refusals, 2 failed checks),
-the harness's list 8 (the 7 and the workspace refusal). The stream named the step-proof refusal's verb `lint` (its
-command ran `lint` too); the trace says `complete`. Two of the trace's 7 are routed verbs (`lint` and `red-check`, exit
-3) recorded with no refusal text: `shiploop_protocol._main` hands `chain`, `lint` and `red-check` to their own modules,
-which return an exit code without setting the refusal text (`_TRACE["error"]`) the trace records, a ShipLoop gap for a
-later change. `gate_counts` classifies every line `other` on both
-readings (no signature fires on this run), and catches 6 of 8 by the trace's accepted `complete` against 3 of 6 by the
-stream's. A second traced run (`gate-212-8a49cf-grok-hello`, Grok) has no failures; its `research` packet was printed 3
-times (2 reprints), which no stream reading counted.
+sibling live-E2E session was still running it). The trace holds 7 failures. Two of them are routed verbs (`lint` and
+`red-check`, exit 3, no text), which the harness now leaves out, so 5 remain: 3 refusals and 2 failed checks. The
+harness's list has 6: those 5 and the workspace refusal from the stream. The stream also counts 6, and they are the same
+failures, so this run's total did not change. The trace corrects three things. It names the step-proof refusal's verb
+`complete`, where the stream said `lint` because the command ran `lint` too. It gives the exit for the four the model
+piped, which the stream recorded as not shown. It gives the stage the run was in. The two routed exits are in neither
+list: the stream's verb pattern does not know `red-check`, and the `lint` result was piped.
 
-Evidence: `test/shiploop-e2e-run-trace.test.py`, 14 tests, 1.9 s. The fixture is a real CLI run in a temporary E2E
+`gate_counts` classifies every line `other` on both readings (no signature fires on this run). It catches 5 of 6 by the
+trace's accepted `complete`, against 3 of 6 by the stream's. An earlier reading of the same run, before routed verbs were
+left out, gave 8 and 6 of 8; it is superseded the same day by the 1.12.1 rule. A second traced run
+(`gate-212-8a49cf-grok-hello`, Grok) has no failures. Its `research` packet was printed 3 times (2 reprints), which no
+stream reading counted.
+
+Evidence: `test/shiploop-e2e-run-trace.test.py`, 15 tests, 2.1 s. The fixture is a real CLI run in a temporary E2E
 folder with a Claude stream written around its calls: a reprinted intake packet, a failed `--check-only` shown to the
-stream, a `workspace plan-return --workspace` refusal and a usage error (neither loads the run), a refusal piped through
-`| tail -1`, a keepalive continuation, the accepted intake and a reprinted discovery packet. On it the stream counts 3
-failures and misses the refusal; the trace counts 1 refusal, 1 failed check, 4 prints (2 reprints) and 1 continuation;
-`shiploop_failures` holds all 4 failures in order, and the refusal's text appears in `flow.json` right after the call
-that caused it. The same folder without its trace reads exactly as before (stream counts, `retained` packets, None for unrecorded
+stream, a `workspace plan-return --workspace` refusal and a usage error (neither loads the run), a `lint` that could not
+run (exit 3), a refusal piped through `| tail -1`, a keepalive continuation, the accepted intake and a reprinted discovery
+packet. On it the stream counts 4 failures and misses the refusal; the trace counts 1 refusal, 1 failed check, 4 prints (2 reprints) and 1 continuation;
+`shiploop_failures` holds all 5 failures in order (with a `lint` that could not run, read from the stream), and the
+refusal's text appears in `flow.json` right after the call that caused it. The same folder without its trace reads exactly as before (stream counts, `retained` packets, None for unrecorded
 counts), and a trace stripped of its accepting command reads as partial and falls back with its reason. Checked in the
 browser: the viewer shows the refused and check-failed events with their text, the keepalive text, and "printed 2× (1
 reprint)" on each phase. Neighbouring suites pass unchanged: owner page, fidelity, efficiency, commit counters, Run

@@ -3,12 +3,13 @@
 
 The fixture is a real ShipLoop run driven through the checkout's CLI in a temporary E2E output folder, with a Claude stream
 written around the calls it made (the CLI's own output as each tool result, stamped on the same clock as the trace):
-init; a `next` that reprints the intake packet; a failed `--check-only` the stream shows (exit 2); two failures the trace
-cannot hold, because neither command loaded the run: a `workspace plan-return --workspace` refusal and a `complete` with no
-`--action` (a usage error); a refused `complete` the model piped through `| tail -1`, so the stream shows neither the exit
-nor the refusal line; a keepalive stop decision that continued the turn; the accepted intake and a reprint of the discovery
-packet. The stream alone counts three failures (the check and the two outside the trace) and misses the refusal; the trace
-counts the refusal and the check, two reprints and one continuation; the harness's list holds all four, in order.
+init; a `next` that reprints the intake packet; a failed `--check-only` the stream shows (exit 2); three failures the
+harness reads from the stream on every release: a `workspace plan-return --workspace` refusal and a `complete` with no
+`--action` (a usage error), neither of which loads the run, and a `lint` that could not run (a routed verb: shiploop 1.12.0
+traced it without text, 1.12.1 not at all); a refused `complete` the model piped through `| tail -1`, so the stream shows
+neither the exit nor the refusal line; a keepalive stop decision that continued the turn; the accepted intake and a reprint
+of the discovery packet. The stream alone counts four failures and misses the refusal; the trace counts the refusal and the
+check, two reprints and one continuation; the harness's list holds all five, in order.
 
 The same folder with its trace removed is a run before 1.12.0 and must read exactly as before; a trace that began after a
 step the model ran does not cover the run, so the counts stay the stream's, and say why. No host CLI or model is started.
@@ -90,6 +91,8 @@ def traced_output(base: Path) -> Path:
     assert blocked.returncode != 0 and "ShipLoop workspace blocked" in blocked.stderr, blocked.stdout + blocked.stderr
     usage = shell(f"{cli} complete --run-dir {run}", ["complete", "--run-dir", str(run)])
     assert usage.returncode == 2 and "error:" in usage.stderr, usage.stdout + usage.stderr
+    lint = shell(f"{cli} lint --run-dir {run} --action={intake}", ["lint", "--run-dir", str(run), f"--action={intake}"])
+    assert lint.returncode == 3 and "could not run" in lint.stdout + lint.stderr, lint.stdout + lint.stderr
     # The model piped the callback: the host saw the pipe's exit (0) and the last line only.
     hidden = shell(f"{cli} complete --run-dir {run} --action={intake} 2>&1 | tail -1",
                    ["complete", "--run-dir", str(run), f"--action={intake}"],
@@ -153,6 +156,22 @@ class TracedRun(unittest.TestCase):
         self.assertIsNone(run_trace.read(self.untraced / RUN))
         self.assertIsNone(run_trace.read(None))
 
+    def test_which_stream_failures_the_trace_cannot_hold(self):
+        cli, run = "python3 /x/skills/shiploop/scripts/shiploop", "/e2e/.shiploop-runs/w/run"
+        refusal = "ShipLoop navigator: record must contain exactly one shiploop-state fence"
+        self.assertFalse(metrics.outside_trace(f"{cli} complete --run-dir {run} --action=nav-1 2>&1 | tail -1", refusal))
+        self.assertFalse(metrics.outside_trace(f"RUN={run}; {cli} next --run-dir \"$RUN\"", refusal))
+        self.assertTrue(metrics.outside_trace(f"{cli} workspace plan-return --workspace /e2e/.shiploop-runs/w", refusal))
+        self.assertTrue(metrics.outside_trace(f"{cli} lint --run-dir {run} --action=nav-1", "ShipLoop lint could not run: x"))
+        self.assertTrue(metrics.outside_trace(f"{cli} red-check --run-dir {run} --action=nav-1", "x"))
+        self.assertTrue(metrics.outside_trace(f"{cli} complete --run-dir {run}",
+                                              "shiploop complete: error: the following arguments are required: --action"))
+        # A line that also runs a traced verb on the run is the trace's, whichever of its verbs failed.
+        self.assertFalse(metrics.outside_trace(f"{cli} lint --run-dir {run} --action=nav-1 && {cli} complete --run-dir {run} "
+                                               "--action=nav-1", refusal))
+        self.assertEqual(run_trace.ROUTED_VERBS, {"chain", "lint", "red-check", "backchain-check"})
+        self.assertNotIn("lint", {f["verb"] for f in run_trace.read(self.run_dir)["failures"]})
+
     def test_an_unreadable_trace_is_an_error_record_never_an_exception(self):
         with tempfile.TemporaryDirectory() as temp:
             run = Path(temp) / "run"
@@ -170,12 +189,13 @@ class TracedRun(unittest.TestCase):
         m = self.metrics
         self.assertEqual([(f["verb"], f["exit"], f.get("check_only", False), f.get("source", "trace")) for f in m["shiploop_failures"]],
                          [("complete", 2, True, "trace"), ("workspace", 2, False, "events.jsonl"),
-                          ("complete", 2, False, "events.jsonl"), ("complete", 2, False, "trace")])
-        self.assertIn("exactly one shiploop-state fence", m["shiploop_failures"][3]["line"])
+                          ("complete", 2, False, "events.jsonl"), ("lint", 3, False, "events.jsonl"),
+                          ("complete", 2, False, "trace")])
+        self.assertIn("exactly one shiploop-state fence", m["shiploop_failures"][4]["line"])
         self.assertIn("ShipLoop workspace blocked", m["shiploop_failures"][1]["line"])
         self.assertEqual(m["failures_source"], {"file": "<run>/trace.jsonl", "why": None})
-        # The stream saw the check and the two outside the trace: the piped refusal hid both its exit and its refusal line.
-        self.assertEqual(m["run_trace"]["stream_failures"], 3)
+        # The stream saw the check and the three it is the source of: the piped refusal hid both its exit and its refusal line.
+        self.assertEqual(m["run_trace"]["stream_failures"], 4)
         self.assertEqual({k: m["run_trace"][k] for k in ("refusals", "checks_failed", "packets", "reprints", "continuations")},
                          {"refusals": 1, "checks_failed": 1, "packets": 4, "reprints": 2, "continuations": 1})
         self.assertEqual(sum(row["fired"] for row in m["gate_counts"].values()), len(m["shiploop_failures"]))
@@ -185,7 +205,8 @@ class TracedRun(unittest.TestCase):
         self.assertEqual(block["count"], len(self.metrics["shiploop_failures"]))
         self.assertEqual(block["source"], "<run>/trace.jsonl")
         self.assertEqual([(i["source"], i.get("check_only", False)) for i in block["items"]],
-                         [("trace", True), ("events.jsonl", False), ("events.jsonl", False), ("trace", False)])
+                         [("trace", True), ("events.jsonl", False), ("events.jsonl", False), ("events.jsonl", False),
+                          ("trace", False)])
         traced = [i for i in block["items"] if i["source"] == "trace"]
         self.assertEqual([(i["stage"], i["event"]) for i in traced], [("intake", None), ("intake", None)])
         self.assertTrue(all(isinstance(i["trace_line"], int) for i in traced))
@@ -195,7 +216,7 @@ class TracedRun(unittest.TestCase):
     def test_a_run_before_the_trace_keeps_the_stream_counts(self):
         m = metrics.collect(self.untraced, self.untraced / RUN)
         self.assertEqual([(f["verb"], f["exit"]) for f in m["shiploop_failures"]],
-                         [("complete", 2), ("workspace", 2), ("complete", 2)])  # no piped refusal: the stream never saw it
+                         [("complete", 2), ("workspace", 2), ("complete", 2), ("lint", 3)])  # the piped refusal is missing
         self.assertEqual(m["failures_source"]["file"], "events.jsonl")
         self.assertIn("no trace.jsonl", m["failures_source"]["why"])
         self.assertIsNone(m["run_trace"])

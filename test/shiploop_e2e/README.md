@@ -280,19 +280,28 @@ reach its 32 MB cap. A step the harness seeded (a synthetic result) is not the m
 it. A trace that does not cover the run (it began after an upgrade in the middle of a run) leaves the counts on the stream,
 and `failures_source.why` says why.
 
-**What the trace cannot hold.** It records only commands that loaded the run. A command that named no run, such as
-`workspace plan-return --workspace W` (its refusal reads `ShipLoop workspace blocked:`), and one whose command line did not
-parse (`shiploop complete: error: ...`) are in the host stream only. `run_trace.outside_trace` tells them apart: the call
-names no `--run-dir`, or its text is an argparse error. The harness adds them to the trace's failures, so a traced run
-loses none the stream saw; one a pipe hid is still missing, as is a command on a wrong `--run-dir`. The first traced E2E
-run (2026-10-25, `trace-verify-4fd9f1`, still running when read) had one such refusal, a stale return plan at
-`plan-return`. The routed verbs (`lint`, `red-check`, `chain`) are traced with their exit but without refusal text, so they
-read "no refusal text recorded".
+**What the trace cannot hold.** It records only navigator commands that loaded the run. Three kinds of failure are in the
+host stream only:
+- a command that named no run, such as `workspace plan-return --workspace W` (its refusal reads `ShipLoop workspace
+  blocked:`);
+- a command line that did not parse (`shiploop complete: error: ...`);
+- the routed verbs `chain`, `lint`, `red-check` and `backchain-check` (`run_trace.ROUTED_VERBS`). Shiploop 1.12.1 stopped
+  tracing them, and 1.12.0 traced their exit without text. The harness reads their failures from the stream on every
+  release and leaves 1.12.0's records out, so runs on either side of 1.12.1 count them with one instrument.
+
+`metrics.outside_trace` tells these apart: no line of the call runs a traced verb with `--run-dir`, or its text is an
+argparse error. A compound line that also runs a traced verb on the run is the trace's. The harness adds them to the
+trace's failures. A traced run therefore loses none the stream saw, but one a pipe hid is still missing, as is a command on
+a wrong `--run-dir`. The stream's own verb pattern does not know `red-check` or `chain`, so their exits are missed unless
+their text carries a refusal line. That was already true before the trace. The first traced E2E run (2026-10-25,
+`trace-verify-4fd9f1`, still running when read) had one such refusal from the stream, a stale return plan at
+`plan-return`.
 
 **Two instruments.** A refusal count from the trace and one from the stream measure different things. On the test fixture
-the stream sees 3 failures (a failed check, a `workspace` refusal and a usage error, none piped) and misses a refusal
-behind `| tail -1`; the harness's list holds all 4. On the first traced live run the stream saw 6 and the harness's list
-holds 8. `arms.py` therefore gates on refusals only when both arms counted them from the same source
+the stream sees 4 failures (a failed check, a `workspace` refusal, a usage error and a `lint` that could not run, none
+piped) and misses a refusal behind `| tail -1`; the harness's list holds all 5. On the first traced live run both count 6
+and they are the same failures. The trace gives the right verb for one (the stream said `lint` for a `complete` in a
+compound command), the exit for the four the model piped, and the stage the run was in. `arms.py` therefore gates on refusals only when both arms counted them from the same source
 (`refusals_source` in each summary); otherwise the gate is unmeasured and the decision stays open. Read `failures_source`
 before reading a refusal difference between a run before 1.12.0 and a later one.
 

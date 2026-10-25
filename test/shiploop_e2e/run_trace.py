@@ -19,10 +19,12 @@ sent and refused. A run with no ``trace.jsonl`` (before 1.12.0) reads None and i
 accepted outside the trace (the run predates it, or began before an upgrade) or the trace reached its size cap. A step the
 harness seeded (its result is synthetic) is not the model's, so a step slice's trace still covers it.
 
-The trace records only commands that loaded the run. A command that named no run (``workspace plan-return --workspace W``,
-whose refusal reads ``ShipLoop workspace blocked:``) or failed on its own command line (argparse: ``shiploop complete:
-error: ...``) is in the host stream only; ``outside_trace`` tells such a stream failure, and the readers add it to the
-trace's, marked with its source.
+The trace records only navigator commands that loaded the run. A command that named no run (``workspace plan-return
+--workspace W``, whose refusal reads ``ShipLoop workspace blocked:``) or failed on its own command line (argparse:
+``shiploop complete: error: ...``) is in the host stream only, and so are the routed verbs (ROUTED_VERBS): shiploop 1.12.1
+stopped tracing them, and 1.12.0 traced their exit without text. Their failures are read from the stream on every release,
+so runs on either side of 1.12.1 count them with one instrument, and ``read`` leaves them out of ``failures``.
+``metrics.outside_trace`` tells such a stream failure, and the readers add it to the trace's, marked with its source.
 """
 from __future__ import annotations
 
@@ -42,13 +44,9 @@ NO_TEXT = "no refusal text recorded"
 # ``shiploop complete: error: the following arguments are required: --action``): the run is never loaded, so never traced.
 USAGE_ERROR = re.compile(r"^(?:usage: shiploop\b|shiploop(?: [\w-]+)?: error: )", re.M)
 RUN_DIR_FLAG = re.compile(r"--run-dir\b")
-
-
-def outside_trace(command: str, text: str) -> bool:
-    """Whether a failure the host stream shows is one the trace cannot hold: its command named no run (``--run-dir``), as a
-    ``workspace`` verb on ``--workspace`` does, or its command line did not parse. ``command`` is the call as the stream has it
-    (variables expanded, wrapper scripts appended); ``text`` is the result's text from the refusal on."""
-    return not RUN_DIR_FLAG.search(command or "") or bool(USAGE_ERROR.search(text or ""))
+# The verbs shiploop_protocol hands to their own modules before the navigator loads the run: not traced from 1.12.1, traced
+# with an exit and no text in 1.12.0. The harness reads their failures from the host stream on every release.
+ROUTED_VERBS = frozenset(("chain", "lint", "red-check", "backchain-check"))
 
 
 def first_line(text: str | None, limit: int | None = LINE_LIMIT) -> str:
@@ -80,7 +78,7 @@ def read(run_dir: Path | str | None) -> dict | None:
         if event["kind"] == "command" and event.get("verb") == "complete" and not event.get("check_only"):
             completes.append({"i": event["i"], "action": event.get("action") or (event.get("cursor") or [None])[0],
                               "accepted": event.get("exit") == 0})
-        if event["kind"] == "command" and event.get("exit") not in (0, None):
+        if event["kind"] == "command" and event.get("exit") not in (0, None) and event.get("verb") not in ROUTED_VERBS:
             before = (event.get("stage") or [None])[0]
             text = shiploop_trace._screened(event["error"]) if isinstance(event.get("error"), str) else None
             failures.append({"i": event["i"], "ts": event.get("ts"), "at": event.get("at"), "verb": event.get("verb") or "unknown",
@@ -112,8 +110,8 @@ def read(run_dir: Path | str | None) -> dict | None:
 
 
 def covers(traced: dict | None) -> bool:
-    """Whether ``traced`` (``read``'s value) holds every refusal of a command that loaded the run (``outside_trace`` names the
-    others)."""
+    """Whether ``traced`` (``read``'s value) holds every refusal of a navigator command that loaded the run
+    (``metrics.outside_trace`` names the others)."""
     return bool(traced) and "error" not in traced and bool(traced.get("covers"))
 
 
@@ -128,7 +126,7 @@ def why_not(traced: dict | None) -> str:
 
 def metric_failure(row: dict) -> dict:
     """One failure as metrics.json's ``shiploop_failures`` lists it: verb, exit and first line; a failed check is flagged, and a
-    failure only the host stream shows (``source`` events.jsonl, see ``outside_trace``) names that source."""
+    failure only the host stream shows (``source`` events.jsonl, see ``metrics.outside_trace``) names that source."""
     return {"verb": row["verb"], "exit": row["exit"], "line": row["line"], **({"check_only": True} if row.get("check_only") else {}),
             **({"source": "events.jsonl"} if row.get("source") == "events.jsonl" else {})}
 
