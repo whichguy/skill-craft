@@ -373,7 +373,7 @@ class PlanSizing(unittest.TestCase):
                 self.assertTrue(low >= 1 and (high is None or high >= low))
                 self.assertTrue((step_slice.FIXTURES / case["fixture"]).is_dir())
                 self.assertEqual((exp["seed_at"], exp["stop_after"]), ("step-plan", "step-plan"))
-                self.assertEqual(sorted(exp["arms"]), ["A", "B", "C", "T"])
+                self.assertLessEqual({"A", "B", "C", "T"}, set(exp["arms"]))
 
     def test_each_replay_seeds_at_step_plan_with_its_plan_records_and_the_packet_names_its_item(self):
         for name in ("sf-chess-engine", "sf-chess-board-entry", "node-battleship-server", "node-chess-engine"):
@@ -405,17 +405,46 @@ class PlanSizing(unittest.TestCase):
         self.assertTrue(Path(shim["log"]).read_text().strip())
         self.assertIsNone(step_slice.fake_sf(step_slice.load_step_case("node-chess-engine"), out, {}))
 
-    def test_arm_c_refuses_an_oversized_or_undeclared_step_and_accepts_a_split_plan(self):
+    def _gate(self, overlay_name: str, cases: dict) -> dict:
+        """Each case's outcome from _check_step_sizing on arm T's navigator with the overlay applied."""
         if subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--verify", "-q", T_REF + "^{commit}"],
                           capture_output=True).returncode:
             self.skipTest(f"{T_REF} is not in this clone")
         tar = subprocess.run(["git", "-C", str(ROOT), "archive", T_REF, "skills/shiploop/scripts",
                               "skills/shiploop/references"], check=True, capture_output=True).stdout
         import tarfile  # noqa: PLC0415
+        root = self.tmp / overlay_name
         with tarfile.open(fileobj=io.BytesIO(tar)) as archive:
-            archive.extractall(self.tmp, filter="data")
-        scripts = self.tmp / "skills" / "shiploop" / "scripts"
-        overlay.apply(json.loads((E2E / "overlays" / "e6-size-gate.json").read_text()), scripts)
+            archive.extractall(root, filter="data")
+        scripts = root / "skills" / "shiploop" / "scripts"
+        overlay.apply(json.loads((E2E / "overlays" / f"{overlay_name}.json").read_text()), scripts)
+        done = subprocess.run([sys.executable, "-B", "-c", GATE_PROBE, str(scripts), json.dumps(cases)],
+                              capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr[-2000:])
+        return json.loads(done.stdout)
+
+    def test_the_generic_gate_counts_a_companion_file_with_its_file_and_names_no_stack(self):
+        files = "src/game/"
+        cases = {
+            "run 4 W1 (no step paths)": json.loads((E2E / "evaluators" / "e6_records" / "run4-w1.json").read_text()),
+            "a file, its descriptor and its proof script": {
+                "criteria": [{"id": "C1", "text": "One."}], "paths": [files + "*", "scripts/*"],
+                "steps": [{"id": "S1", "criteria": ["C1"], "check": "sh scripts/s1-check.sh",
+                           "paths": [files + "a.cls", files + "a.cls-meta.xml", files + "b.js", files + "b.js.map",
+                                     files + "c.js", "scripts/s1-check.sh"]}]},
+            "a.json is not a.js's companion": {
+                "criteria": [{"id": "C1", "text": "One."}], "paths": [files + "*"],
+                "steps": [{"id": "S1", "criteria": ["C1"], "check": "true",
+                           "paths": [files + "a.js", files + "a.json", files + "b.js", files + "c.js"]}]}}
+        got = self._gate("e6-size-gate-generic", cases)
+        self.assertIn("must list paths", got["run 4 W1 (no step paths)"])
+        self.assertEqual(got["a file, its descriptor and its proof script"], "accepted")
+        self.assertIn("4 product files", got["a.json is not a.js's companion"])
+        for name in ("e6-size-prose-generic", "e6-size-gate-generic"):
+            shipped = " ".join(e["new"] for e in json.loads((E2E / "overlays" / f"{name}.json").read_text())["edits"])
+            self.assertNotRegex(shipped.lower(), r"meta\.xml|\.apex|salesforce|sfdx|\blwc\b|lightning")
+
+    def test_arm_c_refuses_an_oversized_or_undeclared_step_and_accepts_a_split_plan(self):
         records = E2E / "evaluators" / "e6_records"
         engine = "force-app/main/default/classes/SLChess"
         crit = [{"id": f"C{n}", "text": f"Criterion {n}."} for n in range(1, 6)]
@@ -433,10 +462,7 @@ class PlanSizing(unittest.TestCase):
                 "steps": [{"id": "S1", "criteria": ["C1", "C2"], "check": "sh scripts/s1-check.sh",
                            "paths": [engine + "A.cls", engine + "A.cls-meta.xml", engine + "B.cls", engine + "C.cls",
                                      "scripts/s1-check.sh"]}]}}
-        done = subprocess.run([sys.executable, "-B", "-c", GATE_PROBE, str(scripts), json.dumps(cases)],
-                              capture_output=True, text=True)
-        self.assertEqual(done.returncode, 0, done.stderr[-2000:])
-        got = json.loads(done.stdout)
+        got = self._gate("e6-size-gate", cases)
         self.assertIn("must list paths", got["run 4 W1 (no step paths)"])
         self.assertEqual(got["battleship-1 W2 (six one-file steps)"], "accepted")
         self.assertIn("4 product files", got["four product files"])

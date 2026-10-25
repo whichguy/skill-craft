@@ -78,6 +78,13 @@ files) but not the engine (W1: one engine file, two product files once tests and
 cap catches W1 (7 criteria), and the existing 1,200-character limit on a step's criteria text stops a model from
 dodging it with fewer, larger criteria. Both bounds come from the replay in section 0; R1 may move them.
 
+**Genericity (owner rule, restated 2026-10-24 with the Apex revert `df6b91e2`).** ShipLoop text, catalogs and gates
+name no technology. Arms B and C, as run in R1, carry one stack detail: "a `-meta.xml` sidecar counts with its file"
+in the duty-4 text and the matching `-meta.xml` collapse in C's gate. The general lesson is "a companion file that only
+describes another file counts with that file". A winning arm ships only in a generic wording, and that wording is
+re-validated (K1, K3, K5 × 4 samples) before any ShipLoop change. The evaluator, which is harness and not ShipLoop, may
+keep the explicit `-meta.xml` rule.
+
 Not in these arms: `plan` duty 14. Every E6 case seeds at step-plan, so the plan stage is synthetic and an edit to it
 could not be observed. A plan-stage case (seed at `plan`, stop after `plan`, score items per plan) is the follow-up if
 step sizing alone does not shrink the effective unit of work. The `STEP_SIZING` constant is also left alone: it is
@@ -153,6 +160,14 @@ main. The templates-branch session (`feat/shiploop-templates-6d625a`, shipping a
   T and the leading arm on all seven as the no-regression host (56). Order: E6-K1, K3, K5 first (the failure, the layer
   crossing, the over-split guard); stop early if every arm is at the ceiling or floor there. Secondary measures:
   criteria, requirements and product files per step, step-plan minutes, check-only refusals, tokens.
+- **R1g, generic re-validation** (owner, 2026-10-24: "if B or C wins, reword it generically and re-validate on K1, K3
+  and K5 before any ShipLoop change"): arms `Bg` and `Cg` on E6-K1, K3 and K5
+  ([`e6-size-prose-generic.json`](../test/shiploop_e2e/overlays/e6-size-prose-generic.json),
+  [`e6-size-gate-generic.json`](../test/shiploop_e2e/overlays/e6-size-gate-generic.json)): the sidecar clause becomes
+  "a file that only describes another changed file counts with it", and Cg's gate counts a file whose name is another
+  listed file's name plus a suffix starting with a separator with that file, with no stack's file convention. Only the
+  R1 winner's generic arm runs (4 samples per case), after E-EFF1's Grok pair; it ships only if it keeps the
+  winner's result against T.
 - **R2, downstream** (full slices, step-plan to carry-forward): K2, K4 × T and the R1 winner × 3 on Grok (12 runs). K1
   and K3 need a real Apex run to finish an item, so a downstream round on them needs the owner's go for org `de`.
   Quality first: slice verdicts (`inner_loop`, `assembled`, `checks`), send-backs, Improve material findings per step;

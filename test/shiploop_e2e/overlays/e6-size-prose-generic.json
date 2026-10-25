@@ -1,0 +1,26 @@
+{
+  "about": "E6 arm Bg: arm B in a generic wording (owner rule, 2026-10-24: ShipLoop names no technology). The `-meta.xml` sidecar clause becomes 'a file that only describes another changed file counts with it'; nothing else changes. Written against 9ed4ec24 (arm T).",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "   - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable\n     behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with\n     \"and\", or too large for one review. Fold a step no check confirms alone (half a rename, scaffolding) into the\n     first step that uses it. A single bug fix or mechanical rename is one step.\n",
+      "new": "   - Size each as one behaviour-level change a named check proves: at most 4 criteria and 3 product files (a\n     file that only describes another changed file counts with it; tests, docs and the step's own check script do\n     not). More criteria or\n     files, a second module or layer (interface first, then each side), two separately confirmable behaviours or two\n     outcomes joined with \"and\" make another step. Fold a step no check confirms alone (half a rename, scaffolding)\n     into the first step that uses it. A single bug fix or mechanical rename is one step.\n"
+    },
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "Optional `paths` (inside the item's) serve the parallel chain.",
+      "new": "Its `paths` (inside the item's) name every file it changes, so its size can be checked."
+    },
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "Remote-only target: the recorded test route only. None runs\n     now: change the step boundary.",
+      "new": "Remote-only target: the recorded test route only, and the steps share one proof script: the first step adds\n     it and each later step adds its own assertions, so a split costs one more run, not a new script. None runs\n     now: change the step boundary."
+    }
+  ]
+}
