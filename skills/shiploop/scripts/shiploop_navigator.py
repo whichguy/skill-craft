@@ -476,8 +476,14 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
         if stage in stage_spec.with_improve("first-item"):
             return _first_item_review(state, _current_work_item(state), state["history"])
         return True
-    # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option.
+    # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option. Except
+    # (advisors panel 2026-10-25, P4: "review each changed implementation action") a step that changed no file since it
+    # began: its Proof still ran, and its review would read code an earlier review already read. Chess runs 3 and 5b
+    # reviewed such reissued steps after a send-back three times, each a single trivial pass (327 s).
     if stage in stage_spec.with_improve("step"):
+        action = _active_cursor(state)[1]
+        if isinstance(action, Mapping) and action.get("base") and action.get("after") == action.get("base"):
+            return False
         return result["outcome"] == "done"
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
@@ -1413,10 +1419,12 @@ def new_state(
 
 
 def _validate_action(action: Any, stage: str, label: str) -> str:
-    # An implement action may carry the tree its step began from (``_step_entry``), its Improve review's diff base.
+    # An implement action may carry the tree its step began from (``_step_entry``), its Improve review's diff base, and
+    # the tree it ended at when its result was submitted (``_step_after``).
     _need(isinstance(action, Mapping) and (set(action) == {"id", "stage"} or (
-        stage == "implement" and set(action) == {"id", "stage", "base"} and isinstance(action.get("base"), str)
-        and re.fullmatch(r"[0-9a-f]{40,64}", action["base"]) is not None)),
+        stage == "implement" and set(action) in ({"id", "stage", "base"}, {"id", "stage", "base", "after"})
+        and all(isinstance(action.get(key), str) and re.fullmatch(r"[0-9a-f]{40,64}", action[key]) is not None
+                for key in set(action) - {"id", "stage"}))),
           f"{label} is invalid")
     action_id = action.get("id")
     _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
@@ -4102,6 +4110,56 @@ def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) ->
     advanced = deepcopy(after)
     advanced["inner_loops"][workitem]["action"] = {**action, "base": tree}
     return advanced
+
+
+def _step_after(root: Path, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Record the tree an inline implement step ends at (``after``) beside the tree it began from (``base``), just before
+    its result is applied, so the Improve checkpoint can tell a step that changed no file (panel P4, 2026-10-25).
+
+    Nothing is recorded on the ask-agent route (no ``base``), outside Git, or when the snapshot fails: the step is
+    reviewed as before."""
+    stage, action, workitem = _active_cursor(state)
+    if (stage != "implement" or not isinstance(action, Mapping) or not action.get("base") or "after" in action
+            or state.get("active_improve")):
+        return state
+    tree = improve_changes.snapshot_tree(Path(root), Path(state["repo"]))
+    if not tree:
+        return state
+    stamped = deepcopy(dict(state))
+    stamped["inner_loops"][workitem]["action"] = {**action, "after": tree}
+    return stamped
+
+
+def _imp4_shadow(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> str | None:
+    """What the IMP-4 trigger would have done with this implement-step review, recorded and not applied (panel P4).
+
+    The trigger: review only the first step of its item's current step plan, and only when the step changed code or
+    test files. Every later-step observation behind it came from one run (5b), so it runs in shadow until another
+    multi-step run, preferably in another domain, shows what it would have skipped."""
+    if child.get("stage") != "implement":
+        return None
+    if delegation(state) != guidance.INLINE:
+        return "IMP-4 shadow: not applicable (the ask-agent route builds every step in one action)."
+    _stage, action, workitem = _active_cursor(state)
+    if not isinstance(action, Mapping) or action.get("id") != child["action_id"] or not action.get("base"):
+        return "IMP-4 shadow: not measured (no step-entry tree for this step)."
+    step = loops.implement_scope(state, workitem, action["id"])
+    _plan_action, plan = test_loop._step_plan(state, workitem)
+    ids = [str(row.get("id")) for row in plan.get("steps") or () if isinstance(row, Mapping)]
+    step_id = str(step.get("id")) if isinstance(step, Mapping) else None
+    position = ids.index(step_id) + 1 if step_id in ids else None
+    top = lint.git_toplevel(Path(state["repo"]))
+    try:
+        paths = improve_changes._diff(top, action["base"], action.get("after") or "") if top else None
+    except lint.LintError:
+        paths = None
+    if position is None or paths is None:
+        return "IMP-4 shadow: not measured (the step's position or its changed files could not be read)."
+    code = item_scope.behavioural_paths(paths)
+    keep = position == 1 and bool(code)
+    return ("IMP-4 shadow (recorded, not applied; this review ran): the trigger would have " + ("kept" if keep else
+            "skipped") + " it. Step " + step_id + " is " + str(position) + " of " + str(len(ids)) + " in its item's "
+            "current plan and changed " + str(len(code)) + " code or test file(s) of " + str(len(paths)) + ".")
 
 
 def _improve_stage_start(core: Any, root: Path, after: Mapping[str, Any]) -> None:
@@ -8620,7 +8678,9 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
         previous = standalone.receipt_path(child).with_name("start.json").stat().st_mtime
     except OSError:
         previous = None
+    shadow = _imp4_shadow(root, state, child)
     rows = ["# Improve passes: the " + child["stage"] + " result (" + child["action_id"] + ")", "",
+            *([shadow, ""] if shadow else []),
             "Edited is tree changed or result changed: a step plan's or test spec's result lies outside the tree.",
             "| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
             "| --- | --- | --- | --- | --- | --- | --- | --- |"]
@@ -9108,6 +9168,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             for line in gate_lines:
                 print(line)
             return 0
+        if cursor_stage == "implement":
+            state = _step_after(root, state)
         updated = apply(state, action_id, submitted)
         if updated != state:
             terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)

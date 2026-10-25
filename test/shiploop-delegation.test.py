@@ -576,6 +576,44 @@ class StepBlockTests(unittest.TestCase):
         end = next(n for n in range(start, len(lines)) if lines[n].startswith("Files: ShipLoop commits"))
         return lines[start:end + 1]
 
+    def test_a_step_that_changed_no_file_starts_no_review_and_one_that_did_is_reviewed(self):
+        """Advisors panel 2026-10-25, P4: "review each changed implementation action". Chess runs 3 and 5b reviewed
+        reissued steps that changed nothing after a send-back three times (one trivial pass each, 327 s); the step's Proof
+        still runs as a gate, so an unchanged step needs no review of code an earlier review read."""
+        state = nav._step_after(self.run, self.at_step(1))
+        action = nav.current_action(state)
+        self.assertEqual(action["after"], action["base"])
+        moved = nav.apply(state, action["id"], {"outcome": "done", "summary": "Nothing left to change."})
+        self.assertIsNone(moved["active_improve"])
+        self.assertEqual(nav.current_stage(moved), "implement")  # the next step, with no review between
+        changed = self.at_step(1)
+        (self.repo / "parser.py").write_text("def parse(line):\n    return line.split(',')\n")
+        changed = nav._step_after(self.run, changed)
+        self.assertNotEqual(nav.current_action(changed)["after"], nav.current_action(changed)["base"])
+        waiting = nav.apply(changed, nav.current_action(changed)["id"], {"outcome": "done", "summary": "Parser."})
+        self.assertIsNotNone(waiting["active_improve"])
+
+    def test_the_pass_log_records_what_the_imp4_trigger_would_have_done_without_applying_it(self):
+        """P4's trigger (review only the first step of its item's current plan, and only a change to code) runs in shadow:
+        every later-step observation behind it came from one run, so each review records the trigger's verdict."""
+        first = self.at_step(1)
+        (self.repo / "parser.py").write_text("def parse(line):\n    return line.split(',')\n")
+        first = nav._step_after(self.run, first)
+        first = nav.apply(first, nav.current_action(first)["id"], {"outcome": "done", "summary": "Parser."})
+        line = nav._imp4_shadow(self.run, first, first["active_improve"])
+        self.assertIn("would have kept it. Step S1 is 1 of 3", line)
+        self.assertIn("changed 1 code or test file(s) of 1", line)
+        later = self.at_step(2)
+        (self.repo / "validator.py").write_text("def valid(record):\n    return bool(record)\n")
+        later = nav._step_after(self.run, later)
+        later = nav.apply(later, nav.current_action(later)["id"], {"outcome": "done", "summary": "Validator."})
+        self.assertIn("would have skipped it. Step S2 is 2 of 3", nav._imp4_shadow(self.run, later, later["active_improve"]))
+        child = later["active_improve"]
+        bound = standalone.binding(later, child["action_id"], child["stage"], child["seed_result"],
+                                   standalone.resolve_skill(str(CARD)), improve_action=child["improve_action"])
+        self.assertIn("IMP-4 shadow (recorded, not applied; this review ran)",
+                      nav._passes_text(self.run, dict(later, active_improve=bound), bound, None))
+
     def test_the_file_the_head_and_the_handoff_print_one_step_block(self):
         """T8: the same Step block (task, criteria by value, dependencies, Proof, later steps) on all three surfaces; the
         hand-off names the step's entry base as a diff command; no surface fences the step to paths."""
