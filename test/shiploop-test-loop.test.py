@@ -1711,6 +1711,22 @@ class TestLoopTests(unittest.TestCase):
             ok, lines = test_loop.red_check(self.run_dir, self.state(), self.item(), self.action(), None)
         self.assertTrue(ok, "\n".join(lines))
 
+    def test_a_not_run_refusal_gives_the_exit_code_and_says_when_nothing_printed(self):
+        """Outside review 2026-10-24, fix 4 (reduced): the refusal states the facts the record holds, the exit code and
+        an empty output, and no diagnosis.  A live run's only not-run (2026-10-19) asserted ahead of its first print,
+        so "it never started" would have been wrong there."""
+        self.calc_item(self.REAL_TEST)
+        silent = {"command": "python3 -c \"import sys; sys.exit(3)\"", "suite": "focused", "ids": ["test_tc1"]}
+        with mock.patch.object(test_loop, "base_commands", return_value=[silent]):
+            ok, lines = test_loop.red_check(self.run_dir, self.state(), self.item(), self.action(), None)
+        self.assertFalse(ok)
+        self.assertIn("-> exited 3 and printed nothing: it did not run test_tc1 on the base", "\n".join(lines))
+        loud = test_loop._explain_base({"status": "not-run", "ids_unrun": ["TC-1"], "exit": 1, "stdout": "",
+                                        "stderr": "AssertionError\n"})
+        self.assertTrue(loud.startswith("exited 1: it did not run TC-1 on the base"), loud)
+        self.assertTrue(test_loop._explain_base({"status": "not-run", "ids_unrun": ["TC-1"]}).startswith(
+            "did not run TC-1 on the base"))
+
     def test_a_focused_and_a_regression_row_fold_only_with_one_target_and_keep_it(self):
         """Sol pass 2, finding 1: folding dropped target, so a remote command lost its remote rule."""
         rows = test_loop.normalise_commands([

@@ -1757,11 +1757,18 @@ def _explain_base(run: Mapping[str, Any]) -> str:
                 "unittest -v; jest --verbose). Another runner's readable reporter is in the platform card under "
                 "references/platforms/.")
     if status == "not-run":
-        return ("did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its output names "
-                "a file this item adds. A new test must fail on the base because the behaviour it asserts is missing "
-                "(a load error for code this item adds counts); a guard that only checks or prints a file's path is "
-                "not that failure, so assert the behaviour instead. A command that fails before it prints (an assert or "
-                "exception ahead of the print) shows no ID: make it print the ID and its outcome on every exit.")
+        # The exit code and whether anything printed are facts the record holds; the output's last lines follow this
+        # explanation.  Neither says why: a command that never started and one that asserted ahead of its first print
+        # look the same here.
+        printed = (str(run.get("stdout") or "") + str(run.get("stderr") or "")).strip()
+        exited = ("" if run.get("exit") is None
+                  else "exited " + str(run["exit"]) + ("" if printed else " and printed nothing") + ": it ")
+        return (exited + "did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its "
+                "output names a file this item adds. A new test must fail on the base because the behaviour it asserts "
+                "is missing (a load error for code this item adds counts); a guard that only checks or prints a file's "
+                "path is not that failure, so assert the behaviour instead. A command that fails before it prints (an "
+                "assert or exception ahead of the print) shows no ID: make it print the ID and its outcome on every "
+                "exit.")
     return _explain(run)
 
 

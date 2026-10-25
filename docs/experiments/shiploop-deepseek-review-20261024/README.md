@@ -81,3 +81,7 @@ Branch `fix/shiploop-generic-test-advice-320e96`, off `origin/main` 5f71657f, on
   list the same three names, so the result is unchanged on today's stacks. Tests: the real cards give
   `["node_modules", ".venv", "venv"]`; a focused test importing from an ignored `vendor/` reads not-run on the base until
   a card lists `vendor`, then RED.
+- **Fix 4, reduced: the exit code.** The refusal already printed the output's last 15 lines (`_base_run`), so the
+  stderr part of the review's plan existed. Only the exit code and an empty-output note were missing. The `not-run`
+  explanation now starts `exited <n>[ and printed nothing]: it did not run …`, with no diagnosis, and the existing
+  wording and its test pins are unchanged. The review's probe (`sys.exit(3)`) is now a test.
