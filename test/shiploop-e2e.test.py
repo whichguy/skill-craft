@@ -34,6 +34,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import boundary  # noqa: E402
 import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
@@ -1092,6 +1093,216 @@ class IterateConvergenceTest(unittest.TestCase):
         journal = self.iterate([("exited", VALID_EMPTY_REVIEW), ("failed", ""), ("exited", VALID_EMPTY_REVIEW)], 3)
         self.assertNotIn("clean review (streak 2)", journal)
         self.assertIn("reached --iterations 3", journal)
+
+
+ACTIONABLE_REVIEW = ('```json\n' + json.dumps({
+    "outcome": "Delivered, with one gap.", "missing_considerations": [], "optimizations": [],
+    "learnings": [{"title": "Name the port", "severity": "material", "preserves_premise": True, "evidence": "e", "proposal": "p",
+                   "files": ["skills/shiploop/SKILL.md"]}],
+    "harness": {"learning_retention": {"answer": "keep", "proposals": []}}}) + '\n```')
+
+
+class FakeImprover(FakeReviewer):
+    """The reviewer replies in turn; a call whose working directory is the improver's worktree runs `act(worktree, events)`."""
+
+    def __init__(self, replies: list, worktree: Path, act):
+        super().__init__(replies)
+        self.worktree, self.act, self.seen = worktree, act, {}
+
+    def env(self, home, git_config=None):  # the improver passes the user's git config too
+        return {"HOME": str(home)}
+
+    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None):
+        if Path(cwd) != self.worktree:
+            return super().run_agent(argv, cwd, env, events_path, stderr_path, timeout, translate)
+        Path(events_path).write_text("")
+        Path(stderr_path).write_text("")
+        self.seen["files"] = sorted(path.relative_to(cwd).as_posix() for path in Path(cwd).rglob("*.py")
+                                    if ".git" not in path.parts)
+        self.seen["status"] = subprocess.run(["git", "-C", str(cwd), "status", "--porcelain"], capture_output=True,
+                                             text=True, check=True).stdout
+        self.act(Path(cwd), Path(events_path))
+        return {"status": "exited", "returncode": 0, "elapsed_seconds": 0}
+
+
+class IterateBoundaryTest(unittest.TestCase):
+    """The evaluator boundary in iterate.py (SPEC "The promotion contract", build step 3, R13 of the final verdict). Astra's
+    done signal: a candidate cannot modify grader inputs or read protected holdout instances, and the hashes stay unchanged."""
+
+    HELD_OUT = ["test/fixtures/quality/reference_checkers.py", "test/shiploop_e2e/checks/checkers_accept.py"]
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        # The checkout that grades the runs: its harness code, its checks and its catalog.
+        self.harness = self.tmp / "grader" / "test" / "shiploop_e2e"
+        (self.harness / "checks").mkdir(parents=True)
+        (self.harness / "run.py").write_text("# the harness\n")
+        (self.harness / "checks" / "checkers_accept.py").write_text("CHECKS = {}\n")
+        acceptance = {"module": "checkers_accept", "calibration": [self.HELD_OUT[0]], "start": "node server.js", "checks": []}
+        (self.harness / "cases.json").write_text(json.dumps({"checkers": {"prompt": "p", "quality": {"acceptance": acceptance}}}))
+        # The improver's worktree, with the same held-out files committed.
+        self.repo = self.tmp / "worktree"
+        for path, text in ((self.HELD_OUT[1], "CHECKS = {}\n"), (self.HELD_OUT[0], "# a correct implementation\n"),
+                           ("skills/shiploop/SKILL.md", "# ShipLoop\n"), ("test/shiploop_e2e/LEARNINGS.md", "# learnings\n")):
+            (self.repo / path).parent.mkdir(parents=True, exist_ok=True)
+            (self.repo / path).write_text(text)
+        for cmd in (["init", "-q", "-b", "main"], ["config", "user.name", "t"], ["config", "user.email", "t@example.invalid"],
+                    ["add", "."], ["commit", "-q", "-m", "base"]):
+            subprocess.run(["git", "-C", str(self.repo), *cmd], check=True)
+
+    def git(self, *args: str) -> str:
+        return subprocess.run(["git", "-C", str(self.repo), *args], capture_output=True, text=True, check=True).stdout
+
+    def commit(self, worktree: Path, *paths: str) -> None:
+        for path in paths:
+            (worktree / path).parent.mkdir(parents=True, exist_ok=True)
+            (worktree / path).write_text("changed\n")
+        subprocess.run(["git", "-C", str(worktree), "add", *paths], check=True)
+        subprocess.run(["git", "-C", str(worktree), "commit", "-q", "-m", "improve"], check=True)
+
+    def grading(self):
+        return (mock.patch.object(iterate, "HERE", self.harness), mock.patch.object(iterate.runner, "CASES", self.harness / "cases.json"))
+
+    def improve(self, act) -> tuple[dict, dict]:
+        fake = FakeImprover([], self.repo, act)
+        args = iterate.argparse.Namespace(case="checkers", host="grok", model=None, effort=None, permission_mode="auto",
+                                          improve_max_turns=None, max_budget_usd=None, improve_timeout=10)
+        with contextlib.ExitStack() as stack:
+            for patch in (*fake.patches(), *self.grading()):
+                stack.enter_context(patch)
+            change = iterate.improve(self.repo, [], self.tmp / f"stage-{len(list(self.tmp.glob('stage-*')))}", args)
+        return change, fake.seen
+
+    def test_a_candidate_change_keeps_the_boundary_and_never_sees_the_held_out_files(self):
+        before = {path: (self.repo / path).read_bytes() for path in self.HELD_OUT}
+        change, seen = self.improve(lambda worktree, events: self.commit(worktree, "skills/shiploop/SKILL.md",
+                                                                         "test/shiploop-lint.test.py"))
+        self.assertFalse(set(self.HELD_OUT) & set(seen["files"]), "withheld while the improver worked")
+        self.assertEqual(seen["status"], "", "withholding is not an uncommitted change")
+        self.assertEqual(change["withheld"], self.HELD_OUT)
+        self.assertEqual({path: (self.repo / path).read_bytes() for path in self.HELD_OUT}, before, "restored as they were")
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        self.assertFalse([line for line in self.git("ls-files", "-v").splitlines() if line.startswith("S ")],
+                         "no skip-worktree flag is left behind")
+        self.assertEqual((change["out_of_scope"], change["held_out_named"], change["grading"]["changed"]), ([], 0, []))
+        self.assertEqual(change["grading"]["before"], change["grading"]["after"], "the hashes stay unchanged")
+        self.assertIsNone(iterate.boundary_crossing(change))
+
+    def test_a_change_to_what_grades_the_runs_crosses_the_boundary(self):
+        for target, group in (("checks/checkers_accept.py", "oracle"), ("run.py", "evaluator"), ("cases.json", "case")):
+            with self.subTest(target=target):
+                self.setUp()
+
+                def tamper(worktree, events, target=target):
+                    path = self.harness / target
+                    if target == "cases.json":
+                        cases = json.loads(path.read_text())
+                        cases["checkers"]["quality"]["acceptance"]["checks"] = [{"id": "easier"}]
+                        path.write_text(json.dumps(cases))
+                    else:
+                        path.write_text(path.read_text() + "# weakened\n")
+                change, _ = self.improve(tamper)
+                self.assertEqual(change["grading"]["changed"], [group])
+                self.assertIn(f"the improver changed what grades the runs ({group} digest",
+                              iterate.boundary_crossing(change))
+
+    def test_a_tool_call_that_names_a_held_out_file_crosses_the_boundary(self):
+        # The SPEC is in the improver's prompt and names these files, so prose that names one proves nothing: only calls count.
+        prose = {"type": "assistant", "message": {"content": [{"type": "text", "text": f"The SPEC withholds {self.HELD_OUT[0]}."}]}}
+        change, _ = self.improve(lambda worktree, events: events.write_text(json.dumps(prose) + "\n"))
+        self.assertEqual(change["held_out_named"], 0)
+        self.assertIsNone(iterate.boundary_crossing(change))
+
+        def peek(worktree, events):
+            events.write_text(json.dumps(prose) + "\n" + json.dumps(
+                {"type": "tool_call", "toolName": "bash", "rawInput": {"command": f"git show HEAD:{self.HELD_OUT[0]}"}}) + "\n")
+        change, _ = self.improve(peek)
+        self.assertEqual(change["held_out_named"], 1)
+        self.assertIn("tool calls name a held-out file 1 time(s)", iterate.boundary_crossing(change))
+        change, _ = self.improve(lambda worktree, events: events.unlink())
+        self.assertIsNone(change["held_out_named"])
+        self.assertIn("cannot be ruled out", iterate.boundary_crossing(change))
+
+    def test_the_harness_its_suites_the_runner_and_the_catalog_are_out_of_scope(self):
+        change, _ = self.improve(lambda worktree, events: self.commit(
+            worktree, "test/shiploop_e2e/run.py", "test/shiploop-e2e.test.py", "test/suite_catalog.py", "test/run-all.sh",
+            "test/shiploop-lint.test.py", "test/shiploop_loop_support.py", "changes/shiploop/x.md"))
+        self.assertEqual(sorted(change["out_of_scope"]), ["test/run-all.sh", "test/shiploop-e2e.test.py",
+                                                          "test/shiploop_e2e/run.py", "test/suite_catalog.py"])
+
+    def test_the_loop_stops_and_journals_when_the_improver_changes_what_grades(self):
+        def tamper(worktree, events):
+            (self.harness / "checks" / "checkers_accept.py").write_text("CHECKS = {}  # weakened\n")
+            self.commit(worktree, "skills/shiploop/SKILL.md")
+        real_run = subprocess.run
+
+        def no_build(argv, *a, **kw):
+            return (subprocess.CompletedProcess(argv, 0) if any(str(part).endswith("build-packages.py") for part in argv)
+                    else real_run(argv, *a, **kw))
+
+        def passing_run(argv):
+            out = Path(argv[argv.index("--output") + 1])
+            out.mkdir(parents=True)
+            (out / "result.json").write_text(json.dumps({
+                "pass": True, "host": "grok", "model": "m", "effort": "medium",
+                "process": {"status": "exited", "returncode": 0, "elapsed_seconds": 1},
+                "cli": {"num_turns": 1, "cost_usd": None}, "shiploop": {"status": "done", "stage": "done", "report_html": True},
+                "checks": [], "invoked": {"pass": True}, "plugin": {"pass": True},
+                "boundary": {"evaluator": "e" * 12, "oracle": "o" * 12, "case": "c" * 12}, "versions": {"plugin_sha256": "p" * 12}}))
+            return 0
+
+        fake = FakeImprover([("exited", ACTIONABLE_REVIEW)] * 3, self.repo, tamper)
+        with contextlib.ExitStack() as stack:
+            for patch in (*fake.patches(), *self.grading()):
+                stack.enter_context(patch)
+            stack.enter_context(mock.patch.object(iterate, "new_worktree", return_value=(self.repo, "auto/test")))
+            stack.enter_context(mock.patch.object(iterate.subprocess, "run", side_effect=no_build))
+            stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            iterate.main(["--case", "checkers", "--host", "grok", "--iterations", "3", "--output", str(self.tmp / "out")])
+        journal = (self.tmp / "out" / "LEARNINGS.md").read_text()
+        self.assertIn(f"- boundary: evaluator {'e' * 12}, oracle {'o' * 12}, case {'c' * 12}, candidate {'p' * 12}", journal)
+        self.assertIn("- stopped: the improver changed what grades the runs (oracle digest", journal)
+        self.assertNotIn("quick tier:", journal, "nothing graded on the changed oracle")
+        self.assertNotIn("## Iteration 2", journal)
+
+
+class BoundaryTest(unittest.TestCase):
+    """test/shiploop_e2e/boundary.py: the digests and the held-out list (build step 3)."""
+
+    def test_candidate_paths(self):
+        for path, allowed in (("skills/shiploop/SKILL.md", True), ("changes/shiploop/x.md", True),
+                              ("test/shiploop-lint.test.py", True), ("test/shiploop_loop_support.py", True),
+                              ("test/fixtures/shiploop-keepalive/a", True), ("test/experiments/shiploop_chain/a.py", True),
+                              ("test/shiploop_e2e/checks/battleship_game.py", False), ("test/shiploop-e2e-quality.test.py", False),
+                              ("test/suite_catalog.py", False), ("test/run-all.sh", False), ("skills/improve/SKILL.md", False),
+                              ("test/fixtures/quality/reference_checkers.py", False)):
+            with self.subTest(path=path):
+                self.assertEqual(boundary.candidate_path(path), allowed)
+
+    def test_the_digests_read_bytes_and_ignore_compiled_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp)
+            (harness / "checks" / "__pycache__").mkdir(parents=True)
+            (harness / "run.py").write_text("x\n")
+            (harness / "README.md").write_text("docs are not the evaluator\n")
+            (harness / "checks" / "a.py").write_text("y\n")
+            first = boundary.fingerprint(harness, {"prompt": "p"})
+            (harness / "checks" / "__pycache__" / "a.cpython-313.pyc").write_bytes(b"\0")
+            (harness / "README.md").write_text("edited\n")
+            self.assertEqual(boundary.fingerprint(harness, {"prompt": "p"}), first)
+            (harness / "checks" / "a.py").write_text("z\n")
+            self.assertEqual(boundary.changed(first, boundary.fingerprint(harness, {"prompt": "p"})), ["oracle"])
+            self.assertEqual(boundary.changed(first, boundary.fingerprint(harness, None)), ["oracle", "case"])
+            self.assertEqual(boundary.fingerprint(harness, None)["unmeasured"], {"case": "a custom prompt has no catalog entry"})
+
+    def test_the_held_out_files_are_the_acceptance_modules_and_their_calibration(self):
+        # The paths are not read here: this suite runs in the improver's worktree, where they are withheld. That they
+        # exist is checked in test/shiploop-e2e-quality.test.py, which no candidate change selects.
+        acceptance = {"module": "m_accept", "calibration": ["test/fixtures/quality/ref.py"]}
+        self.assertEqual(boundary.held_out_files({"a": {"quality": {"acceptance": acceptance}}, "b": {"prompt": "p"}}),
+                         ["test/fixtures/quality/ref.py", "test/shiploop_e2e/checks/m_accept.py"])
 
 
 class LearningsTest(unittest.TestCase):

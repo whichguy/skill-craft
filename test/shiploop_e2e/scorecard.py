@@ -14,7 +14,9 @@ The parts, each read from records the harness already writes:
   false or null; null means not observed and is never valid.
   - **correctness**: false when the delivered ``work/`` changed after delivery (a check that deleted a product file, as on
     2026-10-24). Null when the tree can't be read, or when this run and a run that overlapped it wrote the same ``/tmp``
-    name, because shared state can't be ruled out.
+    name, because shared state can't be ruled out. Null too, for a case with held-out acceptance, when the run's events
+    name a held-out file, the checks folder or the case catalog (``quality.held_out_seen`` above 0, build step 3), or when
+    that was not recorded: its result is not independent evidence.
   - **attribution**: false when hosts or host builds were mixed.
   - **timing**: false when the run overlapped others under its runs root (``environment.overlap``), was resumed, was not
     attributable to one build, or left listeners alive. Null when any of those was not observed.
@@ -30,6 +32,9 @@ The parts, each read from records the harness already writes:
   reads 0 children beside 10 Improve children, a reader that has not followed the Improve route's change.
 * ``efficiency`` (the target): minutes, cost, turns, refusals, Improve children, planning minutes and re-orientation
   minutes.
+* ``boundary`` (identity, build step 3): what graded the run (``evaluator``, ``oracle``, ``case``: result.json's
+  ``boundary``, recorded from 2026-10-25) and what was graded (``candidate``: ``versions.plugin_sha256``). The promotion
+  contract compares a case only across equal grading digests.
 
 A value nothing measured is null with its reason in ``unmeasured``, never 0. A floor is ``pass``, ``fail``, ``unobserved``
 (required and not measured) or ``not_applicable``.
@@ -47,7 +52,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import environment  # noqa: E402  (environment.overlap: the one overlap reader)
 import metrics  # noqa: E402  (metrics.lower_bound: the one lower-bound rule for cost and turns)
 
-SCORECARD_ID = "scorecard/2"
+SCORECARD_ID = "scorecard/3"
 VERDICTS = ("invoked", "plugin", "process", "shiploop", "committed")
 NOT_YET = "no scripted enterprise rubric yet (design P2)"
 PASS, FAIL, UNOBSERVED, NOT_APPLICABLE = "pass", "fail", "unobserved", "not_applicable"
@@ -157,14 +162,21 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
     if builds is None:
         unmeasured["validity.host_builds"] = "no launch record or init event names the host build"
     shared, shared_why = shared_tmp_names(run, seen, run_metrics)
+    # Only a case with held-out acceptance holds anything out (quality.event_facts measures nothing for the others).
+    holds_out = requires_acceptance(result.get("case"))
+    held_out = (result.get("quality") or {}).get("held_out_seen") if holds_out else None
     block = {"resumed": resumed, "mixed_host": mixed if isinstance(mixed, bool) else None,
              "host_builds": builds, "overlapped_runs": overlapped, "overlap_root": seen.get("root"),
-             "left_behind_survived": survived, "work_tree_after": status, "shared_tmp_names": shared}
+             "left_behind_survived": survived, "work_tree_after": status, "shared_tmp_names": shared,
+             "held_out_seen": held_out}
     block["correctness"] = dimension(
         [f"the delivered work tree changed after delivery: {', '.join(status[:3])}"] if status else [],
         [f"the delivered tree can't be read: {why}"] * (status is None)
         + ([f"/tmp names shared with an overlapping run: {', '.join(shared)}"] if shared else [])
-        + ([f"shared /tmp state is not known: {shared_why}"] if shared is None else []))
+        + ([f"shared /tmp state is not known: {shared_why}"] if shared is None else [])
+        + ([f"the run's events name a held-out file, the checks folder or the case catalog {held_out} time(s)"]
+           if isinstance(held_out, int) and held_out > 0 else [])
+        + (["whether the run's events name a held-out file is not recorded"] if holds_out and held_out is None else []))
     # A host build that changed mid-run changes behaviour (inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 alone blocked
     # chess run 5's deploy), so its figures are not one build's.
     block["attribution"] = dimension(
@@ -284,6 +296,15 @@ def score(run) -> dict:
             "enterprise": {"observed": False, "reason": NOT_YET, "floor": NOT_APPLICABLE},
             "fidelity": fidelity(run_metrics, unmeasured), "efficiency": efficiency(run_metrics, unmeasured)}
     card["floors"] = {name: card[name]["floor"] for name in ("accuracy", "enterprise", "fidelity")}
+    graded = result.get("boundary") if isinstance(result.get("boundary"), dict) else {}
+    card["boundary"] = {**{name: graded.get(name) for name in ("evaluator", "oracle", "case")},
+                        "candidate": versions.get("plugin_sha256")}
+    if not graded:
+        unmeasured["boundary"] = "result.json records no boundary (graded before build step 3, 2026-10-25)"
+    for name, why in (graded.get("unmeasured") or {}).items():
+        unmeasured[f"boundary.{name}"] = why
+    if versions.get("plugin_sha256") is None:
+        unmeasured["boundary.candidate"] = versions.get("plugin_sha256_unmeasured") or "no plugin digest recorded"
     card["unmeasured"] = unmeasured
     return card
 

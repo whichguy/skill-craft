@@ -1751,7 +1751,7 @@ python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
 ```
 
 This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`; id
-`scorecard/2` since build step 2). It reads each run's own records, writes nothing into a run folder and calls no model. A
+`scorecard/3` since build step 3). It reads each run's own records, writes nothing into a run folder and calls no model. A
 folder above run folders is walked to them. Two cards are compared only when their ids are equal.
 
 **Floors.** Each is `pass`, `fail`, `unobserved` or `not_applicable`.
@@ -1765,13 +1765,23 @@ minutes, re-orientation minutes.
 
 **Validity** has three dimensions, each `{valid, why}`. `valid` is true, false or null, and null (not observed) is never
 valid.
-- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). It is null when
-  the tree can't be read, or when this run and a run overlapping it wrote the same `/tmp` name.
+- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). It is null when:
+  - the tree can't be read;
+  - this run and a run overlapping it wrote the same `/tmp` name;
+  - for a case with held-out acceptance, the run's events name a held-out file, the checks folder or the case catalog
+    (`quality.held_out_seen` above 0), or that was not recorded.
 - **attribution** is false when hosts or host builds were mixed.
 - **timing** is false when the run overlapped other runs under its runs root, was resumed, wasn't attributable to one
   build, or left listeners alive.
 
 So an overlapped run is still evidence of quality, never of speed.
+
+**Boundary** (build step 3) records what graded the run and what was graded:
+- `evaluator`, `oracle` and `case`: `result.json`'s `boundary`, which `run.py` records each time it grades, a regrade
+  included. They are the digests of the harness's code, its `checks/` and the case's catalog entry (`boundary.py`).
+- `candidate`: `versions.plugin_sha256`, the plugin tree the host loaded.
+
+Runs graded before 2026-10-25 have no grading digests, and `unmeasured.boundary` says so.
 
 Refusals, retired glossary terms and script-owned edits to confirm are reported beside the fidelity floor and decide
 nothing. A value nothing measured is null, with its reason in `unmeasured`.
@@ -1786,8 +1796,8 @@ step 4's delivery snapshot.
 python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_CARDS ... --candidate RUN_OR_CARDS ... [--json]
 ```
 
-This is the one scripted rule (SPEC "The promotion contract", contract `promotion/2` since build step 2) that decides whether
-a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/2` cards: run folders, or card files from
+This is the one scripted rule (SPEC "The promotion contract", contract `promotion/3` since build step 3) that decides whether
+a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/3` cards: run folders, or card files from
 `scorecard.py --out`.
 
 **The registration, written before the runs,** names:
@@ -1801,8 +1811,11 @@ A run that began before `registered_at` makes the decision UNDECIDED. For card f
 not checked.
 
 **The rule, in order:**
-1. Fewer attempts than registered, or quality unknown (a card whose correctness is not valid, or a required floor that
-   is neither pass nor fail): UNDECIDED, never a pass.
+1. Any of these is UNDECIDED, never a pass:
+   - fewer attempts than registered;
+   - a case whose attempts were graded by different evaluator, oracle or case digests, or by unrecorded ones (a harness
+     or oracle change is an experiment of its own);
+   - quality unknown: a card whose correctness is not valid, or a required floor that is neither pass nor fail.
 2. A regression case's success share falls: DROP.
 3. Over the registered budget: DROP.
 4. A capability case's share rises: PROMOTE, with its cost per success stated. A slower or dearer correctness fix still
@@ -1817,8 +1830,9 @@ Every attempt counts, stops and resumes included. No model judgement enters. It 
 `pass`, exit code or baseline row.
 
 Exit codes: 0 PROMOTE, 3 DROP, 4 UNDECIDED, 1 for a registration that cannot be used. The tests are `PromotionContractTest`
-in `test/shiploop-e2e-baseline.test.py`, including Astra's three decision examples and real gate cards: the 2.9.0 gate
-overlapped, so it can't promote an efficiency change.
+in `test/shiploop-e2e-baseline.test.py`, including Astra's three decision examples and real gate cards. The 2.9.0 gate
+runs record no grading digests, so they can't promote anything; they also overlapped, so they could never have promoted
+an efficiency change.
 
 ## Review one run
 
@@ -1871,15 +1885,28 @@ and every finding to `test/shiploop_e2e/LEARNINGS.md` and commits it with a
 detailed message (outcome, evidence, proposals, rejected findings, what to
 apply next). Reviewer and improver both read the last three commit messages, so
 each iteration builds on the learnings of the ones before. The improver may
-change only `skills/shiploop/`,
-`changes/shiploop/` and `test/`, and commits with explicit paths. The harness
-then checks the commit's scope itself and runs the quick test tier.
+change only the candidate: `skills/shiploop/`, `changes/shiploop/` and
+ShipLoop's own tests (`test/shiploop-*`, the `test/shiploop_*` helpers,
+`test/fixtures/shiploop-*`, `test/experiments/shiploop_*`). It may not change the
+E2E harness, its suites, the test runner or the suite catalog. It commits with
+explicit paths. The harness then checks the commit's scope itself and runs the
+quick test tier.
+
+The evaluator boundary (SPEC "The promotion contract", build step 3; `boundary.py`):
+- Each iteration's journal entry records the run's evaluator, oracle, case and candidate digests.
+- While the improver works, the held-out files are withheld from its worktree, marked skip-worktree in that worktree's
+  own index, and restored before the harness's quick tier. The held-out files are each case's acceptance module and its
+  `calibration` files.
+- The improver's tool calls are searched for the held-out files' names. Prose doesn't count, because the SPEC in its
+  prompt names them.
+- The checkout that grades the runs must have the same evaluator, oracle and case digests after the improver as before.
 
 It stops at `--iterations` (at most 10), after two consecutive clean reviews of
 passing runs (an unusable review is journaled with its outcome, resets the streak
 and applies nothing), when the improver commits nothing twice in a row, when a run never
-reached the skill under test, when the improver strays outside its scope, or on
-a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
+reached the skill under test, when the improver crosses the evaluator boundary
+(what grades the runs changed, or its events name a held-out file or can't be
+read), when it strays outside its scope, or on a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
 every iteration: verdicts, cost, findings applied and rejected, commits and tests.
 
 Nothing is published. When the branch is worth shipping, review it, merge it,

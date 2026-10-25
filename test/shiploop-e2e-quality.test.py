@@ -51,6 +51,7 @@ run = e2e.run
 hosts = e2e.hosts
 listeners = e2e.listeners
 
+import boundary  # noqa: E402
 import quality  # noqa: E402
 
 
@@ -1246,6 +1247,23 @@ class EventFactsTest(QualityCase):
         facts, unmeasured = quality.event_facts(path, ["grok"], blocks)
         self.assertEqual(facts["held_out_seen"], 3)
         self.assertNotIn("held_out_seen", unmeasured)
+
+    def test_every_held_out_file_the_catalog_declares_exists(self):
+        # Build step 3: iterate.py withholds these from the improver's worktree (boundary.held_out_files).
+        cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        self.assertEqual(boundary.held_out_files(cases), ["test/fixtures/quality/reference_checkers.py",
+                                                          "test/shiploop_e2e/checks/checkers_accept.py"])
+        for path in boundary.held_out_files(cases):
+            self.assertTrue((ROOT / path).is_file(), path)
+
+    def test_held_out_seen_counts_a_calibration_file_by_its_name(self):
+        # Build step 3: the reference implementation the module is calibrated against is held out too.
+        blocks = [{"module": "checkers_accept", "calibration": ["test/fixtures/quality/reference_checkers.py"]}]
+        path = self.events(json.dumps({"type": "text", "data": "cat ~/src/x/test/fixtures/quality/reference_checkers.py"}),
+                           json.dumps({"type": "text", "data": "nothing of the kind"}))
+        facts, _ = quality.event_facts(path, ["grok"], blocks)
+        self.assertEqual(facts["held_out_seen"], 1)
+        self.assertIn("reference_checkers", quality.held_out_markers(blocks))
 
     def test_held_out_seen_is_a_measured_zero_when_the_events_name_nothing(self):
         path = self.events(json.dumps({"type": "text", "data": "pgrep -fl run.py"}))

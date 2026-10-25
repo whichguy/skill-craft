@@ -133,6 +133,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
+import boundary  # noqa: E402
 import counters  # noqa: E402
 import environment  # noqa: E402
 import fidelity  # noqa: E402
@@ -4514,6 +4515,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
               "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
+              # What graded this run (SPEC: the evaluator boundary): the harness's code, its checks/ and the case entry read
+              # above. A regrade records its own; promotion.py compares a case only across equal digests.
+              "boundary": boundary.fingerprint(HERE, case),
               "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
               "span": run_metrics["span"],
               "identity_unmeasured": identity_unmeasured,

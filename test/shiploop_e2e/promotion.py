@@ -9,7 +9,7 @@ An arm is any mix of run folders (scored with scorecard.py) and card files (`sco
 
 The registration (JSON)::
 
-    {"contract": "promotion/2",
+    {"contract": "promotion/3",
      "registered_at": 1792900000,                       # epoch seconds; a run that began earlier makes the decision UNDECIDED
      "cases": {"hello": "regression",                   # a role, or {"role": ..., "attempts": n}: the expected attempts per arm
                "battleship": {"role": "capability", "attempts": 2}},
@@ -19,16 +19,18 @@ The registration (JSON)::
      "tolerance": 0.10,                                 # relative; within it a metric decides nothing
      "budget": {"cost_usd": 40.0}}                      # optional: candidate per-success cost above it is DROP
 
-The rule, in order: the registration time, coverage (fewer attempts than registered) and unknown quality (UNDECIDED); a
+The rule, in order: the registration time, coverage (fewer attempts than registered), one evaluator (a case's attempts graded
+by different or unrecorded evaluator, oracle or case digests) and unknown quality (UNDECIDED); a
 fallen regression case (DROP); the budget (DROP); a capability gain (PROMOTE at its stated cost); a fallen capability case
 (DROP); then, at equal quality, each efficiency metric in turn on cards whose timing and attribution are valid: no case
 dearer beyond the tolerance and one cheaper beyond it is PROMOTE, one dearer beyond it is DROP, and otherwise the next
 metric is asked; none deciding is UNDECIDED.
 
-An attempt's quality is known only when its card's correctness is valid (``scorecard/2`` validity) and each required floor
+An attempt's quality is known only when its card's correctness is valid (``scorecard/3`` validity) and each required floor
 is ``pass`` or ``fail``: an ``unobserved`` or ``not_applicable`` required floor, or correctness that is false or not
 observed, leaves its case's quality unknown. So a run that overlapped others is still quality evidence, never speed
-evidence (SPEC "The promotion contract", build step 2).
+evidence (SPEC "The promotion contract", build step 2). Every attempt of a case, in both arms, must carry the same
+``boundary`` digests (``scorecard/3``): a harness or oracle change is an experiment of its own (build step 3).
 """
 
 from __future__ import annotations
@@ -40,10 +42,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import boundary  # noqa: E402  (boundary.GROUPS: the grading digests)
 import metrics  # noqa: E402  (metrics.span: the one span reader)
 import scorecard  # noqa: E402  (the cards the contract reads)
 
-CONTRACT_ID = "promotion/2"
+CONTRACT_ID = "promotion/3"
 ROLES = ("regression", "capability")
 FLOORS = ("accuracy", "enterprise", "fidelity")
 DEFAULT_FLOORS = ("accuracy", "fidelity")  # enterprise is not_applicable until its rubric exists, so it cannot be required
@@ -147,6 +150,16 @@ def decide(reg: dict, control, candidate) -> dict:
                for side, cards in sides.items() if len(cards) < reg["cases"][name]["attempts"]]
     if missing:
         return finish("UNDECIDED", "fewer attempts than registered for " + ", ".join(missing))
+    graders = {name: {tuple((card.get("boundary") or {}).get(group) for group in boundary.GROUPS)
+                      for cards in sides.values() for card in cards} for name, sides in by_case.items()}
+    unrecorded = [name for name, seen in graders.items() if any(None in digests for digests in seen)]
+    if unrecorded:
+        return finish("UNDECIDED", "no grading digest (evaluator, oracle, case) is recorded on every attempt of "
+                      + ", ".join(unrecorded))
+    mixed = [name for name, seen in graders.items() if len(seen) > 1]
+    if mixed:
+        return finish("UNDECIDED", "attempts were graded by different evaluator, oracle or case digests for " + ", ".join(mixed)
+                      + ": a harness or oracle change is an experiment of its own")
     unknown, shares = [], {}
     for name, sides in by_case.items():
         row = report["cases"][name] = {"role": reg["cases"][name]["role"]}

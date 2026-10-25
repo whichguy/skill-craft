@@ -2065,8 +2065,10 @@ class IdentityDocsTest(unittest.TestCase):
 
 
 class ScorecardTest(unittest.TestCase):
-    """test/shiploop_e2e/scorecard.py, scorecard/2: one card per run from its own records (P1, then build step 2: floors are
-    pass, fail, unobserved or not_applicable with requiredness owned by the case, and validity has three dimensions). The
+    """test/shiploop_e2e/scorecard.py, scorecard/3: one card per run from its own records (P1, then build step 2: floors are
+    pass, fail, unobserved or not_applicable with requiredness owned by the case, and validity has three dimensions; build
+    step 3: the card carries what graded the run and what was graded, and a run whose events name a held-out file is not
+    independent evidence). The
     backfill is the 2.9.0 release-gate runs, chess run 4 and a Checkers run with mutation and hidden acceptance, as compact
     extracts (test/fixtures/scorecard, extract.py); the figures are the ones LEARNINGS cites."""
 
@@ -2116,7 +2118,11 @@ class ScorecardTest(unittest.TestCase):
         for name, (accuracy, fidelity, minutes, cost, turns, refusals, planning, reorientation) in self.WANT.items():
             card = cards[name]
             with self.subTest(run=name):
-                self.assertEqual(card["scorecard"], "scorecard/2")
+                self.assertEqual(card["scorecard"], "scorecard/3")
+                # Graded before build step 3: no grading digest, and the reason says so.
+                self.assertEqual({k: card["boundary"][k] for k in ("evaluator", "oracle", "case")},
+                                 {"evaluator": None, "oracle": None, "case": None})
+                self.assertIn("graded before build step 3", card["unmeasured"]["boundary"])
                 self.assertEqual((card["floors"]["accuracy"], card["floors"]["fidelity"]), (accuracy, fidelity))
                 self.assertEqual(card["floors"]["enterprise"], "not_applicable")
                 e = card["efficiency"]
@@ -2183,10 +2189,39 @@ class ScorecardTest(unittest.TestCase):
         self.assertEqual((validity["attribution"]["valid"], validity["timing"]["valid"]), (False, False))
         self.assertTrue(validity["correctness"]["valid"], "a build change voids attribution, not the delivered tree")
 
+    def test_a_run_whose_events_name_a_held_out_file_is_not_independent_evidence(self):
+        # Build step 3 (R13): held_out_seen counts the event lines that name a held-out file, the checks folder or the catalog.
+        def checkers(name: str, quality: dict) -> dict:
+            return scorecard.score(self.run_folder(name, {"case": "checkers", "pass": True, "quality": quality}, tmp_writes=[]))
+        clean = checkers("day/clean", {"held_out_seen": 0, "acceptance": {"observed": True, "passed": ["a"], "checks": [{"pass": True}]}})
+        self.assertEqual((clean["validity"]["held_out_seen"], clean["validity"]["correctness"]["valid"]), (0, True))
+        named = checkers("day/named", {"held_out_seen": 2})
+        self.assertIsNone(named["validity"]["correctness"]["valid"])
+        self.assertIn("name a held-out file, the checks folder or the case catalog 2 time(s)", named["validity"]["correctness"]["why"][0])
+        unknown = checkers("day/unknown", {})
+        self.assertIsNone(unknown["validity"]["correctness"]["valid"])
+        self.assertIn("is not recorded", unknown["validity"]["correctness"]["why"][0])
+        hello = scorecard.score(self.run_folder("day/hello", {"case": "hello", "pass": True, "quality": {"held_out_seen": 5}},
+                                                tmp_writes=[]))
+        self.assertEqual((hello["validity"]["held_out_seen"], hello["validity"]["correctness"]["valid"]), (None, True),
+                         "hello holds nothing out")
+
+    def test_the_card_carries_what_graded_the_run_and_what_was_graded(self):
+        graded = {"evaluator": "e" * 12, "oracle": "o" * 12, "case": "c" * 12}
+        run_dir = self.run_folder("day/graded", {"case": "hello", "pass": True, "boundary": graded,
+                                                 "versions": {"plugin_sha256": "p" * 12}}, tmp_writes=[])
+        card = scorecard.score(run_dir)
+        self.assertEqual(card["boundary"], {**graded, "candidate": "p" * 12})
+        self.assertFalse([key for key in card["unmeasured"] if key.startswith("boundary")])
+        custom = scorecard.score(self.run_folder("day/custom", {"case": "custom", "pass": True, "boundary": {
+            **graded, "case": None, "unmeasured": {"case": "a custom prompt has no catalog entry"}}}, tmp_writes=[]))
+        self.assertEqual(custom["unmeasured"]["boundary.case"], "a custom prompt has no catalog entry")
+        self.assertEqual(custom["unmeasured"]["boundary.candidate"], "no plugin digest recorded")
+
     def test_a_value_nothing_measured_is_null_or_unobserved_with_its_reason(self):
         run_dir = self.tmp / "bare"
         run_dir.mkdir()
-        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/2", "run": str(run_dir), "observed": False,
+        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/3", "run": str(run_dir), "observed": False,
                                                     "reason": "no readable result.json"})
         (run_dir / "result.json").write_text(json.dumps({"case": "hello", "pass": True}))
         card = scorecard.score(run_dir)
@@ -2206,7 +2241,7 @@ class ScorecardTest(unittest.TestCase):
         with contextlib.redirect_stdout(printed):
             self.assertEqual(scorecard.main([str(runs), "--json", "--out", str(self.tmp / "cards.json")]), 0)
         self.assertEqual(len(json.loads(printed.getvalue())["cards"]), 7)
-        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/2")
+        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/3")
         self.assertEqual({str(p): p.stat().st_mtime_ns for p in runs.rglob("*")}, before, "nothing in a run folder changed")
         inside = runs / "20261010" / "checkers-1" / "cards.json"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
@@ -2216,26 +2251,28 @@ class ScorecardTest(unittest.TestCase):
         text = io.StringIO()
         with contextlib.redirect_stdout(text):
             scorecard.main([str(runs)])
-        self.assertIn("scorecard/2: 7 run(s)", text.getvalue())
+        self.assertIn("scorecard/3: 7 run(s)", text.getvalue())
         self.assertIn("timing: resumed", text.getvalue())
 
 
 def card(case: str, *, passed: bool = True, fidelity: str = "pass", cost: float | None = 5.0, minutes: float = 20.0,
-         correct: bool | None = True, timed: bool | None = True) -> dict:
-    """A scorecard/2 card with only what the promotion contract reads."""
-    return {"scorecard": "scorecard/2", "observed": True, "case": case,
+         correct: bool | None = True, timed: bool | None = True, evaluator: str | None = "e1", candidate: str = "p1") -> dict:
+    """A scorecard/3 card with only what the promotion contract reads; each case has its own catalog entry, so its own digest."""
+    return {"scorecard": "scorecard/3", "observed": True, "case": case,
+            "boundary": {"evaluator": evaluator, "oracle": "o1", "case": f"c-{case}", "candidate": candidate},
             "floors": {"accuracy": "pass" if passed else "fail", "enterprise": "not_applicable", "fidelity": fidelity},
             "validity": {"correctness": {"valid": correct}, "attribution": {"valid": True}, "timing": {"valid": timed}},
             "efficiency": {"cost_usd": cost, "minutes": minutes, "turns": 200, "tokens": None}}
 
 
 class PromotionContractTest(unittest.TestCase):
-    """test/shiploop_e2e/promotion.py, promotion/2 (SPEC "The promotion contract"; build steps 1 and 2, R1, R2, R3 and R16 of
+    """test/shiploop_e2e/promotion.py, promotion/3 (SPEC "The promotion contract"; build steps 1 to 3, R1, R2, R3, R13 and R16 of
     docs/shiploop-e2e-loop-recommendations-2026-10-25.md). Astra's done signals: a slower correctness fix promotes, a
     faster regression drops, an inconclusive optimisation stays undecided (step 1); a missing slice or field blocks
-    promotion, and timing contamination preserves independently valid correctness evidence (step 2)."""
+    promotion, and timing contamination preserves independently valid correctness evidence (step 2); a harness or oracle
+    change is never part of a candidate's comparison (step 3)."""
 
-    REG = {"contract": "promotion/2", "cases": {"hello": "regression", "battleship": "capability"}}
+    REG = {"contract": "promotion/3", "cases": {"hello": "regression", "battleship": "capability"}}
 
     def reg(self, **changes) -> dict:
         tmp = tempfile.TemporaryDirectory()
@@ -2294,6 +2331,23 @@ class PromotionContractTest(unittest.TestCase):
                                       self.arm(card("hello"), card("battleship")))
         self.assertEqual(enterprise["decision"], "UNDECIDED", "enterprise is not_applicable: requiring it decides nothing")
 
+    def test_one_evaluator_per_case_or_undecided(self):
+        # Build step 3 (R13): a harness or oracle change between the arms is an experiment of its own.
+        reg = self.reg()
+        mixed = promotion.decide(reg, self.arm(card("hello"), card("battleship", passed=False)),
+                                 self.arm(card("hello"), card("battleship", evaluator="e2")))
+        self.assertEqual(mixed["decision"], "UNDECIDED")
+        self.assertEqual(mixed["reasons"], ["attempts were graded by different evaluator, oracle or case digests for battleship: "
+                                            "a harness or oracle change is an experiment of its own"])
+        unrecorded = promotion.decide(reg, self.arm(card("hello", evaluator=None), card("battleship")),
+                                      self.arm(card("hello"), card("battleship")))
+        self.assertEqual(unrecorded["decision"], "UNDECIDED")
+        self.assertIn("no grading digest (evaluator, oracle, case) is recorded on every attempt of hello", unrecorded["reasons"][0])
+        # The candidate's own digest differs between the arms, as it must: that is the change being judged.
+        judged = promotion.decide(reg, self.arm(card("hello"), card("battleship", passed=False)),
+                                  self.arm(card("hello", candidate="p2"), card("battleship", candidate="p2")))
+        self.assertEqual(judged["decision"], "PROMOTE")
+
     def test_a_regression_outweighs_a_gain_and_a_gain_over_budget_drops(self):
         both = promotion.decide(self.reg(), self.arm(card("hello"), card("battleship", passed=False)),
                                 self.arm(card("hello", passed=False), card("battleship")))
@@ -2334,22 +2388,23 @@ class PromotionContractTest(unittest.TestCase):
         self.assertEqual((late["decision"], late["reasons"]),
                          ("UNDECIDED", ["the registration was written after a run it judges began"]))
         for bad in ({"contract": "promotion/1", "cases": {"hello": "regression"}},
-                    {"contract": "promotion/2", "cases": {"hello": "important"}},
-                    {"contract": "promotion/2", "cases": {"hello": {"role": "regression", "attempts": 0}}},
-                    {"contract": "promotion/2", "cases": {"hello": "regression"}, "efficiency": ["vibes"]}):
+                    {"contract": "promotion/2", "cases": {"hello": "regression"}},
+                    {"contract": "promotion/3", "cases": {"hello": "important"}},
+                    {"contract": "promotion/3", "cases": {"hello": {"role": "regression", "attempts": 0}}},
+                    {"contract": "promotion/3", "cases": {"hello": "regression"}, "efficiency": ["vibes"]}):
             with self.subTest(bad=bad), tempfile.TemporaryDirectory() as tmp:
                 (Path(tmp) / "r.json").write_text(json.dumps(bad))
                 with self.assertRaises(SystemExit):
                     promotion.load_registration(Path(tmp) / "r.json")
 
     def test_the_cli_reads_run_folders_and_card_files_and_exits_by_decision(self):
-        # A real gate card: the extract has no delivered tree, so correctness is not observed and quality is unknown.
+        # A real gate card, graded before build step 3: it records no grading digest, so nothing can be compared.
         runs = ROOT / "test" / "fixtures" / "scorecard" / "runs"
         hello = runs / "20261024" / "gate-290-b60ed7-claude-batch" / "hello"
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ):
             os.environ.pop("SHIPLOOP_E2E_RUNS_ROOT", None)
             reg = Path(tmp) / "reg.json"
-            reg.write_text(json.dumps({"contract": "promotion/2", "cases": {"hello": "regression"}}))
+            reg.write_text(json.dumps({"contract": "promotion/3", "cases": {"hello": "regression"}}))
             cards = Path(tmp) / "cards.json"
             with contextlib.redirect_stdout(io.StringIO()):
                 scorecard.main([str(hello), "--out", str(cards)])
@@ -2357,8 +2412,8 @@ class PromotionContractTest(unittest.TestCase):
             with contextlib.redirect_stdout(printed):
                 code = promotion.main(["--registration", str(reg), "--control", str(hello), "--candidate", str(cards), "--json"])
         report = json.loads(printed.getvalue())
-        self.assertEqual((code, report["decision"], report["contract"]), (promotion.EXIT["UNDECIDED"], "UNDECIDED", "promotion/2"))
-        self.assertIn("quality is unknown", report["reasons"][0])
+        self.assertEqual((code, report["decision"], report["contract"]), (promotion.EXIT["UNDECIDED"], "UNDECIDED", "promotion/3"))
+        self.assertIn("no grading digest", report["reasons"][0])
         self.assertIn("card files carry no run start", " ".join(report["notes"]))
 
 

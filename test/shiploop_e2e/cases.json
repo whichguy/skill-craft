@@ -200,6 +200,7 @@
       },
       "acceptance": {
         "module": "checkers_accept",
+        "calibration": ["test/fixtures/quality/reference_checkers.py"],
         "start": "node server.js",
         "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); calibrated against test/fixtures/quality/reference_checkers.py",
         "checks": [
