@@ -396,6 +396,43 @@ on quickly before the breadth of everything is checked.
   sessions, cancellations, glue, ShipLoop failures) so a run is compared with
   the same case's history, never across styles.
 
+## The promotion contract (added 2026-10-25)
+
+Anchor: the owner's directive of 2026-10-25 (the E2E loop drives a self-improving ShipLoop), the final verdict on the loop's
+design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R1 and R16, Astra at max), and the owner's eval priority:
+quality first, then tokens, then time.
+
+A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
+`promotion/1`. It reads scorecards (`scorecard.py`) of a control arm and a candidate arm. Changing the rule takes a new id,
+and two decisions are compared only under the same id.
+
+- **Pre-registered.** Before the runs, a registration file names:
+  - the cases;
+  - which are *regression* cases (established requirements, which must not fall) and which are *capability* cases (being
+    improved);
+  - the primary efficiency metric and its tolerance;
+  - any budget.
+
+  A registration written after a run it judges is refused: the decision is UNDECIDED.
+- **Coverage and evidence.** Every registered case needs a card in both arms. A floor the registration requires that is
+  null on a card leaves its case's quality unknown. By default the required floors are accuracy and fidelity; enterprise
+  has no measure yet, so it cannot be required. Either gap makes the decision UNDECIDED; it is never read as a pass.
+- **Quality first.** A case's quality is the share of its launched attempts that met every measured floor. Stops and
+  resumes are attempts too.
+  - If a regression case's share falls, beyond its tolerance, the decision is DROP, whatever else improved.
+  - If a capability case's share rises, the decision is PROMOTE, with the costs stated: a demonstrated quality gain wins
+    even when it is slower or dearer. The one exception is a pre-registered budget the candidate exceeds, which is DROP.
+  - A capability case that falls, with no gain elsewhere, is DROP.
+- **Then efficiency, only at equal quality.** The primary metric is all-attempt cost per successful case, where cost is
+  the registered measure: tokens once the scorecard has them, otherwise cost in dollars, turns or minutes.
+  - It is compared within a case, and only on cards whose validity says they are comparable.
+  - The candidate is PROMOTE when it is lower beyond the tolerance, and DROP when it is higher beyond it.
+  - Otherwise it is UNDECIDED: an inconclusive optimisation is neither shipped nor discarded on this evidence.
+- **No model judgement enters** (S-9). A judge's findings may propose checks, never a decision.
+- **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
+  records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
+  verdict"). The contract is the one place that turns them into a promotion decision.
+
 ## How the harness checks the clauses
 
 | Clause | Evidence the harness records (result.json, metrics.json, review) |
@@ -645,7 +682,8 @@ stands at the commit under test.
   verdict" for `environment`, S-11 for `product_at_stop`, S-14 for
   `outcome_class`; a blocked result's honesty is a model judgement S-9 excludes
   as evidence). None of them changes `pass`, the exit code, a verdict, a baseline
-  rule or the control flow, and each fails open: a part that cannot be read is
+  rule or the control flow (the promotion contract, above, reads them to decide whether a candidate change is
+  promoted; that is not a run's verdict), and each fails open: a part that cannot be read is
   recorded as not observed with its reason, and the run goes on. A blocked run is
   never resumed or answered because a class names it (S-14). The record names
   what was measured and its limit: `overlap` is the first to the last host event
