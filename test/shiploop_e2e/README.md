@@ -777,6 +777,14 @@ how many recorded builds. A fact one side does not record is `unknown`, not gues
 python3 test/shiploop_e2e/run.py --baseline-report [--baseline FILE] [--runs DIR ...] [--json]
 ```
 
+**After each release, before a long case:** `--baseline-report --release-gate` adds one line per case style: the last pass a
+marketplace run recorded in the baseline file (case, date, skill-craft and ShipLoop versions, driver) and how many ShipLoop
+releases origin/main made after it, read from the local origin/main ref (nothing is fetched; a ref that cannot be read is
+named and the passes are still listed). With `--json` it is the `release_gate` key; without the flag the report is unchanged. A
+record, not a gate. Basis: the 2026-10-24 runner review found that no case had passed from the marketplace for fifteen ShipLoop
+releases (`docs/experiments/e2e-runner-review-20261024/d1-staleness.json`) and nothing printed it; the SPEC asks that a batch be
+verified smallest first (the `batch` suite) before a costlier case.
+
 Read-only: it starts no host, probes no CLI and writes nothing, and always exits 0 (an input that is missing, and a record
 that cannot be read, are named in the report and never stop it). It unions the baseline file with the run folders by the
 run's recorded `output`, so a run that a baseline file and a folder both describe is one record. A run folder is found at any

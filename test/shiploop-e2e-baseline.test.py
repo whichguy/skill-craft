@@ -1874,6 +1874,66 @@ class LowerBoundMarkingTest(main_tests().PrintedCase):
             self.assertNotIn("lower bound", text)
 
 
+class ReleaseGateTest(unittest.TestCase):
+    """`--baseline-report --release-gate`: per case style, the last marketplace pass in the baseline file and the ShipLoop
+    releases since (2026-10-24 runner review, D1: no case had passed from the marketplace for fifteen ShipLoop releases)."""
+
+    PUBLISHED = {"catalog_version": "2.9.0", "shiploop_version": "1.9.0"}
+    RELEASES = [(1_000.0, "release: skill-craft 1.27.0, shiploop 0.59.0"), (3_000.0, "release: skill-craft 2.0.0, shiploop 1.0.0"),
+                (4_000.0, "release: skill-craft 2.0.1, backchain 0.6.4"), (5_000.0, "release: skill-craft 2.9.0, shiploop 1.9.0")]
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.rows = Path(tmp.name) / "rows.jsonl"
+
+    def write(self, *rows: dict) -> None:
+        self.rows.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    def test_the_last_marketplace_pass_per_style_and_the_shiploop_releases_after_it(self):
+        self.write({"case": "hello", "source": "marketplace", "pass": True, "date": "2026-10-10T10:00:00-0700", "ended": 2_000.0,
+                    "plugin_version": "1.27.0", "shiploop_version": "0.59.0", "host": "claude", "model": "claude-sonnet-5-5"},
+                   {"case": "hello", "source": "checkout", "pass": True, "ended": 4_500.0},  # a checkout run is no release evidence
+                   {"case": "hello", "source": "marketplace", "pass": False, "ended": 4_600.0},
+                   {"case": "csv-report", "source": "marketplace (resumed on its original install)", "pass": True,
+                    "date": "1970-01-01T00:10:00+0000", "plugin_version": "1.11.1", "shiploop_version": "0.44.1"})
+        gate = run.release_gate(self.rows, self.PUBLISHED, self.RELEASES)
+        hello = gate["styles"]["smoke"]
+        self.assertEqual((hello["case"], hello["plugin_version"], hello["shiploop_releases_since"]), ("hello", "1.27.0", 2),
+                         "the backchain-only release is not a ShipLoop release")
+        self.assertEqual(hello["driver"], "claude/claude-sonnet-5-5/-")
+        old = gate["styles"]["cli-files"]
+        self.assertEqual((old["driver"], old["shiploop_releases_since"]), (None, 3), "a row with no span is dated by its date")
+        self.assertIsNone(gate["styles"]["hosted-platform"])
+        text = run.render_release_gate(gate)
+        self.assertIn("origin/main publishes skill-craft 2.9.0 / ShipLoop 1.9.0", text)
+        self.assertIn("smoke             hello 2026-10-10, skill-craft 1.27.0 / ShipLoop 0.59.0 (claude/claude-sonnet-5-5/-); "
+                      "2 ShipLoop release(s) since", text)
+        self.assertIn("hosted-platform   no marketplace pass recorded", text)
+        self.assertEqual(sorted(gate["styles"]), sorted({c["style"] for c in json.loads(run.CASES.read_text()).values()}))
+
+    def test_an_unreadable_ref_is_named_and_the_passes_are_still_listed(self):
+        self.write({"case": "hello", "source": "marketplace", "pass": True, "ended": 2_000.0, "date": "2026-10-10T10:00:00-0700"})
+        with mock.patch.object(run, "published_versions", side_effect=RuntimeError("no origin/main")):
+            gate = run.release_gate(self.rows)
+        self.assertEqual((gate["published"], gate["unread"]), (None, "no origin/main"))
+        self.assertIsNone(gate["styles"]["smoke"]["shiploop_releases_since"])
+        self.assertIn("could not be read (no origin/main)", run.render_release_gate(gate))
+        self.assertIn("ShipLoop releases since not known", run.render_release_gate(gate))
+
+    def test_the_flag_adds_the_block_only_when_asked_and_only_to_the_report(self):
+        self.write({"case": "hello", "source": "marketplace", "pass": True, "ended": 2_000.0})
+        for extra, has in (((), False), (("--release-gate",), True)):
+            printed = io.StringIO()
+            with contextlib.redirect_stdout(printed), mock.patch.object(run, "published_versions", return_value=self.PUBLISHED), \
+                    mock.patch.object(run, "release_commits", return_value=self.RELEASES):
+                self.assertEqual(run.main(["--baseline-report", "--baseline", str(self.rows), "--json", *extra]), 0)
+            self.assertEqual("release_gate" in json.loads(printed.getvalue()), has)
+        with self.assertRaises(SystemExit) as refused:
+            run.main(["--release-gate", "--case", "hello"])
+        self.assertIn("belong to --baseline-report", str(refused.exception))
+
+
 class FixtureReportRegenerationTest(BaselineReportCase):
     """The executable pin: the shipped command over the compact extracts reproduces test/fixtures/baseline-spread/report.json,
     its own committed output. (The 29-folder runs.json is a record of the live machine; this is the check of the code.)

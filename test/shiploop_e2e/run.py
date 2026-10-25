@@ -365,12 +365,18 @@ def card_version(card: Path) -> str | None:
     return match.group(1) if match else None
 
 
-def released_versions() -> dict:
-    """What the marketplace serves now: the catalog and ShipLoop versions on origin/main."""
-    git("fetch", "-q", "origin")
+def published_versions() -> dict:
+    """The skill-craft and ShipLoop versions origin/main's catalog publishes, read from the local ref (nothing is fetched)."""
     catalog = json.loads(git("show", "origin/main:.claude-plugin/marketplace.json"))
     plugin = next(p for p in catalog["plugins"] if p["name"] == PLUGIN_NAME)
     shiploop = re.search(r"^version:[ \t]*(\S+)", git("show", f"origin/main:plugins/{PLUGIN_NAME}/skills/shiploop/SKILL.md"), re.M)
+    return {"catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None}
+
+
+def released_versions() -> dict:
+    """What the marketplace serves now: the catalog and ShipLoop versions on origin/main."""
+    git("fetch", "-q", "origin")
+    published = published_versions()
     # A pending change note on main is source the marketplace does not serve yet: release.py has not run.
     pending = [name for name in git("ls-tree", "-r", "--name-only", "origin/main", "changes/").split()
                if name.endswith(".md") and name != "changes/README.md"]
@@ -378,8 +384,7 @@ def released_versions() -> dict:
     local = git("rev-parse", "HEAD").strip()
     # Behind origin/main is fine (the plugin comes from the marketplace); unpublished local commits are not.
     behind = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", local, origin_main]).returncode == 0
-    return {"origin_main": origin_main, "local_head": local, "local_behind_main": behind,
-            "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None,
+    return {"origin_main": origin_main, "local_head": local, "local_behind_main": behind, **published,
             "unreleased": pending, "ci": main_ci(origin_main)}
 
 
@@ -2572,6 +2577,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--runs", type=Path, nargs="+",
                    help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
     p.add_argument("--json", action="store_true", help="with --baseline-report: print JSON instead of text")
+    p.add_argument("--release-gate", action="store_true",
+                   help="with --baseline-report: also print, per case style, the last pass a marketplace run recorded and how "
+                        "many ShipLoop releases origin/main made since (the local ref; nothing is fetched)")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     p.add_argument("--codex-bin", default="codex")
@@ -2622,14 +2630,6 @@ def baseline_stages(stages: list | None) -> list | None:
     return [{k: row[k] for k in keep if k in row} for row in stages if isinstance(row, dict)]
 
 
-def baseline_row(result: dict, style: str | None, suite: str | None,
-                 planning_review: str = metrics.NOT_RECORDED) -> dict:
-    """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites).
-
-    Carries host, model and effort because a baseline compares only with rows
-    from the same three (SPEC: the driver is a parameter, not a code path), and
-    per-stage rows so a regression can be located in a stage rather than only in
-    a whole-run total. ``baseline_stages`` decides which stage fields are worth
 def concurrent_line(out) -> str | None:
     """The line printed when a run starts beside other live harness runs under its runs root (``environment.alive_runs``), so
     a run meant for a timing comparison is not started there by mistake (SPEC "Parallel work"). Printed only, never a refusal,
@@ -2653,6 +2653,14 @@ def overlapped_runs(result: dict) -> int | None:
     return None
 
 
+def baseline_row(result: dict, style: str | None, suite: str | None,
+                 planning_review: str = metrics.NOT_RECORDED) -> dict:
+    """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites).
+
+    Carries host, model and effort because a baseline compares only with rows
+    from the same three (SPEC: the driver is a parameter, not a code path), and
+    per-stage rows so a regression can be located in a stage rather than only in
+    a whole-run total. ``baseline_stages`` decides which stage fields are worth
     committing; the full rows stay in the run's own metrics.json. A counter the host's
     events cannot show is null here and named in ``unmeasured``, so a later run on that
     host compares it as not measured and never as 0 -> 0. ``planning_review`` is the
@@ -2685,6 +2693,7 @@ def overlapped_runs(result: dict) -> int | None:
             "local_head": versions.get("local_head") or (versions.get("released") or {}).get("local_head"),
             "started": (result.get("span") or {}).get("started"), "ended": (result.get("span") or {}).get("ended"),
             "planning_seconds": m.get("planning_seconds"),
+            "overlapped_runs": overlapped_runs(result),
             "output": result.get("output")}
     reasons = result.get("identity_unmeasured") if isinstance(result.get("identity_unmeasured"), dict) else {}
     row["identity_unmeasured"] = {name: reasons.get(name) or PREDATES for name in IDENTITY_FIELDS if row[name] is None}
@@ -2693,7 +2702,6 @@ def overlapped_runs(result: dict) -> int | None:
 
 # `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
 # after each of spec, test-strategy, plan, step-plan and test-spec, `none` after none of them. Planning minutes, Improve
-            "overlapped_runs": overlapped_runs(result),
 # passes and turns are not the same quantity in the two modes, so a run is compared with the last row of its own mode
 # (the same case, source, host, model and effort as ever) and never with a row of the other mode; when no earlier row of
 # that driver has the run's mode, nothing is compared and the report says so (`planning_review_line`). A row written before
@@ -3272,10 +3280,85 @@ def render_report(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+RELEASE_GATE_CLASSES = ("counted", "no driver recorded")  # a finished run that passed; an old row names no driver
+SHIPLOOP_RELEASE = re.compile(r"\bshiploop \d")  # a release commit's subject names each skill it shipped with its version
+
+
+def release_commits() -> list[tuple[float, str]]:
+    """(commit time, subject) of every release commit on origin/main, read from the local ref (nothing is fetched)."""
+    lines = git("log", "origin/main", "--grep=^release:", "--format=%ct%x09%s").splitlines()
+    return [(float(when), subject) for when, _, subject in (line.partition("\t") for line in lines) if when.isdigit()]
+
+
+def release_gate(baseline: Path | None, published: dict | None = None,
+                 releases: list[tuple[float, str]] | None = None) -> dict:
+    """Per style of the case catalog: the last pass a marketplace run recorded in the baseline file, what origin/main publishes
+    now, and how many ShipLoop releases origin/main made after that pass (SPEC "Promotion" and "Choose the verification runs
+    from a coverage map"). Basis: the 2026-10-24 runner review (D1) found that no case had passed from the marketplace since
+    2026-10-10, fourteen releases earlier, and nothing printed it. A record: it gates nothing. ``published`` and ``releases``
+    default to the local origin/main ref; a ref that cannot be read is named, and the passes are still listed."""
+    cases = json.loads(CASES.read_text())
+    styles = sorted({case["style"] for case in cases.values() if case.get("style")})
+    rows = []
+    if baseline is not None and baseline.is_file():
+        for line in baseline.read_text().splitlines():
+            with contextlib.suppress(ValueError):
+                row = json.loads(line)
+                if isinstance(row, dict):
+                    rows.append(row)
+    unread = None
+    try:
+        published = published if published is not None else published_versions()
+        releases = releases if releases is not None else release_commits()
+    except Exception as exc:  # noqa: BLE001 - the passes are listed whatever the ref says
+        published, releases, unread = None, None, " ".join(str(exc).split())[:200] or type(exc).__name__
+    by_style = {}
+    for style in styles:
+        passes = [row for row in rows if row.get("pass") is True and _source_name(row.get("source")) == "marketplace"
+                  and (cases.get(row.get("case")) or {}).get("style") == style]
+        last = passes[-1] if passes else None  # the file is appended in run order
+        if last is None:
+            by_style[style] = None
+            continue
+        when = last.get("ended") if isinstance(last.get("ended"), (int, float)) else None
+        if when is None:
+            with contextlib.suppress(TypeError, ValueError):
+                when = datetime.strptime(str(last.get("date")), "%Y-%m-%dT%H:%M:%S%z").timestamp()
+        since = (None if releases is None or when is None
+                 else sum(1 for stamp, subject in releases if stamp > when and SHIPLOOP_RELEASE.search(subject)))
+        by_style[style] = {"case": last.get("case"), "date": str(last.get("date") or "")[:10] or None,
+                           "plugin_version": last.get("plugin_version"), "shiploop_version": last.get("shiploop_version"),
+                           "driver": "/".join(str(last.get(k) or "-") for k in ("host", "model", "effort")) if last.get("host") else None,
+                           "shiploop_releases_since": since}
+    return {"baseline": str(baseline) if baseline else None, "published": published, "unread": unread, "styles": by_style}
+
+
+def render_release_gate(gate: dict) -> str:
+    """The release gate as text: one line per style."""
+    published = gate["published"]
+    head = (f"origin/main publishes skill-craft {published['catalog_version']} / ShipLoop {published['shiploop_version']}"
+            if published else f"origin/main could not be read ({gate['unread']})")
+    lines = [f"release gate: {head}; the last marketplace pass per style in {gate['baseline']}"]
+    for style, last in gate["styles"].items():
+        if last is None:
+            lines.append(f"  {style:<17} no marketplace pass recorded")
+            continue
+        since = last["shiploop_releases_since"]
+        lines.append(f"  {style:<17} {last['case']} {last['date']}, skill-craft {last['plugin_version']} / ShipLoop "
+                     f"{last['shiploop_version']} ({last['driver'] or 'driver not recorded'}); "
+                     + ("ShipLoop releases since not known" if since is None else f"{since} ShipLoop release(s) since"))
+    return "\n".join(lines) + "\n"
+
+
 def baseline_report_main(args) -> int:
-    """`--baseline-report`: print the report (JSON with --json). Reads files only and always exits 0."""
+    """`--baseline-report`: print the report (JSON with --json), and with --release-gate the last marketplace pass per style.
+    Reads files and the local origin/main ref only, and always exits 0."""
     report = baseline_report(args.baseline, args.runs or [])
-    print(json.dumps(report, indent=1) if args.json else render_report(report), end="\n" if args.json else "")
+    gate = release_gate(args.baseline) if args.release_gate else None
+    if args.json:
+        print(json.dumps({**report, "release_gate": gate} if gate else report, indent=1))
+    else:
+        print(render_report(report) + ("\n" + render_release_gate(gate) if gate else ""), end="")
     return 0
 
 
@@ -3701,8 +3784,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          "--baseline-report")
     if args.baseline_report:
         return baseline_report_main(args)
-    if args.runs or args.json:
-        raise SystemExit("--runs and --json belong to --baseline-report")
+    if args.runs or args.json or args.release_gate:
+        raise SystemExit("--runs, --json and --release-gate belong to --baseline-report")
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
@@ -4074,6 +4157,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
+            if line := concurrent_line(out):
+                print(line, flush=True)
             if platform_spec:
                 linked = [link["name"] for link in platform_state["home_links"] or [] if link["linked"]]
                 guarded = (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else "") + (
@@ -4159,8 +4244,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          allow=host_allow)
         process = session(argv, work, out, env, max(60, int(deadline - time.monotonic())), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
-            if line := concurrent_line(out):
-                print(line, flush=True)
                          kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
