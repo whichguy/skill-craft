@@ -335,6 +335,12 @@ failed ShipLoop commands, truncations, compactions, ended sessions). It never
 prints packet text or run markers, so a ShipLoop keepalive in the watching
 session cannot bind to the run.
 
+For the owner's illustrated status updates, `python3 test/shiploop_e2e/status_card.py MODEL.json` (or the model on
+stdin) prints a card as an HTML fragment for an inline widget: a plan strip (done, running, waiting, pending, each with
+an icon), a progress bar with an estimated end, and a grid of units by variants with one slot per sample or attempt
+(passed, below target, running, pending, error). The JSON model is documented in its docstring; the caller builds it
+from whatever it watches. It reads and writes nothing else.
+
 ### The fidelity block
 
 `metrics.json` carries `fidelity` (built by `test/shiploop_e2e/fidelity.py` through `run._main`, so a regrade with

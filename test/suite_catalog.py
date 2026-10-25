@@ -163,6 +163,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-release-slice.test.py",
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-sf-guard.test.py",
+    "test/shiploop-e2e-status-card.test.py",
     "test/shiploop-e2e-efficiency.test.py",
     "test/shiploop-e2e-dodges.test.py",
     "test/shiploop-e2e-owner-page.test.py",
@@ -368,6 +369,7 @@ _DURATION_SECONDS = {
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
     "test/shiploop-callback-contract.test.py": 69.1,
     "test/shiploop-loophole-gates.test.py": 15.0,  # measured locally 2026-10-24: 12 dodge rows, one real-CLI run each
+    "test/shiploop-e2e-status-card.test.py": 0.2,  # measured locally 2026-10-24: 5 tests, 0.12 s wall
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
