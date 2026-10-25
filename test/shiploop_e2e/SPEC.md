@@ -396,8 +396,8 @@ design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R1 and R16, Astr
 quality first, then tokens, then time.
 
 A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
-`promotion/2` (it was `promotion/1` until build step 2). It reads scorecards (`scorecard.py`, `scorecard/2`) of a control
-arm and a candidate arm. Changing the rule takes a new id,
+`promotion/3` (it was `promotion/1` until build step 2 and `promotion/2` until build step 3). It reads scorecards
+(`scorecard.py`, `scorecard/3`) of a control arm and a candidate arm. Changing the rule takes a new id,
 and two decisions are compared only under the same id.
 
 - **Pre-registered.** Before the runs, a registration file names:
@@ -442,6 +442,43 @@ and two decisions are compared only under the same id.
   - *What the decision reads.* A case's quality is taken only from cards whose correctness is valid; any other card
     leaves that case's quality unknown. Efficiency is compared only on cards whose timing and attribution are both valid.
     So a run that overlapped others still counts as evidence of quality, and never as evidence of speed.
+- **The evaluator boundary (amended 2026-10-25, build step 3; R13 of the final verdict).** The contract is now
+  `promotion/3`, reading `scorecard/3`. Grading stays outside the candidate's control.
+  - *Fingerprints.* A run records `boundary` in `result.json` when it is graded, and a regrade records its own. It holds
+    a digest of the bytes of each of these:
+    - `evaluator`: the harness's code, `test/shiploop_e2e/*.py` and `*.cjs`;
+    - `oracle`: `checks/`;
+    - `case`: the case's entry in `cases.json`.
+
+    The candidate's digest is `versions.plugin_sha256`, the plugin tree the host loaded. The card carries all four.
+  - *One evaluator per comparison.* Every attempt of a case, in both arms, must carry the same evaluator, oracle and case
+    digests. A card without them, or two that differ, makes the decision UNDECIDED. So a harness or oracle change is an
+    experiment of its own, never part of a candidate's. `arms.py` compares slice bytes, not graded results, and is not
+    covered yet.
+  - *Held-out files.* A case's held-out files are:
+    - its acceptance module, `checks/<module>.py`;
+    - the files its acceptance block names as `calibration`. For Checkers that is
+      `test/fixtures/quality/reference_checkers.py`, a correct implementation.
+
+    `held_out_seen` also counts the event lines that name a calibration file. If a run's events name a held-out file,
+    the checks folder or the case catalog, its result is not independent evidence, and its correctness is null.
+  - *The improver (`iterate.py`).* It may change only the candidate:
+    - `skills/shiploop/` and `changes/shiploop/`;
+    - ShipLoop's own tests: `test/shiploop-*`, the `test/shiploop_*` helpers, `test/fixtures/shiploop-*` and
+      `test/experiments/shiploop_*`.
+
+    It may never change the E2E harness (`test/shiploop_e2e/`, `test/shiploop-e2e*`), the test runner or the suite
+    catalog. Until this step it could edit all of `test/`.
+
+    Each iteration records the four digests. After the improver works, the evaluator, oracle and case digests of the
+    checkout that grades must be unchanged, or the loop stops. The held-out files are withheld from the improver's
+    worktree while it works, and restored before the harness's own quick tier. The improver's tool calls are searched
+    for the held-out files' names: any call that names one stops the loop as a possible exposure. Only calls are
+    searched, because this SPEC is in the improver's prompt and names these files, so prose that names one proves
+    nothing.
+  - *What this does not do.* The hosts run unsandboxed, so a model can read any file the user can, git objects included.
+    Withholding closes the default path. A tool call that names a held-out file is detected; a read that never names
+    the file is not. Full read isolation needs the held-out files outside the repository, and CI's tests of them rule that out today.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
@@ -468,7 +505,7 @@ and two decisions are compared only under the same id.
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
 | S-16 | the hermetic `test/shiploop-retired-terms.test.py`: no retired glossary term in the text a model reads (ShipLoop's card, references, command cards and scripts, and the Improve skill's ShipLoop route files), outside the files a row allows; `nomenclature` in metrics.json (added 2026-10-24): each retired term found in the run's kept ShipLoop replies (packets, printed or read, and commit replies) and refusal first lines, with its count and first line, and the digest of the glossary read. The glossary read is the checkout's, so an older run is held to today's retired terms. A record beside the verdicts, never a verdict |
 | S-1, S-4, S-5, S-6, S-9, S-10 (as evidence, never a verdict) | `fidelity` in metrics.json only (added 2026-10-09; not in result.json or a baseline row, like `planning`): the evidence class of each accepted action against the check its stage declares (script, loop, file, note, sentence, skipped, with the records behind it), ShipLoop's verify records read as JSON (a focused or regression row whose counts are null is unmeasured, never a pass), the model's edits of script-owned files and its name-pattern kills and `git commit`/`add` commands as listed facts with event numbers, each ShipLoop refusal with whether the same first line came back, and the engine's end state. Heuristic rows are lists to confirm, not counts to trust: no hit is not proof and a hit can be quoted text, and they say so. Every part fails open and an input it cannot read is `unmeasured` with the reason; the paths in the block are relative to the run folder (`<run>`) and the home folder (`~`), so a block names no machine |
-| S-9 (oracle strength), S-11 | `quality` in result.json (added 2026-10-09), taken last and only from a finished, committed delivery, and in no baseline row: a mutation ratio of the delivered tests (JS text operators on a copy under `<output>/quality`, never on `work/`; recorded with its operator-catalog id, per-file site counts, whether the tests load each file, the caught mutants confirmed by a second run, the timeouts, the declared-port refusals and the page script no operator reaches), held-out acceptance for a case that declares it (Checkers only), `held_out_seen` (host events that name a held-out check; null where the events cannot be read), the Claude memory writes the events show, and `hosts_used` / `mixed_host` from the launch records. Recorded beside the verdicts, never a verdict and never a threshold; a measure that could not be taken is `{observed: false, reason}`, never 0, and two ratios are compared only when their operator-catalog ids are equal |
+| S-9 (oracle strength), S-11 | `quality` in result.json (added 2026-10-09), taken last and only from a finished, committed delivery, and in no baseline row: a mutation ratio of the delivered tests (JS text operators on a copy under `<output>/quality`, never on `work/`; recorded with its operator-catalog id, per-file site counts, whether the tests load each file, the caught mutants confirmed by a second run, the timeouts, the declared-port refusals and the page script no operator reaches), held-out acceptance for a case that declares it (Checkers only), `held_out_seen` (host events that name a held-out check or a calibration file; null where the events cannot be read), the Claude memory writes the events show, and `hosts_used` / `mixed_host` from the launch records. Recorded beside the verdicts, never a verdict and never a threshold; a measure that could not be taken is `{observed: false, reason}`, never 0, and two ratios are compared only when their operator-catalog ids are equal |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
