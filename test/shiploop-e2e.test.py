@@ -1818,6 +1818,78 @@ class CheckHygieneTest(unittest.TestCase):
             dropped = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
 
+class CheckScratchFileTest(unittest.TestCase):
+    """A case check writes nothing into the product's folder (2026-10-24 runner review, E4): the release-gate Battleship run
+    failed because check 2 fetched the page to work/page.html and removed it, and that product commits a page.html its
+    server reads at start, so the check deleted it and every later check's server died. Scratch output goes to mktemp or a
+    shell variable. docs/experiments/e2e-runner-review-20261024/e4-check-clobber.json."""
+
+    # A redirect or a curl -o into a relative name with an extension or a leading dot; `=>` and `>=` are JavaScript.
+    WRITES = re.compile(r"(?:(?<![=\-<>&0-9])\d?>\s*|-o\s+)(\.[\w-]+|[A-Za-z_][\w-]*\.[A-Za-z]+)\b")
+    # The lines E4 found, kept as the scan's controls.
+    OLD = ("node --test > node-test.log 2>&1; rc=$?; rm -f node-test.log",
+           "python3 \"$E2E_CHECKS/serve.py\" -- sh -c 'curl -fsS \"$BASE/\" -o page.html && grep -qi battleship page.html; "
+           "rc=$?; rm -f page.html; exit $rc'",
+           "ids \"$PRIOR_WORK\" > .ids-before; ids . > .ids-after",
+           "printf '' | python3 measure.py > out.txt 2> err.txt")
+    SENTINELS = ("page.html", "node-test.log", "out.txt", "err.txt", ".ids-before", ".ids-after")
+
+    def lines(self):
+        for name, case in json.loads(run.CASES.read_text()).items():
+            for kind in ("checks", "retention"):
+                for index, line in enumerate(case.get(kind) or []):
+                    yield name, kind, index, line, case
+
+    def test_no_case_check_writes_a_relative_file_and_the_scan_flags_the_lines_e4_found(self):
+        for old in self.OLD:
+            self.assertTrue(self.WRITES.search(old), old)
+        found = [(name, kind, index, self.WRITES.findall(line)) for name, kind, index, line, _ in self.lines()
+                 if self.WRITES.search(line)]
+        self.assertEqual(found, [], "write scratch output to mktemp or a variable, never into the product's folder")
+
+    def product(self, root: Path) -> Path:
+        work = root / "work"
+        (work / "test").mkdir(parents=True)
+        (work / "server.js").write_text(
+            "const http=require('node:http'),fs=require('node:fs'),path=require('node:path');\n"
+            "const PAGE=fs.readFileSync(path.join(__dirname,'page.html'));\n"
+            "http.createServer((q,s)=>{if(q.url==='/'){s.writeHead(200,{'content-type':'text/html'});return s.end(PAGE);}"
+            "s.writeHead(404);s.end();}).listen(Number(process.env.PORT||3000),'127.0.0.1');\n")
+        (work / "test" / "ok.test.js").write_text("require('node:test')('ok', () => {});\n")
+        for name in self.SENTINELS:
+            (work / name).write_text("<title>Battleship</title> Checkers accuracy\n" if name == "page.html" else f"the product's {name}\n")
+        subprocess.run(["git", "init", "-q", str(work)], check=True)
+        subprocess.run(["git", "-C", str(work), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm",
+                        "product"], check=True)
+        return work
+
+    def test_a_product_that_commits_page_html_and_the_scratch_names_keeps_them_through_every_case_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = self.product(Path(tmp))
+            prior = Path(tmp) / "prior"
+            shutil.copytree(work, prior)
+            before = {name: (work / name).read_bytes() for name in self.SENTINELS}
+            page_checks = {}
+            for name, kind, index, line, case in self.lines():
+                if case.get("platform"):
+                    continue  # a hosted case's checks call a real org
+                result = run.run_checks(work, [line], timeout=60, env={"PRIOR_WORK": str(prior)})[0]
+                if "grep -qi" in line and "$BASE/" in line:
+                    page_checks[(name, index)] = result
+                with self.subTest(case=name, kind=kind, index=index):
+                    status = subprocess.run(["git", "-C", str(work), "status", "--porcelain"], capture_output=True,
+                                            text=True).stdout
+                    self.assertEqual(status, "", f"{name} {kind}[{index}] changed the product's tracked files")
+                    self.assertEqual({n: (work / n).read_bytes() for n in self.SENTINELS}, before)
+            self.assertEqual(sorted(page_checks), [("battleship", 1), ("battleship-scoring", 2), ("checkers", 1)])
+            for key, result in page_checks.items():
+                self.assertTrue(result["pass"], (key, result["output"]))
+            # The control: E4's line deletes the page, which is what this test exists to catch.
+            run.run_checks(work, [self.OLD[1]], timeout=60)
+            self.assertFalse((work / "page.html").exists())
+
+
 BATTLESHIP_STUB = r'''
 import json, os, sys
 from http.server import BaseHTTPRequestHandler, HTTPServer

@@ -35,5 +35,28 @@
    "temperature-plain checks[4,5]"
   ]
  },
- "not_covered_by": "CheckHygieneTest.test_checks_leave_no_untracked_file_behind keeps a file whose name no check uses"
+ "not_covered_by": "CheckHygieneTest.test_checks_leave_no_untracked_file_behind keeps a file whose name no check uses",
+ "fixed_regrade": {
+  "method": "the same copy, page.html restored, the four battleship checks as the fix writes them (page piped from a variable, node --test to mktemp, check 4 battleship_game.py), all in one run_checks call as a live run makes it",
+  "results": [
+   {
+    "check": 1,
+    "pass": true
+   },
+   {
+    "check": 2,
+    "pass": true
+   },
+   {
+    "check": 3,
+    "pass": true
+   },
+   {
+    "check": 4,
+    "pass": true
+   }
+  ],
+  "git_status_after": "clean"
+ },
+ "fix": "12 check and retention lines now write scratch output to mktemp or a shell variable; CheckScratchFileTest scans every line and runs them all against a product that commits page.html and the scratch names (53 failures on the old cases.json, 0 on the new)"
 }
