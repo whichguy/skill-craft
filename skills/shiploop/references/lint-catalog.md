@@ -73,16 +73,20 @@ repository directory, then the Git top level: a marker file, a
 actionlint, none needed), it resolves the tool from `node_modules/.bin` for
 node tools, then from `PATH`, and runs it in the run's repository directory on
 the changed files of that type. A configured but missing tool produces a
-recommendation. A row marked `fixable` in the catalog data (prettier, black,
-gofmt, clang-format, terraform fmt today) applies its fix exactly like ruff —
-journal-first, only on lines this work item changed, sha256-checked — before
-any row's findings are reported; a row without that mark (eslint included,
-pending its own fix path; tsc, mypy, markdownlint-cli2, yamllint, actionlint,
+recommendation. A row marked `fixable` in the catalog data (eslint, prettier,
+black, gofmt, clang-format, terraform fmt today) applies its fix exactly like
+ruff — journal-first, only on lines this work item changed, sha256-checked —
+before any row's findings are reported. eslint's own fix-dry-run call is
+separate from its report call (its fix output's accompanying messages are
+numbered against the hypothetical fixed text, not the real file, so they are
+never used for reporting); every other fixable row's single call serves as
+both the fix candidate and, when withheld, the report diff. A row without
+the `fixable` mark (tsc, mypy, markdownlint-cli2, yamllint, actionlint,
 ktlint, phpcs, rubocop) only ever reports.
 
 | Linter | Files | Configured by | Output |
 | --- | --- | --- | --- |
-| eslint | JS/TS, Vue | `eslint.config.*`, `.eslintrc*`, `package.json` `eslintConfig` | JSON |
+| eslint (fixable) | JS/TS, Vue | `eslint.config.*`, `.eslintrc*`, `package.json` `eslintConfig` | JSON |
 | prettier (fixable) | JS/TS, JSON, CSS, Markdown, YAML, HTML | `.prettierrc*`, `prettier.config.*`, `package.json` `prettier` | formatted stdin |
 | tsc | TS | `tsconfig.json` (project run, findings kept for changed files) | `path(line,col)` |
 | mypy | Python | `mypy.ini`, `.mypy.ini`, `[tool.mypy]` | lines |
@@ -147,13 +151,17 @@ one is not, so none of these is added on an unconfirmed guess.
   its end, never two sections for the same path. An unconsumed journal is
   shown on every packet until the next pass adopts it: that pass keeps it
   under `<run>/lint/logs/` and names it once in its block. A fix whose syntax
-  guard does not complete is withheld (ruff only; the other fixable tools are
-  pure reformatters and trusted once they exit cleanly). Identical blobs
-  count as mirrors only under the same file name, and never when empty.
-  `fixable` rows apply in the catalog's own listed order, one row fully
-  applied before the next starts, so a file more than one fixable row
-  matches (today, only eslint and prettier overlap, and eslint has no fix
-  path yet) composes correctly instead of one tool's fix clobbering another's.
+  guard does not complete is withheld (ruff and eslint's plain `.js`/`.mjs`/
+  `.cjs` files, each via its own `node --check`-class guard; the other
+  fixable tools are pure reformatters and trusted once they exit cleanly).
+  eslint's guard writes its scratch copy beside the real file, not under a
+  separate tmp directory, so Node's module-type resolution (`package.json`
+  `"type"`, and `.mjs`/`.cjs`'s own override) still matches the real file's.
+  Identical blobs count as mirrors only under the same file name, and never
+  when empty. `fixable` rows apply in the catalog's own listed order, one
+  row fully applied before the next starts, so a file more than one fixable
+  row matches (today, only eslint and prettier overlap) composes correctly
+  instead of one tool's fix clobbering another's.
 - The whole pass has a wall-clock budget of about 120 seconds (60 per tool
   call) that also bounds Git plumbing; files over 2 MB and changed-line diffs
   too large to attribute are not fixed, and skipped tools and files are
@@ -309,7 +317,17 @@ recommendations naming the searched `PATH`. ShipLoop never installs anything.
       "ok": [
         0,
         1
-      ]
+      ],
+      "fixable": true,
+      "argv_fix": [
+        "{bin}",
+        "--fix-dry-run",
+        "--format",
+        "json",
+        "--no-color",
+        "{files}"
+      ],
+      "fix_hint": "eslint --fix"
     },
     {
       "name": "prettier",

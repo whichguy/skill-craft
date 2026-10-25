@@ -212,11 +212,17 @@ with open(os.environ["STUB_LOG"], "a") as log:
     log.write(json.dumps([name] + argv + ["cwd=" + os.getcwd()]) + "\n")
 if name == "eslint":
     files = [arg for arg in argv if arg.startswith("./")]
+    fix_mode = "--fix-dry-run" in argv
     out = []
     for path in files:
+        text = open(path).read()
+        fixed = text.replace(" FIXME", "") if fix_mode else text
         messages = [{"line": number, "column": 1, "ruleId": "stub/rule", "severity": 2, "message": "stub finding"}
-                    for number, line in enumerate(open(path).read().splitlines(), 1) if "LINTME" in line]
-        out.append({"filePath": os.path.abspath(path), "messages": messages})
+                    for number, line in enumerate(fixed.splitlines(), 1) if "LINTME" in line]
+        entry = {"filePath": os.path.abspath(path), "messages": messages}
+        if fix_mode and fixed != text:
+            entry["output"] = fixed
+        out.append(entry)
     print(json.dumps(out))
     sys.exit(1 if any(entry["messages"] for entry in out) else 0)
 if name in ("prettier", "black", "gofmt", "clang-format", "terraform"):
@@ -1399,6 +1405,51 @@ class DiscoveredLinterTests(Fixture):
         self.assertEqual(payload["applied"].count("a.py"), 2)  # ruff's own fix, then black's
         self.assertEqual(payload["patch"].count("--- a/a.py"), 1)  # one consolidated journal entry
 
+    def test_eslint_fix_is_applied_via_fix_dry_run(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\nvar y = 2 LINTME\n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\nvar y = 2 LINTME\n")
+        self.assertIn("a.js", payload["applied"])
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.js", 3)])
+        eslint_calls = [argv for argv in self.logged() if argv[0] == "eslint"]
+        self.assertEqual(len(eslint_calls), 2)
+        self.assertTrue(any("--fix-dry-run" in call for call in eslint_calls))
+        self.assertTrue(any("--fix-dry-run" not in call for call in eslint_calls))
+
+    def test_eslint_fix_that_touches_an_unchanged_line_is_withheld(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one FIXME\ntwo\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "one FIXME\ntwo\nthree\n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "one FIXME\ntwo\nthree\n")
+        self.assertIn("NOT APPLIED (would change a line this work item did not touch; whole file withheld): "
+                      "a.js", payload["block"])
+
+    def test_eslint_fix_is_not_attempted_in_report_mode(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\n"})
+        self.run_pass(mode="report")
+        eslint_calls = [argv for argv in self.logged() if argv[0] == "eslint"]
+        self.assertEqual(len(eslint_calls), 1)
+        self.assertNotIn("--fix-dry-run", eslint_calls[0])
+
+    def test_eslint_and_prettier_fixes_on_the_same_file_both_apply(self):
+        self.commit({"eslint.config.js": "export default []\n", ".prettierrc": "{}\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        write_tool(self.bin, "prettier")
+        self.base()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\nvar y = 2   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\nvar y = 2\n")
+        self.assertEqual(payload["applied"].count("a.js"), 2)  # eslint's own fix, then prettier's
+        self.assertEqual(payload["patch"].count("--- a/a.js"), 1)  # one consolidated journal entry
+
     def test_tsc_project_findings_count_only_in_changed_files(self):
         self.commit({"tsconfig.json": "{}\n", "src/a.ts": "let a = 1;\n", "src/b.ts": "let b = TSBAD;\n"})
         write_tool(self.bin, "tsc")
@@ -1569,6 +1620,19 @@ class GateTests(Fixture):
                                                             "changed"):
                 complete(self.run_dir, state)
             self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo\n")
+            complete(self.run_dir, state)
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
+
+    def test_eslint_auto_fix_refuses_once_then_accepts(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        state = self.start()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\n"})
+        with self.patched_env():
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.js on lines this work item "
+                                                            "changed"):
+                complete(self.run_dir, state)
+            self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\n")
             complete(self.run_dir, state)
         self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
 

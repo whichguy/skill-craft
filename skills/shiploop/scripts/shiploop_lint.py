@@ -19,11 +19,15 @@ phpcs, rubocop; actionlint whenever it is on PATH), and ``npm run lint`` /
 linters run repository code by design (owner decision 2026-09-25); ShipLoop
 still never installs or downloads a tool.
 
-A catalog row marked ``fixable`` (prettier, black, gofmt, clang-format,
+A catalog row marked ``fixable`` (eslint, prettier, black, gofmt, clang-format,
 terraform fmt today) applies its own fix exactly like ruff: acquired through a
-non-mutating call (stdin in, fully formatted content out), then applied
-through the same ``_apply_fixes`` machinery ruff uses.  A file more than one
-fixable row matches gets each row's fix applied in the catalog's listed
+non-mutating call, then applied through the same ``_apply_fixes`` machinery
+ruff uses.  Every fixable row but eslint acquires its fix the same way
+(stdin in, fully formatted content out) its single call already uses for
+reporting; eslint's fix instead comes from a separate ``--fix-dry-run``
+call, because its report call's findings are numbered against the real file
+and would be wrong read against a hypothetical fixed one.  A file more than
+one fixable row matches gets each row's fix applied in the catalog's listed
 order, one row to completion before the next starts, so a later row reads an
 earlier row's already-applied content; the pending journal still gets one
 entry per path, diffed from the content when the pass started, never one
@@ -1038,7 +1042,8 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     _tier0(invoker, top, run_dir, active, tools, base_tree, current_tree, catalog)
     missing, disc_applied, disc_not_applied, journal = _discover(
         invoker, catalog, top, project, active, base_env, shim_dirs, roots,
-        fixing=fixing, withheld=withheld, pending_path=pending_path, before=journal)
+        fixing=fixing, withheld=withheld, pending_path=pending_path, before=journal,
+        node_tool=tools["node"][0])
     applied += disc_applied
     not_applied += disc_not_applied
     exact_patch = "".join(journal.values()).encode("utf-8")
@@ -1853,6 +1858,58 @@ def _parse_eslint_json(text: str, by_path: Mapping[str, _File], name: str, proje
     return True
 
 
+def _eslint_fix_outputs(text: str, by_path: Mapping[str, _File], project: Path, top: Path) -> Dict[str, bytes]:
+    """Each result's ``--fix-dry-run`` ``output`` (the non-mutating fixed source), keyed by item path; {} on a
+    JSON-parse failure. Mirrors ``_parse_eslint_json``'s exact safety: a path ``by_path`` does not track is
+    skipped, and a later entry for a path already seen wins (defensive; real eslint never repeats a filePath).
+    A result with no fixable problem carries no ``output`` and is simply absent here.
+    """
+    try:
+        results = json.loads(text)
+    except ValueError:
+        return {}
+    if not isinstance(results, list):
+        return {}
+    outputs: Dict[str, bytes] = {}
+    for entry in results:
+        if not isinstance(entry, Mapping):
+            continue
+        item = by_path.get(_tool_relative(str(entry.get("filePath", "")), project, top))
+        if item is None:
+            continue
+        output = entry.get("output")
+        if isinstance(output, str):
+            outputs[item.path] = output.encode("utf-8")
+    return outputs
+
+
+def _eslint_fix_syntax_guard(invoker: _Invoker, top: Path, item: _File, fixed: bytes,
+                             node: Optional[str]) -> str:
+    """``node --check`` on the fix candidate for a plain ``.js``/``.mjs``/``.cjs`` file (eslint's fixes can touch
+    logic, not only formatting, closer in risk to ruff's than to a pure reformatter's); the scratch copy is
+    written BESIDE the real file, same directory and extension, unlike ``_syntax_tool``'s own scratch file under
+    a separate tmp directory -- so Node's package.json-``type``-based and extension-based module resolution
+    still matches the real file's, which a copy elsewhere could get wrong. '' when it passes, there is no real
+    ``node``, or the file's kind has no cheap check (ts/tsx/jsx/vue rely on scope and line-ending guards alone).
+    """
+    if not node or item.kind != "javascript":
+        return ""
+    path = top / item.path
+    temporary = path.with_name("." + path.stem + ".shiploop-lintfix-" + uuid.uuid4().hex[:8] + path.suffix)
+    try:
+        _write_private(temporary, fixed)
+        call = invoker.run([node, "--check", os.fspath(temporary)],
+                           what="node --check (fix guard) for " + item.path, ok_codes=None)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    if call is None or call["status"] == "timeout" or call["exit"] is None:
+        return "syntax guard did not complete; fix withheld"
+    if call["exit"] != 0:
+        return "the fixed file no longer parses as JavaScript (syntax guard); fix withheld"
+    return ""
+
+
 def _format_findings(item: _File, name: str, formatted: str, hint: str) -> None:
     """One finding per region a formatter would rewrite (current-file line numbers)."""
     current = _split_lines(item.text or "")
@@ -1909,9 +1966,10 @@ def _plan_discovered_fix(item: _File, fixed_bytes: bytes, fixed_text: str, *, fi
 def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,
               active: Sequence[_File], base_env: Mapping[str, str], shim_dirs: Sequence[str],
               roots: Sequence[str], *, fixing: bool, withheld: str, pending_path: Path,
-              before: Optional[Mapping[str, str]] = None) -> Tuple[List[str], List[Tuple[_File, str]],
-                                                                    List[Tuple[_File, str, str]],
-                                                                    Dict[str, str]]:
+              before: Optional[Mapping[str, str]] = None,
+              node_tool: Optional[str] = None) -> Tuple[List[str], List[Tuple[_File, str]],
+                                                         List[Tuple[_File, str, str]],
+                                                         Dict[str, str]]:
     """Run every catalogued linter the repository declares for a changed file type.
 
     Phase A applies every ``fixable`` row's fix to completion -- acquire, ``_plan_discovered_fix``,
@@ -1950,27 +2008,55 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
         relative = {item.path: os.path.join(".", os.path.relpath(os.fspath(top / item.path), os.fspath(project)))
                     for item in files}
         ok = tuple(row.get("ok", (0, 1)))
+        fmt = row.get("format", "lines")
         planned: List[Tuple[_File, bytes, str]] = []
-        for item in files:
-            call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
-                               what=name + " fix for " + item.path, stdin=item.data, cwd=project,
-                               stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
-            if _record_tool_failure(call, [item], name, ok):
+        if fmt == "eslint-json":
+            if not fixing:
+                continue  # a separate, costlier call than the report call; skip it outright when not fixing
+            by_path = {os.path.normpath(item.path): item for item in files}
+            call = invoker.run(_argv(row["argv_fix"], tool=tool, files=[relative[item.path] for item in files]),
+                               what=name + " --fix-dry-run", cwd=project, ok_codes=ok)
+            if _record_tool_failure(call, files, name, ok):
                 continue
-            formatted = call["stdout"]
-            if not formatted or formatted == item.data:
-                continue
-            try:
-                formatted_text = formatted.decode("utf-8")
-            except UnicodeDecodeError:
-                item.tool_notes.append(name + " fix output is not UTF-8; not applied")
-                continue
-            reason, diff = _plan_discovered_fix(item, formatted, formatted_text, fixing=fixing,
-                                                withheld=withheld, label=name)
-            if reason:
-                not_applied.append((item, reason, diff))
-                continue
-            planned.append((item, formatted, diff))
+            outputs = _eslint_fix_outputs(_decode(call["stdout"]), by_path, project, top)
+            for item in files:
+                formatted = outputs.get(item.path)
+                if formatted is None or formatted == item.data:
+                    continue
+                try:
+                    formatted_text = formatted.decode("utf-8")
+                except UnicodeDecodeError:
+                    item.tool_notes.append(name + " fix output is not UTF-8; not applied")
+                    continue
+                reason, diff = _plan_discovered_fix(item, formatted, formatted_text, fixing=fixing,
+                                                    withheld=withheld, label=name)
+                if not reason:
+                    reason = _eslint_fix_syntax_guard(invoker, top, item, formatted, node_tool)
+                if reason:
+                    not_applied.append((item, reason, diff))
+                    continue
+                planned.append((item, formatted, diff))
+        else:
+            for item in files:
+                call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
+                                   what=name + " fix for " + item.path, stdin=item.data, cwd=project,
+                                   stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
+                if _record_tool_failure(call, [item], name, ok):
+                    continue
+                formatted = call["stdout"]
+                if not formatted or formatted == item.data:
+                    continue
+                try:
+                    formatted_text = formatted.decode("utf-8")
+                except UnicodeDecodeError:
+                    item.tool_notes.append(name + " fix output is not UTF-8; not applied")
+                    continue
+                reason, diff = _plan_discovered_fix(item, formatted, formatted_text, fixing=fixing,
+                                                    withheld=withheld, label=name)
+                if reason:
+                    not_applied.append((item, reason, diff))
+                    continue
+                planned.append((item, formatted, diff))
         row_applied, row_race, journal = _apply_fixes(invoker, top, planned, pending_path, before=journal)
         applied += row_applied
         not_applied += row_race
