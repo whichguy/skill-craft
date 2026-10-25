@@ -1,0 +1,2 @@
+scorecard/3: 1 run(s); floors accuracy/enterprise/fidelity (P pass, F fail, ? unobserved, - n/a); validity correctness/attribution/timing (Y valid, n not, ? not observed)
+  battleship claude          F/-/?  Y/Y/n    34.6m $-         453t   0r  timing: overlapped 4 run(s)

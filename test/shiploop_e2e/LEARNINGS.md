@@ -3011,3 +3011,53 @@ Grok, each with its own `--platform-prefix`.
 **Open:**
 - A Claude-host Salesforce run first needs Claude Code to sign in under an isolated HOME without the harness handling a
   credential. That is research, not a fix.
+
+## Haiku 5.5 at max effort on Battleship: stopped in the spec's Improve loop (2026-10-25) — status: firm for this run (n=1); interim as a Haiku finding
+
+**Question.** How does ShipLoop do on the local `battleship` case with Claude Haiku 5.5 at max effort? The owner
+approved it on 2026-10-25 as a one-off exception to "never Haiku". The run used the Claude host, `--source checkout` at
+`eedb4a19` (CI green, plugin digest `2dbee8c342b9`), output `~/e2e-runs/20261025/haiku55-max-battleship-d521a8`.
+
+**Result** (`docs/experiments/e2e-haiku55-battleship-20261025/`): STOPPED by the owner's "stop anything that might be
+running away", at 2079 s (34.6 min). The engine was still active at `spec`, nothing was returned, and every product
+check failed. It is not a pass.
+- `scorecard/3`: accuracy F, fidelity unobserved; correctness Y, attribution Y; timing n, because it overlapped 4 runs.
+- 453 turns and 0 refusals. No cost was reported, because the stop came before the host's result event.
+- It is the first run that records its grading digests: evaluator `036dee1a3463`, oracle `6c353db0383a`, case
+  `53252bfd577e`.
+
+**What happened.**
+- Haiku navigated cleanly: it bound the CLI, followed each receipt's `next_argv` as written, committed Improve passes
+  through `improve-commit`, and had no refusal in 35 minutes.
+- It reached spec in about 7 minutes.
+- The spec's Improve child then never ended (`improve-passes.txt`). After the first pass (29 lines), each pass changed
+  9, 7, 5, 3 and then 1 to 4 lines, 12 passes in about 22 minutes. Each was a real but tiny tightening: name the exact
+  title, name each rejected request, name the cells of the concurrent-shot check, and so on.
+- Improve's stop rule ("a pass finds only trivial changes or none") is the model's own judgement. Haiku at max effort
+  never judged a pass trivial.
+
+**Interpretation, interim (n=1).** This is a convergence property of the model's triviality judgement, not a script
+defect. ShipLoop's loops are deliberately unbounded (owner rule), so a model that always finds one more 2-line edit
+never leaves the stage. For comparison, the Sonnet 5.5 runs of the same case finished the whole case in 23 minutes.
+
+Candidate follow-ups, for the owner:
+- a script-measured shrinkage signal, for example passes whose diff is below N lines, recorded in the run's
+  diagnostics;
+- or a script-owned stop on an edit-size trend.
+
+The second would change the unbounded-loop rule, so it needs the owner's decision.
+
+## Grok release-gate trio on 2.12.0: cancelled at hello's spec, because main's CI failed (2026-10-25) — status: firm
+
+The trio (hello, then battleship and battleship-scoring) started at 15:53 on Grok 4.7 medium from the marketplace, at
+skill-craft 2.12.0 / ShipLoop 1.12.0, while main's CI was pending. That CI then failed in `full / e2e-apparatus`,
+`full / shiploop-1`, `full / shiploop-2` and `hermetic`:
+- read-only views now leave a `trace.jsonl` behind;
+- the Grok adapter's direct-subcommand allow list lacks the new `trace` command.
+
+Both are regressions of the run-trace change, which the progress-status session owns and has been told about.
+
+Per the SPEC (a run started on pending CI is cancelled if CI fails), the trio was stopped at hello's spec stage after
+about 9 minutes, and the web-service suite never started. Stopping the task left the stopped run's ShipLoop progress
+observer (`shiploop_progress.py --watch`) orphaned. It was ended by hand, so it could not look like a Grok process to
+the next Grok user. Grok went back to E-EFF1. The trio reruns on the release that fixes CI.
