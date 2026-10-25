@@ -118,8 +118,8 @@ cannot read passes only with `ids` that all appear; a regression command without
 `test` stage, `verify` may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
 since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
 because the plan changed is a plan change: report `send-back` with the reason, and the redone step plan starts the count again.
-Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` once its runs used the 11 refused
-runs or its latest attempt could not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
+Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` when its latest attempt could
+not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
 rerun commands another stage recorded and have no `send-back` to lower a floor, so they are not held to one; a run whose count
 ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
 to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
@@ -159,16 +159,14 @@ and the handoff say so.
 
 ### Runs that reached no verdict
 
-A command that times out, cannot start, or is skipped because the invocation's
-budget ran out reached no verdict about the product. It still refuses the stage,
-because nothing is accepted on unrun tests, but the attempt is recorded
-`could-not-run` and does not spend one of the 11. A timeout is not a diagnosis:
-it can mean a deadlock, a broken test, a suite too slow for the budget, or an
-external dependency. Because those attempts never reach the 11, the routes out
+A command that times out or cannot start reached no verdict about the product.
+It still refuses the stage, because nothing is accepted on unrun tests, but the
+attempt is recorded `could-not-run` and does not count as a refused run. A
+timeout is not a diagnosis: it can mean a deadlock, a broken test, a suite too
+slow for the per-command timeout, or an external dependency. The routes out
 are explicit: a hang in this item's own code, test or fixture is yours to fix
 here and is not a blocker; if the recorded command is itself wrong or too slow
-to fit the run's budget (a skipped command is that case: the same ones are
-skipped every time), report the stage's remedy instead of retrying it, and
+to finish within its per-command timeout, report the stage's remedy instead of retrying it, and
 ShipLoop accepts it on its own record of the attempt without a new loop packet;
 report `blocked` only for what the user, an access grant or an outside
 dependency must supply.

@@ -865,8 +865,8 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None, r
         previous = ("none for step " + str(view.step.get("id")) + " (it had no accepted result before the send-back; "
                     "the item's earlier steps' changes are in the checkout)")
     return [
-        f"Revisit: {by} sent {workitem} back to {stage_spec.SEND_BACK_TO} ({sent.count} of {stage_spec.MAX_SEND_BACKS} "
-        "send-backs)" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
+        f"Revisit: {by} sent {workitem} back to {stage_spec.SEND_BACK_TO} (send-back "
+        f"{sent.count})" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
         + ". Why (its summary, untrusted): \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.",
         step_line or ("Your previous accepted " + stage + " result: " + previous + "."
                       + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement"
@@ -900,8 +900,8 @@ def _outer_revisit_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     summary = " ".join(_bounded_packet_text(str(state["accepted"][row["action"]].get("summary", "")),
                                             limit=REVISIT_SUMMARY).split())
     return [
-        f"Revisit: {row['stage']} sent the run back to {stage} ({state['revisions'][stage]} of "
-        f"{stage_spec.MAX_SEND_BACKS} send-backs). Why (its summary, untrusted): \"{summary}\" Evidence: RUN/results/"
+        f"Revisit: {row['stage']} sent the run back to {stage} (send-back "
+        f"{state['revisions'][stage]}). Why (its summary, untrusted): \"{summary}\" Evidence: RUN/results/"
         + row["action"] + ".md.",
         "Your previous accepted " + stage + " result: RUN/results/" + earlier[-1] + ".md (accepted host report, "
         "untrusted; revalidate what you carry over).",
@@ -1513,10 +1513,10 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     revisions = state.get("revisions")
     targets = set(stage_spec.OUTER_SEND_BACK_TO.values())
     _need(isinstance(revisions, Mapping)
-          and all((key in item_ids or key in targets) and type(count) is int and 1 <= count <= stage_spec.MAX_SEND_BACKS
+          and all((key in item_ids or key in targets) and type(count) is int and count >= 1
                   for key, count in revisions.items()),
           "navigator revisions must map work item IDs, or an OUTER send-back target (" + ", ".join(sorted(targets))
-          + "), to 1.." + str(stage_spec.MAX_SEND_BACKS))
+          + "), to a count of at least 1")
 
     loops = state.get("inner_loops")
     _need(isinstance(loops, Mapping), "navigator inner loops are invalid")
@@ -3628,19 +3628,8 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
 
 
 def _send_back_key(state: Mapping[str, Any], stage: str) -> Any:
-    """Whose budget a send-back from ``stage`` spends: its OUTER target's (S1.5), else the current work item's."""
+    """Whose count a send-back from ``stage`` adds to: its OUTER target's (S1.5), else the current work item's."""
     return stage_spec.OUTER_SEND_BACK_TO.get(stage) or _current_work_item(state)
-
-
-def _need_send_back_left(state: Mapping[str, Any], key: Any) -> None:
-    """Refuse a send-back once its work item, or its OUTER target, has used all of its send-backs (checked at
-    check-only too, N5)."""
-    used = state["revisions"].get(key, 0)
-    who = str(key) if key in stage_spec.OUTER_SEND_BACK_TO.values() else "work item " + str(key)
-    _need(used < stage_spec.MAX_SEND_BACKS,
-          who + " has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing "
-          "further can proceed without the user: report blocked awaiting a decision ({\"kind\": \"answer\", "
-          "\"question\", \"options\", \"no_default\"}) so the user decides")
 
 
 def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve_record: Any = None) -> dict[str, Any]:
@@ -3696,7 +3685,6 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         # back to its step plan.  OUTER (S1.5): the run goes back to the stage that wrote the plan this one ran, and
         # every stage after it runs again.  Enforced for new results only.
         key = _send_back_key(updated, stage)
-        _need_send_back_left(updated, key)
         updated["revisions"][key] = updated["revisions"].get(key, 0) + 1
         target = stage_spec.send_back_target(stage)
         if stage in stage_spec.OUTER_SEND_BACK_TO:
@@ -4294,11 +4282,11 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
 
     The loop's receipt was checked first (``loops.check_terminal``).  On the item's base (after any preparatory fix)
     no new test ID may pass; on the candidate every recorded command must pass, run every listed ID and reach the
-    floor.  Each run writes its own record and counts toward the refused-run cap.  A send-back is accepted without a
-    loop packet when ``test_loop.remedy_open`` says the cap left that route open.
+    floor.  Each run writes its own record and counts in the refused-run tally.  A send-back is accepted without a
+    loop packet when ``test_loop.remedy_open`` says the latest run could not run.
 
     ``check_only`` (``complete --check-only``) changes nothing the run counts: the base rule runs as ``red_check`` and
-    the candidate run with ``count=False``; neither counts toward the refused-run cap nor sets a floor.
+    the candidate run with ``count=False``; neither counts in the refused-run tally nor sets a floor.
 
     The lines are the gates' own summaries (``base: skipped (...)`` is a gate that did nothing, which the record says
     too): ``complete`` prints them after what it accepted, so a green result never hides a gate that did not run.
@@ -7009,16 +6997,11 @@ def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                              "system-test-author)")
         elif outcome == "send-back" and stage in stage_spec.OUTER_SEND_BACK_TO:
             target = stage_spec.OUTER_SEND_BACK_TO[stage]
-            left = stage_spec.MAX_SEND_BACKS - state.get("revisions", {}).get(target, 0)
             described.append("send-back (" + _SEND_BACK_WHAT[stage] + " is wrong: the run goes back to " + target
-                             + ", which reruns with this result as evidence, then every stage after it; "
-                             + str(left) + " of " + str(stage_spec.MAX_SEND_BACKS) + " left)")
+                             + ", which reruns with this result as evidence, then every stage after it)")
         elif outcome == "send-back":
-            item_id = _current_work_item(state)
-            left = stage_spec.MAX_SEND_BACKS - state.get("revisions", {}).get(item_id, 0)
             described.append("send-back (the item's step plan or test spec is wrong or unachievable: it goes "
-                             "back to " + stage_spec.SEND_BACK_TO + " with this result as evidence; "
-                             + str(left) + " of " + str(stage_spec.MAX_SEND_BACKS) + " left for this item)")
+                             "back to " + stage_spec.SEND_BACK_TO + " with this result as evidence)")
         else:
             described.append(outcome)
     outcomes = " | ".join(described)
@@ -7126,8 +7109,8 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
     if sent is not None:
         previous = ("the previous accepted " + stage + " result: RUN/results/" + sent.previous + ".md; "
                     if sent.previous else "")
-        lines.append("Revisit: " + str(workitem) + " is back at " + stage + " (" + str(sent.count) + " of "
-                     + str(stage_spec.MAX_SEND_BACKS) + "); " + previous + "the send-back result that sent it back: "
+        lines.append("Revisit: " + str(workitem) + " is back at " + stage + " (send-back " + str(sent.count)
+                     + "); " + previous + "the send-back result that sent it back: "
                      "RUN/results/" + sent.sent_back + ".md.")
     return lines
 
@@ -7880,7 +7863,7 @@ def _utc_now() -> str:
 def red_check_command(core: Any, argv: list[str]) -> int:
     """``shiploop red-check``: the test stage's base run, so its loop can see what the gate will refuse.
 
-    Never counted toward the refused-run cap and never gates; exit 0 when no new test ID passes on the base, 1 when
+    Never counted in the refused-run tally and never gates; exit 0 when no new test ID passes on the base, 1 when
     one does (or a test did not run), 3 when the check cannot run.
     """
     import argparse
@@ -8867,6 +8850,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     final_result = receipt.get("final_result")
                     if final_result is not None:
                         _check_submitted_evidence(final_result, None)
+                        # A revised result meets the size bounds a submitted one meets: later packets print it whole.
+                        _check_producer_bounds(child["stage"], final_result)
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -8986,9 +8971,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)
-            if (isinstance(submitted, Mapping) and submitted.get("outcome") == "send-back"
-                    and "send-back" in stage_spec.stage(current_stage(state)).outcomes):
-                _need_send_back_left(state, _send_back_key(state, current_stage(state)))
             _check_submitted_delivery(state, action_id, current_stage(state), submitted)
             _knowledge_gate(state, current_stage(state), submitted)
             _handoff_gate(root, state, current_stage(state), submitted, "complete",

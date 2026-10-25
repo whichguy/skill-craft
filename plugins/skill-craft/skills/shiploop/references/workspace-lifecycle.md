@@ -192,7 +192,7 @@ where they run depends on the run:
   directory and the workspace root as Git's ceiling, so a parent repository is not
   found. The copy is made fresh on each attempt and kept after a refusal so you can
   reproduce there. A receipt or manifest ShipLoop cannot read is not "no return":
-  the attempt is `could-not-run`, which does not count toward the 11 refused runs.
+  the attempt is `could-not-run`, which does not count as a refused run.
 - **No completed return yet**: the checks run in the work area, and the packet, the
   test record (`observed`) and the handoff say that they did not observe the user's
   checkout. The run is not refused: `workspace return` is allowed only at `release`

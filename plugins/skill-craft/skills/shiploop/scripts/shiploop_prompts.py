@@ -538,25 +538,6 @@ read-only Backchain review/audit (Backchain planning guide), then run the printe
 """
 
 
-# How big a step is (owner, 2026-10-10: "do we ever want to scope down the size of a step so that we don't cram too much
-# or too little in one step?"). The six live step plans of 2026-10-10 split an item by file type (product change, then
-# "add the test"), and the test step was a no-op at implement every time because the tests were already written.
-STEP_SIZING = """\
-Size each step as one behaviour-level change that a named check proves. Give
-every step the criteria IDs it satisfies (criteria) and the files it changes
-(paths, a subset of the item's paths); each criterion is satisfied by some step.
-Split a step when it holds two behaviours that can each be confirmed on their
-own, when it crosses a module or layer boundary (the interface first, then each
-side), when its task needs "and" between two outcomes, or when it is too large
-to review and recheck in one pass. Merge a step that no check can confirm on its
-own (half a rename, scaffolding nothing uses yet) into the step it serves. Tests
-are not a step: the test stage writes them from the test spec after the last
-implement step, so a step that only changes test files is refused unless the
-whole item is tests. One change, such as a single bug fix or a mechanical rename,
-is one step.
-"""
-
-
 # Stage-specific paragraphs, carried only by the stages the stage table names
 # (blocks "interaction-design" and "work-items").
 INTERACTION_DESIGN = """\
@@ -1300,21 +1281,22 @@ Change no product file in this stage.
      and one that it carries a contract docstring (Code craft 2-3), searched.
    - Where a criterion names an exact value, a count or a prefix match proves nothing.
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
-   - Size each as one behaviour-level change its proof shows. Split a step with two separately confirmable
-     behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
-     "and", or too large for one review. Fold a step no proof confirms alone (half a rename, scaffolding) into the
-     first step that uses it. A single bug fix or mechanical rename is one step.
-   - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
-     files is refused unless the whole item is tests.
+   - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that
+     only describes another changed file counts with it; tests, docs and its proof script do not). A second module
+     or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with
+     "and" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the first step
+     that uses it. A single bug fix or mechanical rename is one step.
+   - Tests are not a step (the test stage writes them); a step changing only test files is refused unless the item
+     is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by
-     some step. Optional `paths` (inside the item's) serve the parallel chain. Limits: task 700 characters, proof
-     600, its criteria 1,200.
+     some step. Its `paths` (inside the item's) name every file it changes. Limits: task 700 characters, proof 600,
+     its criteria 1,200.
    - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
      artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
-     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only. None runs
-     now: change the step boundary.
+     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only; steps share
+     one proof script. None runs now: change the step boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
      reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
@@ -1327,7 +1309,7 @@ Change no product file in this stage.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
-     The test and verify stages run these; implement runs only each step's own `proof`.
+     Implement runs only each step's own `proof`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
    - A focused or regression command that runs on a Test targets row that keeps state names it in `target`.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",

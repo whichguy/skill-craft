@@ -26,10 +26,8 @@ does not warn. Its
 `progress` field is `<revision>.<callback attempts>.<Improve pass>`: an accepted
 result, a refused callback (the model is fixing and resubmitting) and each pass
 of an active Improve review all count as progress, so a long review or a fix
-loop is not mistaken for a stall. Refusals alone count only so far: after 22
-continuations (twice the per-action test-run refusal budget) with no accepted
-result, the stop is allowed with a notice to submit `blocked` or `send-back`, so a
-result that can never be accepted does not keep a session alive forever.
+loop is not mistaken for a stall. No count of continuations without an
+accepted result releases the turn: only a host's own cap (Grok's, below) ends one.
 
 Each stop also counts the turn's continuations (the host's `stopHookActive` /
 `stop_hook_active` flag marks a continuation). Grok ends a turn after 8
@@ -45,7 +43,6 @@ and the driver never read `state.md` themselves.
 | `active`, progress moved since the last refusal | Refuse the stop; the reason names `shiploop next --run-dir …`. |
 | `active`, a host background task still running | Refuse the stop; the reason says to wait for the task in this turn. |
 | `active`, progress unchanged since the last refusal | Allow, with a notice that the run made no progress. |
-| `active`, 22 continuations without an accepted result | Allow, with a notice to read the last refusal and submit `blocked` or `send-back` if it cannot be fixed. |
 | `paused`, `blocked`, `halted`, `done` | Allow quietly and drop the binding. A `blocked` run waiting on the user (`awaiting` in hook-status) stays stopped until the user's reply resumes it. |
 | No binding, unreadable run, hook error | Allow. Hooks fail open. |
 | Grok session-end stop, subagent stop | Allow. |

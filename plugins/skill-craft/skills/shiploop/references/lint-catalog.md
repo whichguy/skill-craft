@@ -174,10 +174,10 @@ one is not, so none of these is added on an unconfirmed guess.
   row fully applied before the next starts, so a file more than one fixable
   row matches (today, only eslint and prettier overlap) composes correctly
   instead of one tool's fix clobbering another's.
-- The whole pass has a wall-clock budget of about 120 seconds (60 per tool
-  call) that also bounds Git plumbing; files over 2 MB and changed-line diffs
-  too large to attribute are not fixed, and skipped tools and files are
-  reported.
+- The pass has no wall-clock budget and no file-count cap: every changed file
+  in scope is read and linted. Each tool call has a 60-second hang guard and
+  each Git call its own; files over 2 MB and changed-line diffs too large to
+  attribute are not fixed, and a tool that timed out is reported.
 
 ## Not run by ShipLoop
 

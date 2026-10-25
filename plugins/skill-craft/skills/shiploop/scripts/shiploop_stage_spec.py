@@ -66,13 +66,12 @@ ADD_WORK_SHAPE = ('{"outcome": "add-work", "summary": "<what the corrective item
 IMPROVE_RULES = ("always", "last-item", "step", "first-item")
 
 # A work item whose goal proves wrong while it is being built goes back to its
-# step plan with the evidence, at most MAX_SEND_BACKS times; after that the user
-# decides (blocked, awaiting an answer).
+# step plan with the evidence.  No count of send-backs stops it (owner 2026-10-24:
+# no run caps); state.md ``revisions`` records how many there were.
 SEND_BACK_TO = "step-plan"
-MAX_SEND_BACKS = 2
 # Two OUTER stages run a plan another OUTER stage wrote: system-test runs system-test-author's, release-verify runs
 # release-plan's.  A wrong record there goes back to the stage that wrote it, which reruns with the result as evidence,
-# then every stage after it (run-insights N5, build plan S1.5).  Each target has its own budget of MAX_SEND_BACKS.
+# then every stage after it (run-insights N5, build plan S1.5).  Each target has its own count in ``revisions``.
 OUTER_SEND_BACK_TO: Mapping[str, str] = MappingProxyType({"system-test": "system-test-author",
                                                           "release-verify": "release-plan"})
 

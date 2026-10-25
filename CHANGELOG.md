@@ -4,6 +4,33 @@ Written by scripts/release.py.
 
 ## 2026-10-25
 
+### skill-craft 2.11.0
+
+- Skills: shiploop 1.11.0
+
+### shiploop 1.11.0
+
+- A result revised by an Improve review now meets the same size limits as a submitted one (step task 700 characters,
+  proof 600, a step's criteria 1,200, a work item's context and open assumptions). Before, the Improve import skipped
+  these limits, so a review could lengthen a step plan past what its implement packet is sized to print.
+- The test-stage judge no longer calls a command "passed" when it exits 0 but its
+  own output reports a failed test (a wrapper or build step swallowing the
+  runner's real nonzero exit). The refusal for that case now names the runner's
+  tally instead of the bare, misleading `exit 0`.
+- ShipLoop no longer stops work on a count or a clock (owner, 2026-10-24: no artificially imposed limits):
+  - No refused-run cap: `done` is judged on every submission however many runs were refused (was 11), and the packet
+    still shows the tally. The test stage's remedy opens without a loop receipt only after a run that could not run.
+  - No send-back cap: a work item or an outer target can be sent back any number of times (was 2); `revisions` still
+    counts them, and packets say "send-back N" instead of "N of 2".
+  - No keepalive release after 22 continuations without an accepted result; Grok's own 8-continuation turn cap stays.
+  - No whole-run time budget for the test stage (was 1,800 s), the mutation check (600 s) or the lint pass (120 s), and
+    no 200-file lint cap: every command, mutant and changed file runs. Each command keeps its own hang guard.
+- The step-plan template now gives each step a countable size: at most 4 criteria and 3 product files (a file that only
+  describes another changed file counts with it; tests, docs and its proof script do not). A second module or layer, two
+  separately confirmable behaviours or two outcomes joined with "and" make another step. Each step's `paths` now name
+  every file it changes, and on a remote-only target the steps share one proof script. The unused `STEP_SIZING`
+  constant, an older copy of the sizing rule, is removed.
+
 ### skill-craft 2.10.1
 
 - Skills: shiploop 1.10.1
