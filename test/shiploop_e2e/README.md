@@ -1765,6 +1765,43 @@ to them. Every card carries `scorecard: scorecard/1`, and two cards are compared
 The tests are `ScorecardTest` in `test/shiploop-e2e-baseline.test.py`, over compact extracts of real runs in
 `test/fixtures/scorecard` (`extract.py` rebuilds them).
 
+## The promotion contract: promote, drop or undecided
+
+```sh
+python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_CARDS ... --candidate RUN_OR_CARDS ... [--json]
+```
+
+This is the one scripted rule (SPEC "The promotion contract", contract `promotion/1`) that decides whether a candidate change
+to ShipLoop is promoted. It reads the two arms' scorecards: run folders, or card files from `scorecard.py --out`.
+
+**The registration, written before the runs,** names:
+- the cases, each a `regression` (an established requirement) or a `capability` (being improved);
+- the required floors (accuracy and fidelity by default);
+- the efficiency metrics in order (`cost_usd`, `minutes`, `turns`; `tokens` arrives with build step 8);
+- a quality tolerance, a relative efficiency tolerance, and any budget.
+
+A run that began before `registered_at` makes the decision UNDECIDED. For card files the run start is unknown, so it is
+not checked.
+
+**The rule, in order:**
+1. Missing coverage or a required floor not measured: UNDECIDED, never a pass.
+2. A regression case's success share falls: DROP.
+3. Over the registered budget: DROP.
+4. A capability case's share rises: PROMOTE, with its cost per success stated. A slower or dearer correctness fix still
+   promotes.
+5. A share falls with no gain: DROP.
+6. At equal quality, each efficiency metric in turn, as all-attempt cost per successful case, compared within a case and
+   only on cards whose validity is comparable: no case dearer and one cheaper beyond the tolerance is PROMOTE; one dearer
+   is DROP; otherwise the next metric is asked.
+7. None decides: UNDECIDED, an inconclusive optimisation.
+
+Every attempt counts, stops and resumes included. No model judgement enters. It decides promotion only, never a run's
+`pass`, exit code or baseline row.
+
+Exit codes: 0 PROMOTE, 3 DROP, 4 UNDECIDED, 1 for a registration that cannot be used. The tests are `PromotionContractTest`
+in `test/shiploop-e2e-baseline.test.py`, including Astra's three decision examples and real gate cards: the 2.9.0 gate
+overlapped, so it can't promote an efficiency change.
+
 ## Review one run
 
 ```sh

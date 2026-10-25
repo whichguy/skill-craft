@@ -35,6 +35,7 @@ import metrics  # noqa: E402
 import progress  # noqa: E402
 import run  # noqa: E402
 import scorecard  # noqa: E402
+import promotion  # noqa: E402
 
 FIXTURES = ROOT / "test" / "fixtures" / "baseline-spread"
 
@@ -2189,6 +2190,139 @@ class ScorecardTest(unittest.TestCase):
             scorecard.main([str(runs)])
         self.assertIn("scorecard/1: 7 run(s)", text.getvalue())
         self.assertIn("not comparable: resumed", text.getvalue())
+
+
+def card(case: str, *, passed: bool = True, fidelity: bool | None = True, cost: float | None = 5.0, minutes: float = 20.0,
+         comparable: bool = True) -> dict:
+    """A scorecard/1 card with only what the promotion contract reads."""
+    return {"scorecard": scorecard.SCORECARD_ID, "observed": True, "case": case,
+            "floors": {"accuracy": passed, "enterprise": None, "fidelity": fidelity},
+            "validity": {"comparable": comparable},
+            "efficiency": {"cost_usd": cost, "minutes": minutes, "turns": 200, "tokens": None}}
+
+
+class PromotionContractTest(unittest.TestCase):
+    """test/shiploop_e2e/promotion.py, build step 1 (SPEC "The promotion contract"; R1 and R16 of
+    docs/shiploop-e2e-loop-recommendations-2026-10-25.md). Astra's done signal: a slower correctness fix promotes, a faster
+    regression drops, an inconclusive optimisation stays undecided."""
+
+    REG = {"contract": "promotion/1", "cases": {"hello": "regression", "battleship": "capability"}}
+
+    def reg(self, **changes) -> dict:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "reg.json"
+        path.write_text(json.dumps({**self.REG, **changes}))
+        return promotion.load_registration(path)
+
+    @staticmethod
+    def arm(*cards) -> list:
+        return [(c, None) for c in cards]
+
+    def test_the_three_decision_examples(self):
+        reg = self.reg()
+        # A slower, dearer change that makes the capability case pass: quality first.
+        slower_fix = promotion.decide(reg, self.arm(card("hello"), card("battleship", passed=False, cost=5.0, minutes=20)),
+                                      self.arm(card("hello"), card("battleship", cost=9.0, minutes=40)))
+        self.assertEqual(slower_fix["decision"], "PROMOTE", slower_fix["reasons"])
+        self.assertIn("quality rose on battleship", slower_fix["reasons"][0])
+        self.assertEqual(slower_fix["cases"]["battleship"]["cost_per_success"]["cost_usd"], {"control": None, "candidate": 9.0})
+        # A faster, cheaper change that breaks an established requirement.
+        faster_regression = promotion.decide(reg, self.arm(card("hello"), card("battleship")),
+                                             self.arm(card("hello", passed=False, cost=1.0, minutes=5), card("battleship", cost=1.0)))
+        self.assertEqual(faster_regression["decision"], "DROP")
+        self.assertIn("an established requirement fell: hello", faster_regression["reasons"][0])
+        # Equal quality and a cost change inside the tolerance.
+        inconclusive = promotion.decide(reg, self.arm(card("hello", cost=5.0), card("battleship", cost=5.0)),
+                                        self.arm(card("hello", cost=4.8), card("battleship", cost=5.1, minutes=19.5)))
+        self.assertEqual(inconclusive["decision"], "UNDECIDED")
+        self.assertIn("inconclusive optimisation", inconclusive["reasons"][0])
+
+    def test_missing_coverage_and_an_unmeasured_required_floor_are_undecided_never_a_pass(self):
+        reg = self.reg()
+        no_case = promotion.decide(reg, self.arm(card("hello"), card("battleship")), self.arm(card("hello")))
+        self.assertEqual((no_case["decision"], no_case["reasons"]), ("UNDECIDED", ["no card for battleship (candidate)"]))
+        unmeasured = promotion.decide(reg, self.arm(card("hello"), card("battleship")),
+                                      self.arm(card("hello"), card("battleship", fidelity=None)))
+        self.assertEqual(unmeasured["decision"], "UNDECIDED")
+        self.assertIn("not measured for battleship (candidate)", unmeasured["reasons"][0])
+        # Enterprise is null on every scorecard/1 card: requiring it leaves every decision undecided, so it is not the default.
+        self.assertEqual(promotion.decide(self.reg(floors=["accuracy", "enterprise"]), self.arm(card("hello"), card("battleship")),
+                                          self.arm(card("hello"), card("battleship")))["decision"], "UNDECIDED")
+
+    def test_a_regression_outweighs_a_gain_and_a_gain_over_budget_drops(self):
+        both = promotion.decide(self.reg(), self.arm(card("hello"), card("battleship", passed=False)),
+                                self.arm(card("hello", passed=False), card("battleship")))
+        self.assertEqual(both["decision"], "DROP")
+        over = promotion.decide(self.reg(budget={"cost_usd": 8.0}), self.arm(card("hello"), card("battleship", passed=False)),
+                                self.arm(card("hello"), card("battleship", cost=9.0)))
+        self.assertEqual(over["decision"], "DROP")
+        self.assertIn("over the registered budget of 8.0 cost_usd per success: battleship", over["reasons"][0])
+
+    def test_every_attempt_counts_toward_the_share_and_the_cost(self):
+        # Two attempts, one stopped (accuracy false): the share is 1/2, and the stopped attempt's cost counts.
+        reg = self.reg(cases={"battleship": "capability"})
+        report = promotion.decide(reg, self.arm(card("battleship", passed=False)),
+                                  self.arm(card("battleship", passed=False, cost=4.0), card("battleship", cost=6.0)))
+        self.assertEqual(report["cases"]["battleship"]["candidate"], {"attempts": 2, "successes": 1, "share": 0.5})
+        self.assertEqual(report["cases"]["battleship"]["cost_per_success"]["cost_usd"]["candidate"], 10.0)
+        self.assertEqual(report["decision"], "PROMOTE")
+
+    def test_at_equal_quality_efficiency_decides_only_on_comparable_cards_and_in_the_registered_order(self):
+        reg = self.reg()
+        cheaper = promotion.decide(reg, self.arm(card("hello", cost=5.0), card("battleship", cost=5.0)),
+                                   self.arm(card("hello", cost=3.0), card("battleship", cost=5.0)))
+        self.assertEqual(cheaper["decision"], "PROMOTE")
+        self.assertIn("cost_usd per success is lower beyond the tolerance on hello", cheaper["reasons"][0])
+        dearer = promotion.decide(reg, self.arm(card("hello", cost=5.0), card("battleship", cost=5.0)),
+                                  self.arm(card("hello", cost=3.0), card("battleship", cost=7.0)))
+        self.assertEqual(dearer["decision"], "DROP", "one case dearer beyond the tolerance outweighs another case cheaper")
+        overlapped = promotion.decide(reg, self.arm(card("hello"), card("battleship")),
+                                      self.arm(card("hello", cost=1.0, comparable=False), card("battleship")))
+        self.assertEqual(overlapped["decision"], "UNDECIDED")
+        self.assertIn("timing evidence is not comparable for hello", overlapped["reasons"][0])
+        # cost moved within the tolerance, so minutes, the next registered metric, decides.
+        by_minutes = promotion.decide(reg, self.arm(card("hello", minutes=20), card("battleship", minutes=20)),
+                                      self.arm(card("hello", cost=5.1, minutes=10), card("battleship", minutes=20)))
+        self.assertEqual(by_minutes["decision"], "PROMOTE")
+        self.assertIn("minutes per success", by_minutes["reasons"][0])
+        tokens = promotion.decide(self.reg(efficiency=["tokens"]), self.arm(card("hello"), card("battleship")),
+                                  self.arm(card("hello"), card("battleship")))
+        self.assertEqual(tokens["decision"], "UNDECIDED")
+        self.assertIn("tokens per success is not measured", " ".join(tokens["notes"]))
+
+    def test_a_registration_written_after_a_run_began_is_undecided_and_a_bad_one_is_refused(self):
+        late = promotion.decide(self.reg(registered_at=2000.0), [(card("hello"), 1500.0), (card("battleship"), 2500.0)],
+                                [(card("hello"), 2600.0), (card("battleship"), 2700.0)])
+        self.assertEqual((late["decision"], late["reasons"]),
+                         ("UNDECIDED", ["the registration was written after a run it judges began"]))
+        for bad in ({"contract": "promotion/0", "cases": {"hello": "regression"}},
+                    {"contract": "promotion/1", "cases": {"hello": "important"}},
+                    {"contract": "promotion/1", "cases": {"hello": "regression"}, "efficiency": ["vibes"]}):
+            with self.subTest(bad=bad), tempfile.TemporaryDirectory() as tmp:
+                (Path(tmp) / "r.json").write_text(json.dumps(bad))
+                with self.assertRaises(SystemExit):
+                    promotion.load_registration(Path(tmp) / "r.json")
+
+    def test_the_cli_reads_run_folders_and_card_files_and_exits_by_decision(self):
+        # Real gate cards: the same hello run as both arms is equal quality, but it overlapped other runs, so efficiency
+        # cannot decide. Today's 2.9.0 gate evidence could not promote an efficiency change.
+        runs = ROOT / "test" / "fixtures" / "scorecard" / "runs"
+        hello = runs / "20261024" / "gate-290-b60ed7-claude-batch" / "hello"
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ):
+            os.environ.pop("SHIPLOOP_E2E_RUNS_ROOT", None)
+            reg = Path(tmp) / "reg.json"
+            reg.write_text(json.dumps({"contract": "promotion/1", "cases": {"hello": "regression"}}))
+            cards = Path(tmp) / "cards.json"
+            with contextlib.redirect_stdout(io.StringIO()):
+                scorecard.main([str(hello), "--out", str(cards)])
+            printed = io.StringIO()
+            with contextlib.redirect_stdout(printed):
+                code = promotion.main(["--registration", str(reg), "--control", str(hello), "--candidate", str(cards), "--json"])
+        report = json.loads(printed.getvalue())
+        self.assertEqual((code, report["decision"]), (promotion.EXIT["UNDECIDED"], "UNDECIDED"))
+        self.assertIn("timing evidence is not comparable for hello", report["reasons"][0])
+        self.assertIn("card files carry no run start", " ".join(report["notes"]))
 
 
 if __name__ == "__main__":
