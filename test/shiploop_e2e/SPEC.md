@@ -505,7 +505,9 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   reads every run folder under a **runs root**, not only the same parent folder.
   The root is `$SHIPLOOP_E2E_RUNS_ROOT` where set, else the output's grandparent,
   else its parent where the grandparent is the home folder, the temporary
-  folder or the file system root; the walk does not enter a run folder or a
+  folder or the file system root; a suite case reads its suite folder's root
+  (the suite sets the variable for its cases, so `<runs>/<day>/<suite>/<case>`
+  reads `<runs>`, not `<runs>/<day>`); the walk does not enter a run folder or a
   hidden folder, and a neighbour whose timeline was last written before this run
   began is counted in `ended_before` and not read. Each neighbour is named by its
   path under the root. A run outside the root is still not seen. The baseline
